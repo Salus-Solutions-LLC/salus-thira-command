@@ -5,7 +5,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 RUN useradd --create-home --uid 10001 salus
 COPY . .
-RUN python tools/reconstruct_v06_source.py && python tools/verify_v06_source.py
+RUN python tools/reconstruct_v07_source.py && python tools/verify_v07_source.py
 RUN mkdir -p /app/attachments /app/backups /app/data && chown -R salus:salus /app
 USER salus
 EXPOSE 8000
