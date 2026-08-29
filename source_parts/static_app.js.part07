@@ -1,0 +1,20 @@
+async function renderAssessmentSelector(){
+  const host=document.querySelector('.topbar'); if(!host)return; const rows=await api('/api/assessments');
+  let sel=document.querySelector('#assessment-select'); if(!sel){sel=document.createElement('select');sel.id='assessment-select';sel.setAttribute('aria-label','Active assessment'); const box=document.querySelector('#identity-box'); if(box)box.insertBefore(sel,box.firstChild);}
+  if(rows.length&&!rows.some(x=>x.id===activeAssessmentId)){activeAssessmentId=rows[0].id;localStorage.setItem('salus_assessment_id',String(activeAssessmentId));}
+  sel.innerHTML=rows.length?rows.map(a=>`<option value="${a.id}" ${a.id===activeAssessmentId?'selected':''}>${esc(a.organization)} — ${esc(a.name)}</option>`).join(''):'<option>No assessments</option>';
+  sel.disabled=!rows.length; sel.onchange=e=>{activeAssessmentId=Number(e.target.value);localStorage.setItem('salus_assessment_id',String(activeAssessmentId));editingRecord=null;render();};
+}
+
+function renderIdentity(){
+  const host=document.querySelector('.topbar'); if(!host||document.querySelector('#identity-box')) return;
+  const box=document.createElement('div'); box.id='identity-box'; box.className='identity-box';
+  box.innerHTML=`<input id="user-name" value="${esc(currentUser)}" aria-label="User name"/><select id="role-select" aria-label="Role">${['System Administrator','Assessment Director','Lead Assessor','SME Assessor','Client Executive','Program Owner','Contributor','Auditor'].map(r=>`<option ${r===currentRole?'selected':''}>${r}</option>`).join('')}</select><div class="status-pill">Prototype v0.4 / Local</div>`;
+  const old=host.querySelector('.status-pill'); if(old) old.remove(); host.appendChild(box);
+  $('#user-name').onchange=e=>{currentUser=e.target.value||'Prototype User';localStorage.setItem('salus_user',currentUser)};
+  $('#role-select').onchange=e=>{currentRole=e.target.value;localStorage.setItem('salus_role',currentRole);render()};
+}
+renderIdentity();
+renderAssessmentSelector();
+
+render();
