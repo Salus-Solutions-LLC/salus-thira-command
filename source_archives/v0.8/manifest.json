@@ -3,10 +3,17 @@
     "app.py": {
       "archive_sha256": "015f7605d8312342326190835ab74e385c30ae55d9e3fdea279ebb4fc62c2a8d",
       "chunks": [
-        "app_py_01.gz.b64",
-        "app_py_02.gz.b64",
-        "app_py_03.gz.b64",
-        "app_py_04.gz.b64"
+        "app_py_s01.gz.b64",
+        "app_py_s02.gz.b64",
+        "app_py_s03.gz.b64",
+        "app_py_s04.gz.b64",
+        "app_py_s05.gz.b64",
+        "app_py_s06.gz.b64",
+        "app_py_s07.gz.b64",
+        "app_py_s08.gz.b64",
+        "app_py_s09.gz.b64",
+        "app_py_s10.gz.b64",
+        "app_py_s11.gz.b64"
       ],
       "sha256": "509f8d150d5ce6c98346619727754e3513dd6e29b500ea25e2ea7760b381f9a0",
       "size_bytes": 105172
@@ -14,9 +21,12 @@
     "static/app.js": {
       "archive_sha256": "d747b9b6b7a87683967c65c3ad00b21a4fde138f4737d88b7fd99ce11f7ad87d",
       "chunks": [
-        "static_app_js_01.gz.b64",
-        "static_app_js_02.gz.b64",
-        "static_app_js_03.gz.b64"
+        "static_app_js_s01.gz.b64",
+        "static_app_js_s02.gz.b64",
+        "static_app_js_s03.gz.b64",
+        "static_app_js_s04.gz.b64",
+        "static_app_js_s05.gz.b64",
+        "static_app_js_s06.gz.b64"
       ],
       "sha256": "10e051bc8bc19d066a00d0dce39fa0d96a5e74e5ab4283943414951de3b05b8a",
       "size_bytes": 47533
