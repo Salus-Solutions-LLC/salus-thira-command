@@ -1,0 +1,30 @@
+const $ = s => document.querySelector(s);
+let currentView='dashboard';
+let currentRole=localStorage.getItem('salus_role')||'Assessment Director';
+let currentUser=localStorage.getItem('salus_user')||'Prototype User';
+let activeAssessmentId=Number(localStorage.getItem('salus_assessment_id')||0);
+let editingRecord=null;
+const subtitles={dashboard:'What changed, what matters, and what needs a decision.',risk:'Inherent risk, demonstrated capability, current risk, and estimated residual risk.',priorities:'Transparent improvement ranking across consequence reduction, mission benefit, feasibility, sustainability, compliance, staffing, cost, and time.',reassessment:'Event-driven reassessment triggers from intelligence, incidents, exercises, changes, and completed improvements.',assessments:'Controlled workspaces for each THIRA engagement.',threats:'Evidence-based threats and hazards, screened and traceable.',scenarios:'Credible operating conditions, consequences, assumptions, and decisions.',capabilities:'Required outcomes measured against demonstrated performance.',evidence:'A controlled evidence register with reliability and verification.',gaps:'Required capability versus demonstrated capability.',improvements:'Competing improvement alternatives, costs, and expected benefit.',decisions:'Approve, defer, reject, transfer, monitor, or accept risk.',implementation:'Track approved actions through validation and closure.',reports:'Executive summary generated from the live assessment record.',trace:'Trace each finding from mission through decision.',attachments:'Controlled evidence attachments with file integrity hashes.',governance:'Workflow transitions, scope-change approvals, assessment versions, and revision history.',audit:'Immutable prototype activity history.',configuration:'Assessment consequence weighting and prototype role permissions.'};
+
+async function api(url,opts={}){const r=await fetch(url,{headers:{'Content-Type':'application/json','X-Salus-Role':currentRole,'X-Salus-User':currentUser,...(opts.headers||{})},...opts}); if(!r.ok) throw new Error(await r.text()); return r.json();}
+async function getActiveAssessment(){const rows=await api('/api/assessments'); if(!rows.length)return null; let a=rows.find(x=>x.id===activeAssessmentId); if(!a){a=rows[0];activeAssessmentId=a.id;localStorage.setItem('salus_assessment_id',String(a.id));} return a;}
+function scopedUrl(key){return key==='assessments'||!activeAssessmentId?'/api/'+key:`/api/${key}?assessment_id=${activeAssessmentId}`;}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function fmtMoney(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(v||0))}
+function badge(v){return `<span class="badge ${String(v||'').toLowerCase()}">${esc(v)}</span>`}
+function setView(v){currentView=v; [...document.querySelectorAll('#nav button')].forEach(b=>b.classList.toggle('active',b.dataset.view===v)); $('#page-title').textContent=v==='dashboard'?'Command Center':v.replace(/\b\w/g,c=>c.toUpperCase()); $('#page-subtitle').textContent=subtitles[v]||''; render();}
+[...document.querySelectorAll('#nav button')].forEach(b=>b.onclick=()=>setView(b.dataset.view));
+
+async function render(){try{if(currentView==='dashboard') return dashboard(); if(currentView==='risk') return riskAnalytics(); if(currentView==='priorities') return prioritization(); if(currentView==='reassessment') return entityView('reassessment_triggers'); if(currentView==='trace') return trace(); if(currentView==='attachments') return attachments(); if(currentView==='governance') return governance(); if(currentView==='audit') return audit(); if(currentView==='implementation') return implementation(); if(currentView==='reports') return reports(); if(currentView==='configuration') return configuration(); return entityView(currentView);}catch(e){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(e.message)}</div>`}}
+
+async function dashboard(){const d=await api('/api/dashboard'); const s=d.stats; $('#content').innerHTML=`
+<div class="grid stats">
+ ${metric('Active Assessments',s.assessments)}${metric('Threats / Hazards',s.threats)}${metric('Scenarios',s.scenarios)}${metric('High / Critical Gaps',s.high_gaps)}
+ ${metric('Capabilities',s.capabilities)}${metric('Pending Decisions',s.pending_decisions)}${metric('Open Reassessment Triggers',s.open_reassessment_triggers)}${metric('Critical Triggers',s.critical_reassessment_triggers)}
+ ${metric('Evidence Files',s.evidence_files)}${metric('Pending Scope Changes',s.pending_scope_changes)}${metric('Revision Snapshots',s.revision_snapshots)}${metric('Approved Investment',fmtMoney(s.approved_investment))}${metric('Avg Capability Gap',Number(s.avg_capability_gap).toFixed(1)+' pts')}
+</div>
+<div class="notice"><strong>Executive question:</strong> What changed since the last review, and what requires a decision now?</div>
+<div class="section-title"><h2>Assessment Portfolio</h2><button class="btn" onclick="setView('assessments')">Open Assessments</button></div>
+${table(['ID','Assessment','Organization','Type','Status','Scope','Version'],d.assessments.map(a=>[a.id,a.name,a.organization,a.assessment_type,badge(a.status),a.scope_locked?'Locked':'Open','v'+a.version]))}`}
+function metric(label,value){return `<div class="card metric"><span>${label}</span><strong>${value}</strong></div>`}
+function table(headers,rows){return `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${headers.length}" class="subtle">No records yet.</td></tr>`}</tbody></table>`}
