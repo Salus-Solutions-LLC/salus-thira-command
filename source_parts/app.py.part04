@@ -1,0 +1,180 @@
+WORKFLOW_STATES=['Draft','Scope Approved','Evidence Collection','Analysis','SME Review','Salus QA','Client Validation','Findings Finalized','Executive Decisions','Implementation','Validation','Active Monitoring','Reassessment']
+VERSIONED_TABLES={'assessments','threats','scenarios','capabilities','evidence','gaps','improvements','reassessment_triggers'}
+
+def entity_assessment_id(table, row):
+    return int(row['id']) if table=='assessments' else int(row['assessment_id'])
+
+def snapshot_entity(conn, table:str, entity_id:int, changed_by:str, reason:str):
+    if table not in VERSIONED_TABLES: return
+    row=conn.execute(f'SELECT * FROM {table} WHERE id=?',(entity_id,)).fetchone()
+    if not row: return
+    assessment_id=entity_assessment_id(table,row)
+    version_no=conn.execute('SELECT COALESCE(MAX(version_no),0)+1 n FROM entity_versions WHERE entity_type=? AND entity_id=?',(table,entity_id)).fetchone()['n']
+    conn.execute('INSERT INTO entity_versions(assessment_id,entity_type,entity_id,version_no,snapshot_json,change_reason,changed_by,created_at) VALUES(?,?,?,?,?,?,?,?)',
+                 (assessment_id,table,entity_id,version_no,json.dumps(dict(row),default=str,sort_keys=True),reason,changed_by,now()))
+
+def safe_filename(name:str):
+    base=os.path.basename(name or 'attachment')
+    base=re.sub(r'[^A-Za-z0-9._-]+','_',base).strip('._') or 'attachment'
+    return base[:180]
+
+def executive_package(assessment_id:int):
+    conn=db()
+    a=conn.execute('SELECT * FROM assessments WHERE id=?',(assessment_id,)).fetchone()
+    if not a: conn.close(); raise HTTPException(404)
+    tables=['threats','scenarios','capabilities','evidence','gaps','improvements','decisions','reassessment_triggers','scope_changes','workflow_events']
+    data={'generated_at':now(),'assessment':dict(a)}
+    for table in tables:
+        data[table]=[dict(r) for r in conn.execute(f'SELECT * FROM {table} WHERE assessment_id=? ORDER BY id',(assessment_id,))]
+    data['weights']=dict(conn.execute('SELECT * FROM assessment_weights WHERE assessment_id=?',(assessment_id,)).fetchone() or {})
+    data['versions']=[dict(r) for r in conn.execute('SELECT id,assessment_id,entity_type,entity_id,version_no,change_reason,changed_by,created_at FROM entity_versions WHERE assessment_id=? ORDER BY id',(assessment_id,))]
+    conn.close()
+    data['risk']=risk_summary(assessment_id)
+    data['priorities']=priorities(assessment_id)
+    return data
+
+def backfill_baseline_versions():
+    conn=db()
+    for table in VERSIONED_TABLES:
+        for row in conn.execute(f'SELECT * FROM {table} ORDER BY id'):
+            exists=conn.execute('SELECT 1 FROM entity_versions WHERE entity_type=? AND entity_id=? LIMIT 1',(table,row['id'])).fetchone()
+            if not exists:
+                snapshot_entity(conn,table,row['id'],'system-migration','v0.3 baseline snapshot')
+    conn.commit(); conn.close()
+
+backfill_baseline_versions()
+
+@app.get('/')
+def root():
+    return FileResponse(os.path.join(BASE_DIR,'static','index.html'))
+
+@app.get('/api/dashboard')
+def dashboard():
+    conn=db()
+    stats={}
+    for table in ['assessments','threats','scenarios','capabilities','evidence','gaps','improvements','decisions']:
+        stats[table]=conn.execute(f'SELECT COUNT(*) c FROM {table}').fetchone()['c']
+    stats['high_gaps']=conn.execute("SELECT COUNT(*) c FROM gaps WHERE severity IN ('High','Critical') AND status!='Closed'").fetchone()['c']
+    stats['pending_decisions']=conn.execute("SELECT COUNT(*) c FROM improvements WHERE status IN ('Proposed','Under Review')").fetchone()['c']
+    stats['approved_investment']=conn.execute('SELECT COALESCE(SUM(funding_authorized),0) s FROM decisions').fetchone()['s']
+    stats['avg_capability_gap']=conn.execute('SELECT COALESCE(AVG(MAX(required_standard-current_performance,0)),0) a FROM capabilities').fetchone()['a']
+    stats['open_reassessment_triggers']=conn.execute("SELECT COUNT(*) c FROM reassessment_triggers WHERE status='Open'").fetchone()['c']
+    stats['critical_reassessment_triggers']=conn.execute("SELECT COUNT(*) c FROM reassessment_triggers WHERE status='Open' AND severity='Critical'").fetchone()['c']
+    stats['evidence_files']=conn.execute('SELECT COUNT(*) c FROM evidence_attachments').fetchone()['c']
+    stats['pending_scope_changes']=conn.execute("SELECT COUNT(*) c FROM scope_changes WHERE decision='Pending'").fetchone()['c']
+    stats['revision_snapshots']=conn.execute('SELECT COUNT(*) c FROM entity_versions').fetchone()['c']
+    latest=[dict(r) for r in conn.execute('SELECT * FROM assessments ORDER BY updated_at DESC LIMIT 6')]
+    conn.close()
+    return {'stats':stats,'assessments':latest}
+
+@app.get('/api/{table}')
+def list_table(table: str, assessment_id: Optional[int]=None):
+    allowed={'assessments','threats','scenarios','capabilities','evidence','gaps','improvements','decisions','reassessment_triggers','audit_log','entity_versions','scope_changes','workflow_events','evidence_attachments'}
+    if table not in allowed: raise HTTPException(404)
+    conn=db()
+    q=f'SELECT * FROM {table}'
+    params=[]
+    if assessment_id is not None and table not in ('assessments','audit_log'):
+        q += ' WHERE assessment_id=?'; params.append(assessment_id)
+    order='id DESC' if table!='audit_log' else 'id DESC'
+    rows=[dict(r) for r in conn.execute(q+f' ORDER BY {order}',params)]
+    conn.close(); return rows
+
+@app.get('/api/trace/{assessment_id}')
+def trace(assessment_id:int):
+    conn=db()
+    a=conn.execute('SELECT * FROM assessments WHERE id=?',(assessment_id,)).fetchone()
+    if not a: raise HTTPException(404)
+    data={'assessment':dict(a),'threats':[]}
+    for t in conn.execute('SELECT * FROM threats WHERE assessment_id=?',(assessment_id,)):
+        td=dict(t); td['risk_raw']=td['likelihood']*td['vulnerability']*td['consequence']; td['scenarios']=[]
+        for s in conn.execute('SELECT * FROM scenarios WHERE threat_id=?',(t['id'],)):
+            sd=dict(s); sd['capabilities']=[]
+            for c in conn.execute('SELECT * FROM capabilities WHERE scenario_id=?',(s['id'],)):
+                cd=dict(c); cd['gap']=max(cd['required_standard']-cd['current_performance'],0)
+                cd['gaps']=[]
+                for g in conn.execute('SELECT * FROM gaps WHERE capability_id=?',(c['id'],)):
+                    gd=dict(g); gd['improvements']=[]
+                    for i in conn.execute('SELECT * FROM improvements WHERE gap_id=?',(g['id'],)):
+                        idd=dict(i); idd['decisions']=[dict(d) for d in conn.execute('SELECT * FROM decisions WHERE improvement_id=?',(i['id'],))]
+                        gd['improvements'].append(idd)
+                    cd['gaps'].append(gd)
+                sd['capabilities'].append(cd)
+            td['scenarios'].append(sd)
+        data['threats'].append(td)
+    conn.close(); return data
+
+def insert_model(table:str, payload:BaseModel, user_name:str='prototype-user'):
+    conn=db(); data=payload.model_dump(); ts=now(); data['created_at']=ts
+    if table!='decisions': data['updated_at']=ts
+    if table=='improvements':
+        score,_=improvement_priority(data); data['priority_score']=score
+    cols=','.join(data.keys()); qs=','.join('?'*len(data))
+    cur=conn.execute(f'INSERT INTO {table}({cols}) VALUES({qs})',tuple(data.values()))
+    audit(conn,'CREATE',table[:-1] if table.endswith('s') else table,cur.lastrowid,json.dumps(data,default=str)[:500],user_name)
+    snapshot_entity(conn,table,cur.lastrowid,user_name,'Record created')
+    conn.commit(); row=dict(conn.execute(f'SELECT * FROM {table} WHERE id=?',(cur.lastrowid,)).fetchone()); conn.close(); return row
+
+@app.post('/api/assessments')
+def create_assessment(p:AssessmentIn, request:Request): require(request,'write'); return insert_model('assessments',p,actor(request))
+@app.post('/api/threats')
+def create_threat(p:ThreatIn, request:Request): require(request,'write'); return insert_model('threats',p,actor(request))
+@app.post('/api/scenarios')
+def create_scenario(p:ScenarioIn, request:Request): require(request,'write'); return insert_model('scenarios',p,actor(request))
+@app.post('/api/capabilities')
+def create_capability(p:CapabilityIn, request:Request): require(request,'write'); return insert_model('capabilities',p,actor(request))
+@app.post('/api/evidence')
+def create_evidence(p:EvidenceIn, request:Request): require(request,'write'); return insert_model('evidence',p,actor(request))
+@app.post('/api/gaps')
+def create_gap(p:GapIn, request:Request): require(request,'write'); return insert_model('gaps',p,actor(request))
+@app.post('/api/improvements')
+def create_improvement(p:ImprovementIn, request:Request): require(request,'write'); return insert_model('improvements',p,actor(request))
+@app.post('/api/decisions')
+def create_decision(p:DecisionIn, request:Request):
+    require(request,'decide')
+    row=insert_model('decisions',p,actor(request))
+    if p.improvement_id:
+        conn=db(); new_status='Approved' if p.decision_type in ('Approve','Approve with Conditions') else 'Decision Recorded'
+        conn.execute('UPDATE improvements SET status=?, updated_at=? WHERE id=?',(new_status,now(),p.improvement_id)); audit(conn,'UPDATE','improvement',p.improvement_id,f'Decision recorded: {p.decision_type}',actor(request)); conn.commit(); conn.close()
+    return row
+
+@app.post('/api/reassessment_triggers')
+def create_trigger(p:TriggerIn, request: Request):
+    require(request,'write')
+    return insert_model('reassessment_triggers',p,actor(request))
+
+@app.get('/api/system/access')
+def access(request: Request):
+    r=role(request); return {'user':actor(request),'role':r,'permissions':sorted(ROLE_PERMISSIONS.get(r,{'read'})),'roles':list(ROLE_PERMISSIONS.keys())}
+
+@app.get('/api/risk/{assessment_id}')
+def risk_summary(assessment_id:int):
+    conn=db()
+    threats=[dict(x) for x in conn.execute('SELECT * FROM threats WHERE assessment_id=? ORDER BY id',(assessment_id,))]
+    scenarios=[dict(x) for x in conn.execute('SELECT * FROM scenarios WHERE assessment_id=? ORDER BY id',(assessment_id,))]
+    caps=[dict(x) for x in conn.execute('SELECT * FROM capabilities WHERE assessment_id=? ORDER BY id',(assessment_id,))]
+    imps=[dict(x) for x in conn.execute('SELECT * FROM improvements WHERE assessment_id=? ORDER BY id',(assessment_id,))]
+    decisions=[dict(x) for x in conn.execute('SELECT * FROM decisions WHERE assessment_id=? ORDER BY id',(assessment_id,))]
+    approved_ids={d['improvement_id'] for d in decisions if d['improvement_id'] and d['decision_type'] in ('Approve','Approve with Conditions')}
+    gaps=[dict(x) for x in conn.execute('SELECT * FROM gaps WHERE assessment_id=?',(assessment_id,))]
+    out=[]
+    weights_row=conn.execute('SELECT * FROM assessment_weights WHERE assessment_id=?',(assessment_id,)).fetchone()
+    weights=dict(weights_row) if weights_row else {'life_safety':1,'mission':1,'operations':1,'financial':1,'legal_regulatory':1,'reputation':1,'recovery':1}
+    dims=['life_safety','mission','operations','financial','legal_regulatory','reputation','recovery']
+    for t in threats:
+        tscens=[x for x in scenarios if x['threat_id']==t['id']]
+        scenario_consequences=[]
+        for sc in tscens:
+            denom=sum(float(weights.get(d,1)) for d in dims) or 1
+            scenario_consequences.append(sum(float(sc[d])*float(weights.get(d,1)) for d in dims)/denom)
+        modeled_consequence=(sum(scenario_consequences)/len(scenario_consequences)) if scenario_consequences else float(t['consequence'])
+        inherent=round(float(t['likelihood'])*float(t['vulnerability'])*modeled_consequence/125*100,1)
+        tcaps=[]
+        for sc in tscens: tcaps.extend([c for c in caps if c['scenario_id']==sc['id']])
+        effs=[capability_effectiveness(c['required_standard'],c['current_performance']) for c in tcaps]
+        eff=round(sum(effs)/len(effs),1) if effs else 0.0
+        current=round(inherent*max(.25,1-(eff/100*.75)),1)
+        capids={c['id'] for c in tcaps}; gapids={g['id'] for g in gaps if g['capability_id'] in capids}
+        related=[i for i in imps if i['gap_id'] in gapids and i['id'] in approved_ids]
+        expected_reduction=min(.45,(sum(clamp(float(i['consequence_reduction']),1,5) for i in related)/len(related))/5*.45) if related else 0
+        residual=round(current*(1-expected_reduction),1)
