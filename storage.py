@@ -1,10 +1,12 @@
 import os
 from pathlib import Path
+from secret_provider import secret
 
 class StorageError(RuntimeError):
     pass
 
 class LocalStorage:
+    backend='local'
     def __init__(self, root: str):
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
@@ -35,13 +37,24 @@ class LocalStorage:
         probe='.healthcheck'; self.put_bytes(probe,b'ok'); ok=self.get_bytes(probe)==b'ok'; self.delete(probe); return ok
 
 class AzureBlobStorage:
-    def __init__(self, connection_string: str, container: str):
-        if not connection_string: raise StorageError('SALUS_AZURE_STORAGE_CONNECTION_STRING is required')
+    backend='azure'
+    def __init__(self, connection_string: str, container: str, account_url: str=''):
         try:
             from azure.storage.blob import BlobServiceClient
         except ImportError as exc:
             raise StorageError('azure-storage-blob is required for Azure storage') from exc
-        svc=BlobServiceClient.from_connection_string(connection_string)
+        if account_url:
+            try:
+                from azure.identity import DefaultAzureCredential
+            except ImportError as exc:
+                raise StorageError('azure-identity is required for passwordless Azure storage') from exc
+            svc=BlobServiceClient(account_url=account_url,credential=DefaultAzureCredential())
+            self.auth='managed_identity'
+        elif connection_string:
+            svc=BlobServiceClient.from_connection_string(connection_string)
+            self.auth='connection_string'
+        else:
+            raise StorageError('Set SALUS_AZURE_STORAGE_ACCOUNT_URL for managed identity or SALUS_AZURE_STORAGE_CONNECTION_STRING')
         self.container=svc.get_container_client(container)
         try: self.container.create_container()
         except Exception: pass
@@ -60,6 +73,10 @@ class AzureBlobStorage:
 def build_storage(base_dir: str):
     backend=os.getenv('SALUS_STORAGE_BACKEND','local').strip().lower()
     if backend=='azure':
-        return AzureBlobStorage(os.getenv('SALUS_AZURE_STORAGE_CONNECTION_STRING',''),os.getenv('SALUS_AZURE_STORAGE_CONTAINER','salus-thira-evidence'))
+        return AzureBlobStorage(
+            secret('SALUS_AZURE_STORAGE_CONNECTION_STRING',''),
+            os.getenv('SALUS_AZURE_STORAGE_CONTAINER','salus-thira-evidence'),
+            os.getenv('SALUS_AZURE_STORAGE_ACCOUNT_URL','').strip(),
+        )
     root=os.getenv('SALUS_LOCAL_STORAGE_DIR',os.path.join(base_dir,'attachments'))
     return LocalStorage(root)
