@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Salus THIRA Command</title>
+<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">S</div><div><strong>Salus THIRA</strong><span>Command</span></div></div>
+    <nav id="nav">
+      <button class="active" data-view="dashboard">Command Center</button>
+      <button data-view="assessments">Assessments</button>
+      <button data-view="threats">Threats & Hazards</button>
+      <button data-view="risk">Risk Analytics</button>
+      <button data-view="scenarios">Scenarios</button>
+      <button data-view="capabilities">Capabilities</button>
+      <button data-view="evidence">Evidence</button>
+      <button data-view="attachments">Evidence Files</button>
+      <button data-view="gaps">Gaps</button>
+      <button data-view="improvements">Improvements</button>
+      <button data-view="priorities">Prioritization</button>
+      <button data-view="decisions">Executive Decisions</button>
+      <button data-view="reassessment">Reassessment Triggers</button>
+      <button data-view="implementation">Implementation Tracker</button>
+      <button data-view="reports">Reports</button>
+      <button data-view="trace">Traceability</button>
+      <button data-view="governance">Governance</button>
+      <button data-view="audit">Audit Log</button>
+      <button data-view="configuration">Configuration</button>
+    </nav>
+    <div class="sidebar-note">Prototype v0.4<br/>Assessment → Decision → Residual Risk</div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><h1 id="page-title">Command Center</h1><p id="page-subtitle">What changed, what matters, and what needs a decision.</p></div>
+      <div class="status-pill">Prototype / Local</div>
+    </header>
+    <section id="content"></section>
+  </main>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
