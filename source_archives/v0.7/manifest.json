@@ -1,0 +1,28 @@
+{
+  "files": {
+    "app.py": {
+      "archive_sha256": "dd1bf5662557251e0bca78c01770c5d195c6ddf9655619d25789bf47797387e1",
+      "chunks": [
+        "app_py_01.gz.b64",
+        "app_py_02.gz.b64",
+        "app_py_03.gz.b64",
+        "app_py_04.gz.b64",
+        "app_py_05.gz.b64",
+        "app_py_06.gz.b64"
+      ],
+      "sha256": "4cffe4d2550d503d8872098eb50e621b0004ecdb88a1bacdb7ca0cf1da8d62ce",
+      "size_bytes": 102258
+    },
+    "static/app.js": {
+      "archive_sha256": "23ec03786de7236824ccf589839b3b4d16d5fb2a74e0223e29a20d6318dd850a",
+      "chunks": [
+        "static_app_js_01.gz.b64",
+        "static_app_js_02.gz.b64",
+        "static_app_js_03.gz.b64"
+      ],
+      "sha256": "f52a70daa19213f48ddd7caaeba1571897f4e3b82a4c59fe67bdb7decb93d5c4",
+      "size_bytes": 47473
+    }
+  },
+  "version": "0.7.0"
+}
