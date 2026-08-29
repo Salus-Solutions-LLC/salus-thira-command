@@ -1,0 +1,180 @@
+      recurring_cost REAL NOT NULL DEFAULT 0,
+      implementation_days INTEGER NOT NULL DEFAULT 0,
+      feasibility INTEGER NOT NULL DEFAULT 3,
+      consequence_reduction INTEGER NOT NULL DEFAULT 3,
+      mission_benefit INTEGER NOT NULL DEFAULT 3,
+      sustainability INTEGER NOT NULL DEFAULT 3,
+      dependencies TEXT NOT NULL DEFAULT '',
+      owner TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Proposed',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (gap_id) REFERENCES gaps(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS decisions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assessment_id INTEGER NOT NULL,
+      improvement_id INTEGER,
+      decision_type TEXT NOT NULL,
+      authority TEXT NOT NULL DEFAULT '',
+      rationale TEXT NOT NULL DEFAULT '',
+      funding_authorized REAL NOT NULL DEFAULT 0,
+      conditions TEXT NOT NULL DEFAULT '',
+      implementation_owner TEXT NOT NULL DEFAULT '',
+      target_completion TEXT NOT NULL DEFAULT '',
+      expected_residual_risk TEXT NOT NULL DEFAULT '',
+      review_date TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (improvement_id) REFERENCES improvements(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ts TEXT NOT NULL,
+      user_name TEXT NOT NULL,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id INTEGER,
+      detail TEXT NOT NULL DEFAULT ''
+    );
+    ''')
+    # v0.2 additive schema extensions. Existing prototype data remains usable.
+    def ensure_column(table, column, ddl):
+        cols={r['name'] for r in conn.execute(f'PRAGMA table_info({table})')}
+        if column not in cols:
+            conn.execute(f'ALTER TABLE {table} ADD COLUMN {column} {ddl}')
+
+    ensure_column('improvements','compliance_impact','INTEGER NOT NULL DEFAULT 3')
+    ensure_column('improvements','staffing_impact','INTEGER NOT NULL DEFAULT 3')
+    ensure_column('improvements','expected_capability_gain','REAL NOT NULL DEFAULT 0')
+    ensure_column('improvements','priority_score','REAL NOT NULL DEFAULT 0')
+    ensure_column('threats','last_reviewed','TEXT NOT NULL DEFAULT ""')
+    ensure_column('threats','review_owner','TEXT NOT NULL DEFAULT ""')
+    conn.executescript('''
+    CREATE TABLE IF NOT EXISTS reassessment_triggers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assessment_id INTEGER NOT NULL, source TEXT NOT NULL DEFAULT 'Manual',
+      trigger_type TEXT NOT NULL, description TEXT NOT NULL, severity TEXT NOT NULL DEFAULT 'Moderate',
+      affected_record_type TEXT NOT NULL DEFAULT '', affected_record_id INTEGER,
+      status TEXT NOT NULL DEFAULT 'Open', assigned_to TEXT NOT NULL DEFAULT '', due_date TEXT NOT NULL DEFAULT '',
+      resolution TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS assessment_weights (
+      assessment_id INTEGER PRIMARY KEY, life_safety REAL NOT NULL DEFAULT 1.0, mission REAL NOT NULL DEFAULT 1.0,
+      operations REAL NOT NULL DEFAULT 1.0, financial REAL NOT NULL DEFAULT 1.0, legal_regulatory REAL NOT NULL DEFAULT 1.0,
+      reputation REAL NOT NULL DEFAULT 1.0, recovery REAL NOT NULL DEFAULT 1.0,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS evidence_attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      evidence_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL,
+      content_type TEXT NOT NULL DEFAULT 'application/octet-stream',
+      size_bytes INTEGER NOT NULL DEFAULT 0,
+      sha256 TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS entity_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assessment_id INTEGER NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id INTEGER NOT NULL,
+      version_no INTEGER NOT NULL,
+      snapshot_json TEXT NOT NULL,
+      change_reason TEXT NOT NULL DEFAULT '',
+      changed_by TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_entity_versions_unique ON entity_versions(entity_type,entity_id,version_no);
+    CREATE TABLE IF NOT EXISTS scope_changes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assessment_id INTEGER NOT NULL,
+      new_purpose TEXT,
+      new_mission TEXT,
+      new_scope TEXT,
+      new_exclusions TEXT,
+      reason TEXT NOT NULL,
+      schedule_impact TEXT NOT NULL DEFAULT '',
+      cost_impact REAL NOT NULL DEFAULT 0,
+      assessment_impact TEXT NOT NULL DEFAULT '',
+      requested_by TEXT NOT NULL DEFAULT '',
+      decision TEXT NOT NULL DEFAULT 'Pending',
+      approved_by TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      decided_at TEXT NOT NULL DEFAULT '',
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS workflow_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assessment_id INTEGER NOT NULL,
+      from_status TEXT NOT NULL,
+      to_status TEXT NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      changed_by TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
+    );
+    ''')
+    # Normalize legacy prototype improvement state to the recorded executive decision.
+    conn.execute("""UPDATE improvements SET status='Approved' WHERE id IN (SELECT improvement_id FROM decisions WHERE improvement_id IS NOT NULL AND decision_type IN ('Approve','Approve with Conditions')) AND status='Decision Recorded'""")
+    conn.commit()
+
+    count = conn.execute('SELECT COUNT(*) c FROM assessments').fetchone()['c']
+    if count == 0:
+        ts = now()
+        cur = conn.execute('''INSERT INTO assessments(name,organization,assessment_type,purpose,mission,scope,status,executive_sponsor,assessment_director,lead_assessor,start_date,target_completion,reassessment_date,classification,scope_locked,version,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(
+          'Demonstration Enterprise THIRA','Example Client','Enterprise','Demonstrate Salus THIRA Command','Maintain critical operations and protect people during disruptive events','Enterprise critical operations','Analysis','Executive Sponsor','Salus Assessment Director','Lead Assessor','2026-08-29','2026-09-30','2026-12-31','Standard',1,1,ts,ts))
+        aid=cur.lastrowid
+        audit(conn,'CREATE','assessment',aid,'Seed assessment')
+        cur=conn.execute('''INSERT INTO threats(assessment_id,name,category,subcategory,description,likelihood,vulnerability,consequence,confidence,trend,inclusion_status,basis,status,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(aid,'Severe Weather / Extended Power Loss','Natural','Severe Weather','Major storm causes regional power and telecom disruption',4,4,5,'High','Increasing','Included - Scenario Required','Historical occurrence and regional exposure','Active',ts,ts))
+        tid=cur.lastrowid
+        audit(conn,'CREATE','threat',tid,'Seed threat')
+        cur=conn.execute('''INSERT INTO scenarios(assessment_id,threat_id,title,narrative,initiating_event,location,duration,operating_conditions,dependencies,decision_points,assumptions,uncertainties,life_safety,mission,operations,financial,legal_regulatory,reputation,recovery,evidence_confidence,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(aid,tid,'72-Hour Regional Outage','Severe storm causes prolonged outage, telecom congestion, workforce disruption, and fuel resupply constraints.','Severe storm impact','Primary operating region','72 hours','Grid outage; cellular congestion; constrained road access','Generator fuel; telecom; workforce; suppliers','Activate crisis team; reduce service; request mutual aid','Generator starts successfully','Duration of telecom degradation',3,5,5,4,3,4,5,'Medium',ts,ts))
+        sid=cur.lastrowid
+        audit(conn,'CREATE','scenario',sid,'Seed scenario')
+        cur=conn.execute('''INSERT INTO capabilities(assessment_id,scenario_id,name,mission_area,capability_family,required_outcome,operating_conditions,performance_metric,required_standard,current_performance,responsible_function,owner,dependencies,evidence_required,confidence,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(aid,sid,'Emergency Notification','Protection / Response','Communications','Notify affected workforce rapidly','Commercial power outage and cellular congestion','Percent reached within 15 minutes',95,72,'Security Operations','Program Owner','HR contact data; multi-channel platform','Exercise logs; platform delivery report','High',ts,ts))
+        cid=cur.lastrowid
+        audit(conn,'CREATE','capability',cid,'Seed capability')
+        cur=conn.execute('''INSERT INTO gaps(assessment_id,capability_id,gap_type,description,severity,root_cause,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)''',(aid,cid,'Communications','Required performance is 95% within 15 minutes; demonstrated performance is 72%.','High','Incomplete contact data and no secondary delivery mechanism','Open',ts,ts))
+        gid=cur.lastrowid
+        audit(conn,'CREATE','gap',gid,'Seed gap')
+        cur=conn.execute('''INSERT INTO improvements(assessment_id,gap_id,title,description,initial_cost,recurring_cost,implementation_days,feasibility,consequence_reduction,mission_benefit,sustainability,dependencies,owner,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(aid,gid,'Implement redundant notification channels','Clean contact data and add secondary delivery path.',25000,6000,60,4,4,5,4,'HR data cleanup','Program Owner','Proposed',ts,ts))
+        iid=cur.lastrowid
+        audit(conn,'CREATE','improvement',iid,'Seed improvement')
+        conn.commit()
+    conn.close()
+
+init_db()
+
+class AssessmentIn(BaseModel):
+    name: str
+    organization: str
+    assessment_type: str = 'Enterprise'
+    purpose: str = ''
+    mission: str = ''
+    scope: str = ''
+    exclusions: str = ''
+    status: str = 'Draft'
+    executive_sponsor: str = ''
+    assessment_director: str = ''
+    lead_assessor: str = ''
+    start_date: str = ''
+    target_completion: str = ''
+    reassessment_date: str = ''
+    classification: str = 'Standard'
+
+class ThreatIn(BaseModel):
