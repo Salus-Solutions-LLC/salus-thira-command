@@ -1,0 +1,29 @@
+
+async function riskAnalytics(){
+  const a=await getActiveAssessment(); if(!a){$('#content').innerHTML='<div class="notice">No assessment available.</div>';return}
+  const id=a.id; const rows=await api('/api/risk/'+id);
+  $('#content').innerHTML=`<div class="notice"><strong>Transparent model:</strong> Inherent risk is likelihood × vulnerability/exposure × consequence, normalized to 0–100. Current risk then credits demonstrated capability effectiveness; estimated residual risk also reflects approved improvements. These are decision-support estimates, not substitutes for professional judgment.</div>`+
+  table(['Threat / Hazard','Inherent','Capability Effectiveness','Current','Approved Improvements','Estimated Residual','Confidence','Trend'],rows.map(r=>[esc(r.name),`${badge(r.inherent_band)} ${r.inherent_score}`,`${r.capability_effectiveness}%`,`${badge(r.current_band)} ${r.current_score}`,r.approved_improvements,`${badge(r.estimated_residual_band)} ${r.estimated_residual_score}`,badge(r.confidence),badge(r.trend)]));
+}
+
+async function prioritization(){
+  const a=await getActiveAssessment(); if(!a){$('#content').innerHTML='<div class="notice">No assessment available.</div>';return}
+  const id=a.id; const rows=await api('/api/priorities/'+id);
+  $('#content').innerHTML=`<div class="notice"><strong>Priority score:</strong> 22% consequence reduction, 18% mission benefit, 12% feasibility, 10% sustainability, 10% compliance impact, 8% staffing impact, 10% cost efficiency, and 10% time to benefit. Every factor remains visible and editable in the underlying improvement record.</div>`+
+  table(['Rank','Improvement','Gap Severity','Priority','Initial Cost','Days','Consequence','Mission','Feasibility','Compliance','Staffing','Status'],rows.map((r,i)=>[i+1,esc(r.title),badge(r.gap_severity),`<strong>${r.priority_score}</strong>`,fmtMoney(r.initial_cost),r.implementation_days,r.factors.consequence,r.factors.mission,r.factors.feasibility,r.factors.compliance,r.factors.staffing,badge(r.status)]));
+}
+
+
+
+async function apiForm(url,formData,opts={}){
+  const r=await fetch(url,{method:opts.method||'POST',headers:{'X-Salus-Role':currentRole,'X-Salus-User':currentUser,...(opts.headers||{})},body:formData});
+  if(!r.ok) throw new Error(await r.text()); return r.json();
+}
+
+async function downloadAssessmentExport(id){
+  const r=await fetch('/api/export/'+id,{headers:{'X-Salus-Role':currentRole,'X-Salus-User':currentUser}});
+  if(!r.ok) throw new Error(await r.text());
+  const blob=await r.blob(); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`salus-thira-assessment-${id}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+async function downloadAttachment(id,name){
