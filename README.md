@@ -58,6 +58,14 @@ The default v0.4 improvement priority score is visible in the UI:
 
 Every underlying factor remains visible and editable.
 
+## GitHub source reconstruction
+
+The GitHub connector used for the initial repository import has a per-file transfer limit. The two largest source files are therefore preserved as ordered, plain-text parts under `source_parts/`. Reconstruct and verify them with:
+
+`python tools/reconstruct_source.py`
+
+The script rebuilds `app.py` and `static/app.js` and refuses to write them unless their SHA-256 hashes exactly match the tested v0.4 build. All other source files are stored normally. Runtime/client data remains excluded by `.gitignore`.
+
 ## Run on Windows
 
 1. Install Python 3.11 or later.
