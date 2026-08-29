@@ -1,0 +1,179 @@
+    assessment_id: int
+    name: str
+    category: str
+    subcategory: str = ''
+    description: str = ''
+    likelihood: int = 1
+    vulnerability: int = 1
+    consequence: int = 1
+    confidence: str = 'Medium'
+    trend: str = 'Stable'
+    inclusion_status: str = 'Included - Scenario Required'
+    basis: str = ''
+
+class ScenarioIn(BaseModel):
+    assessment_id: int
+    threat_id: int
+    title: str
+    narrative: str = ''
+    initiating_event: str = ''
+    location: str = ''
+    duration: str = ''
+    operating_conditions: str = ''
+    dependencies: str = ''
+    decision_points: str = ''
+    assumptions: str = ''
+    uncertainties: str = ''
+    life_safety: int = 1
+    mission: int = 1
+    operations: int = 1
+    financial: int = 1
+    legal_regulatory: int = 1
+    reputation: int = 1
+    recovery: int = 1
+    evidence_confidence: str = 'Medium'
+    professional_override: str = ''
+    override_reason: str = ''
+
+class CapabilityIn(BaseModel):
+    assessment_id: int
+    scenario_id: Optional[int] = None
+    name: str
+    mission_area: str = ''
+    capability_family: str = ''
+    required_outcome: str = ''
+    operating_conditions: str = ''
+    performance_metric: str = ''
+    required_standard: float = 100
+    current_performance: float = 0
+    responsible_function: str = ''
+    owner: str = ''
+    dependencies: str = ''
+    evidence_required: str = ''
+    confidence: str = 'Medium'
+    last_validated: str = ''
+    next_validation: str = ''
+
+class EvidenceIn(BaseModel):
+    assessment_id: int
+    capability_id: Optional[int] = None
+    scenario_id: Optional[int] = None
+    title: str
+    evidence_type: str = 'Document'
+    source: str = ''
+    owner: str = ''
+    evidence_date: str = ''
+    reliability: str = 'Medium'
+    verification_status: str = 'Pending'
+    sensitivity: str = 'Standard'
+    notes: str = ''
+
+class GapIn(BaseModel):
+    assessment_id: int
+    capability_id: int
+    gap_type: str = 'Other'
+    description: str
+    severity: str = 'Moderate'
+    root_cause: str = ''
+    status: str = 'Open'
+
+class ImprovementIn(BaseModel):
+    assessment_id: int
+    gap_id: int
+    title: str
+    description: str = ''
+    initial_cost: float = 0
+    recurring_cost: float = 0
+    implementation_days: int = 0
+    feasibility: int = 3
+    consequence_reduction: int = 3
+    mission_benefit: int = 3
+    sustainability: int = 3
+    compliance_impact: int = 3
+    staffing_impact: int = 3
+    expected_capability_gain: float = 0
+    dependencies: str = ''
+    owner: str = ''
+    status: str = 'Proposed'
+
+class DecisionIn(BaseModel):
+    assessment_id: int
+    improvement_id: Optional[int] = None
+    decision_type: str
+    authority: str = ''
+    rationale: str = ''
+    funding_authorized: float = 0
+    conditions: str = ''
+    implementation_owner: str = ''
+    target_completion: str = ''
+    expected_residual_risk: str = ''
+    review_date: str = ''
+
+class TriggerIn(BaseModel):
+    assessment_id: int
+    source: str = 'Manual'
+    trigger_type: str
+    description: str
+    severity: str = 'Moderate'
+    affected_record_type: str = ''
+    affected_record_id: Optional[int] = None
+    status: str = 'Open'
+    assigned_to: str = ''
+    due_date: str = ''
+    resolution: str = ''
+
+class WeightIn(BaseModel):
+    life_safety: float = 1.0
+    mission: float = 1.0
+    operations: float = 1.0
+    financial: float = 1.0
+    legal_regulatory: float = 1.0
+    reputation: float = 1.0
+    recovery: float = 1.0
+
+class ScopeChangeIn(BaseModel):
+    assessment_id: int
+    new_purpose: Optional[str] = None
+    new_mission: Optional[str] = None
+    new_scope: Optional[str] = None
+    new_exclusions: Optional[str] = None
+    reason: str
+    schedule_impact: str = ''
+    cost_impact: float = 0
+    assessment_impact: str = ''
+
+class ScopeDecisionIn(BaseModel):
+    decision: str
+    reason: str = ''
+
+class WorkflowTransitionIn(BaseModel):
+    to_status: str
+    reason: str = ''
+
+ROLE_PERMISSIONS={
+    'System Administrator': {'read','write','decide','admin'},
+    'Assessment Director': {'read','write','decide'},
+    'Lead Assessor': {'read','write'}, 'SME Assessor': {'read','write'},
+    'Client Executive': {'read','decide'}, 'Program Owner': {'read','write'},
+    'Contributor': {'read','write'}, 'Auditor': {'read'},
+}
+
+def actor(request: Request): return request.headers.get('X-Salus-User','Prototype User')
+def role(request: Request): return request.headers.get('X-Salus-Role','Assessment Director')
+def require(request: Request, permission: str):
+    r=role(request)
+    if permission not in ROLE_PERMISSIONS.get(r, {'read'}): raise HTTPException(403, f'{r} does not have {permission} permission')
+def clamp(v,lo,hi): return max(lo,min(hi,v))
+def risk_band(score):
+    return 'Critical' if score>=80 else 'High' if score>=60 else 'Moderate' if score>=40 else 'Guarded' if score>=20 else 'Low'
+def threat_inherent_score(t): return round(float(t['likelihood'])*float(t['vulnerability'])*float(t['consequence'])/125*100,1)
+def capability_effectiveness(required,current):
+    required=float(required or 0); current=float(current or 0)
+    return round(clamp(current/required*100,0,100),1) if required>0 else 0.0
+def improvement_priority(i):
+    cost=float(i.get('initial_cost') or 0); days=int(i.get('implementation_days') or 0)
+    cost_score=5 if cost<=25000 else 4 if cost<=100000 else 3 if cost<=500000 else 2 if cost<=2000000 else 1
+    time_score=5 if days<=30 else 4 if days<=90 else 3 if days<=180 else 2 if days<=365 else 1
+    vals={'consequence':clamp(float(i.get('consequence_reduction') or 1),1,5),'mission':clamp(float(i.get('mission_benefit') or 1),1,5),'feasibility':clamp(float(i.get('feasibility') or 1),1,5),'sustainability':clamp(float(i.get('sustainability') or 1),1,5),'compliance':clamp(float(i.get('compliance_impact') or 1),1,5),'staffing':clamp(float(i.get('staffing_impact') or 1),1,5),'cost':cost_score,'time':time_score}
+    weighted=.22*vals['consequence']+.18*vals['mission']+.12*vals['feasibility']+.10*vals['sustainability']+.10*vals['compliance']+.08*vals['staffing']+.10*vals['cost']+.10*vals['time']
+    return round(weighted/5*100,1),vals
