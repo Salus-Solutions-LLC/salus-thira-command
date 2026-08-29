@@ -25,6 +25,17 @@ Salus THIRA Command is the database-backed Salus assessment and decision-managem
 - Dockerfile and Docker Compose deployment scaffolding.
 - v0.5 capabilities remain: risk analytics, prioritization, tenant-scoped verified backups, recovery safeguards, executive reports, workflow/scope governance, evidence sensitivity, reassessment triggers, and revision history.
 
+## Fresh GitHub checkout
+
+The GitHub connector stores the two largest tested source files as verified gzip+base64 archive parts. A fresh clone can reconstruct them deterministically:
+
+```bash
+python tools/reconstruct_v06_source.py
+python tools/verify_v06_source.py
+```
+
+`run_windows.bat`, `run_mac_linux.sh`, and the Docker build perform this reconstruction/verification automatically when needed. The expected SHA-256 values are recorded in `source_archives/v0.6/manifest.json`.
+
 ## Run locally
 
 ### Windows
