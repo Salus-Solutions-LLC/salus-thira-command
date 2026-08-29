@@ -1,4 +1,4 @@
-name: CodeQL
+name: CodeQL Local Analysis
 on:
   push:
     branches: [ main ]
@@ -7,19 +7,64 @@ on:
   schedule:
     - cron: '17 6 * * 1'
 permissions:
-  security-events: write
-  packages: read
   actions: read
   contents: read
+  packages: read
 jobs:
   analyze:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: github/codeql-action/init@v4
+      - uses: actions/setup-python@v7
         with:
-          languages: python,javascript-typescript
-      - name: Reconstruct archived source when needed
+          python-version: '3.12'
+      - name: Reconstruct and verify archived source
         run: |
           if [ ! -f app.py ] && [ -f tools/reconstruct_v08_source.py ]; then python tools/reconstruct_v08_source.py; fi
-      - uses: github/codeql-action/analyze@v4
+          python tools/verify_v08_source.py
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: python
+      - name: Analyze Python with CodeQL locally
+        uses: github/codeql-action/analyze@v4
+        with:
+          output: codeql-results
+          upload: never
+      - name: Enforce CodeQL findings gate
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          files = sorted(Path('codeql-results').glob('*.sarif'))
+          if not files:
+              raise SystemExit('No CodeQL SARIF output was produced')
+
+          findings = []
+          for path in files:
+              data = json.loads(path.read_text(encoding='utf-8'))
+              for run in data.get('runs', []):
+                  rules = {}
+                  driver = run.get('tool', {}).get('driver', {})
+                  for rule in driver.get('rules', []) or []:
+                      rules[rule.get('id')] = rule
+                  for result in run.get('results', []) or []:
+                      findings.append((path.name, result, rules.get(result.get('ruleId'), {})))
+
+          print(f'CODEQL_FINDINGS={len(findings)}')
+          for filename, result, rule in findings:
+              rule_id = result.get('ruleId', 'unknown')
+              level = result.get('level', 'warning')
+              message = result.get('message', {}).get('text', '')
+              print(f'{filename}: {level}: {rule_id}: {message}')
+
+          if findings:
+              raise SystemExit('CodeQL produced findings that require review')
+          print('CODEQL_LOCAL_ANALYSIS_PASS')
+          PY
+      - name: Preserve CodeQL SARIF
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif
+          path: codeql-results
+          if-no-files-found: error
