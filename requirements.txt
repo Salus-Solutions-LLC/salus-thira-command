@@ -2,3 +2,7 @@ fastapi
 uvicorn
 pydantic
 python-multipart
+PyJWT[crypto]
+httpx
+# Optional when SALUS_STORAGE_BACKEND=azure:
+azure-storage-blob
