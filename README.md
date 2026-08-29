@@ -1,209 +1,123 @@
-# Salus THIRA Command v0.6
+# Salus THIRA Command v0.7
 
-Salus THIRA Command is the database-backed Salus assessment and decision-management system. v0.6 advances the v0.5 multi-tenant prototype toward deployable production architecture while preserving local demonstration and test operation.
+Salus THIRA Command is the secure assessment and decision-management system for the Salus THIRA methodology. v0.7 extends the working v0.6 application with infrastructure controls intended to support a controlled move from a local prototype into a managed production environment.
 
-## v0.6 highlights
+## What v0.7 adds
 
-- Three identity modes:
-  - `prototype` for controlled local demonstrations;
-  - `session` for local server-side users and HttpOnly sessions;
-  - `oidc` for enterprise SSO through an OpenID Connect provider.
-- OIDC authorization-code flow with state and nonce validation, JWKS signature verification, issuer/audience verification, pre-provisioned users, and optional controlled auto-provisioning.
-- Server-enforced tenant and assessment access continues across portfolio, records, evidence, reports, backups, and audit/security views.
-- Evidence storage abstraction:
-  - local filesystem for development;
-  - Azure Blob Storage for managed evidence storage.
-- Pre-storage malware scanning hook using ClamAV.
-- Optional fail-closed upload policy with `SALUS_REQUIRE_AV=1`.
-- Evidence SHA-256 is verified again on every download; a mismatch is blocked and logged as a critical security event.
-- Evidence retention dates, legal holds, and disposition status.
-- Server prevents evidence deletion while legal hold is active or the retention period has not expired.
-- Security event register for authentication failures, authorization-boundary events, rejected uploads, hash mismatches, storage failures, and unhandled server errors.
-- Request IDs and baseline HTTP security headers.
-- `/health/live` and `/health/ready` endpoints.
-- Production-readiness checks that reject insecure production configuration.
-- Dockerfile and Docker Compose deployment scaffolding.
-- v0.5 capabilities remain: risk analytics, prioritization, tenant-scoped verified backups, recovery safeguards, executive reports, workflow/scope governance, evidence sensitivity, reassessment triggers, and revision history.
+- **Managed secret provider boundary**
+  - Environment-variable mode for local development.
+  - Azure Key Vault mode using `DefaultAzureCredential` and managed identity-compatible authentication.
+  - Environment variables can serve as an authorized emergency/local override without storing secrets in source.
+- **Azure Blob passwordless storage option**
+  - Preferred production path uses `SALUS_AZURE_STORAGE_ACCOUNT_URL` plus managed identity.
+  - Connection-string mode remains available as a fallback and can be resolved through Key Vault.
+- **Managed PostgreSQL cutover readiness**
+  - `SALUS_MANAGED_DB_TARGET=postgresql` validates the intended PostgreSQL target with `psycopg`.
+  - `tools/postgres_preflight.py` performs an explicit connection/readiness check.
+  - `tools/export_sqlite_for_postgres.py` creates deterministic NDJSON migration staging files with SHA-256 hashes.
+  - The current application runtime still uses SQLite. v0.7 does **not** misrepresent the SQLite query layer as PostgreSQL-compatible. Production readiness is blocked by default until managed-database cutover is completed or a documented exception is authorized.
+- **Rate limiting**
+  - Single-process memory limiter for local/single-instance operation.
+  - Redis-backed distributed limiter for multiple application replicas.
+  - 429 responses include request IDs and retry guidance; threshold violations are security events.
+- **Centralized security telemetry boundary**
+  - Structured JSON events to stdout by default.
+  - Optional Azure Monitor / Application Insights OpenTelemetry integration.
+  - Database security-event records remain available for tenant-scoped application review.
+- **Expanded backup and disaster-recovery validation**
+  - Tenant ID is included in backup filenames.
+  - Backup sanitization removes other tenants' assessments, users, audit records, security events, DR validation records, sessions, and OIDC state.
+  - `DR Validate` performs package hashes, SQLite integrity, required-table checks, recovery-database queries, assessment presence, and evidence attachment-count reconciliation.
+  - DR validation results are retained as governed application records.
+- **GitHub security gates**
+  - CI compilation and JavaScript syntax validation.
+  - `pip-audit` dependency scanning.
+  - Bandit static security scanning with only the intentional ClamAV subprocess checks excluded.
+  - CodeQL advanced workflow using the current major CodeQL action.
+- **Production configuration gates** now surface runtime DB, managed DB target, secret backend, rate-limit backend, telemetry backend, storage, malware scanning, OIDC, and secure-cookie readiness.
 
-## Fresh GitHub checkout
+## Existing application capabilities retained
 
-The GitHub connector stores the two largest tested source files as verified gzip+base64 archive parts. A fresh clone can reconstruct them deterministically:
+- Multi-tenant, multi-assessment THIRA workspaces
+- Server-side tenant and assessment access enforcement
+- OIDC and local authenticated-session modes plus local prototype mode
+- Threat/hazard, scenario, consequence, capability, evidence, gap, improvement, decision, implementation, and reassessment workflows
+- Transparent inherent/current/estimated residual risk analytics
+- Improvement prioritization
+- Evidence file integrity, sensitivity, malware scanning, retention, and legal holds
+- Version history, scope-change governance, workflow transitions, audit records, security events
+- Executive HTML/CSV reporting and portable assessment export
+- Tenant-specific backup and guarded restore
 
-```bash
-python tools/reconstruct_v06_source.py
-python tools/verify_v06_source.py
-```
-
-`run_windows.bat`, `run_mac_linux.sh`, and the Docker build perform this reconstruction/verification automatically when needed. The expected SHA-256 values are recorded in `source_archives/v0.6/manifest.json`.
-
-## Run locally
+## Local run
 
 ### Windows
 
 1. Install Python 3.11 or later.
-2. `pip install -r requirements.txt`
-3. Run `run_windows.bat`
-4. Open `http://127.0.0.1:8000`
+2. `python -m pip install -r requirements.txt`
+3. Run `run_windows.bat`.
+4. Open `http://127.0.0.1:8000`.
 
 ### macOS / Linux
 
 1. Install Python 3.11 or later.
-2. `pip install -r requirements.txt`
-3. Run `./run_mac_linux.sh`
-4. Open `http://127.0.0.1:8000`
+2. `python -m pip install -r requirements.txt`
+3. Run `./run_mac_linux.sh`.
+4. Open `http://127.0.0.1:8000`.
 
-On first run the application creates the SQLite database and fictional demonstration assessment.
+The GitHub launchers reconstruct and verify the large archived source files automatically when a fresh checkout does not yet contain `app.py` or `static/app.js`.
 
-## Identity modes
+## Production configuration
 
-### Prototype
+Copy `.env.example` only as a reference. Do not commit a populated `.env` file.
 
-```text
-SALUS_AUTH_MODE=prototype
-```
+Key settings include:
 
-This is for local development/demonstration only. Browser role headers are intentionally trusted in this mode.
+- `SALUS_AUTH_MODE=oidc`
+- `SALUS_SECRET_BACKEND=azure_keyvault`
+- `SALUS_KEY_VAULT_URL=https://<vault>.vault.azure.net`
+- `SALUS_STORAGE_BACKEND=azure`
+- `SALUS_AZURE_STORAGE_ACCOUNT_URL=https://<account>.blob.core.windows.net`
+- `SALUS_REQUIRE_AV=1`
+- `SALUS_RATE_LIMIT_BACKEND=redis`
+- `SALUS_REDIS_URL=<protected value>`
+- `SALUS_TELEMETRY_BACKEND=azure_monitor`
+- `SALUS_MANAGED_DB_TARGET=postgresql`
+- `SALUS_POSTGRES_DSN=<protected value or Key Vault reference>`
 
-### Local session
+See `deploy/PRODUCTION_READINESS.md`.
 
-```text
-SALUS_AUTH_MODE=session
-SALUS_COOKIE_SECURE=1   # for HTTPS deployments
-```
+## Managed-database transition
 
-Create a user:
+v0.7 separates **runtime truth** from **migration readiness**:
 
-```bash
-python tools/manage_users.py add marc-admin --display-name "Marc Admin" --email "user@example.com" --role "System Administrator" --clearance "Highly Sensitive"
-```
+1. Continue operating the validated SQLite application in development/test.
+2. Provision and secure the managed PostgreSQL target.
+3. Run `python tools/postgres_preflight.py`.
+4. Export a deterministic migration package with `python tools/export_sqlite_for_postgres.py --db thira.db --out migration_export`.
+5. Validate row counts and SHA-256 manifest.
+6. Implement and test PostgreSQL-native schema/query compatibility in a controlled subsequent release.
+7. Re-run full tenant, workflow, risk, evidence, backup, and restore regression testing before production cutover.
 
-### Enterprise OIDC / SSO
+`SALUS_ALLOW_SQLITE_PRODUCTION=1` exists only as an explicit controlled exception. It should not be treated as normal production architecture.
 
-```text
-SALUS_AUTH_MODE=oidc
-SALUS_OIDC_DISCOVERY_URL=https://identity-provider.example/.well-known/openid-configuration
-SALUS_OIDC_CLIENT_ID=...
-SALUS_OIDC_CLIENT_SECRET=...
-SALUS_OIDC_REDIRECT_URI=https://thira.example.com/api/auth/oidc/callback
-SALUS_OIDC_DEFAULT_TENANT_SLUG=salus-prototype
-SALUS_OIDC_AUTO_PROVISION=0
-SALUS_COOKIE_SECURE=1
-```
+## Disaster recovery
 
-For pre-provisioned accounts, create the user and bind the external subject:
+Application administrators can run two different checks:
 
-```bash
-python tools/manage_users.py add user@example.com --display-name "Example User" --email "user@example.com" --role "Lead Assessor" --clearance "Sensitive"
-python tools/manage_users.py bind-oidc user@example.com --subject "OIDC-SUBJECT" --provider oidc --email "user@example.com"
-```
+- **Verify** — package-level hashes plus SQLite integrity.
+- **DR Validate** — performs the verify checks plus recovery-database schema/data checks and evidence-package reconciliation.
 
-Automatic provisioning is disabled by default. When enabled, new OIDC users enter as `Contributor` with `Standard` clearance in the configured default tenant.
+CLI validation is also available:
 
-## Evidence storage
+`python tools/dr_validate.py <backup.zip>`
 
-### Local development
+A backup should not be considered recoverable solely because the ZIP exists.
 
-```text
-SALUS_STORAGE_BACKEND=local
-SALUS_LOCAL_STORAGE_DIR=./attachments
-```
+## GitHub source-of-truth
 
-### Azure Blob Storage
-
-```text
-SALUS_STORAGE_BACKEND=azure
-SALUS_AZURE_STORAGE_CONNECTION_STRING=...
-SALUS_AZURE_STORAGE_CONTAINER=salus-thira-evidence
-```
-
-The application stores only the object key in the assessment database. Backup creation reads through the storage adapter, so the same backup process works with local or Azure-backed evidence.
-
-## Malware scanning
-
-For ClamAV:
-
-```text
-SALUS_AV_MODE=clamav
-SALUS_REQUIRE_AV=1
-SALUS_CLAMSCAN_PATH=clamscan
-```
-
-The file is held in a temporary quarantine file for scanning before it is promoted into evidence storage. An infected file or required-but-unavailable scanner causes the upload to fail.
-
-Development mode can leave scanning off:
-
-```text
-SALUS_AV_MODE=off
-SALUS_REQUIRE_AV=0
-```
-
-## Retention and legal hold
-
-New evidence attachments receive a default retention-until date based on:
-
-```text
-SALUS_RETENTION_DEFAULT_DAYS=2555
-```
-
-Authorized decision users can modify the date or place/release a legal hold. The server blocks deletion when either a legal hold is active or the retention-until date remains in the future.
-
-## Security telemetry
-
-System Administrators can review **Security & Readiness** in the application. Events include:
-
-- login failures and OIDC failures;
-- tenant/assessment authorization failures;
-- upload rejection or unavailable malware scanner;
-- evidence SHA-256 mismatch;
-- storage failures;
-- unhandled application errors.
-
-Every HTTP response receives an `X-Request-ID` for correlation.
-
-## Health and readiness
-
-- `GET /health/live` confirms the process is running.
-- `GET /health/ready` verifies database/storage access and checks production configuration.
-
-When `SALUS_ENV=production`, readiness fails if production requirements are not met, including non-prototype authentication and secure cookies. Local evidence storage and disabled upload scanning are also surfaced as production readiness problems.
-
-## Docker
-
-Copy `.env.example` to `.env`, set the required values, then:
-
-```bash
-docker compose up --build
-```
-
-The container runs as a non-root user and includes a readiness health check.
-
-## Source-control policy
-
-GitHub is the authoritative source for code. Do **not** commit:
-
-- live `thira.db` / SQLite files;
-- client evidence or uploaded files;
-- backup archives;
-- logs;
-- `.env` or secrets;
-- identity-provider client secrets or Azure storage credentials.
-
-## v0.6 regression validation
-
-The clean build was tested for:
-
-- prototype startup and health/readiness;
-- local session login and failed-login security events;
-- OIDC fail-closed behavior when provider configuration is incomplete;
-- tenant-boundary denial and security-event creation;
-- attachment upload, scan state, retention assignment, and SHA-256 download verification;
-- legal-hold and retention-based deletion denial;
-- evidence hash-tampering detection;
-- backup creation and integrity verification through the storage abstraction;
-- required-malware-scanner fail-closed behavior;
-- production readiness rejecting insecure defaults;
-- Python compilation and JavaScript syntax validation.
+The private GitHub repository is the authoritative source. Stable branches are preserved by version. Because the connector used to publish this build has a per-file transfer ceiling, large `app.py` and `static/app.js` files are preserved in verified compressed source archives. Fresh-clone launchers reconstruct and SHA-256 verify them automatically.
 
 ## Production status
 
-v0.6 is substantially closer to a deployable architecture, but it is still not authorization to place real client-sensitive data on an internet-facing production service. Remaining production work includes a managed relational database, production TLS/ingress, provider-specific SSO registration and claims mapping, secrets vault integration, Azure/private-network architecture, off-site backup replication and restore drills, centralized security monitoring/SIEM, malware-engine operations, retention schedules approved by counsel/records management, rate limiting/WAF, vulnerability scanning, penetration testing, and formal security/privacy review.
+v0.7 is a **production-architecture transition build**, not authorization to process sensitive client data in a live environment. Before production, Salus still needs the managed PostgreSQL runtime cutover, real Entra/OIDC tenant configuration, production Key Vault and managed identities, approved Azure storage controls, approved malware-scanning service, Redis or equivalent shared rate-limit state, centralized monitoring/SIEM routing, CI/security policy enforcement, deployment/change management, penetration testing, and documented backup/restore exercises.
