@@ -3,8 +3,10 @@ thira.db
 *.db
 *.sqlite
 *.sqlite3
+data/
 attachments/
 uploads/
+backups/
 exports/
 logs/
 *.log
@@ -20,5 +22,3 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
-
-backups/
