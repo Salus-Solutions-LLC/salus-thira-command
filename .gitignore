@@ -8,6 +8,8 @@ attachments/
 uploads/
 backups/
 exports/
+migration_export/
+*.ndjson
 logs/
 *.log
 .env
