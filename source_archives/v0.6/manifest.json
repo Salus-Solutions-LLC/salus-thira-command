@@ -1,0 +1,19 @@
+{
+  "app.py": {
+    "sha256": "a28747505d721ab427deeb3fe362cffa97a69206a7a099f3f775f0b7cec08b81",
+    "size_bytes": 94598,
+    "chunks": [
+      "app_py_01.gz.b64",
+      "app_py_02.gz.b64"
+    ],
+    "encoding": "gzip+base64"
+  },
+  "static/app.js": {
+    "sha256": "246d6a73d373ebbe5f01cae92b0725dd073eaef9cd5411979530e37d22ca4d15",
+    "size_bytes": 45798,
+    "chunks": [
+      "static_app_js_01.gz.b64"
+    ],
+    "encoding": "gzip+base64"
+  }
+}
