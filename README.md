@@ -1,123 +1,234 @@
-# Salus THIRA Command v0.7
+# Salus THIRA Command v0.8
 
-Salus THIRA Command is the secure assessment and decision-management system for the Salus THIRA methodology. v0.7 extends the working v0.6 application with infrastructure controls intended to support a controlled move from a local prototype into a managed production environment.
+Salus THIRA Command is the secure assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
 
-## What v0.7 adds
+v0.8 is the **database-runtime cutover build**. The application can now run natively against either SQLite or PostgreSQL through one persistence adapter while preserving the same tenant, workflow, evidence, risk, and reporting logic.
 
-- **Managed secret provider boundary**
-  - Environment-variable mode for local development.
-  - Azure Key Vault mode using `DefaultAzureCredential` and managed identity-compatible authentication.
-  - Environment variables can serve as an authorized emergency/local override without storing secrets in source.
-- **Azure Blob passwordless storage option**
-  - Preferred production path uses `SALUS_AZURE_STORAGE_ACCOUNT_URL` plus managed identity.
-  - Connection-string mode remains available as a fallback and can be resolved through Key Vault.
-- **Managed PostgreSQL cutover readiness**
-  - `SALUS_MANAGED_DB_TARGET=postgresql` validates the intended PostgreSQL target with `psycopg`.
-  - `tools/postgres_preflight.py` performs an explicit connection/readiness check.
-  - `tools/export_sqlite_for_postgres.py` creates deterministic NDJSON migration staging files with SHA-256 hashes.
-  - The current application runtime still uses SQLite. v0.7 does **not** misrepresent the SQLite query layer as PostgreSQL-compatible. Production readiness is blocked by default until managed-database cutover is completed or a documented exception is authorized.
-- **Rate limiting**
-  - Single-process memory limiter for local/single-instance operation.
-  - Redis-backed distributed limiter for multiple application replicas.
-  - 429 responses include request IDs and retry guidance; threshold violations are security events.
-- **Centralized security telemetry boundary**
-  - Structured JSON events to stdout by default.
-  - Optional Azure Monitor / Application Insights OpenTelemetry integration.
-  - Database security-event records remain available for tenant-scoped application review.
-- **Expanded backup and disaster-recovery validation**
-  - Tenant ID is included in backup filenames.
-  - Backup sanitization removes other tenants' assessments, users, audit records, security events, DR validation records, sessions, and OIDC state.
-  - `DR Validate` performs package hashes, SQLite integrity, required-table checks, recovery-database queries, assessment presence, and evidence attachment-count reconciliation.
-  - DR validation results are retained as governed application records.
-- **GitHub security gates**
-  - CI compilation and JavaScript syntax validation.
-  - `pip-audit` dependency scanning.
-  - Bandit static security scanning with only the intentional ClamAV subprocess checks excluded.
-  - CodeQL advanced workflow using the current major CodeQL action.
-- **Production configuration gates** now surface runtime DB, managed DB target, secret backend, rate-limit backend, telemetry backend, storage, malware scanning, OIDC, and secure-cookie readiness.
+## What v0.8 adds
 
-## Existing application capabilities retained
+- Native runtime database selection:
+  - `SALUS_DB_BACKEND=sqlite` for local demonstrations and lightweight development;
+  - `SALUS_DB_BACKEND=postgres` for the managed relational runtime path.
+- PostgreSQL compatibility layer for the existing application data-access model:
+  - PostgreSQL parameter binding;
+  - `BIGSERIAL` identities and `RETURNING id`;
+  - PostgreSQL schema inspection in place of SQLite `PRAGMA table_info`;
+  - PostgreSQL-safe DDL translation and dependency-aware table creation;
+  - identity-sequence repair after explicit-ID migration/restore.
+- PostgreSQL runtime health/readiness reporting.
+- PostgreSQL connection by DSN or Microsoft Entra / managed identity.
+- Controlled SQLite → PostgreSQL migration utility with primary-key preservation and row-count verification.
+- PostgreSQL transaction smoke-test utility that rolls test records back.
+- Schema migration registry (`schema_migrations`).
+- Provider-neutral **portable tenant backups** containing structured records plus evidence objects instead of a copied SQLite database file.
+- Portable backup integrity validation and DR validation.
+- Tenant-aware portable restore that works without deleting or overwriting other tenants.
+- Backward-compatible validation/restoration rules for older v0.7 SQLite backup packages.
+- Local Docker Compose PostgreSQL environment for runtime validation on machines with Docker.
+- Dedicated PostgreSQL cutover runbook.
 
-- Multi-tenant, multi-assessment THIRA workspaces
-- Server-side tenant and assessment access enforcement
-- OIDC and local authenticated-session modes plus local prototype mode
-- Threat/hazard, scenario, consequence, capability, evidence, gap, improvement, decision, implementation, and reassessment workflows
-- Transparent inherent/current/estimated residual risk analytics
-- Improvement prioritization
-- Evidence file integrity, sensitivity, malware scanning, retention, and legal holds
-- Version history, scope-change governance, workflow transitions, audit records, security events
-- Executive HTML/CSV reporting and portable assessment export
-- Tenant-specific backup and guarded restore
+All v0.7 controls remain, including OIDC, tenant/assessment authorization, evidence sensitivity, retention/legal hold, malware scanning, Azure Blob support, Key Vault secret resolution, rate limiting, centralized telemetry, backup governance, revision history, scope/workflow governance, risk analytics, prioritization, executive decisions, and reporting.
 
-## Local run
+## Fresh GitHub checkout
+
+The GitHub connector stores the two largest tested source files as verified gzip+base64 archive parts. A fresh clone reconstructs them deterministically:
+
+```bash
+python tools/reconstruct_v08_source.py
+python tools/verify_v08_source.py
+```
+
+The Windows/macOS/Linux launchers and Docker build perform this automatically when the files are absent. Expected SHA-256 values are stored in `source_archives/v0.8/manifest.json`.
+
+## Runtime database modes
+
+### SQLite — local/demo
+
+```text
+SALUS_DB_BACKEND=sqlite
+SALUS_DB_PATH=./thira.db
+SALUS_SEED_DEMO=1
+```
+
+SQLite remains the easiest way to run a local demonstration. It is not the preferred multi-user production database.
+
+### PostgreSQL — managed runtime
+
+Password/DSN mode:
+
+```text
+SALUS_DB_BACKEND=postgres
+SALUS_POSTGRES_AUTH=dsn
+SALUS_DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+SALUS_SEED_DEMO=0
+```
+
+`SALUS_POSTGRES_DSN` can be used as an alias and can be resolved through the existing Key Vault secret provider.
+
+### Azure PostgreSQL with Microsoft Entra / managed identity
+
+```text
+SALUS_DB_BACKEND=postgres
+SALUS_POSTGRES_AUTH=entra
+SALUS_POSTGRES_HOST=server.postgres.database.azure.com
+SALUS_POSTGRES_PORT=5432
+SALUS_POSTGRES_DATABASE=salus_thira
+SALUS_POSTGRES_USER=<database principal configured for the workload identity>
+SALUS_POSTGRES_SSLMODE=require
+SALUS_SEED_DEMO=0
+```
+
+The runtime uses `DefaultAzureCredential` to obtain an Azure Database for PostgreSQL access token. The deployed workload identity must already be authorized inside PostgreSQL.
+
+## SQLite → PostgreSQL migration
+
+First freeze writes and create a v0.8 portable backup. Then migrate into a clean PostgreSQL database:
+
+```bash
+python tools/migrate_sqlite_to_postgres.py \
+  --sqlite /secure/path/thira.db \
+  --postgres-dsn "$SALUS_DATABASE_URL" \
+  --report migration-report.json
+```
+
+The migration:
+
+- validates SQLite integrity before starting;
+- initializes the PostgreSQL schema without demo records;
+- preserves application primary keys;
+- migrates persistent assessment/governance/security records;
+- excludes ephemeral auth sessions and OIDC state;
+- excludes old local backup-file metadata and DR validation rows;
+- repairs PostgreSQL identity sequences;
+- compares source and target row counts;
+- fails with a non-zero exit code if verification does not match.
+
+Use `--replace` only during an explicitly authorized target replacement.
+
+For Entra-based PostgreSQL authentication, omit `--postgres-dsn` and provide the `SALUS_POSTGRES_*` environment settings shown above.
+
+Detailed procedure: `deploy/POSTGRESQL_CUTOVER.md`.
+
+## PostgreSQL runtime smoke test
+
+After migration:
+
+```bash
+python tools/postgres_runtime_smoke.py --postgres-dsn "$SALUS_DATABASE_URL"
+```
+
+The test verifies required tables, inserts a temporary tenant and assessment through the application database adapter, reads them back, and rolls the transaction back.
+
+## Portable backups and recovery
+
+v0.8 backups use `salus-thira-portable-backup-v1`.
+
+Each backup ZIP contains:
+
+- `records.json` — tenant-scoped application records;
+- `attachments/...` — evidence objects referenced by that tenant;
+- `manifest.json` — file sizes, SHA-256 hashes, tenant, application version, source database provider, actor, and reason.
+
+This design removes the old assumption that a recoverable backup must contain a SQLite file. The same backup format can be produced from SQLite or PostgreSQL.
+
+The restore path is tenant-aware. It replaces only the selected tenant’s restorable records and evidence objects and preserves other tenants. Restore remains disabled by default and requires:
+
+```text
+SALUS_ALLOW_RESTORE=1
+```
+
+Enable it only in an approved recovery/maintenance window. Restoring user records invalidates active sessions; administrators should expect to authenticate again afterward.
+
+Older v0.7 SQLite backups can still be integrity/DR validated. Direct legacy SQLite-file restore is available only when SQLite is the active runtime and only when the database is not multi-tenant.
+
+## Local PostgreSQL with Docker
+
+For development/runtime validation on a machine with Docker:
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.postgres.yml up --build
+```
+
+The compose file launches PostgreSQL 16 and THIRA Command with `SALUS_DB_BACKEND=postgres`. The included default password is **development-only** and must never be used for production.
+
+## Local SQLite run
 
 ### Windows
 
-1. Install Python 3.11 or later.
-2. `python -m pip install -r requirements.txt`
-3. Run `run_windows.bat`.
-4. Open `http://127.0.0.1:8000`.
+```text
+pip install -r requirements.txt
+run_windows.bat
+```
 
 ### macOS / Linux
 
-1. Install Python 3.11 or later.
-2. `python -m pip install -r requirements.txt`
-3. Run `./run_mac_linux.sh`.
-4. Open `http://127.0.0.1:8000`.
+```bash
+pip install -r requirements.txt
+./run_mac_linux.sh
+```
 
-The GitHub launchers reconstruct and verify the large archived source files automatically when a fresh checkout does not yet contain `app.py` or `static/app.js`.
+Then open `http://127.0.0.1:8000`.
 
-## Production configuration
+## Authentication and security
 
-Copy `.env.example` only as a reference. Do not commit a populated `.env` file.
+v0.8 retains three identity modes:
 
-Key settings include:
+- `prototype` — controlled local demonstration only;
+- `session` — local server-side users with HttpOnly sessions;
+- `oidc` — enterprise SSO with authorization-code flow, state/nonce validation, JWKS signature validation, issuer/audience validation, and controlled provisioning.
 
-- `SALUS_AUTH_MODE=oidc`
-- `SALUS_SECRET_BACKEND=azure_keyvault`
-- `SALUS_KEY_VAULT_URL=https://<vault>.vault.azure.net`
-- `SALUS_STORAGE_BACKEND=azure`
-- `SALUS_AZURE_STORAGE_ACCOUNT_URL=https://<account>.blob.core.windows.net`
-- `SALUS_REQUIRE_AV=1`
-- `SALUS_RATE_LIMIT_BACKEND=redis`
-- `SALUS_REDIS_URL=<protected value>`
-- `SALUS_TELEMETRY_BACKEND=azure_monitor`
-- `SALUS_MANAGED_DB_TARGET=postgresql`
-- `SALUS_POSTGRES_DSN=<protected value or Key Vault reference>`
+Production should use OIDC plus secure cookies, managed secrets, managed evidence storage, required malware scanning, distributed rate limiting, centralized telemetry, and PostgreSQL.
 
-See `deploy/PRODUCTION_READINESS.md`.
+## Evidence controls
 
-## Managed-database transition
+- four sensitivity levels;
+- server-side clearance enforcement;
+- Azure Blob or local storage adapter;
+- SHA-256 integrity verification on every evidence download;
+- malware scan/quarantine hook;
+- retention-until dates;
+- legal holds;
+- disposition status;
+- audited evidence governance actions.
 
-v0.7 separates **runtime truth** from **migration readiness**:
+## Health/readiness
 
-1. Continue operating the validated SQLite application in development/test.
-2. Provision and secure the managed PostgreSQL target.
-3. Run `python tools/postgres_preflight.py`.
-4. Export a deterministic migration package with `python tools/export_sqlite_for_postgres.py --db thira.db --out migration_export`.
-5. Validate row counts and SHA-256 manifest.
-6. Implement and test PostgreSQL-native schema/query compatibility in a controlled subsequent release.
-7. Re-run full tenant, workflow, risk, evidence, backup, and restore regression testing before production cutover.
+- `GET /health/live`
+- `GET /health/ready`
 
-`SALUS_ALLOW_SQLITE_PRODUCTION=1` exists only as an explicit controlled exception. It should not be treated as normal production architecture.
+Readiness reports the **actual active runtime database provider**. In production, SQLite remains a blocking readiness issue unless `SALUS_ALLOW_SQLITE_PRODUCTION=1` is explicitly authorized as a temporary exception.
 
-## Disaster recovery
+## Source-control policy
 
-Application administrators can run two different checks:
+GitHub is the authoritative source for code. Never commit:
 
-- **Verify** — package-level hashes plus SQLite integrity.
-- **DR Validate** — performs the verify checks plus recovery-database schema/data checks and evidence-package reconciliation.
+- live SQLite databases;
+- PostgreSQL dumps containing client data;
+- migration exports or migration reports containing client records;
+- client evidence/uploads;
+- backup archives;
+- logs;
+- `.env` files;
+- credentials, tokens, connection strings, or identity-provider secrets.
 
-CLI validation is also available:
+## v0.8 validation performed in this build environment
 
-`python tools/dr_validate.py <backup.zip>`
+The release was validated for:
 
-A backup should not be considered recoverable solely because the ZIP exists.
+- fresh SQLite schema creation and fictional demonstration seed;
+- dashboard, assessment, risk, prioritization, and readiness APIs;
+- portable backup creation and SHA-256 verification;
+- portable DR validation;
+- actual mutate → portable restore → baseline recovery;
+- multi-tenant portable backup isolation;
+- multi-tenant tenant-1 restore while tenant-2 remained intact;
+- PostgreSQL adapter compatibility harness exercising PostgreSQL code paths for DDL ordering, schema inspection, parameter translation, `BIGSERIAL`/`RETURNING id`, `ON CONFLICT`, and last-insert-ID behavior;
+- targeted automatic reassessment-trigger insert behavior through the PostgreSQL adapter;
+- Python compilation and JavaScript syntax validation.
 
-## GitHub source-of-truth
-
-The private GitHub repository is the authoritative source. Stable branches are preserved by version. Because the connector used to publish this build has a per-file transfer ceiling, large `app.py` and `static/app.js` files are preserved in verified compressed source archives. Fresh-clone launchers reconstruct and SHA-256 verify them automatically.
+This execution environment does **not** provide a real PostgreSQL server or PostgreSQL client driver package at runtime, so the final managed-server acceptance step cannot be honestly claimed here. v0.8 therefore includes the Docker PostgreSQL runtime environment, PostgreSQL preflight, migration tool, transaction smoke test, and a GitHub CI job that launches PostgreSQL 16 and exercises the real PostgreSQL runtime path.
 
 ## Production status
 
-v0.7 is a **production-architecture transition build**, not authorization to process sensitive client data in a live environment. Before production, Salus still needs the managed PostgreSQL runtime cutover, real Entra/OIDC tenant configuration, production Key Vault and managed identities, approved Azure storage controls, approved malware-scanning service, Redis or equivalent shared rate-limit state, centralized monitoring/SIEM routing, CI/security policy enforcement, deployment/change management, penetration testing, and documented backup/restore exercises.
+v0.8 removes the application’s architectural dependency on SQLite, but production authorization still requires environment-specific work: a real managed PostgreSQL instance and completed cutover test; Entra/OIDC tenant registration; workload identities and Key Vault permissions; private networking/TLS/WAF; approved Azure storage controls; malware-scanning operations; shared Redis; centralized SIEM routing; CI/security policy enforcement; penetration testing; approved retention schedules; backup/restore exercises; and formal security/privacy approval.
