@@ -1,0 +1,11 @@
+thira.db
+*.db
+attachments/
+backups/
+logs/
+.env
+.env.*
+__pycache__/
+*.pyc
+.git/
+.pytest_cache/
