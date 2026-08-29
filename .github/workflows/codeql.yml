@@ -21,5 +21,5 @@ jobs:
           languages: python,javascript-typescript
       - name: Reconstruct archived source when needed
         run: |
-          if [ ! -f app.py ] && [ -f tools/reconstruct_v07_source.py ]; then python tools/reconstruct_v07_source.py; fi
+          if [ ! -f app.py ] && [ -f tools/reconstruct_v08_source.py ]; then python tools/reconstruct_v08_source.py; fi
       - uses: github/codeql-action/analyze@v4
