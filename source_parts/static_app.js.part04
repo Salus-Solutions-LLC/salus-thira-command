@@ -1,0 +1,30 @@
+  const a=await getActiveAssessment(); if(!a){$('#content').innerHTML='<div class="notice">No assessment available.</div>';return}
+  const id=a.id; const [d, gaps, improvements, decisions, risks, priorities] = await Promise.all([api('/api/trace/'+id),api('/api/gaps?assessment_id='+id),api('/api/improvements?assessment_id='+id),api('/api/decisions?assessment_id='+id),api('/api/risk/'+id),api('/api/priorities/'+id)]);
+  let threatCount=d.threats.length, scenarioCount=0, capabilityCount=0, capabilityGap=0, rawRisks=[];
+  d.threats.forEach(t=>{rawRisks.push(t.risk_raw); scenarioCount+=t.scenarios.length; t.scenarios.forEach(s=>{capabilityCount+=s.capabilities.length; s.capabilities.forEach(c=>capabilityGap+=c.gap)})});
+  const high=gaps.filter(g=>['High','Critical'].includes(g.severity)).length;
+  const proposed=improvements.reduce((a,i)=>a+Number(i.initial_cost||0),0);
+  const authorized=decisions.reduce((a,i)=>a+Number(i.funding_authorized||0),0);
+  const avgGap=capabilityCount?capabilityGap/capabilityCount:0;
+  $('#content').innerHTML=`
+  <div class="card">
+    <div class="section-title"><h2>Executive THIRA Summary</h2><div class="row-actions"><button class="btn secondary" onclick="window.print()">Print / Save PDF</button><button class="btn secondary" onclick="downloadAssessmentExport(${id})">Download Assessment Package</button></div></div>
+    <h3>${esc(d.assessment.name)}</h3><p class="subtle">${esc(d.assessment.organization)} · ${esc(d.assessment.assessment_type)} · Status: ${esc(d.assessment.status)} · Version ${d.assessment.version}</p>
+    <p><strong>Mission:</strong> ${esc(d.assessment.mission)}</p><p><strong>Purpose:</strong> ${esc(d.assessment.purpose)}</p>
+  </div>
+  <div class="grid stats" style="margin-top:16px">${metric('Threats / Hazards',threatCount)}${metric('Scenarios',scenarioCount)}${metric('Capabilities',capabilityCount)}${metric('High / Critical Gaps',high)}${metric('Avg Capability Gap',avgGap.toFixed(1)+' pts')}${metric('Proposed Initial Cost',fmtMoney(proposed))}${metric('Authorized Funding',fmtMoney(authorized))}${metric('Highest Raw Risk',rawRisks.length?Math.max(...rawRisks):0)}</div>
+  <div class="section-title"><h2>Risk Outlook</h2></div>${table(['Threat / Hazard','Inherent','Current','Estimated Residual','Confidence'],risks.map(r=>[esc(r.name),`${badge(r.inherent_band)} ${r.inherent_score}`,`${badge(r.current_band)} ${r.current_score}`,`${badge(r.estimated_residual_band)} ${r.estimated_residual_score}`,badge(r.confidence)]))}
+  <div class="section-title"><h2>Top Improvement Priorities</h2></div>${table(['Priority','Improvement','Gap Severity','Cost','Status'],priorities.slice(0,10).map(r=>[`<strong>${r.priority_score}</strong>`,esc(r.title),badge(r.gap_severity),fmtMoney(r.initial_cost),badge(r.status)]))}
+  <div class="section-title"><h2>Executive Decisions</h2></div>${table(['Decision','Authority','Funding','Rationale','Review Date'],decisions.map(x=>[badge(x.decision_type),esc(x.authority),fmtMoney(x.funding_authorized),esc(x.rationale),esc(x.review_date)]))}
+  <div class="section-title"><h2>Priority Gaps</h2></div>${table(['Severity','Type','Description','Status'],gaps.filter(g=>['High','Critical'].includes(g.severity)).map(g=>[badge(g.severity),esc(g.gap_type),esc(g.description),badge(g.status)]))}`;
+}
+
+async function configuration(){
+  const a=await getActiveAssessment(); if(!a){$('#content').innerHTML='<div class="notice">No assessment available.</div>';return}
+  const id=a.id; const w=await api('/api/weights/'+id);
+  const roles=[['System Administrator','Read, write, decide, administer'],['Assessment Director','Read, write, decide'],['Lead Assessor','Read, write'],['SME Assessor','Read, write'],['Client Executive','Read, decide'],['Program Owner','Read, write'],['Contributor','Read, write'],['Auditor','Read only']];
+  $('#content').innerHTML=`<div class="two-col grid"><div class="card"><div class="section-title"><h2>Consequence Weights</h2></div><p class="subtle">Weights influence the scenario consequence used in the risk model. A value of 1.0 is neutral; higher values give that consequence dimension more influence.</p><form id="weights-form">${['life_safety','mission','operations','financial','legal_regulatory','reputation','recovery'].map(k=>`<label>${k.replaceAll('_',' ')}<input type="number" step="0.1" min="0" max="10" name="${k}" value="${esc(w[k])}"></label>`).join('')}<div class="form-actions"><button class="btn">Save Weights</button></div></form></div><div><div class="section-title"><h2>Prototype Role Model</h2></div>${table(['Role','Permissions'],roles)}</div></div><div class="notice" style="margin-top:16px"><strong>Security note:</strong> v0.4 enforces these permissions using request headers selected in the prototype UI. Production deployment still requires authenticated identity/SSO and server-issued roles before this is security-grade.</div>`;
+  $('#weights-form').onsubmit=async e=>{e.preventDefault();const d={};new FormData(e.target).forEach((v,k)=>d[k]=Number(v));await api('/api/weights/'+id,{method:'PUT',body:JSON.stringify(d)});render()};
+}
+
+async function audit(){const rows=await api('/api/audit_log'); $('#content').innerHTML=table(['Time','User','Action','Entity','ID','Detail'],rows.slice(0,200).map(r=>[esc(r.ts),esc(r.user_name),badge(r.action),esc(r.entity_type),esc(r.entity_id),esc(r.detail)]));}
