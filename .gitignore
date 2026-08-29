@@ -1,0 +1,22 @@
+# Salus THIRA Command - do not commit runtime/client data
+thira.db
+*.db
+*.sqlite
+*.sqlite3
+attachments/
+uploads/
+exports/
+logs/
+*.log
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+Thumbs.db
+.pytest_cache/
+.coverage
+htmlcov/
