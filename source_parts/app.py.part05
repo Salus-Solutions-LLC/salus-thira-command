@@ -1,0 +1,141 @@
+        out.append({'threat_id':t['id'],'name':t['name'],'inherent_score':inherent,'inherent_band':risk_band(inherent),'capability_effectiveness':eff,'current_score':current,'current_band':risk_band(current),'approved_improvements':len(related),'estimated_residual_score':residual,'estimated_residual_band':risk_band(residual),'confidence':t['confidence'],'trend':t['trend'],'modeled_consequence':round(modeled_consequence,2)})
+    conn.close(); return out
+
+@app.get('/api/priorities/{assessment_id}')
+def priorities(assessment_id:int):
+    conn=db(); rows=[]
+    for r in conn.execute('SELECT i.*, g.severity gap_severity, g.description gap_description FROM improvements i JOIN gaps g ON g.id=i.gap_id WHERE i.assessment_id=?',(assessment_id,)):
+        i=dict(r); score,factors=improvement_priority(i); i['priority_score']=score; i['factors']=factors; rows.append(i)
+    conn.close(); return sorted(rows,key=lambda x:x['priority_score'],reverse=True)
+
+@app.get('/api/weights/{assessment_id}')
+def get_weights(assessment_id:int):
+    conn=db(); r=conn.execute('SELECT * FROM assessment_weights WHERE assessment_id=?',(assessment_id,)).fetchone(); conn.close()
+    return dict(r) if r else {'assessment_id':assessment_id,'life_safety':1,'mission':1,'operations':1,'financial':1,'legal_regulatory':1,'reputation':1,'recovery':1}
+
+@app.put('/api/weights/{assessment_id}')
+def set_weights(assessment_id:int,p:WeightIn,request:Request):
+    require(request,'write'); d=p.model_dump(); conn=db()
+    conn.execute('''INSERT INTO assessment_weights(assessment_id,life_safety,mission,operations,financial,legal_regulatory,reputation,recovery) VALUES(?,?,?,?,?,?,?,?)
+    ON CONFLICT(assessment_id) DO UPDATE SET life_safety=excluded.life_safety,mission=excluded.mission,operations=excluded.operations,financial=excluded.financial,legal_regulatory=excluded.legal_regulatory,reputation=excluded.reputation,recovery=excluded.recovery''',(assessment_id,d['life_safety'],d['mission'],d['operations'],d['financial'],d['legal_regulatory'],d['reputation'],d['recovery']))
+    audit(conn,'UPDATE','assessment_weights',assessment_id,'Consequence weights updated',actor(request)); conn.commit(); conn.close(); return {'ok':True}
+
+@app.post('/api/assessments/{assessment_id}/lock-scope')
+def lock_scope(assessment_id:int, request:Request):
+    require(request,'write')
+    conn=db(); r=conn.execute('SELECT * FROM assessments WHERE id=?',(assessment_id,)).fetchone()
+    if not r: raise HTTPException(404)
+    conn.execute('UPDATE assessments SET scope_locked=1, updated_at=? WHERE id=?',(now(),assessment_id)); audit(conn,'LOCK_SCOPE','assessment',assessment_id,'Scope locked',actor(request)); snapshot_entity(conn,'assessments',assessment_id,actor(request),'Scope locked'); conn.commit(); conn.close(); return {'ok':True}
+
+@app.post('/api/scope-changes')
+def create_scope_change(p:ScopeChangeIn, request:Request):
+    require(request,'write'); conn=db()
+    a=conn.execute('SELECT * FROM assessments WHERE id=?',(p.assessment_id,)).fetchone()
+    if not a: conn.close(); raise HTTPException(404)
+    d=p.model_dump(); d.update({'requested_by':actor(request),'decision':'Pending','approved_by':'','created_at':now(),'decided_at':''})
+    cols=','.join(d.keys()); qs=','.join('?'*len(d)); cur=conn.execute(f'INSERT INTO scope_changes({cols}) VALUES({qs})',tuple(d.values()))
+    audit(conn,'CREATE','scope_change',cur.lastrowid,p.reason,actor(request)); conn.commit(); row=dict(conn.execute('SELECT * FROM scope_changes WHERE id=?',(cur.lastrowid,)).fetchone()); conn.close(); return row
+
+@app.post('/api/scope-changes/{change_id}/decision')
+def decide_scope_change(change_id:int,p:ScopeDecisionIn,request:Request):
+    require(request,'decide')
+    if p.decision not in ('Approved','Rejected'): raise HTTPException(400,'Decision must be Approved or Rejected')
+    conn=db(); ch=conn.execute('SELECT * FROM scope_changes WHERE id=?',(change_id,)).fetchone()
+    if not ch: conn.close(); raise HTTPException(404)
+    if ch['decision']!='Pending': conn.close(); raise HTTPException(409,'Scope change already decided')
+    if p.decision=='Approved':
+        a=conn.execute('SELECT * FROM assessments WHERE id=?',(ch['assessment_id'],)).fetchone()
+        updates={}
+        for col in ('purpose','mission','scope','exclusions'):
+            v=ch['new_'+col]
+            if v is not None: updates[col]=v
+        updates['version']=int(a['version'])+1; updates['updated_at']=now(); updates['scope_locked']=1
+        sets=','.join(f'{k}=?' for k in updates)
+        conn.execute(f'UPDATE assessments SET {sets} WHERE id=?',list(updates.values())+[ch['assessment_id']])
+        snapshot_entity(conn,'assessments',ch['assessment_id'],actor(request),f'Approved scope change #{change_id}')
+        audit(conn,'VERSION','assessment',ch['assessment_id'],f'Assessment version incremented for scope change #{change_id}',actor(request))
+    conn.execute('UPDATE scope_changes SET decision=?,approved_by=?,decided_at=? WHERE id=?',(p.decision,actor(request),now(),change_id))
+    audit(conn,'DECIDE','scope_change',change_id,f'{p.decision}: {p.reason}',actor(request)); conn.commit(); row=dict(conn.execute('SELECT * FROM scope_changes WHERE id=?',(change_id,)).fetchone()); conn.close(); return row
+
+@app.post('/api/assessments/{assessment_id}/transition')
+def transition_assessment(assessment_id:int,p:WorkflowTransitionIn,request:Request):
+    require(request,'write'); conn=db(); a=conn.execute('SELECT * FROM assessments WHERE id=?',(assessment_id,)).fetchone()
+    if not a: conn.close(); raise HTTPException(404)
+    current=a['status']; target=p.to_status
+    if target not in WORKFLOW_STATES: conn.close(); raise HTTPException(400,'Unknown workflow status')
+    ci=WORKFLOW_STATES.index(current) if current in WORKFLOW_STATES else 0; ti=WORKFLOW_STATES.index(target)
+    admin_override=role(request) in ('System Administrator','Assessment Director') and bool(p.reason.strip())
+    if abs(ti-ci)!=1 and not admin_override:
+        conn.close(); raise HTTPException(409,'Workflow transitions must move one stage at a time. Assessment Directors and System Administrators may override with a documented reason.')
+    conn.execute('UPDATE assessments SET status=?,updated_at=? WHERE id=?',(target,now(),assessment_id))
+    conn.execute('INSERT INTO workflow_events(assessment_id,from_status,to_status,reason,changed_by,created_at) VALUES(?,?,?,?,?,?)',(assessment_id,current,target,p.reason,actor(request),now()))
+    audit(conn,'TRANSITION','assessment',assessment_id,f'{current} -> {target}. {p.reason}',actor(request)); snapshot_entity(conn,'assessments',assessment_id,actor(request),f'Workflow transition {current} -> {target}')
+    conn.commit(); conn.close(); return {'ok':True,'from_status':current,'to_status':target}
+
+@app.get('/api/versions/{entity_type}/{entity_id}')
+def versions(entity_type:str,entity_id:int,request:Request):
+    require(request,'read')
+    if entity_type not in VERSIONED_TABLES: raise HTTPException(404)
+    conn=db(); rows=[dict(r) for r in conn.execute('SELECT * FROM entity_versions WHERE entity_type=? AND entity_id=? ORDER BY version_no DESC',(entity_type,entity_id))]; conn.close(); return rows
+
+@app.post('/api/evidence/{evidence_id}/attachments')
+async def upload_evidence_attachment(evidence_id:int, request:Request, file:UploadFile=File(...)):
+    require(request,'write'); conn=db(); ev=conn.execute('SELECT * FROM evidence WHERE id=?',(evidence_id,)).fetchone()
+    if not ev: conn.close(); raise HTTPException(404)
+    content=await file.read(MAX_ATTACHMENT_BYTES+1)
+    if len(content)>MAX_ATTACHMENT_BYTES: conn.close(); raise HTTPException(413,'Attachment exceeds 25 MB prototype limit')
+    digest=hashlib.sha256(content).hexdigest(); original=safe_filename(file.filename or 'attachment')
+    stored=f'{evidence_id}_{digest[:16]}_{original}'; path=os.path.join(ATTACHMENTS_DIR,stored)
+    with open(path,'wb') as f: f.write(content)
+    cur=conn.execute('INSERT INTO evidence_attachments(evidence_id,assessment_id,original_name,stored_name,content_type,size_bytes,sha256,uploaded_by,created_at) VALUES(?,?,?,?,?,?,?,?,?)',(evidence_id,ev['assessment_id'],original,stored,file.content_type or 'application/octet-stream',len(content),digest,actor(request),now()))
+    audit(conn,'ATTACH','evidence',evidence_id,f'{original} sha256={digest}',actor(request)); conn.commit(); row=dict(conn.execute('SELECT * FROM evidence_attachments WHERE id=?',(cur.lastrowid,)).fetchone()); conn.close(); return row
+
+@app.get('/api/evidence-attachments/{attachment_id}/download')
+def download_evidence_attachment(attachment_id:int, request:Request):
+    require(request,'read'); conn=db(); r=conn.execute('SELECT * FROM evidence_attachments WHERE id=?',(attachment_id,)).fetchone(); conn.close()
+    if not r: raise HTTPException(404)
+    path=os.path.join(ATTACHMENTS_DIR,r['stored_name'])
+    if not os.path.exists(path): raise HTTPException(404,'Stored attachment missing')
+    conn=db(); audit(conn,'DOWNLOAD','evidence',r['evidence_id'],f'Attachment {r["original_name"]} downloaded',actor(request)); conn.commit(); conn.close()
+    return FileResponse(path,media_type=r['content_type'],filename=r['original_name'])
+
+@app.get('/api/export/{assessment_id}')
+def export_assessment(assessment_id:int, request:Request):
+    require(request,'read'); package=executive_package(assessment_id)
+    response=JSONResponse(package); response.headers['Content-Disposition']=f'attachment; filename="salus-thira-assessment-{assessment_id}.json"'; return response
+
+@app.put('/api/{table}/{entity_id}')
+def update_entity(table:str,entity_id:int,payload:dict[str,Any],request:Request):
+    require(request,'write')
+    allowed={'assessments','threats','scenarios','capabilities','evidence','gaps','improvements','reassessment_triggers'}
+    if table not in allowed: raise HTTPException(404)
+    conn=db(); old=conn.execute(f'SELECT * FROM {table} WHERE id=?',(entity_id,)).fetchone()
+    if not old: conn.close(); raise HTTPException(404)
+    if table=='assessments':
+        if 'status' in payload and str(payload['status'])!=str(old['status']):
+            conn.close(); raise HTTPException(409,'Use the controlled workflow transition action to change assessment status.')
+        if old['scope_locked']:
+            protected={'purpose','mission','scope','exclusions'}
+            if any(k in payload and str(payload[k])!=str(old[k]) for k in protected):
+                conn.close(); raise HTTPException(409,'Scope is locked. Create an authorized scope/version change rather than overwriting mission, purpose, scope, or exclusions.')
+    columns={r['name'] for r in conn.execute(f'PRAGMA table_info({table})')}
+    data={k:v for k,v in payload.items() if k in columns and k not in {'id','created_at'}}
+    if table=='improvements':
+        merged=dict(old); merged.update(data); score,_=improvement_priority(merged); data['priority_score']=score
+    if 'updated_at' in columns: data['updated_at']=now()
+    if not data: conn.close(); return dict(old)
+    assignments=','.join(f'{k}=?' for k in data); vals=list(data.values())+[entity_id]
+    conn.execute(f'UPDATE {table} SET {assignments} WHERE id=?',vals)
+    audit(conn,'UPDATE',table[:-1] if table.endswith('s') else table,entity_id,json.dumps({'before':dict(old),'changes':data},default=str)[:1000],actor(request))
+    snapshot_entity(conn,table,entity_id,actor(request),'Record updated')
+    if table=='improvements' and data.get('status')=='Complete' and old['status']!='Complete':
+        conn.execute('''INSERT INTO reassessment_triggers(assessment_id,source,trigger_type,description,severity,affected_record_type,affected_record_id,status,assigned_to,due_date,resolution,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)''',(old['assessment_id'],'Completed Improvement','Capability Validation',f'Improvement completed: {old["title"]}. Validate capability performance and recalculate residual risk.','High','improvement',entity_id,'Open',data.get('owner',old['owner']),'','',now(),now()))
+        trigger_id=conn.execute('SELECT last_insert_rowid()').fetchone()[0]; audit(conn,'CREATE','reassessment_trigger',trigger_id,'Automatically created after improvement completion',actor(request)); snapshot_entity(conn,'reassessment_triggers',trigger_id,actor(request),'Automatic capability validation trigger')
+    conn.commit(); row=dict(conn.execute(f'SELECT * FROM {table} WHERE id=?',(entity_id,)).fetchone()); conn.close(); return row
+
+@app.delete('/api/{table}/{entity_id}')
+def delete_entity(table:str,entity_id:int,request:Request):
+    require(request,'write')
+    allowed={'threats','scenarios','capabilities','evidence','gaps','improvements','reassessment_triggers'}
+    if table not in allowed: raise HTTPException(404)
+    conn=db(); conn.execute(f'DELETE FROM {table} WHERE id=?',(entity_id,)); audit(conn,'DELETE',table[:-1],entity_id,'Deleted in prototype',actor(request)); conn.commit(); conn.close(); return {'ok':True}
