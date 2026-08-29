@@ -4,5 +4,13 @@ pydantic
 python-multipart
 PyJWT[crypto]
 httpx
-# Optional when SALUS_STORAGE_BACKEND=azure:
+# Azure managed identity, Key Vault secrets, and Blob Storage
+azure-identity
+azure-keyvault-secrets
 azure-storage-blob
+# Managed PostgreSQL preflight / migration target validation
+psycopg[binary]
+# Distributed rate limiting (recommended for multiple production instances)
+redis
+# Optional centralized telemetry when SALUS_TELEMETRY_BACKEND=azure_monitor
+azure-monitor-opentelemetry
