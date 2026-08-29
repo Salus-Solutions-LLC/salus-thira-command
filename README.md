@@ -1,152 +1,198 @@
-# Salus THIRA Command Prototype v0.5
+# Salus THIRA Command v0.6
 
-Salus THIRA Command is a database-backed working prototype that operationalizes the Salus THIRA assessment and decision workflow with traceability, governance, evidence integrity, tenant separation, and recovery controls.
+Salus THIRA Command is the database-backed Salus assessment and decision-management system. v0.6 advances the v0.5 multi-tenant prototype toward deployable production architecture while preserving local demonstration and test operation.
 
-## v0.5 highlights
+## v0.6 highlights
 
-- Server-enforced tenant isolation across dashboards, assessments, records, evidence metadata, reports, audit views, and backups.
-- Two authentication modes:
-  - `prototype` (default): local role simulation for demonstrations.
-  - `session`: server-side users, password hashing, HttpOnly session cookies, tenant identity, role enforcement, and sensitivity clearance.
-- Assessment-level access assignments for session users.
-- Evidence sensitivity enforcement for Standard, Restricted, Sensitive, and Highly Sensitive records.
-- Tenant-specific backup packages containing a consistent SQLite snapshot, only that tenant's evidence attachments, and a SHA-256 integrity manifest.
-- Backup verification and audited download.
-- Restore is disabled by default and requires `SALUS_ALLOW_RESTORE=1`; full restore is blocked if the database contains more than one tenant.
-- Printable server-generated executive HTML report and executive CSV export.
-- Existing v0.4 features remain: risk analytics, prioritization, workflow control, scope/version governance, revision history, immutable executive decisions, reassessment triggers, evidence hashes, assessment package export, and multi-assessment selection.
-
-## Reconstruct the tested v0.5 source
-
-GitHub is the authoritative source of truth. Because the connector used to publish the repository has a per-file transfer limit, the two largest tested source files are stored as ordered gzip+Base64 parts under `source_archives/v0.5/`.
-
-From a fresh checkout run:
-
-```bash
-python tools/reconstruct_v05_source.py
-```
-
-The script reconstructs and verifies:
-
-- `app.py` — SHA-256 `5572cf66373ecf906a1565a6f8d1e10cf3a294e24dbb79550f2cefef86fe06cf`
-- `static/app.js` — SHA-256 `1a6dafabb637dc477143c3666d519f4d9d7ebe844fca067ee2566af373f5af8c`
-
-A hash mismatch causes reconstruction to fail rather than silently producing altered source.
+- Three identity modes:
+  - `prototype` for controlled local demonstrations;
+  - `session` for local server-side users and HttpOnly sessions;
+  - `oidc` for enterprise SSO through an OpenID Connect provider.
+- OIDC authorization-code flow with state and nonce validation, JWKS signature verification, issuer/audience verification, pre-provisioned users, and optional controlled auto-provisioning.
+- Server-enforced tenant and assessment access continues across portfolio, records, evidence, reports, backups, and audit/security views.
+- Evidence storage abstraction:
+  - local filesystem for development;
+  - Azure Blob Storage for managed evidence storage.
+- Pre-storage malware scanning hook using ClamAV.
+- Optional fail-closed upload policy with `SALUS_REQUIRE_AV=1`.
+- Evidence SHA-256 is verified again on every download; a mismatch is blocked and logged as a critical security event.
+- Evidence retention dates, legal holds, and disposition status.
+- Server prevents evidence deletion while legal hold is active or the retention period has not expired.
+- Security event register for authentication failures, authorization-boundary events, rejected uploads, hash mismatches, storage failures, and unhandled server errors.
+- Request IDs and baseline HTTP security headers.
+- `/health/live` and `/health/ready` endpoints.
+- Production-readiness checks that reject insecure production configuration.
+- Dockerfile and Docker Compose deployment scaffolding.
+- v0.5 capabilities remain: risk analytics, prioritization, tenant-scoped verified backups, recovery safeguards, executive reports, workflow/scope governance, evidence sensitivity, reassessment triggers, and revision history.
 
 ## Run locally
 
 ### Windows
 
 1. Install Python 3.11 or later.
-2. Run `python tools/reconstruct_v05_source.py` after a fresh GitHub checkout.
-3. `pip install -r requirements.txt`
-4. Run `run_windows.bat`
-5. Open `http://127.0.0.1:8000`
+2. `pip install -r requirements.txt`
+3. Run `run_windows.bat`
+4. Open `http://127.0.0.1:8000`
 
 ### macOS / Linux
 
 1. Install Python 3.11 or later.
-2. Run `python tools/reconstruct_v05_source.py` after a fresh GitHub checkout.
-3. `pip install -r requirements.txt`
-4. Run `./run_mac_linux.sh`
-5. Open `http://127.0.0.1:8000`
+2. `pip install -r requirements.txt`
+3. Run `./run_mac_linux.sh`
+4. Open `http://127.0.0.1:8000`
 
-## Authentication modes
+On first run the application creates the SQLite database and fictional demonstration assessment.
 
-### Prototype mode
+## Identity modes
 
-Prototype mode is the default and preserves the local role selector used during design and demonstrations.
+### Prototype
 
 ```text
 SALUS_AUTH_MODE=prototype
 ```
 
-Prototype mode is not security-grade because role identity is simulated by the browser.
+This is for local development/demonstration only. Browser role headers are intentionally trusted in this mode.
 
-### Session mode
-
-Session mode stops trusting browser-supplied role headers and uses server-side users and sessions.
-
-Create the first local administrator before enabling session mode:
-
-```bash
-python tools/manage_users.py add marc-admin --display-name "Marc Admin" --role "System Administrator" --clearance "Highly Sensitive" --tenant 1
-```
-
-Then start with:
+### Local session
 
 ```text
 SALUS_AUTH_MODE=session
+SALUS_COOKIE_SECURE=1   # for HTTPS deployments
 ```
 
-For HTTPS deployments also set:
+Create a user:
+
+```bash
+python tools/manage_users.py add marc-admin --display-name "Marc Admin" --email "user@example.com" --role "System Administrator" --clearance "Highly Sensitive"
+```
+
+### Enterprise OIDC / SSO
 
 ```text
+SALUS_AUTH_MODE=oidc
+SALUS_OIDC_DISCOVERY_URL=https://identity-provider.example/.well-known/openid-configuration
+SALUS_OIDC_CLIENT_ID=...
+SALUS_OIDC_CLIENT_SECRET=...
+SALUS_OIDC_REDIRECT_URI=https://thira.example.com/api/auth/oidc/callback
+SALUS_OIDC_DEFAULT_TENANT_SLUG=salus-prototype
+SALUS_OIDC_AUTO_PROVISION=0
 SALUS_COOKIE_SECURE=1
 ```
 
-Session lifetime defaults to 12 hours and can be changed with `SALUS_SESSION_HOURS`.
-
-Manage users:
+For pre-provisioned accounts, create the user and bind the external subject:
 
 ```bash
-python tools/manage_users.py list
-python tools/manage_users.py disable USERNAME
-python tools/manage_users.py grant USERNAME ASSESSMENT_ID
-python tools/manage_users.py revoke USERNAME ASSESSMENT_ID
+python tools/manage_users.py add user@example.com --display-name "Example User" --email "user@example.com" --role "Lead Assessor" --clearance "Sensitive"
+python tools/manage_users.py bind-oidc user@example.com --subject "OIDC-SUBJECT" --provider oidc --email "user@example.com"
 ```
 
-If a session user has one or more assessment grants, the portfolio and all record lists are restricted to those assessments.
+Automatic provisioning is disabled by default. When enabled, new OIDC users enter as `Contributor` with `Standard` clearance in the configured default tenant.
 
-## Backup and recovery
+## Evidence storage
 
-System Administrators can create and verify backups in **Backup & Recovery**. Packages are stored under `backups/` and are intentionally excluded from Git.
-
-Each backup contains:
-
-- a consistent SQLite database snapshot stripped of other tenants;
-- that tenant's evidence attachments only;
-- `manifest.json` with SHA-256 hashes and sizes.
-
-Restore is intentionally guarded:
+### Local development
 
 ```text
-SALUS_ALLOW_RESTORE=1
+SALUS_STORAGE_BACKEND=local
+SALUS_LOCAL_STORAGE_DIR=./attachments
 ```
 
-The application creates an automatic pre-restore safety backup. Full restore is blocked when more than one tenant exists because multi-tenant restoration requires a tenant-aware recovery procedure rather than replacing the complete database.
+### Azure Blob Storage
 
-## Executive reporting
+```text
+SALUS_STORAGE_BACKEND=azure
+SALUS_AZURE_STORAGE_CONNECTION_STRING=...
+SALUS_AZURE_STORAGE_CONTAINER=salus-thira-evidence
+```
 
-Each assessment supports:
+The application stores only the object key in the assessment database. Backup creation reads through the storage adapter, so the same backup process works with local or Azure-backed evidence.
 
-- live executive dashboard/report view;
-- printable server-generated HTML report suitable for Print / Save PDF;
-- executive CSV export;
-- complete JSON assessment package export.
+## Malware scanning
 
-## Data and files
+For ClamAV:
 
-- Application database: `thira.db`
-- Evidence attachments: `attachments/`
-- Backups: `backups/`
-- Front end: `static/`
-- FastAPI application: `app.py`
-- Local session-user administration: `tools/manage_users.py`
+```text
+SALUS_AV_MODE=clamav
+SALUS_REQUIRE_AV=1
+SALUS_CLAMSCAN_PATH=clamscan
+```
 
-## GitHub source-control policy
+The file is held in a temporary quarantine file for scanning before it is promoted into evidence storage. An infected file or required-but-unavailable scanner causes the upload to fail.
 
-GitHub is the authoritative home for source code. Do **not** commit:
+Development mode can leave scanning off:
 
-- `thira.db` or any other live database;
-- client evidence or attachments;
-- backup packages;
+```text
+SALUS_AV_MODE=off
+SALUS_REQUIRE_AV=0
+```
+
+## Retention and legal hold
+
+New evidence attachments receive a default retention-until date based on:
+
+```text
+SALUS_RETENTION_DEFAULT_DAYS=2555
+```
+
+Authorized decision users can modify the date or place/release a legal hold. The server blocks deletion when either a legal hold is active or the retention-until date remains in the future.
+
+## Security telemetry
+
+System Administrators can review **Security & Readiness** in the application. Events include:
+
+- login failures and OIDC failures;
+- tenant/assessment authorization failures;
+- upload rejection or unavailable malware scanner;
+- evidence SHA-256 mismatch;
+- storage failures;
+- unhandled application errors.
+
+Every HTTP response receives an `X-Request-ID` for correlation.
+
+## Health and readiness
+
+- `GET /health/live` confirms the process is running.
+- `GET /health/ready` verifies database/storage access and checks production configuration.
+
+When `SALUS_ENV=production`, readiness fails if production requirements are not met, including non-prototype authentication and secure cookies. Local evidence storage and disabled upload scanning are also surfaced as production readiness problems.
+
+## Docker
+
+Copy `.env.example` to `.env`, set the required values, then:
+
+```bash
+docker compose up --build
+```
+
+The container runs as a non-root user and includes a readiness health check.
+
+## Source-control policy
+
+GitHub is the authoritative source for code. Do **not** commit:
+
+- live `thira.db` / SQLite files;
+- client evidence or uploaded files;
+- backup archives;
 - logs;
-- `.env` files;
-- credentials, API keys, or secrets.
+- `.env` or secrets;
+- identity-provider client secrets or Azure storage credentials.
+
+## v0.6 regression validation
+
+The clean build was tested for:
+
+- prototype startup and health/readiness;
+- local session login and failed-login security events;
+- OIDC fail-closed behavior when provider configuration is incomplete;
+- tenant-boundary denial and security-event creation;
+- attachment upload, scan state, retention assignment, and SHA-256 download verification;
+- legal-hold and retention-based deletion denial;
+- evidence hash-tampering detection;
+- backup creation and integrity verification through the storage abstraction;
+- required-malware-scanner fail-closed behavior;
+- production readiness rejecting insecure defaults;
+- Python compilation and JavaScript syntax validation.
 
 ## Production status
 
-v0.5 materially strengthens the prototype, but it is still not a hardened production deployment. Before storing real sensitive client information in an internet-facing environment, production work still requires enterprise SSO/OIDC integration, TLS termination, managed/encrypted database and object storage, secrets management, malware scanning, retention/legal-hold controls, rate limiting, security monitoring, backup retention/off-site replication, disaster-recovery testing, penetration testing, and formal security/privacy review.
-
-The session framework added in v0.5 is intentionally designed as the bridge to enterprise identity rather than the final SSO implementation.
+v0.6 is substantially closer to a deployable architecture, but it is still not authorization to place real client-sensitive data on an internet-facing production service. Remaining production work includes a managed relational database, production TLS/ingress, provider-specific SSO registration and claims mapping, secrets vault integration, Azure/private-network architecture, off-site backup replication and restore drills, centralized security monitoring/SIEM, malware-engine operations, retention schedules approved by counsel/records management, rate limiting/WAF, vulnerability scanning, penetration testing, and formal security/privacy review.
