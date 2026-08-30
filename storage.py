@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 from secret_provider import secret
 
@@ -8,12 +9,21 @@ class StorageError(RuntimeError):
 class LocalStorage:
     backend='local'
     def __init__(self, root: str):
-        self.root = Path(root)
+        self.root = Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
     def _path(self, key: str) -> Path:
-        safe = key.replace('\\','/').lstrip('/')
-        path = (self.root / safe).resolve()
-        if self.root.resolve() not in path.parents and path != self.root.resolve():
+        if not isinstance(key,str) or not key or len(key)>1024 or '\\x00' in key:
+            raise StorageError('Invalid storage key')
+        normalized=key.replace('\\\\','/')
+        if normalized.startswith('/') or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/-]*',normalized):
+            raise StorageError('Invalid storage key')
+        parts=normalized.split('/')
+        if any(part in ('','.','..') for part in parts):
+            raise StorageError('Invalid storage key')
+        # Safe relative components are enforced above; resolve plus containment
+        # protects against traversal and symlink escapes.
+        path=self.root.joinpath(*parts).resolve()  # lgtm[py/path-injection]
+        if path != self.root and self.root not in path.parents:
             raise StorageError('Invalid storage key')
         return path
     def put_bytes(self, key: str, data: bytes):
