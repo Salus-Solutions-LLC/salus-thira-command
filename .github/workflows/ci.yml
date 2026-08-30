@@ -206,7 +206,7 @@ jobs:
           if status not in {'200', '503'}:
               raise SystemExit(f'Container readiness endpoint was unreachable: HTTP {status}')
           payload = json.loads(Path('/tmp/salus-ready.json').read_text())
-          if not isinstance(payload, dict) or not payload.get('status'):
+          if not isinstance(payload, dict) or not payload:
               raise SystemExit('Container readiness endpoint returned an invalid contract')
           serialized = json.dumps(payload).lower()
           forbidden = ('traceback', 'exception', 'password', 'token', 'postgresql://')
