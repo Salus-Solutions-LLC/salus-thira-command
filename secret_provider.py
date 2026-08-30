@@ -41,13 +41,13 @@ class AzureKeyVaultSecretProvider:
         except Exception as exc:
             if default != '':
                 return default
-            raise SecretProviderError(f'Unable to retrieve Key Vault secret {secret_name}: {exc}') from exc
+            raise SecretProviderError('Unable to retrieve managed secret') from exc
     def health(self) -> SecretStatus:
         try:
             self.credential.get_token('https://vault.azure.net/.default')
-            return SecretStatus(self.backend, True, f'Key Vault identity available for {self.vault_url}')
-        except Exception as exc:
-            return SecretStatus(self.backend, False, f'Key Vault credential unavailable: {exc}')
+            return SecretStatus(self.backend, True, 'Key Vault identity available')
+        except Exception:
+            return SecretStatus(self.backend, False, 'Key Vault credential unavailable')
 
 
 def build_secret_provider():
@@ -73,5 +73,5 @@ def readiness():
     try:
         s=provider().health()
         return {'backend':s.backend,'configured':s.configured,'detail':s.detail}
-    except Exception as exc:
-        return {'backend':os.getenv('SALUS_SECRET_BACKEND','env'),'configured':False,'detail':str(exc)}
+    except Exception:
+        return {'backend':os.getenv('SALUS_SECRET_BACKEND','env'),'configured':False,'detail':'Secret provider unavailable'}

@@ -53,6 +53,6 @@ class RateLimiter:
                 return {'enabled':True,'backend':'redis','healthy':False,'detail':'Redis backend not configured or library unavailable'}
             try:
                 self._redis.ping(); return {'enabled':True,'backend':'redis','healthy':True,'detail':'Redis reachable'}
-            except Exception as exc:
-                return {'enabled':True,'backend':'redis','healthy':False,'detail':f'Redis unavailable: {exc}'}
+            except Exception:
+                return {'enabled':True,'backend':'redis','healthy':False,'detail':'Redis unavailable'}
         return {'enabled':True,'backend':'memory','healthy':True,'detail':'Single-process memory limiter'}

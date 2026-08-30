@@ -1,5 +1,4 @@
 import os, sqlite3
-from pathlib import Path
 from secret_provider import secret
 
 TARGET=os.getenv('SALUS_MANAGED_DB_TARGET','none').strip().lower()
@@ -29,9 +28,9 @@ def _postgres_connect(connect_timeout=5):
 def sqlite_runtime_status(db_path:str):
     try:
         c=sqlite3.connect(db_path); result=c.execute('PRAGMA integrity_check').fetchone()[0]; c.close()
-        return {'provider':'sqlite','healthy':result=='ok','detail':f'SQLite integrity_check={result}','path':str(Path(db_path))}
-    except Exception as exc:
-        return {'provider':'sqlite','healthy':False,'detail':str(exc),'path':str(Path(db_path))}
+        return {'provider':'sqlite','healthy':result=='ok','detail':'SQLite integrity check passed' if result=='ok' else 'SQLite integrity check failed'}
+    except Exception:
+        return {'provider':'sqlite','healthy':False,'detail':'SQLite runtime unavailable'}
 
 def postgres_runtime_status():
     configured=bool(_postgres_dsn()) or (POSTGRES_AUTH in ('entra','azure_entra','managed_identity') and all(os.getenv(x,'').strip() for x in ('SALUS_POSTGRES_HOST','SALUS_POSTGRES_DATABASE','SALUS_POSTGRES_USER')))
@@ -40,10 +39,10 @@ def postgres_runtime_status():
         with _postgres_connect(5) as conn:
             with conn.cursor() as cur:
                 cur.execute('SELECT current_database(), current_user, current_schema(), version()')
-                db,user,schema,version=cur.fetchone()
-        return {'provider':'postgresql','healthy':True,'configured':True,'auth':POSTGRES_AUTH,'database':db,'user':user,'schema':schema,'detail':version.split(',')[0]}
-    except Exception as exc:
-        return {'provider':'postgresql','healthy':False,'configured':configured,'auth':POSTGRES_AUTH,'detail':f'PostgreSQL runtime unavailable: {exc}'}
+                cur.fetchone()
+        return {'provider':'postgresql','healthy':True,'configured':True,'auth':POSTGRES_AUTH,'detail':'PostgreSQL reachable'}
+    except Exception:
+        return {'provider':'postgresql','healthy':False,'configured':configured,'auth':POSTGRES_AUTH,'detail':'PostgreSQL runtime unavailable'}
 
 def runtime_database_status(db_path:str):
     if DB_BACKEND=='postgres': return postgres_runtime_status()

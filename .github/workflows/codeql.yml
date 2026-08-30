@@ -2,7 +2,9 @@ name: CodeQL Local Analysis
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - development/**
   pull_request:
     branches: [main]
   schedule:
@@ -33,8 +35,10 @@ jobs:
           cache-dependency-path: requirements.txt
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ] && [ -f tools/reconstruct_security_readiness_source.py ]; then python tools/reconstruct_security_readiness_source.py; fi
-          python tools/verify_security_readiness_source.py
+          if [ ! -f app.py ] && [ -f tools/reconstruct_v141_source.py ]; then python tools/reconstruct_v141_source.py; fi
+          python tools/verify_v141_source.py
+      - name: Validate release reconstruction entrypoints
+        run: python tools/check_release_entrypoints.py
       - uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           languages: python

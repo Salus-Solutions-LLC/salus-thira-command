@@ -1,6 +1,8 @@
-# Salus THIRA Command v1.4
+# Salus THIRA Command v1.4.1
 
 Salus THIRA Command is the assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
+
+v1.4.1 is the security patch for the v1.4 evidence-lifecycle release. It preserves v1.4 behavior while preventing diagnostic exception text from reaching external responses or security telemetry, retaining only opaque correlation IDs and exception classes.
 
 v1.4 is the **evidence lifecycle governance release**. It preserves v1.3 professional-risk-override governance while making evidence validity time-aware and fail-closed for risk and validation credit.
 
@@ -57,7 +59,7 @@ This prevents an expired record from remaining falsely Current merely because an
 
 ## Risk governance remains unchanged
 
-Application version: **1.4.0**  
+Application version: **1.4.1**  
 Risk methodology version: **1.1.0**
 
 v1.4 changes evidence governance, not the numerical risk formula. Calculated current risk, professional assigned risk, predicted residual risk, and validated residual risk remain separate governed concepts.
@@ -83,8 +85,8 @@ v1.4 changes evidence governance, not the numerical risk formula. Calculated cur
 The tested source is preserved through the deterministic release archive chain:
 
 ```bash
-python tools/reconstruct_v14_source.py
-python tools/verify_v14_source.py
+python tools/reconstruct_v141_source.py
+python tools/verify_v141_source.py
 ```
 
 Windows and macOS/Linux launchers perform reconstruction and verification automatically when needed.
@@ -102,13 +104,13 @@ Open `http://127.0.0.1:8000`.
 
 ## Release acceptance
 
-The v1.4 release gate requires:
+The v1.4.1 release gate requires:
 
 - exact source reconstruction and SHA-256 verification;
 - Python compilation;
 - JavaScript syntax validation;
-- SQLite v1.4 evidence-lifecycle smoke;
-- real PostgreSQL 16 v1.4 evidence-lifecycle smoke;
+- SQLite v1.4.1 evidence-lifecycle and security-patch smoke;
+- real PostgreSQL 16 v1.4.1 evidence-lifecycle and security-patch smoke;
 - PostgreSQL transaction smoke;
 - dependency audit;
 - Bandit static-security gate; and
@@ -116,4 +118,4 @@ The v1.4 release gate requires:
 
 ## Production status
 
-v1.4 is a hardened development/release baseline, not an authorization to place sensitive client data into production by itself. Production deployment still requires approved identity, managed database/storage, malware scanning, secrets management, network controls, monitoring, records-retention rules, backup/restore procedures, penetration testing, and formal security/privacy review.
+v1.4.1 is a hardened development/release baseline, not an authorization to place sensitive client data into production by itself. Production deployment still requires approved identity, managed database/storage, malware scanning, secrets management, network controls, monitoring, records-retention rules, backup/restore procedures, penetration testing, and formal security/privacy review.
