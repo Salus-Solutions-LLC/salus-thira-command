@@ -68,13 +68,18 @@ jobs:
               rule_id = result.get('ruleId', 'unknown')
               level = result.get('level', 'warning')
               message = result.get('message', {}).get('text', '')
-              print(f'{filename}: {level}: {rule_id}: {message}')
+              locations = result.get('locations', []) or []
+              physical = locations[0].get('physicalLocation', {}) if locations else {}
+              uri = physical.get('artifactLocation', {}).get('uri', 'unknown')
+              line = physical.get('region', {}).get('startLine', '?')
+              print(f'{filename}:{uri}:{line}: {level}: {rule_id}: {message}')
 
           if findings:
               raise SystemExit('CodeQL produced findings that require review')
           print('CODEQL_LOCAL_ANALYSIS_PASS')
           PY
       - name: Preserve CodeQL SARIF
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: codeql-sarif
