@@ -63,6 +63,8 @@ jobs:
         run: python tools/ci_v141_smoke.py
       - name: Security remediation regression smoke
         run: python tools/security_regression_smoke.py
+      - name: Readiness disclosure regression smoke
+        run: python tools/readiness_security_smoke.py
       - name: Dependency audit
         run: pip-audit -r requirements.txt --progress-spinner off
       - name: Static security scan

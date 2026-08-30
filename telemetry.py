@@ -25,8 +25,8 @@ def configure_telemetry():
         from azure.monitor.opentelemetry import configure_azure_monitor
         configure_azure_monitor(connection_string=conn)
         _AZURE_CONFIGURED=True
-    except Exception as exc:
-        _AZURE_ERROR=str(exc)
+    except Exception:
+        _AZURE_ERROR='Azure Monitor initialization failed'
 
 configure_telemetry()
 
