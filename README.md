@@ -1,80 +1,74 @@
-# Salus THIRA Command v1.0
+# Salus THIRA Command v1.1
 
 Salus THIRA Command is the assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
 
-v1.0 is the **capability-measurement and accountable-risk baseline**. It preserves the validated v0.9 multi-tenant, security, evidence, PostgreSQL, backup/recovery, and Accepted Risk controls while correcting a foundational modeling problem: capability performance no longer assumes that a larger number is always better.
+v1.1 is the **governed residual-risk baseline**. It preserves the validated v1.0 capability measurement framework while separating forecast risk reduction from evidence-validated risk reduction.
 
-## What v1.0 adds
+## Governed risk states
 
-The Capability Measurement Framework now supports:
+THIRA Command now distinguishes four states instead of treating an approved action as achieved risk reduction:
 
-- **Percentage**
-- **Time**
-- **Count**
-- **Rate**
-- **Binary**
-- **Currency**
-- **Qualitative Rubric**
+1. **Inherent Risk** — likelihood × vulnerability/exposure × modeled consequence before capability credit.
+2. **Current Risk** — inherent risk adjusted only for demonstrated current capability.
+3. **Predicted Residual Risk** — a planning forecast that may credit the expected benefit of currently approved improvements. It is explicitly not treated as achieved.
+4. **Validated Residual Risk** — improvement benefit is credited only after the improvement is Complete and a controlled validation cites evidence whose verification status is currently `Verified`.
 
-Each capability records a measurement type, unit, target comparator (`>=`, `<=`, or exact `=`), required standard, current demonstrated performance, evidence confidence, and validation dates.
+Executive approval by itself never lowers Current Risk or Validated Residual Risk. Marking an improvement Complete also does not lower Validated Residual Risk.
 
-Examples:
+If cited validation evidence is later downgraded from `Verified`, the associated validated risk-reduction credit disappears automatically. A later executive decision such as Defer or Reject also prevents an older approval from continuing to supply forecast or validated credit.
 
-- Target `<= 10 minutes`, actual `8 minutes` → **100% attained**.
-- Target `<= 10 minutes`, actual `12 minutes` → **83.3% attained**, physical gap **2 minutes**.
-- Target `>= 95%`, actual `72%` → **75.8% attained**.
-- Binary target `1`, current `1` → **100% attained**.
+## Improvement validation
 
-The application keeps the raw target/current values visible. Normalized attainment is used only to compare unlike capability measures consistently for dashboards and risk analytics.
+A completed improvement can be validated as:
 
-## Governance retained
+- `Validated`
+- `Partially Validated`
+- `Failed`
 
-v1.0 retains the v0.9 **Accepted Risk Register**. An `Accept Risk` executive decision requires a named authority, explicit residual exposure, and review date. The resulting accepted-risk record remains active, owned, traceable, reviewable, and non-deletable until formally closed or superseded with a documented basis.
+Validation requires:
 
-Other retained controls include:
+- a completed improvement;
+- a verified evidence record from the same assessment;
+- a documented validation outcome;
+- an explicit validated-effectiveness percentage;
+- an accountable validating user and timestamp.
 
-- assessment scope lock and controlled scope changes;
-- workflow transitions and revision snapshots;
-- tenant and assessment access enforcement;
-- evidence sensitivity, file hashes, retention, legal hold, and upload-scanning hooks;
+Failed validation earns zero risk-reduction credit and automatically opens a corrective-action reassessment trigger. Validation records are revisioned and audited. Direct edits to validation state are blocked; the controlled validation action must be used.
+
+## Risk methodology versioning
+
+Each assessment consequence-weight record now carries `risk_methodology_version`. v1.1 risk outputs and exports identify the methodology used, allowing later scoring-method changes to remain distinguishable from historical results.
+
+## v1.0 capabilities retained
+
+The Capability Measurement Framework supports Percentage, Time, Count, Rate, Binary, Currency, and Qualitative Rubric measures with `>=`, `<=`, or exact `=` target semantics. Raw target/current measures remain visible while normalized attainment allows unlike capabilities to be compared consistently.
+
+The Accepted Risk Register remains durable and non-deletable until formally closed or superseded with documented authority and basis.
+
+## Runtime and security controls retained
+
+- SQLite local/demo and PostgreSQL managed-runtime paths;
+- Microsoft Entra/managed-identity PostgreSQL authentication hooks;
 - OIDC/session/prototype identity modes;
-- rate limiting and centralized security telemetry;
+- tenant and assessment authorization;
+- evidence sensitivity, SHA-256 integrity, retention/legal hold, and upload scanning hooks;
+- Azure Blob/local storage abstraction;
+- Key Vault secret-provider path;
+- Redis-capable distributed rate limiting;
+- centralized security telemetry;
 - portable tenant backup, integrity verification, DR validation, and controlled restore;
-- SQLite and PostgreSQL runtime support;
-- Azure Key Vault / managed identity integration hooks;
-- Azure Blob or local evidence storage.
-
-## Database runtimes
-
-### SQLite — local/demo
-
-```text
-SALUS_DB_BACKEND=sqlite
-SALUS_DB_PATH=./thira.db
-SALUS_SEED_DEMO=1
-```
-
-### PostgreSQL — managed runtime path
-
-```text
-SALUS_DB_BACKEND=postgres
-SALUS_POSTGRES_AUTH=dsn
-SALUS_DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
-SALUS_SEED_DEMO=0
-```
-
-Azure Database for PostgreSQL can use Microsoft Entra / managed identity via the `SALUS_POSTGRES_*` environment settings documented in `.env.example` and `deploy/POSTGRESQL_CUTOVER.md`.
+- scope/workflow governance, revision history, executive decisions, Accepted Risk, and reporting.
 
 ## Fresh GitHub checkout
 
-Large source files are stored through a deterministic, SHA-256 verified delta chain. A fresh checkout reconstructs the exact v1.0 application source with:
+The largest tested source files are preserved through a deterministic, SHA-256 verified delta chain:
 
 ```bash
-python tools/reconstruct_v10_source.py
-python tools/verify_v10_source.py
+python tools/reconstruct_v11_source.py
+python tools/verify_v11_source.py
 ```
 
-Windows/macOS/Linux launchers and the Docker build perform this verification automatically. Expected v1.0 file hashes are stored in `source_archives/v1.0/manifest.json`.
+The v1.1 reconstruction establishes the exact v1.0 baseline first, applies the v1.1 delta, and verifies the resulting hashes. Windows/macOS/Linux launchers and Docker perform this automatically when required.
 
 ## Run locally
 
@@ -94,37 +88,25 @@ pip install -r requirements.txt
 
 Then open `http://127.0.0.1:8000`.
 
-## Portable backup and recovery
-
-Portable tenant backups use `salus-thira-portable-backup-v1` and contain structured tenant records, referenced evidence objects, and a SHA-256 manifest. v1.0 capability measurement fields and Accepted Risk records are included automatically with their source records.
-
-Restore is disabled by default and requires `SALUS_ALLOW_RESTORE=1` during an approved recovery window.
-
-## Health/readiness
-
-- `GET /health/live`
-- `GET /health/ready`
-
-Production readiness remains fail-closed when SQLite is active unless an explicit temporary exception is authorized.
-
 ## Release validation gates
 
-v1.0 acceptance is enforced against the exact reconstructed source tree in GitHub Actions:
+v1.1 acceptance is fail-closed against the exact reconstructed source tree:
 
 - SHA-256 source reconstruction and verification;
 - Python compilation and JavaScript syntax validation;
-- the same release lifecycle smoke against **SQLite and PostgreSQL 16**;
-- capability measurement tests covering higher-is-better, lower-is-better, binary validation, derived attainment/gap/status, dashboard output, traceability, and executive reports;
-- Accepted Risk creation, protected closure, and documented closure basis;
+- shared lifecycle smoke against SQLite and PostgreSQL 16;
+- proof that approval changes only Predicted Residual, not Current/Validated Residual;
+- proof that completion alone earns no validated risk reduction;
+- verified-evidence requirement for controlled improvement validation;
+- partial/full/failed validation behavior;
+- automatic loss of validated credit if supporting evidence ceases to be Verified;
+- latest executive-decision control over forecast credit;
+- v1.0 capability measurement semantics;
+- Accepted Risk governance;
 - PostgreSQL transaction rollback smoke;
-- dependency audit;
-- reviewed medium/high Bandit security gate;
+- dependency audit and reviewed Bandit gate;
 - local Python CodeQL analysis with fail-closed SARIF findings enforcement.
 
-These automated gates validate the application/runtime code path. They do not substitute for a production managed-database cutover, tenant-specific Entra configuration, private networking/WAF/TLS, penetration testing, backup exercises, records-retention approval, or formal security/privacy authorization.
+These gates validate application/runtime behavior. They do not substitute for production managed-database cutover, tenant-specific Entra configuration, private networking/WAF/TLS, penetration testing, backup exercises, retention approval, or formal security/privacy authorization.
 
-## Source-control policy
-
-GitHub is authoritative for code. Never commit live client databases, PostgreSQL dumps with client data, evidence/uploads, backup archives, logs, `.env` files, credentials, tokens, connection strings, or identity-provider secrets.
-
-See `RELEASE_NOTES_v1.0.md`, `deploy/PRODUCTION_READINESS.md`, and `deploy/POSTGRESQL_CUTOVER.md` for additional detail.
+GitHub remains authoritative for code. Never commit live client databases, evidence/uploads, backups, logs, `.env` files, credentials, tokens, connection strings, or identity-provider secrets.
