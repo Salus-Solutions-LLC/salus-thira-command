@@ -1,6 +1,6 @@
 # Build status
 
-Current supported application release: **Salus THIRA Command v1.4.1**. v1.5 Accepted Risk Review Governance is under validation on `development/v1.5` and is not frozen yet.
+Current supported application release: **Salus THIRA Command v1.5** at `release/v1.5` commit `1d8f296f9a0e8163c878e7821a79cf8a4d407850`. v1.6 Professional Risk Override Review Governance is under validation on `development/v1.6` and is not frozen yet.
 
 Authoritative references:
 
