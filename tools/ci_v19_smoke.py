@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import os
+import importlib.util
+import sys
 import tempfile
 from pathlib import Path
 
@@ -9,13 +11,19 @@ os.environ['SALUS_DB_BACKEND']='sqlite'
 os.environ['SALUS_DB_PATH']=str(Path(TMP.name)/'v19-smoke.db')
 os.environ['SALUS_AUTH_MODE']='prototype'
 
-from starlette.testclient import TestClient
-import sys
 sys.path.insert(0,str(ROOT))
+from starlette.testclient import TestClient
 import app
 from portable_backup import collect_tenant_records
 
 def main():
+    spec=importlib.util.spec_from_file_location('ci_v18',ROOT/'tools'/'ci_v18_smoke.py')
+    previous=importlib.util.module_from_spec(spec); spec.loader.exec_module(previous)
+    actual=app.APP_VERSION
+    try:
+        app.APP_VERSION='1.8.0'; previous.main()
+    finally:
+        app.APP_VERSION=actual
     client=TestClient(app.app)
     h={'X-Salus-Role':'Assessment Director','X-Salus-User':'V19 CI','X-Salus-Tenant':'1'}
     empty=client.get('/api/intake',headers=h)
