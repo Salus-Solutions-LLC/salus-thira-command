@@ -54,6 +54,7 @@ Repository-control changes such as CI, security policy, CODEOWNERS, templates, a
 - Workflows pin third-party Actions to immutable commit SHAs.
 - Dependabot proposes controlled updates for Actions and Python dependencies.
 - CI uses concurrency cancellation to avoid wasting runners on superseded commits.
+- The production-container job builds the exact Dockerfile, verifies the non-root runtime and archived source, exercises SQLite and PostgreSQL 16 lifecycle behavior inside the image, and checks the fail-closed readiness contract.
 - CI jobs have timeouts so hung external services cannot consume runners indefinitely.
 - `main` is the current stable development baseline, reducing huge/stale validation diffs.
 - Release branches have an Actions immutability alarm; any post-creation update is a policy violation requiring investigation.
@@ -76,15 +77,15 @@ Repository-control changes such as CI, security policy, CODEOWNERS, templates, a
 - Dependabot groups routine dependency updates to reduce PR noise.
 - CodeQL runs on `main`, `development/**`, PRs targeting `main`, weekly schedule, and manual dispatch. Development-branch analysis is intentionally full-branch so a clean PR diff cannot conceal inherited findings.
 
-## Platform limitation
+## Active server-enforced rulesets
 
-The current private-repository GitHub plan/integration does not expose repository Rulesets for this repository. Repository-controlled safeguards therefore supplement, but do not replace, server-enforced branch protection. If the GitHub plan later supports Rulesets/required checks, enable them for `main` and `release/**` using the controls described below.
+GitHub Team rulesets are active for this repository.
 
-Recommended future Rulesets:
+- **Salus Main Branch Governance** targets `main`, requires pull requests and resolved conversations, blocks deletion and force pushes, and requires `validate`, `postgres-runtime`, `analyze`, and `container-runtime`.
+- **Salus Frozen Release Immutability** targets `release/*`, blocks updates, deletion, and force pushes after a release branch is created.
+- Both rulesets have empty bypass lists, including no administrator bypass.
 
-- `main`: require PR, require successful CI and CodeQL, block force pushes/deletion.
-- `release/**`: block updates, force pushes, and deletion after creation.
-- require signed commits/tags if Salus adopts an organizational signing policy.
+Signed commits or tags may be added later if Salus adopts an organizational signing policy with a tested recovery procedure.
 
 ## Recovery principle
 
