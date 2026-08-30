@@ -1,0 +1,22 @@
+{
+  "delta": {
+    "chunks": [
+      {
+        "chars": 1296,
+        "path": "delta.json.gz.b64.part01",
+        "sha256": "56356f6722239fd5e701adbbb3d2b13e0f8332eeb16e182653bf2817772766fd"
+      }
+    ],
+    "gzip_sha256": "4ffc622c3546eee9edf1e13371fc494d23fe29aa3720af2607ac295b850742ab",
+    "gzip_size_bytes": 972,
+    "json_sha256": "0d1d9b1c70411f65a7686c8e9b3e29e6a7abf71da9d04162e06c9dd6a1137f29"
+  },
+  "files": {
+    "app.py": {
+      "baseline_sha256": "5bc50991f31a05bcf3de009dd5916b4ba857b770ec10231a5bc9636f11438e82",
+      "target_sha256": "038fe80cb246b7c6495a96f1ccb2897e2b14f4fe0d2193288fb76aa62dc10339",
+      "target_size_bytes": 183375
+    }
+  },
+  "version": "1.10.0"
+}
