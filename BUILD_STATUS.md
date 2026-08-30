@@ -1,23 +1,15 @@
 # Build status
 
-Current frozen application release: **Salus THIRA Command v1.7** at `release/v1.7` commit `72a76a6b4906bb94e61402bd56496682f2be1175`. v1.8 Executive Decision Review Lifecycle Governance is under validation on `development/v1.8`.
+Current frozen application release: **Salus THIRA Command v1.8** at `release/v1.8` commit `507671914c26b1593317467394e28cefe275ad86`. v1.9 Governed Product Intake and Site Integration is under validation on `development/v1.9`.
 
 Authoritative references:
 
-- Frozen application release: `release/v1.7` at `72a76a6b4906bb94e61402bd56496682f2be1175`.
+- Frozen application release: `release/v1.8` at `507671914c26b1593317467394e28cefe275ad86`.
 - Current governed development baseline: `main`.
-- `main` includes the validated production-container runtime gate merged in PR #24.
 - The active main-branch ruleset requires `validate`, `postgres-runtime`, `analyze`, and `container-runtime`.
 - The active release ruleset makes every `release/*` branch immutable after creation.
+- Product integration contract: `docs/SITE_INTEGRATION_v1.9.md`.
 
-Recent frozen recovery branches:
+Prior frozen recovery branches remain unchanged through `release/v1.8`.
 
-- `release/v1.2`
-- `release/v1.3`
-- `release/v1.4`
-- `release/v1.4.1`
-- `release/v1.5`
-- `release/v1.6`
-- `release/v1.7`
-
-Deterministic source reconstruction and integrity verification are documented under `tools/README_source_integrity.md`. Runtime/client data and evidence are excluded from GitHub and recovered through the application backup/DR process.
+Deterministic source reconstruction and integrity verification are documented under `tools/README_source_integrity.md`. Runtime/Member data and evidence are excluded from GitHub and recovered through the application backup/DR process.
