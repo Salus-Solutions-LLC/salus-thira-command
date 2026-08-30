@@ -1,8 +1,8 @@
-# Salus THIRA Command v1.7
+# Salus THIRA Command v1.8
 
 Salus THIRA Command is the assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
 
-v1.7 makes assessment reassessment dates operational through automatic overdue state, one-time triggers, and controlled documented renewal.
+v1.8 makes executive-decision review dates operational through automatic overdue state, one-time triggers, and controlled documented renewal while keeping the original decision immutable. v1.7 assessment reassessment lifecycle governance remains fully regression-gated.
 
 v1.6 adds professional risk-override review governance. Overdue overrides stop supplying professional assigned risk until controlled review, while calculated risk remains unchanged and visible.
 
@@ -91,8 +91,8 @@ v1.4 changes evidence governance, not the numerical risk formula. Calculated cur
 The tested source is preserved through the deterministic release archive chain:
 
 ```bash
-python tools/reconstruct_v17_source.py
-python tools/verify_v17_source.py
+python tools/reconstruct_v18_source.py
+python tools/verify_v18_source.py
 ```
 
 Windows and macOS/Linux launchers perform reconstruction and verification automatically when needed.
