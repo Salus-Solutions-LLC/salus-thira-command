@@ -1,0 +1,11 @@
+# Default owner for every change.
+* @SalusSOlutionsLLC
+
+# Security and delivery controls require explicit owner review.
+/.github/ @SalusSOlutionsLLC
+/Dockerfile @SalusSOlutionsLLC
+/docker-compose*.yml @SalusSOlutionsLLC
+/requirements*.txt @SalusSOlutionsLLC
+/security_controls.py @SalusSOlutionsLLC
+/secret_provider.py @SalusSOlutionsLLC
+/tools/check_repository_hygiene.py @SalusSOlutionsLLC

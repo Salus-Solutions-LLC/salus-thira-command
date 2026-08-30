@@ -1,29 +1,56 @@
 name: CI
+
 on:
   push:
+    branches:
+      - main
+      - development/**
+      - release/**
+      - validation/**
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
   pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: '3.12'
-      - uses: actions/setup-node@v6
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          node-version: '22'
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
       - name: Reconstruct and verify archived source
         run: |
           if [ ! -f app.py ]; then python tools/reconstruct_v08_source.py; fi
           python tools/verify_v08_source.py
+      - name: Verify repository boundary
+        run: python tools/check_repository_hygiene.py
       - name: Install application and security test tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pip-audit bandit
+        run: python -m pip install -r requirements.txt -r requirements-ci.txt
+      - name: Verify installed dependency consistency
+        run: python -m pip check
       - name: Compile Python
         run: python -m py_compile app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
       - name: Validate JavaScript syntax
@@ -35,7 +62,7 @@ jobs:
           SALUS_LOCAL_STORAGE_DIR: /tmp/salus-ci-attachments
           SALUS_BACKUP_DIR: /tmp/salus-ci-backups
           SALUS_AUTH_MODE: prototype
-          SALUS_SEED_DEMO: '1'
+          SALUS_SEED_DEMO: "1"
         run: |
           python - <<'PY'
           import app
@@ -46,7 +73,7 @@ jobs:
           print('SQLITE_RUNTIME_SMOKE_PASS')
           PY
       - name: Dependency audit
-        run: pip-audit -r requirements.txt
+        run: pip-audit -r requirements.txt --progress-spinner off
       - name: Static security scan
         # B608 is excluded after review: interpolated SQL identifiers are selected only
         # from fixed application allowlists or schema-derived column sets; all data values
@@ -55,13 +82,14 @@ jobs:
 
   postgres-runtime:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16-alpine
         env:
           POSTGRES_DB: salus_thira_ci
           POSTGRES_USER: salus
-          POSTGRES_PASSWORD: salus-ci-password
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -70,22 +98,28 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: '3.12'
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
       - name: Reconstruct and verify archived source
         run: |
           if [ ! -f app.py ]; then python tools/reconstruct_v08_source.py; fi
           python tools/verify_v08_source.py
       - name: Install application
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
+      - name: Verify installed dependency consistency
+        run: python -m pip check
       - name: PostgreSQL schema and seeded runtime smoke
         env:
           SALUS_DB_BACKEND: postgres
-          SALUS_DATABASE_URL: postgresql://salus:salus-ci-password@127.0.0.1:5432/salus_thira_ci
+          SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salus_thira_ci
           SALUS_AUTH_MODE: prototype
-          SALUS_SEED_DEMO: '1'
+          SALUS_SEED_DEMO: "1"
           SALUS_LOCAL_STORAGE_DIR: /tmp/salus-pg-attachments
           SALUS_BACKUP_DIR: /tmp/salus-pg-backups
         run: |
@@ -101,9 +135,9 @@ jobs:
       - name: PostgreSQL transaction smoke
         env:
           SALUS_DB_BACKEND: postgres
-          SALUS_DATABASE_URL: postgresql://salus:salus-ci-password@127.0.0.1:5432/salus_thira_ci
+          SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salus_thira_ci
           SALUS_AUTH_MODE: prototype
-          SALUS_SEED_DEMO: '0'
+          SALUS_SEED_DEMO: "0"
           SALUS_LOCAL_STORAGE_DIR: /tmp/salus-pg-attachments
           SALUS_BACKUP_DIR: /tmp/salus-pg-backups
         run: python tools/postgres_runtime_smoke.py

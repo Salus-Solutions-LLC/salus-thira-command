@@ -1,4 +1,4 @@
-# Salus THIRA Command - do not commit runtime/client data
+# Salus THIRA Command - do not commit runtime/client/controlled data
 thira.db
 *.db
 *.sqlite
@@ -9,6 +9,10 @@ uploads/
 backups/
 exports/
 migration_export/
+controlled-documents/
+client-evidence/
+case-files/
+person-records/
 *.ndjson
 logs/
 *.log
@@ -27,3 +31,19 @@ htmlcov/
 migration-report*.json
 *.dump
 *.backup
+
+# Controlled/business documents and credential material stay outside GitHub.
+*.doc
+*.docm
+*.docx
+*.xls
+*.xlsm
+*.xlsx
+*.ppt
+*.pptm
+*.pptx
+*.pdf
+*.pfx
+*.p12
+*.pem
+*.key
