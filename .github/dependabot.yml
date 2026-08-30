@@ -6,13 +6,14 @@ updates:
     schedule:
       interval: weekly
       day: sunday
-      time: '06:30'
+      time: "06:30"
       timezone: America/Chicago
     open-pull-requests-limit: 3
+    rebase-strategy: auto
     groups:
       github-actions:
         patterns:
-          - '*'
+          - "*"
 
   - package-ecosystem: pip
     directory: /
@@ -20,10 +21,26 @@ updates:
     schedule:
       interval: weekly
       day: sunday
-      time: '07:00'
+      time: "07:00"
       timezone: America/Chicago
     open-pull-requests-limit: 3
+    rebase-strategy: auto
     groups:
       python-dependencies:
         patterns:
-          - '*'
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: sunday
+      time: "07:30"
+      timezone: America/Chicago
+    open-pull-requests-limit: 3
+    rebase-strategy: auto
+    groups:
+      docker-images:
+        patterns:
+          - "*"

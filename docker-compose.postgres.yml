@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: salus_thira
       POSTGRES_USER: salus
-      POSTGRES_PASSWORD: ${SALUS_LOCAL_POSTGRES_PASSWORD:-change-this-local-dev-password}
+      POSTGRES_PASSWORD: ${SALUS_LOCAL_POSTGRES_PASSWORD:?Set SALUS_LOCAL_POSTGRES_PASSWORD in the untracked .env file}
     volumes:
       - thira_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
       - .env
     environment:
       SALUS_DB_BACKEND: postgres
-      SALUS_DATABASE_URL: postgresql://salus:${SALUS_LOCAL_POSTGRES_PASSWORD:-change-this-local-dev-password}@postgres:5432/salus_thira
+      SALUS_DATABASE_URL: postgresql://salus:${SALUS_LOCAL_POSTGRES_PASSWORD:?Set SALUS_LOCAL_POSTGRES_PASSWORD in the untracked .env file}@postgres:5432/salus_thira # repo-hygiene: allow; runtime variable, not a committed credential
       SALUS_SEED_DEMO: ${SALUS_SEED_DEMO:-1}
       SALUS_LOCAL_STORAGE_DIR: /app/attachments
       SALUS_BACKUP_DIR: /app/backups
