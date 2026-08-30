@@ -6,11 +6,11 @@ This repository is the authoritative source-control record for Salus THIRA Comma
 
 ### `main`
 
-`main` is always the latest fully validated stable release commit. It must never intentionally lag behind the newest frozen release.
+`main` carries the latest fully validated stable application baseline plus approved repository-governance-only commits. The application source on `main` must never intentionally lag behind the newest frozen release. Immediately after each application release, `main` is fast-forwarded to that exact release commit; later governance-only commits may then be reviewed and merged without rewriting the frozen release branch.
 
 ### `development/vX.Y`
 
-Active version development. New application work begins from the current `main` / latest frozen release. Development pushes receive CI, including source reconstruction, SQLite lifecycle testing, PostgreSQL lifecycle testing, dependency audit, and static security scanning.
+Active version development. New application work begins from current `main`, thereby inheriting both the latest stable application source and approved repository governance. Development pushes receive CI, including source reconstruction, SQLite lifecycle testing, PostgreSQL lifecycle testing, dependency audit, and static security scanning.
 
 ### `validation/vX.Y-release`
 
@@ -18,11 +18,11 @@ Temporary validation-only branch. It should contain the exact release candidate 
 
 ### `release/vX.Y`
 
-Immutable recovery pointer to the exact candidate commit that passed all release gates. Do not rewrite, amend, force-push, or add documentation after freeze. A correction becomes a new version.
+Immutable recovery pointer to the exact application candidate commit that passed all release gates. Do not rewrite, amend, force-push, or add documentation after freeze. A correction becomes a new version.
 
 ### `governance/*`
 
-Repository-control changes such as CI, security policy, CODEOWNERS, templates, and dependency automation. These changes are reviewed/tested like application changes before merging to `main`.
+Repository-control changes such as CI, security policy, CODEOWNERS, templates, and dependency automation. These changes are reviewed/tested like application changes before merging to `main`. Governance-only commits do not rewrite an existing `release/vX.Y` branch.
 
 ## Standard development/release flow
 
@@ -47,6 +47,7 @@ Repository-control changes such as CI, security policy, CODEOWNERS, templates, a
 10. Close the validation PR **without merge**.
 11. Fast-forward `main` to the exact frozen release commit.
 12. Verify the prior release branch is unchanged.
+13. Apply later repository-governance-only improvements through a separately validated `governance/*` PR; never back-port them by modifying the frozen release branch.
 
 ## Reliability controls
 
@@ -54,7 +55,7 @@ Repository-control changes such as CI, security policy, CODEOWNERS, templates, a
 - Dependabot proposes controlled updates for Actions and Python dependencies.
 - CI uses concurrency cancellation to avoid wasting runners on superseded commits.
 - CI jobs have timeouts so hung external services cannot consume runners indefinitely.
-- `main` is the stable baseline, reducing huge/stale validation diffs.
+- `main` is the current stable development baseline, reducing huge/stale validation diffs.
 - Release branches have an Actions immutability alarm; any post-creation update is a policy violation requiring investigation.
 - Version-specific source archives/deltas retain target SHA-256 values and fail closed on mismatch.
 
