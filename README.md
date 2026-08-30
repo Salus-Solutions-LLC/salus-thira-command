@@ -1,10 +1,21 @@
-# Salus THIRA Command v0.8
+# Salus THIRA Command v0.9
 
 Salus THIRA Command is the secure assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
 
-v0.8 is the **database-runtime cutover build**. The application can now run natively against either SQLite or PostgreSQL through one persistence adapter while preserving the same tenant, workflow, evidence, risk, and reporting logic.
+v0.9 is the **accepted-risk accountability build**. It preserves the validated v0.8 SQLite/PostgreSQL runtime foundation while making risk acceptance a durable, reviewable governance record rather than a one-time decision label.
 
-## What v0.8 adds
+## What v0.9 adds
+
+- A dedicated **Accepted Risk Register** tied to the authoritative Executive Decision.
+- `Accept Risk` decisions now require a named authority, an explicit residual-exposure statement, and a review date.
+- Accepted-risk records are created automatically from authorized decisions; they cannot be deleted.
+- Each accepted risk retains the risk statement, decision authority, residual exposure, owner, acceptance date, review date, reconsideration trigger, status, and closure/supersession basis.
+- Active and overdue accepted-risk reviews are surfaced on the Command Center.
+- Closing an accepted risk requires a documented closure basis; active accepted risks must retain a review date.
+- Accepted risk is included in end-to-end traceability, executive CSV/HTML reports, assessment export packages, provider-neutral backups, PostgreSQL migration, and revision history.
+- The v0.9 schema migration registry retains the v0.8 baseline and records the v0.9 governance increment.
+
+## v0.8 database-runtime foundation retained
 
 - Native runtime database selection:
   - `SALUS_DB_BACKEND=sqlite` for local demonstrations and lightweight development;
@@ -34,11 +45,11 @@ All v0.7 controls remain, including OIDC, tenant/assessment authorization, evide
 The GitHub connector stores the two largest tested source files as verified gzip+base64 archive parts. A fresh clone reconstructs them deterministically:
 
 ```bash
-python tools/reconstruct_v08_source.py
-python tools/verify_v08_source.py
+python tools/reconstruct_v09_source.py
+python tools/verify_v09_source.py
 ```
 
-The Windows/macOS/Linux launchers and Docker build perform this automatically when the files are absent. Expected SHA-256 values are stored in `source_archives/v0.8/manifest.json`.
+The Windows/macOS/Linux launchers and Docker build perform this automatically when the files are absent. Expected SHA-256 values are stored in `source_archives/v0.9/manifest.json`.
 
 ## Runtime database modes
 
@@ -82,7 +93,7 @@ The runtime uses `DefaultAzureCredential` to obtain an Azure Database for Postgr
 
 ## SQLite → PostgreSQL migration
 
-First freeze writes and create a v0.8 portable backup. Then migrate into a clean PostgreSQL database:
+First freeze writes and create a v0.9 portable backup. Then migrate into a clean PostgreSQL database:
 
 ```bash
 python tools/migrate_sqlite_to_postgres.py \
@@ -121,7 +132,7 @@ The test verifies required tables, inserts a temporary tenant and assessment thr
 
 ## Portable backups and recovery
 
-v0.8 backups use `salus-thira-portable-backup-v1`.
+v0.9 backups continue to use `salus-thira-portable-backup-v1`; the records package now includes the Accepted Risk Register when present.
 
 Each backup ZIP contains:
 
@@ -172,7 +183,7 @@ Then open `http://127.0.0.1:8000`.
 
 ## Authentication and security
 
-v0.8 retains three identity modes:
+v0.9 retains three identity modes:
 
 - `prototype` — controlled local demonstration only;
 - `session` — local server-side users with HttpOnly sessions;
@@ -212,23 +223,20 @@ GitHub is the authoritative source for code. Never commit:
 - `.env` files;
 - credentials, tokens, connection strings, or identity-provider secrets.
 
-## v0.8 validation performed in this build environment
+## v0.9 release validation gates
 
-The release was validated for:
+v0.9 release acceptance is enforced in GitHub Actions against the exact reconstructed source tree. The required gates are:
 
-- fresh SQLite schema creation and fictional demonstration seed;
-- dashboard, assessment, risk, prioritization, and readiness APIs;
-- portable backup creation and SHA-256 verification;
-- portable DR validation;
-- actual mutate → portable restore → baseline recovery;
-- multi-tenant portable backup isolation;
-- multi-tenant tenant-1 restore while tenant-2 remained intact;
-- PostgreSQL adapter compatibility harness exercising PostgreSQL code paths for DDL ordering, schema inspection, parameter translation, `BIGSERIAL`/`RETURNING id`, `ON CONFLICT`, and last-insert-ID behavior;
-- targeted automatic reassessment-trigger insert behavior through the PostgreSQL adapter;
-- Python compilation and JavaScript syntax validation.
+- deterministic v0.8 → v0.9 source reconstruction with SHA-256 verification of every changed source file;
+- Python compilation and JavaScript syntax validation;
+- fresh SQLite schema/seed runtime smoke, including both v0.8 and v0.9 migrations;
+- Accepted Risk lifecycle smoke: authorized creation, automatic register entry, protected closure, and documented closure basis;
+- dependency audit and reviewed medium/high static-security gate;
+- a real PostgreSQL 16 service-container run covering schema creation, seeded runtime, v0.9 migration, Accepted Risk table presence, and transaction rollback behavior;
+- local CodeQL Python analysis with a fail-closed SARIF findings gate and preserved SARIF artifact.
 
-This execution environment does **not** provide a real PostgreSQL server or PostgreSQL client driver package at runtime, so the final managed-server acceptance step cannot be honestly claimed here. v0.8 therefore includes the Docker PostgreSQL runtime environment, PostgreSQL preflight, migration tool, transaction smoke test, and a GitHub CI job that launches PostgreSQL 16 and exercises the real PostgreSQL runtime path.
+These automated release gates validate the application/runtime code path. They do not substitute for a production managed-database cutover, tenant-specific Entra configuration, network/security controls, penetration testing, or formal operational authorization.
 
 ## Production status
 
-v0.8 removes the application’s architectural dependency on SQLite, but production authorization still requires environment-specific work: a real managed PostgreSQL instance and completed cutover test; Entra/OIDC tenant registration; workload identities and Key Vault permissions; private networking/TLS/WAF; approved Azure storage controls; malware-scanning operations; shared Redis; centralized SIEM routing; CI/security policy enforcement; penetration testing; approved retention schedules; backup/restore exercises; and formal security/privacy approval.
+v0.9 retains the v0.8 removal of the application’s architectural dependency on SQLite, but production authorization still requires environment-specific work: a real managed PostgreSQL instance and completed cutover test; Entra/OIDC tenant registration; workload identities and Key Vault permissions; private networking/TLS/WAF; approved Azure storage controls; malware-scanning operations; shared Redis; centralized SIEM routing; CI/security policy enforcement; penetration testing; approved retention schedules; backup/restore exercises; and formal security/privacy approval.
