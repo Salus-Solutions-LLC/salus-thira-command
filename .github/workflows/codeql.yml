@@ -20,8 +20,8 @@ jobs:
           python-version: '3.12'
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ] && [ -f tools/reconstruct_v08_source.py ]; then python tools/reconstruct_v08_source.py; fi
-          python tools/verify_v08_source.py
+          if [ ! -f app.py ] && [ -f tools/reconstruct_v09_source.py ]; then python tools/reconstruct_v09_source.py; fi
+          python tools/verify_v09_source.py
       - uses: github/codeql-action/init@v4
         with:
           languages: python
@@ -35,11 +35,9 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-
           files = sorted(Path('codeql-results').glob('*.sarif'))
           if not files:
               raise SystemExit('No CodeQL SARIF output was produced')
-
           findings = []
           for path in files:
               data = json.loads(path.read_text(encoding='utf-8'))
@@ -50,14 +48,12 @@ jobs:
                       rules[rule.get('id')] = rule
                   for result in run.get('results', []) or []:
                       findings.append((path.name, result, rules.get(result.get('ruleId'), {})))
-
           print(f'CODEQL_FINDINGS={len(findings)}')
           for filename, result, rule in findings:
               rule_id = result.get('ruleId', 'unknown')
               level = result.get('level', 'warning')
               message = result.get('message', {}).get('text', '')
               print(f'{filename}: {level}: {rule_id}: {message}')
-
           if findings:
               raise SystemExit('CodeQL produced findings that require review')
           print('CODEQL_LOCAL_ANALYSIS_PASS')

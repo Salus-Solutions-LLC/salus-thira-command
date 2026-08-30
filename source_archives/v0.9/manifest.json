@@ -1,0 +1,62 @@
+{
+  "delta": {
+    "chunks": [
+      {
+        "chars": 4000,
+        "path": "delta.json.gz.b64.part01",
+        "sha256": "101e7bac756084bdeca45efa39a32bd61f3f7e191a9bae7c3235557318c67a21"
+      },
+      {
+        "chars": 4000,
+        "path": "delta.json.gz.b64.part02",
+        "sha256": "5a3a7bbdbb2f8a5b9acaaa4f33d56850cb267ab765940a8b65594056aec101ac"
+      },
+      {
+        "chars": 3340,
+        "path": "delta.json.gz.b64.part03",
+        "sha256": "692154b0aa440696ffbf866bdb4b06ac24d08057ec849a835745f3a5efa4d837"
+      }
+    ],
+    "gzip_sha256": "cffa79fc9e06fa8434150edc0587770190f601d3d64ae183e9eff39de6c8b8a6",
+    "gzip_size_bytes": 8504,
+    "json_sha256": "895381811908611bbb060c2dc197cafe41544e19d5ea1122e02289a4efcdadb4"
+  },
+  "files": {
+    "app.py": {
+      "baseline_sha256": "509f8d150d5ce6c98346619727754e3513dd6e29b500ea25e2ea7760b381f9a0",
+      "target_sha256": "0c98993d5c3c62d72c85b090c8717325799b8563f20510e25bc602e97c73b22f",
+      "target_size_bytes": 111208
+    },
+    "database.py": {
+      "baseline_sha256": "13a2f2c9772089339f6924b25c55c4e80f14de7b208852063bc6ef5c70e34e84",
+      "target_sha256": "a65ef93eefdcca7af11d3dce6a249596b58a0e90c74fa7a8c4a6781ebf035e35",
+      "target_size_bytes": 10242
+    },
+    "portable_backup.py": {
+      "baseline_sha256": "25763aff6c61d60e2e85b58e052c9a9a64672de7282c4ce0fb1b7cd1787c2774",
+      "target_sha256": "4d9c12a224bf5521267b4476c2f370e19443262159a250998eba37a54931d8e3",
+      "target_size_bytes": 6434
+    },
+    "static/app.js": {
+      "baseline_sha256": "10e051bc8bc19d066a00d0dce39fa0d96a5e74e5ab4283943414951de3b05b8a",
+      "target_sha256": "941199ef10aa61f9524bbf30c0842122f58a7799a28d84371ad9ef6977ee4d2f",
+      "target_size_bytes": 49579
+    },
+    "static/index.html": {
+      "baseline_sha256": "a343480ca2b81c3133856ba8a4f0b1b57c39c3b49832663ebdc6d75eccf79763",
+      "target_sha256": "d194f47f7e541c94dad89db12d5d0a4d2f1029496de462ed555ecb421033a8ba",
+      "target_size_bytes": 2229
+    },
+    "tools/migrate_sqlite_to_postgres.py": {
+      "baseline_sha256": "9afac6e42a3631574218ed1545f38428f317bec602bc904827236cd8707d6314",
+      "target_sha256": "970340a604320384eb12e80474a036ef7bc5f17b65e42195823b955cf0e900b5",
+      "target_size_bytes": 4842
+    },
+    "tools/postgres_runtime_smoke.py": {
+      "baseline_sha256": "be1b124796afe5e15ff906b0a077132a4315782dfb55af70a4ac284b287a991d",
+      "target_sha256": "0fd5923e222fc8111188663335523f54c8fd0ee7e266e343e74ea26eb1b512c6",
+      "target_size_bytes": 2151
+    }
+  },
+  "version": "0.9.0"
+}
