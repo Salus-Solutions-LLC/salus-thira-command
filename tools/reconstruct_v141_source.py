@@ -10,8 +10,8 @@ def state(kind):
 if state('target'):
  for rel,meta in manifest['files'].items(): print(f'already reconstructed {rel} {meta["target_sha256"]}')
  raise SystemExit(0)
-if not state('baseline'): runpy.run_path(str(ROOT/'tools'/'reconstruct_security_v14_source.py'),run_name='__main__')
-if not state('baseline'): raise SystemExit('Unable to establish exact security-remediated v1.4 baseline')
+if not state('baseline'): runpy.run_path(str(ROOT/'tools'/'reconstruct_security_readiness_source.py'),run_name='__main__')
+if not state('baseline'): raise SystemExit('Unable to establish exact readiness-remediated v1.4 baseline')
 parts=[]
 for meta in manifest['delta']['chunks']:
  text=(ARCH/meta['path']).read_text()
