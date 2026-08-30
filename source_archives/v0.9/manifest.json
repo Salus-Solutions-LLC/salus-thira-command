@@ -1,26 +1,5 @@
 {
-  "delta": {
-    "chunks": [
-      {
-        "chars": 4000,
-        "path": "delta.json.gz.b64.part01",
-        "sha256": "101e7bac756084bdeca45efa39a32bd61f3f7e191a9bae7c3235557318c67a21"
-      },
-      {
-        "chars": 4000,
-        "path": "delta.json.gz.b64.part02",
-        "sha256": "5a3a7bbdbb2f8a5b9acaaa4f33d56850cb267ab765940a8b65594056aec101ac"
-      },
-      {
-        "chars": 3340,
-        "path": "delta.json.gz.b64.part03",
-        "sha256": "692154b0aa440696ffbf866bdb4b06ac24d08057ec849a835745f3a5efa4d837"
-      }
-    ],
-    "gzip_sha256": "cffa79fc9e06fa8434150edc0587770190f601d3d64ae183e9eff39de6c8b8a6",
-    "gzip_size_bytes": 8504,
-    "json_sha256": "895381811908611bbb060c2dc197cafe41544e19d5ea1122e02289a4efcdadb4"
-  },
+  "version": "0.9.0",
   "files": {
     "app.py": {
       "baseline_sha256": "509f8d150d5ce6c98346619727754e3513dd6e29b500ea25e2ea7760b381f9a0",
@@ -33,7 +12,7 @@
       "target_size_bytes": 10242
     },
     "portable_backup.py": {
-      "baseline_sha256": "25763aff6c61d60e2e85b58e052c9a9a64672de7282c4ce0fb1b7cd1787c2774",
+      "baseline_sha256": "60c4352108fa4e529aaae6cb9c4edaa998dffe0d88261582b6826696d32eae52",
       "target_sha256": "4d9c12a224bf5521267b4476c2f370e19443262159a250998eba37a54931d8e3",
       "target_size_bytes": 6434
     },
@@ -48,7 +27,7 @@
       "target_size_bytes": 2229
     },
     "tools/migrate_sqlite_to_postgres.py": {
-      "baseline_sha256": "9afac6e42a3631574218ed1545f38428f317bec602bc904827236cd8707d6314",
+      "baseline_sha256": "10973bd244ee7dce6d3b21419a355ea845a3258b0e2eeb5bf1c6aeaf95a8dad4",
       "target_sha256": "970340a604320384eb12e80474a036ef7bc5f17b65e42195823b955cf0e900b5",
       "target_size_bytes": 4842
     },
@@ -58,5 +37,41 @@
       "target_size_bytes": 2151
     }
   },
-  "version": "0.9.0"
+  "delta": {
+    "chunks": [
+      {
+        "path": "delta.json.gz.b64.part01",
+        "chars": 2000,
+        "sha256": "ba47f4b9a561f6773ecfa51d800b123c748d976ce4a048ddb97e40bc6a2e4e71"
+      },
+      {
+        "path": "delta.json.gz.b64.part02",
+        "chars": 2000,
+        "sha256": "5c665bd6e786bf14d3c4bae6f1705584b63a6fae36f9fe6918779cb2c1bb2b25"
+      },
+      {
+        "path": "delta.json.gz.b64.part03",
+        "chars": 2000,
+        "sha256": "0323db3e4382fdd5e8cc42121df572372ca5039003437aef04825f8a6ed57ff0"
+      },
+      {
+        "path": "delta.json.gz.b64.part04",
+        "chars": 2000,
+        "sha256": "e8aacfa33d6f659773941f685ad7ccea5b07d74324a6f7aa6396a2a89e5e4da7"
+      },
+      {
+        "path": "delta.json.gz.b64.part05",
+        "chars": 2000,
+        "sha256": "0a18e5b2984a9a08b79dc957249be0928355dced7be3a060ea2550fa6b2464d6"
+      },
+      {
+        "path": "delta.json.gz.b64.part06",
+        "chars": 1588,
+        "sha256": "d2ca35244df50d63450a94f1c15c4bfb294b7aeec4c7d5c3b80c635d4a365c2d"
+      }
+    ],
+    "gzip_sha256": "9720948647be9a96bf2a0a58e64c276e429f2f28c5e9145cd8de340bd98531b6",
+    "gzip_size_bytes": 8690,
+    "json_sha256": "536ac5df7598d7c22229df127f572a7fdd019ae23fcc4ab73d4ec8af42eaf44d"
+  }
 }
