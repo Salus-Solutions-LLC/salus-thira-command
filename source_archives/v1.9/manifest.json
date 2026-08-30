@@ -1,0 +1,37 @@
+{
+  "delta": {
+    "chunks": [
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part01",
+        "sha256": "7b6133fd179e464fb3d4fd14158af4204c52248ffc01f21ec72147306e84262c"
+      },
+      {
+        "chars": 1208,
+        "path": "delta.json.gz.b64.part02",
+        "sha256": "93d2a10848f4bd0b887a237af37445f6799a626698deaf18b2ee04a704edcfa6"
+      }
+    ],
+    "gzip_sha256": "b332f79e66dfb59a76d90356f9f605ca913a230ccc755e87bdd1444ddc084508",
+    "gzip_size_bytes": 2405,
+    "json_sha256": "88dd506226160d1bcbb17d18cd54fc66f464ce7881cbdbf844abef8cffd3bef9"
+  },
+  "files": {
+    "app.py": {
+      "baseline_sha256": "7fb70acd7476fe5973fec79160c76f979b4a68f9808d956cb97775af5d2ac5b2",
+      "target_sha256": "5bc50991f31a05bcf3de009dd5916b4ba857b770ec10231a5bc9636f11438e82",
+      "target_size_bytes": 181986
+    },
+    "database.py": {
+      "baseline_sha256": "35ebbca21087bc6d4fac65b144c2913c007d73dd8476e7bfaacafc0f4b613660",
+      "target_sha256": "394504ec1777de94b77614bba73b93b5761970f559a2ba46a3ab05b19e83c18e",
+      "target_size_bytes": 10722
+    },
+    "portable_backup.py": {
+      "baseline_sha256": "2463afca205c4342d5d842e0b7edc502c3a160de374a9c5aff6491b41d5a1a58",
+      "target_sha256": "8480d969293cc88ddcf9e8beffac3ed485d0fee1b3b6baf75f25c6dccf1fb2af",
+      "target_size_bytes": 7439
+    }
+  },
+  "version": "1.9.0"
+}
