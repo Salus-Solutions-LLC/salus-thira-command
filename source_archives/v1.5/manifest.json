@@ -1,0 +1,37 @@
+{
+  "delta": {
+    "chunks": [
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part01",
+        "sha256": "33dd7b5bf106383e0b7e266b5152129ee58f3cae76d026c1ff3d7c3e85129513"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part02",
+        "sha256": "6372b1af3c1155205f3c579240a64c62ea6d4312ea5769fa93f39e3d3266912c"
+      },
+      {
+        "chars": 852,
+        "path": "delta.json.gz.b64.part03",
+        "sha256": "b2cfecfc90ec3842032963a8dd06eb056f73cda57e23bdb536dc960647465f9e"
+      }
+    ],
+    "gzip_sha256": "d7e2b7de528b90888417b6d762a722ceb8e4c27fe28fcb7347fdfc1ab9d20d2a",
+    "gzip_size_bytes": 3637,
+    "json_sha256": "f23c8ad81605248843602103ca84e9fc8b1d1ce1bf2ba2829f3953bbc3dd936d"
+  },
+  "files": {
+    "app.py": {
+      "baseline_sha256": "6f6337a9ce9cf99750571b2ecd21f5f603b2c4e04d8b29ca66623a9f296f2e78",
+      "target_sha256": "1be50f61cce3b7344b9fd1d67056260eeeb9939d82fb6822633d9dbd901f0a37",
+      "target_size_bytes": 158579
+    },
+    "static/app.js": {
+      "baseline_sha256": "b0701fbd7bc5b6a4569d7a7a7af44f41ff9e2dbf723a3058643f768331195c0e",
+      "target_sha256": "545ede1ffa7eef8a3cc12092da3aefd9668f06bfb341afa12089e5afc0858757",
+      "target_size_bytes": 61838
+    }
+  },
+  "version": "1.5.0"
+}
