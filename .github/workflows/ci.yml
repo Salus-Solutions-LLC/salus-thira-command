@@ -39,8 +39,8 @@ jobs:
           node-version: "22"
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ]; then python tools/reconstruct_v14_source.py; fi
-          python tools/verify_v14_source.py
+          if [ ! -f app.py ]; then python tools/reconstruct_security_v14_source.py; fi
+          python tools/verify_security_v14_source.py
       - name: Verify repository boundary
         run: python tools/check_repository_hygiene.py
       - name: Install application and security test tools
@@ -60,6 +60,8 @@ jobs:
           SALUS_AUTH_MODE: prototype
           SALUS_SEED_DEMO: "1"
         run: python tools/ci_v14_smoke.py
+      - name: Security remediation regression smoke
+        run: python tools/security_regression_smoke.py
       - name: Dependency audit
         run: pip-audit -r requirements.txt --progress-spinner off
       - name: Static security scan
@@ -96,8 +98,8 @@ jobs:
           cache-dependency-path: requirements.txt
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ]; then python tools/reconstruct_v14_source.py; fi
-          python tools/verify_v14_source.py
+          if [ ! -f app.py ]; then python tools/reconstruct_security_v14_source.py; fi
+          python tools/verify_security_v14_source.py
       - name: Install application
         run: python -m pip install -r requirements.txt
       - name: Verify installed dependency consistency
