@@ -1,0 +1,3 @@
+Salus THIRA Command v1.4 distributable
+SHA-256: e00a8bf1354bcd6c2be7ea67e1e0594d03c0ace31a762bde22420f76d318a27b
+File: Salus_THIRA_Command_v1.4.zip
