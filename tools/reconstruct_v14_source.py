@@ -12,9 +12,9 @@ if state('target'):
     for rel,meta in manifest['files'].items(): print(f'already reconstructed {rel} {meta["target_sha256"]}')
     raise SystemExit(0)
 if not state('baseline'):
-    v13=ROOT/'tools'/'reconstruct_v13_source.py'
-    if not v13.is_file(): raise SystemExit('Missing v1.3 reconstruction baseline')
-    runpy.run_path(str(v13),run_name='__main__')
+    prev=ROOT/'tools'/'reconstruct_v13_source.py'
+    if not prev.is_file(): raise SystemExit('Missing v1.3 reconstruction baseline')
+    runpy.run_path(str(prev),run_name='__main__')
 if not state('baseline'): raise SystemExit('Unable to establish the exact v1.3 baseline for v1.4 reconstruction')
 parts=[]
 for meta in manifest['delta']['chunks']:
