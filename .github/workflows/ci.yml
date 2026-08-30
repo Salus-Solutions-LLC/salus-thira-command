@@ -17,8 +17,9 @@ jobs:
           node-version: '22'
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ]; then python tools/reconstruct_v13_source.py; fi
-          python tools/verify_v13_source.py
+          if [ ! -f app.py ]; then python tools/reconstruct_v14_source.py; fi
+          python tools/verify_v14_source.py
+          python tools/reconstruct_v14_ci_smoke.py
       - name: Install application and security test tools
         run: |
           python -m pip install --upgrade pip
@@ -31,12 +32,12 @@ jobs:
       - name: SQLite release lifecycle smoke
         env:
           SALUS_DB_BACKEND: sqlite
-          SALUS_DB_PATH: /tmp/salus-v13-ci.db
-          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-v13-ci-attachments
-          SALUS_BACKUP_DIR: /tmp/salus-v13-ci-backups
+          SALUS_DB_PATH: /tmp/salus-v14-ci.db
+          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-v14-ci-attachments
+          SALUS_BACKUP_DIR: /tmp/salus-v14-ci-backups
           SALUS_AUTH_MODE: prototype
           SALUS_SEED_DEMO: '1'
-        run: python tools/ci_v13_smoke.py
+        run: python tools/ci_v14_smoke.py
       - name: Dependency audit
         run: pip-audit -r requirements.txt
       - name: Static security scan
@@ -67,8 +68,9 @@ jobs:
           python-version: '3.12'
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ]; then python tools/reconstruct_v13_source.py; fi
-          python tools/verify_v13_source.py
+          if [ ! -f app.py ]; then python tools/reconstruct_v14_source.py; fi
+          python tools/verify_v14_source.py
+          python tools/reconstruct_v14_ci_smoke.py
       - name: Install application
         run: pip install -r requirements.txt
       - name: PostgreSQL release lifecycle smoke
@@ -77,15 +79,15 @@ jobs:
           SALUS_DATABASE_URL: postgresql://salus:salus-ci-password@127.0.0.1:5432/salus_thira_ci
           SALUS_AUTH_MODE: prototype
           SALUS_SEED_DEMO: '1'
-          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-v13-pg-attachments
-          SALUS_BACKUP_DIR: /tmp/salus-v13-pg-backups
-        run: python tools/ci_v13_smoke.py
+          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-v14-pg-attachments
+          SALUS_BACKUP_DIR: /tmp/salus-v14-pg-backups
+        run: python tools/ci_v14_smoke.py
       - name: PostgreSQL transaction smoke
         env:
           SALUS_DB_BACKEND: postgres
           SALUS_DATABASE_URL: postgresql://salus:salus-ci-password@127.0.0.1:5432/salus_thira_ci
           SALUS_AUTH_MODE: prototype
           SALUS_SEED_DEMO: '0'
-          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-v13-pg-attachments
-          SALUS_BACKUP_DIR: /tmp/salus-v13-pg-backups
+          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-v14-pg-attachments
+          SALUS_BACKUP_DIR: /tmp/salus-v14-pg-backups
         run: python tools/postgres_runtime_smoke.py
