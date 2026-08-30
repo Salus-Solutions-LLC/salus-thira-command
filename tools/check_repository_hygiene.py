@@ -41,7 +41,7 @@ def main() -> int:
         if path.as_posix() in ALLOWED_PATHS:
             continue
         if path.suffix.lower() in FORBIDDEN_SUFFIXES or FORBIDDEN_PARTS.intersection(posix.parts):
-            failures.append(f"forbidden tracked path: {path}")
+            failures.append("forbidden tracked path")
             continue
         try:
             if not path.is_file() or path.stat().st_size > MAX_SCAN_BYTES:
@@ -60,12 +60,13 @@ def main() -> int:
         )
         for name, pattern in SECRET_PATTERNS.items():
             if pattern.search(text):
-                failures.append(f"possible {name}: {path}")
+                failures.append(f"possible {name}")
 
     if failures:
-        print("REPOSITORY_HYGIENE_FAIL")
-        for failure in failures:
+        print(f"REPOSITORY_HYGIENE_FAIL count={len(failures)}")
+        for failure in sorted(set(failures)):
             print(f"- {failure}")
+        print("Review the proposed files locally; possible sensitive paths are not printed in CI logs.")
         return 1
     print(f"REPOSITORY_HYGIENE_PASS scanned_text_files={scanned}")
     return 0
