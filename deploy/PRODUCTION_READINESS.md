@@ -1,33 +1,30 @@
-# Salus THIRA Command v1.3 Production Readiness Gate
+# Salus THIRA Command v1.4 Production Readiness Gate
 
-v1.3 can run natively on either SQLite or PostgreSQL. Production readiness remains fail-closed when SQLite is the active runtime unless an explicit controlled exception is authorized. The preferred production baseline is PostgreSQL plus managed identity/secrets and managed evidence storage.
+The preferred production baseline is PostgreSQL plus managed identity/secrets and managed evidence storage.
 
 ## Required production baseline
 
-- `SALUS_DB_BACKEND=postgres` and a healthy PostgreSQL runtime reported by `/health/ready`.
-- Microsoft Entra/OIDC authentication or another approved OIDC provider.
-- Azure Key Vault or another approved managed secret provider.
-- Azure Blob Storage or equivalent managed evidence storage.
-- ClamAV or an approved malware-scanning service with fail-closed upload policy.
-- Redis-backed distributed rate limiting for multiple application replicas.
-- Azure Monitor/Application Insights or an approved SIEM destination for centralized security telemetry.
-- TLS termination, private networking/firewall restrictions, and approved ingress/WAF controls.
-- Portable tenant backups with successful integrity verification and DR validation.
-- GitHub CI, dependency audit, Bandit, and CodeQL required before production deployment.
-- Documented data-retention/legal-hold rules and an approved records-management schedule.
-- Penetration testing and formal security/privacy review before sensitive client data is authorized.
+- PostgreSQL is the healthy runtime database.
+- Approved OIDC/Entra authentication and server-derived authorization.
+- Managed secret provider such as Azure Key Vault.
+- Managed evidence object storage.
+- Approved malware scanning with fail-closed uploads.
+- Redis-backed distributed rate limiting for multiple replicas.
+- Centralized security telemetry/SIEM.
+- TLS, private networking/firewall restrictions, and approved ingress/WAF controls.
+- Portable tenant backups with successful integrity and DR validation.
+- CI, dependency audit, Bandit, and CodeQL required before deployment.
+- Approved records-retention/legal-hold schedule.
+- Penetration testing and formal security/privacy review.
 
-## PostgreSQL cutover controls
+## v1.4 evidence-governance verification
 
-- Run `tools/migrate_sqlite_to_postgres.py` only during a controlled write freeze.
-- Preserve a pre-cutover portable backup and migration report.
-- Require row-count verification and identity-sequence repair.
-- Run `tools/postgres_runtime_smoke.py` after migration.
-- Compare risk analytics, reports, evidence metadata, and governance counts against the pre-cutover baseline.
-- Create and DR-validate a new backup from the PostgreSQL runtime before declaring cutover complete.
+Before production approval, verify that:
 
-See `deploy/POSTGRESQL_CUTOVER.md` for the detailed procedure.
-
-## v1.3 governance verification
-
-Before production approval, verify that Professional Risk Overrides are restricted to decision-authorized roles, preserve calculated risk, require same-assessment relationships, retain supersession/withdrawal history, and are present in backup/restore and audit evidence.
+- validity date and verification status are separate;
+- expiry automatically marks evidence Stale while preserving verification as a separate dimension;
+- stale evidence cannot earn improvement-validation or professional-override evidence credit;
+- expiry creates one accountable reassessment trigger;
+- controlled lifecycle review is required to restore Current status;
+- reports, exports, backups, and risk calculations refresh lifecycle before use; and
+- audit/version history preserves stale and review actions.

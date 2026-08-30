@@ -1,0 +1,62 @@
+{
+  "delta": {
+    "chunks": [
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part01",
+        "sha256": "271a0aecfd0495e926b3904c3febb037993547ade441338a9f8381ec7901a4a5"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part02",
+        "sha256": "bf48a988289bac49558301b42f10d716f77ffc3aa1e0f7c09f3ed85140cfd081"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part03",
+        "sha256": "02cb1a7ba41bdb88d21efdc0d01bf936965022533d3ef0376b168f11ba108119"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part04",
+        "sha256": "0800c20e4b5f4dd89e6ce0dcc8277ab2f8af7d85cedd803aa2656339ebea6d7b"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part05",
+        "sha256": "b0914a795831fdedf9aac099b5152d2c895af3d6593658aedb84e8966d13beee"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part06",
+        "sha256": "5a7a1895ad43c6148c760f63bbcb2aa803cb1f44c440e3624f73b5b2f200ae1a"
+      },
+      {
+        "chars": 248,
+        "path": "delta.json.gz.b64.part07",
+        "sha256": "285b3091d776fae37ca38f5342ad65b2f6a2869f416124108423a630ba57b293"
+      }
+    ],
+    "gzip_sha256": "04ed7e53b41afa9d31db42d4b67a0acfffb8d93003cd9eef823a30575860c14a",
+    "gzip_size_bytes": 9184,
+    "json_sha256": "5a7a34c9f7f77855068cc7c922ef27d977025685fc15f2ce36636a66869330d9"
+  },
+  "files": {
+    "app.py": {
+      "baseline_sha256": "fc185f671edb4da1b4d435fa08391518c78722d39d38ea5f7fb1b5b80d3e0456",
+      "target_sha256": "002f34a9504854d38101bf0fa5f97e8b8d3ba65b59eaea98e6e5e207fa530727",
+      "target_size_bytes": 149046
+    },
+    "static/app.js": {
+      "baseline_sha256": "ba6f6f75422c8254b878017ca5ece6857f52b4c6f545272dec4c22e2aa935fdd",
+      "target_sha256": "b0701fbd7bc5b6a4569d7a7a7af44f41ff9e2dbf723a3058643f768331195c0e",
+      "target_size_bytes": 61086
+    },
+    "static/index.html": {
+      "baseline_sha256": "731ca3d8d13b19771f633e394013d7657d929a2fb85d3d987b2481010e2aa8c6",
+      "target_sha256": "11dce3227f3d3720697f55baddf84bde21bd0e0caf915e7d88056be068e3570d",
+      "target_size_bytes": 2229
+    }
+  },
+  "version": "1.4.0"
+}

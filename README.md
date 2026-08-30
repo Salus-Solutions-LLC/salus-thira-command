@@ -1,80 +1,90 @@
-# Salus THIRA Command v1.3
+# Salus THIRA Command v1.4
 
 Salus THIRA Command is the assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
 
-v1.3 is the **professional-risk-override governance release**. It preserves all v1.2 relational-integrity controls while separating calculated risk from accountable professional judgment.
+v1.4 is the **evidence lifecycle governance release**. It preserves v1.3 professional-risk-override governance while making evidence validity time-aware and fail-closed for risk and validation credit.
 
-## What v1.3 adds
+## What v1.4 adds
 
-### Professional Risk Override Register
+### Evidence validity and lifecycle state
 
-A professional judgment no longer overwrites a calculated risk value. Instead, the system records a governed override containing:
+Evidence now records separate verification and lifecycle dimensions:
 
-- assessment and threat/hazard identity;
-- calculated current-risk score and band at the time of judgment;
-- assigned professional-risk score and derived band;
-- documented reason / professional basis;
-- named authority;
-- optional supporting Verified evidence from the same assessment;
-- review date;
-- creator and timestamp;
-- supersession linkage; and
-- governed withdrawal reason, actor, and timestamp.
+- `verification_status`: Pending, Verified, or Conflicting;
+- `valid_until`: the authoritative validity date when one applies;
+- `lifecycle_status`: Current or Stale;
+- stale reason and timestamp; and
+- lifecycle reviewer and review timestamp.
 
-Only roles with decision authority may create or withdraw a professional risk override.
+A record can therefore remain **Verified but Stale**. Verification is not treated as permanent validity.
 
-### Append-only professional judgment history
+### Automatic stale-evidence reassessment
 
-A new professional judgment supersedes the prior active override rather than rewriting it. Withdrawal also preserves the prior record. Direct generic updates and deletes are not permitted for risk overrides.
+When evidence passes its validity date, Salus THIRA Command automatically:
 
-The full history is included in:
+1. marks the evidence Stale;
+2. preserves the existing verification status as a separate dimension;
+3. creates one open `Evidence Lifecycle / Evidence Stale` reassessment trigger per stale episode;
+4. raises trigger severity to High when the evidence supports a validated improvement or active professional risk override, otherwise Moderate;
+5. removes stale evidence from validated-residual-risk credit; and
+6. prevents stale evidence from supporting a new improvement validation or professional risk override.
+
+Repeated dashboard, evidence, risk, report, export, and backup operations do not create duplicate unresolved stale triggers.
+
+### Controlled lifecycle review
+
+Stale evidence is not returned to Current by an ordinary record edit. A controlled lifecycle-review action requires:
+
+- a current or future new validity date; and
+- a documented review outcome.
+
+Verification remains a separate control. A lifecycle review can restore temporal currency without changing Pending, Verified, or Conflicting verification status.
+
+The action records the reviewer/timestamp, clears stale state, resolves the evidence-lifecycle trigger, and writes audit/version history.
+
+### Authoritative outputs refresh lifecycle first
+
+Expiry is refreshed before:
 
 - Risk Analytics;
-- traceability;
-- executive CSV and printable HTML reports;
-- assessment JSON exports;
-- tenant backup / restore packages;
-- entity-version snapshots; and
-- audit records.
+- Evidence lists;
+- Command Center metrics;
+- executive reports;
+- assessment JSON export; and
+- tenant backup capture.
 
-### Risk mathematics remain governed
+This prevents an expired record from remaining falsely Current merely because an Evidence screen was not opened before an authoritative output was produced.
 
-v1.3 does **not** change the risk formula. The methodology version remains **1.1.0**.
+## Risk governance remains unchanged
 
-The system continues to distinguish:
+Application version: **1.4.0**  
+Risk methodology version: **1.1.0**
 
-1. **Inherent Risk** — before capability credit.
-2. **Calculated Current Risk** — adjusted only for demonstrated current capability.
-3. **Professional Assigned Risk** — accountable judgment recorded separately from the calculation.
-4. **Predicted Residual Risk** — forecast benefit from currently approved improvements.
-5. **Validated Residual Risk** — benefit credited only after completed implementation and controlled validation backed by currently Verified evidence.
-
-Professional assigned risk does not alter predicted or validated residual-risk mathematics.
+v1.4 changes evidence governance, not the numerical risk formula. Calculated current risk, professional assigned risk, predicted residual risk, and validated residual risk remain separate governed concepts.
 
 ## Controls retained from prior releases
 
-- v1.2 assessment-scoped relational integrity and immutable child-record ownership;
+- v1.3 append-only professional risk overrides;
+- v1.2 assessment-scoped relational integrity;
 - v1.1 evidence-governed residual-risk validation;
-- v1.0 direction-aware capability measures (`>=`, `<=`, `=`);
+- v1.0 direction-aware capability measures;
 - Accepted Risk Register;
-- scope lock, controlled scope changes, assessment version increments, and immutable entity snapshots;
+- scope lock, scope-change/version history, immutable snapshots, and audit trail;
 - SQLite local/demo and PostgreSQL native runtime;
 - OIDC/session/prototype identity modes;
-- tenant and assessment authorization;
-- evidence sensitivity, SHA-256 integrity, retention/legal hold, and upload scanning hooks;
-- Azure Blob/local storage abstraction;
-- Key Vault secret-provider path;
-- Redis-capable distributed rate limiting;
-- centralized security telemetry;
+- tenant/assessment authorization and evidence sensitivity;
+- evidence file integrity, retention/legal hold, and upload-scanning hooks;
+- Azure Blob/local storage and Key Vault secret-provider paths;
+- Redis-capable rate limiting and centralized security telemetry;
 - portable tenant backup, integrity verification, DR validation, and controlled restore.
 
 ## Fresh GitHub checkout
 
-The largest tested source files are preserved through a deterministic SHA-256 verified delta chain:
+The tested source is preserved through the deterministic release archive chain:
 
 ```bash
-python tools/reconstruct_v13_source.py
-python tools/verify_v13_source.py
+python tools/reconstruct_v14_source.py
+python tools/verify_v14_source.py
 ```
 
 Windows and macOS/Linux launchers perform reconstruction and verification automatically when needed.
@@ -88,17 +98,17 @@ python -m pip install -r requirements.txt
 
 On Windows, use `run_windows.bat`.
 
-Then open `http://127.0.0.1:8000`.
+Open `http://127.0.0.1:8000`.
 
 ## Release acceptance
 
-The v1.3 release gate requires:
+The v1.4 release gate requires:
 
 - exact source reconstruction and SHA-256 verification;
 - Python compilation;
 - JavaScript syntax validation;
-- SQLite v1.3 lifecycle smoke;
-- real PostgreSQL 16 v1.3 lifecycle smoke;
+- SQLite v1.4 evidence-lifecycle smoke;
+- real PostgreSQL 16 v1.4 evidence-lifecycle smoke;
 - PostgreSQL transaction smoke;
 - dependency audit;
 - Bandit static-security gate; and
@@ -106,4 +116,4 @@ The v1.3 release gate requires:
 
 ## Production status
 
-v1.3 is a hardened development/release baseline, not an authorization to place sensitive client data into production by itself. Production deployment still requires approved managed identity, database, object storage, malware scanning, secrets management, network controls, monitoring, retention rules, backup/restore procedures, penetration testing, and formal security/privacy review.
+v1.4 is a hardened development/release baseline, not an authorization to place sensitive client data into production by itself. Production deployment still requires approved identity, managed database/storage, malware scanning, secrets management, network controls, monitoring, records-retention rules, backup/restore procedures, penetration testing, and formal security/privacy review.
