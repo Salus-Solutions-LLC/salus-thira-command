@@ -14,6 +14,7 @@ v1.4.1 preserves the v1.4 evidence-lifecycle and risk-governance behavior while 
 - Development branches receive full-branch CodeQL analysis before pull-request review.
 - CI prevents README, Docker, Windows, macOS/Linux, CI, and CodeQL reconstruction entrypoints from drifting to older source.
 - Redundant validation-branch push CI is removed; the validation PR remains the independent acceptance cycle.
+- A cancelled required check is recovered through a fresh commit/check suite; cancelled contexts are never bypassed.
 
 ## Release acceptance
 
