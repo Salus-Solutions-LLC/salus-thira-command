@@ -1,0 +1,22 @@
+# Salus THIRA Command repository ownership
+# CODEOWNERS documents accountable review ownership even when repository-plan
+# settings cannot enforce required reviews.
+
+* @SalusSOlutionsLLC
+
+# Security, CI, deployment, migration, and source-reconstruction controls
+/.github/ @SalusSOlutionsLLC
+/deploy/ @SalusSOlutionsLLC
+/tools/ @SalusSOlutionsLLC
+/source_archives/ @SalusSOlutionsLLC
+
+# Core runtime and persistence surfaces
+/app.py @SalusSOlutionsLLC
+/database.py @SalusSOlutionsLLC
+/portable_backup.py @SalusSOlutionsLLC
+/security_controls.py @SalusSOlutionsLLC
+/secret_provider.py @SalusSOlutionsLLC
+/storage.py @SalusSOlutionsLLC
+/telemetry.py @SalusSOlutionsLLC
+/rate_limit.py @SalusSOlutionsLLC
+/managed_database.py @SalusSOlutionsLLC

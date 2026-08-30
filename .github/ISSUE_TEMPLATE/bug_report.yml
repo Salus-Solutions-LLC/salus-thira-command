@@ -1,0 +1,53 @@
+name: Bug report
+description: Report a reproducible Salus THIRA Command defect using sanitized data only
+title: "[Bug] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not include client data, evidence, operational intelligence, credentials, secrets, database contents, or sensitive logs.** Use fictional/sanitized examples only. Security vulnerabilities must follow SECURITY.md rather than this form.
+  - type: input
+    id: version
+    attributes:
+      label: Application version / commit
+      description: Example: v1.3.0 or a Git commit SHA.
+    validations:
+      required: true
+  - type: dropdown
+    id: database
+    attributes:
+      label: Database backend
+      options:
+        - SQLite
+        - PostgreSQL
+        - Not known / not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed behavior
+      description: Describe the defect using sanitized data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Use fictional/sanitized records only.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data-handling confirmation
+      options:
+        - label: I confirmed this report contains no client data, secrets, evidence, operational intelligence, or sensitive logs.
+          required: true

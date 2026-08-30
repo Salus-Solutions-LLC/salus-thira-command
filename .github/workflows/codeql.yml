@@ -1,4 +1,5 @@
 name: CodeQL Local Analysis
+
 on:
   push:
     branches: [ main ]
@@ -6,27 +7,37 @@ on:
     branches: [ main ]
   schedule:
     - cron: '17 6 * * 1'
+  workflow_dispatch:
+
 permissions:
   actions: read
   contents: read
   packages: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
       - name: Reconstruct and verify archived source
         run: |
           if [ ! -f app.py ] && [ -f tools/reconstruct_v13_source.py ]; then python tools/reconstruct_v13_source.py; fi
           python tools/verify_v13_source.py
-      - uses: github/codeql-action/init@v4
+      - uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
         with:
           languages: python
       - name: Analyze Python with CodeQL locally
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
         with:
           output: codeql-results
           upload: never
@@ -59,8 +70,9 @@ jobs:
           print('CODEQL_LOCAL_ANALYSIS_PASS')
           PY
       - name: Preserve CodeQL SARIF
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: codeql-sarif
           path: codeql-results
           if-no-files-found: error
+          retention-days: 14

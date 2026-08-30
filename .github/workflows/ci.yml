@@ -1,18 +1,40 @@
 name: CI
+
 on:
   push:
+    branches:
+      - main
+      - 'development/**'
+      - 'governance/**'
+      - 'release/**'
   pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  PYTHONDONTWRITEBYTECODE: '1'
+
 jobs:
   validate:
+    name: validate
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '22'
       - name: Reconstruct and verify archived source
@@ -22,8 +44,8 @@ jobs:
       - name: Install application and security test tools
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pip-audit bandit
+          python -m pip install -r requirements.txt
+          python -m pip install pip-audit bandit
       - name: Compile Python
         run: python -m py_compile app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
       - name: Validate JavaScript syntax
@@ -42,10 +64,12 @@ jobs:
       - name: Static security scan
         # B608 is reviewed: interpolated SQL identifiers come only from fixed
         # allowlists/schema columns; record values remain bound parameters.
-        run: bandit -q -r app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py -ll -s B603,B607,B608
+        run: bandit -q -r app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py -ll -s B608
 
   postgres-runtime:
+    name: postgres-runtime
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16-alpine
@@ -61,8 +85,10 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
       - name: Reconstruct and verify archived source
@@ -70,7 +96,7 @@ jobs:
           if [ ! -f app.py ]; then python tools/reconstruct_v13_source.py; fi
           python tools/verify_v13_source.py
       - name: Install application
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
       - name: PostgreSQL release lifecycle smoke
         env:
           SALUS_DB_BACKEND: postgres
