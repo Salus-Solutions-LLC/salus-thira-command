@@ -34,14 +34,14 @@ def tracked_paths() -> list[Path]:
 
 
 def main() -> int:
-    failures: list[str] = []
+    violation_found = False
     scanned = 0
     for path in tracked_paths():
         posix = PurePosixPath(path.as_posix())
         if path.as_posix() in ALLOWED_PATHS:
             continue
         if path.suffix.lower() in FORBIDDEN_SUFFIXES or FORBIDDEN_PARTS.intersection(posix.parts):
-            failures.append("forbidden tracked path")
+            violation_found = True
             continue
         try:
             if not path.is_file() or path.stat().st_size > MAX_SCAN_BYTES:
@@ -58,15 +58,13 @@ def main() -> int:
         text = "\n".join(
             line for line in text.splitlines() if "repo-hygiene: allow" not in line
         )
-        for name, pattern in SECRET_PATTERNS.items():
+        for pattern in SECRET_PATTERNS.values():
             if pattern.search(text):
-                failures.append(f"possible {name}")
+                violation_found = True
 
-    if failures:
-        print(f"REPOSITORY_HYGIENE_FAIL count={len(failures)}")
-        for failure in sorted(set(failures)):
-            print(f"- {failure}")
-        print("Review the proposed files locally; possible sensitive paths are not printed in CI logs.")
+    if violation_found:
+        print("REPOSITORY_HYGIENE_FAIL")
+        print("Review the proposed files locally; sensitive details are not printed in CI logs.")
         return 1
     print(f"REPOSITORY_HYGIENE_PASS scanned_text_files={scanned}")
     return 0
