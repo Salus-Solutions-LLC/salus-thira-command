@@ -1,27 +1,23 @@
-# Security policy
+# Security Policy
 
-## Reporting
+Salus THIRA Command is a private Salus Solutions repository. Security issues must be handled as controlled records and must not expose client, operational, intelligence, credential, or evidence data.
 
-Do not place vulnerability details, credentials, client information, person records, evidence, or production configuration in an ordinary issue or pull request.
+## Reporting a security issue
 
-Use a private GitHub security advisory when that feature is available. Otherwise, contact the repository owner through an established Salus business channel and provide only the minimum information needed to establish a secure response path.
+Do **not** open a public or ordinary repository issue containing a vulnerability, credential, secret, client identifier, assessment data, evidence, operational information, or exploit detail.
 
-## Repository boundary
+Report suspected security issues privately to the Salus repository owner/administrator. Include only the minimum information needed to reproduce or assess the issue, and use sanitized test data.
 
-This repository contains source code, tests, sanitized configuration examples, build instructions, and non-confidential engineering records only. It is not an approved repository for:
+If a credential, token, key, password, connection string, or other secret may have been exposed, treat it as compromised and rotate/revoke it immediately rather than relying on deletion from Git history.
 
-- client or person data;
-- operational intelligence, case files, evidence, or reports;
-- controlled policies, SOP masters, agreements, or completed forms;
-- runtime databases, exports, backups, logs, or telemetry payloads;
-- credentials, private keys, tokens, certificates, or production connection strings.
+## Repository handling rules
 
-Those records remain in their approved Salus systems of record. A private repository is not, by itself, authorization to store controlled information.
+- Never commit `.env` files, database files, evidence attachments, backups, client exports, logs containing sensitive data, or production secrets.
+- Use fictional/sanitized data in tests, screenshots, issues, and pull requests.
+- Keep production credentials in the approved secret provider; do not place them in GitHub source files or workflow YAML.
+- Security-control changes require the same CI, PostgreSQL, source-integrity, and CodeQL gates as application changes.
+- Release branches are immutable recovery points. Corrections are made in a new development/release version, not by rewriting a frozen release.
 
-## Supported code
+## Supported security baseline
 
-Security fixes are applied to `main` and the current supported release branch. Older release branches are retained for traceability but do not receive routine fixes unless specifically authorized.
-
-## Response expectations
-
-The repository owner will acknowledge a verified report, establish severity and affected versions, preserve evidence, coordinate remediation, and publish only the minimum safe release information. Do not exploit, exfiltrate, or retain real data while demonstrating a vulnerability.
+The latest commit on `main` is the supported stable source baseline. Frozen `release/vX.Y` branches are retained for reproducibility and recovery, but security corrections should be delivered in a new supported release unless an emergency response requires otherwise.

@@ -1,0 +1,24 @@
+name: Release Branch Guard
+
+on:
+  push:
+    branches:
+      - 'release/**'
+
+permissions:
+  contents: read
+
+jobs:
+  immutable-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reject changes to an existing frozen release branch
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            echo "Frozen release branches are immutable. Create a new development/release version instead of rewriting this branch."
+            exit 1
+          fi
+          echo "Release branch creation detected; no prior release commit was rewritten."

@@ -1,11 +1,22 @@
-# Default owner for every change.
+# Salus THIRA Command repository ownership
+# CODEOWNERS documents accountable review ownership even when repository-plan
+# settings cannot enforce required reviews.
+
 * @SalusSOlutionsLLC
 
-# Security and delivery controls require explicit owner review.
+# Security, CI, deployment, migration, and source-reconstruction controls
 /.github/ @SalusSOlutionsLLC
-/Dockerfile @SalusSOlutionsLLC
-/docker-compose*.yml @SalusSOlutionsLLC
-/requirements*.txt @SalusSOlutionsLLC
+/deploy/ @SalusSOlutionsLLC
+/tools/ @SalusSOlutionsLLC
+/source_archives/ @SalusSOlutionsLLC
+
+# Core runtime and persistence surfaces
+/app.py @SalusSOlutionsLLC
+/database.py @SalusSOlutionsLLC
+/portable_backup.py @SalusSOlutionsLLC
 /security_controls.py @SalusSOlutionsLLC
 /secret_provider.py @SalusSOlutionsLLC
-/tools/check_repository_hygiene.py @SalusSOlutionsLLC
+/storage.py @SalusSOlutionsLLC
+/telemetry.py @SalusSOlutionsLLC
+/rate_limit.py @SalusSOlutionsLLC
+/managed_database.py @SalusSOlutionsLLC

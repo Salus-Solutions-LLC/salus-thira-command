@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - development/**
+      - governance/**
       - release/**
       - validation/**
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -64,7 +66,7 @@ jobs:
         # B608 is excluded after review: interpolated SQL identifiers are selected only
         # from fixed application allowlists or schema-derived column sets; all data values
         # remain bound parameters. Medium/high findings outside these reviewed patterns block CI.
-        run: bandit -q -r app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py -ll -s B603,B607,B608
+        run: bandit -q -r app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py -ll -s B608
 
   postgres-runtime:
     runs-on: ubuntu-latest
