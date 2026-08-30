@@ -1,6 +1,6 @@
-# Salus THIRA Command v0.8 Production Readiness Gate
+# Salus THIRA Command v1.3 Production Readiness Gate
 
-v0.8 can run natively on either SQLite or PostgreSQL. Production readiness remains fail-closed when SQLite is the active runtime unless an explicit controlled exception is authorized. The preferred production baseline is PostgreSQL plus managed identity/secrets and managed evidence storage.
+v1.3 can run natively on either SQLite or PostgreSQL. Production readiness remains fail-closed when SQLite is the active runtime unless an explicit controlled exception is authorized. The preferred production baseline is PostgreSQL plus managed identity/secrets and managed evidence storage.
 
 ## Required production baseline
 
@@ -27,3 +27,7 @@ v0.8 can run natively on either SQLite or PostgreSQL. Production readiness remai
 - Create and DR-validate a new backup from the PostgreSQL runtime before declaring cutover complete.
 
 See `deploy/POSTGRESQL_CUTOVER.md` for the detailed procedure.
+
+## v1.3 governance verification
+
+Before production approval, verify that Professional Risk Overrides are restricted to decision-authorized roles, preserve calculated risk, require same-assessment relationships, retain supersession/withdrawal history, and are present in backup/restore and audit evidence.

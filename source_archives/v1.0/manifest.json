@@ -1,0 +1,57 @@
+{
+  "delta": {
+    "chunks": [
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part01",
+        "sha256": "1baeb8396cfc0c0531ff399eef69b41c17054cabe8a6acdba37aa265c169358d"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part02",
+        "sha256": "3de62fe86e83f70ca9d07159462e63213ff43f31fa84557308624f305a7e0a0c"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part03",
+        "sha256": "083974df4ec5a9eea2c76c1456ce46f7286ff605c45961046c118d5962926b98"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part04",
+        "sha256": "e19c0fe9f925ae04304e778b135735110d94b4a1f5741bbfaa81cbbe01f5b033"
+      },
+      {
+        "chars": 1448,
+        "path": "delta.json.gz.b64.part05",
+        "sha256": "639d7b4e91fb39aee301f361b325a1a9ed4f049e1b059bf05435269ba7605f25"
+      }
+    ],
+    "gzip_sha256": "d0bd685c3cb149f30530f1fdc9e2ace3fb36065c5b4962fa4d208d2c9cd71985",
+    "gzip_size_bytes": 7086,
+    "json_sha256": "482c248cf8649a43c4c33025f2c86db3bc2d9f225626aac0759b1ea5387e77e3"
+  },
+  "files": {
+    "app.py": {
+      "baseline_sha256": "0c98993d5c3c62d72c85b090c8717325799b8563f20510e25bc602e97c73b22f",
+      "target_sha256": "f2e7f0c15ffaa724bd56fa40cc7165890e1b45fbef28cad2911727b360953459",
+      "target_size_bytes": 116530
+    },
+    "database.py": {
+      "baseline_sha256": "a65ef93eefdcca7af11d3dce6a249596b58a0e90c74fa7a8c4a6781ebf035e35",
+      "target_sha256": "49b6d059630c03d546046124b0a12004b81bf1ed1f7c4c84fcce368c4164f931",
+      "target_size_bytes": 10645
+    },
+    "static/app.js": {
+      "baseline_sha256": "941199ef10aa61f9524bbf30c0842122f58a7799a28d84371ad9ef6977ee4d2f",
+      "target_sha256": "79e147e5f555cc37b5ccdb7d7fffe4fe2dc5d7aeff2d48f7b5233c00a5eaf7f7",
+      "target_size_bytes": 50387
+    },
+    "static/index.html": {
+      "baseline_sha256": "d194f47f7e541c94dad89db12d5d0a4d2f1029496de462ed555ecb421033a8ba",
+      "target_sha256": "2c72af02d1ffed6ac8b6a4c6bc6ced887d381ae9f332f8b7ed5af82ad9502fa4",
+      "target_size_bytes": 2229
+    }
+  },
+  "version": "1.0.0"
+}

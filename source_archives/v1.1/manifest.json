@@ -1,0 +1,57 @@
+{
+  "delta": {
+    "chunks": [
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part01",
+        "sha256": "61e7211270c80430f69661af203aa9c84d0a7972b03cfd1889ffb0211358ebdf"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part02",
+        "sha256": "742bb67a8525d54c82df865a1e3fa6a6157565ecd737fb58741e10c2373aae33"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part03",
+        "sha256": "69d56ec1d460e259e120c99192468dd5bd3184900ef7470794d7bf916f3c2795"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part04",
+        "sha256": "600686fe62f95710c6834b9f4936841892d31a6a7c22c7b047966d84c14eaf12"
+      },
+      {
+        "chars": 2000,
+        "path": "delta.json.gz.b64.part05",
+        "sha256": "3968db6081500fad98e3e907ae50b5d80f6875480ed793754d0fe21896c767c1"
+      },
+      {
+        "chars": 1580,
+        "path": "delta.json.gz.b64.part06",
+        "sha256": "99965a1516edaaae9f6c35e6cb0b862cfe53fa7f23eb40f6c6aadc3fbcddcffa"
+      }
+    ],
+    "gzip_sha256": "47f292f8e4d92eaa829d213619b96476ae720a1615261457515f3a1a2aab9f1c",
+    "gzip_size_bytes": 8683,
+    "json_sha256": "e2b11a6964826e516bf1353a45ace661a164694fa83b61985f17ba740506c3a2"
+  },
+  "files": {
+    "app.py": {
+      "baseline_sha256": "f2e7f0c15ffaa724bd56fa40cc7165890e1b45fbef28cad2911727b360953459",
+      "target_sha256": "8f4f561f5df69240732a8f14d2a29acd8564beba97ebf4d428a9198fc4df3887",
+      "target_size_bytes": 124726
+    },
+    "static/app.js": {
+      "baseline_sha256": "79e147e5f555cc37b5ccdb7d7fffe4fe2dc5d7aeff2d48f7b5233c00a5eaf7f7",
+      "target_sha256": "55caa20d281905f42dc300379266ab2b16ab02483fa9288f0698a963c6a152ef",
+      "target_size_bytes": 53418
+    },
+    "static/index.html": {
+      "baseline_sha256": "2c72af02d1ffed6ac8b6a4c6bc6ced887d381ae9f332f8b7ed5af82ad9502fa4",
+      "target_sha256": "41d8c91cca58002096834455ca6e5ee6f984caf47c013e665c16b57dc6f4ca23",
+      "target_size_bytes": 2229
+    }
+  },
+  "version": "1.1.0"
+}
