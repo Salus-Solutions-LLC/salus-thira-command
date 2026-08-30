@@ -31,7 +31,7 @@ Repository-control changes such as CI, security policy, CODEOWNERS, templates, a
 3. Keep runtime/client data excluded through `.gitignore` and release-package scans.
 4. Rebuild the version-specific deterministic source archive/delta.
 5. Verify all target source SHA-256 values locally.
-6. Push the development candidate and require green CI.
+6. Push the development candidate and require green CI plus a full-branch CodeQL scan.
 7. Open a draft `validation/vX.Y-release` PR targeting `main` for an independent CI and CodeQL cycle.
 8. Require, as applicable:
    - exact-source reconstruction/verification;
@@ -58,6 +58,7 @@ Repository-control changes such as CI, security policy, CODEOWNERS, templates, a
 - `main` is the current stable development baseline, reducing huge/stale validation diffs.
 - Release branches have an Actions immutability alarm; any post-creation update is a policy violation requiring investigation.
 - Version-specific source archives/deltas retain target SHA-256 values and fail closed on mismatch.
+- CI verifies that README, Docker, Windows, macOS/Linux, CI, and CodeQL all reference the same current reconstruction and verification tools.
 
 ## Security controls
 
@@ -73,7 +74,7 @@ Repository-control changes such as CI, security policy, CODEOWNERS, templates, a
 - Push CI runs on `main`, `development/**`, `governance/**`, and `release/**`; temporary validation branches rely on PR CI rather than generating redundant push runs.
 - Development push CI plus independent PR CI provides two acceptance cycles without a third duplicate validation-branch push cycle.
 - Dependabot groups routine dependency updates to reduce PR noise.
-- CodeQL runs on `main`, PRs targeting `main`, weekly schedule, and manual dispatch.
+- CodeQL runs on `main`, `development/**`, PRs targeting `main`, weekly schedule, and manual dispatch. Development-branch analysis is intentionally full-branch so a clean PR diff cannot conceal inherited findings.
 
 ## Platform limitation
 
