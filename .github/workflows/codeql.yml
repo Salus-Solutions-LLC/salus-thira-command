@@ -20,8 +20,8 @@ jobs:
           python-version: '3.12'
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ] && [ -f tools/reconstruct_v12_source.py ]; then python tools/reconstruct_v12_source.py; fi
-          python tools/verify_v12_source.py
+          if [ ! -f app.py ] && [ -f tools/reconstruct_v13_source.py ]; then python tools/reconstruct_v13_source.py; fi
+          python tools/verify_v13_source.py
       - uses: github/codeql-action/init@v4
         with:
           languages: python
