@@ -1,0 +1,26 @@
+name: Controlled Remediated Source Reconstruction
+on:
+  push:
+    branches: [security/codeql-readiness]
+permissions:
+  contents: read
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with: {python-version: "3.12"}
+      - run: |
+          python tools/reconstruct_security_v14_source.py
+          python tools/verify_security_v14_source.py
+          mkdir remediation-source
+          cp app.py remediation-source/app.py
+          sha256sum remediation-source/app.py > remediation-source/SHA256SUMS
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: remediated-main-source
+          path: remediation-source
+          retention-days: 1
