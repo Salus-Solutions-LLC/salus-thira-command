@@ -1,74 +1,86 @@
-# Salus THIRA Command v1.1
+# Salus THIRA Command v1.2
 
 Salus THIRA Command is the assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
 
-v1.1 is the **governed residual-risk baseline**. It preserves the validated v1.0 capability measurement framework while separating forecast risk reduction from evidence-validated risk reduction.
+v1.2 is the **relational-integrity release**. It preserves the governed residual-risk model introduced in v1.1 while ensuring that linked assessment records cannot silently cross assessment boundaries.
 
-## Governed risk states
+## What v1.2 adds
 
-THIRA Command now distinguishes four states instead of treating an approved action as achieved risk reduction:
+### Assessment-scoped relationship enforcement
 
-1. **Inherent Risk** — likelihood × vulnerability/exposure × modeled consequence before capability credit.
-2. **Current Risk** — inherent risk adjusted only for demonstrated current capability.
-3. **Predicted Residual Risk** — a planning forecast that may credit the expected benefit of currently approved improvements. It is explicitly not treated as achieved.
-4. **Validated Residual Risk** — improvement benefit is credited only after the improvement is Complete and a controlled validation cites evidence whose verification status is currently `Verified`.
+The server now validates the principal THIRA chain before creates and updates are committed:
 
-Executive approval by itself never lowers Current Risk or Validated Residual Risk. Marking an improvement Complete also does not lower Validated Residual Risk.
+- Scenario → Threat / Hazard
+- Capability → Scenario (optional)
+- Evidence → Capability (optional)
+- Evidence → Scenario (optional)
+- Gap → Capability
+- Improvement → Gap
+- Executive Decision → Improvement (optional)
+- Reassessment Trigger → affected governed record, when an affected record ID is supplied
 
-If cited validation evidence is later downgraded from `Verified`, the associated validated risk-reduction credit disappears automatically. A later executive decision such as Defer or Reject also prevents an older approval from continuing to supply forecast or validated credit.
+A related record must exist and belong to the same assessment. Cross-assessment links fail closed with a validation error instead of relying on ordinary foreign keys, which only prove that an ID exists.
 
-## Improvement validation
+### Immutable assessment ownership
 
-A completed improvement can be validated as:
+Once a governed child record is created, its `assessment_id` cannot be changed through the generic update API. If a record belongs in another assessment, a new governed record must be created there rather than moving history between assessment workspaces.
 
-- `Validated`
-- `Partially Validated`
-- `Failed`
+This protects audit history, entity-version snapshots, traceability, reports, Accepted Risk, residual-risk calculations, and tenant/assessment authorization semantics.
 
-Validation requires:
+### Assessment-scoped selectors in the interface
 
-- a completed improvement;
-- a verified evidence record from the same assessment;
-- a documented validation outcome;
-- an explicit validated-effectiveness percentage;
-- an accountable validating user and timestamp.
+Users no longer type the principal relationship IDs into normal data-entry forms. The active assessment supplies the assessment identity automatically, and related records are presented as assessment-scoped selectors:
 
-Failed validation earns zero risk-reduction credit and automatically opens a corrective-action reassessment trigger. Validation records are revisioned and audited. Direct edits to validation state are blocked; the controlled validation action must be used.
+- Threat / Hazard names for scenarios
+- Scenario titles for capabilities and evidence
+- Capability names for evidence and gaps
+- Gap severity/description for improvements
+- Improvement titles for executive decisions
 
-## Risk methodology versioning
+Numeric IDs remain available where they are useful for audit, traceability, exports, and technical record identification, but they are no longer the normal relationship-entry mechanism.
 
-Each assessment consequence-weight record now carries `risk_methodology_version`. v1.1 risk outputs and exports identify the methodology used, allowing later scoring-method changes to remain distinguishable from historical results.
+## Risk methodology remains v1.1
 
-## v1.0 capabilities retained
+v1.2 changes application integrity, not the risk formula. `risk_methodology_version` therefore remains **1.1.0**.
 
-The Capability Measurement Framework supports Percentage, Time, Count, Rate, Binary, Currency, and Qualitative Rubric measures with `>=`, `<=`, or exact `=` target semantics. Raw target/current measures remain visible while normalized attainment allows unlike capabilities to be compared consistently.
+The governed risk states remain:
 
-The Accepted Risk Register remains durable and non-deletable until formally closed or superseded with documented authority and basis.
+1. **Inherent Risk** — before capability credit.
+2. **Current Risk** — adjusted only for demonstrated current capability.
+3. **Predicted Residual Risk** — planning forecast that may credit currently approved improvements.
+4. **Validated Residual Risk** — improvement benefit credited only after completed implementation and controlled validation backed by currently Verified evidence.
 
-## Runtime and security controls retained
+Approval or completion alone does not lower validated risk. Evidence downgrade revokes validated credit, and the latest executive decision controls forecast eligibility.
+
+## Capability measurement framework retained
+
+The v1.0 framework remains available for Percentage, Time, Count, Rate, Binary, Currency, and Qualitative Rubric measures using `>=`, `<=`, or exact `=` target semantics.
+
+## Runtime and governance controls retained
 
 - SQLite local/demo and PostgreSQL managed-runtime paths;
-- Microsoft Entra/managed-identity PostgreSQL authentication hooks;
-- OIDC/session/prototype identity modes;
+- Microsoft Entra/OIDC/session/prototype identity modes;
 - tenant and assessment authorization;
+- scope lock, authorized scope-change records, assessment version increments, and immutable entity snapshots;
 - evidence sensitivity, SHA-256 integrity, retention/legal hold, and upload scanning hooks;
+- Accepted Risk Register and controlled closure/supersession;
+- evidence-backed improvement validation;
 - Azure Blob/local storage abstraction;
 - Key Vault secret-provider path;
 - Redis-capable distributed rate limiting;
 - centralized security telemetry;
-- portable tenant backup, integrity verification, DR validation, and controlled restore;
-- scope/workflow governance, revision history, executive decisions, Accepted Risk, and reporting.
+- portable tenant backup, integrity verification, DR validation, and controlled restore.
 
 ## Fresh GitHub checkout
 
-The largest tested source files are preserved through a deterministic, SHA-256 verified delta chain:
+The largest tested source files are preserved through a deterministic SHA-256 verified delta chain:
 
 ```bash
-python tools/reconstruct_v11_source.py
-python tools/verify_v11_source.py
+python tools/reconstruct_v12_source.py
+python tools/verify_v12_source.py
 ```
 
-The v1.1 reconstruction establishes the exact v1.0 baseline first, applies the v1.1 delta, and verifies the resulting hashes. Windows/macOS/Linux launchers and Docker perform this automatically when required.
+The v1.2 reconstruction establishes the exact frozen v1.1 baseline, applies the v1.2 delta, and verifies the resulting hashes. Windows/macOS/Linux launchers and Docker perform this automatically when source reconstruction is required.
 
 ## Run locally
 
@@ -88,25 +100,25 @@ pip install -r requirements.txt
 
 Then open `http://127.0.0.1:8000`.
 
-## Release validation gates
+## v1.2 release validation gates
 
-v1.1 acceptance is fail-closed against the exact reconstructed source tree:
+Release acceptance is fail-closed against the exact reconstructed source tree:
 
-- SHA-256 source reconstruction and verification;
+- deterministic v1.1 → v1.2 source reconstruction with SHA-256 verification;
 - Python compilation and JavaScript syntax validation;
-- shared lifecycle smoke against SQLite and PostgreSQL 16;
-- proof that approval changes only Predicted Residual, not Current/Validated Residual;
-- proof that completion alone earns no validated risk reduction;
-- verified-evidence requirement for controlled improvement validation;
-- partial/full/failed validation behavior;
-- automatic loss of validated credit if supporting evidence ceases to be Verified;
-- latest executive-decision control over forecast credit;
-- v1.0 capability measurement semantics;
-- Accepted Risk governance;
+- application migration marker `1.2.0` while risk methodology remains `1.1.0`;
+- retained v1.0 direction-aware capability semantics;
+- retained v1.1 governed residual-risk lifecycle;
+- valid same-assessment Threat → Scenario → Capability → Gap → Improvement → Decision chain;
+- rejection of cross-assessment Scenario/Threat, Gap/Capability, Improvement/Gap, Decision/Improvement, Evidence/Capability, Evidence/Scenario, and reassessment-trigger links;
+- rejection of cross-assessment child-record reassignment;
+- revalidation of relationships on update, not only create;
+- assessment-scoped list isolation and UI relationship-selector checks;
+- the same lifecycle smoke against SQLite and a real PostgreSQL 16 service container;
 - PostgreSQL transaction rollback smoke;
 - dependency audit and reviewed Bandit gate;
 - local Python CodeQL analysis with fail-closed SARIF findings enforcement.
 
-These gates validate application/runtime behavior. They do not substitute for production managed-database cutover, tenant-specific Entra configuration, private networking/WAF/TLS, penetration testing, backup exercises, retention approval, or formal security/privacy authorization.
+These automated gates validate application/runtime behavior. They do not substitute for a production managed-database cutover, tenant-specific Entra configuration, private networking/WAF/TLS, penetration testing, backup/restore exercises, records-retention approval, or formal security/privacy authorization.
 
 GitHub remains authoritative for code. Never commit live client databases, evidence/uploads, backups, logs, `.env` files, credentials, tokens, connection strings, or identity-provider secrets.
