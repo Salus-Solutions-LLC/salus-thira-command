@@ -1,11 +1,11 @@
-# PostgreSQL Cutover Runbook — Salus THIRA Command v0.9
+# PostgreSQL Cutover Runbook — Salus THIRA Command v1.0
 
-v0.9 supports two runtime database providers: `sqlite` and `postgres`. A production cutover should be treated as a controlled change, not an in-place experiment.
+v1.0 supports two runtime database providers: `sqlite` and `postgres`. A production cutover should be treated as a controlled change, not an in-place experiment.
 
 ## Preconditions
 
 1. Freeze writes to the source SQLite environment.
-2. Create and DR-validate a v0.9 portable tenant backup.
+2. Create and DR-validate a v1.0 portable tenant backup.
 3. Verify the source SQLite database with `PRAGMA integrity_check`.
 4. Provision the PostgreSQL target with TLS required and an approved identity model.
 5. Configure network restrictions, backup retention, monitoring, and secrets before migration.

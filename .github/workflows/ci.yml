@@ -17,8 +17,8 @@ jobs:
           node-version: '22'
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ]; then python tools/reconstruct_v09_source.py; fi
-          python tools/verify_v09_source.py
+          if [ ! -f app.py ]; then python tools/reconstruct_v10_source.py; fi
+          python tools/verify_v10_source.py
       - name: Install application and security test tools
         run: |
           python -m pip install --upgrade pip
@@ -28,52 +28,20 @@ jobs:
         run: python -m py_compile app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
       - name: Validate JavaScript syntax
         run: node --check static/app.js
-      - name: Fresh SQLite runtime smoke
+      - name: SQLite release lifecycle smoke
         env:
           SALUS_DB_BACKEND: sqlite
-          SALUS_DB_PATH: /tmp/salus-ci.db
-          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-ci-attachments
-          SALUS_BACKUP_DIR: /tmp/salus-ci-backups
+          SALUS_DB_PATH: /tmp/salus-v10-ci.db
+          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-v10-ci-attachments
+          SALUS_BACKUP_DIR: /tmp/salus-v10-ci-backups
           SALUS_AUTH_MODE: prototype
           SALUS_SEED_DEMO: '1'
-        run: |
-          python - <<'PY'
-          import app
-          c=app.db()
-          assert c.execute('SELECT COUNT(*) c FROM assessments').fetchone()['c']==1
-          assert c.execute("SELECT COUNT(*) c FROM schema_migrations WHERE version='0.8.0'").fetchone()['c']==1
-          assert c.execute("SELECT COUNT(*) c FROM schema_migrations WHERE version='0.9.0'").fetchone()['c']==1
-          assert c.execute("SELECT COUNT(*) c FROM sqlite_master WHERE type='table' AND name='accepted_risks'").fetchone()['c']==1
-          c.close()
-          print('SQLITE_RUNTIME_SMOKE_PASS')
-          PY
-      - name: Accepted risk lifecycle smoke
-        env:
-          SALUS_DB_BACKEND: sqlite
-          SALUS_DB_PATH: /tmp/salus-ci-risk.db
-          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-ci-risk-attachments
-          SALUS_BACKUP_DIR: /tmp/salus-ci-risk-backups
-          SALUS_AUTH_MODE: prototype
-          SALUS_SEED_DEMO: '1'
-        run: |
-          python - <<'PY'
-          import app
-          from starlette.testclient import TestClient
-          c=app.db(); aid=c.execute('SELECT id FROM assessments ORDER BY id LIMIT 1').fetchone()['id']; imp=c.execute('SELECT id FROM improvements WHERE assessment_id=? ORDER BY id LIMIT 1',(aid,)).fetchone(); impid=imp['id'] if imp else None; c.close()
-          client=TestClient(app.app); h={'X-Salus-Role':'Assessment Director','X-Salus-User':'CI','X-Salus-Tenant':'1'}
-          payload={'assessment_id':aid,'improvement_id':impid,'decision_type':'Accept Risk','authority':'CI Executive','rationale':'Residual risk accepted for validation.','conditions':'Reconsider on material change.','implementation_owner':'CI Owner','expected_residual_risk':'Moderate residual exposure remains.','review_date':'2099-12-31'}
-          r=client.post('/api/decisions',headers=h,json=payload); assert r.status_code==200, r.text
-          risks=client.get(f'/api/accepted_risks?assessment_id={aid}',headers=h).json(); assert len(risks)==1 and risks[0]['status']=='Active'
-          r=client.put(f"/api/accepted_risks/{risks[0]['id']}",headers=h,json={'status':'Closed'}); assert r.status_code==422
-          r=client.put(f"/api/accepted_risks/{risks[0]['id']}",headers=h,json={'status':'Closed','closure_basis':'CI validated closure basis.'}); assert r.status_code==200, r.text
-          print('ACCEPTED_RISK_LIFECYCLE_PASS')
-          PY
+        run: python tools/ci_v10_smoke.py
       - name: Dependency audit
         run: pip-audit -r requirements.txt
       - name: Static security scan
-        # B608 is excluded after review: interpolated SQL identifiers are selected only
-        # from fixed application allowlists or schema-derived column sets; all data values
-        # remain bound parameters. Medium/high findings outside these reviewed patterns block CI.
+        # B608 is reviewed: interpolated SQL identifiers come only from fixed
+        # allowlists/schema columns; record values remain bound parameters.
         run: bandit -q -r app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py -ll -s B603,B607,B608
 
   postgres-runtime:
@@ -99,36 +67,25 @@ jobs:
           python-version: '3.12'
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ]; then python tools/reconstruct_v09_source.py; fi
-          python tools/verify_v09_source.py
+          if [ ! -f app.py ]; then python tools/reconstruct_v10_source.py; fi
+          python tools/verify_v10_source.py
       - name: Install application
         run: pip install -r requirements.txt
-      - name: PostgreSQL schema and seeded runtime smoke
+      - name: PostgreSQL release lifecycle smoke
         env:
           SALUS_DB_BACKEND: postgres
           SALUS_DATABASE_URL: postgresql://salus:salus-ci-password@127.0.0.1:5432/salus_thira_ci
           SALUS_AUTH_MODE: prototype
           SALUS_SEED_DEMO: '1'
-          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-pg-attachments
-          SALUS_BACKUP_DIR: /tmp/salus-pg-backups
-        run: |
-          python - <<'PY'
-          import app
-          c=app.db()
-          assert c.execute('SELECT COUNT(*) c FROM assessments').fetchone()['c']==1
-          assert c.execute('SELECT COUNT(*) c FROM threats').fetchone()['c']==1
-          assert c.execute("SELECT COUNT(*) c FROM schema_migrations WHERE version='0.8.0'").fetchone()['c']==1
-          assert c.execute("SELECT COUNT(*) c FROM schema_migrations WHERE version='0.9.0'").fetchone()['c']==1
-          assert c.execute("SELECT COUNT(*) c FROM information_schema.tables WHERE table_schema=current_schema() AND table_name='accepted_risks'").fetchone()['c']==1
-          c.close()
-          print('POSTGRES_SEEDED_RUNTIME_PASS')
-          PY
+          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-v10-pg-attachments
+          SALUS_BACKUP_DIR: /tmp/salus-v10-pg-backups
+        run: python tools/ci_v10_smoke.py
       - name: PostgreSQL transaction smoke
         env:
           SALUS_DB_BACKEND: postgres
           SALUS_DATABASE_URL: postgresql://salus:salus-ci-password@127.0.0.1:5432/salus_thira_ci
           SALUS_AUTH_MODE: prototype
           SALUS_SEED_DEMO: '0'
-          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-pg-attachments
-          SALUS_BACKUP_DIR: /tmp/salus-pg-backups
+          SALUS_LOCAL_STORAGE_DIR: /tmp/salus-v10-pg-attachments
+          SALUS_BACKUP_DIR: /tmp/salus-v10-pg-backups
         run: python tools/postgres_runtime_smoke.py

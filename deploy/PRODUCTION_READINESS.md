@@ -1,6 +1,6 @@
-# Salus THIRA Command v0.9 Production Readiness Gate
+# Salus THIRA Command v1.0 Production Readiness Gate
 
-v0.9 can run natively on either SQLite or PostgreSQL. Production readiness remains fail-closed when SQLite is the active runtime unless an explicit controlled exception is authorized. The preferred production baseline is PostgreSQL plus managed identity/secrets and managed evidence storage.
+v1.0 can run natively on either SQLite or PostgreSQL. Production readiness remains fail-closed when SQLite is the active runtime unless an explicit controlled exception is authorized. The preferred production baseline is PostgreSQL plus managed identity/secrets and managed evidence storage.
 
 ## Required production baseline
 
