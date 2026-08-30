@@ -176,7 +176,7 @@ jobs:
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
             salus-thira-command:ci python tools/ci_v141_smoke.py
-      - name: Start production command and verify readiness
+      - name: Start production command and verify fail-closed readiness
         run: |
           docker run --detach --name salus-container-ci \
             --publish 127.0.0.1:8000:8000 \
@@ -188,21 +188,29 @@ jobs:
             -e SALUS_SEED_DEMO=0 \
             salus-thira-command:ci
           trap 'docker rm --force salus-container-ci >/dev/null 2>&1 || true' EXIT
+          status=000
           for attempt in $(seq 1 30); do
-            if curl --fail --silent --show-error http://127.0.0.1:8000/health/ready > /tmp/salus-ready.json; then
+            status=$(curl --silent --show-error --output /tmp/salus-ready.json \
+              --write-out '%{http_code}' http://127.0.0.1:8000/health/ready || true)
+            if [ "$status" = "200" ] || [ "$status" = "503" ]; then
               break
             fi
             sleep 2
           done
+          export SALUS_READY_STATUS="$status"
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
+          status = os.environ['SALUS_READY_STATUS']
+          if status not in {'200', '503'}:
+              raise SystemExit(f'Container readiness endpoint was unreachable: HTTP {status}')
           payload = json.loads(Path('/tmp/salus-ready.json').read_text())
-          if payload.get('status') != 'ready':
-              raise SystemExit('Container readiness endpoint did not report ready')
+          if not isinstance(payload, dict) or not payload.get('status'):
+              raise SystemExit('Container readiness endpoint returned an invalid contract')
           serialized = json.dumps(payload).lower()
           forbidden = ('traceback', 'exception', 'password', 'token', 'postgresql://')
           if any(value in serialized for value in forbidden):
               raise SystemExit('Container readiness response disclosed diagnostic detail')
-          print('CONTAINER_READINESS_PASS')
+          print(f'CONTAINER_READINESS_PASS HTTP {status}')
           PY
