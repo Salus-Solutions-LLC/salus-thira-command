@@ -1,28 +1,29 @@
-# Salus THIRA Command v1.14
+# Salus THIRA Command v1.15
 
 Salus THIRA Command is the assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
 
-v1.14 activates the governed Gap and Improvement Workspace. Capability gaps and improvement actions are assessment-scoped, tenant-isolated, audited, versioned, and connected to evidence-based capability validation.
+v1.15 activates the governed Operational Risk and Professional Judgment Workspace. Calculated risk remains deterministic and separate from accountable professional assigned risk, predicted residual risk, and evidence-validated residual risk.
 
-## Gap and improvement governance
+## Operational risk and professional judgment
 
-- Every gap references a capability in the same assessment.
-- Gap type, severity, description, root cause, owner, and lifecycle state use bounded governed fields.
-- Every improvement references a gap in the same assessment.
-- Cost, schedule, feasibility, consequence reduction, mission benefit, sustainability, compliance, staffing, dependencies, expected capability gain, and owner are retained as authoritative inputs.
-- Priority scores are calculated by the server from the recorded factors and cannot be supplied or overwritten by clients.
-- New gaps start Open and new improvements start Proposed with Pending validation.
-- Gap and improvement lifecycle state changes require controlled transition actions with documented reasons.
-- Completing an improvement creates one Capability Validation reassessment trigger without duplication.
-- Controlled validation requires Verified evidence whose lifecycle is Current and records the accountable validator, evidence, outcome, effectiveness, timestamp, audit event, and immutable version.
-- Generic edits cannot forge lifecycle, validation, priority, tenant, timestamp, audit, or version state.
+- Inherent and calculated current risk are computed from governed threat, scenario, and capability state.
+- Predicted residual risk credits authorized improvements without representing them as demonstrated outcomes.
+- Validated residual risk credits only completed improvements supported by Verified, lifecycle-Current evidence.
+- Professional assigned risk requires a named authority, documented reason, bounded score, and future review date.
+- Optional supporting evidence must belong to the same assessment and be Verified and lifecycle Current.
+- Stale, expired, missing, or no-longer-Verified supporting evidence automatically stops the judgment from supplying current assigned risk while leaving calculated risk unchanged.
+- An overdue professional review likewise removes current assigned-risk applicability until controlled review.
+- Controlled review requires current supporting evidence when the judgment cites evidence.
+- A replacement judgment supersedes the prior active judgment without destroying history; controlled withdrawal returns the workspace to calculated risk.
+- Client payloads cannot forge calculated values, assigned bands, lifecycle state, authority history, timestamps, audit, or versions.
+- Every creation, automatic lifecycle change, review, supersession, and withdrawal is audited and versioned.
 - SQLite and PostgreSQL 16 use the same application behavior and validation suite.
 
 ## Evidence and risk governance retained
 
 Evidence verification and lifecycle currency remain separate. Evidence may be Verified but Stale. Expired evidence automatically becomes Stale, creates one evidence-lifecycle reassessment trigger per stale episode, loses validated-risk credit, and cannot support a new improvement validation or professional risk override. A controlled lifecycle review is required to restore Current status.
 
-Calculated current risk, professional assigned risk, predicted residual risk, and validated residual risk remain separate governed concepts. Application version: **1.14.0**. Risk methodology version: **1.1.0**.
+Calculated current risk, professional assigned risk, predicted residual risk, and validated residual risk remain separate governed concepts. Application version: **1.15.0**. Risk methodology version: **1.1.0**.
 
 ## Controls retained from prior releases
 
@@ -44,8 +45,8 @@ Calculated current risk, professional assigned risk, predicted residual risk, an
 The tested source is preserved through the deterministic release archive chain:
 
 ```bash
-python tools/reconstruct_v114_source.py
-python tools/verify_v114_source.py
+python tools/reconstruct_v115_source.py
+python tools/verify_v115_source.py
 ```
 
 Windows and macOS/Linux launchers perform reconstruction and verification automatically when needed.
@@ -61,7 +62,7 @@ On Windows, use `run_windows.bat`, then open `http://127.0.0.1:8000`.
 
 ## Release acceptance
 
-The v1.14 release gate requires exact v1.13 → v1.14 reconstruction and SHA-256 verification, Python compilation, JavaScript syntax validation, the SQLite lifecycle smoke, the identical smoke against real PostgreSQL 16, the PostgreSQL transaction smoke, production-container execution, dependency audit, Bandit, fail-closed CodeQL analysis, release-entrypoint validation, and repository-boundary checks.
+The v1.15 release gate requires exact v1.14 → v1.15 reconstruction and SHA-256 verification, Python compilation, JavaScript syntax validation, the SQLite operational-risk smoke, the identical smoke against real PostgreSQL 16, the PostgreSQL transaction smoke, production-container execution, dependency audit, Bandit, fail-closed CodeQL analysis, release-entrypoint validation, and repository-boundary checks.
 
 ## Production status
 
