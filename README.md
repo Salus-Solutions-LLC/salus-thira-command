@@ -1,89 +1,42 @@
-# Salus THIRA Command v1.13
+# Salus THIRA Command v1.14
 
 Salus THIRA Command is the assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
 
-v1.13 makes executive-decision review dates operational through automatic overdue state, one-time triggers, and controlled documented renewal while keeping the original decision immutable. v1.7 assessment reassessment lifecycle governance remains fully regression-gated.
+v1.14 activates the governed Gap and Improvement Workspace. Capability gaps and improvement actions are assessment-scoped, tenant-isolated, audited, versioned, and connected to evidence-based capability validation.
 
-v1.6 adds professional risk-override review governance. Overdue overrides stop supplying professional assigned risk until controlled review, while calculated risk remains unchanged and visible.
+## Gap and improvement governance
 
-v1.5 adds accepted-risk review lifecycle governance. Active accepted risks automatically become Review Overdue after their review date, create one reassessment trigger per overdue episode, and can be renewed only through a controlled review action with a future date and documented outcome. Review lifecycle changes are audited and versioned; ordinary edits cannot forge review currency.
+- Every gap references a capability in the same assessment.
+- Gap type, severity, description, root cause, owner, and lifecycle state use bounded governed fields.
+- Every improvement references a gap in the same assessment.
+- Cost, schedule, feasibility, consequence reduction, mission benefit, sustainability, compliance, staffing, dependencies, expected capability gain, and owner are retained as authoritative inputs.
+- Priority scores are calculated by the server from the recorded factors and cannot be supplied or overwritten by clients.
+- New gaps start Open and new improvements start Proposed with Pending validation.
+- Gap and improvement lifecycle state changes require controlled transition actions with documented reasons.
+- Completing an improvement creates one Capability Validation reassessment trigger without duplication.
+- Controlled validation requires Verified evidence whose lifecycle is Current and records the accountable validator, evidence, outcome, effectiveness, timestamp, audit event, and immutable version.
+- Generic edits cannot forge lifecycle, validation, priority, tenant, timestamp, audit, or version state.
+- SQLite and PostgreSQL 16 use the same application behavior and validation suite.
 
-v1.4.1 is the security patch for the v1.4 evidence-lifecycle release. It preserves v1.4 behavior while preventing diagnostic exception text from reaching external responses or security telemetry, retaining only opaque correlation IDs and exception classes.
+## Evidence and risk governance retained
 
-v1.4 is the **evidence lifecycle governance release**. It preserves v1.3 professional-risk-override governance while making evidence validity time-aware and fail-closed for risk and validation credit.
+Evidence verification and lifecycle currency remain separate. Evidence may be Verified but Stale. Expired evidence automatically becomes Stale, creates one evidence-lifecycle reassessment trigger per stale episode, loses validated-risk credit, and cannot support a new improvement validation or professional risk override. A controlled lifecycle review is required to restore Current status.
 
-## What v1.4 adds
-
-### Evidence validity and lifecycle state
-
-Evidence now records separate verification and lifecycle dimensions:
-
-- `verification_status`: Pending, Verified, or Conflicting;
-- `valid_until`: the authoritative validity date when one applies;
-- `lifecycle_status`: Current or Stale;
-- stale reason and timestamp; and
-- lifecycle reviewer and review timestamp.
-
-A record can therefore remain **Verified but Stale**. Verification is not treated as permanent validity.
-
-### Automatic stale-evidence reassessment
-
-When evidence passes its validity date, Salus THIRA Command automatically:
-
-1. marks the evidence Stale;
-2. preserves the existing verification status as a separate dimension;
-3. creates one open `Evidence Lifecycle / Evidence Stale` reassessment trigger per stale episode;
-4. raises trigger severity to High when the evidence supports a validated improvement or active professional risk override, otherwise Moderate;
-5. removes stale evidence from validated-residual-risk credit; and
-6. prevents stale evidence from supporting a new improvement validation or professional risk override.
-
-Repeated dashboard, evidence, risk, report, export, and backup operations do not create duplicate unresolved stale triggers.
-
-### Controlled lifecycle review
-
-Stale evidence is not returned to Current by an ordinary record edit. A controlled lifecycle-review action requires:
-
-- a current or future new validity date; and
-- a documented review outcome.
-
-Verification remains a separate control. A lifecycle review can restore temporal currency without changing Pending, Verified, or Conflicting verification status.
-
-The action records the reviewer/timestamp, clears stale state, resolves the evidence-lifecycle trigger, and writes audit/version history.
-
-### Authoritative outputs refresh lifecycle first
-
-Expiry is refreshed before:
-
-- Risk Analytics;
-- Evidence lists;
-- Command Center metrics;
-- executive reports;
-- assessment JSON export; and
-- tenant backup capture.
-
-This prevents an expired record from remaining falsely Current merely because an Evidence screen was not opened before an authoritative output was produced.
-
-## Risk governance remains unchanged
-
-Application version: **1.4.1**  
-Risk methodology version: **1.1.0**
-
-v1.4 changes evidence governance, not the numerical risk formula. Calculated current risk, professional assigned risk, predicted residual risk, and validated residual risk remain separate governed concepts.
+Calculated current risk, professional assigned risk, predicted residual risk, and validated residual risk remain separate governed concepts. Application version: **1.14.0**. Risk methodology version: **1.1.0**.
 
 ## Controls retained from prior releases
 
-- v1.3 append-only professional risk overrides;
-- v1.2 assessment-scoped relational integrity;
-- v1.1 evidence-governed residual-risk validation;
-- v1.0 direction-aware capability measures;
-- Accepted Risk Register;
+- assessment, threat/scenario, and target/capability workspaces;
+- append-only professional risk overrides and controlled review;
+- accepted-risk register and controlled review lifecycle;
 - scope lock, scope-change/version history, immutable snapshots, and audit trail;
+- direction-aware capability measures and evidence-governed residual-risk validation;
 - SQLite local/demo and PostgreSQL native runtime;
 - OIDC/session/prototype identity modes;
 - tenant/assessment authorization and evidence sensitivity;
 - evidence file integrity, retention/legal hold, and upload-scanning hooks;
 - Azure Blob/local storage and Key Vault secret-provider paths;
-- Redis-capable rate limiting and centralized security telemetry;
+- Redis-capable rate limiting and centralized security telemetry; and
 - portable tenant backup, integrity verification, DR validation, and controlled restore.
 
 ## Fresh GitHub checkout
@@ -91,8 +44,8 @@ v1.4 changes evidence governance, not the numerical risk formula. Calculated cur
 The tested source is preserved through the deterministic release archive chain:
 
 ```bash
-python tools/reconstruct_v113_source.py
-python tools/verify_v113_source.py
+python tools/reconstruct_v114_source.py
+python tools/verify_v114_source.py
 ```
 
 Windows and macOS/Linux launchers perform reconstruction and verification automatically when needed.
@@ -104,24 +57,12 @@ python -m pip install -r requirements.txt
 ./run_mac_linux.sh
 ```
 
-On Windows, use `run_windows.bat`.
-
-Open `http://127.0.0.1:8000`.
+On Windows, use `run_windows.bat`, then open `http://127.0.0.1:8000`.
 
 ## Release acceptance
 
-The v1.6 release gate requires:
-
-- exact source reconstruction and SHA-256 verification;
-- Python compilation;
-- JavaScript syntax validation;
-- SQLite v1.4.1 regression plus v1.5 accepted-risk lifecycle smoke;
-- real PostgreSQL 16 v1.4.1 regression plus v1.5 accepted-risk lifecycle smoke;
-- PostgreSQL transaction smoke;
-- dependency audit;
-- Bandit static-security gate; and
-- fail-closed local CodeQL Python analysis with SARIF preservation.
+The v1.14 release gate requires exact v1.13 → v1.14 reconstruction and SHA-256 verification, Python compilation, JavaScript syntax validation, the SQLite lifecycle smoke, the identical smoke against real PostgreSQL 16, the PostgreSQL transaction smoke, production-container execution, dependency audit, Bandit, fail-closed CodeQL analysis, release-entrypoint validation, and repository-boundary checks.
 
 ## Production status
 
-v1.5 is a hardened development candidate, not an authorization to place sensitive client data into production by itself. Production deployment still requires approved identity, managed database/storage, malware scanning, secrets management, network controls, monitoring, records-retention rules, backup/restore procedures, penetration testing, and formal security/privacy review.
+A frozen application release is not, by itself, authorization to place sensitive client data into production. Production deployment still requires approved identity, managed database and storage, malware scanning, secrets management, network controls, monitoring, records-retention rules, backup/restore procedures, penetration testing, and formal security/privacy review.
