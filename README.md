@@ -1,8 +1,20 @@
-# Salus THIRA Command v1.15
+# Salus THIRA Command v1.16
 
 Salus THIRA Command is the assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
 
-v1.15 activates the governed Operational Risk and Professional Judgment Workspace. Calculated risk remains deterministic and separate from accountable professional assigned risk, predicted residual risk, and evidence-validated residual risk.
+v1.16 activates the governed Executive Decisions and Accepted Risk Workspace. Decisions remain append-only authority records, and accepted risk remains an accountable lifecycle record that can change state only through controlled actions.
+
+## Executive decisions and accepted risk
+
+- Executive decisions use enumerated decision types, a named authority, documented rationale, finite nonnegative funding, and validated dates.
+- An Accept Risk decision requires explicit residual exposure, an accountable owner, a reconsideration trigger, and a future review date.
+- The decision and its accepted-risk register record are created atomically; neither can persist without the other.
+- Accepted-risk provenance and authority are immutable, while descriptive details remain governed and editable.
+- Status changes require a controlled transition with a documented authority basis; Closed and Superseded records are terminal.
+- Overdue decision and accepted-risk reviews each create one reassessment trigger per lifecycle episode.
+- Controlled reviews restore Current lifecycle status and resolve the corresponding trigger without deleting history.
+- Closing or superseding an accepted risk resolves its open lifecycle trigger and preserves the full record.
+- Every create, automatic lifecycle change, review, and transition is audited and versioned.
 
 ## Operational risk and professional judgment
 
@@ -23,7 +35,7 @@ v1.15 activates the governed Operational Risk and Professional Judgment Workspac
 
 Evidence verification and lifecycle currency remain separate. Evidence may be Verified but Stale. Expired evidence automatically becomes Stale, creates one evidence-lifecycle reassessment trigger per stale episode, loses validated-risk credit, and cannot support a new improvement validation or professional risk override. A controlled lifecycle review is required to restore Current status.
 
-Calculated current risk, professional assigned risk, predicted residual risk, and validated residual risk remain separate governed concepts. Application version: **1.15.0**. Risk methodology version: **1.1.0**.
+Calculated current risk, professional assigned risk, predicted residual risk, and validated residual risk remain separate governed concepts. Application version: **1.16.0**. Risk methodology version: **1.1.0**.
 
 ## Controls retained from prior releases
 
@@ -45,8 +57,8 @@ Calculated current risk, professional assigned risk, predicted residual risk, an
 The tested source is preserved through the deterministic release archive chain:
 
 ```bash
-python tools/reconstruct_v115_source.py
-python tools/verify_v115_source.py
+python tools/reconstruct_v116_source.py
+python tools/verify_v116_source.py
 ```
 
 Windows and macOS/Linux launchers perform reconstruction and verification automatically when needed.
@@ -62,7 +74,7 @@ On Windows, use `run_windows.bat`, then open `http://127.0.0.1:8000`.
 
 ## Release acceptance
 
-The v1.15 release gate requires exact v1.14 → v1.15 reconstruction and SHA-256 verification, Python compilation, JavaScript syntax validation, the SQLite operational-risk smoke, the identical smoke against real PostgreSQL 16, the PostgreSQL transaction smoke, production-container execution, dependency audit, Bandit, fail-closed CodeQL analysis, release-entrypoint validation, and repository-boundary checks.
+The v1.16 release gate requires exact v1.15 → v1.16 reconstruction and SHA-256 verification, Python compilation, JavaScript syntax validation, the SQLite executive-decision and accepted-risk smoke, the identical smoke against real PostgreSQL 16, the PostgreSQL transaction smoke, production-container execution, dependency audit, Bandit, fail-closed CodeQL analysis, release-entrypoint validation, and repository-boundary checks.
 
 ## Production status
 

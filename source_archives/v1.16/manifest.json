@@ -1,0 +1,27 @@
+{
+  "delta": {
+    "chunks": [
+      {
+        "chars": 5396,
+        "path": "delta.json.gz.b64.part01",
+        "sha256": "7381e17693abc840028e4bcc06527da66fd2f74c7aa74200745437014ffdcd40"
+      }
+    ],
+    "gzip_sha256": "2b5b82f43dce0396aa069be452799615eb9e3fdb5408ab7087e9ea6220773331",
+    "gzip_size_bytes": 4045,
+    "json_sha256": "b939621cce15a1acfaffe3de46a4c9789eed040e2daa1bb5b2e4e11152865db3"
+  },
+  "files": {
+    "app.py": {
+      "baseline_sha256": "14dce62aca711528e1ede079562fc3145de21e10bc192fe4115f991b5da5a1a1",
+      "target_sha256": "e269007f98db319b565fbf15da27c35f897ce46dea963cf0820f884cc059795c",
+      "target_size_bytes": 206253
+    },
+    "static/app.js": {
+      "baseline_sha256": "700e680195874e12d5f4e36f28e7b406677c918feb513eb85f1ae6106ec99f7d",
+      "target_sha256": "cbd9a5e52284f7ae718dfb46357415dbcdb98de4ddff5a85918f7d883f7943d8",
+      "target_size_bytes": 66383
+    }
+  },
+  "version": "1.16.0"
+}
