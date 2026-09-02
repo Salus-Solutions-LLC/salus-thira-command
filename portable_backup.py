@@ -85,7 +85,7 @@ def _insert_row(conn, table, row):
 
 def _reset_postgres_sequences(conn):
     if not is_postgres(): return
-    for table in sorted(ID_TABLES):
+    for table in sorted(ID_TABLES | {'report_versions', 'restore_requests'}):
         # pg_get_serial_sequence returns NULL if the table does not have a serial/identity id.
         sql=(f"SELECT setval(pg_get_serial_sequence('{table}','id'), "
              f"COALESCE((SELECT MAX(id) FROM {table}),1), "
