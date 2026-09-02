@@ -1,6 +1,8 @@
-# Salus THIRA Command v1.16
+# Salus THIRA Command v1.17
 
 Salus THIRA Command is the assessment, capability, evidence, governance, and executive decision-management system for the Salus THIRA methodology.
+
+v1.17 adds immutable report snapshots with exact assessment-version and SHA-256 provenance, controlled Draft → Reviewed → Approved → Released authority gates, tenant-isolated audit/version views, and recovery operations that require passed non-destructive validation plus explicit scope, reason, and authorization.
 
 v1.16 activates the governed Executive Decisions and Accepted Risk Workspace. Decisions remain append-only authority records, and accepted risk remains an accountable lifecycle record that can change state only through controlled actions.
 
@@ -35,7 +37,7 @@ v1.16 activates the governed Executive Decisions and Accepted Risk Workspace. De
 
 Evidence verification and lifecycle currency remain separate. Evidence may be Verified but Stale. Expired evidence automatically becomes Stale, creates one evidence-lifecycle reassessment trigger per stale episode, loses validated-risk credit, and cannot support a new improvement validation or professional risk override. A controlled lifecycle review is required to restore Current status.
 
-Calculated current risk, professional assigned risk, predicted residual risk, and validated residual risk remain separate governed concepts. Application version: **1.16.0**. Risk methodology version: **1.1.0**.
+Calculated current risk, professional assigned risk, predicted residual risk, and validated residual risk remain separate governed concepts. Application version: **1.17.0**. Risk methodology version: **1.1.0**.
 
 ## Controls retained from prior releases
 
@@ -57,8 +59,8 @@ Calculated current risk, professional assigned risk, predicted residual risk, an
 The tested source is preserved through the deterministic release archive chain:
 
 ```bash
-python tools/reconstruct_v116_source.py
-python tools/verify_v116_source.py
+python tools/reconstruct_v117_source.py
+python tools/verify_v117_source.py
 ```
 
 Windows and macOS/Linux launchers perform reconstruction and verification automatically when needed.
@@ -74,7 +76,7 @@ On Windows, use `run_windows.bat`, then open `http://127.0.0.1:8000`.
 
 ## Release acceptance
 
-The v1.16 release gate requires exact v1.15 → v1.16 reconstruction and SHA-256 verification, Python compilation, JavaScript syntax validation, the SQLite executive-decision and accepted-risk smoke, the identical smoke against real PostgreSQL 16, the PostgreSQL transaction smoke, production-container execution, dependency audit, Bandit, fail-closed CodeQL analysis, release-entrypoint validation, and repository-boundary checks.
+The v1.17 release gate requires exact v1.15 → v1.16 reconstruction and SHA-256 verification, Python compilation, JavaScript syntax validation, the SQLite executive-decision and accepted-risk smoke, the identical smoke against real PostgreSQL 16, the PostgreSQL transaction smoke, production-container execution, dependency audit, Bandit, fail-closed CodeQL analysis, release-entrypoint validation, and repository-boundary checks.
 
 ## Production status
 

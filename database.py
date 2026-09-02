@@ -17,9 +17,9 @@ _AZURE_CREDENTIAL=None
 
 ID_TABLES = {
     'tenants','users','auth_sessions','oidc_states','assessment_access','assessments',
-    'threats','scenarios','capabilities','evidence','gaps','improvements','decisions',
-    'audit_log','backup_history','security_events','reassessment_triggers','evidence_attachments',
-    'entity_versions','scope_changes','workflow_events','dr_validations'
+    'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
+    'audit_log','backup_history','security_events','reassessment_triggers','evidence_attachments','report_versions','restore_requests',
+    'entity_versions','scope_changes','workflow_events','dr_validations','governed_intake'
 }
 
 class DbRow(Mapping):
@@ -86,6 +86,12 @@ class PostgresCursor:
 
 
 def _qmark_to_percent(sql: str) -> str:
+    """Translate SQLite qmark placeholders for psycopg and preserve literal percent signs.
+
+    Psycopg parses percent placeholders before PostgreSQL parses SQL, including percent
+    characters inside SQL string literals. Every literal ``%`` from the qmark SQL
+    therefore must become ``%%`` while unquoted ``?`` placeholders become ``%s``.
+    """
     out=[]; in_single=False; in_double=False; i=0
     while i < len(sql):
         ch=sql[i]
@@ -97,6 +103,8 @@ def _qmark_to_percent(sql: str) -> str:
             in_double=not in_double; out.append(ch)
         elif ch=='?' and not in_single and not in_double:
             out.append('%s')
+        elif ch=='%':
+            out.append('%%')
         else: out.append(ch)
         i+=1
     return ''.join(out)
@@ -179,7 +187,7 @@ class PostgresConnection:
         return PostgresCursor(cur,lastrowid=self._lastrowid)
     def executescript(self, script):
         statements=_split_script(script)
-        order={'tenants':10,'users':20,'auth_sessions':30,'oidc_states':30,'backup_history':30,'assessments':40,'assessment_access':50,'threats':60,'scenarios':70,'capabilities':80,'evidence':90,'gaps':100,'improvements':110,'decisions':120,'audit_log':130,'security_events':140,'reassessment_triggers':140,'assessment_weights':140,'evidence_attachments':150,'entity_versions':150,'scope_changes':150,'workflow_events':150,'dr_validations':160}
+        order={'tenants':10,'users':20,'auth_sessions':30,'oidc_states':30,'backup_history':30,'governed_intake':35,'assessments':40,'assessment_access':50,'threats':60,'scenarios':70,'capabilities':80,'evidence':90,'gaps':100,'improvements':110,'decisions':120,'accepted_risks':125,'risk_overrides':127,'audit_log':130,'security_events':140,'reassessment_triggers':140,'assessment_weights':140,'evidence_attachments':150,'entity_versions':150,'scope_changes':150,'workflow_events':150,'dr_validations':160}
         table_stmts=[]; other=[]
         for idx,stmt in enumerate(statements):
             m=re.match(r'^\s*CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+([A-Za-z_][A-Za-z0-9_]*)',stmt,re.I)
