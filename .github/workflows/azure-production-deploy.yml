@@ -1,0 +1,146 @@
+name: SalCAPA Azure controlled deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Validate, deploy, or roll back an approved immutable image
+        required: true
+        type: choice
+        default: validate
+        options:
+          - validate
+          - deploy
+          - rollback
+      target_environment:
+        description: Governed Azure environment
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - prod
+      image_digest:
+        description: Full Azure Container Registry image digest
+        required: true
+        type: string
+      unique_suffix:
+        description: Approved four-to-twelve-character resource suffix
+        required: true
+        type: string
+      location:
+        description: Approved Azure region
+        required: true
+        type: choice
+        default: southcentralus
+        options:
+          - southcentralus
+          - eastus2
+      approval_record:
+        description: Written Marc Duncan approval/change record; required for deploy or rollback
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: salcapa-azure-${{ inputs.target_environment }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Enforce governed source and immutable input
+        env:
+          OPERATION: ${{ inputs.operation }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          APPROVAL_RECORD: ${{ inputs.approval_record }}
+          UNIQUE_SUFFIX: ${{ inputs.unique_suffix }}
+        run: |
+          set -euo pipefail
+          if [[ "$OPERATION" != "validate" && "$GITHUB_REF" != "refs/heads/development/salcapa-platform" ]]; then
+            echo "Deployment and rollback are restricted to the governed development branch." >&2
+            exit 1
+          fi
+          if [[ ! "$IMAGE_DIGEST" =~ ^[a-z0-9][a-z0-9.-]*\.azurecr\.io/[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$ ]]; then
+            echo "A full immutable Azure Container Registry digest is required." >&2
+            exit 1
+          fi
+          if [[ ! "$UNIQUE_SUFFIX" =~ ^[a-z0-9]{4,12}$ ]]; then
+            echo "Invalid resource suffix." >&2
+            exit 1
+          fi
+          if [[ "$OPERATION" != "validate" && ! "$APPROVAL_RECORD" =~ ^MD-APPROVAL-[A-Za-z0-9._-]+$ ]]; then
+            echo "A Marc Duncan approval record is required." >&2
+            exit 1
+          fi
+      - name: Compile infrastructure without Azure credentials
+        run: az bicep build --file infra/azure/main.bicep --stdout > /tmp/salcapa-arm.json
+
+  deploy:
+    if: inputs.operation == 'deploy'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: salcapa-${{ inputs.target_environment }}-approval
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: What-if and deploy approved infrastructure
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          UNIQUE_SUFFIX: ${{ inputs.unique_suffix }}
+          LOCATION: ${{ inputs.location }}
+          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
+          ENTRA_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          APPROVAL_RECORD: ${{ inputs.approval_record }}
+        run: |
+          set -euo pipefail
+          test -n "$RESOURCE_GROUP"
+          az deployment group what-if             --resource-group "$RESOURCE_GROUP"             --template-file infra/azure/main.bicep             --parameters uniqueSuffix="$UNIQUE_SUFFIX" location="$LOCATION" environmentName="$TARGET_ENVIRONMENT" containerImageDigest="$IMAGE_DIGEST" entraTenantId="$ENTRA_TENANT_ID"
+          DEPLOYMENT_NAME="salcapa-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          az deployment group create             --name "$DEPLOYMENT_NAME"             --resource-group "$RESOURCE_GROUP"             --template-file infra/azure/main.bicep             --parameters uniqueSuffix="$UNIQUE_SUFFIX" location="$LOCATION" environmentName="$TARGET_ENVIRONMENT" containerImageDigest="$IMAGE_DIGEST" entraTenantId="$ENTRA_TENANT_ID"             --tags approvalRecord="$APPROVAL_RECORD" sourceCommit="$GITHUB_SHA"
+          echo "deployment_name=$DEPLOYMENT_NAME" >> "$GITHUB_OUTPUT"
+
+  rollback:
+    if: inputs.operation == 'rollback'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: salcapa-${{ inputs.target_environment }}-approval
+    steps:
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Select approved prior digest
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          APPROVAL_RECORD: ${{ inputs.approval_record }}
+        run: |
+          set -euo pipefail
+          test -n "$RESOURCE_GROUP"
+          test -n "$WEBAPP_NAME"
+          APP_ID="$(az webapp show --resource-group "$RESOURCE_GROUP" --name "$WEBAPP_NAME" --query id --output tsv)"
+          az resource update --ids "$APP_ID" --set properties.siteConfig.linuxFxVersion="DOCKER|$IMAGE_DIGEST"
+          az resource tag --ids "$APP_ID" --is-incremental --tags rollbackApproval="$APPROVAL_RECORD" rollbackCommit="$GITHUB_SHA"
+          az webapp restart --resource-group "$RESOURCE_GROUP" --name "$WEBAPP_NAME"
