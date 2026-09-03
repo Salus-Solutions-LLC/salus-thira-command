@@ -1,12 +1,9 @@
 # Build status
 
-Current frozen application release: **Salus THIRA Command v1.15** at `release/v1.15` commit `0effaa938388c62355d9f652e102420d1d63fbcb`. v1.16 Executive Decisions and Accepted Risk Workspace is under governed validation on `development/v1.16`.
+Current frozen release: **Salus THIRA Command v1.16** at `release/v1.16`, commit `7b2459bca59a505cc9e0a99327a5794627ba40b0`.
 
-Authoritative references:
+Current governed development: **SalCAPA v2.0 platform foundation** on `development/salcapa-platform` under issues #52 and #53.
 
-- Current frozen application release: `release/v1.15`.
-- Current governed development branch: `development/v1.16`.
-- The active main-branch ruleset requires validation, PostgreSQL, CodeQL, and container-runtime checks.
-- The active release ruleset makes every `release/*` branch immutable after creation.
+The green `development/v1.17` candidate is preserved for migration and will not be frozen under the obsolete product identity. `main` and every prior release remain unchanged.
 
-Frozen releases through v1.15 remain unchanged. Deterministic source reconstruction and integrity verification are documented under `tools/README_source_integrity.md`. Runtime Member Client data and evidence are excluded from GitHub and recovered through the application backup/DR process.
+The product interface must not display build, branch, CI, or release-gate information.
