@@ -165,7 +165,7 @@ jobs:
             -e SALUS_BACKUP_DIR=/app/backups \
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
-            salcapa:ci python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py
+            salcapa:ci sh -c "python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py"
       - name: PostgreSQL 16 lifecycle smoke inside container
         run: |
           docker run --rm --network host \
@@ -175,7 +175,7 @@ jobs:
             -e SALUS_BACKUP_DIR=/app/backups \
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
-            salcapa:ci python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py
+            salcapa:ci sh -c "python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py"
       - name: Start production command and verify fail-closed readiness
         run: |
           docker run --detach --name salus-container-ci \
