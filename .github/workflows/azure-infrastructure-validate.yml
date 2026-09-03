@@ -1,1 +1,46 @@
-m«ë
+name: Azure infrastructure validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infra/azure/**'
+      - '.github/workflows/azure-infrastructure-validate.yml'
+  push:
+    branches:
+      - 'development/**'
+    paths:
+      - 'infra/azure/**'
+      - '.github/workflows/azure-infrastructure-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: azure-infra-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compile Bicep without Azure credentials
+        run: az bicep build --file infra/azure/main.bicep --stdout > /tmp/salcapa-arm.json
+      - name: Reject mutable container tags and committed secrets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          files = list(Path('infra/azure').glob('*'))
+          text = '\n'.join(p.read_text() for p in files if p.is_file())
+          forbidden = [r'DOCKER\|[^\n]+:latest', r'AccountKey=', r'client_secret\s*[=:]\s*["\'][^"\']+']
+          if any(re.search(pattern, text, re.IGNORECASE) for pattern in forbidden):
+              raise SystemExit('Azure infrastructure contains a mutable image or secret material')
+          print('AZURE_INFRA_POLICY_PASS')
+          PY
+
