@@ -58,7 +58,8 @@ jobs:
           required = [
               'workflow_dispatch:',
               'id-token: write',
-              'environment: salcapa-${{ inputs.target_environment }}-approval',
+              'environment: salcapa-',
+              '-approval',
               'refs/heads/development/salcapa-platform',
               'MD-APPROVAL-',
               '@sha256:',

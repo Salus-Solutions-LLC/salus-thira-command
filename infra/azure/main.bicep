@@ -127,7 +127,7 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
       alwaysOn: environmentName == 'prod'
       ftpsState: 'Disabled'
       http20Enabled: true
-      minimumTlsVersion: '1.2'
+      minTlsVersion: '1.2'
       linuxFxVersion: 'DOCKER|${containerImageDigest}'
       healthCheckPath: '/health/ready'
       appSettings: [
