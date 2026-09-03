@@ -9,7 +9,7 @@ param uniqueSuffix string
   'eastus2'
   'southcentralus'
 ])
-param location string = resourceGroup().location
+param location string = 'southcentralus'
 
 @allowed([
   'dev'
@@ -131,23 +131,74 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
       linuxFxVersion: 'DOCKER|${containerImageDigest}'
       healthCheckPath: '/health/ready'
       appSettings: [
-        { name: 'SALUS_ENV'; value: environmentName }
-        { name: 'SALUS_AUTH_MODE'; value: 'oidc' }
-        { name: 'SALUS_COOKIE_SECURE'; value: '1' }
-        { name: 'SALUS_ALLOW_RESTORE'; value: '0' }
-        { name: 'SALUS_SEED_DEMO'; value: '0' }
-        { name: 'SALUS_ALLOW_SQLITE_PRODUCTION'; value: '0' }
-        { name: 'SALUS_DB_BACKEND'; value: 'postgres' }
-        { name: 'SALUS_POSTGRES_AUTH'; value: 'entra' }
-        { name: 'SALUS_MANAGED_DB_TARGET'; value: 'azure_postgresql' }
-        { name: 'SALUS_SECRET_BACKEND'; value: 'azure_keyvault' }
-        { name: 'SALUS_KEY_VAULT_URL'; value: keyVault.properties.vaultUri }
-        { name: 'SALUS_STORAGE_BACKEND'; value: 'azure' }
-        { name: 'SALUS_AZURE_STORAGE_ACCOUNT_URL'; value: storage.properties.primaryEndpoints.blob }
-        { name: 'SALUS_AZURE_STORAGE_CONTAINER'; value: evidenceContainerName }
-        { name: 'SALUS_TELEMETRY_BACKEND'; value: 'azure_monitor' }
-        { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'; value: appInsights.properties.ConnectionString }
-        { name: 'WEBSITES_PORT'; value: '8000' }
+        {
+          name: 'SALUS_ENV'
+          value: environmentName
+        }
+        {
+          name: 'SALUS_AUTH_MODE'
+          value: 'oidc'
+        }
+        {
+          name: 'SALUS_COOKIE_SECURE'
+          value: '1'
+        }
+        {
+          name: 'SALUS_ALLOW_RESTORE'
+          value: '0'
+        }
+        {
+          name: 'SALUS_SEED_DEMO'
+          value: '0'
+        }
+        {
+          name: 'SALUS_ALLOW_SQLITE_PRODUCTION'
+          value: '0'
+        }
+        {
+          name: 'SALUS_DB_BACKEND'
+          value: 'postgres'
+        }
+        {
+          name: 'SALUS_POSTGRES_AUTH'
+          value: 'entra'
+        }
+        {
+          name: 'SALUS_MANAGED_DB_TARGET'
+          value: 'azure_postgresql'
+        }
+        {
+          name: 'SALUS_SECRET_BACKEND'
+          value: 'azure_keyvault'
+        }
+        {
+          name: 'SALUS_KEY_VAULT_URL'
+          value: keyVault.properties.vaultUri
+        }
+        {
+          name: 'SALUS_STORAGE_BACKEND'
+          value: 'azure'
+        }
+        {
+          name: 'SALUS_AZURE_STORAGE_ACCOUNT_URL'
+          value: storage.properties.primaryEndpoints.blob
+        }
+        {
+          name: 'SALUS_AZURE_STORAGE_CONTAINER'
+          value: evidenceContainerName
+        }
+        {
+          name: 'SALUS_TELEMETRY_BACKEND'
+          value: 'azure_monitor'
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
+        }
+        {
+          name: 'WEBSITES_PORT'
+          value: '8000'
+        }
       ]
     }
   }
@@ -178,4 +229,3 @@ output applicationHostName string = webApp.properties.defaultHostName
 output managedIdentityPrincipalId string = webApp.identity.principalId
 output storageAccountName string = storage.name
 output keyVaultName string = keyVault.name
-
