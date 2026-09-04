@@ -105,7 +105,7 @@ def main():
 
     tenant2 = {**editor, 'X-Salus-Tenant': '2', 'X-Salus-User': 'Other Tenant Operator'}
     conn = app.db()
-    conn.execute("INSERT INTO tenants(id,name,slug,created_at) VALUES(2,'Other Tenant','other-tenant',?)", (app.now(),))
+    conn.execute("INSERT INTO tenants(id,name,slug,created_at) VALUES(2,'Other Tenant','other-tenant',?) ON CONFLICT (id) DO NOTHING", (app.now(),))
     conn.commit(); conn.close()
     assert client.post(f'/api/salops/catalog/services/{rid}/transition', headers=tenant2, json={'action': 'Retire', 'reason': 'Cross tenant'}).status_code == 403
 
