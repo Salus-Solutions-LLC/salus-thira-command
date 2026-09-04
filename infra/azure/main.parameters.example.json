@@ -5,8 +5,10 @@
     "uniqueSuffix": { "value": "replace-me" },
     "location": { "value": "southcentralus" },
     "environmentName": { "value": "dev" },
-    "containerImageDigest": { "value": "replace.azurecr.io/salcapa@sha256:replace" },
-    "entraTenantId": { "value": "00000000-0000-0000-0000-000000000000" }
+    "containerImageDigest": { "value": "salcapadevreplaceacr.azurecr.io/salcapa@sha256:replace-with-64-hex-characters" },
+    "entraTenantId": { "value": "00000000-0000-0000-0000-000000000000" },
+    "postgresAdminObjectId": { "value": "00000000-0000-0000-0000-000000000000" },
+    "postgresAdminPrincipalName": { "value": "SalCAPA PostgreSQL Administrators" },
+    "postgresAdminPrincipalType": { "value": "Group" }
   }
 }
-

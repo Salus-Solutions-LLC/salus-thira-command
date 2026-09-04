@@ -21,7 +21,7 @@ on:
           - dev
           - prod
       image_digest:
-        description: Full Azure Container Registry image digest
+        description: Full digest in the target SalCAPA Azure Container Registry
         required: true
         type: string
       unique_suffix:
@@ -60,6 +60,7 @@ jobs:
       - name: Enforce governed source and immutable input
         env:
           OPERATION: ${{ inputs.operation }}
+          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
           IMAGE_DIGEST: ${{ inputs.image_digest }}
           APPROVAL_RECORD: ${{ inputs.approval_record }}
           UNIQUE_SUFFIX: ${{ inputs.unique_suffix }}
@@ -71,6 +72,11 @@ jobs:
           fi
           if [[ ! "$IMAGE_DIGEST" =~ ^[a-z0-9][a-z0-9.-]*\.azurecr\.io/[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$ ]]; then
             echo "A full immutable Azure Container Registry digest is required." >&2
+            exit 1
+          fi
+          EXPECTED_REGISTRY="salcapa${TARGET_ENVIRONMENT}${UNIQUE_SUFFIX}acr.azurecr.io/"
+          if [[ "$IMAGE_DIGEST" != "$EXPECTED_REGISTRY"* ]]; then
+            echo "The image must come from the target environment's governed registry." >&2
             exit 1
           fi
           if [[ ! "$UNIQUE_SUFFIX" =~ ^[a-z0-9]{4,12}$ ]]; then
@@ -108,14 +114,41 @@ jobs:
           LOCATION: ${{ inputs.location }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
           ENTRA_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          POSTGRES_ADMIN_OBJECT_ID: ${{ vars.POSTGRES_ADMIN_OBJECT_ID }}
+          POSTGRES_ADMIN_PRINCIPAL_NAME: ${{ vars.POSTGRES_ADMIN_PRINCIPAL_NAME }}
+          POSTGRES_ADMIN_PRINCIPAL_TYPE: ${{ vars.POSTGRES_ADMIN_PRINCIPAL_TYPE }}
           APPROVAL_RECORD: ${{ inputs.approval_record }}
         run: |
           set -euo pipefail
           test -n "$RESOURCE_GROUP"
-          az deployment group what-if             --resource-group "$RESOURCE_GROUP"             --template-file infra/azure/main.bicep             --parameters uniqueSuffix="$UNIQUE_SUFFIX" location="$LOCATION" environmentName="$TARGET_ENVIRONMENT" containerImageDigest="$IMAGE_DIGEST" entraTenantId="$ENTRA_TENANT_ID"
+          test -n "$ENTRA_TENANT_ID"
+          test -n "$POSTGRES_ADMIN_OBJECT_ID"
+          test -n "$POSTGRES_ADMIN_PRINCIPAL_NAME"
+          if [[ ! "$POSTGRES_ADMIN_PRINCIPAL_TYPE" =~ ^(Group|User)$ ]]; then
+            echo "The PostgreSQL Entra administrator type must be Group or User." >&2
+            exit 1
+          fi
+          PARAMETERS=(
+            uniqueSuffix="$UNIQUE_SUFFIX"
+            location="$LOCATION"
+            environmentName="$TARGET_ENVIRONMENT"
+            containerImageDigest="$IMAGE_DIGEST"
+            entraTenantId="$ENTRA_TENANT_ID"
+            postgresAdminObjectId="$POSTGRES_ADMIN_OBJECT_ID"
+            postgresAdminPrincipalName="$POSTGRES_ADMIN_PRINCIPAL_NAME"
+            postgresAdminPrincipalType="$POSTGRES_ADMIN_PRINCIPAL_TYPE"
+          )
+          az deployment group what-if \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/main.bicep \
+            --parameters "${PARAMETERS[@]}"
           DEPLOYMENT_NAME="salcapa-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          az deployment group create             --name "$DEPLOYMENT_NAME"             --resource-group "$RESOURCE_GROUP"             --template-file infra/azure/main.bicep             --parameters uniqueSuffix="$UNIQUE_SUFFIX" location="$LOCATION" environmentName="$TARGET_ENVIRONMENT" containerImageDigest="$IMAGE_DIGEST" entraTenantId="$ENTRA_TENANT_ID"             --tags approvalRecord="$APPROVAL_RECORD" sourceCommit="$GITHUB_SHA"
-          echo "deployment_name=$DEPLOYMENT_NAME" >> "$GITHUB_OUTPUT"
+          az deployment group create \
+            --name "$DEPLOYMENT_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/main.bicep \
+            --parameters "${PARAMETERS[@]}" \
+            --tags approvalRecord="$APPROVAL_RECORD" sourceCommit="$GITHUB_SHA"
 
   rollback:
     if: inputs.operation == 'rollback'

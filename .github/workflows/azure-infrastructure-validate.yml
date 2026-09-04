@@ -54,6 +54,28 @@ jobs:
           if any(re.search(pattern, infrastructure, re.IGNORECASE) for pattern in forbidden):
               raise SystemExit('Azure infrastructure contains a mutable image or secret material')
 
+          infrastructure_required = [
+              'Microsoft.ContainerRegistry/registries@2023-07-01',
+              'adminUserEnabled: false',
+              'anonymousPullEnabled: false',
+              'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01',
+              "activeDirectoryAuth: 'Enabled'",
+              "passwordAuth: 'Disabled'",
+              "publicNetworkAccess: 'Disabled'",
+              "version: '16'",
+              'Microsoft.Network/privateDnsZones@2024-06-01',
+              'registryPullRole',
+              'isVersioningEnabled: true',
+          ]
+          missing_infrastructure = [
+              value for value in infrastructure_required if value not in infrastructure
+          ]
+          if missing_infrastructure:
+              raise SystemExit(
+                  'Azure infrastructure boundary is incomplete: '
+                  + ', '.join(missing_infrastructure)
+              )
+
           workflow = Path('.github/workflows/azure-production-deploy.yml').read_text()
           required = [
               'workflow_dispatch:',
@@ -63,6 +85,9 @@ jobs:
               'refs/heads/development/salcapa-platform',
               'MD-APPROVAL-',
               '@sha256:',
+              'EXPECTED_REGISTRY=',
+              'POSTGRES_ADMIN_OBJECT_ID',
+              'POSTGRES_ADMIN_PRINCIPAL_NAME',
               'az deployment group what-if',
           ]
           missing = [value for value in required if value not in workflow]
