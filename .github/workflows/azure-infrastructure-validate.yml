@@ -63,7 +63,6 @@ jobs:
               'Microsoft.ContainerRegistry/registries@2023-07-01',
               "name: 'Basic'",
               'adminUserEnabled: false',
-              'anonymousPullEnabled: false',
               'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31',
               'Microsoft.App/managedEnvironments@2025-01-01',
               "workloadProfileType: 'Consumption'",
@@ -82,7 +81,8 @@ jobs:
               'deploymentRegistryPushRole',
               "name: 'Standard_LRS'",
               'isVersioningEnabled: true',
-              "dailyQuotaGb: 0.1",
+              "dailyQuotaGb: json('0.1')",
+              'SamplingPercentage: 5',
               "param monthlyCostCeilingUsd int = 30",
               "param approvalRecord string = 'MD-APPROVAL-AZURE-LEAN-20260904'",
           ]
