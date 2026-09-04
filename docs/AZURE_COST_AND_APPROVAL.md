@@ -24,7 +24,7 @@ This is the active approved course of action for initial SalCAPA production use.
 | PostgreSQL Flexible Server | Burstable B1ms, PostgreSQL 16, one zone | about $12–13 |
 | PostgreSQL storage | Minimum sensible supported storage, governed backup retention | low single digits |
 | Container Registry | Basic | about $5 |
-| Blob Storage | StorageV2 Hot, LRS initially, versioning and soft delete | low single digits |
+| Blob Storage | StorageV2 Hot, Standard_LRS initially, versioning and soft delete | low single digits |
 | Key Vault | Standard, RBAC, purge protection | negligible at low transaction volume |
 | Application Insights / Azure Monitor | Strictly bounded low-volume telemetry | expected within free/low-use allowance |
 | Internet egress | Low-use pilot traffic | expected within free/low-use allowance |
