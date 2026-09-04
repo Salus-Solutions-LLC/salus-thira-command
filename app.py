@@ -1327,7 +1327,7 @@ class DecisionIn(BaseModel):
     assessment_id: int = Field(gt=0)
     improvement_id: Optional[int] = Field(default=None, gt=0)
     decision_type: Literal['Approve','Approve with Conditions','Modify','Defer','Reject','Transfer Risk','Accept Risk','Continue Monitoring']
-    authority: str = Field(default='', max_length=240)
+    authority: str = Field(min_length=1, max_length=240)
     rationale: str = Field(min_length=1, max_length=6000)
     funding_authorized: float = Field(default=0, ge=0, allow_inf_nan=False)
     conditions: str = Field(default='', max_length=6000)
@@ -1359,7 +1359,7 @@ class RiskOverrideIn(BaseModel):
     threat_id: int = Field(gt=0)
     assigned_score: float = Field(ge=0, le=100, allow_inf_nan=False)
     reason: str = Field(min_length=1, max_length=6000)
-    authority: str = Field(default='', max_length=240)
+    authority: str = Field(min_length=1, max_length=240)
     evidence_id: Optional[int] = None
     review_date: str = ''
 
