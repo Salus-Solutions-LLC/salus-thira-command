@@ -35,8 +35,8 @@ jobs:
           cache-dependency-path: requirements.txt
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ] && [ -f tools/reconstruct_v28_source.py ]; then python tools/reconstruct_v28_source.py; fi
-          python tools/verify_v28_source.py
+          if [ ! -f app.py ] && [ -f tools/reconstruct_v29_source.py ]; then python tools/reconstruct_v29_source.py; fi
+          python tools/verify_v29_source.py
       - name: Validate release reconstruction entrypoints
         run: python tools/check_release_entrypoints.py
       - uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
@@ -91,3 +91,4 @@ jobs:
           path: codeql-results
           if-no-files-found: error
           retention-days: 14
+

@@ -152,6 +152,85 @@ def init_db():
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS industry_profiles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      profile_key TEXT NOT NULL,
+      version_no INTEGER NOT NULL,
+      supersedes_id INTEGER,
+      industry_code TEXT NOT NULL,
+      name TEXT NOT NULL,
+      member_summary TEXT NOT NULL,
+      internal_rationale TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Draft',
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL,
+      last_material_editor TEXT NOT NULL, last_material_edit_at TEXT NOT NULL,
+      submitted_by TEXT NOT NULL DEFAULT '', submitted_at TEXT NOT NULL DEFAULT '',
+      reviewed_by TEXT NOT NULL DEFAULT '', reviewed_at TEXT NOT NULL DEFAULT '', review_reason TEXT NOT NULL DEFAULT '',
+      approved_by TEXT NOT NULL DEFAULT '', approved_at TEXT NOT NULL DEFAULT '', approval_reason TEXT NOT NULL DEFAULT '',
+      published_by TEXT NOT NULL DEFAULT '', published_at TEXT NOT NULL DEFAULT '', publish_reason TEXT NOT NULL DEFAULT '',
+      retired_by TEXT NOT NULL DEFAULT '', retired_at TEXT NOT NULL DEFAULT '', retirement_reason TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (supersedes_id) REFERENCES industry_profiles(id) ON DELETE SET NULL,
+      UNIQUE(tenant_id,profile_key,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_industry_profiles_scope ON industry_profiles(tenant_id,status,industry_code,id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_industry_profiles_published ON industry_profiles(tenant_id,profile_key) WHERE status='Published';
+    CREATE TABLE IF NOT EXISTS industry_profile_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      item_type TEXT NOT NULL,
+      item_key TEXT NOT NULL,
+      member_label TEXT NOT NULL,
+      member_guidance TEXT NOT NULL DEFAULT '',
+      internal_definition TEXT NOT NULL DEFAULT '',
+      reference_metadata TEXT NOT NULL DEFAULT '',
+      default_payload_json TEXT NOT NULL DEFAULT '{}',
+      member_visible INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES industry_profiles(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,profile_id,item_type,item_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_industry_profile_items_scope ON industry_profile_items(tenant_id,profile_id,item_type,sort_order,id);
+    CREATE TABLE IF NOT EXISTS industry_profile_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      version_no INTEGER NOT NULL,
+      event_type TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      snapshot_json TEXT NOT NULL,
+      changed_by TEXT NOT NULL,
+      changed_by_role TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES industry_profiles(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,profile_id,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_industry_profile_events_scope ON industry_profile_events(tenant_id,profile_id,version_no);
+    CREATE TABLE IF NOT EXISTS tenant_industry_configurations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      profile_key_snapshot TEXT NOT NULL,
+      profile_version_snapshot INTEGER NOT NULL,
+      profile_name_snapshot TEXT NOT NULL,
+      industry_code_snapshot TEXT NOT NULL,
+      member_summary_snapshot TEXT NOT NULL,
+      defaults_snapshot_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Active',
+      selected_by TEXT NOT NULL, selected_at TEXT NOT NULL,
+      deactivated_by TEXT NOT NULL DEFAULT '', deactivated_at TEXT NOT NULL DEFAULT '', deactivation_reason TEXT NOT NULL DEFAULT '',
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES industry_profiles(id) ON DELETE RESTRICT,
+      UNIQUE(tenant_id,profile_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_industry_config_scope ON tenant_industry_configurations(tenant_id,status,industry_code_snapshot,id);
+
     CREATE TABLE IF NOT EXISTS assessments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -174,10 +253,19 @@ def init_db():
       last_reassessment_review_at TEXT NOT NULL DEFAULT '',
       last_reassessment_review_by TEXT NOT NULL DEFAULT '',
       classification TEXT NOT NULL DEFAULT 'Standard',
+      industry_profile_id INTEGER,
+      industry_profile_key_snapshot TEXT NOT NULL DEFAULT '',
+      industry_profile_version_snapshot INTEGER,
+      industry_profile_name_snapshot TEXT NOT NULL DEFAULT '',
+      industry_member_summary_snapshot TEXT NOT NULL DEFAULT '',
+      industry_defaults_snapshot_json TEXT NOT NULL DEFAULT '{}',
+      industry_profile_applied_by TEXT NOT NULL DEFAULT '',
+      industry_profile_applied_at TEXT NOT NULL DEFAULT '',
       scope_locked INTEGER NOT NULL DEFAULT 0,
       version INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (industry_profile_id) REFERENCES industry_profiles(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS threats (
@@ -831,6 +919,11 @@ def init_db():
       default_deliverables TEXT NOT NULL,
       readiness_inputs TEXT NOT NULL,
       authorization_requirements TEXT NOT NULL,
+      industry_profile_id INTEGER,
+      industry_profile_key_snapshot TEXT NOT NULL DEFAULT '',
+      industry_profile_version_snapshot INTEGER,
+      industry_profile_name_snapshot TEXT NOT NULL DEFAULT '',
+      industry_defaults_snapshot_json TEXT NOT NULL DEFAULT '{}',
       member_visible INTEGER NOT NULL DEFAULT 1,
       status TEXT NOT NULL DEFAULT 'Draft',
       created_by TEXT NOT NULL, created_at TEXT NOT NULL,
@@ -844,6 +937,7 @@ def init_db():
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
       FOREIGN KEY (pillar_id) REFERENCES ops_service_pillars(id) ON DELETE RESTRICT,
       FOREIGN KEY (supersedes_id) REFERENCES ops_service_catalog(id) ON DELETE SET NULL,
+      FOREIGN KEY (industry_profile_id) REFERENCES industry_profiles(id) ON DELETE SET NULL,
       UNIQUE(tenant_id,service_key,version_no)
     );
     CREATE INDEX IF NOT EXISTS idx_ops_service_catalog_scope ON ops_service_catalog(tenant_id,status,pillar_id,id);
@@ -1226,6 +1320,19 @@ def init_db():
     ensure_column('ops_engagements','service_member_scope_snapshot',"TEXT NOT NULL DEFAULT ''")
     ensure_column('ops_engagements','service_deliverables_snapshot',"TEXT NOT NULL DEFAULT ''")
     ensure_column('ops_tasks','assignment_id','INTEGER')
+    ensure_column('assessments','industry_profile_id','INTEGER')
+    ensure_column('assessments','industry_profile_key_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('assessments','industry_profile_version_snapshot','INTEGER')
+    ensure_column('assessments','industry_profile_name_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('assessments','industry_member_summary_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('assessments','industry_defaults_snapshot_json',"TEXT NOT NULL DEFAULT '{}'")
+    ensure_column('assessments','industry_profile_applied_by',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('assessments','industry_profile_applied_at',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('ops_service_catalog','industry_profile_id','INTEGER')
+    ensure_column('ops_service_catalog','industry_profile_key_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('ops_service_catalog','industry_profile_version_snapshot','INTEGER')
+    ensure_column('ops_service_catalog','industry_profile_name_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('ops_service_catalog','industry_defaults_snapshot_json',"TEXT NOT NULL DEFAULT '{}'")
     conn.execute('CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL)')
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('0.8.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('0.9.0',now()))
@@ -1237,6 +1344,7 @@ def init_db():
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.6.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.7.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.8.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.9.0',now()))
 
     # v0.6 tenant/bootstrap migration. Existing records are assigned to the default tenant.
     if conn.execute('SELECT COUNT(*) c FROM tenants').fetchone()['c'] == 0:
@@ -1306,6 +1414,7 @@ class AssessmentIn(BaseModel):
     target_completion: str = Field(default='', max_length=10)
     reassessment_date: str = Field(default='', max_length=10)
     classification: Literal['Standard','Restricted','Sensitive','Highly Sensitive'] = 'Standard'
+    industry_profile_id: Optional[int] = Field(default=None, gt=0)
 
     @field_validator('name','organization')
     @classmethod
@@ -1813,7 +1922,41 @@ class OpsCatalogServiceIn(BaseModel):
     default_deliverables: str = Field(min_length=1, max_length=6000)
     readiness_inputs: str = Field(min_length=1, max_length=6000)
     authorization_requirements: str = Field(min_length=1, max_length=6000)
+    industry_profile_id: Optional[int] = Field(default=None, gt=0)
     member_visible: bool = True
+
+class IndustryProfileItemIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    item_type: Literal['Terminology','Capability','Scenario','Regulatory Reference','Service Default']
+    item_key: str = Field(min_length=1,max_length=120,pattern=r'^[A-Za-z0-9][A-Za-z0-9._-]*$')
+    member_label: str = Field(min_length=1,max_length=300)
+    member_guidance: str = Field(default='',max_length=6000)
+    internal_definition: str = Field(default='',max_length=12000)
+    reference_metadata: str = Field(default='',max_length=6000)
+    default_payload: dict[str,Any] = Field(default_factory=dict)
+    member_visible: bool = True
+    sort_order: int = Field(default=0,ge=0,le=100000)
+
+class IndustryProfileIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    industry_code: Literal['government-public-safety','critical-infrastructure-energy','aviation-transportation-logistics','healthcare-ems-public-health','education-faith-community','hospitality-events-complex-venues']
+    name: str = Field(min_length=1,max_length=300)
+    member_summary: str = Field(min_length=1,max_length=6000)
+    internal_rationale: str = Field(min_length=1,max_length=12000)
+    items: list[IndustryProfileItemIn] = Field(min_length=1,max_length=200)
+
+class IndustryProfileTransitionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    action: Literal['Submit','Review','Approve','Publish','Retire']
+    reason: str = Field(min_length=1,max_length=6000)
+
+class IndustryConfigurationIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    profile_id: int = Field(gt=0)
+
+class IndustryConfigurationDeactivateIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    reason: str = Field(min_length=1,max_length=6000)
 
 class OpsCatalogTransitionIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -2216,10 +2359,10 @@ def require_sensitivity(request:Request, sensitivity:str):
 
 def infer_tenant(conn, entity_type:str, entity_id:int|None):
     if entity_id is None: return 1
-    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','observation_intake_channel':'observation_intake_channels','observation':'observations','observation_attachment':'observation_attachments','observation_event':'observation_events','coordination_thread':'cop_coordination_threads','coordination_message':'cop_coordination_messages','decision_request':'cop_decision_requests','cop_event':'cop_events','ops_service_pillar':'ops_service_pillars','ops_service_catalog':'ops_service_catalog','ops_catalog_event':'ops_catalog_events','expert_profile':'expert_profiles','expert_credential':'expert_credentials','expert_availability':'expert_availability','expert_conflict':'expert_conflicts','expert_assignment':'ops_engagement_assignments','expert_event':'expert_events','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_engagement_readiness':'ops_engagement_readiness','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
+    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','observation_intake_channel':'observation_intake_channels','observation':'observations','observation_attachment':'observation_attachments','observation_event':'observation_events','coordination_thread':'cop_coordination_threads','coordination_message':'cop_coordination_messages','decision_request':'cop_decision_requests','cop_event':'cop_events','industry_profile':'industry_profiles','industry_profile_item':'industry_profile_items','industry_profile_event':'industry_profile_events','tenant_industry_configuration':'tenant_industry_configurations','ops_service_pillar':'ops_service_pillars','ops_service_catalog':'ops_service_catalog','ops_catalog_event':'ops_catalog_events','expert_profile':'expert_profiles','expert_credential':'expert_credentials','expert_availability':'expert_availability','expert_conflict':'expert_conflicts','expert_assignment':'ops_engagement_assignments','expert_event':'expert_events','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_engagement_readiness':'ops_engagement_readiness','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
     table=table_map.get(entity_type,entity_type if entity_type in table_map.values() else '')
     try:
-        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','observation_intake_channels','observations','observation_attachments','observation_events','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','expert_conflicts','ops_engagement_assignments','expert_events','ops_requests','ops_engagements','ops_engagement_readiness','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
+        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','observation_intake_channels','observations','observation_attachments','observation_events','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','expert_conflicts','ops_engagement_assignments','expert_events','ops_requests','ops_engagements','ops_engagement_readiness','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
         elif table: r=conn.execute(f'SELECT a.tenant_id FROM {table} t JOIN assessments a ON a.id=t.assessment_id WHERE t.id=?',(entity_id,)).fetchone()
         else: r=None
         return int(r['tenant_id']) if r else 1
@@ -3303,6 +3446,150 @@ def download_observation_attachment(attachment_id:int,request:Request):
     if hashlib.sha256(data).hexdigest()!=item['sha256']: security_event(request,'OBSERVATION_ATTACHMENT_HASH_MISMATCH','Critical',f'attachment_id={attachment_id}'); raise HTTPException(409,'Observation attachment integrity verification failed')
     conn=db(); audit(conn,'OBSERVATION_ATTACHMENT_DOWNLOADED','observation_attachment',attachment_id,'Hash verified before download',actor(request)); conn.commit(); conn.close(); return Response(content=data,media_type=item['content_type'],headers={'Content-Disposition':f'attachment; filename="{safe_filename(item["original_name"])}"','X-Content-SHA256':item['sha256']})
 
+def _industry_profile_record(request:Request,profile_id:int):
+    conn=db(); row=conn.execute('SELECT * FROM industry_profiles WHERE id=?',(profile_id,)).fetchone(); conn.close()
+    if not row: raise HTTPException(404,'Industry profile not found')
+    if int(row['tenant_id'])!=tenant_id(request):
+        security_event(request,'INDUSTRY_PROFILE_TENANT_BOUNDARY_VIOLATION','High',f'profile_id={profile_id}')
+        raise HTTPException(403,'Industry profile tenant boundary violation')
+    return dict(row)
+
+def _industry_items(conn,profile_id:int):
+    return [dict(r) for r in conn.execute('SELECT * FROM industry_profile_items WHERE profile_id=? ORDER BY item_type,sort_order,id',(profile_id,))]
+
+def _industry_defaults(items):
+    values=[]
+    for item in items:
+        if item['item_type']!='Service Default': continue
+        try: payload=json.loads(item.get('default_payload_json') or '{}')
+        except Exception: payload={}
+        values.append({'item_key':item['item_key'],'member_label':item['member_label'],'payload':payload})
+    return json.dumps(values,sort_keys=True,separators=(',',':'),default=str)
+
+def _member_assessment_view(row):
+    item=dict(row)
+    for field in ('industry_defaults_snapshot_json','industry_profile_applied_by'):
+        item.pop(field,None)
+    return item
+
+def _industry_event(conn,row,event_type:str,summary:str,request:Request):
+    version=conn.execute('SELECT COALESCE(MAX(version_no),0)+1 n FROM industry_profile_events WHERE tenant_id=? AND profile_id=?',(row['tenant_id'],row['id'])).fetchone()['n']
+    snapshot={'profile':dict(row),'items':_industry_items(conn,row['id'])}
+    conn.execute('INSERT INTO industry_profile_events(tenant_id,profile_id,version_no,event_type,summary,snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?)',(row['tenant_id'],row['id'],version,event_type,summary,json.dumps(snapshot,sort_keys=True,separators=(',',':'),default=str),actor(request),role(request),now()))
+
+def _industry_profile_view(conn,row,member:bool):
+    profile=dict(row); items=_industry_items(conn,row['id'])
+    if member:
+        profile={k:profile[k] for k in ('id','profile_key','version_no','industry_code','name','member_summary','status','published_at')}
+        profile['items']=[{k:item[k] for k in ('id','item_type','item_key','member_label','member_guidance','sort_order')} for item in items if item['member_visible']]
+    else:
+        for item in items:
+            try: item['default_payload']=json.loads(item.pop('default_payload_json') or '{}')
+            except Exception: item['default_payload']={}
+        profile['items']=items
+    return profile
+
+def _validate_industry_items(items):
+    seen=set()
+    for item in items:
+        key=(item.item_type,item.item_key.lower())
+        if key in seen: raise HTTPException(422,f'Duplicate industry profile item: {item.item_type} / {item.item_key}')
+        seen.add(key)
+        encoded=json.dumps(item.default_payload,sort_keys=True,separators=(',',':'),default=str)
+        if len(encoded)>20000: raise HTTPException(422,f'Default payload for {item.item_key} exceeds the governed size limit.')
+
+def _insert_industry_profile(conn,p:IndustryProfileIn,request:Request,profile_key:str,version_no:int,supersedes_id=None):
+    _validate_industry_items(p.items); tid=tenant_id(request); who=actor(request); ts=now()
+    cur=conn.execute('''INSERT INTO industry_profiles(tenant_id,profile_key,version_no,supersedes_id,industry_code,name,member_summary,internal_rationale,status,created_by,created_at,last_material_editor,last_material_edit_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,profile_key,version_no,supersedes_id,p.industry_code,p.name.strip(),p.member_summary.strip(),p.internal_rationale.strip(),'Draft',who,ts,who,ts,ts)); profile_id=cur.lastrowid
+    for item in p.items:
+        conn.execute('''INSERT INTO industry_profile_items(tenant_id,profile_id,item_type,item_key,member_label,member_guidance,internal_definition,reference_metadata,default_payload_json,member_visible,sort_order,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,profile_id,item.item_type,item.item_key,item.member_label.strip(),item.member_guidance.strip(),item.internal_definition.strip(),item.reference_metadata.strip(),json.dumps(item.default_payload,sort_keys=True,separators=(',',':'),default=str),1 if item.member_visible else 0,item.sort_order,who,ts))
+    row=conn.execute('SELECT * FROM industry_profiles WHERE id=?',(profile_id,)).fetchone(); _industry_event(conn,row,'Draft Created',f'profile_key={profile_key}; version={version_no}',request); audit(conn,'INDUSTRY_PROFILE_DRAFT','industry_profile',profile_id,f'profile_key={profile_key}; version={version_no}',who); return profile_id
+
+@app.get('/api/industry-profiles')
+def list_industry_profiles(request:Request):
+    require(request,'read'); tid=tenant_id(request); member=protected_member_request(request); conn=db()
+    if member:
+        rows=conn.execute("SELECT p.* FROM industry_profiles p JOIN tenant_industry_configurations c ON c.profile_id=p.id AND c.tenant_id=p.tenant_id WHERE p.tenant_id=? AND c.status='Active' ORDER BY p.industry_code,p.name",(tid,))
+    else: rows=conn.execute('SELECT * FROM industry_profiles WHERE tenant_id=? ORDER BY industry_code,profile_key,version_no DESC',(tid,))
+    result=[_industry_profile_view(conn,row,member) for row in rows]; conn.close(); return result
+
+@app.get('/api/industry-profiles/{profile_id}/history')
+def industry_profile_history(profile_id:int,request:Request):
+    require(request,'read'); require_salus_component_authority(request,'Industry profile history'); _industry_profile_record(request,profile_id); conn=db(); result=[dict(r) for r in conn.execute('SELECT id,profile_id,version_no,event_type,summary,changed_by,changed_by_role,created_at FROM industry_profile_events WHERE tenant_id=? AND profile_id=? ORDER BY version_no',(tenant_id(request),profile_id))]; conn.close(); return result
+
+@app.post('/api/industry-profiles')
+def create_industry_profile(p:IndustryProfileIn,request:Request):
+    require(request,'write'); require_ops_authority(request); conn=db(); key=f'IND-{uuid.uuid4().hex[:12].upper()}'; profile_id=_insert_industry_profile(conn,p,request,key,1); conn.commit(); row=conn.execute('SELECT * FROM industry_profiles WHERE id=?',(profile_id,)).fetchone(); result=_industry_profile_view(conn,row,False); conn.close(); return result
+
+@app.post('/api/industry-profiles/{profile_id}/revise')
+def revise_industry_profile(profile_id:int,p:IndustryProfileIn,request:Request):
+    require(request,'write'); require_ops_authority(request); source=_industry_profile_record(request,profile_id)
+    if source['status'] not in {'Published','Retired','Superseded'}: raise HTTPException(409,'Only a published or terminal industry profile version can be revised.')
+    conn=db(); existing=conn.execute("SELECT id FROM industry_profiles WHERE tenant_id=? AND profile_key=? AND status IN ('Draft','In Review','Reviewed','Approved')",(tenant_id(request),source['profile_key'])).fetchone()
+    if existing: conn.close(); raise HTTPException(409,'This industry profile already has an unreleased revision.')
+    version=conn.execute('SELECT COALESCE(MAX(version_no),0)+1 n FROM industry_profiles WHERE tenant_id=? AND profile_key=?',(tenant_id(request),source['profile_key'])).fetchone()['n']; new_id=_insert_industry_profile(conn,p,request,source['profile_key'],version,profile_id); conn.commit(); row=conn.execute('SELECT * FROM industry_profiles WHERE id=?',(new_id,)).fetchone(); result=_industry_profile_view(conn,row,False); conn.close(); return result
+
+@app.post('/api/industry-profiles/{profile_id}/transition')
+def transition_industry_profile(profile_id:int,p:IndustryProfileTransitionIn,request:Request):
+    require(request,'write'); require_ops_authority(request); source=_industry_profile_record(request,profile_id); who=actor(request); ts=now(); conn=db(); updates={}
+    if p.action=='Submit':
+        if source['status']!='Draft': conn.close(); raise HTTPException(409,'Only a Draft profile can be submitted.')
+        target='In Review'; updates={'submitted_by':who,'submitted_at':ts}
+    elif p.action=='Review':
+        if source['status']!='In Review': conn.close(); raise HTTPException(409,'Only an In Review profile can be reviewed.')
+        if who==source['last_material_editor']: conn.close(); raise HTTPException(409,'The material editor cannot review this profile version.')
+        target='Reviewed'; updates={'reviewed_by':who,'reviewed_at':ts,'review_reason':p.reason.strip()}
+    elif p.action=='Approve':
+        if source['status']!='Reviewed': conn.close(); raise HTTPException(409,'Only a Reviewed profile can be approved.')
+        if who in {source['last_material_editor'],source['reviewed_by']}: conn.close(); raise HTTPException(409,'Approval requires authority independent from the material editor and reviewer.')
+        target='Approved'; updates={'approved_by':who,'approved_at':ts,'approval_reason':p.reason.strip()}
+    elif p.action=='Publish':
+        if source['status']!='Approved': conn.close(); raise HTTPException(409,'Only an Approved profile can be published.')
+        if who==source['last_material_editor']: conn.close(); raise HTTPException(409,'The material editor cannot publish this profile version.')
+        previous=conn.execute("SELECT * FROM industry_profiles WHERE tenant_id=? AND profile_key=? AND status='Published' AND id<>?",(source['tenant_id'],source['profile_key'],profile_id)).fetchone()
+        if previous:
+            conn.execute("UPDATE industry_profiles SET status='Superseded',updated_at=? WHERE id=?",(ts,previous['id'])); replaced=conn.execute('SELECT * FROM industry_profiles WHERE id=?',(previous['id'],)).fetchone(); _industry_event(conn,replaced,'Superseded',f'Superseded by profile version #{profile_id}',request)
+        target='Published'; updates={'published_by':who,'published_at':ts,'publish_reason':p.reason.strip()}
+    else:
+        if source['status']!='Published': conn.close(); raise HTTPException(409,'Only a Published profile can be retired.')
+        if who==source['last_material_editor']: conn.close(); raise HTTPException(409,'The material editor cannot retire this profile version.')
+        target='Retired'; updates={'retired_by':who,'retired_at':ts,'retirement_reason':p.reason.strip()}
+    updates.update({'status':target,'updated_at':ts}); conn.execute('UPDATE industry_profiles SET '+','.join(f'{k}=?' for k in updates)+' WHERE id=?',tuple(updates.values())+(profile_id,)); row=conn.execute('SELECT * FROM industry_profiles WHERE id=?',(profile_id,)).fetchone(); _industry_event(conn,row,target,p.reason.strip(),request); audit(conn,'INDUSTRY_PROFILE_TRANSITION','industry_profile',profile_id,f'{source["status"]} -> {target}: {p.reason}',who); conn.commit(); result=_industry_profile_view(conn,row,False); conn.close(); return result
+
+@app.get('/api/industry-configurations')
+def list_industry_configurations(request:Request):
+    require(request,'read'); member=protected_member_request(request); conn=db(); rows=[dict(r) for r in conn.execute('SELECT * FROM tenant_industry_configurations WHERE tenant_id=? ORDER BY id DESC',(tenant_id(request),))]; conn.close()
+    if member: return [{k:r[k] for k in ('id','profile_id','profile_key_snapshot','profile_version_snapshot','profile_name_snapshot','industry_code_snapshot','member_summary_snapshot','status','selected_at')} for r in rows if r['status']=='Active']
+    for row in rows:
+        try: row['defaults_snapshot']=json.loads(row.pop('defaults_snapshot_json') or '[]')
+        except Exception: row['defaults_snapshot']=[]
+    return rows
+
+@app.post('/api/industry-configurations')
+def select_industry_configuration(p:IndustryConfigurationIn,request:Request):
+    require(request,'write'); require_ops_authority(request); profile=_industry_profile_record(request,p.profile_id)
+    if profile['status']!='Published': raise HTTPException(409,'Only a published industry profile may be selected for a tenant.')
+    conn=db(); items=_industry_items(conn,p.profile_id); defaults=_industry_defaults(items); who=actor(request); ts=now(); existing=conn.execute('SELECT id,status FROM tenant_industry_configurations WHERE tenant_id=? AND profile_id=?',(tenant_id(request),p.profile_id)).fetchone()
+    conn.execute("UPDATE tenant_industry_configurations SET status='Inactive',deactivated_by=?,deactivated_at=?,deactivation_reason='Replaced by a newly selected profile version' WHERE tenant_id=? AND profile_key_snapshot=? AND status='Active'",(who,ts,tenant_id(request),profile['profile_key']))
+    if existing: conn.execute("UPDATE tenant_industry_configurations SET profile_key_snapshot=?,profile_version_snapshot=?,profile_name_snapshot=?,industry_code_snapshot=?,member_summary_snapshot=?,defaults_snapshot_json=?,status='Active',selected_by=?,selected_at=?,deactivated_by='',deactivated_at='',deactivation_reason='' WHERE id=?",(profile['profile_key'],profile['version_no'],profile['name'],profile['industry_code'],profile['member_summary'],defaults,who,ts,existing['id'])); config_id=existing['id']
+    else:
+        cur=conn.execute("INSERT INTO tenant_industry_configurations(tenant_id,profile_id,profile_key_snapshot,profile_version_snapshot,profile_name_snapshot,industry_code_snapshot,member_summary_snapshot,defaults_snapshot_json,status,selected_by,selected_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(tenant_id(request),p.profile_id,profile['profile_key'],profile['version_no'],profile['name'],profile['industry_code'],profile['member_summary'],defaults,'Active',who,ts)); config_id=cur.lastrowid
+    audit(conn,'INDUSTRY_PROFILE_SELECTED','tenant_industry_configuration',config_id,f'profile={profile["profile_key"]}; version={profile["version_no"]}',who); conn.commit(); result=dict(conn.execute('SELECT * FROM tenant_industry_configurations WHERE id=?',(config_id,)).fetchone()); conn.close(); return result
+
+@app.post('/api/industry-configurations/{configuration_id}/deactivate')
+def deactivate_industry_configuration(configuration_id:int,p:IndustryConfigurationDeactivateIn,request:Request):
+    require(request,'write'); require_ops_authority(request); tid=tenant_id(request); conn=db(); row=conn.execute('SELECT * FROM tenant_industry_configurations WHERE id=?',(configuration_id,)).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Industry configuration not found')
+    if int(row['tenant_id'])!=tid: conn.close(); security_event(request,'INDUSTRY_CONFIGURATION_TENANT_BOUNDARY_VIOLATION','High',f'configuration_id={configuration_id}'); raise HTTPException(403,'Industry configuration tenant boundary violation')
+    if row['status']!='Active': conn.close(); raise HTTPException(409,'Industry configuration is already inactive.')
+    who=actor(request); ts=now(); conn.execute("UPDATE tenant_industry_configurations SET status='Inactive',deactivated_by=?,deactivated_at=?,deactivation_reason=? WHERE id=?",(who,ts,p.reason.strip(),configuration_id)); audit(conn,'INDUSTRY_PROFILE_DEACTIVATED','tenant_industry_configuration',configuration_id,p.reason.strip(),who); conn.commit(); result=dict(conn.execute('SELECT * FROM tenant_industry_configurations WHERE id=?',(configuration_id,)).fetchone()); conn.close(); return result
+
+def _selected_industry_profile(request:Request,profile_id:int):
+    profile=_industry_profile_record(request,profile_id); conn=db(); config=conn.execute("SELECT * FROM tenant_industry_configurations WHERE tenant_id=? AND profile_id=? AND status='Active'",(tenant_id(request),profile_id)).fetchone(); items=_industry_items(conn,profile_id); conn.close()
+    if not config: raise HTTPException(409,'The industry profile must be actively selected for this tenant before it can be applied.')
+    if profile['status'] not in {'Published','Superseded'}: raise HTTPException(409,'Only a selected published profile version can be applied.')
+    return profile,dict(config),items
+
 def _ops_catalog_record(request:Request,service_id:int):
     conn=db(); row=conn.execute('SELECT * FROM ops_service_catalog WHERE id=?',(service_id,)).fetchone(); conn.close()
     if not row: raise HTTPException(404,'SalOPS service not found')
@@ -3320,7 +3607,7 @@ def _ops_catalog_view(conn,row,member:bool):
     item=dict(row); pillar=conn.execute('SELECT pillar_code,name,description FROM ops_service_pillars WHERE id=?',(item['pillar_id'],)).fetchone()
     item['pillar_code']=pillar['pillar_code']; item['pillar_name']=pillar['name']; item['pillar_description']=pillar['description']
     if member:
-        allowed={'id','service_key','version_no','name','member_description','default_deliverables','authorization_requirements','status','published_at','pillar_code','pillar_name','pillar_description'}
+        allowed={'id','service_key','version_no','name','member_description','default_deliverables','authorization_requirements','status','published_at','pillar_code','pillar_name','pillar_description','industry_profile_id','industry_profile_key_snapshot','industry_profile_version_snapshot','industry_profile_name_snapshot'}
         item={key:value for key,value in item.items() if key in allowed}
     return item
 
@@ -3346,7 +3633,10 @@ def _ops_pillar(conn,tid:int,code:str):
 
 def _insert_ops_service(conn,p:OpsCatalogServiceIn,request:Request,service_key:str,version_no:int,supersedes_id=None):
     tid=tenant_id(request); who=actor(request); ts=now(); pillar=_ops_pillar(conn,tid,p.pillar_code)
-    cur=conn.execute('''INSERT INTO ops_service_catalog(tenant_id,pillar_id,service_key,version_no,supersedes_id,name,member_description,internal_scope,default_deliverables,readiness_inputs,authorization_requirements,member_visible,status,created_by,created_at,last_material_editor,last_material_edit_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,pillar['id'],service_key,version_no,supersedes_id,p.name.strip(),p.member_description.strip(),p.internal_scope.strip(),p.default_deliverables.strip(),p.readiness_inputs.strip(),p.authorization_requirements.strip(),1 if p.member_visible else 0,'Draft',who,ts,who,ts,ts)); sid=cur.lastrowid
+    profile=None; defaults='{}'
+    if p.industry_profile_id is not None:
+        profile,_,items=_selected_industry_profile(request,p.industry_profile_id); defaults=_industry_defaults(items)
+    cur=conn.execute('''INSERT INTO ops_service_catalog(tenant_id,pillar_id,service_key,version_no,supersedes_id,name,member_description,internal_scope,default_deliverables,readiness_inputs,authorization_requirements,industry_profile_id,industry_profile_key_snapshot,industry_profile_version_snapshot,industry_profile_name_snapshot,industry_defaults_snapshot_json,member_visible,status,created_by,created_at,last_material_editor,last_material_edit_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,pillar['id'],service_key,version_no,supersedes_id,p.name.strip(),p.member_description.strip(),p.internal_scope.strip(),p.default_deliverables.strip(),p.readiness_inputs.strip(),p.authorization_requirements.strip(),profile['id'] if profile else None,profile['profile_key'] if profile else '',profile['version_no'] if profile else None,profile['name'] if profile else '',defaults,1 if p.member_visible else 0,'Draft',who,ts,who,ts,ts)); sid=cur.lastrowid
     row=conn.execute('SELECT * FROM ops_service_catalog WHERE id=?',(sid,)).fetchone(); _ops_catalog_event(conn,row,'Draft Created',f'service_key={service_key}; version={version_no}',request); audit(conn,'SALOPS_CATALOG_DRAFT','ops_service_catalog',sid,f'service_key={service_key}; version={version_no}',who); return sid
 
 @app.post('/api/salops/catalog/services')
@@ -3949,6 +4239,7 @@ def dashboard(request:Request):
       AND (o.evidence_id IS NULL OR (e.verification_status='Verified' AND e.lifecycle_status='Current'))""",P).fetchone()['c']
     stats['stale_evidence']=conn.execute(f"SELECT COUNT(*) c FROM evidence WHERE assessment_id IN ({marks}) AND lifecycle_status='Stale'",P).fetchone()['c']
     latest=[dict(r) for r in conn.execute(f'SELECT * FROM assessments WHERE id IN ({marks}) ORDER BY updated_at DESC LIMIT 6',P)]
+    if protected_member_request(request): latest=[_member_assessment_view(r) for r in latest]
     conn.close(); return {'stats':stats,'assessments':latest,'tenant_id':tenant_id(request)}
 
 @app.get('/api/intake')
@@ -3986,7 +4277,9 @@ def list_table(table: str, request:Request, assessment_id: Optional[int]=None):
         rows=[dict(r) for r in conn.execute('SELECT * FROM audit_log WHERE tenant_id=? ORDER BY id DESC',(tenant_id(request),))]; conn.close(); return rows
     if not ids: conn.close(); return []
     marks=','.join('?'*len(ids)); P=tuple(ids)
-    if table=='assessments': rows=[dict(r) for r in conn.execute(f'SELECT * FROM assessments WHERE id IN ({marks}) ORDER BY id DESC',P)]
+    if table=='assessments':
+        rows=[dict(r) for r in conn.execute(f'SELECT * FROM assessments WHERE id IN ({marks}) ORDER BY id DESC',P)]
+        if protected_member_request(request): rows=[_member_assessment_view(r) for r in rows]
     else: rows=[dict(r) for r in conn.execute(f'SELECT * FROM {table} WHERE assessment_id IN ({marks}) ORDER BY id DESC',P)]
     if table=='capabilities': rows=[capability_summary(r) for r in rows]
     if table=='evidence': rows=[r for r in rows if SENSITIVITY_LEVELS.get(r.get('sensitivity','Standard'),1)<=clearance_level(request)]
@@ -4000,6 +4293,10 @@ def list_table(table: str, request:Request, assessment_id: Optional[int]=None):
                 try: sens=json.loads(r.get('snapshot_json') or '{}').get('sensitivity','Standard')
                 except Exception: sens='Highly Sensitive'
                 if SENSITIVITY_LEVELS.get(sens,4)>clearance_level(request): continue
+            if protected_member_request(request) and r.get('entity_type')=='assessments':
+                try:
+                    snapshot=json.loads(r.get('snapshot_json') or '{}'); snapshot=_member_assessment_view(snapshot); r=dict(r); r['snapshot_json']=json.dumps(snapshot,sort_keys=True,separators=(',',':'),default=str)
+                except Exception: continue
             filtered.append(r)
         rows=filtered
     conn.close(); return rows
@@ -4009,7 +4306,7 @@ def trace(assessment_id:int, request:Request):
     require(request,'read'); assessment_row_for_request(request,assessment_id); sweep_stale_evidence([assessment_id]); sweep_overdue_risk_overrides([assessment_id]); conn=db()
     a=conn.execute('SELECT * FROM assessments WHERE id=?',(assessment_id,)).fetchone()
     if not a: raise HTTPException(404)
-    data={'assessment':dict(a),'threats':[]}
+    data={'assessment':_member_assessment_view(a) if protected_member_request(request) else dict(a),'threats':[]}
     for t in conn.execute('SELECT * FROM threats WHERE assessment_id=?',(assessment_id,)):
         td=dict(t); td['risk_raw']=td['likelihood']*td['vulnerability']*td['consequence']; td['scenarios']=[]
         td['risk_overrides']=[dict(r) for r in conn.execute('SELECT * FROM risk_overrides WHERE threat_id=? ORDER BY id DESC',(t['id'],))]
@@ -4044,7 +4341,10 @@ def insert_model_in_transaction(conn,table:str,payload:BaseModel,user_name:str='
         score,_=improvement_priority(data); data['priority_score']=score
     cols=','.join(data.keys()); qs=','.join('?'*len(data))
     cur=conn.execute(f'INSERT INTO {table}({cols}) VALUES({qs})',tuple(data.values()))
-    audit(conn,'CREATE',table[:-1] if table.endswith('s') else table,cur.lastrowid,json.dumps(data,default=str)[:500],user_name)
+    audit_data=dict(data)
+    if table=='assessments':
+        for field in ('industry_defaults_snapshot_json','industry_profile_applied_by'): audit_data.pop(field,None)
+    audit(conn,'CREATE',table[:-1] if table.endswith('s') else table,cur.lastrowid,json.dumps(audit_data,default=str)[:500],user_name)
     snapshot_entity(conn,table,cur.lastrowid,user_name,'Record created')
     return dict(conn.execute(f'SELECT * FROM {table} WHERE id=?',(cur.lastrowid,)).fetchone())
 
@@ -4066,7 +4366,10 @@ def create_assessment(p:AssessmentIn, request:Request):
     start_date=_normalize_date(p.start_date,'Assessment start date')
     target_completion=_normalize_date(p.target_completion,'Assessment target completion date')
     reassessment_date=_normalize_date(p.reassessment_date,'Assessment reassessment date')
-    return insert_model('assessments',p,actor(request),extra={
+    profile=None; defaults='{}'; applied_at=''
+    if p.industry_profile_id is not None:
+        profile,_,items=_selected_industry_profile(request,p.industry_profile_id); defaults=_industry_defaults(items); applied_at=now()
+    result=insert_model('assessments',p,actor(request),extra={
         'tenant_id':tenant_id(request),
         'status':'Draft',
         'start_date':start_date,
@@ -4077,9 +4380,18 @@ def create_assessment(p:AssessmentIn, request:Request):
         'reassessment_overdue_at':'',
         'last_reassessment_review_at':'',
         'last_reassessment_review_by':'',
+        'industry_profile_id':profile['id'] if profile else None,
+        'industry_profile_key_snapshot':profile['profile_key'] if profile else '',
+        'industry_profile_version_snapshot':profile['version_no'] if profile else None,
+        'industry_profile_name_snapshot':profile['name'] if profile else '',
+        'industry_member_summary_snapshot':profile['member_summary'] if profile else '',
+        'industry_defaults_snapshot_json':defaults,
+        'industry_profile_applied_by':actor(request) if profile else '',
+        'industry_profile_applied_at':applied_at,
         'scope_locked':0,
         'version':1,
     })
+    return _member_assessment_view(result) if protected_member_request(request) else result
 
 @app.post('/api/assessments/{assessment_id}/reassessment-review')
 def review_assessment_reassessment(assessment_id:int,p:AssessmentReassessmentReviewIn,request:Request):
@@ -4644,7 +4956,9 @@ def report_version_snapshot(report_id:int,request:Request):
     if not row: conn.close(); raise HTTPException(404,'Report version not found')
     assessment_row_for_request(request,row['assessment_id']); snapshot=row['snapshot_json']; actual=hashlib.sha256(snapshot.encode('utf-8')).hexdigest()
     if actual!=row['snapshot_sha256']: conn.close(); security_event(request,'REPORT_INTEGRITY_FAILURE','High',f'report_id={report_id}'); raise HTTPException(409,'Report snapshot failed integrity verification')
-    conn.close(); response=JSONResponse(json.loads(snapshot)); response.headers['ETag']=f'"{actual}"'; response.headers['X-Salus-Report-Status']=row['status']; return response
+    conn.close(); payload=json.loads(snapshot)
+    if protected_member_request(request) and payload.get('assessment'): payload['assessment']=_member_assessment_view(payload['assessment'])
+    response=JSONResponse(payload); response.headers['ETag']=f'"{actual}"'; response.headers['X-Salus-Report-Status']=row['status']; return response
 
 @app.get('/api/audit/assessments/{assessment_id}')
 def assessment_audit_history(assessment_id:int,request:Request,limit:int=500):
@@ -4714,6 +5028,7 @@ def executive_html(assessment_id:int,request:Request):
 @app.get('/api/export/{assessment_id}')
 def export_assessment(assessment_id:int, request:Request):
     require(request,'read'); assessment_row_for_request(request,assessment_id); package=executive_package(assessment_id)
+    if protected_member_request(request): package['assessment']=_member_assessment_view(package['assessment'])
     response=JSONResponse(package); response.headers['Content-Disposition']=f'attachment; filename="salus-thira-assessment-{assessment_id}.json"'; return response
 
 @app.put('/api/{table}/{entity_id}')
@@ -4759,7 +5074,7 @@ def update_entity(table:str,entity_id:int,payload:dict[str,Any],request:Request)
         attempted_immutable=[k for k in immutable if k in payload and str(payload.get(k) or '')!=str(old[k] or '')]
         if attempted_immutable:
             conn.close(); raise HTTPException(409,f'Accepted-risk provenance is immutable: {", ".join(sorted(attempted_immutable))}.')
-    server_controlled={'tenant_id','created_at','updated_at','version','version_no','changed_at','changed_by','change_reason'}
+    server_controlled={'tenant_id','created_at','updated_at','version','version_no','changed_at','changed_by','change_reason','industry_profile_id','industry_profile_key_snapshot','industry_profile_version_snapshot','industry_profile_name_snapshot','industry_member_summary_snapshot','industry_defaults_snapshot_json','industry_profile_applied_by','industry_profile_applied_at'}
     attempted=server_controlled.intersection(payload)
     if attempted:
         conn.close(); raise HTTPException(409,f'Server-controlled fields cannot be edited: {", ".join(sorted(attempted))}.')

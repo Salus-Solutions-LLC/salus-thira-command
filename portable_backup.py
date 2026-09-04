@@ -6,7 +6,7 @@ ASSESSMENT_TABLES = [
     'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
-    'users','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','assessments','assessment_access','threats','scenarios','capabilities','evidence',
+    'users','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
     'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
@@ -19,6 +19,10 @@ def collect_tenant_records(conn, tenant_id:int):
     records['tenants']=_rows(conn,'SELECT * FROM tenants WHERE id=?',(tenant_id,))
     records['users']=_rows(conn,'SELECT * FROM users WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['governed_intake']=_rows(conn,'SELECT * FROM governed_intake WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['industry_profiles']=_rows(conn,'SELECT * FROM industry_profiles WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['industry_profile_items']=_rows(conn,'SELECT * FROM industry_profile_items WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['industry_profile_events']=_rows(conn,'SELECT * FROM industry_profile_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['tenant_industry_configurations']=_rows(conn,'SELECT * FROM tenant_industry_configurations WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['assessments']=_rows(conn,'SELECT * FROM assessments WHERE tenant_id=? ORDER BY id',(tenant_id,))
     assessment_ids=[r['id'] for r in records['assessments']]
     user_ids=[r['id'] for r in records['users']]
@@ -69,6 +73,21 @@ def validate_records(records, tenant_id:int|None=None):
     elif tenant_id is not None and int(tenants[0].get('id',-1))!=int(tenant_id): errors.append('Tenant ID does not match backup manifest')
     assessments={int(r['id']) for r in records.get('assessments',[]) if r.get('id') is not None}
     if not assessments: errors.append('Recovery records contain no assessments')
+    industry_profiles={int(r['id']) for r in records.get('industry_profiles',[]) if r.get('id') is not None}
+    profile_items={int(r['id']) for r in records.get('industry_profile_items',[]) if r.get('id') is not None}
+    for row in records.get('industry_profiles',[]):
+        supersedes=row.get('supersedes_id')
+        if supersedes not in (None,'') and int(supersedes) not in industry_profiles: errors.append(f'industry_profile {row.get("id")} has invalid supersedes_id')
+    for table in ('industry_profile_items','industry_profile_events','tenant_industry_configurations'):
+        for row in records.get(table,[]):
+            if int(row.get('profile_id',-1)) not in industry_profiles: errors.append(f'{table} record {row.get("id")} has invalid profile_id')
+    event_versions={}
+    for row in records.get('industry_profile_events',[]): event_versions.setdefault(int(row.get('profile_id',-1)),[]).append(int(row.get('version_no',-1)))
+    for profile_id,versions in event_versions.items():
+        if sorted(versions)!=list(range(1,len(versions)+1)): errors.append(f'industry profile event history for {profile_id} is not contiguous')
+    for row in records.get('assessments',[]):
+        profile_id=row.get('industry_profile_id')
+        if profile_id not in (None,'') and int(profile_id) not in industry_profiles: errors.append(f'assessment {row.get("id")} has invalid industry_profile_id')
     for table in ASSESSMENT_TABLES:
         for row in records.get(table,[]):
             if int(row.get('assessment_id',-1)) not in assessments: errors.append(f'{table} record {row.get("id")} references an assessment outside the tenant package')
@@ -101,6 +120,8 @@ def validate_records(records, tenant_id:int|None=None):
         if int(row.get('pillar_id',-1)) not in pillars: errors.append(f'ops_service_catalog {row.get("id")} has invalid pillar_id')
         supersedes=row.get('supersedes_id')
         if supersedes not in (None,'') and int(supersedes) not in services: errors.append(f'ops_service_catalog {row.get("id")} has invalid supersedes_id')
+        profile_id=row.get('industry_profile_id')
+        if profile_id not in (None,'') and int(profile_id) not in industry_profiles: errors.append(f'ops_service_catalog {row.get("id")} has invalid industry_profile_id')
     for row in records.get('ops_catalog_events',[]):
         if int(row.get('service_id',-1)) not in services: errors.append(f'ops_catalog_event {row.get("id")} has invalid service_id')
     profiles={int(r['id']) for r in records.get('expert_profiles',[]) if r.get('id') is not None}
@@ -234,6 +255,10 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('DELETE FROM ops_service_catalog WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM ops_service_pillars WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM assessments WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM tenant_industry_configurations WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM industry_profile_events WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM industry_profile_items WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM industry_profiles WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM users WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM audit_log WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM security_events WHERE tenant_id=?',(tenant_id,))
