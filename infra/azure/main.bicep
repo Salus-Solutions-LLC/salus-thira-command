@@ -136,7 +136,6 @@ resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   }
   properties: {
     adminUserEnabled: false
-    anonymousPullEnabled: false
     dataEndpointEnabled: false
     networkRuleBypassOptions: 'AzureServices'
     publicNetworkAccess: 'Enabled'
@@ -238,7 +237,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
       name: 'PerGB2018'
     }
     workspaceCapping: {
-      dailyQuotaGb: 0.1
+      dailyQuotaGb: 1
     }
   }
 }
@@ -250,6 +249,8 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
   properties: {
     Application_Type: 'web'
+    SamplingPercentage: 5
+    RetentionInDays: 30
     WorkspaceResourceId: logAnalytics.id
   }
 }
@@ -510,7 +511,6 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
 }
 
 output applicationName string = stem
-output applicationFqdn string = provisionApplication ? containerApp.properties.configuration.ingress.fqdn : ''
 output containerAppsEnvironmentName string = containerAppsEnvironment.name
 output managedIdentityName string = workloadIdentity.name
 output managedIdentityPrincipalId string = workloadIdentity.properties.principalId
