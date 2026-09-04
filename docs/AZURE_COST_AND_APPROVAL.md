@@ -1,10 +1,10 @@
 # SalCAPA Azure cost and activation proposal
 
-Pricing checked on 2026-09-03. All amounts are estimated Microsoft retail pay-as-you-go prices in USD for South Central US, calculated with 730 runtime hours and 30.4 days per month. Taxes, negotiated discounts, support plans, unusually high transactions, malware scanning, DNS registration, and usage above the stated allowances are excluded. Azure prices can change; refresh this estimate in the Azure calculator immediately before approval and provisioning.
+Pricing checked on 2026-09-04. All amounts are estimated Microsoft retail pay-as-you-go prices in USD for South Central US. Taxes, negotiated discounts, support plans, unusually high transactions, malware scanning, DNS registration, and usage above stated allowances are excluded. Azure prices can change; refresh this estimate immediately before any provisioning action.
 
 Official references:
 
-- App Service pricing: https://azure.microsoft.com/en-us/pricing/details/app-service/linux/
+- Container Apps pricing: https://azure.microsoft.com/en-us/pricing/details/container-apps/
 - PostgreSQL Flexible Server pricing: https://azure.microsoft.com/en-us/pricing/details/postgresql/flexible-server/
 - Container Registry pricing: https://azure.microsoft.com/en-us/pricing/details/container-registry/
 - Blob Storage pricing: https://azure.microsoft.com/en-us/pricing/details/storage/blobs/
@@ -13,58 +13,73 @@ Official references:
 - Bandwidth pricing: https://azure.microsoft.com/en-us/pricing/details/bandwidth/
 - Retail Prices API: https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices
 
-## Option A — controlled low-use pilot
+## Option A — approved lean SalCAPA production starting point
 
-This option is suitable for acceptance, migration, and limited named-user production use. It is not highly available.
+This is the active approved course of action for initial SalCAPA production use. It is intentionally capacity-constrained and is not highly available. Governance, identity, tenancy, evidence lifecycle, provenance, audit, backup/recovery, and operational handoff controls are not reduced to achieve the lower cost.
+
+| Resource | Exact proposed configuration | Monthly planning estimate |
+|---|---|---:|
+| Resource group | One dedicated South Central US group | $0.00 |
+| Azure Container Apps | Consumption environment, one SalCAPA app, scale 0–1 initially | $0–low single digits at low use |
+| PostgreSQL Flexible Server | Burstable B1ms, PostgreSQL 16, one zone | about $12–13 |
+| PostgreSQL storage | Minimum sensible supported storage, governed backup retention | low single digits |
+| Container Registry | Basic | about $5 |
+| Blob Storage | StorageV2 Hot, LRS initially, versioning and soft delete | low single digits |
+| Key Vault | Standard, RBAC, purge protection | negligible at low transaction volume |
+| Application Insights / Azure Monitor | Strictly bounded low-volume telemetry | expected within free/low-use allowance |
+| Internet egress | Low-use pilot traffic | expected within free/low-use allowance |
+| Target operating range |  | **approximately $15–25/month** |
+| Proposed monthly authorization ceiling |  | **$30.00** |
+
+### Approved cost controls
+
+- Written approval record: **MD-APPROVAL-AZURE-LEAN-20260904**.
+- Marc Duncan approved this course of action on 2026-09-04.
+- $30 USD/month is a hard recurring Azure authorization ceiling for this starting architecture.
+- Provisioning must stop if the current Azure estimate exceeds $30/month.
+- Budget alerts/checkpoints must be configured below the ceiling before production cutover.
+- Capacity, redundancy, storage, telemetry, or other recurring-cost increases require a separate cost review and approval.
+- No DNS change or public production cutover is authorized by this cost approval alone.
+
+Pilot recovery target: PostgreSQL point-in-time recovery within the configured retention period; evidence protection through blob versioning, soft delete, controlled backup procedures, and operator-directed restore. The lean architecture does not promise automatic regional failover.
+
+## Option B — previous controlled low-use App Service proposal
+
+This earlier proposal remains documented for comparison but is **not the selected course of action**.
 
 | Resource | Exact proposed configuration | Monthly estimate |
 |---|---|---:|
-| Resource group | One dedicated South Central US group | $0.00 |
 | App Service | Linux B1, one instance | $13.14 |
 | PostgreSQL Flexible Server | Burstable B1ms, PostgreSQL 16, one zone | $12.41 |
 | PostgreSQL storage | 32 GiB Premium SSD, 14-day backup retention | $3.68 |
-| Container Registry | Basic, up to 10 GB included | $5.08 |
-| Blob Storage | StorageV2 Hot, GRS, 25 GB allowance, versioning and soft delete | $1.00 |
-| Key Vault | Standard, RBAC, purge protection; 10,000-operation allowance | $0.03 |
-| Application Insights and Log Analytics | Analytics logs; up to the first 5 GB/month allowance | $0.00 |
-| Internet egress | Up to the first 100 GB/month | $0.00 |
-| Estimated subtotal |  | **$35.34** |
-| 20% operating contingency |  | **$7.07** |
-| Proposed monthly authorization ceiling |  | **$43.00** |
+| Container Registry | Basic | $5.08 |
+| Blob Storage | StorageV2 Hot, GRS, 25 GB allowance | $1.00 |
+| Key Vault | Standard | $0.03 |
+| Application Insights and Log Analytics | up to low-use allowance | $0.00 planning assumption |
+| Internet egress | up to low-use allowance | $0.00 planning assumption |
+| Previous ceiling |  | **$43.00** |
 
-Pilot recovery target: database point-in-time recovery within the configured retention period; evidence protection through GRS, blob versioning, and soft delete. Recovery is operator-directed and does not promise automatic failover.
+## Option C — previous production-ready high-availability proposal
 
-## Option B — production-ready starting point
-
-This option is the recommended approval target after nonproduction acceptance. It provides redundant application capacity and zone-redundant database compute.
+This earlier proposal remains documented for future scale-up analysis but is **not authorized**.
 
 | Resource | Exact proposed configuration | Monthly estimate |
 |---|---|---:|
-| Resource group | One dedicated South Central US group | $0.00 |
 | App Service | Linux Premium v3 P0v3, two instances | $124.10 |
-| PostgreSQL Flexible Server | General Purpose D2ds v5, zone-redundant HA (primary plus standby) | $259.88 |
+| PostgreSQL Flexible Server | General Purpose D2ds v5, zone-redundant HA | $259.88 |
 | PostgreSQL storage | 128 GiB Premium SSD | $14.72 |
 | PostgreSQL backup allowance | 35-day retention with geo-redundant backup allowance | $12.16 |
-| Container Registry | Standard, up to 100 GB included | $20.28 |
-| Blob Storage | StorageV2 Hot, GRS, 250 GB plus transaction/replication allowance | $16.20 |
-| Key Vault | Standard, RBAC, purge protection; 100,000-operation allowance | $0.30 |
-| Application Insights and Log Analytics | 10 GB/month ingestion allowance; first 5 GB assumed free | $15.00 |
-| Internet egress | 200 GB/month allowance; first 100 GB assumed free | $8.70 |
-| Estimated subtotal |  | **$471.34** |
-| 15% operating contingency |  | **$70.70** |
-| Proposed monthly authorization ceiling |  | **$550.00** |
+| Container Registry | Standard | $20.28 |
+| Blob Storage | StorageV2 Hot, GRS, 250 GB allowance | $16.20 |
+| Key Vault | Standard | $0.30 |
+| Application Insights and Log Analytics | 10 GB/month planning allowance | $15.00 |
+| Internet egress | 200 GB/month planning allowance | $8.70 |
+| Previous ceiling |  | **$550.00** |
 
-The production ceiling is an approval control, not permission to provision. Alerts should be set at 50%, 75%, 90%, and 100% of the approved monthly ceiling. Provisioning must stop if the current Azure calculator estimate exceeds the approved ceiling.
+## Activation boundary
 
-## Approval boundary
+The $30/month approval authorizes preparation and governed provisioning of the selected lean architecture only. Provisioning still requires the existing least-privilege Azure subscription and Entra context, workload identity, approved administrators/reviewers, resource-group scope, backup settings, and controlled GitHub deployment workflow.
 
-No Azure resource, workload identity, credential, DNS record, or production deployment may be created from this proposal alone. Activation requires a written Marc Duncan approval record naming:
+No frozen branch may be rewritten. No validation pull request may be merged. No DNS change or public production cutover may occur without a separate explicit authorization.
 
-1. selected option and monthly ceiling;
-2. Azure subscription and Entra tenant;
-3. region and production domain;
-4. named Entra administrators and GitHub production-environment reviewers;
-5. recovery objectives and backup retention;
-6. authorization to create nonproduction resources first.
-
-The approval record identifier must be preserved in the GitHub environment, deployment record, and SalCAPA audit history.
+The approval record identifier **MD-APPROVAL-AZURE-LEAN-20260904** must be preserved in the GitHub environment, deployment record, and SalCAPA audit history.
