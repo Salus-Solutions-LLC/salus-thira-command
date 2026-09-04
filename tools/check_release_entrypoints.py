@@ -2,10 +2,9 @@
 """Fail closed when user, runtime, or workflow entrypoints select stale source."""
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
-RECONSTRUCT = 'tools/reconstruct_v20_source.py'
-VERIFY = 'tools/verify_v20_source.py'
+RECONSTRUCT = 'tools/reconstruct_v21_source.py'
+VERIFY = 'tools/verify_v21_source.py'
 FILES = (
     'README.md',
     'Dockerfile',
@@ -14,7 +13,6 @@ FILES = (
     '.github/workflows/ci.yml',
     '.github/workflows/codeql.yml',
 )
-
 
 for relative in FILES:
     text = (ROOT / relative).read_text(encoding='utf-8').replace('\\', '/')
