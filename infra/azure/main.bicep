@@ -1,6 +1,6 @@
 targetScope = 'resourceGroup'
 
-@description('Short globally unique suffix used for public Azure resource names.')
+@description('Short globally unique suffix used for Azure resource names.')
 @minLength(4)
 @maxLength(12)
 param uniqueSuffix string
@@ -17,10 +17,13 @@ param location string = 'southcentralus'
 ])
 param environmentName string = 'dev'
 
-@description('Container image digest. Tags such as latest are intentionally rejected by policy.')
-param containerImageDigest string
+@description('Immutable container image digest. Required only when provisionApplication is true.')
+param containerImageDigest string = ''
 
-@description('Microsoft Entra tenant ID used by the SalCAPA application.')
+@description('Create or update the SalCAPA Container App. Foundation-only provisioning leaves this false.')
+param provisionApplication bool = false
+
+@description('Microsoft Entra tenant ID used by SalCAPA.')
 param entraTenantId string
 
 @description('Immutable object ID of the approved PostgreSQL Microsoft Entra administrator.')
@@ -35,15 +38,36 @@ param postgresAdminPrincipalName string
 ])
 param postgresAdminPrincipalType string = 'Group'
 
+@description('Object ID of the GitHub OIDC deployment principal. It receives AcrPush only on the SalCAPA registry.')
+param deploymentPrincipalObjectId string
+
+@allowed([
+  'MD-APPROVAL-AZURE-LEAN-20260904'
+])
+param approvalRecord string = 'MD-APPROVAL-AZURE-LEAN-20260904'
+
+@minValue(30)
+@maxValue(30)
+param monthlyCostCeilingUsd int = 30
+
 var stem = 'salcapa-${environmentName}-${uniqueSuffix}'
 var evidenceContainerName = 'evidence'
 var registryName = replace('${stem}acr', '-', '')
 var databaseName = 'salcapa'
 var postgresServerName = '${stem}-pg'
+var workloadIdentityName = '${stem}-identity'
+var commonTags = {
+  system: 'SalCAPA'
+  environment: environmentName
+  approvalRecord: approvalRecord
+  monthlyCostCeilingUsd: string(monthlyCostCeilingUsd)
+  costArchitecture: 'lean-container-apps-consumption'
+}
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-07-01' = {
   name: '${stem}-vnet'
   location: location
+  tags: commonTags
   properties: {
     addressSpace: {
       addressPrefixes: [
@@ -53,16 +77,16 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-07-01' = {
   }
 }
 
-resource appSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' = {
+resource containerAppsSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' = {
   parent: virtualNetwork
-  name: 'app-integration'
+  name: 'container-apps'
   properties: {
-    addressPrefix: '10.42.1.0/24'
+    addressPrefix: '10.42.1.0/27'
     delegations: [
       {
-        name: 'web-app-delegation'
+        name: 'container-apps-delegation'
         properties: {
-          serviceName: 'Microsoft.Web/serverFarms'
+          serviceName: 'Microsoft.App/environments'
         }
       }
     ]
@@ -88,6 +112,7 @@ resource postgresSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' =
 resource postgresPrivateDns 'Microsoft.Network/privateDnsZones@2024-06-01' = {
   name: 'privatelink.postgres.database.azure.com'
   location: 'global'
+  tags: commonTags
 }
 
 resource postgresPrivateDnsLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
@@ -105,8 +130,9 @@ resource postgresPrivateDnsLink 'Microsoft.Network/privateDnsZones/virtualNetwor
 resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: registryName
   location: location
+  tags: commonTags
   sku: {
-    name: environmentName == 'prod' ? 'Standard' : 'Basic'
+    name: 'Basic'
   }
   properties: {
     adminUserEnabled: false
@@ -118,15 +144,32 @@ resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   }
 }
 
+resource deploymentRegistryPushRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(registry.id, deploymentPrincipalObjectId, 'acr-push')
+  scope: registry
+  properties: {
+    principalId: deploymentPrincipalObjectId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec')
+  }
+}
+
+resource workloadIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: workloadIdentityName
+  location: location
+  tags: commonTags
+}
+
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: postgresServerName
   location: location
+  tags: commonTags
   identity: {
     type: 'SystemAssigned'
   }
   sku: {
-    name: environmentName == 'prod' ? 'Standard_D2ds_v5' : 'Standard_B1ms'
-    tier: environmentName == 'prod' ? 'GeneralPurpose' : 'Burstable'
+    name: 'Standard_B1ms'
+    tier: 'Burstable'
   }
   properties: {
     authConfig: {
@@ -136,13 +179,12 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     }
     availabilityZone: '1'
     backup: {
-      backupRetentionDays: environmentName == 'prod' ? 35 : 14
-      geoRedundantBackup: environmentName == 'prod' ? 'Enabled' : 'Disabled'
+      backupRetentionDays: 14
+      geoRedundantBackup: 'Disabled'
     }
     createMode: 'Default'
     highAvailability: {
-      mode: environmentName == 'prod' ? 'ZoneRedundant' : 'Disabled'
-      standbyAvailabilityZone: environmentName == 'prod' ? '2' : ''
+      mode: 'Disabled'
     }
     maintenanceWindow: {
       customWindow: 'Enabled'
@@ -157,7 +199,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     }
     storage: {
       autoGrow: 'Enabled'
-      storageSizeGB: environmentName == 'prod' ? 128 : 32
+      storageSizeGB: 32
       type: 'Premium_LRS'
     }
     version: '16'
@@ -189,14 +231,22 @@ resource salcapaDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@20
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${stem}-logs'
   location: location
+  tags: commonTags
   properties: {
-    retentionInDays: environmentName == 'prod' ? 90 : 30
+    retentionInDays: 30
+    sku: {
+      name: 'PerGB2018'
+    }
+    workspaceCapping: {
+      dailyQuotaGb: 0.1
+    }
   }
 }
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: '${stem}-appinsights'
   location: location
+  tags: commonTags
   kind: 'web'
   properties: {
     Application_Type: 'web'
@@ -207,8 +257,9 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: replace('${stem}storage', '-', '')
   location: location
+  tags: commonTags
   sku: {
-    name: 'Standard_GRS'
+    name: 'Standard_LRS'
   }
   kind: 'StorageV2'
   properties: {
@@ -226,11 +277,11 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01'
   properties: {
     deleteRetentionPolicy: {
       enabled: true
-      days: environmentName == 'prod' ? 30 : 7
+      days: 14
     }
     containerDeleteRetentionPolicy: {
       enabled: true
-      days: environmentName == 'prod' ? 30 : 7
+      days: 14
     }
     isVersioningEnabled: true
   }
@@ -247,6 +298,7 @@ resource evidenceContainer 'Microsoft.Storage/storageAccounts/blobServices/conta
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: '${stem}-kv'
   location: location
+  tags: commonTags
   properties: {
     tenantId: entraTenantId
     enableRbacAuthorization: true
@@ -261,165 +313,207 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-resource appPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
-  name: '${stem}-plan'
+resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2025-01-01' = {
+  name: '${stem}-aca-env'
   location: location
-  kind: 'linux'
-  sku: {
-    name: environmentName == 'prod' ? 'P0v3' : 'B1'
-    capacity: environmentName == 'prod' ? 2 : 1
-  }
+  tags: commonTags
   properties: {
-    reserved: true
+    appLogsConfiguration: {
+      destination: 'azure-monitor'
+    }
+    vnetConfiguration: {
+      infrastructureSubnetId: containerAppsSubnet.id
+      internal: false
+    }
+    workloadProfiles: [
+      {
+        name: 'Consumption'
+        workloadProfileType: 'Consumption'
+      }
+    ]
     zoneRedundant: false
   }
 }
 
-resource webApp 'Microsoft.Web/sites@2023-12-01' = {
-  name: stem
-  location: location
-  kind: 'app,linux,container'
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    serverFarmId: appPlan.id
-    httpsOnly: true
-    clientAffinityEnabled: false
-    virtualNetworkSubnetId: appSubnet.id
-    siteConfig: {
-      acrUseManagedIdentityCreds: true
-      alwaysOn: environmentName == 'prod'
-      ftpsState: 'Disabled'
-      http20Enabled: true
-      minTlsVersion: '1.2'
-      scmMinTlsVersion: '1.2'
-      vnetRouteAllEnabled: true
-      linuxFxVersion: 'DOCKER|${containerImageDigest}'
-      healthCheckPath: '/health/ready'
-      appSettings: [
-        {
-          name: 'SALUS_ENV'
-          value: environmentName
-        }
-        {
-          name: 'SALUS_AUTH_MODE'
-          value: 'oidc'
-        }
-        {
-          name: 'SALUS_COOKIE_SECURE'
-          value: '1'
-        }
-        {
-          name: 'SALUS_ALLOW_RESTORE'
-          value: '0'
-        }
-        {
-          name: 'SALUS_SEED_DEMO'
-          value: '0'
-        }
-        {
-          name: 'SALUS_ALLOW_SQLITE_PRODUCTION'
-          value: '0'
-        }
-        {
-          name: 'SALUS_DB_BACKEND'
-          value: 'postgres'
-        }
-        {
-          name: 'SALUS_POSTGRES_AUTH'
-          value: 'entra'
-        }
-        {
-          name: 'SALUS_POSTGRES_HOST'
-          value: postgres.properties.fullyQualifiedDomainName
-        }
-        {
-          name: 'SALUS_POSTGRES_DATABASE'
-          value: databaseName
-        }
-        {
-          name: 'SALUS_POSTGRES_USER'
-          value: stem
-        }
-        {
-          name: 'SALUS_POSTGRES_SSLMODE'
-          value: 'require'
-        }
-        {
-          name: 'SALUS_MANAGED_DB_TARGET'
-          value: 'azure_postgresql'
-        }
-        {
-          name: 'SALUS_SECRET_BACKEND'
-          value: 'azure_keyvault'
-        }
-        {
-          name: 'SALUS_KEY_VAULT_URL'
-          value: keyVault.properties.vaultUri
-        }
-        {
-          name: 'SALUS_STORAGE_BACKEND'
-          value: 'azure'
-        }
-        {
-          name: 'SALUS_AZURE_STORAGE_ACCOUNT_URL'
-          value: storage.properties.primaryEndpoints.blob
-        }
-        {
-          name: 'SALUS_AZURE_STORAGE_CONTAINER'
-          value: evidenceContainerName
-        }
-        {
-          name: 'SALUS_TELEMETRY_BACKEND'
-          value: 'azure_monitor'
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsights.properties.ConnectionString
-        }
-        {
-          name: 'WEBSITES_PORT'
-          value: '8000'
-        }
-      ]
-    }
-  }
-}
-
 resource evidenceRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(evidenceContainer.id, webApp.id, 'blob-data-contributor')
+  name: guid(evidenceContainer.id, workloadIdentity.id, 'blob-data-contributor')
   scope: evidenceContainer
   properties: {
-    principalId: webApp.identity.principalId
+    principalId: workloadIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
   }
 }
 
 resource vaultRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVault.id, webApp.id, 'vault-secrets-user')
+  name: guid(keyVault.id, workloadIdentity.id, 'vault-secrets-user')
   scope: keyVault
   properties: {
-    principalId: webApp.identity.principalId
+    principalId: workloadIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
   }
 }
 
 resource registryPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(registry.id, webApp.id, 'acr-pull')
+  name: guid(registry.id, workloadIdentity.id, 'acr-pull')
   scope: registry
   properties: {
-    principalId: webApp.identity.principalId
+    principalId: workloadIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
   }
 }
 
-output applicationName string = webApp.name
-output applicationHostName string = webApp.properties.defaultHostName
-output managedIdentityPrincipalId string = webApp.identity.principalId
+resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionApplication) {
+  name: stem
+  location: location
+  tags: commonTags
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${workloadIdentity.id}': {}
+    }
+  }
+  properties: {
+    managedEnvironmentId: containerAppsEnvironment.id
+    workloadProfileName: 'Consumption'
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        allowInsecure: false
+        targetPort: 8000
+        transport: 'auto'
+      }
+      registries: [
+        {
+          server: registry.properties.loginServer
+          identity: workloadIdentity.id
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'salcapa'
+          image: containerImageDigest
+          resources: {
+            cpu: json('0.25')
+            memory: '0.5Gi'
+          }
+          env: [
+            {
+              name: 'SALUS_ENV'
+              value: environmentName
+            }
+            {
+              name: 'SALUS_AUTH_MODE'
+              value: 'oidc'
+            }
+            {
+              name: 'SALUS_COOKIE_SECURE'
+              value: '1'
+            }
+            {
+              name: 'SALUS_ALLOW_RESTORE'
+              value: '0'
+            }
+            {
+              name: 'SALUS_SEED_DEMO'
+              value: '0'
+            }
+            {
+              name: 'SALUS_ALLOW_SQLITE_PRODUCTION'
+              value: '0'
+            }
+            {
+              name: 'SALUS_DB_BACKEND'
+              value: 'postgres'
+            }
+            {
+              name: 'SALUS_POSTGRES_AUTH'
+              value: 'entra'
+            }
+            {
+              name: 'SALUS_POSTGRES_HOST'
+              value: postgres.properties.fullyQualifiedDomainName
+            }
+            {
+              name: 'SALUS_POSTGRES_DATABASE'
+              value: databaseName
+            }
+            {
+              name: 'SALUS_POSTGRES_USER'
+              value: workloadIdentity.name
+            }
+            {
+              name: 'SALUS_POSTGRES_SSLMODE'
+              value: 'require'
+            }
+            {
+              name: 'SALUS_MANAGED_DB_TARGET'
+              value: 'azure_postgresql'
+            }
+            {
+              name: 'SALUS_SECRET_BACKEND'
+              value: 'azure_keyvault'
+            }
+            {
+              name: 'SALUS_KEY_VAULT_URL'
+              value: keyVault.properties.vaultUri
+            }
+            {
+              name: 'SALUS_STORAGE_BACKEND'
+              value: 'azure'
+            }
+            {
+              name: 'SALUS_AZURE_STORAGE_ACCOUNT_URL'
+              value: storage.properties.primaryEndpoints.blob
+            }
+            {
+              name: 'SALUS_AZURE_STORAGE_CONTAINER'
+              value: evidenceContainerName
+            }
+            {
+              name: 'SALUS_TELEMETRY_BACKEND'
+              value: 'azure_monitor'
+            }
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              value: appInsights.properties.ConnectionString
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 0
+        maxReplicas: 1
+        rules: [
+          {
+            name: 'http'
+            http: {
+              metadata: {
+                concurrentRequests: '25'
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+  dependsOn: [
+    evidenceRole
+    vaultRole
+    registryPullRole
+  ]
+}
+
+output applicationName string = stem
+output applicationFqdn string = provisionApplication ? containerApp.properties.configuration.ingress.fqdn : ''
+output containerAppsEnvironmentName string = containerAppsEnvironment.name
+output managedIdentityName string = workloadIdentity.name
+output managedIdentityPrincipalId string = workloadIdentity.properties.principalId
 output storageAccountName string = storage.name
 output keyVaultName string = keyVault.name
 output registryName string = registry.name
@@ -427,3 +521,5 @@ output registryLoginServer string = registry.properties.loginServer
 output postgresServerName string = postgres.name
 output postgresHostName string = postgres.properties.fullyQualifiedDomainName
 output postgresDatabaseName string = salcapaDatabase.name
+output monthlyCostCeilingUsd int = monthlyCostCeilingUsd
+output approvalRecord string = approvalRecord
