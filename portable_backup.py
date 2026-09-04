@@ -2,13 +2,13 @@ import json
 from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
-    'threats','scenarios','capabilities','evidence','gaps','improvements','decisions',
-    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events'
+    'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
+    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses'
 ]
 RESTORE_ORDER = [
-    'users','assessments','assessment_access','threats','scenarios','capabilities','evidence',
-    'gaps','improvements','decisions','reassessment_triggers','assessment_weights',
-    'evidence_attachments','entity_versions','scope_changes','workflow_events','audit_log','security_events'
+    'users','governed_intake','assessments','assessment_access','threats','scenarios','capabilities','evidence',
+    'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
+    'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','entity_versions','audit_log','security_events'
 ]
 
 def _rows(conn, sql, params=()):
@@ -18,6 +18,7 @@ def collect_tenant_records(conn, tenant_id:int):
     records={}
     records['tenants']=_rows(conn,'SELECT * FROM tenants WHERE id=?',(tenant_id,))
     records['users']=_rows(conn,'SELECT * FROM users WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['governed_intake']=_rows(conn,'SELECT * FROM governed_intake WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['assessments']=_rows(conn,'SELECT * FROM assessments WHERE tenant_id=? ORDER BY id',(tenant_id,))
     assessment_ids=[r['id'] for r in records['assessments']]
     user_ids=[r['id'] for r in records['users']]
@@ -39,6 +40,8 @@ def collect_tenant_records(conn, tenant_id:int):
     else: records['assessment_access']=[]
     records['audit_log']=_rows(conn,'SELECT * FROM audit_log WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['security_events']=_rows(conn,'SELECT * FROM security_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['intel_findings']=_rows(conn,'SELECT * FROM intel_findings WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['ops_requests']=_rows(conn,'SELECT * FROM ops_requests WHERE tenant_id=? ORDER BY id',(tenant_id,))
     return records
 
 def validate_records(records, tenant_id:int|None=None):
@@ -59,8 +62,37 @@ def validate_records(records, tenant_id:int|None=None):
         if int(row.get('assessment_id',-1)) not in assessments: errors.append(f'assessment_access {row.get("id")} has invalid assessment_id')
         if int(row.get('user_id',-1)) not in users: errors.append(f'assessment_access {row.get("id")} has invalid user_id')
     evidence={int(r['id']) for r in records.get('evidence',[]) if r.get('id') is not None}
+    threats={int(r['id']) for r in records.get('threats',[]) if r.get('id') is not None}
+    override_ids={int(r['id']) for r in records.get('risk_overrides',[]) if r.get('id') is not None}
     for row in records.get('evidence_attachments',[]):
         if int(row.get('evidence_id',-1)) not in evidence: errors.append(f'evidence_attachment {row.get("id")} has invalid evidence_id')
+    for row in records.get('risk_overrides',[]):
+        if int(row.get('threat_id',-1)) not in threats: errors.append(f'risk_override {row.get("id")} has invalid threat_id')
+        evidence_id=row.get('evidence_id')
+        if evidence_id not in (None,'') and int(evidence_id) not in evidence: errors.append(f'risk_override {row.get("id")} has invalid evidence_id')
+        supersedes=row.get('supersedes_id')
+        if supersedes not in (None,'') and int(supersedes) not in override_ids: errors.append(f'risk_override {row.get("id")} has invalid supersedes_id')
+    ops_requests={int(r['id']) for r in records.get('ops_requests',[]) if r.get('id') is not None}
+    engagements={int(r['id']) for r in records.get('ops_engagements',[]) if r.get('id') is not None}
+    tasks={int(r['id']) for r in records.get('ops_tasks',[]) if r.get('id') is not None}
+    estimates={int(r['id']) for r in records.get('ops_estimates',[]) if r.get('id') is not None}
+    for row in records.get('ops_engagements',[]):
+        if int(row.get('ops_request_id',-1)) not in ops_requests: errors.append(f'ops_engagement {row.get("id")} has invalid ops_request_id')
+    for row in records.get('ops_tasks',[]):
+        if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'ops_task {row.get("id")} has invalid engagement_id')
+    for row in records.get('ops_field_reports',[]):
+        if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'ops_field_report {row.get("id")} has invalid engagement_id')
+        task_id=row.get('task_id')
+        if task_id not in (None,'') and int(task_id) not in tasks: errors.append(f'ops_field_report {row.get("id")} has invalid task_id')
+    for row in records.get('ops_estimate_lines',[]):
+        if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'ops_estimate_line {row.get("id")} has invalid engagement_id')
+        if int(row.get('estimate_id',-1)) not in estimates: errors.append(f'ops_estimate_line {row.get("id")} has invalid estimate_id')
+    for row in records.get('ops_expenses',[]):
+        if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'ops_expense {row.get("id")} has invalid engagement_id')
+        task_id=row.get('task_id')
+        if task_id not in (None,'') and int(task_id) not in tasks: errors.append(f'ops_expense {row.get("id")} has invalid task_id')
+        evidence_id=row.get('evidence_id')
+        if evidence_id not in (None,'') and int(evidence_id) not in evidence: errors.append(f'ops_expense {row.get("id")} has invalid evidence_id')
     return errors
 
 def _safe_columns(conn, table):
@@ -77,6 +109,7 @@ def _insert_row(conn, table, row):
 def _reset_postgres_sequences(conn):
     if not is_postgres(): return
     for table in sorted(ID_TABLES):
+        # pg_get_serial_sequence returns NULL if the table does not have a serial/identity id.
         sql=(f"SELECT setval(pg_get_serial_sequence('{table}','id'), "
              f"COALESCE((SELECT MAX(id) FROM {table}),1), "
              f"EXISTS(SELECT 1 FROM {table})) WHERE pg_get_serial_sequence('{table}','id') IS NOT NULL")
@@ -86,8 +119,12 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     errors=validate_records(records,tenant_id)
     if errors: raise ValueError('; '.join(errors))
     tenant=records['tenants'][0]
+    # Preserve backup_history rows so the recovery action itself remains auditable.
     conn.execute('DELETE FROM auth_sessions WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?)',(tenant_id,))
     conn.execute('DELETE FROM assessment_access WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?) OR assessment_id IN (SELECT id FROM assessments WHERE tenant_id=?)',(tenant_id,tenant_id))
+    conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM intel_findings WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM ops_requests WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM assessments WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM users WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM audit_log WHERE tenant_id=?',(tenant_id,))

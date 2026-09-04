@@ -1,4 +1,4 @@
-# SalCAPA v2.2
+# SalCAPA v2.3
 
 SalCAPA is Salus Solutions' secure intelligence, risk, and operations platform.
 
@@ -9,7 +9,7 @@ SalCAPA is Salus Solutions' secure intelligence, risk, and operations platform.
 - **SalTHIRA** identifies threats and hazards, establishes context and capability targets, assesses capabilities, identifies gaps, and supports risk and impact decisions.
 - **SalOPS** governs approved requests, authorization, assignment, operations, results, and feedback.
 
-Shared platform controls provide tenant isolation, identity and authorization, evidence lifecycle governance, reassessment triggers, professional judgment, executive decisions, accepted risk, immutable reporting, audit/version history, backup, governed recovery, and controlled operational execution.
+Shared platform controls provide tenant isolation, identity and authorization, evidence lifecycle governance, reassessment triggers, professional judgment, executive decisions, accepted risk, immutable reporting, audit/version history, backup, governed recovery, controlled operational execution, and governed estimates and actual expenses.
 
 ## Development and release controls
 
@@ -18,8 +18,8 @@ GitHub is authoritative. Development occurs on governed development branches. Ev
 Reconstruct and verify this candidate with:
 
 ```bash
-python tools/reconstruct_v22_source.py
-python tools/verify_v22_source.py
+python tools/reconstruct_v23_source.py
+python tools/verify_v23_source.py
 ```
 
 Run the complete SalCAPA governed-workflow smoke with:
@@ -29,6 +29,7 @@ python tools/ci_v116_smoke.py
 python tools/ci_salcapa_smoke.py
 python tools/ci_salcapa_v21_smoke.py
 python tools/ci_salcapa_v22_smoke.py
+python tools/ci_salcapa_v23_smoke.py
 ```
 
 Production is prepared for Microsoft Azure. No Azure deployment is automatic; billable infrastructure and production activation require explicit approval.
