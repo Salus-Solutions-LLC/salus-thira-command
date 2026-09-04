@@ -1,0 +1,54 @@
+name: SalCAPA Azure connection verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - .github/workflows/azure-connection-verify.yml
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate required non-secret variables
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+        run: |
+          set -euo pipefail
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_RESOURCE_GROUP AZURE_LOCATION; do
+            test -n "${!name}" || { echo "Missing repository variable: $name" >&2; exit 1; }
+          done
+
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify scoped Azure target without deploying
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          EXPECTED_LOCATION: ${{ vars.AZURE_LOCATION }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SUBSCRIPTION_ID="$(az account show --query id --output tsv)"
+          ACTUAL_TENANT_ID="$(az account show --query tenantId --output tsv)"
+          ACTUAL_LOCATION="$(az group show --name "$RESOURCE_GROUP" --query location --output tsv)"
+          test "$ACTUAL_SUBSCRIPTION_ID" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$ACTUAL_TENANT_ID" = "$EXPECTED_TENANT_ID"
+          test "$ACTUAL_LOCATION" = "$EXPECTED_LOCATION"
+          echo "Azure workload identity verified for resource group $RESOURCE_GROUP."
