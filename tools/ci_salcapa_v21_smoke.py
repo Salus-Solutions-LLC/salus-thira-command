@@ -77,8 +77,8 @@ def main():
         'assessment_id': 1, 'title': 'Role-aware operation',
         'description': 'Internal operating detail', 'priority': 'Priority',
     })
-    post(client, f"/api/salops/requests/{operation['id']}/decision", director, {
-        'decision': 'Authorized', 'reason': 'Internal authority basis', 'assigned_to': 'Operations Lead',
+    post(client, f"/api/salops/requests/{operation['id']}/decision", member, {
+        'decision': 'Authorized', 'reason': 'Protected Member authority basis', 'assigned_to': 'Operations Lead',
     })
     assert client.post(f"/api/salops/requests/{operation['id']}/complete", headers=contributor, json={
         'result_summary': 'Forged member completion',

@@ -57,7 +57,7 @@ operation = client.post('/api/salops/requests', headers=salus, json={
 })
 assert operation.status_code == 200
 operation_id = operation.json()['id']
-authorized = client.post(f'/api/salops/requests/{operation_id}/decision', headers=salus, json={
+authorized = client.post(f'/api/salops/requests/{operation_id}/decision', headers=member, json={
     'decision': 'Authorized', 'reason': 'Required by current risk posture', 'assigned_to': 'Operations Lead',
 })
 assert authorized.status_code == 200 and authorized.json()['status'] == 'Authorized'

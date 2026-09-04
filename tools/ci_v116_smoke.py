@@ -25,7 +25,8 @@ def post(client,path,headers,payload,status=200):
 
 def main():
     client=TestClient(app.app)
-    h={'X-Salus-Role':'Assessment Director','X-Salus-User':'V116 Executive','X-Salus-Tenant':'1','X-Salus-Clearance':'Highly Sensitive'}
+    h={'X-Salus-Role':'Assessment Director','X-Salus-User':'V116 Assessor','X-Salus-Tenant':'1','X-Salus-Clearance':'Highly Sensitive'}
+    authority={**h,'X-Salus-Role':'Client Executive','X-Salus-User':'Protected Member Executive'}
     aid=post(client,'/api/assessments',h,{'name':'V116 Executive Governance','organization':'Member Client Alpha'})['id']
     other_aid=post(client,'/api/assessments',h,{'name':'V116 Boundary','organization':'Member Client Alpha'})['id']
     threat=post(client,'/api/threats',h,{'assessment_id':aid,'name':'Continuity disruption','category':'Operational'})
@@ -40,13 +41,13 @@ def main():
 
     base={'assessment_id':aid,'improvement_id':improvement['id'],'decision_type':'Accept Risk','authority':'Chief Operating Officer','rationale':'Residual exposure is accepted while the recovery path is implemented.','funding_authorized':25000,'conditions':'Reconsider after an incident, material threat change, or failed recovery exercise.','implementation_owner':'Continuity Executive','target_completion':future,'expected_residual_risk':'Moderate continuity exposure remains during implementation.','review_date':future}
     for key,value in {'review_lifecycle_status':'Current','created_at':'2000-01-01T00:00:00Z','tenant_id':2,'decision_type':'Invented Decision','funding_authorized':-1}.items():
-        response=client.post('/api/decisions',headers=h,json={**base,key:value})
+        response=client.post('/api/decisions',headers=authority,json={**base,key:value})
         assert response.status_code==422,(key,response.text)
     for missing in ('authority','rationale','conditions','implementation_owner','expected_residual_risk','review_date'):
-        response=client.post('/api/decisions',headers=h,json={**base,missing:''})
+        response=client.post('/api/decisions',headers=authority,json={**base,missing:''})
         assert response.status_code==422,(missing,response.text)
-    assert client.post('/api/decisions',headers=h,json={**base,'review_date':(date.today()-timedelta(days=1)).isoformat()}).status_code==422
-    assert client.post('/api/decisions',headers=h,json={**base,'improvement_id':other_improvement['id']}).status_code==422
+    assert client.post('/api/decisions',headers=authority,json={**base,'review_date':(date.today()-timedelta(days=1)).isoformat()}).status_code==422
+    assert client.post('/api/decisions',headers=authority,json={**base,'improvement_id':other_improvement['id']}).status_code==422
 
     # A forced accepted-risk insertion failure must roll back the decision as well.
     real_db=app.db
@@ -60,14 +61,14 @@ def main():
     app.db=lambda:FailingAcceptedRiskConnection(real_db())
     try:
         atomic_client=TestClient(app.app,raise_server_exceptions=False)
-        failed=atomic_client.post('/api/decisions',headers=h,json={**base,'rationale':'Atomic rollback marker.'})
+        failed=atomic_client.post('/api/decisions',headers=authority,json={**base,'rationale':'Atomic rollback marker.'})
         assert failed.status_code==500,failed.text
     finally:
         app.db=real_db
     conn=app.db(); after=conn.execute("SELECT COUNT(*) c FROM decisions WHERE rationale=?",('Atomic rollback marker.',)).fetchone()['c']; conn.close()
     assert before==after==0
 
-    decision=post(client,'/api/decisions',h,base)
+    decision=post(client,'/api/decisions',authority,base)
     decisions=client.get(f'/api/decisions?assessment_id={aid}',headers=h).json()
     accepted=client.get(f'/api/accepted_risks?assessment_id={aid}',headers=h).json()
     risk=next(x for x in accepted if x['decision_id']==decision['id'])
@@ -95,27 +96,27 @@ def main():
     assert len(decision_triggers)==1 and decision_triggers[0]['status']=='Open'
     assert len(risk_triggers)==1 and risk_triggers[0]['status']=='Open'
 
-    reviewed_decision=post(client,f'/api/decisions/{decision["id"]}/review',h,{'next_review_date':future,'review_outcome':'The executive decision remains appropriate within the documented conditions.'})
-    assert reviewed_decision['review_lifecycle_status']=='Current' and reviewed_decision['last_review_by']=='V116 Executive'
-    reviewed_risk=post(client,f'/api/accepted-risks/{risk["id"]}/review',h,{'next_review_date':future,'review_outcome':'The authority confirmed continued acceptance within tolerance.'})
-    assert reviewed_risk['review_lifecycle_status']=='Current' and reviewed_risk['last_review_by']=='V116 Executive'
+    reviewed_decision=post(client,f'/api/decisions/{decision["id"]}/review',authority,{'next_review_date':future,'review_outcome':'The executive decision remains appropriate within the documented conditions.'})
+    assert reviewed_decision['review_lifecycle_status']=='Current' and reviewed_decision['last_review_by']=='Protected Member Executive'
+    reviewed_risk=post(client,f'/api/accepted-risks/{risk["id"]}/review',authority,{'next_review_date':future,'review_outcome':'The authority confirmed continued acceptance within tolerance.'})
+    assert reviewed_risk['review_lifecycle_status']=='Current' and reviewed_risk['last_review_by']=='Protected Member Executive'
     triggers=client.get(f'/api/reassessment_triggers?assessment_id={aid}',headers=h).json()
     assert next(x for x in triggers if x['id']==decision_triggers[0]['id'])['status']=='Resolved'
     assert next(x for x in triggers if x['id']==risk_triggers[0]['id'])['status']=='Resolved'
 
-    under_review=post(client,f'/api/accepted-risks/{risk["id"]}/transition',h,{'status':'Under Review','reason':'The accountable authority opened a focused acceptance review.'})
+    under_review=post(client,f'/api/accepted-risks/{risk["id"]}/transition',authority,{'status':'Under Review','reason':'The accountable authority opened a focused acceptance review.'})
     assert under_review['status']=='Under Review'
-    assert post(client,f'/api/accepted-risks/{risk["id"]}/transition',h,{'status':'Active','reason':'Attempt to bypass controlled review.'},422)
-    active=post(client,f'/api/accepted-risks/{risk["id"]}/review',h,{'next_review_date':future,'review_outcome':'The focused review confirmed continued acceptance.'})
+    assert post(client,f'/api/accepted-risks/{risk["id"]}/transition',authority,{'status':'Active','reason':'Attempt to bypass controlled review.'},422)
+    active=post(client,f'/api/accepted-risks/{risk["id"]}/review',authority,{'next_review_date':future,'review_outcome':'The focused review confirmed continued acceptance.'})
     assert active['status']=='Active'
     conn=app.db(); conn.execute("UPDATE accepted_risks SET review_date=?,review_lifecycle_status='Current',review_overdue_reason='',review_overdue_at='' WHERE id=?",(yesterday,risk['id'])); conn.commit(); conn.close()
     client.get(f'/api/accepted_risks?assessment_id={aid}',headers=h)
     triggers=client.get(f'/api/reassessment_triggers?assessment_id={aid}',headers=h).json()
     second_episode=[x for x in triggers if x['source']=='Accepted Risk Lifecycle' and x['affected_record_id']==risk['id']]
     assert len(second_episode)==2 and len([x for x in second_episode if x['status']=='Open'])==1
-    closed=post(client,f'/api/accepted-risks/{risk["id"]}/transition',h,{'status':'Closed','reason':'Independent recovery testing removed the accepted residual exposure.'})
+    closed=post(client,f'/api/accepted-risks/{risk["id"]}/transition',authority,{'status':'Closed','reason':'Independent recovery testing removed the accepted residual exposure.'})
     assert closed['status']=='Closed' and closed['closure_basis']
-    assert post(client,f'/api/accepted-risks/{risk["id"]}/transition',h,{'status':'Under Review','reason':'Attempt to reopen terminal history.'},409)
+    assert post(client,f'/api/accepted-risks/{risk["id"]}/transition',authority,{'status':'Under Review','reason':'Attempt to reopen terminal history.'},409)
     triggers=client.get(f'/api/reassessment_triggers?assessment_id={aid}',headers=h).json()
     assert all(x['status']=='Resolved' for x in triggers if x['source']=='Accepted Risk Lifecycle' and x['affected_record_id']==risk['id'])
 

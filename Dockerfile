@@ -5,10 +5,9 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 RUN useradd --create-home --uid 10001 salus
 COPY . .
-RUN python tools/reconstruct_v29_source.py && python tools/verify_v29_source.py
+RUN python tools/reconstruct_v30_source.py && python tools/verify_v30_source.py
 RUN mkdir -p /app/attachments /app/backups /app/data && chown -R salus:salus /app
 USER salus
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"
 CMD ["uvicorn","app:app","--host","0.0.0.0","--port","8000","--proxy-headers"]
-

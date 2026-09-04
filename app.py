@@ -2332,6 +2332,12 @@ def require(request: Request, permission: str):
     r=role(request)
     if permission not in ROLE_PERMISSIONS.get(r, {'read'}): raise HTTPException(403, f'{r} does not have {permission} permission')
 
+def require_protected_member_authority(request: Request, action: str):
+    require(request,'decide')
+    if role(request)!='Client Executive':
+        security_event(request,'MEMBER_AUTHORITY_DENIED','High',f'action={action}')
+        raise HTTPException(403,'Only a Protected Member authority can exercise this decision authority.')
+
 def accessible_assessment_ids(request:Request):
     tid=tenant_id(request); conn=db(); ctx=auth_context(request)
     all_ids=[r['id'] for r in conn.execute('SELECT id FROM assessments WHERE tenant_id=? ORDER BY id',(tid,))]
@@ -3187,8 +3193,7 @@ def create_cop_decision_request(p:CopDecisionRequestIn,request:Request):
 
 @app.post('/api/salcapa/decision-requests/{decision_request_id}/decide')
 def decide_cop_request(decision_request_id:int,p:CopMemberDecisionIn,request:Request):
-    require(request,'decide')
-    if role(request)!='Client Executive': raise HTTPException(403,'Only a Protected Member authority can record this decision.')
+    require_protected_member_authority(request,'salcapa_decision')
     conn=db(); row=conn.execute('SELECT * FROM cop_decision_requests WHERE id=?',(decision_request_id,)).fetchone()
     if not row: conn.close(); raise HTTPException(404,'Decision request not found')
     if int(row['tenant_id'])!=tenant_id(request): conn.close(); security_event(request,'COP_TENANT_BOUNDARY_VIOLATION','High',f'decision_request={decision_request_id}'); raise HTTPException(403,'Tenant boundary violation')
@@ -3881,7 +3886,7 @@ def send_improvement_to_salops(improvement_id:int,request:Request):
 
 @app.post('/api/salops/requests/{request_id}/decision')
 def decide_ops_request(request_id:int,p:OpsRequestDecisionIn,request:Request):
-    require(request,'decide'); tid=tenant_id(request); who=actor(request); conn=db(); row=conn.execute("SELECT * FROM ops_requests WHERE id=? AND tenant_id=? AND status='Requested'",(request_id,tid)).fetchone()
+    require_protected_member_authority(request,'salops_request_decision'); tid=tenant_id(request); who=actor(request); conn=db(); row=conn.execute("SELECT * FROM ops_requests WHERE id=? AND tenant_id=? AND status='Requested'",(request_id,tid)).fetchone()
     if not row: conn.close(); raise HTTPException(404,'Requested operation not found')
     ts=now(); conn.execute('UPDATE ops_requests SET status=?,authorized_by=?,authorized_at=?,assigned_to=?,description=description||?,updated_at=? WHERE id=?',(p.decision,who,ts,p.assigned_to,f'\nAuthority basis: {p.reason}',ts,request_id)); audit(conn,'SALOPS_DECISION','ops_request',request_id,f'{p.decision}: {p.reason}',who); conn.commit(); result=dict(conn.execute('SELECT * FROM ops_requests WHERE id=?',(request_id,)).fetchone()); conn.close(); return result
 
@@ -4008,8 +4013,12 @@ def create_ops_task(engagement_id:int,p:OpsTaskIn,request:Request):
 
 @app.post('/api/salops/tasks/{task_id}/transition')
 def transition_ops_task(task_id:int,p:OpsTaskTransitionIn,request:Request):
-    require(request,'write'); require_ops_authority(request); tid=tenant_id(request); who=actor(request); conn=db(); row=conn.execute('SELECT * FROM ops_tasks WHERE id=? AND tenant_id=?',(task_id,tid)).fetchone()
+    require(request,'write'); require_salus_component_authority(request,'SalOPS'); tid=tenant_id(request); who=actor(request); conn=db(); row=conn.execute('SELECT * FROM ops_tasks WHERE id=?',(task_id,)).fetchone()
     if not row: conn.close(); raise HTTPException(404,'Operational task not found')
+    if int(row['tenant_id'])!=tid:
+        conn.close(); security_event(request,'SALOPS_TASK_TENANT_BOUNDARY_VIOLATION','High',f'task_id={task_id}'); raise HTTPException(403,'Tenant boundary violation')
+    if who!=row['assigned_to']:
+        conn.close(); require_ops_authority(request); conn=db(); row=conn.execute('SELECT * FROM ops_tasks WHERE id=? AND tenant_id=?',(task_id,tid)).fetchone()
     assessment_row_for_request(request,row['assessment_id']); allowed={'Assigned':{'In Progress','Cancelled'},'In Progress':{'Completed','Cancelled'}}
     if p.status not in allowed.get(row['status'],set()): conn.close(); raise HTTPException(409,f'Task cannot transition from {row["status"]} to {p.status}.')
     if p.status=='Completed' and not p.result_summary.strip(): conn.close(); raise HTTPException(422,'A result summary is required to complete a task.')
@@ -4530,7 +4539,7 @@ def validate_improvement(improvement_id:int,p:ImprovementValidationIn,request:Re
 
 @app.post('/api/decisions')
 def create_decision(p:DecisionIn, request:Request):
-    require(request,'decide'); assessment_row_for_request(request,p.assessment_id)
+    require_protected_member_authority(request,'executive_decision'); assessment_row_for_request(request,p.assessment_id)
     review_date=_normalize_date(p.review_date,'Executive decision review date')
     target_completion=_normalize_date(p.target_completion,'Executive decision target completion date')
     if review_date and datetime.strptime(review_date,'%Y-%m-%d').date()<=datetime.now(timezone.utc).date(): raise HTTPException(422,'Executive decision review date must be in the future.')
@@ -4573,7 +4582,7 @@ def create_decision(p:DecisionIn, request:Request):
 
 @app.post('/api/decisions/{decision_id}/review')
 def review_executive_decision(decision_id:int,p:DecisionReviewIn,request:Request):
-    require(request,'decide'); next_review=_normalize_date(p.next_review_date,'Next executive decision review date',required=True); outcome=(p.review_outcome or '').strip()
+    require_protected_member_authority(request,'executive_decision_review'); next_review=_normalize_date(p.next_review_date,'Next executive decision review date',required=True); outcome=(p.review_outcome or '').strip()
     if not outcome: raise HTTPException(422,'Executive decision review requires a documented outcome.')
     if datetime.strptime(next_review,'%Y-%m-%d').date()<=datetime.now(timezone.utc).date(): raise HTTPException(422,'Next executive decision review date must be in the future.')
     conn=db(); decision=conn.execute('SELECT * FROM decisions WHERE id=?',(decision_id,)).fetchone(); conn.close()
@@ -4587,7 +4596,7 @@ def review_executive_decision(decision_id:int,p:DecisionReviewIn,request:Request
 
 @app.post('/api/accepted-risks/{risk_id}/review')
 def review_accepted_risk(risk_id:int,p:AcceptedRiskReviewIn,request:Request):
-    require(request,'decide'); next_review=_normalize_date(p.next_review_date,'Next accepted-risk review date',required=True); outcome=(p.review_outcome or '').strip()
+    require_protected_member_authority(request,'accepted_risk_review'); next_review=_normalize_date(p.next_review_date,'Next accepted-risk review date',required=True); outcome=(p.review_outcome or '').strip()
     if not outcome: raise HTTPException(422,'Accepted-risk review requires a documented outcome.')
     if datetime.strptime(next_review,'%Y-%m-%d').date()<=datetime.now(timezone.utc).date(): raise HTTPException(422,'Next accepted-risk review date must be in the future.')
     conn=db(); risk=conn.execute('SELECT * FROM accepted_risks WHERE id=?',(risk_id,)).fetchone()
@@ -4606,7 +4615,7 @@ def review_accepted_risk(risk_id:int,p:AcceptedRiskReviewIn,request:Request):
 
 @app.post('/api/accepted-risks/{risk_id}/transition')
 def transition_accepted_risk(risk_id:int,p:AcceptedRiskTransitionIn,request:Request):
-    require(request,'decide')
+    require_protected_member_authority(request,'accepted_risk_transition')
     conn=db(); risk=conn.execute('SELECT * FROM accepted_risks WHERE id=?',(risk_id,)).fetchone(); conn.close()
     if not risk: raise HTTPException(404,'Accepted risk not found.')
     aid=int(risk['assessment_id']); assessment_row_for_request(request,aid); sweep_overdue_accepted_risks([aid])
@@ -4822,7 +4831,7 @@ def create_scope_change(p:ScopeChangeIn, request:Request):
 
 @app.post('/api/scope-changes/{change_id}/decision')
 def decide_scope_change(change_id:int,p:ScopeDecisionIn,request:Request):
-    require(request,'decide')
+    require_protected_member_authority(request,'scope_change_decision')
     if p.decision not in ('Approved','Rejected'): raise HTTPException(400,'Decision must be Approved or Rejected')
     conn=db(); ch=conn.execute('SELECT * FROM scope_changes WHERE id=?',(change_id,)).fetchone()
     if not ch: conn.close(); raise HTTPException(404)
