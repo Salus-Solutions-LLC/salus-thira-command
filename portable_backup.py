@@ -3,12 +3,12 @@ from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
-    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_engagement_readiness','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
+    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
     'users','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','assessments','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
-    'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','ops_requests','ops_engagements','ops_engagement_readiness','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
+    'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
 
 def _rows(conn, sql, params=()):
@@ -48,6 +48,10 @@ def collect_tenant_records(conn, tenant_id:int):
     records['ops_service_pillars']=_rows(conn,'SELECT * FROM ops_service_pillars WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['ops_service_catalog']=_rows(conn,'SELECT * FROM ops_service_catalog WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['ops_catalog_events']=_rows(conn,'SELECT * FROM ops_catalog_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['expert_profiles']=_rows(conn,'SELECT * FROM expert_profiles WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['expert_credentials']=_rows(conn,'SELECT * FROM expert_credentials WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['expert_availability']=_rows(conn,'SELECT * FROM expert_availability WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['expert_events']=_rows(conn,'SELECT * FROM expert_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['ops_requests']=_rows(conn,'SELECT * FROM ops_requests WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['cop_coordination_threads']=_rows(conn,'SELECT * FROM cop_coordination_threads WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['cop_coordination_messages']=_rows(conn,'SELECT * FROM cop_coordination_messages WHERE tenant_id=? ORDER BY id',(tenant_id,))
@@ -99,6 +103,14 @@ def validate_records(records, tenant_id:int|None=None):
         if supersedes not in (None,'') and int(supersedes) not in services: errors.append(f'ops_service_catalog {row.get("id")} has invalid supersedes_id')
     for row in records.get('ops_catalog_events',[]):
         if int(row.get('service_id',-1)) not in services: errors.append(f'ops_catalog_event {row.get("id")} has invalid service_id')
+    profiles={int(r['id']) for r in records.get('expert_profiles',[]) if r.get('id') is not None}
+    credentials={int(r['id']) for r in records.get('expert_credentials',[]) if r.get('id') is not None}
+    for table in ('expert_credentials','expert_availability'):
+        for row in records.get(table,[]):
+            if int(row.get('profile_id',-1)) not in profiles: errors.append(f'{table} record {row.get("id")} has invalid profile_id')
+    for row in records.get('expert_credentials',[]):
+        evidence_id=row.get('evidence_id')
+        if evidence_id not in (None,'') and int(evidence_id) not in evidence: errors.append(f'expert_credential {row.get("id")} has invalid evidence_id')
     threads={int(r['id']) for r in records.get('cop_coordination_threads',[]) if r.get('id') is not None}
     decision_requests={int(r['id']) for r in records.get('cop_decision_requests',[]) if r.get('id') is not None}
     for row in records.get('cop_coordination_messages',[]):
@@ -123,6 +135,8 @@ def validate_records(records, tenant_id:int|None=None):
     engagements={int(r['id']) for r in records.get('ops_engagements',[]) if r.get('id') is not None}
     tasks={int(r['id']) for r in records.get('ops_tasks',[]) if r.get('id') is not None}
     estimates={int(r['id']) for r in records.get('ops_estimates',[]) if r.get('id') is not None}
+    conflicts={int(r['id']) for r in records.get('expert_conflicts',[]) if r.get('id') is not None}
+    assignments={int(r['id']) for r in records.get('ops_engagement_assignments',[]) if r.get('id') is not None}
     for row in records.get('ops_requests',[]):
         service_id=row.get('service_catalog_id')
         if service_id not in (None,''):
@@ -135,8 +149,32 @@ def validate_records(records, tenant_id:int|None=None):
         if service_id not in (None,'') and int(service_id) not in services: errors.append(f'ops_engagement {row.get("id")} has invalid service_catalog_id')
     for row in records.get('ops_engagement_readiness',[]):
         if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'ops_engagement_readiness {row.get("id")} has invalid engagement_id')
+    for row in records.get('expert_conflicts',[]):
+        if int(row.get('profile_id',-1)) not in profiles: errors.append(f'expert_conflict {row.get("id")} has invalid profile_id')
+        if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'expert_conflict {row.get("id")} has invalid engagement_id')
+    for row in records.get('ops_engagement_assignments',[]):
+        if int(row.get('profile_id',-1)) not in profiles: errors.append(f'expert_assignment {row.get("id")} has invalid profile_id')
+        if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'expert_assignment {row.get("id")} has invalid engagement_id')
+        if int(row.get('conflict_id',-1)) not in conflicts: errors.append(f'expert_assignment {row.get("id")} has invalid conflict_id')
+    expert_targets={
+        'expert_profile':profiles,
+        'expert_credential':credentials,
+        'expert_availability':{int(r['id']) for r in records.get('expert_availability',[]) if r.get('id') is not None},
+        'expert_conflict':conflicts,
+        'expert_assignment':assignments,
+    }
+    event_versions={}
+    for row in records.get('expert_events',[]):
+        record_type=row.get('record_type'); record_id=int(row.get('record_id',-1)); version=int(row.get('version_no',-1))
+        if record_type not in expert_targets or record_id not in expert_targets.get(record_type,set()):
+            errors.append(f'expert_event {row.get("id")} has invalid target')
+        event_versions.setdefault((record_type,record_id),[]).append(version)
+    for target,versions in event_versions.items():
+        if sorted(versions)!=list(range(1,len(versions)+1)): errors.append(f'expert event history for {target[0]} {target[1]} is not contiguous')
     for row in records.get('ops_tasks',[]):
         if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'ops_task {row.get("id")} has invalid engagement_id')
+        assignment_id=row.get('assignment_id')
+        if assignment_id not in (None,'') and int(assignment_id) not in assignments: errors.append(f'ops_task {row.get("id")} has invalid assignment_id')
     for row in records.get('ops_field_reports',[]):
         if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'ops_field_report {row.get("id")} has invalid engagement_id')
         task_id=row.get('task_id')
@@ -190,6 +228,8 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('DELETE FROM cop_decision_requests WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM intel_findings WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM ops_requests WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM expert_events WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM expert_profiles WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM ops_catalog_events WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM ops_service_catalog WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM ops_service_pillars WHERE tenant_id=?',(tenant_id,))

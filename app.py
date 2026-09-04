@@ -864,6 +864,63 @@ def init_db():
       UNIQUE(tenant_id,service_id,version_no)
     );
     CREATE INDEX IF NOT EXISTS idx_ops_catalog_events_scope ON ops_catalog_events(tenant_id,service_id,version_no);
+    CREATE TABLE IF NOT EXISTS expert_profiles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      profile_key TEXT NOT NULL,
+      expert_actor TEXT NOT NULL,
+      member_display_name TEXT NOT NULL,
+      member_role_title TEXT NOT NULL,
+      member_biography TEXT NOT NULL,
+      member_contact_summary TEXT NOT NULL DEFAULT '',
+      internal_biography TEXT NOT NULL,
+      disciplines TEXT NOT NULL,
+      jurisdictions TEXT NOT NULL,
+      regions TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Draft',
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL,
+      last_material_editor TEXT NOT NULL, last_material_edit_at TEXT NOT NULL,
+      activated_by TEXT NOT NULL DEFAULT '', activated_at TEXT NOT NULL DEFAULT '', activation_reason TEXT NOT NULL DEFAULT '',
+      deactivated_by TEXT NOT NULL DEFAULT '', deactivated_at TEXT NOT NULL DEFAULT '', deactivation_reason TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,profile_key), UNIQUE(tenant_id,expert_actor)
+    );
+    CREATE INDEX IF NOT EXISTS idx_expert_profiles_scope ON expert_profiles(tenant_id,status,id);
+    CREATE TABLE IF NOT EXISTS expert_credentials (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      credential_type TEXT NOT NULL,
+      issuer TEXT NOT NULL,
+      jurisdiction TEXT NOT NULL DEFAULT '',
+      effective_on TEXT NOT NULL,
+      expires_on TEXT NOT NULL DEFAULT '',
+      evidence_id INTEGER,
+      status TEXT NOT NULL DEFAULT 'Unverified',
+      entered_by TEXT NOT NULL, entered_at TEXT NOT NULL,
+      verified_by TEXT NOT NULL DEFAULT '', verified_at TEXT NOT NULL DEFAULT '', verification_reason TEXT NOT NULL DEFAULT '',
+      withdrawn_by TEXT NOT NULL DEFAULT '', withdrawn_at TEXT NOT NULL DEFAULT '', withdrawal_reason TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES expert_profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_expert_credentials_scope ON expert_credentials(tenant_id,profile_id,status,id);
+    CREATE TABLE IF NOT EXISTS expert_availability (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      available_from TEXT NOT NULL,
+      available_until TEXT NOT NULL,
+      region TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Available',
+      recorded_by TEXT NOT NULL, recorded_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES expert_profiles(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_expert_availability_scope ON expert_availability(tenant_id,profile_id,status,available_from,available_until);
     CREATE TABLE IF NOT EXISTS ops_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -946,11 +1003,73 @@ def init_db():
       FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_ops_engagement_readiness_scope ON ops_engagement_readiness(tenant_id,engagement_id,status,id);
+    CREATE TABLE IF NOT EXISTS expert_conflicts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      engagement_id INTEGER NOT NULL,
+      disclosure TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Pending',
+      disclosed_by TEXT NOT NULL, disclosed_at TEXT NOT NULL,
+      reviewed_by TEXT NOT NULL DEFAULT '', reviewed_at TEXT NOT NULL DEFAULT '', review_reason TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES expert_profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (engagement_id) REFERENCES ops_engagements(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,profile_id,engagement_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_expert_conflicts_scope ON expert_conflicts(tenant_id,engagement_id,status,id);
+    CREATE TABLE IF NOT EXISTS ops_engagement_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      engagement_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      conflict_id INTEGER NOT NULL,
+      assignment_role TEXT NOT NULL,
+      member_display_name_snapshot TEXT NOT NULL,
+      member_role_title_snapshot TEXT NOT NULL,
+      member_biography_snapshot TEXT NOT NULL,
+      member_contact_summary_snapshot TEXT NOT NULL DEFAULT '',
+      qualification_snapshot TEXT NOT NULL,
+      member_visible INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'Proposed',
+      proposed_by TEXT NOT NULL, proposed_at TEXT NOT NULL,
+      accepted_by TEXT NOT NULL DEFAULT '', accepted_at TEXT NOT NULL DEFAULT '', acceptance_reason TEXT NOT NULL DEFAULT '',
+      released_by TEXT NOT NULL DEFAULT '', released_at TEXT NOT NULL DEFAULT '', release_reason TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (engagement_id) REFERENCES ops_engagements(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES expert_profiles(id) ON DELETE RESTRICT,
+      FOREIGN KEY (conflict_id) REFERENCES expert_conflicts(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_ops_assignments_scope ON ops_engagement_assignments(tenant_id,engagement_id,status,id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_ops_assignments_active ON ops_engagement_assignments(tenant_id,engagement_id,profile_id) WHERE status IN ('Proposed','Accepted');
+    CREATE TABLE IF NOT EXISTS expert_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      record_type TEXT NOT NULL,
+      record_id INTEGER NOT NULL,
+      version_no INTEGER NOT NULL,
+      event_type TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      snapshot_json TEXT NOT NULL,
+      changed_by TEXT NOT NULL,
+      changed_by_role TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,record_type,record_id,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_expert_events_scope ON expert_events(tenant_id,record_type,record_id,version_no);
     CREATE TABLE IF NOT EXISTS ops_tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
       engagement_id INTEGER NOT NULL,
       assessment_id INTEGER NOT NULL,
+      assignment_id INTEGER,
       title TEXT NOT NULL,
       instructions TEXT NOT NULL,
       assigned_to TEXT NOT NULL,
@@ -966,7 +1085,8 @@ def init_db():
       updated_at TEXT NOT NULL,
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
       FOREIGN KEY (engagement_id) REFERENCES ops_engagements(id) ON DELETE CASCADE,
-      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (assignment_id) REFERENCES ops_engagement_assignments(id) ON DELETE SET NULL
     );
     CREATE INDEX IF NOT EXISTS idx_ops_tasks_scope ON ops_tasks(tenant_id,engagement_id,status,id);
     CREATE TABLE IF NOT EXISTS ops_field_reports (
@@ -1105,6 +1225,7 @@ def init_db():
     ensure_column('ops_engagements','service_version_snapshot','INTEGER')
     ensure_column('ops_engagements','service_member_scope_snapshot',"TEXT NOT NULL DEFAULT ''")
     ensure_column('ops_engagements','service_deliverables_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('ops_tasks','assignment_id','INTEGER')
     conn.execute('CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL)')
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('0.8.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('0.9.0',now()))
@@ -1115,6 +1236,7 @@ def init_db():
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('1.4.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.6.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.7.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.8.0',now()))
 
     # v0.6 tenant/bootstrap migration. Existing records are assigned to the default tenant.
     if conn.execute('SELECT COUNT(*) c FROM tenants').fetchone()['c'] == 0:
@@ -1746,12 +1868,72 @@ class OpsReadinessTransitionIn(BaseModel):
     status: Literal['Complete','Exception']
     reason: str = Field(min_length=1, max_length=6000)
 
+class ExpertProfileIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    expert_actor: str = Field(min_length=1, max_length=500)
+    member_display_name: str = Field(min_length=1, max_length=500)
+    member_role_title: str = Field(min_length=1, max_length=500)
+    member_biography: str = Field(min_length=1, max_length=4000)
+    member_contact_summary: str = Field(default='', max_length=1000)
+    internal_biography: str = Field(min_length=1, max_length=12000)
+    disciplines: str = Field(min_length=1, max_length=4000)
+    jurisdictions: str = Field(min_length=1, max_length=4000)
+    regions: str = Field(min_length=1, max_length=4000)
+
+class ExpertProfileTransitionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    action: Literal['Activate','Deactivate']
+    reason: str = Field(min_length=1, max_length=6000)
+
+class ExpertCredentialIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    credential_type: str = Field(min_length=1, max_length=500)
+    issuer: str = Field(min_length=1, max_length=500)
+    jurisdiction: str = Field(default='', max_length=500)
+    effective_on: str = Field(min_length=1, max_length=10)
+    expires_on: str = Field(default='', max_length=10)
+    evidence_id: Optional[int] = Field(default=None, gt=0)
+
+class ExpertCredentialTransitionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    action: Literal['Verify','Withdraw']
+    reason: str = Field(min_length=1, max_length=6000)
+
+class ExpertAvailabilityIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    available_from: str = Field(min_length=1, max_length=40)
+    available_until: str = Field(min_length=1, max_length=40)
+    region: str = Field(default='', max_length=500)
+
+class ExpertConflictIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    profile_id: int = Field(gt=0)
+    disclosure: str = Field(min_length=1, max_length=6000)
+
+class ExpertConflictReviewIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    decision: Literal['Cleared','Restricted']
+    reason: str = Field(min_length=1, max_length=6000)
+
+class ExpertAssignmentIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    profile_id: int = Field(gt=0)
+    conflict_id: int = Field(gt=0)
+    assignment_role: str = Field(min_length=1, max_length=500)
+    member_visible: bool = True
+
+class ExpertAssignmentTransitionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    action: Literal['Accept','Release']
+    reason: str = Field(min_length=1, max_length=6000)
+
 class OpsTaskIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     title: str = Field(min_length=1, max_length=500)
     instructions: str = Field(min_length=1, max_length=12000)
     assigned_to: str = Field(min_length=1, max_length=500)
     priority: Literal['Routine','Priority','Urgent','Critical'] = 'Routine'
+    assignment_id: Optional[int] = Field(default=None, gt=0)
 
 class OpsTaskTransitionIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -2034,10 +2216,10 @@ def require_sensitivity(request:Request, sensitivity:str):
 
 def infer_tenant(conn, entity_type:str, entity_id:int|None):
     if entity_id is None: return 1
-    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','observation_intake_channel':'observation_intake_channels','observation':'observations','observation_attachment':'observation_attachments','observation_event':'observation_events','coordination_thread':'cop_coordination_threads','coordination_message':'cop_coordination_messages','decision_request':'cop_decision_requests','cop_event':'cop_events','ops_service_pillar':'ops_service_pillars','ops_service_catalog':'ops_service_catalog','ops_catalog_event':'ops_catalog_events','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_engagement_readiness':'ops_engagement_readiness','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
+    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','observation_intake_channel':'observation_intake_channels','observation':'observations','observation_attachment':'observation_attachments','observation_event':'observation_events','coordination_thread':'cop_coordination_threads','coordination_message':'cop_coordination_messages','decision_request':'cop_decision_requests','cop_event':'cop_events','ops_service_pillar':'ops_service_pillars','ops_service_catalog':'ops_service_catalog','ops_catalog_event':'ops_catalog_events','expert_profile':'expert_profiles','expert_credential':'expert_credentials','expert_availability':'expert_availability','expert_conflict':'expert_conflicts','expert_assignment':'ops_engagement_assignments','expert_event':'expert_events','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_engagement_readiness':'ops_engagement_readiness','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
     table=table_map.get(entity_type,entity_type if entity_type in table_map.values() else '')
     try:
-        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','observation_intake_channels','observations','observation_attachments','observation_events','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','ops_service_pillars','ops_service_catalog','ops_catalog_events','ops_requests','ops_engagements','ops_engagement_readiness','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
+        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','observation_intake_channels','observations','observation_attachments','observation_events','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','expert_conflicts','ops_engagement_assignments','expert_events','ops_requests','ops_engagements','ops_engagement_readiness','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
         elif table: r=conn.execute(f'SELECT a.tenant_id FROM {table} t JOIN assessments a ON a.id=t.assessment_id WHERE t.id=?',(entity_id,)).fetchone()
         else: r=None
         return int(r['tenant_id']) if r else 1
@@ -3206,6 +3388,178 @@ def transition_ops_catalog_service(service_id:int,p:OpsCatalogTransitionIn,reque
         target='Retired'; updates={'retired_by':who,'retired_at':ts,'retirement_reason':p.reason.strip()}
     updates.update({'status':target,'updated_at':ts}); conn.execute('UPDATE ops_service_catalog SET '+','.join(f'{k}=?' for k in updates)+' WHERE id=?',tuple(updates.values())+(service_id,)); row=conn.execute('SELECT * FROM ops_service_catalog WHERE id=?',(service_id,)).fetchone(); _ops_catalog_event(conn,row,target,p.reason.strip(),request); audit(conn,'SALOPS_CATALOG_TRANSITION','ops_service_catalog',service_id,f'{source["status"]} -> {target}: {p.reason}',who); conn.commit(); result=_ops_catalog_view(conn,row,False); conn.close(); return result
 
+def _expert_record(request:Request,profile_id:int):
+    conn=db(); row=conn.execute('SELECT * FROM expert_profiles WHERE id=?',(profile_id,)).fetchone(); conn.close()
+    if not row: raise HTTPException(404,'Expert profile not found')
+    if int(row['tenant_id'])!=tenant_id(request):
+        security_event(request,'EXPERT_TENANT_BOUNDARY_VIOLATION','High',f'profile_id={profile_id}')
+        raise HTTPException(403,'Expert profile tenant boundary violation')
+    return dict(row)
+
+def _expert_event(conn,record_type:str,row,event_type:str,summary:str,request:Request):
+    version=conn.execute('SELECT COALESCE(MAX(version_no),0)+1 n FROM expert_events WHERE tenant_id=? AND record_type=? AND record_id=?',(row['tenant_id'],record_type,row['id'])).fetchone()['n']
+    snapshot=json.dumps(dict(row),sort_keys=True,separators=(',',':'),default=str)
+    conn.execute('INSERT INTO expert_events(tenant_id,record_type,record_id,version_no,event_type,summary,snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',(row['tenant_id'],record_type,row['id'],version,event_type,summary,snapshot,actor(request),role(request),now()))
+
+def _expert_date(value:str,label:str):
+    text=str(value or '').strip()
+    try: return datetime.strptime(text,'%Y-%m-%d').strftime('%Y-%m-%d')
+    except ValueError: raise HTTPException(422,f'{label} must be YYYY-MM-DD.')
+
+@app.get('/api/salops/experts')
+def list_expert_profiles(request:Request):
+    require(request,'read'); require_salus_component_authority(request,'Expert profiles'); conn=db(); rows=[]
+    for row in conn.execute('SELECT * FROM expert_profiles WHERE tenant_id=? ORDER BY member_display_name,id',(tenant_id(request),)):
+        item=dict(row); item['credentials']=[dict(r) for r in conn.execute('SELECT * FROM expert_credentials WHERE tenant_id=? AND profile_id=? ORDER BY id',(tenant_id(request),row['id']))]; item['availability']=[dict(r) for r in conn.execute('SELECT * FROM expert_availability WHERE tenant_id=? AND profile_id=? ORDER BY available_from,id',(tenant_id(request),row['id']))]; rows.append(item)
+    conn.close(); return rows
+
+@app.post('/api/salops/experts')
+def create_expert_profile(p:ExpertProfileIn,request:Request):
+    require(request,'write'); require_ops_authority(request); tid=tenant_id(request); who=actor(request); ts=now(); conn=db()
+    try:
+        cur=conn.execute('''INSERT INTO expert_profiles(tenant_id,profile_key,expert_actor,member_display_name,member_role_title,member_biography,member_contact_summary,internal_biography,disciplines,jurisdictions,regions,status,created_by,created_at,last_material_editor,last_material_edit_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,f'EXP-{uuid.uuid4().hex[:12].upper()}',p.expert_actor.strip(),p.member_display_name.strip(),p.member_role_title.strip(),p.member_biography.strip(),p.member_contact_summary.strip(),p.internal_biography.strip(),p.disciplines.strip(),p.jurisdictions.strip(),p.regions.strip(),'Draft',who,ts,who,ts,ts)); profile_id=cur.lastrowid
+    except Exception as exc:
+        conn.rollback(); conn.close()
+        if 'UNIQUE' in str(exc).upper() or 'DUPLICATE' in str(exc).upper(): raise HTTPException(409,'An expert profile already exists for this actor.')
+        raise
+    row=conn.execute('SELECT * FROM expert_profiles WHERE id=?',(profile_id,)).fetchone(); _expert_event(conn,'expert_profile',row,'Draft Created','Expert profile drafted',request); audit(conn,'EXPERT_PROFILE_CREATED','expert_profile',profile_id,p.expert_actor.strip(),who); conn.commit(); result=dict(row); conn.close(); return result
+
+@app.post('/api/salops/experts/{profile_id}/transition')
+def transition_expert_profile(profile_id:int,p:ExpertProfileTransitionIn,request:Request):
+    require(request,'write'); require_ops_authority(request); row=_expert_record(request,profile_id); who=actor(request); ts=now(); conn=db()
+    if p.action=='Activate':
+        if row['status']!='Draft': conn.close(); raise HTTPException(409,'Only a Draft expert profile can be activated.')
+        if who in {row['expert_actor'],row['last_material_editor']}: conn.close(); raise HTTPException(409,'Activation requires authority independent from the expert and material editor.')
+        target='Active'; updates={'activated_by':who,'activated_at':ts,'activation_reason':p.reason.strip()}
+    else:
+        if row['status']!='Active': conn.close(); raise HTTPException(409,'Only an Active expert profile can be deactivated.')
+        if who==row['expert_actor']: conn.close(); raise HTTPException(409,'An expert cannot deactivate their own governed profile.')
+        active_assignment=conn.execute("SELECT id FROM ops_engagement_assignments WHERE tenant_id=? AND profile_id=? AND status IN ('Proposed','Accepted') LIMIT 1",(row['tenant_id'],profile_id)).fetchone()
+        if active_assignment: conn.close(); raise HTTPException(409,'Release all proposed or accepted assignments before deactivating this profile.')
+        target='Inactive'; updates={'deactivated_by':who,'deactivated_at':ts,'deactivation_reason':p.reason.strip()}
+    updates.update({'status':target,'updated_at':ts}); conn.execute('UPDATE expert_profiles SET '+','.join(f'{k}=?' for k in updates)+' WHERE id=?',tuple(updates.values())+(profile_id,)); current=conn.execute('SELECT * FROM expert_profiles WHERE id=?',(profile_id,)).fetchone(); _expert_event(conn,'expert_profile',current,target,p.reason.strip(),request); audit(conn,'EXPERT_PROFILE_TRANSITION','expert_profile',profile_id,f'{row["status"]} -> {target}: {p.reason}',who); conn.commit(); result=dict(current); conn.close(); return result
+
+@app.post('/api/salops/experts/{profile_id}/credentials')
+def create_expert_credential(profile_id:int,p:ExpertCredentialIn,request:Request):
+    require(request,'write'); require_ops_authority(request); profile=_expert_record(request,profile_id); effective=_expert_date(p.effective_on,'Effective date'); expires=_expert_date(p.expires_on,'Expiry date') if p.expires_on else ''
+    if expires and expires<effective: raise HTTPException(422,'Expiry date cannot precede effective date.')
+    if p.evidence_id:
+        conn=db(); evidence=conn.execute('SELECT e.*,a.tenant_id FROM evidence e JOIN assessments a ON a.id=e.assessment_id WHERE e.id=?',(p.evidence_id,)).fetchone(); conn.close()
+        if evidence and int(evidence['tenant_id'])!=tenant_id(request):
+            security_event(request,'EXPERT_TENANT_BOUNDARY_VIOLATION','High',f'credential evidence_id={p.evidence_id}')
+            raise HTTPException(403,'Credential evidence tenant boundary violation')
+        if not evidence: raise HTTPException(422,'Credential evidence is unavailable in this tenant.')
+        assessment_row_for_request(request,evidence['assessment_id'])
+    who=actor(request); ts=now(); conn=db(); cur=conn.execute('''INSERT INTO expert_credentials(tenant_id,profile_id,credential_type,issuer,jurisdiction,effective_on,expires_on,evidence_id,status,entered_by,entered_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)''',(tenant_id(request),profile_id,p.credential_type.strip(),p.issuer.strip(),p.jurisdiction.strip(),effective,expires,p.evidence_id,'Unverified',who,ts,ts)); cid=cur.lastrowid; row=conn.execute('SELECT * FROM expert_credentials WHERE id=?',(cid,)).fetchone(); _expert_event(conn,'expert_credential',row,'Recorded','Credential recorded as unverified',request); audit(conn,'EXPERT_CREDENTIAL_CREATED','expert_credential',cid,f'profile={profile_id}; type={p.credential_type}',who); conn.commit(); result=dict(row); conn.close(); return result
+
+@app.post('/api/salops/credentials/{credential_id}/transition')
+def transition_expert_credential(credential_id:int,p:ExpertCredentialTransitionIn,request:Request):
+    require(request,'write'); require_ops_authority(request); tid=tenant_id(request); who=actor(request); ts=now(); conn=db(); row=conn.execute('SELECT c.*,p.expert_actor FROM expert_credentials c JOIN expert_profiles p ON p.id=c.profile_id WHERE c.id=? AND c.tenant_id=?',(credential_id,tid)).fetchone()
+    if not row:
+        outside=conn.execute('SELECT tenant_id FROM expert_credentials WHERE id=?',(credential_id,)).fetchone(); conn.close()
+        if outside: security_event(request,'EXPERT_TENANT_BOUNDARY_VIOLATION','High',f'credential_id={credential_id}'); raise HTTPException(403,'Expert credential tenant boundary violation')
+        raise HTTPException(404,'Expert credential not found')
+    if p.action=='Verify':
+        if row['status']!='Unverified': conn.close(); raise HTTPException(409,'Only an Unverified credential can be verified.')
+        if who in {row['expert_actor'],row['entered_by']}: conn.close(); raise HTTPException(409,'Credential verification must be independent from the expert and recorder.')
+        if row['evidence_id']:
+            evidence=conn.execute('SELECT verification_status,lifecycle_status,valid_until FROM evidence WHERE id=?',(row['evidence_id'],)).fetchone()
+            if not evidence or evidence['verification_status']!='Verified' or evidence['lifecycle_status']!='Current' or (evidence['valid_until'] and evidence['valid_until']<ts[:10]): conn.close(); raise HTTPException(409,'Credential evidence must be verified and current.')
+        target='Verified'; updates={'verified_by':who,'verified_at':ts,'verification_reason':p.reason.strip()}
+    else:
+        if row['status'] not in {'Unverified','Verified'}: conn.close(); raise HTTPException(409,'This credential is already terminal.')
+        if who==row['expert_actor']: conn.close(); raise HTTPException(409,'An expert cannot withdraw their own governed credential.')
+        active_assignment=conn.execute("SELECT id FROM ops_engagement_assignments WHERE tenant_id=? AND profile_id=? AND status IN ('Proposed','Accepted') LIMIT 1",(tid,row['profile_id'])).fetchone()
+        if active_assignment: conn.close(); raise HTTPException(409,'Release all proposed or accepted assignments before withdrawing this credential.')
+        target='Withdrawn'; updates={'withdrawn_by':who,'withdrawn_at':ts,'withdrawal_reason':p.reason.strip()}
+    updates.update({'status':target,'updated_at':ts}); conn.execute('UPDATE expert_credentials SET '+','.join(f'{k}=?' for k in updates)+' WHERE id=?',tuple(updates.values())+(credential_id,)); current=conn.execute('SELECT * FROM expert_credentials WHERE id=?',(credential_id,)).fetchone(); _expert_event(conn,'expert_credential',current,target,p.reason.strip(),request); audit(conn,'EXPERT_CREDENTIAL_TRANSITION','expert_credential',credential_id,f'{row["status"]} -> {target}: {p.reason}',who); conn.commit(); result=dict(current); conn.close(); return result
+
+@app.post('/api/salops/experts/{profile_id}/availability')
+def create_expert_availability(profile_id:int,p:ExpertAvailabilityIn,request:Request):
+    require(request,'write'); require_salus_component_authority(request,'Expert availability'); _expert_record(request,profile_id); start=_ops_time(p.available_from,'Available from'); end=_ops_time(p.available_until,'Available until')
+    if end<=start: raise HTTPException(422,'Availability end must be after start.')
+    who=actor(request); ts=now(); conn=db(); cur=conn.execute('INSERT INTO expert_availability(tenant_id,profile_id,available_from,available_until,region,status,recorded_by,recorded_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',(tenant_id(request),profile_id,start,end,p.region.strip(),'Available',who,ts,ts)); aid=cur.lastrowid; row=conn.execute('SELECT * FROM expert_availability WHERE id=?',(aid,)).fetchone(); _expert_event(conn,'expert_availability',row,'Availability Recorded','Availability window recorded',request); audit(conn,'EXPERT_AVAILABILITY_CREATED','expert_availability',aid,f'profile={profile_id}',who); conn.commit(); result=dict(row); conn.close(); return result
+
+@app.get('/api/salops/engagements/{engagement_id}/conflicts')
+def list_expert_conflicts(engagement_id:int,request:Request):
+    require(request,'read'); require_salus_component_authority(request,'Expert conflicts'); _ops_engagement(request,engagement_id); conn=db(); rows=[dict(r) for r in conn.execute('SELECT * FROM expert_conflicts WHERE tenant_id=? AND engagement_id=? ORDER BY id',(tenant_id(request),engagement_id))]; conn.close(); return rows
+
+@app.post('/api/salops/engagements/{engagement_id}/conflicts')
+def create_expert_conflict(engagement_id:int,p:ExpertConflictIn,request:Request):
+    require(request,'write'); require_salus_component_authority(request,'Expert conflicts'); engagement=_ops_engagement(request,engagement_id); _expert_record(request,p.profile_id); who=actor(request); ts=now(); conn=db()
+    try: cur=conn.execute('INSERT INTO expert_conflicts(tenant_id,assessment_id,profile_id,engagement_id,disclosure,status,disclosed_by,disclosed_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',(tenant_id(request),engagement['assessment_id'],p.profile_id,engagement_id,p.disclosure.strip(),'Pending',who,ts,ts)); cid=cur.lastrowid
+    except Exception as exc:
+        conn.rollback(); conn.close()
+        if 'UNIQUE' in str(exc).upper() or 'DUPLICATE' in str(exc).upper(): raise HTTPException(409,'A conflict disclosure already exists for this expert and engagement.')
+        raise
+    row=conn.execute('SELECT * FROM expert_conflicts WHERE id=?',(cid,)).fetchone(); _expert_event(conn,'expert_conflict',row,'Disclosed',p.disclosure.strip(),request); audit(conn,'EXPERT_CONFLICT_CREATED','expert_conflict',cid,f'engagement={engagement_id}; profile={p.profile_id}',who); conn.commit(); result=dict(row); conn.close(); return result
+
+@app.post('/api/salops/conflicts/{conflict_id}/review')
+def review_expert_conflict(conflict_id:int,p:ExpertConflictReviewIn,request:Request):
+    require(request,'write'); require_ops_authority(request); tid=tenant_id(request); who=actor(request); ts=now(); conn=db(); row=conn.execute('SELECT c.*,p.expert_actor FROM expert_conflicts c JOIN expert_profiles p ON p.id=c.profile_id WHERE c.id=? AND c.tenant_id=?',(conflict_id,tid)).fetchone()
+    if not row:
+        outside=conn.execute('SELECT tenant_id FROM expert_conflicts WHERE id=?',(conflict_id,)).fetchone(); conn.close()
+        if outside: security_event(request,'EXPERT_TENANT_BOUNDARY_VIOLATION','High',f'conflict_id={conflict_id}'); raise HTTPException(403,'Expert conflict tenant boundary violation')
+        raise HTTPException(404,'Expert conflict disclosure not found')
+    if row['status']!='Pending': conn.close(); raise HTTPException(409,'Only a Pending conflict disclosure can be reviewed.')
+    if who in {row['expert_actor'],row['disclosed_by']}: conn.close(); raise HTTPException(409,'Conflict review must be independent from the expert and discloser.')
+    conn.execute('UPDATE expert_conflicts SET status=?,reviewed_by=?,reviewed_at=?,review_reason=?,updated_at=? WHERE id=?',(p.decision,who,ts,p.reason.strip(),ts,conflict_id)); current=conn.execute('SELECT * FROM expert_conflicts WHERE id=?',(conflict_id,)).fetchone(); _expert_event(conn,'expert_conflict',current,p.decision,p.reason.strip(),request); audit(conn,'EXPERT_CONFLICT_REVIEW','expert_conflict',conflict_id,f'{p.decision}: {p.reason}',who); conn.commit(); result=dict(current); conn.close(); return result
+
+@app.get('/api/salops/engagements/{engagement_id}/experts')
+def list_engagement_experts(engagement_id:int,request:Request):
+    require(request,'read'); _ops_engagement(request,engagement_id); tid=tenant_id(request); conn=db()
+    if protected_member_request(request):
+        rows=[dict(r) for r in conn.execute("SELECT id,engagement_id,assignment_role,member_display_name_snapshot,member_role_title_snapshot,member_biography_snapshot,member_contact_summary_snapshot,status,accepted_at FROM ops_engagement_assignments WHERE tenant_id=? AND engagement_id=? AND status='Accepted' AND member_visible=1 ORDER BY id",(tid,engagement_id))]
+    else: rows=[dict(r) for r in conn.execute('SELECT * FROM ops_engagement_assignments WHERE tenant_id=? AND engagement_id=? ORDER BY id',(tid,engagement_id))]
+    conn.close(); return rows
+
+@app.post('/api/salops/engagements/{engagement_id}/experts')
+def propose_engagement_expert(engagement_id:int,p:ExpertAssignmentIn,request:Request):
+    require(request,'write'); require_ops_authority(request); engagement=_ops_engagement(request,engagement_id); profile=_expert_record(request,p.profile_id); who=actor(request); tid=tenant_id(request)
+    if engagement['status'] not in {'Planning','Mobilizing','Active'}: raise HTTPException(409,'Experts can be assigned only to a planning, mobilizing, or active engagement.')
+    if profile['status']!='Active': raise HTTPException(409,'Only an Active expert profile can be assigned.')
+    if who==profile['expert_actor']: raise HTTPException(409,'An expert cannot authorize their own assignment.')
+    today=now()[:10]; conn=db(); credentials=[dict(r) for r in conn.execute("SELECT * FROM expert_credentials WHERE tenant_id=? AND profile_id=? AND status='Verified' AND effective_on<=? AND (expires_on='' OR expires_on>=?) ORDER BY id",(tid,p.profile_id,today,today))]
+    if not credentials: conn.close(); raise HTTPException(409,'Assignment requires a current independently verified credential.')
+    availability=conn.execute("SELECT id FROM expert_availability WHERE tenant_id=? AND profile_id=? AND status='Available' AND available_from<=? AND available_until>=? LIMIT 1",(tid,p.profile_id,engagement['planned_start'],engagement['planned_end'])).fetchone()
+    if not availability: conn.close(); raise HTTPException(409,'Assignment requires an availability window covering the engagement operating period.')
+    conflict=conn.execute("SELECT * FROM expert_conflicts WHERE id=? AND tenant_id=? AND profile_id=? AND engagement_id=? AND status='Cleared'",(p.conflict_id,tid,p.profile_id,engagement_id)).fetchone()
+    if not conflict:
+        outside=conn.execute('SELECT tenant_id,profile_id,engagement_id FROM expert_conflicts WHERE id=?',(p.conflict_id,)).fetchone(); conn.close()
+        if outside and (int(outside['tenant_id'])!=tid or int(outside['profile_id'])!=p.profile_id or int(outside['engagement_id'])!=engagement_id):
+            security_event(request,'EXPERT_ASSIGNMENT_SCOPE_VIOLATION','High',f'conflict_id={p.conflict_id}; engagement_id={engagement_id}')
+            raise HTTPException(403,'Expert assignment scope violation')
+        raise HTTPException(409,'Assignment requires an independently cleared conflict disclosure for this engagement.')
+    if conflict['reviewed_by'] in {profile['expert_actor'],who}: conn.close(); raise HTTPException(409,'Conflict review and assignment authority must remain independent.')
+    qualification=json.dumps([{'credential_type':c['credential_type'],'issuer':c['issuer'],'jurisdiction':c['jurisdiction'],'effective_on':c['effective_on'],'expires_on':c['expires_on'],'verified_by':c['verified_by'],'verified_at':c['verified_at']} for c in credentials],sort_keys=True,separators=(',',':'))
+    ts=now()
+    try:
+        cur=conn.execute('''INSERT INTO ops_engagement_assignments(tenant_id,engagement_id,assessment_id,profile_id,conflict_id,assignment_role,member_display_name_snapshot,member_role_title_snapshot,member_biography_snapshot,member_contact_summary_snapshot,qualification_snapshot,member_visible,status,proposed_by,proposed_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,engagement_id,engagement['assessment_id'],p.profile_id,p.conflict_id,p.assignment_role.strip(),profile['member_display_name'],profile['member_role_title'],profile['member_biography'],profile['member_contact_summary'],qualification,1 if p.member_visible else 0,'Proposed',who,ts,ts)); assignment_id=cur.lastrowid
+    except Exception as exc:
+        conn.rollback(); conn.close()
+        if 'UNIQUE' in str(exc).upper() or 'DUPLICATE' in str(exc).upper(): raise HTTPException(409,'This expert already has an active assignment to the engagement.')
+        raise
+    row=conn.execute('SELECT * FROM ops_engagement_assignments WHERE id=?',(assignment_id,)).fetchone(); _expert_event(conn,'expert_assignment',row,'Proposed',f'engagement={engagement_id}; role={p.assignment_role}',request); audit(conn,'EXPERT_ASSIGNMENT_PROPOSED','expert_assignment',assignment_id,f'engagement={engagement_id}; profile={p.profile_id}',who); conn.commit(); result=dict(row); conn.close(); return result
+
+@app.post('/api/salops/expert-assignments/{assignment_id}/transition')
+def transition_engagement_expert(assignment_id:int,p:ExpertAssignmentTransitionIn,request:Request):
+    require(request,'write'); require_salus_component_authority(request,'Expert assignments'); tid=tenant_id(request); who=actor(request); ts=now(); conn=db(); row=conn.execute('SELECT a.*,p.expert_actor FROM ops_engagement_assignments a JOIN expert_profiles p ON p.id=a.profile_id WHERE a.id=? AND a.tenant_id=?',(assignment_id,tid)).fetchone()
+    if not row:
+        outside=conn.execute('SELECT tenant_id FROM ops_engagement_assignments WHERE id=?',(assignment_id,)).fetchone(); conn.close()
+        if outside: security_event(request,'EXPERT_TENANT_BOUNDARY_VIOLATION','High',f'assignment_id={assignment_id}'); raise HTTPException(403,'Expert assignment tenant boundary violation')
+        raise HTTPException(404,'Expert assignment not found')
+    assessment_row_for_request(request,row['assessment_id'])
+    if p.action=='Accept':
+        if row['status']!='Proposed': conn.close(); raise HTTPException(409,'Only a Proposed assignment can be accepted.')
+        if who!=row['expert_actor']: conn.close(); raise HTTPException(403,'Only the assigned expert may accept this assignment.')
+        target='Accepted'; updates={'accepted_by':who,'accepted_at':ts,'acceptance_reason':p.reason.strip()}
+    else:
+        require_ops_authority(request)
+        if row['status'] not in {'Proposed','Accepted'}: conn.close(); raise HTTPException(409,'This assignment is already terminal.')
+        if who==row['expert_actor']: conn.close(); raise HTTPException(409,'Assignment release requires operational authority independent from the expert.')
+        target='Released'; updates={'released_by':who,'released_at':ts,'release_reason':p.reason.strip()}
+    updates.update({'status':target,'updated_at':ts}); conn.execute('UPDATE ops_engagement_assignments SET '+','.join(f'{k}=?' for k in updates)+' WHERE id=?',tuple(updates.values())+(assignment_id,)); current=conn.execute('SELECT * FROM ops_engagement_assignments WHERE id=?',(assignment_id,)).fetchone(); _expert_event(conn,'expert_assignment',current,target,p.reason.strip(),request); audit(conn,'EXPERT_ASSIGNMENT_TRANSITION','expert_assignment',assignment_id,f'{row["status"]} -> {target}: {p.reason}',who); conn.commit(); result=dict(current); conn.close(); return result
+
 @app.get('/api/salops/requests')
 def list_ops_requests(request:Request):
     require(request,'read'); conn=db()
@@ -3303,6 +3657,9 @@ def transition_ops_engagement(engagement_id:int,p:OpsEngagementTransitionIn,requ
     if row.get('service_catalog_id') and p.status=='Mobilizing':
         readiness_count=conn.execute('SELECT COUNT(*) c FROM ops_engagement_readiness WHERE engagement_id=? AND tenant_id=?',(engagement_id,tid)).fetchone()['c']
         if not readiness_count: conn.close(); raise HTTPException(409,'Catalog-backed engagements require documented readiness requirements before mobilization.')
+        active_profiles=conn.execute("SELECT COUNT(*) c FROM expert_profiles WHERE tenant_id=? AND status='Active'",(tid,)).fetchone()['c']
+        assignment_count=conn.execute("SELECT COUNT(*) c FROM ops_engagement_assignments WHERE engagement_id=? AND tenant_id=? AND status='Accepted'",(engagement_id,tid)).fetchone()['c']
+        if active_profiles and not assignment_count: conn.close(); raise HTTPException(409,'Expert-enabled catalog engagements require at least one accepted qualified expert assignment before mobilization.')
     if row.get('service_catalog_id') and p.status=='Active':
         pending=conn.execute("SELECT COUNT(*) c FROM ops_engagement_readiness WHERE engagement_id=? AND tenant_id=? AND status='Pending'",(engagement_id,tid)).fetchone()['c']
         if pending: conn.close(); raise HTTPException(409,'Catalog-backed engagements cannot become Active while readiness requirements remain pending.')
@@ -3350,7 +3707,14 @@ def list_ops_tasks(engagement_id:int,request:Request):
 def create_ops_task(engagement_id:int,p:OpsTaskIn,request:Request):
     require(request,'write'); require_ops_authority(request); engagement=_ops_engagement(request,engagement_id)
     if engagement['status'] in ('Demobilizing','Closed'): raise HTTPException(409,'New tasks cannot be assigned during demobilization or after closure.')
-    tid=tenant_id(request); who=actor(request); ts=now(); conn=db(); cur=conn.execute('INSERT INTO ops_tasks(tenant_id,engagement_id,assessment_id,title,instructions,assigned_to,priority,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',(tid,engagement_id,engagement['assessment_id'],p.title,p.instructions,p.assigned_to,p.priority,'Assigned',who,ts,ts)); task_id=cur.lastrowid; audit(conn,'CREATE','ops_task',task_id,f'engagement={engagement_id}; assigned_to={p.assigned_to}',who); snapshot_entity(conn,'ops_tasks',task_id,who,'Operational task assigned'); conn.commit(); row=dict(conn.execute('SELECT * FROM ops_tasks WHERE id=?',(task_id,)).fetchone()); conn.close(); return row
+    tid=tenant_id(request); who=actor(request); ts=now(); conn=db(); assigned_to=p.assigned_to
+    if p.assignment_id:
+        assignment=conn.execute("SELECT a.*,p.expert_actor FROM ops_engagement_assignments a JOIN expert_profiles p ON p.id=a.profile_id WHERE a.id=?",(p.assignment_id,)).fetchone()
+        if assignment and (int(assignment['tenant_id'])!=tid or int(assignment['engagement_id'])!=engagement_id):
+            conn.close(); security_event(request,'EXPERT_ASSIGNMENT_SCOPE_VIOLATION','High',f'assignment_id={p.assignment_id}; engagement_id={engagement_id}'); raise HTTPException(403,'Expert task assignment scope violation')
+        if not assignment or assignment['status']!='Accepted': conn.close(); raise HTTPException(409,'Task assignment requires an accepted expert assignment for this engagement.')
+        assigned_to=assignment['expert_actor']
+    cur=conn.execute('INSERT INTO ops_tasks(tenant_id,engagement_id,assessment_id,assignment_id,title,instructions,assigned_to,priority,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',(tid,engagement_id,engagement['assessment_id'],p.assignment_id,p.title,p.instructions,assigned_to,p.priority,'Assigned',who,ts,ts)); task_id=cur.lastrowid; audit(conn,'CREATE','ops_task',task_id,f'engagement={engagement_id}; assigned_to={assigned_to}; assignment={p.assignment_id or "manual"}',who); snapshot_entity(conn,'ops_tasks',task_id,who,'Operational task assigned'); conn.commit(); row=dict(conn.execute('SELECT * FROM ops_tasks WHERE id=?',(task_id,)).fetchone()); conn.close(); return row
 
 @app.post('/api/salops/tasks/{task_id}/transition')
 def transition_ops_task(task_id:int,p:OpsTaskTransitionIn,request:Request):
