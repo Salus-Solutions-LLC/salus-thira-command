@@ -35,7 +35,7 @@ def main():
     thira = {**member_user, 'X-Salus-Role': 'Assessment Director', 'X-Salus-User': 'SalTHIRA Assessor'}
     ops = {**member_user, 'X-Salus-Role': 'Program Owner', 'X-Salus-User': 'SalOPS Coordinator'}
     reviewer = {**member_user, 'X-Salus-Role': 'Assessment Director', 'X-Salus-User': 'Independent Reviewer'}
-    expert = {**member_user, 'X-Salus-Role': 'Lead Assessor', 'X-Salus-User': 'Assigned Expert'}
+    expert = {**member_user, 'X-Salus-Role': 'Lead Assessor', 'X-Salus-User': 'Acceptance Assigned Expert'}
     admin = {**member_user, 'X-Salus-Role': 'System Administrator', 'X-Salus-User': 'System Administrator'}
     recovery = {**admin, 'X-Salus-User': 'Recovery Authority'}
     auditor = {**member_user, 'X-Salus-Role': 'Auditor', 'X-Salus-User': 'Independent Auditor'}
@@ -127,7 +127,7 @@ def main():
     post(client, f"/api/salops/estimates/{estimate['id']}/transition", member_authority, {'status': 'Approved', 'reason': 'Member authorized the estimate.'})
 
     profile = post(client, '/api/salops/experts', ops, {
-        'expert_actor': 'Assigned Expert', 'member_display_name': 'Jordan Lee',
+        'expert_actor': 'Acceptance Assigned Expert', 'member_display_name': 'Jordan Lee',
         'member_role_title': 'Continuity Advisor', 'member_biography': 'Qualified advisor for the authorized engagement.',
         'member_contact_summary': 'Coordinate through the approved Salus channel.',
         'internal_biography': 'CONTROLLED PERSONNEL HISTORY', 'disciplines': 'Continuity',
@@ -165,7 +165,7 @@ def main():
         'title': 'Exercise recovery path', 'instructions': 'CONTROLLED TASK INSTRUCTIONS',
         'assigned_to': 'CLIENT VALUE IGNORED', 'priority': 'Priority', 'assignment_id': assignment['id'],
     })
-    assert task['assigned_to'] == 'Assigned Expert'
+    assert task['assigned_to'] == 'Acceptance Assigned Expert'
     post(client, f"/api/salops/tasks/{task['id']}/transition", expert, {'status': 'In Progress', 'reason': 'Assigned expert began work.'})
     post(client, f"/api/salops/tasks/{task['id']}/transition", expert, {
         'status': 'Completed', 'reason': 'Exercise completed.', 'result_summary': 'Recovery path exercised successfully.',
@@ -238,8 +238,14 @@ def main():
     assert authority_denials == 2
     assert event_versions == list(range(1, len(event_versions) + 1))
     conn = app.db(); replace_tenant_records(conn, 1, records); conn.commit()
-    restored = conn.execute('SELECT COUNT(*) c FROM ops_invoice_statements WHERE tenant_id=1 AND status=\'Released\'').fetchone()['c']
-    restored_reports = conn.execute('SELECT COUNT(*) c FROM report_versions WHERE tenant_id=1 AND status=\'Released\'').fetchone()['c']
+    restored = conn.execute(
+        'SELECT COUNT(*) c FROM ops_invoice_statements WHERE tenant_id=1 AND id=? AND status=\'Released\'',
+        (statement['id'],),
+    ).fetchone()['c']
+    restored_reports = conn.execute(
+        'SELECT COUNT(*) c FROM report_versions WHERE tenant_id=1 AND id=? AND status=\'Released\'',
+        (released_report['id'],),
+    ).fetchone()['c']
     conn.close()
     assert restored == 1 and restored_reports == 1
     assert client.get('/api/salcapa/common-operating-picture', headers=auditor).status_code == 200
