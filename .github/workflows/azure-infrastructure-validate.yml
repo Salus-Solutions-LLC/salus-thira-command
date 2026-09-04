@@ -65,6 +65,7 @@ jobs:
               "version: '16'",
               'Microsoft.Network/privateDnsZones@2024-06-01',
               'registryPullRole',
+              "name: 'Standard_GRS'",
               'isVersioningEnabled: true',
           ]
           missing_infrastructure = [
