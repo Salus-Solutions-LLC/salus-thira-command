@@ -818,6 +818,35 @@ def init_db():
       FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE SET NULL
     );
     CREATE INDEX IF NOT EXISTS idx_ops_expenses_scope ON ops_expenses(tenant_id,engagement_id,status,id);
+    CREATE TABLE IF NOT EXISTS ops_invoice_statements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      engagement_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      statement_number TEXT NOT NULL,
+      billing_period_start TEXT NOT NULL,
+      billing_period_end TEXT NOT NULL,
+      service_summary TEXT NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'USD',
+      estimate_total_cents INTEGER NOT NULL,
+      approved_actual_total_cents INTEGER NOT NULL,
+      billable_total_cents INTEGER NOT NULL,
+      variance_cents INTEGER NOT NULL,
+      snapshot_json TEXT NOT NULL,
+      snapshot_sha256 TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Draft',
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL,
+      reviewed_by TEXT NOT NULL DEFAULT '', reviewed_at TEXT NOT NULL DEFAULT '', review_reason TEXT NOT NULL DEFAULT '',
+      approved_by TEXT NOT NULL DEFAULT '', approved_at TEXT NOT NULL DEFAULT '', approval_reason TEXT NOT NULL DEFAULT '',
+      released_by TEXT NOT NULL DEFAULT '', released_at TEXT NOT NULL DEFAULT '', release_reason TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (engagement_id) REFERENCES ops_engagements(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,engagement_id),
+      UNIQUE(tenant_id,statement_number)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ops_invoice_statements_scope ON ops_invoice_statements(tenant_id,assessment_id,status,id);
     ''')
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
@@ -1383,6 +1412,17 @@ class OpsExpenseIn(BaseModel):
     currency: Literal['USD'] = 'USD'
     reimbursable: bool = True
 
+class OpsInvoiceStatementIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    billing_period_start: str = Field(min_length=1, max_length=40)
+    billing_period_end: str = Field(min_length=1, max_length=40)
+    service_summary: str = Field(min_length=1, max_length=2000)
+
+class OpsInvoiceTransitionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    status: Literal['Reviewed','Approved','Released']
+    reason: str = Field(min_length=1, max_length=6000)
+
 class ScopeChangeIn(BaseModel):
     assessment_id: int
     new_purpose: Optional[str] = None
@@ -1601,10 +1641,10 @@ def require_sensitivity(request:Request, sensitivity:str):
 
 def infer_tenant(conn, entity_type:str, entity_id:int|None):
     if entity_id is None: return 1
-    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses'}
+    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
     table=table_map.get(entity_type,entity_type if entity_type in table_map.values() else '')
     try:
-        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
+        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
         elif table: r=conn.execute(f'SELECT a.tenant_id FROM {table} t JOIN assessments a ON a.id=t.assessment_id WHERE t.id=?',(entity_id,)).fetchone()
         else: r=None
         return int(r['tenant_id']) if r else 1
@@ -1675,7 +1715,7 @@ def improvement_priority(i):
     return round(weighted/5*100,1),vals
 
 WORKFLOW_STATES=['Draft','Scope Approved','Evidence Collection','Analysis','SME Review','Salus QA','Client Validation','Findings Finalized','Executive Decisions','Implementation','Validation','Active Monitoring','Reassessment']
-VERSIONED_TABLES={'assessments','threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_expenses'}
+VERSIONED_TABLES={'assessments','threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_expenses','ops_invoice_statements'}
 CHILD_ASSESSMENT_TABLES=VERSIONED_TABLES-{'assessments'}
 SQL_TABLE_NAMES={
     'assessments':'assessments','threats':'threats','scenarios':'scenarios',
@@ -1685,7 +1725,7 @@ SQL_TABLE_NAMES={
     'reassessment_triggers':'reassessment_triggers','audit_log':'audit_log',
     'entity_versions':'entity_versions','scope_changes':'scope_changes',
     'workflow_events':'workflow_events','evidence_attachments':'evidence_attachments',
-    'ops_engagements':'ops_engagements','ops_tasks':'ops_tasks','ops_field_reports':'ops_field_reports','ops_estimates':'ops_estimates','ops_expenses':'ops_expenses',
+    'ops_engagements':'ops_engagements','ops_tasks':'ops_tasks','ops_field_reports':'ops_field_reports','ops_estimates':'ops_estimates','ops_expenses':'ops_expenses','ops_invoice_statements':'ops_invoice_statements',
 }
 
 def sql_table_name(value: str) -> str:
@@ -2543,6 +2583,79 @@ def transition_ops_expense(expense_id:int,p:OpsFinancialTransitionIn,request:Req
     ts=now(); submitted_by=who if p.status=='Submitted' else row['submitted_by']; submitted_at=ts if p.status=='Submitted' else row['submitted_at']; terminal=p.status in ('Approved','Rejected')
     conn.execute('UPDATE ops_expenses SET status=?,submitted_by=?,submitted_at=?,decided_by=?,decided_at=?,decision_reason=?,updated_at=? WHERE id=?',(p.status,submitted_by,submitted_at,who if terminal else '',ts if terminal else '',p.reason if terminal else '',ts,expense_id)); audit(conn,'SALOPS_EXPENSE_TRANSITION','ops_expense',expense_id,f'{row["status"]} -> {p.status}: {p.reason}',who); snapshot_entity(conn,'ops_expenses',expense_id,who,f'{row["status"]} -> {p.status}'); conn.commit(); result=dict(conn.execute('SELECT * FROM ops_expenses WHERE id=?',(expense_id,)).fetchone()); result['amount']=_money(result.pop('amount_cents')); result['reimbursable']=bool(result['reimbursable']); conn.close(); return result
 
+def _invoice_date(value:str,label:str) -> str:
+    try: return datetime.fromisoformat(value.replace('Z','+00:00')).date().isoformat()
+    except ValueError: raise HTTPException(422,f'{label} must be an ISO 8601 date or timestamp.')
+
+def _invoice_view(row,member:bool):
+    item=dict(row); item.pop('snapshot_json',None)
+    for source,target in (('estimate_total_cents','estimate_total'),('approved_actual_total_cents','approved_actual_total'),('billable_total_cents','billable_total'),('variance_cents','variance')):
+        item[target]=_money(item.pop(source))
+    if member:
+        allowed={'id','engagement_id','assessment_id','statement_number','billing_period_start','billing_period_end','service_summary','currency','estimate_total','approved_actual_total','billable_total','variance','snapshot_sha256','status','released_at'}
+        item={key:value for key,value in item.items() if key in allowed}
+    return item
+
+def _verify_invoice_snapshot(row,request:Request,conn=None):
+    actual=hashlib.sha256(row['snapshot_json'].encode('utf-8')).hexdigest()
+    if not secrets.compare_digest(actual,row['snapshot_sha256']):
+        if conn is not None: conn.close()
+        security_event(request,'INVOICE_READY_INTEGRITY_FAILURE','High',f'statement_id={row["id"]}')
+        raise HTTPException(409,'Invoice-ready statement failed integrity verification.')
+    return actual
+
+@app.get('/api/salops/engagements/{engagement_id}/invoice-statements')
+def list_ops_invoice_statements(engagement_id:int,request:Request):
+    require(request,'read'); _ops_engagement(request,engagement_id); tid=tenant_id(request); member=protected_member_request(request); conn=db()
+    sql="SELECT * FROM ops_invoice_statements WHERE engagement_id=? AND tenant_id=? AND status='Released' ORDER BY id DESC" if member else 'SELECT * FROM ops_invoice_statements WHERE engagement_id=? AND tenant_id=? ORDER BY id DESC'
+    rows=[_invoice_view(row,member) for row in conn.execute(sql,(engagement_id,tid))]; conn.close(); return rows
+
+@app.post('/api/salops/engagements/{engagement_id}/invoice-statements')
+def create_ops_invoice_statement(engagement_id:int,p:OpsInvoiceStatementIn,request:Request):
+    require(request,'write'); require_ops_authority(request); engagement=_ops_engagement(request,engagement_id)
+    if engagement['status']!='Closed': raise HTTPException(409,'Invoice-ready statements require a closed operational engagement.')
+    start=_invoice_date(p.billing_period_start,'Billing period start'); end=_invoice_date(p.billing_period_end,'Billing period end')
+    if end<start: raise HTTPException(422,'Billing period end must be on or after the start date.')
+    tid=tenant_id(request); who=actor(request); conn=db()
+    if conn.execute('SELECT id FROM ops_invoice_statements WHERE engagement_id=? AND tenant_id=?',(engagement_id,tid)).fetchone(): conn.close(); raise HTTPException(409,'This engagement already has an invoice-ready statement.')
+    estimate=conn.execute("SELECT * FROM ops_estimates WHERE engagement_id=? AND tenant_id=? AND status='Approved' ORDER BY decided_at DESC,id DESC LIMIT 1",(engagement_id,tid)).fetchone()
+    if not estimate: conn.close(); raise HTTPException(409,'An approved operational estimate is required.')
+    unresolved=conn.execute("SELECT COUNT(*) c FROM ops_expenses WHERE engagement_id=? AND tenant_id=? AND reimbursable=1 AND status IN ('Draft','Submitted')",(engagement_id,tid)).fetchone()['c']
+    if unresolved: conn.close(); raise HTTPException(409,'Every reimbursable expense must be approved or rejected before statement generation.')
+    expenses=[dict(row) for row in conn.execute("SELECT * FROM ops_expenses WHERE engagement_id=? AND tenant_id=? AND reimbursable=1 AND status='Approved' AND currency='USD' ORDER BY incurred_on,id",(engagement_id,tid))]
+    if not expenses: conn.close(); raise HTTPException(409,'At least one approved reimbursable expense is required.')
+    actual=sum(int(row['amount_cents']) for row in expenses); estimated=int(estimate['total_cents']); variance=estimated-actual; ts=now(); pending=f'PENDING-{uuid.uuid4().hex}'
+    cur=conn.execute('INSERT INTO ops_invoice_statements(tenant_id,engagement_id,assessment_id,statement_number,billing_period_start,billing_period_end,service_summary,currency,estimate_total_cents,approved_actual_total_cents,billable_total_cents,variance_cents,snapshot_json,snapshot_sha256,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(tid,engagement_id,engagement['assessment_id'],pending,start,end,p.service_summary,'USD',estimated,actual,actual,variance,'','', 'Draft',who,ts,ts)); statement_id=cur.lastrowid; number=f'SIR-{tid:04d}-{statement_id:08d}'
+    snapshot={'statement_type':'Invoice Ready - Not Issued','statement_number':number,'generated_at':ts,'billing_period':{'start':start,'end':end},'service_summary':p.service_summary,'currency':'USD','engagement':{'id':engagement_id,'title':engagement['title'],'service_type':engagement['service_type'],'planned_start':engagement['planned_start'],'planned_end':engagement['planned_end']},'totals':{'approved_estimate':_money(estimated),'approved_actual':_money(actual),'billable':_money(actual),'variance':_money(variance)},'lines':[{'line_number':index,'category':row['category'],'description':row['member_description'],'incurred_on':row['incurred_on'],'amount':_money(row['amount_cents'])} for index,row in enumerate(expenses,1)]}
+    canonical=json.dumps(snapshot,sort_keys=True,separators=(',',':'),ensure_ascii=False); digest=hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+    conn.execute('UPDATE ops_invoice_statements SET statement_number=?,snapshot_json=?,snapshot_sha256=? WHERE id=?',(number,canonical,digest,statement_id)); audit(conn,'SALOPS_INVOICE_READY_CREATE','ops_invoice_statement',statement_id,f'engagement={engagement_id}; lines={len(expenses)}; billable_cents={actual}; sha256={digest}',who); snapshot_entity(conn,'ops_invoice_statements',statement_id,who,'Immutable invoice-ready statement generated'); conn.commit(); result=_invoice_view(conn.execute('SELECT * FROM ops_invoice_statements WHERE id=?',(statement_id,)).fetchone(),False); conn.close(); return result
+
+@app.post('/api/salops/invoice-statements/{statement_id}/transition')
+def transition_ops_invoice_statement(statement_id:int,p:OpsInvoiceTransitionIn,request:Request):
+    require(request,'read'); tid=tenant_id(request); who=actor(request); conn=db(); row=conn.execute('SELECT * FROM ops_invoice_statements WHERE id=? AND tenant_id=?',(statement_id,tid)).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Invoice-ready statement not found')
+    assessment_row_for_request(request,row['assessment_id']); _verify_invoice_snapshot(row,request,conn); expected={'Draft':'Reviewed','Reviewed':'Approved','Approved':'Released'}
+    if expected.get(row['status'])!=p.status: conn.close(); raise HTTPException(409,f'Invoice-ready statement transition must follow Draft → Reviewed → Approved → Released; current status is {row["status"]}.')
+    if p.status=='Reviewed':
+        require(request,'write'); require_ops_authority(request)
+        if row['created_by']==who: conn.close(); raise HTTPException(409,'Statement review requires an actor other than the creator.')
+    elif p.status=='Approved':
+        require(request,'decide')
+        if role(request) not in {'System Administrator','Assessment Director'}: conn.close(); raise HTTPException(403,f'{role(request)} cannot approve an invoice-ready statement.')
+        if who in {row['created_by'],row['reviewed_by']}: conn.close(); raise HTTPException(409,'Statement approval requires an actor independent of creation and review.')
+    else:
+        require(request,'decide')
+        if who!=row['approved_by']: conn.close(); raise HTTPException(409,'The recorded statement approver must authorize release.')
+    ts=now(); fields={'Reviewed':('reviewed_by','reviewed_at','review_reason'),'Approved':('approved_by','approved_at','approval_reason'),'Released':('released_by','released_at','release_reason')}[p.status]; conn.execute(f'UPDATE ops_invoice_statements SET status=?,{fields[0]}=?,{fields[1]}=?,{fields[2]}=?,updated_at=? WHERE id=?',(p.status,who,ts,p.reason,ts,statement_id)); audit(conn,'SALOPS_INVOICE_READY_TRANSITION','ops_invoice_statement',statement_id,f'{row["status"]} -> {p.status}: {p.reason}',who); snapshot_entity(conn,'ops_invoice_statements',statement_id,who,f'{row["status"]} -> {p.status}'); conn.commit(); result=_invoice_view(conn.execute('SELECT * FROM ops_invoice_statements WHERE id=?',(statement_id,)).fetchone(),protected_member_request(request)); conn.close(); return result
+
+@app.get('/api/salops/invoice-statements/{statement_id}/snapshot')
+def get_ops_invoice_statement_snapshot(statement_id:int,request:Request):
+    require(request,'read'); conn=db(); row=conn.execute('SELECT * FROM ops_invoice_statements WHERE id=? AND tenant_id=?',(statement_id,tenant_id(request))).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Invoice-ready statement not found')
+    assessment_row_for_request(request,row['assessment_id'])
+    if protected_member_request(request) and row['status']!='Released': conn.close(); raise HTTPException(404,'Released invoice-ready statement not found')
+    digest=_verify_invoice_snapshot(row,request,conn); payload=json.loads(row['snapshot_json']); conn.close(); response=JSONResponse(payload); response.headers['ETag']=f'"{digest}"'; response.headers['Content-Disposition']=f'inline; filename="{row["statement_number"]}.json"'; return response
+
 @app.get('/api/dashboard')
 def dashboard(request:Request):
     require(request,'read'); ids=accessible_assessment_ids(request)
@@ -3183,6 +3296,7 @@ def transition_assessment(assessment_id:int,p:WorkflowTransitionIn,request:Reque
 def versions(entity_type:str,entity_id:int,request:Request):
     require(request,'read')
     if entity_type not in VERSIONED_TABLES: raise HTTPException(404)
+    if protected_member_request(request) and entity_type in {'ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_expenses','ops_invoice_statements'}: raise HTTPException(403,'Internal SalOPS version snapshots are restricted to authorized Salus personnel.')
     conn=db(); rows=[dict(r) for r in conn.execute('SELECT * FROM entity_versions WHERE entity_type=? AND entity_id=? ORDER BY version_no DESC',(entity_type,entity_id))]
     if rows: assessment_row_for_request(request,rows[0]['assessment_id'])
     conn.close(); return rows

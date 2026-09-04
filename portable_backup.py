@@ -3,12 +3,12 @@ from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
-    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses'
+    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
     'users','governed_intake','assessments','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
-    'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','entity_versions','audit_log','security_events'
+    'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','entity_versions','audit_log','security_events'
 ]
 
 def _rows(conn, sql, params=()):
@@ -93,6 +93,8 @@ def validate_records(records, tenant_id:int|None=None):
         if task_id not in (None,'') and int(task_id) not in tasks: errors.append(f'ops_expense {row.get("id")} has invalid task_id')
         evidence_id=row.get('evidence_id')
         if evidence_id not in (None,'') and int(evidence_id) not in evidence: errors.append(f'ops_expense {row.get("id")} has invalid evidence_id')
+    for row in records.get('ops_invoice_statements',[]):
+        if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'ops_invoice_statement {row.get("id")} has invalid engagement_id')
     return errors
 
 def _safe_columns(conn, table):

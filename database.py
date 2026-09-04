@@ -18,7 +18,7 @@ _AZURE_CREDENTIAL=None
 ID_TABLES = {
     'tenants','users','auth_sessions','oidc_states','assessment_access','assessments',
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
-    'audit_log','backup_history','security_events','reassessment_triggers','evidence_attachments','report_versions','restore_requests','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses',
+    'audit_log','backup_history','security_events','reassessment_triggers','evidence_attachments','report_versions','restore_requests','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements',
     'entity_versions','scope_changes','workflow_events','dr_validations','governed_intake'
 }
 
