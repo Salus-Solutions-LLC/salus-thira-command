@@ -8,7 +8,7 @@ ASSESSMENT_TABLES = [
 RESTORE_ORDER = [
     'users','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','assessments','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
-    'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','entity_versions','audit_log','security_events'
+    'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
 
 def _rows(conn, sql, params=()):
@@ -46,6 +46,10 @@ def collect_tenant_records(conn, tenant_id:int):
     records['observation_attachments']=_rows(conn,'SELECT * FROM observation_attachments WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['observation_events']=_rows(conn,'SELECT * FROM observation_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['ops_requests']=_rows(conn,'SELECT * FROM ops_requests WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['cop_coordination_threads']=_rows(conn,'SELECT * FROM cop_coordination_threads WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['cop_coordination_messages']=_rows(conn,'SELECT * FROM cop_coordination_messages WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['cop_decision_requests']=_rows(conn,'SELECT * FROM cop_decision_requests WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['cop_events']=_rows(conn,'SELECT * FROM cop_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
     return records
 
 def validate_records(records, tenant_id:int|None=None):
@@ -84,6 +88,26 @@ def validate_records(records, tenant_id:int|None=None):
     for table in ('observation_attachments','observation_events'):
         for row in records.get(table,[]):
             if int(row.get('observation_id',-1)) not in observations: errors.append(f'{table} record {row.get("id")} has invalid observation_id')
+    threads={int(r['id']) for r in records.get('cop_coordination_threads',[]) if r.get('id') is not None}
+    decision_requests={int(r['id']) for r in records.get('cop_decision_requests',[]) if r.get('id') is not None}
+    for row in records.get('cop_coordination_messages',[]):
+        if int(row.get('thread_id',-1)) not in threads: errors.append(f'cop_coordination_message {row.get("id")} has invalid thread_id')
+    source_ids={
+        'intel_finding':{int(r['id']) for r in records.get('intel_findings',[]) if r.get('id') is not None},
+        'reassessment_trigger':{int(r['id']) for r in records.get('reassessment_triggers',[]) if r.get('id') is not None},
+        'improvement':{int(r['id']) for r in records.get('improvements',[]) if r.get('id') is not None},
+        'accepted_risk':{int(r['id']) for r in records.get('accepted_risks',[]) if r.get('id') is not None},
+        'ops_request':{int(r['id']) for r in records.get('ops_requests',[]) if r.get('id') is not None},
+        'ops_estimate':{int(r['id']) for r in records.get('ops_estimates',[]) if r.get('id') is not None},
+    }
+    for row in records.get('cop_decision_requests',[]):
+        source_type=row.get('source_type'); source_id=int(row.get('source_id',-1))
+        if source_type not in source_ids or source_id not in source_ids.get(source_type,set()): errors.append(f'cop_decision_request {row.get("id")} has invalid source')
+    for row in records.get('cop_events',[]):
+        record_type=row.get('record_type'); record_id=int(row.get('record_id',-1))
+        if record_type=='coordination_thread' and record_id not in threads: errors.append(f'cop_event {row.get("id")} has invalid coordination thread')
+        elif record_type=='decision_request' and record_id not in decision_requests: errors.append(f'cop_event {row.get("id")} has invalid decision request')
+        elif record_type not in {'coordination_thread','decision_request'}: errors.append(f'cop_event {row.get("id")} has invalid record_type')
     ops_requests={int(r['id']) for r in records.get('ops_requests',[]) if r.get('id') is not None}
     engagements={int(r['id']) for r in records.get('ops_engagements',[]) if r.get('id') is not None}
     tasks={int(r['id']) for r in records.get('ops_tasks',[]) if r.get('id') is not None}
@@ -139,6 +163,10 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM observations WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM observation_intake_channels WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM cop_events WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM cop_coordination_messages WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM cop_coordination_threads WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM cop_decision_requests WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM intel_findings WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM ops_requests WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM assessments WHERE tenant_id=?',(tenant_id,))

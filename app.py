@@ -731,6 +731,79 @@ def init_db():
       UNIQUE(observation_id,version_no)
     );
     CREATE INDEX IF NOT EXISTS idx_observation_events_scope ON observation_events(tenant_id,observation_id,version_no);
+    CREATE TABLE IF NOT EXISTS cop_coordination_threads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER,
+      subject TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Open',
+      assigned_contact TEXT NOT NULL DEFAULT '',
+      assigned_contact_summary TEXT NOT NULL DEFAULT '',
+      created_by TEXT NOT NULL,
+      created_by_role TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      assigned_by TEXT NOT NULL DEFAULT '', assigned_at TEXT NOT NULL DEFAULT '',
+      closed_by TEXT NOT NULL DEFAULT '', closed_at TEXT NOT NULL DEFAULT '', close_reason TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_cop_threads_scope ON cop_coordination_threads(tenant_id,status,id);
+    CREATE TABLE IF NOT EXISTS cop_coordination_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      thread_id INTEGER NOT NULL,
+      audience TEXT NOT NULL DEFAULT 'Shared',
+      body TEXT NOT NULL,
+      author TEXT NOT NULL,
+      author_role TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (thread_id) REFERENCES cop_coordination_threads(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_cop_messages_scope ON cop_coordination_messages(tenant_id,thread_id,id);
+    CREATE TABLE IF NOT EXISTS cop_decision_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER,
+      source_type TEXT NOT NULL,
+      source_id INTEGER NOT NULL,
+      action_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      member_summary TEXT NOT NULL,
+      allowed_choices_json TEXT NOT NULL,
+      due_at TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Awaiting Decision',
+      requested_by TEXT NOT NULL,
+      requested_at TEXT NOT NULL,
+      decision TEXT NOT NULL DEFAULT '',
+      rationale TEXT NOT NULL DEFAULT '',
+      conditions TEXT NOT NULL DEFAULT '',
+      authorized_amount_cents INTEGER NOT NULL DEFAULT 0,
+      decided_by TEXT NOT NULL DEFAULT '', decided_by_role TEXT NOT NULL DEFAULT '', decided_at TEXT NOT NULL DEFAULT '',
+      withdrawn_by TEXT NOT NULL DEFAULT '', withdrawn_at TEXT NOT NULL DEFAULT '', withdrawal_reason TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_cop_decisions_scope ON cop_decision_requests(tenant_id,status,due_at,id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_cop_decisions_one_pending ON cop_decision_requests(tenant_id,source_type,source_id,action_type) WHERE status='Awaiting Decision';
+    CREATE TABLE IF NOT EXISTS cop_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      record_type TEXT NOT NULL,
+      record_id INTEGER NOT NULL,
+      version_no INTEGER NOT NULL,
+      event_type TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      snapshot_json TEXT NOT NULL,
+      changed_by TEXT NOT NULL,
+      changed_by_role TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,record_type,record_id,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_cop_events_scope ON cop_events(tenant_id,record_type,record_id,version_no);
     CREATE TABLE IF NOT EXISTS ops_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -937,6 +1010,7 @@ def init_db():
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('1.2.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('1.3.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('1.4.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.6.0',now()))
 
     # v0.6 tenant/bootstrap migration. Existing records are assigned to the default tenant.
     if conn.execute('SELECT COUNT(*) c FROM tenants').fetchone()['c'] == 0:
@@ -1253,7 +1327,7 @@ class DecisionIn(BaseModel):
     assessment_id: int = Field(gt=0)
     improvement_id: Optional[int] = Field(default=None, gt=0)
     decision_type: Literal['Approve','Approve with Conditions','Modify','Defer','Reject','Transfer Risk','Accept Risk','Continue Monitoring']
-    authority: str = Field(min_length=1, max_length=240)
+    authority: str = Field(default='', max_length=240)
     rationale: str = Field(min_length=1, max_length=6000)
     funding_authorized: float = Field(default=0, ge=0, allow_inf_nan=False)
     conditions: str = Field(default='', max_length=6000)
@@ -1262,7 +1336,7 @@ class DecisionIn(BaseModel):
     expected_residual_risk: str = Field(default='', max_length=6000)
     review_date: str = ''
 
-    @field_validator('authority','rationale')
+    @field_validator('rationale')
     @classmethod
     def required_decision_text(cls, value: str) -> str:
         normalized=value.strip()
@@ -1285,11 +1359,11 @@ class RiskOverrideIn(BaseModel):
     threat_id: int = Field(gt=0)
     assigned_score: float = Field(ge=0, le=100, allow_inf_nan=False)
     reason: str = Field(min_length=1, max_length=6000)
-    authority: str = Field(min_length=1, max_length=240)
+    authority: str = Field(default='', max_length=240)
     evidence_id: Optional[int] = None
     review_date: str = ''
 
-    @field_validator('reason','authority')
+    @field_validator('reason')
     @classmethod
     def required_risk_override_text(cls, value: str) -> str:
         normalized=value.strip()
@@ -1439,6 +1513,60 @@ class ObservationRouteIn(BaseModel):
 class ObservationCloseIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     disposition: Literal['Information Only','Not Actionable','Duplicate','Resolved','Referred']
+    reason: str = Field(min_length=1, max_length=6000)
+
+class CopThreadIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    subject: str = Field(min_length=1, max_length=500)
+    message: str = Field(min_length=1, max_length=12000)
+    assessment_id: Optional[int] = Field(default=None, gt=0)
+
+    @field_validator('subject','message')
+    @classmethod
+    def normalized_cop_thread_text(cls, value: str) -> str:
+        normalized=value.strip()
+        if not normalized: raise ValueError('A non-empty value is required.')
+        return normalized
+
+class CopMessageIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    body: str = Field(min_length=1, max_length=12000)
+    audience: Literal['Shared','Internal'] = 'Shared'
+
+    @field_validator('body')
+    @classmethod
+    def normalized_cop_message(cls, value: str) -> str:
+        normalized=value.strip()
+        if not normalized: raise ValueError('A message is required.')
+        return normalized
+
+class CopAssignmentIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    assigned_contact: str = Field(min_length=1, max_length=500)
+    member_contact_summary: str = Field(min_length=1, max_length=1000)
+
+class CopThreadCloseIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    reason: str = Field(min_length=1, max_length=6000)
+
+class CopDecisionRequestIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    source_type: Literal['intel_finding','reassessment_trigger','improvement','accepted_risk','ops_request','ops_estimate']
+    source_id: int = Field(gt=0)
+    action_type: Literal['Set Priority','Approve Recommendation','Authorize Resources','Risk Decision','Request Action']
+    title: str = Field(min_length=1, max_length=500)
+    member_summary: str = Field(min_length=1, max_length=4000)
+    due_at: str = Field(default='', max_length=40)
+
+class CopMemberDecisionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    decision: str = Field(min_length=1, max_length=100)
+    rationale: str = Field(min_length=1, max_length=6000)
+    conditions: str = Field(default='', max_length=6000)
+    authorized_amount: Decimal = Field(default=Decimal('0'), ge=0, le=100000000, max_digits=14, decimal_places=2)
+
+class CopDecisionWithdrawIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     reason: str = Field(min_length=1, max_length=6000)
 
 class OpsRequestIn(BaseModel):
@@ -1763,10 +1891,10 @@ def require_sensitivity(request:Request, sensitivity:str):
 
 def infer_tenant(conn, entity_type:str, entity_id:int|None):
     if entity_id is None: return 1
-    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','observation_intake_channel':'observation_intake_channels','observation':'observations','observation_attachment':'observation_attachments','observation_event':'observation_events','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
+    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','observation_intake_channel':'observation_intake_channels','observation':'observations','observation_attachment':'observation_attachments','observation_event':'observation_events','coordination_thread':'cop_coordination_threads','coordination_message':'cop_coordination_messages','decision_request':'cop_decision_requests','cop_event':'cop_events','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
     table=table_map.get(entity_type,entity_type if entity_type in table_map.values() else '')
     try:
-        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','observation_intake_channels','observations','observation_attachments','observation_events','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
+        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','observation_intake_channels','observations','observation_attachments','observation_events','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
         elif table: r=conn.execute(f'SELECT a.tenant_id FROM {table} t JOIN assessments a ON a.id=t.assessment_id WHERE t.id=?',(entity_id,)).fetchone()
         else: r=None
         return int(r['tenant_id']) if r else 1
@@ -2386,6 +2514,20 @@ def root():
 
 PROTECTED_MEMBER_ROLES={'Client Executive','Contributor'}
 OPS_AUTHORITY_ROLES={'System Administrator','Assessment Director','Program Owner'}
+COP_DECISION_CHOICES={
+    'Set Priority':['Routine','Priority','Urgent','Critical'],
+    'Approve Recommendation':['Approve','Approve with Conditions','Decline','Defer'],
+    'Authorize Resources':['Authorize','Authorize with Conditions','Decline','Defer'],
+    'Risk Decision':['Accept Risk','Mitigate','Transfer','Avoid','Defer'],
+    'Request Action':['Request Action','No Action','Defer'],
+}
+COP_ACTION_SOURCES={
+    'Set Priority':{'intel_finding','reassessment_trigger','ops_request'},
+    'Approve Recommendation':{'improvement'},
+    'Authorize Resources':{'improvement','ops_estimate'},
+    'Risk Decision':{'improvement','accepted_risk'},
+    'Request Action':{'intel_finding','reassessment_trigger','improvement'},
+}
 
 def protected_member_request(request:Request):
     return role(request) in PROTECTED_MEMBER_ROLES
@@ -2419,27 +2561,186 @@ def salcapa_workspace_contract(request:Request):
         }
     }
 
+def _cop_event(conn,record_type:str,record_id:int,event_type:str,summary:str,request:Request):
+    tables={'coordination_thread':'cop_coordination_threads','decision_request':'cop_decision_requests'}
+    table=tables.get(record_type)
+    if not table: raise ValueError('Unsupported COP event record type')
+    row=conn.execute(f'SELECT * FROM {table} WHERE id=?',(record_id,)).fetchone()
+    if not row: raise ValueError('COP event record unavailable')
+    version=conn.execute('SELECT COALESCE(MAX(version_no),0)+1 n FROM cop_events WHERE tenant_id=? AND record_type=? AND record_id=?',(row['tenant_id'],record_type,record_id)).fetchone()['n']
+    conn.execute('INSERT INTO cop_events(tenant_id,record_type,record_id,version_no,event_type,summary,snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',(row['tenant_id'],record_type,record_id,version,event_type,summary,json.dumps(dict(row),sort_keys=True,default=str),actor(request),role(request),now()))
+
+def _cop_source(conn,request:Request,source_type:str,source_id:int):
+    queries={
+        'intel_finding':('SELECT *,tenant_id AS source_tenant FROM intel_findings WHERE id=?','title'),
+        'reassessment_trigger':('SELECT r.*,a.tenant_id AS source_tenant FROM reassessment_triggers r JOIN assessments a ON a.id=r.assessment_id WHERE r.id=?','trigger_type'),
+        'improvement':('SELECT i.*,a.tenant_id AS source_tenant FROM improvements i JOIN assessments a ON a.id=i.assessment_id WHERE i.id=?','title'),
+        'accepted_risk':('SELECT r.*,a.tenant_id AS source_tenant FROM accepted_risks r JOIN assessments a ON a.id=r.assessment_id WHERE r.id=?','title'),
+        'ops_request':('SELECT *,tenant_id AS source_tenant FROM ops_requests WHERE id=?','title'),
+        'ops_estimate':("SELECT e.*,g.title, e.tenant_id AS source_tenant FROM ops_estimates e JOIN ops_engagements g ON g.id=e.engagement_id WHERE e.id=?",'title'),
+    }
+    spec=queries.get(source_type)
+    if not spec: conn.close(); raise HTTPException(422,'Unsupported decision-request source.')
+    row=conn.execute(spec[0],(source_id,)).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Decision-request source not found.')
+    if int(row['source_tenant'])!=tenant_id(request):
+        conn.close()
+        security_event(request,'COP_TENANT_BOUNDARY_VIOLATION','High',f'{source_type}={source_id}')
+        raise HTTPException(403,'Tenant boundary violation')
+    item=dict(row); assessment_id=item.get('assessment_id')
+    if assessment_id is not None:
+        try: assessment_row_for_request(request,int(assessment_id))
+        except Exception: conn.close(); raise
+    return item,str(item.get(spec[1]) or f'{source_type} #{source_id}')
+
+def _cop_member_thread(row,messages):
+    return {'id':row['id'],'assessment_id':row['assessment_id'],'subject':row['subject'],'status':row['status'],'assigned_contact':row['assigned_contact'],'assigned_contact_summary':row['assigned_contact_summary'],'created_by':row['created_by'],'created_at':row['created_at'],'updated_at':row['updated_at'],'messages':[{'id':m['id'],'body':m['body'],'author':m['author'],'author_role':m['author_role'],'created_at':m['created_at']} for m in messages if m['audience']=='Shared']}
+
+def _cop_thread_for_request(conn,thread_id:int,request:Request):
+    row=conn.execute('SELECT * FROM cop_coordination_threads WHERE id=?',(thread_id,)).fetchone()
+    if not row: raise HTTPException(404,'Coordination thread not found')
+    if int(row['tenant_id'])!=tenant_id(request):
+        conn.close()
+        security_event(request,'COP_TENANT_BOUNDARY_VIOLATION','High',f'coordination_thread={thread_id}')
+        raise HTTPException(403,'Tenant boundary violation')
+    if row['assessment_id'] is not None:
+        try: assessment_row_for_request(request,int(row['assessment_id']))
+        except Exception: conn.close(); raise
+    return row
+
+def _list_cop_threads(conn,request:Request):
+    tid=tenant_id(request); ids=set(accessible_assessment_ids(request)); internal=not protected_member_request(request) and role(request)!='Auditor'; result=[]
+    for row in conn.execute('SELECT * FROM cop_coordination_threads WHERE tenant_id=? ORDER BY CASE status WHEN \'Open\' THEN 0 ELSE 1 END,updated_at DESC,id DESC',(tid,)):
+        if row['assessment_id'] is not None and int(row['assessment_id']) not in ids: continue
+        messages=[dict(m) for m in conn.execute('SELECT * FROM cop_coordination_messages WHERE thread_id=? AND tenant_id=? ORDER BY id',(row['id'],tid))]
+        if internal:
+            item=dict(row); item['messages']=messages
+        else: item=_cop_member_thread(row,messages)
+        result.append(item)
+    return result
+
+def _decision_request_view(row,member_safe=True):
+    item=dict(row); item['allowed_choices']=json.loads(item.pop('allowed_choices_json'))
+    item['authorized_amount']=_money(item.pop('authorized_amount_cents'))
+    if member_safe:
+        allowed={'id','assessment_id','source_type','source_id','action_type','title','member_summary','allowed_choices','due_at','status','requested_at','decision','rationale','conditions','authorized_amount','decided_by','decided_at','updated_at'}
+        item={key:value for key,value in item.items() if key in allowed}
+    return item
+
+def _list_cop_decisions(conn,request:Request):
+    ids=set(accessible_assessment_ids(request)); member_safe=protected_member_request(request) or role(request)=='Auditor'; result=[]
+    for row in conn.execute("SELECT * FROM cop_decision_requests WHERE tenant_id=? ORDER BY CASE status WHEN 'Awaiting Decision' THEN 0 ELSE 1 END,due_at,id DESC",(tenant_id(request),)):
+        if row['assessment_id'] is not None and int(row['assessment_id']) not in ids: continue
+        result.append(_decision_request_view(row,member_safe))
+    return result
+
 @app.get('/api/salcapa/workspace')
 def get_salcapa_workspace(request:Request):
     require(request,'read'); return salcapa_workspace_contract(request)
 
 @app.get('/api/salcapa/common-operating-picture')
 def salcapa_common_operating_picture(request:Request):
-    require(request,'read'); tid=tenant_id(request); ids=accessible_assessment_ids(request); conn=db()
+    require(request,'read'); tid=tenant_id(request); ids=accessible_assessment_ids(request); member_safe=protected_member_request(request) or role(request)=='Auditor'; conn=db()
     if ids:
         marks=','.join('?'*len(ids)); params=tuple(ids)
-        open_triggers=[dict(r) for r in conn.execute(f"SELECT * FROM reassessment_triggers WHERE assessment_id IN ({marks}) AND status<>'Resolved' ORDER BY CASE severity WHEN 'Critical' THEN 1 WHEN 'High' THEN 2 ELSE 3 END,id DESC LIMIT 10",params)]
+        trigger_rows=[dict(r) for r in conn.execute(f"SELECT * FROM reassessment_triggers WHERE assessment_id IN ({marks}) AND status<>'Resolved' ORDER BY CASE severity WHEN 'Critical' THEN 1 WHEN 'High' THEN 2 ELSE 3 END,id DESC LIMIT 20",params)]
         stale=conn.execute(f"SELECT COUNT(*) c FROM evidence WHERE assessment_id IN ({marks}) AND lifecycle_status='Stale'",params).fetchone()['c']
-        active_risks=conn.execute(f"SELECT COUNT(*) c FROM accepted_risks WHERE assessment_id IN ({marks}) AND status IN ('Active','Under Review')",params).fetchone()['c']
-    else: open_triggers=[]; stale=active_risks=0
-    if protected_member_request(request):
-        intel=[dict(r) for r in conn.execute("SELECT id,assessment_id,title,relevance,credibility,validation_status,operational_significance,status,qualified_at,updated_at FROM intel_findings WHERE tenant_id=? AND status IN ('Qualified','Sent to SalTHIRA') ORDER BY id DESC LIMIT 10",(tid,))]
-        ops=[dict(r) for r in conn.execute("SELECT id,assessment_id,source_type,source_id,title,priority,status,result_summary,completed_at,updated_at FROM ops_requests WHERE tenant_id=? AND status IN ('Requested','Authorized','In Progress') ORDER BY id DESC LIMIT 10",(tid,))]
+        risk_rows=[dict(r) for r in conn.execute(f"SELECT * FROM accepted_risks WHERE assessment_id IN ({marks}) AND status IN ('Active','Under Review') ORDER BY review_date,id DESC LIMIT 20",params)]
+        report_rows=[dict(r) for r in conn.execute(f"SELECT id,assessment_id,assessment_version,report_type,status,released_at,snapshot_sha256 FROM report_versions WHERE tenant_id=? AND assessment_id IN ({marks}) AND status='Released' ORDER BY released_at DESC,id DESC LIMIT 20",(tid,)+params)]
+    else: trigger_rows=[]; risk_rows=[]; report_rows=[]; stale=0
+    open_triggers=[{'id':r['id'],'assessment_id':r['assessment_id'],'title':r['trigger_type'],'priority':r['severity'],'status':r['status'],'due_at':r['due_date'],'updated_at':r['updated_at']} for r in trigger_rows]
+    risks=[{'id':r['id'],'assessment_id':r['assessment_id'],'title':r['title'],'residual_exposure':r['residual_exposure'],'owner':r['owner'],'status':r['status'],'review_date':r['review_date'],'review_lifecycle_status':r['review_lifecycle_status'],'updated_at':r['updated_at']} for r in risk_rows]
+    if member_safe:
+        if ids:
+            intel=[dict(r) for r in conn.execute(f"SELECT id,assessment_id,title,relevance,credibility,validation_status,operational_significance,status,qualified_at,updated_at FROM intel_findings WHERE tenant_id=? AND status IN ('Qualified','Sent to SalTHIRA') AND (assessment_id IS NULL OR assessment_id IN ({marks})) ORDER BY id DESC LIMIT 20",(tid,)+params)]
+            ops=[dict(r) for r in conn.execute(f"SELECT id,assessment_id,source_type,source_id,title,priority,status,result_summary,completed_at,updated_at FROM ops_requests WHERE tenant_id=? AND (assessment_id IS NULL OR assessment_id IN ({marks})) ORDER BY id DESC LIMIT 20",(tid,)+params)]
+            engagements=[dict(r) for r in conn.execute(f"SELECT id,assessment_id,title,service_type,planned_start,planned_end,member_status_summary,status,updated_at FROM ops_engagements WHERE tenant_id=? AND assessment_id IN ({marks}) ORDER BY id DESC LIMIT 20",(tid,)+params)]
+        else:
+            intel=[dict(r) for r in conn.execute("SELECT id,assessment_id,title,relevance,credibility,validation_status,operational_significance,status,qualified_at,updated_at FROM intel_findings WHERE tenant_id=? AND assessment_id IS NULL AND status IN ('Qualified','Sent to SalTHIRA') ORDER BY id DESC LIMIT 20",(tid,))]
+            ops=[dict(r) for r in conn.execute("SELECT id,assessment_id,source_type,source_id,title,priority,status,result_summary,completed_at,updated_at FROM ops_requests WHERE tenant_id=? AND assessment_id IS NULL ORDER BY id DESC LIMIT 20",(tid,))]
+            engagements=[]
     else:
-        intel=[dict(r) for r in conn.execute("SELECT * FROM intel_findings WHERE tenant_id=? AND status IN ('Qualified','Sent to SalTHIRA') ORDER BY id DESC LIMIT 10",(tid,))]
-        ops=[dict(r) for r in conn.execute("SELECT * FROM ops_requests WHERE tenant_id=? AND status IN ('Requested','Authorized','In Progress') ORDER BY id DESC LIMIT 10",(tid,))]
+        intel=[dict(r) for r in conn.execute("SELECT * FROM intel_findings WHERE tenant_id=? AND status IN ('Qualified','Sent to SalTHIRA') ORDER BY id DESC LIMIT 20",(tid,))]
+        ops=[dict(r) for r in conn.execute("SELECT * FROM ops_requests WHERE tenant_id=? ORDER BY id DESC LIMIT 20",(tid,))]
+        engagements=[dict(r) for r in conn.execute("SELECT * FROM ops_engagements WHERE tenant_id=? ORDER BY id DESC LIMIT 20",(tid,))]
+    observations=[]
+    if protected_member_request(request):
+        sql="SELECT id,record_key,title,reported_urgency,status,disposition,created_at,updated_at FROM observations WHERE tenant_id=? AND intake_type='Authenticated'"
+        p=[tid]
+        if role(request)=='Contributor': sql+=' AND created_by=?'; p.append(actor(request))
+        observations=[dict(r) for r in conn.execute(sql+' ORDER BY id DESC LIMIT 20',tuple(p))]
+    decisions=_list_cop_decisions(conn,request); threads=_list_cop_threads(conn,request)
     conn.close()
-    return {'workspace':salcapa_workspace_contract(request),'metrics':{'qualified_intelligence':len(intel),'priority_actions':len(open_triggers),'active_operations':len(ops),'stale_evidence':stale,'active_accepted_risks':active_risks},'attention':{'intelligence':intel,'reassessment':open_triggers,'operations':ops}}
+    pending=sum(1 for item in decisions if item['status']=='Awaiting Decision')
+    active_operations=sum(1 for item in ops if item['status'] in {'Requested','Authorized','In Progress'})
+    return {'workspace':salcapa_workspace_contract(request),'metrics':{'qualified_intelligence':len(intel),'priority_actions':len(open_triggers),'pending_member_decisions':pending,'active_operations':active_operations,'stale_evidence':stale,'active_accepted_risks':len(risks)},'see':{'intelligence':intel,'alerts':open_triggers,'accepted_risks':risks,'operations':ops,'engagements':engagements,'deliverables':report_rows,'observations':observations},'coordinate':{'threads':threads},'act':{'decision_requests':decisions},'attention':{'intelligence':intel,'reassessment':open_triggers,'operations':ops}}
+
+@app.post('/api/salcapa/coordination/threads')
+def create_cop_thread(p:CopThreadIn,request:Request):
+    require(request,'write'); tid=tenant_id(request); who=actor(request); ts=now()
+    if p.assessment_id is not None: assessment_row_for_request(request,p.assessment_id)
+    conn=db(); cur=conn.execute("INSERT INTO cop_coordination_threads(tenant_id,assessment_id,subject,status,created_by,created_by_role,created_at,updated_at) VALUES(?,?,?,'Open',?,?,?,?)",(tid,p.assessment_id,p.subject,who,role(request),ts,ts)); thread_id=cur.lastrowid
+    conn.execute("INSERT INTO cop_coordination_messages(tenant_id,thread_id,audience,body,author,author_role,created_at) VALUES(?,?,'Shared',?,?,?,?)",(tid,thread_id,p.message,who,role(request),ts)); _cop_event(conn,'coordination_thread',thread_id,'Opened',p.subject,request); audit(conn,'COP_THREAD_OPEN','coordination_thread',thread_id,p.subject,who); conn.commit(); row=conn.execute('SELECT * FROM cop_coordination_threads WHERE id=?',(thread_id,)).fetchone(); messages=[dict(m) for m in conn.execute('SELECT * FROM cop_coordination_messages WHERE thread_id=? ORDER BY id',(thread_id,))]; result=_cop_member_thread(row,messages); conn.close(); return result
+
+@app.post('/api/salcapa/coordination/threads/{thread_id}/messages')
+def add_cop_message(thread_id:int,p:CopMessageIn,request:Request):
+    require(request,'write'); conn=db(); thread=_cop_thread_for_request(conn,thread_id,request)
+    if thread['status']!='Open': conn.close(); raise HTTPException(409,'Closed coordination threads cannot receive messages.')
+    if protected_member_request(request) and p.audience!='Shared': conn.close(); raise HTTPException(403,'Protected Members can add Shared messages only.')
+    if role(request)=='Auditor': conn.close(); raise HTTPException(403,'Auditors cannot add coordination messages.')
+    ts=now(); who=actor(request); cur=conn.execute('INSERT INTO cop_coordination_messages(tenant_id,thread_id,audience,body,author,author_role,created_at) VALUES(?,?,?,?,?,?,?)',(tenant_id(request),thread_id,p.audience,p.body,who,role(request),ts)); conn.execute('UPDATE cop_coordination_threads SET updated_at=? WHERE id=?',(ts,thread_id)); _cop_event(conn,'coordination_thread',thread_id,'Message Added',f'{p.audience} message #{cur.lastrowid}',request); audit(conn,'COP_MESSAGE_CREATE','coordination_message',cur.lastrowid,f'thread={thread_id}; audience={p.audience}',who); conn.commit(); result={'id':cur.lastrowid,'thread_id':thread_id,'audience':p.audience,'body':p.body,'author':who,'author_role':role(request),'created_at':ts}; conn.close(); return result
+
+@app.post('/api/salcapa/coordination/threads/{thread_id}/assign')
+def assign_cop_thread(thread_id:int,p:CopAssignmentIn,request:Request):
+    require(request,'write'); require_salus_component_authority(request,'SalCAPA coordination'); conn=db(); thread=_cop_thread_for_request(conn,thread_id,request)
+    if thread['status']!='Open': conn.close(); raise HTTPException(409,'Only open coordination threads can be assigned.')
+    ts=now(); who=actor(request); conn.execute('UPDATE cop_coordination_threads SET assigned_contact=?,assigned_contact_summary=?,assigned_by=?,assigned_at=?,updated_at=? WHERE id=?',(p.assigned_contact.strip(),p.member_contact_summary.strip(),who,ts,ts,thread_id)); _cop_event(conn,'coordination_thread',thread_id,'Assigned',p.member_contact_summary,request); audit(conn,'COP_THREAD_ASSIGN','coordination_thread',thread_id,p.member_contact_summary,who); conn.commit(); result=dict(conn.execute('SELECT * FROM cop_coordination_threads WHERE id=?',(thread_id,)).fetchone()); conn.close(); return result
+
+@app.post('/api/salcapa/coordination/threads/{thread_id}/close')
+def close_cop_thread(thread_id:int,p:CopThreadCloseIn,request:Request):
+    require(request,'write'); require_salus_component_authority(request,'SalCAPA coordination'); conn=db(); thread=_cop_thread_for_request(conn,thread_id,request)
+    if thread['status']!='Open': conn.close(); raise HTTPException(409,'Coordination thread is already closed.')
+    ts=now(); who=actor(request); conn.execute("UPDATE cop_coordination_threads SET status='Closed',closed_by=?,closed_at=?,close_reason=?,updated_at=? WHERE id=?",(who,ts,p.reason.strip(),ts,thread_id)); _cop_event(conn,'coordination_thread',thread_id,'Closed',p.reason,request); audit(conn,'COP_THREAD_CLOSE','coordination_thread',thread_id,p.reason,who); conn.commit(); result=dict(conn.execute('SELECT * FROM cop_coordination_threads WHERE id=?',(thread_id,)).fetchone()); conn.close(); return result
+
+@app.post('/api/salcapa/decision-requests')
+def create_cop_decision_request(p:CopDecisionRequestIn,request:Request):
+    require(request,'write'); require_salus_component_authority(request,'SalCAPA decision request'); conn=db(); source,source_title=_cop_source(conn,request,p.source_type,p.source_id)
+    if p.source_type not in COP_ACTION_SOURCES[p.action_type]: conn.close(); raise HTTPException(422,f'{p.action_type} cannot use a {p.source_type} source.')
+    due=''
+    if p.due_at:
+        try: due=datetime.fromisoformat(p.due_at.replace('Z','+00:00')).astimezone(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+        except ValueError: conn.close(); raise HTTPException(422,'Decision due time must be an ISO 8601 date or timestamp.')
+    if p.source_type=='intel_finding' and source['status'] not in {'Qualified','Sent to SalTHIRA'}: conn.close(); raise HTTPException(409,'Only qualified intelligence can be presented for member decision.')
+    if p.source_type=='ops_estimate' and source['status']!='Submitted': conn.close(); raise HTTPException(409,'Only a submitted operational estimate can be presented for resource authorization.')
+    if conn.execute("SELECT id FROM cop_decision_requests WHERE tenant_id=? AND source_type=? AND source_id=? AND action_type=? AND status='Awaiting Decision'",(tenant_id(request),p.source_type,p.source_id,p.action_type)).fetchone(): conn.close(); raise HTTPException(409,'An active decision request already exists for this source and action.')
+    who=actor(request); ts=now(); choices=json.dumps(COP_DECISION_CHOICES[p.action_type],separators=(',',':')); assessment_id=source.get('assessment_id')
+    cur=conn.execute("INSERT INTO cop_decision_requests(tenant_id,assessment_id,source_type,source_id,action_type,title,member_summary,allowed_choices_json,due_at,status,requested_by,requested_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,'Awaiting Decision',?,?,?)",(tenant_id(request),assessment_id,p.source_type,p.source_id,p.action_type,p.title.strip(),p.member_summary.strip(),choices,due,who,ts,ts))
+    request_id=cur.lastrowid; _cop_event(conn,'decision_request',request_id,'Issued',f'{p.action_type}: {source_title}',request); audit(conn,'COP_DECISION_REQUEST_CREATE','decision_request',request_id,f'{p.action_type}; {p.source_type}={p.source_id}',who); conn.commit(); result=_decision_request_view(conn.execute('SELECT * FROM cop_decision_requests WHERE id=?',(request_id,)).fetchone(),False); conn.close(); return result
+
+@app.post('/api/salcapa/decision-requests/{decision_request_id}/decide')
+def decide_cop_request(decision_request_id:int,p:CopMemberDecisionIn,request:Request):
+    require(request,'decide')
+    if role(request)!='Client Executive': raise HTTPException(403,'Only a Protected Member authority can record this decision.')
+    conn=db(); row=conn.execute('SELECT * FROM cop_decision_requests WHERE id=?',(decision_request_id,)).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Decision request not found')
+    if int(row['tenant_id'])!=tenant_id(request): conn.close(); security_event(request,'COP_TENANT_BOUNDARY_VIOLATION','High',f'decision_request={decision_request_id}'); raise HTTPException(403,'Tenant boundary violation')
+    if row['assessment_id'] is not None: assessment_row_for_request(request,int(row['assessment_id']))
+    if row['status']!='Awaiting Decision': conn.close(); raise HTTPException(409,'This decision request is no longer awaiting a decision.')
+    choices=json.loads(row['allowed_choices_json'])
+    if p.decision not in choices: conn.close(); raise HTTPException(422,'Decision must be one of the choices issued by Salus.')
+    cents=_money_cents(p.authorized_amount)
+    authorized=p.decision in {'Authorize','Authorize with Conditions'} and row['action_type']=='Authorize Resources'
+    if cents and not authorized: conn.close(); raise HTTPException(422,'An authorized amount is permitted only with a resource-authorization decision.')
+    if p.decision.endswith('with Conditions') and not p.conditions.strip(): conn.close(); raise HTTPException(422,'A conditional decision requires documented conditions.')
+    who=actor(request); ts=now(); conn.execute("UPDATE cop_decision_requests SET status='Decision Recorded',decision=?,rationale=?,conditions=?,authorized_amount_cents=?,decided_by=?,decided_by_role=?,decided_at=?,updated_at=? WHERE id=?",(p.decision,p.rationale.strip(),p.conditions.strip(),cents,who,role(request),ts,ts,decision_request_id)); _cop_event(conn,'decision_request',decision_request_id,'Decision Recorded',p.decision,request); audit(conn,'COP_MEMBER_DECISION','decision_request',decision_request_id,f'{p.decision}; authorized_amount_cents={cents}',who); conn.commit(); result=_decision_request_view(conn.execute('SELECT * FROM cop_decision_requests WHERE id=?',(decision_request_id,)).fetchone(),True); conn.close(); return result
+
+@app.post('/api/salcapa/decision-requests/{decision_request_id}/withdraw')
+def withdraw_cop_request(decision_request_id:int,p:CopDecisionWithdrawIn,request:Request):
+    require(request,'write'); require_salus_component_authority(request,'SalCAPA decision request'); conn=db(); row=conn.execute('SELECT * FROM cop_decision_requests WHERE id=?',(decision_request_id,)).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Decision request not found')
+    if int(row['tenant_id'])!=tenant_id(request): conn.close(); security_event(request,'COP_TENANT_BOUNDARY_VIOLATION','High',f'decision_request={decision_request_id}'); raise HTTPException(403,'Tenant boundary violation')
+    if row['status']!='Awaiting Decision': conn.close(); raise HTTPException(409,'Only a pending decision request can be withdrawn.')
+    who=actor(request); ts=now(); conn.execute("UPDATE cop_decision_requests SET status='Withdrawn',withdrawn_by=?,withdrawn_at=?,withdrawal_reason=?,updated_at=? WHERE id=?",(who,ts,p.reason.strip(),ts,decision_request_id)); _cop_event(conn,'decision_request',decision_request_id,'Withdrawn',p.reason,request); audit(conn,'COP_DECISION_REQUEST_WITHDRAW','decision_request',decision_request_id,p.reason,who); conn.commit(); result=_decision_request_view(conn.execute('SELECT * FROM cop_decision_requests WHERE id=?',(decision_request_id,)).fetchone(),False); conn.close(); return result
 
 @app.get('/api/salintel/findings')
 def list_intel_findings(request:Request):
@@ -3303,7 +3604,7 @@ def create_decision(p:DecisionIn, request:Request):
     try:
         validate_entity_relationships(conn,'decisions',p.assessment_id,p.model_dump())
         who=actor(request)
-        row=insert_model_in_transaction(conn,'decisions',p,who,extra={'target_completion':target_completion,'review_date':review_date,'review_lifecycle_status':'Current','review_overdue_reason':'','review_overdue_at':'','last_review_at':'','last_review_by':''})
+        row=insert_model_in_transaction(conn,'decisions',p,who,extra={'authority':who,'target_completion':target_completion,'review_date':review_date,'review_lifecycle_status':'Current','review_overdue_reason':'','review_overdue_at':'','last_review_at':'','last_review_by':''})
         improvement=conn.execute('SELECT * FROM improvements WHERE id=?',(p.improvement_id,)).fetchone() if p.improvement_id else None
         if improvement:
             decision_status={
@@ -3319,7 +3620,7 @@ def create_decision(p:DecisionIn, request:Request):
             gap_id=int(improvement['gap_id']) if improvement and improvement['gap_id'] is not None else None
             title=(str(improvement['title']).strip() if improvement else '') or f'Accepted Risk — Decision #{row["id"]}'
             ts=now()
-            cur=conn.execute('''INSERT INTO accepted_risks(assessment_id,decision_id,improvement_id,gap_id,title,risk_statement,authority,residual_exposure,acceptance_date,review_date,reconsideration_trigger,owner,status,closure_basis,review_lifecycle_status,review_overdue_reason,review_overdue_at,last_review_at,last_review_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(p.assessment_id,row['id'],p.improvement_id,gap_id,title,p.rationale,p.authority,p.expected_residual_risk,ts[:10],review_date,p.conditions,p.implementation_owner,'Active','','Current','','','','',ts,ts))
+            cur=conn.execute('''INSERT INTO accepted_risks(assessment_id,decision_id,improvement_id,gap_id,title,risk_statement,authority,residual_exposure,acceptance_date,review_date,reconsideration_trigger,owner,status,closure_basis,review_lifecycle_status,review_overdue_reason,review_overdue_at,last_review_at,last_review_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(p.assessment_id,row['id'],p.improvement_id,gap_id,title,p.rationale,who,p.expected_residual_risk,ts[:10],review_date,p.conditions,p.implementation_owner,'Active','','Current','','','','',ts,ts))
             accepted_id=cur.lastrowid
             audit(conn,'CREATE','accepted_risk',accepted_id,f'Accepted risk created atomically from executive decision #{row["id"]}',who)
             snapshot_entity(conn,'accepted_risks',accepted_id,who,'Accepted risk created atomically from executive decision')
@@ -3404,7 +3705,6 @@ def create_risk_override(p:RiskOverrideIn, request:Request):
     require(request,'decide'); assessment_row_for_request(request,p.assessment_id); sweep_stale_evidence([p.assessment_id])
     if not 0 <= float(p.assigned_score) <= 100: raise HTTPException(422,'Assigned risk score must be between 0 and 100.')
     if not p.reason.strip(): raise HTTPException(422,'Professional risk override requires a documented reason.')
-    if not p.authority.strip(): raise HTTPException(422,'Professional risk override requires a named authority.')
     review_date=_normalize_date(p.review_date,'Professional risk override review date') or (datetime.now(timezone.utc).date()+timedelta(days=90)).isoformat()
     if datetime.strptime(review_date,'%Y-%m-%d').date()<=datetime.now(timezone.utc).date(): raise HTTPException(422,'Professional risk override review date must be in the future.')
     conn=db()
@@ -3422,9 +3722,9 @@ def create_risk_override(p:RiskOverrideIn, request:Request):
             conn.execute("UPDATE risk_overrides SET status='Superseded',updated_at=? WHERE id=?",(ts,previous['id']))
             audit(conn,'SUPERSEDE','risk_override',previous['id'],f'Superseded by new professional judgment for threat #{p.threat_id}',who)
             snapshot_entity(conn,'risk_overrides',previous['id'],who,'Risk override superseded')
-        cur=conn.execute('''INSERT INTO risk_overrides(assessment_id,threat_id,calculated_score,calculated_band,assigned_score,assigned_band,reason,evidence_id,authority,review_date,review_lifecycle_status,review_overdue_reason,review_overdue_at,last_review_at,last_review_by,status,supersedes_id,withdrawn_reason,created_by,created_at,withdrawn_by,withdrawn_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(p.assessment_id,p.threat_id,current['current_score'],current['current_band'],float(p.assigned_score),risk_band(float(p.assigned_score)),p.reason.strip(),p.evidence_id,p.authority.strip(),review_date,'Current','','','','','Active',previous['id'] if previous else None,'',who,ts,'','',ts))
+        cur=conn.execute('''INSERT INTO risk_overrides(assessment_id,threat_id,calculated_score,calculated_band,assigned_score,assigned_band,reason,evidence_id,authority,review_date,review_lifecycle_status,review_overdue_reason,review_overdue_at,last_review_at,last_review_by,status,supersedes_id,withdrawn_reason,created_by,created_at,withdrawn_by,withdrawn_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(p.assessment_id,p.threat_id,current['current_score'],current['current_band'],float(p.assigned_score),risk_band(float(p.assigned_score)),p.reason.strip(),p.evidence_id,who,review_date,'Current','','','','','Active',previous['id'] if previous else None,'',who,ts,'','',ts))
         oid=cur.lastrowid
-        audit(conn,'CREATE','risk_override',oid,f"Calculated {current['current_band']} {current['current_score']} -> assigned {risk_band(float(p.assigned_score))} {float(p.assigned_score):.1f}; authority={p.authority.strip()}",who)
+        audit(conn,'CREATE','risk_override',oid,f"Calculated {current['current_band']} {current['current_score']} -> assigned {risk_band(float(p.assigned_score))} {float(p.assigned_score):.1f}; authority={who}",who)
         snapshot_entity(conn,'risk_overrides',oid,who,'Professional risk override recorded')
         conn.commit(); return dict(conn.execute('SELECT * FROM risk_overrides WHERE id=?',(oid,)).fetchone())
     finally:
