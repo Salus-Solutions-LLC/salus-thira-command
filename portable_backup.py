@@ -3,12 +3,12 @@ from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
-    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
+    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_engagement_readiness','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
     'users','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','assessments','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
-    'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
+    'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','ops_requests','ops_engagements','ops_engagement_readiness','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
 
 def _rows(conn, sql, params=()):
@@ -45,6 +45,9 @@ def collect_tenant_records(conn, tenant_id:int):
     records['observations']=_rows(conn,'SELECT * FROM observations WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['observation_attachments']=_rows(conn,'SELECT * FROM observation_attachments WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['observation_events']=_rows(conn,'SELECT * FROM observation_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['ops_service_pillars']=_rows(conn,'SELECT * FROM ops_service_pillars WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['ops_service_catalog']=_rows(conn,'SELECT * FROM ops_service_catalog WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['ops_catalog_events']=_rows(conn,'SELECT * FROM ops_catalog_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['ops_requests']=_rows(conn,'SELECT * FROM ops_requests WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['cop_coordination_threads']=_rows(conn,'SELECT * FROM cop_coordination_threads WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['cop_coordination_messages']=_rows(conn,'SELECT * FROM cop_coordination_messages WHERE tenant_id=? ORDER BY id',(tenant_id,))
@@ -88,6 +91,14 @@ def validate_records(records, tenant_id:int|None=None):
     for table in ('observation_attachments','observation_events'):
         for row in records.get(table,[]):
             if int(row.get('observation_id',-1)) not in observations: errors.append(f'{table} record {row.get("id")} has invalid observation_id')
+    pillars={int(r['id']) for r in records.get('ops_service_pillars',[]) if r.get('id') is not None}
+    services={int(r['id']) for r in records.get('ops_service_catalog',[]) if r.get('id') is not None}
+    for row in records.get('ops_service_catalog',[]):
+        if int(row.get('pillar_id',-1)) not in pillars: errors.append(f'ops_service_catalog {row.get("id")} has invalid pillar_id')
+        supersedes=row.get('supersedes_id')
+        if supersedes not in (None,'') and int(supersedes) not in services: errors.append(f'ops_service_catalog {row.get("id")} has invalid supersedes_id')
+    for row in records.get('ops_catalog_events',[]):
+        if int(row.get('service_id',-1)) not in services: errors.append(f'ops_catalog_event {row.get("id")} has invalid service_id')
     threads={int(r['id']) for r in records.get('cop_coordination_threads',[]) if r.get('id') is not None}
     decision_requests={int(r['id']) for r in records.get('cop_decision_requests',[]) if r.get('id') is not None}
     for row in records.get('cop_coordination_messages',[]):
@@ -112,8 +123,18 @@ def validate_records(records, tenant_id:int|None=None):
     engagements={int(r['id']) for r in records.get('ops_engagements',[]) if r.get('id') is not None}
     tasks={int(r['id']) for r in records.get('ops_tasks',[]) if r.get('id') is not None}
     estimates={int(r['id']) for r in records.get('ops_estimates',[]) if r.get('id') is not None}
+    for row in records.get('ops_requests',[]):
+        service_id=row.get('service_catalog_id')
+        if service_id not in (None,''):
+            if int(service_id) not in services: errors.append(f'ops_request {row.get("id")} has invalid service_catalog_id')
+            for field in ('service_key_snapshot','service_version_snapshot','service_name_snapshot','service_member_description_snapshot','service_deliverables_snapshot'):
+                if row.get(field) in (None,''): errors.append(f'ops_request {row.get("id")} is missing {field}')
     for row in records.get('ops_engagements',[]):
         if int(row.get('ops_request_id',-1)) not in ops_requests: errors.append(f'ops_engagement {row.get("id")} has invalid ops_request_id')
+        service_id=row.get('service_catalog_id')
+        if service_id not in (None,'') and int(service_id) not in services: errors.append(f'ops_engagement {row.get("id")} has invalid service_catalog_id')
+    for row in records.get('ops_engagement_readiness',[]):
+        if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'ops_engagement_readiness {row.get("id")} has invalid engagement_id')
     for row in records.get('ops_tasks',[]):
         if int(row.get('engagement_id',-1)) not in engagements: errors.append(f'ops_task {row.get("id")} has invalid engagement_id')
     for row in records.get('ops_field_reports',[]):
@@ -169,6 +190,9 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('DELETE FROM cop_decision_requests WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM intel_findings WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM ops_requests WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM ops_catalog_events WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM ops_service_catalog WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM ops_service_pillars WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM assessments WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM users WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM audit_log WHERE tenant_id=?',(tenant_id,))

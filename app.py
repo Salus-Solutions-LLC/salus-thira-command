@@ -804,12 +804,78 @@ def init_db():
       UNIQUE(tenant_id,record_type,record_id,version_no)
     );
     CREATE INDEX IF NOT EXISTS idx_cop_events_scope ON cop_events(tenant_id,record_type,record_id,version_no);
+    CREATE TABLE IF NOT EXISTS ops_service_pillars (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      pillar_code TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      sort_order INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Active',
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,pillar_code)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ops_service_pillars_scope ON ops_service_pillars(tenant_id,status,sort_order);
+    CREATE TABLE IF NOT EXISTS ops_service_catalog (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      pillar_id INTEGER NOT NULL,
+      service_key TEXT NOT NULL,
+      version_no INTEGER NOT NULL,
+      supersedes_id INTEGER,
+      name TEXT NOT NULL,
+      member_description TEXT NOT NULL,
+      internal_scope TEXT NOT NULL,
+      default_deliverables TEXT NOT NULL,
+      readiness_inputs TEXT NOT NULL,
+      authorization_requirements TEXT NOT NULL,
+      member_visible INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'Draft',
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL,
+      last_material_editor TEXT NOT NULL, last_material_edit_at TEXT NOT NULL,
+      submitted_by TEXT NOT NULL DEFAULT '', submitted_at TEXT NOT NULL DEFAULT '',
+      reviewed_by TEXT NOT NULL DEFAULT '', reviewed_at TEXT NOT NULL DEFAULT '', review_reason TEXT NOT NULL DEFAULT '',
+      approved_by TEXT NOT NULL DEFAULT '', approved_at TEXT NOT NULL DEFAULT '', approval_reason TEXT NOT NULL DEFAULT '',
+      published_by TEXT NOT NULL DEFAULT '', published_at TEXT NOT NULL DEFAULT '', publish_reason TEXT NOT NULL DEFAULT '',
+      retired_by TEXT NOT NULL DEFAULT '', retired_at TEXT NOT NULL DEFAULT '', retirement_reason TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (pillar_id) REFERENCES ops_service_pillars(id) ON DELETE RESTRICT,
+      FOREIGN KEY (supersedes_id) REFERENCES ops_service_catalog(id) ON DELETE SET NULL,
+      UNIQUE(tenant_id,service_key,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ops_service_catalog_scope ON ops_service_catalog(tenant_id,status,pillar_id,id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_ops_service_catalog_published ON ops_service_catalog(tenant_id,service_key) WHERE status='Published';
+    CREATE TABLE IF NOT EXISTS ops_catalog_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      service_id INTEGER NOT NULL,
+      version_no INTEGER NOT NULL,
+      event_type TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      snapshot_json TEXT NOT NULL,
+      changed_by TEXT NOT NULL,
+      changed_by_role TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (service_id) REFERENCES ops_service_catalog(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,service_id,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ops_catalog_events_scope ON ops_catalog_events(tenant_id,service_id,version_no);
     CREATE TABLE IF NOT EXISTS ops_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
       assessment_id INTEGER,
       source_type TEXT NOT NULL,
       source_id INTEGER,
+      service_catalog_id INTEGER,
+      service_key_snapshot TEXT NOT NULL DEFAULT '',
+      service_version_snapshot INTEGER,
+      service_name_snapshot TEXT NOT NULL DEFAULT '',
+      service_member_description_snapshot TEXT NOT NULL DEFAULT '',
+      service_deliverables_snapshot TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL,
       description TEXT NOT NULL DEFAULT '',
       priority TEXT NOT NULL DEFAULT 'Routine',
@@ -821,6 +887,7 @@ def init_db():
       updated_at TEXT NOT NULL,
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
       FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE SET NULL,
+      FOREIGN KEY (service_catalog_id) REFERENCES ops_service_catalog(id) ON DELETE SET NULL,
       UNIQUE(tenant_id,source_type,source_id)
     );
     CREATE INDEX IF NOT EXISTS idx_ops_requests_scope ON ops_requests(tenant_id,status,id);
@@ -828,6 +895,11 @@ def init_db():
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
       ops_request_id INTEGER NOT NULL,
+      service_catalog_id INTEGER,
+      service_key_snapshot TEXT NOT NULL DEFAULT '',
+      service_version_snapshot INTEGER,
+      service_member_scope_snapshot TEXT NOT NULL DEFAULT '',
+      service_deliverables_snapshot TEXT NOT NULL DEFAULT '',
       assessment_id INTEGER NOT NULL,
       title TEXT NOT NULL,
       service_type TEXT NOT NULL,
@@ -850,10 +922,30 @@ def init_db():
       closure_summary TEXT NOT NULL DEFAULT '',
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
       FOREIGN KEY (ops_request_id) REFERENCES ops_requests(id) ON DELETE CASCADE,
+      FOREIGN KEY (service_catalog_id) REFERENCES ops_service_catalog(id) ON DELETE SET NULL,
       FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
       UNIQUE(tenant_id,ops_request_id)
     );
     CREATE INDEX IF NOT EXISTS idx_ops_engagements_scope ON ops_engagements(tenant_id,assessment_id,status,id);
+    CREATE TABLE IF NOT EXISTS ops_engagement_readiness (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      engagement_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      label TEXT NOT NULL,
+      member_summary TEXT NOT NULL,
+      internal_requirement TEXT NOT NULL,
+      member_visible INTEGER NOT NULL DEFAULT 1,
+      due_at TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Pending',
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL,
+      completed_by TEXT NOT NULL DEFAULT '', completed_at TEXT NOT NULL DEFAULT '', completion_reason TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (engagement_id) REFERENCES ops_engagements(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_ops_engagement_readiness_scope ON ops_engagement_readiness(tenant_id,engagement_id,status,id);
     CREATE TABLE IF NOT EXISTS ops_tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -1002,6 +1094,17 @@ def init_db():
     ensure_column('evidence_attachments','legal_hold','INTEGER NOT NULL DEFAULT 0')
     ensure_column('evidence_attachments','disposition_status','TEXT NOT NULL DEFAULT "Active"')
     ensure_column('assessment_weights','risk_methodology_version',"TEXT NOT NULL DEFAULT '1.1.0'")
+    ensure_column('ops_requests','service_catalog_id','INTEGER')
+    ensure_column('ops_requests','service_key_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('ops_requests','service_version_snapshot','INTEGER')
+    ensure_column('ops_requests','service_name_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('ops_requests','service_member_description_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('ops_requests','service_deliverables_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('ops_engagements','service_catalog_id','INTEGER')
+    ensure_column('ops_engagements','service_key_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('ops_engagements','service_version_snapshot','INTEGER')
+    ensure_column('ops_engagements','service_member_scope_snapshot',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('ops_engagements','service_deliverables_snapshot',"TEXT NOT NULL DEFAULT ''")
     conn.execute('CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL)')
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('0.8.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('0.9.0',now()))
@@ -1011,11 +1114,21 @@ def init_db():
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('1.3.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('1.4.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.6.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.7.0',now()))
 
     # v0.6 tenant/bootstrap migration. Existing records are assigned to the default tenant.
     if conn.execute('SELECT COUNT(*) c FROM tenants').fetchone()['c'] == 0:
         conn.execute('INSERT INTO tenants(name,slug,status,created_at) VALUES(?,?,?,?)',('Salus Prototype','salus-prototype','Active',now()))
     default_tenant=conn.execute('SELECT id FROM tenants ORDER BY id LIMIT 1').fetchone()['id']
+    pillars=(
+        ('readiness','Readiness and Preparedness','Risk, preparedness, planning, training, exercise, and readiness services.',10),
+        ('protective','Protective Operations','Protective intelligence, executive protection, security, and investigation services.',20),
+        ('incident','Incident and Crisis Support','Incident management, disaster response, crisis communications, and urgent support services.',30),
+        ('recovery','Recovery and Sustainment','Recovery, continuity, after-action, improvement, and sustained-support services.',40),
+    )
+    for tenant in conn.execute('SELECT id FROM tenants ORDER BY id'):
+        for code,name,description,sort_order in pillars:
+            conn.execute('INSERT INTO ops_service_pillars(tenant_id,pillar_code,name,description,sort_order,status,created_by,created_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,pillar_code) DO NOTHING',(tenant['id'],code,name,description,sort_order,'Active','system-migration',now()))
     conn.execute('UPDATE assessments SET tenant_id=? WHERE tenant_id IS NULL OR tenant_id=0',(default_tenant,))
     conn.execute('UPDATE audit_log SET tenant_id=? WHERE tenant_id IS NULL OR tenant_id=0',(default_tenant,))
 
@@ -1569,9 +1682,26 @@ class CopDecisionWithdrawIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     reason: str = Field(min_length=1, max_length=6000)
 
+class OpsCatalogServiceIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    pillar_code: Literal['readiness','protective','incident','recovery']
+    name: str = Field(min_length=1, max_length=300)
+    member_description: str = Field(min_length=1, max_length=4000)
+    internal_scope: str = Field(min_length=1, max_length=12000)
+    default_deliverables: str = Field(min_length=1, max_length=6000)
+    readiness_inputs: str = Field(min_length=1, max_length=6000)
+    authorization_requirements: str = Field(min_length=1, max_length=6000)
+    member_visible: bool = True
+
+class OpsCatalogTransitionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    action: Literal['Submit','Review','Approve','Publish','Retire']
+    reason: str = Field(min_length=1, max_length=6000)
+
 class OpsRequestIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     assessment_id: Optional[int] = None
+    service_catalog_id: Optional[int] = Field(default=None, gt=0)
     title: str = Field(min_length=1, max_length=500)
     description: str = Field(default='', max_length=12000)
     priority: Literal['Routine','Priority','Urgent','Critical'] = 'Routine'
@@ -1602,6 +1732,19 @@ class OpsEngagementTransitionIn(BaseModel):
     status: Literal['Mobilizing','Active','Demobilizing','Closed']
     reason: str = Field(min_length=1, max_length=6000)
     member_status_summary: str = Field(min_length=1, max_length=2000)
+
+class OpsReadinessIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    label: str = Field(min_length=1, max_length=300)
+    member_summary: str = Field(min_length=1, max_length=2000)
+    internal_requirement: str = Field(min_length=1, max_length=6000)
+    member_visible: bool = True
+    due_at: str = Field(default='', max_length=40)
+
+class OpsReadinessTransitionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    status: Literal['Complete','Exception']
+    reason: str = Field(min_length=1, max_length=6000)
 
 class OpsTaskIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -1891,10 +2034,10 @@ def require_sensitivity(request:Request, sensitivity:str):
 
 def infer_tenant(conn, entity_type:str, entity_id:int|None):
     if entity_id is None: return 1
-    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','observation_intake_channel':'observation_intake_channels','observation':'observations','observation_attachment':'observation_attachments','observation_event':'observation_events','coordination_thread':'cop_coordination_threads','coordination_message':'cop_coordination_messages','decision_request':'cop_decision_requests','cop_event':'cop_events','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
+    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','observation_intake_channel':'observation_intake_channels','observation':'observations','observation_attachment':'observation_attachments','observation_event':'observation_events','coordination_thread':'cop_coordination_threads','coordination_message':'cop_coordination_messages','decision_request':'cop_decision_requests','cop_event':'cop_events','ops_service_pillar':'ops_service_pillars','ops_service_catalog':'ops_service_catalog','ops_catalog_event':'ops_catalog_events','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_engagement_readiness':'ops_engagement_readiness','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
     table=table_map.get(entity_type,entity_type if entity_type in table_map.values() else '')
     try:
-        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','observation_intake_channels','observations','observation_attachments','observation_events','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
+        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','observation_intake_channels','observations','observation_attachments','observation_events','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','ops_service_pillars','ops_service_catalog','ops_catalog_events','ops_requests','ops_engagements','ops_engagement_readiness','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
         elif table: r=conn.execute(f'SELECT a.tenant_id FROM {table} t JOIN assessments a ON a.id=t.assessment_id WHERE t.id=?',(entity_id,)).fetchone()
         else: r=None
         return int(r['tenant_id']) if r else 1
@@ -2978,11 +3121,96 @@ def download_observation_attachment(attachment_id:int,request:Request):
     if hashlib.sha256(data).hexdigest()!=item['sha256']: security_event(request,'OBSERVATION_ATTACHMENT_HASH_MISMATCH','Critical',f'attachment_id={attachment_id}'); raise HTTPException(409,'Observation attachment integrity verification failed')
     conn=db(); audit(conn,'OBSERVATION_ATTACHMENT_DOWNLOADED','observation_attachment',attachment_id,'Hash verified before download',actor(request)); conn.commit(); conn.close(); return Response(content=data,media_type=item['content_type'],headers={'Content-Disposition':f'attachment; filename="{safe_filename(item["original_name"])}"','X-Content-SHA256':item['sha256']})
 
+def _ops_catalog_record(request:Request,service_id:int):
+    conn=db(); row=conn.execute('SELECT * FROM ops_service_catalog WHERE id=?',(service_id,)).fetchone(); conn.close()
+    if not row: raise HTTPException(404,'SalOPS service not found')
+    if int(row['tenant_id'])!=tenant_id(request):
+        security_event(request,'SALOPS_CATALOG_TENANT_BOUNDARY_VIOLATION','High',f'service_id={service_id}')
+        raise HTTPException(403,'SalOPS service tenant boundary violation')
+    return dict(row)
+
+def _ops_catalog_event(conn,row,event_type:str,summary:str,request:Request):
+    version=conn.execute('SELECT COALESCE(MAX(version_no),0)+1 n FROM ops_catalog_events WHERE tenant_id=? AND service_id=?',(row['tenant_id'],row['id'])).fetchone()['n']
+    snapshot=json.dumps(dict(row),sort_keys=True,separators=(',',':'),default=str)
+    conn.execute('INSERT INTO ops_catalog_events(tenant_id,service_id,version_no,event_type,summary,snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?)',(row['tenant_id'],row['id'],version,event_type,summary,snapshot,actor(request),role(request),now()))
+
+def _ops_catalog_view(conn,row,member:bool):
+    item=dict(row); pillar=conn.execute('SELECT pillar_code,name,description FROM ops_service_pillars WHERE id=?',(item['pillar_id'],)).fetchone()
+    item['pillar_code']=pillar['pillar_code']; item['pillar_name']=pillar['name']; item['pillar_description']=pillar['description']
+    if member:
+        allowed={'id','service_key','version_no','name','member_description','default_deliverables','authorization_requirements','status','published_at','pillar_code','pillar_name','pillar_description'}
+        item={key:value for key,value in item.items() if key in allowed}
+    return item
+
+@app.get('/api/salops/catalog/pillars')
+def list_ops_service_pillars(request:Request):
+    require(request,'read'); conn=db(); rows=[dict(r) for r in conn.execute("SELECT id,pillar_code,name,description,sort_order,status FROM ops_service_pillars WHERE tenant_id=? AND status='Active' ORDER BY sort_order",(tenant_id(request),))]; conn.close(); return rows
+
+@app.get('/api/salops/catalog/services')
+def list_ops_catalog_services(request:Request):
+    require(request,'read'); tid=tenant_id(request); member=protected_member_request(request); conn=db()
+    if member: rows=conn.execute("SELECT * FROM ops_service_catalog WHERE tenant_id=? AND status='Published' AND member_visible=1 ORDER BY pillar_id,name,version_no DESC",(tid,))
+    else: rows=conn.execute('SELECT * FROM ops_service_catalog WHERE tenant_id=? ORDER BY pillar_id,service_key,version_no DESC',(tid,))
+    result=[_ops_catalog_view(conn,row,member) for row in rows]; conn.close(); return result
+
+@app.get('/api/salops/catalog/services/{service_id}/history')
+def ops_catalog_history(service_id:int,request:Request):
+    require(request,'read'); require_salus_component_authority(request,'SalOPS catalog history'); _ops_catalog_record(request,service_id); conn=db(); rows=[dict(r) for r in conn.execute('SELECT id,service_id,version_no,event_type,summary,changed_by,changed_by_role,created_at FROM ops_catalog_events WHERE tenant_id=? AND service_id=? ORDER BY version_no',(tenant_id(request),service_id))]; conn.close(); return rows
+
+def _ops_pillar(conn,tid:int,code:str):
+    row=conn.execute("SELECT * FROM ops_service_pillars WHERE tenant_id=? AND pillar_code=? AND status='Active'",(tid,code)).fetchone()
+    if not row: raise HTTPException(422,'Active SalOPS service pillar not found')
+    return row
+
+def _insert_ops_service(conn,p:OpsCatalogServiceIn,request:Request,service_key:str,version_no:int,supersedes_id=None):
+    tid=tenant_id(request); who=actor(request); ts=now(); pillar=_ops_pillar(conn,tid,p.pillar_code)
+    cur=conn.execute('''INSERT INTO ops_service_catalog(tenant_id,pillar_id,service_key,version_no,supersedes_id,name,member_description,internal_scope,default_deliverables,readiness_inputs,authorization_requirements,member_visible,status,created_by,created_at,last_material_editor,last_material_edit_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,pillar['id'],service_key,version_no,supersedes_id,p.name.strip(),p.member_description.strip(),p.internal_scope.strip(),p.default_deliverables.strip(),p.readiness_inputs.strip(),p.authorization_requirements.strip(),1 if p.member_visible else 0,'Draft',who,ts,who,ts,ts)); sid=cur.lastrowid
+    row=conn.execute('SELECT * FROM ops_service_catalog WHERE id=?',(sid,)).fetchone(); _ops_catalog_event(conn,row,'Draft Created',f'service_key={service_key}; version={version_no}',request); audit(conn,'SALOPS_CATALOG_DRAFT','ops_service_catalog',sid,f'service_key={service_key}; version={version_no}',who); return sid
+
+@app.post('/api/salops/catalog/services')
+def create_ops_catalog_service(p:OpsCatalogServiceIn,request:Request):
+    require(request,'write'); require_ops_authority(request); conn=db(); key=f'SVC-{uuid.uuid4().hex[:12].upper()}'; sid=_insert_ops_service(conn,p,request,key,1); conn.commit(); row=conn.execute('SELECT * FROM ops_service_catalog WHERE id=?',(sid,)).fetchone(); result=_ops_catalog_view(conn,row,False); conn.close(); return result
+
+@app.post('/api/salops/catalog/services/{service_id}/revise')
+def revise_ops_catalog_service(service_id:int,p:OpsCatalogServiceIn,request:Request):
+    require(request,'write'); require_ops_authority(request); source=_ops_catalog_record(request,service_id)
+    if source['status'] not in {'Published','Retired','Superseded'}: raise HTTPException(409,'Only a published or terminal service version can be revised.')
+    conn=db(); existing=conn.execute("SELECT id FROM ops_service_catalog WHERE tenant_id=? AND service_key=? AND status IN ('Draft','In Review','Reviewed','Approved')",(tenant_id(request),source['service_key'])).fetchone()
+    if existing: conn.close(); raise HTTPException(409,'This service already has an unreleased revision.')
+    next_version=conn.execute('SELECT COALESCE(MAX(version_no),0)+1 n FROM ops_service_catalog WHERE tenant_id=? AND service_key=?',(tenant_id(request),source['service_key'])).fetchone()['n']; sid=_insert_ops_service(conn,p,request,source['service_key'],next_version,service_id); conn.commit(); row=conn.execute('SELECT * FROM ops_service_catalog WHERE id=?',(sid,)).fetchone(); result=_ops_catalog_view(conn,row,False); conn.close(); return result
+
+@app.post('/api/salops/catalog/services/{service_id}/transition')
+def transition_ops_catalog_service(service_id:int,p:OpsCatalogTransitionIn,request:Request):
+    require(request,'write'); require_ops_authority(request); source=_ops_catalog_record(request,service_id); who=actor(request); ts=now(); conn=db(); updates={}; target=''
+    if p.action=='Submit':
+        if source['status']!='Draft': conn.close(); raise HTTPException(409,'Only a Draft service can be submitted.')
+        target='In Review'; updates={'submitted_by':who,'submitted_at':ts}
+    elif p.action=='Review':
+        if source['status']!='In Review': conn.close(); raise HTTPException(409,'Only an In Review service can be reviewed.')
+        if who==source['last_material_editor']: conn.close(); raise HTTPException(409,'The material editor cannot review this service version.')
+        target='Reviewed'; updates={'reviewed_by':who,'reviewed_at':ts,'review_reason':p.reason.strip()}
+    elif p.action=='Approve':
+        if source['status']!='Reviewed': conn.close(); raise HTTPException(409,'Only a Reviewed service can be approved.')
+        if who in {source['last_material_editor'],source['reviewed_by']}: conn.close(); raise HTTPException(409,'Approval requires an authority independent from the material editor and reviewer.')
+        target='Approved'; updates={'approved_by':who,'approved_at':ts,'approval_reason':p.reason.strip()}
+    elif p.action=='Publish':
+        if source['status']!='Approved': conn.close(); raise HTTPException(409,'Only an Approved service can be published.')
+        if who==source['last_material_editor']: conn.close(); raise HTTPException(409,'The material editor cannot publish this service version.')
+        previous=conn.execute("SELECT * FROM ops_service_catalog WHERE tenant_id=? AND service_key=? AND status='Published' AND id<>?",(source['tenant_id'],source['service_key'],service_id)).fetchone()
+        if previous:
+            conn.execute("UPDATE ops_service_catalog SET status='Superseded',updated_at=? WHERE id=?",(ts,previous['id'])); replaced=conn.execute('SELECT * FROM ops_service_catalog WHERE id=?',(previous['id'],)).fetchone(); _ops_catalog_event(conn,replaced,'Superseded',f'Superseded by service version #{service_id}',request)
+        target='Published'; updates={'published_by':who,'published_at':ts,'publish_reason':p.reason.strip()}
+    else:
+        if source['status']!='Published': conn.close(); raise HTTPException(409,'Only a Published service can be retired.')
+        if who==source['last_material_editor']: conn.close(); raise HTTPException(409,'The material editor cannot retire this service version.')
+        target='Retired'; updates={'retired_by':who,'retired_at':ts,'retirement_reason':p.reason.strip()}
+    updates.update({'status':target,'updated_at':ts}); conn.execute('UPDATE ops_service_catalog SET '+','.join(f'{k}=?' for k in updates)+' WHERE id=?',tuple(updates.values())+(service_id,)); row=conn.execute('SELECT * FROM ops_service_catalog WHERE id=?',(service_id,)).fetchone(); _ops_catalog_event(conn,row,target,p.reason.strip(),request); audit(conn,'SALOPS_CATALOG_TRANSITION','ops_service_catalog',service_id,f'{source["status"]} -> {target}: {p.reason}',who); conn.commit(); result=_ops_catalog_view(conn,row,False); conn.close(); return result
+
 @app.get('/api/salops/requests')
 def list_ops_requests(request:Request):
     require(request,'read'); conn=db()
     if protected_member_request(request):
-        rows=[dict(r) for r in conn.execute('SELECT id,assessment_id,source_type,source_id,title,priority,status,result_summary,completed_at,updated_at FROM ops_requests WHERE tenant_id=? ORDER BY id DESC',(tenant_id(request),))]
+        rows=[dict(r) for r in conn.execute('SELECT id,assessment_id,source_type,source_id,service_catalog_id,service_key_snapshot,service_version_snapshot,service_name_snapshot,service_member_description_snapshot,service_deliverables_snapshot,title,priority,status,result_summary,completed_at,updated_at FROM ops_requests WHERE tenant_id=? ORDER BY id DESC',(tenant_id(request),))]
     else:
         rows=[dict(r) for r in conn.execute('SELECT * FROM ops_requests WHERE tenant_id=? ORDER BY id DESC',(tenant_id(request),))]
     conn.close(); return rows
@@ -2991,7 +3219,11 @@ def list_ops_requests(request:Request):
 def create_ops_request(p:OpsRequestIn,request:Request):
     require(request,'write'); tid=tenant_id(request); who=actor(request)
     if p.assessment_id is not None: assessment_row_for_request(request,p.assessment_id)
-    ts=now(); conn=db(); cur=conn.execute('INSERT INTO ops_requests(tenant_id,assessment_id,source_type,source_id,title,description,priority,status,requested_by,requested_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',(tid,p.assessment_id,'Manual',None,p.title,p.description,p.priority,'Requested',who,ts,ts)); oid=cur.lastrowid; audit(conn,'SALOPS_REQUEST','ops_request',oid,p.title,who); conn.commit(); row=dict(conn.execute('SELECT * FROM ops_requests WHERE id=?',(oid,)).fetchone()); conn.close(); return row
+    service=None
+    if p.service_catalog_id is not None:
+        service=_ops_catalog_record(request,p.service_catalog_id)
+        if service['status']!='Published' or (protected_member_request(request) and not service['member_visible']): raise HTTPException(409,'Only an active published member-visible service may be requested.')
+    ts=now(); conn=db(); cur=conn.execute('''INSERT INTO ops_requests(tenant_id,assessment_id,source_type,source_id,service_catalog_id,service_key_snapshot,service_version_snapshot,service_name_snapshot,service_member_description_snapshot,service_deliverables_snapshot,title,description,priority,status,requested_by,requested_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,p.assessment_id,'Service Catalog' if service else 'Manual',None,service['id'] if service else None,service['service_key'] if service else '',service['version_no'] if service else None,service['name'] if service else '',service['member_description'] if service else '',service['default_deliverables'] if service else '',p.title,p.description,p.priority,'Requested',who,ts,ts)); oid=cur.lastrowid; audit(conn,'SALOPS_REQUEST','ops_request',oid,f'{p.title}; service={service["service_key"] if service else "manual"}',who); conn.commit(); row=dict(conn.execute('SELECT * FROM ops_requests WHERE id=?',(oid,)).fetchone()); conn.close(); return row
 
 @app.post('/api/salthira/improvements/{improvement_id}/send-to-salops')
 def send_improvement_to_salops(improvement_id:int,request:Request):
@@ -3042,7 +3274,11 @@ def list_ops_engagements(request:Request):
     if protected_member_request(request):
         sql=f'SELECT id,ops_request_id,assessment_id,title,service_type,planned_start,planned_end,member_status_summary,status,created_at,updated_at,closed_at FROM ops_engagements WHERE tenant_id=? AND assessment_id IN ({marks}) ORDER BY id DESC'
     else: sql=f'SELECT * FROM ops_engagements WHERE tenant_id=? AND assessment_id IN ({marks}) ORDER BY id DESC'
-    rows=[dict(r) for r in conn.execute(sql,params)]; conn.close(); return rows
+    rows=[dict(r) for r in conn.execute(sql,params)]
+    for item in rows:
+        counts={r['status']:r['c'] for r in conn.execute('SELECT status,COUNT(*) c FROM ops_engagement_readiness WHERE tenant_id=? AND engagement_id=? GROUP BY status',(tenant_id(request),item['id']))}
+        item['readiness_summary']={'pending':counts.get('Pending',0),'complete':counts.get('Complete',0),'exceptions':counts.get('Exception',0),'total':sum(counts.values())}
+    conn.close(); return rows
 
 @app.post('/api/salops/requests/{request_id}/engagement')
 def create_ops_engagement(request_id:int,p:OpsEngagementIn,request:Request):
@@ -3055,7 +3291,8 @@ def create_ops_engagement(request_id:int,p:OpsEngagementIn,request:Request):
     if existing: conn.close(); raise HTTPException(409,'This authorized request already has an operational engagement.')
     start=_ops_time(p.planned_start,'Planned start'); end=_ops_time(p.planned_end,'Planned end')
     if end<=start: conn.close(); raise HTTPException(422,'Planned end must be after planned start.')
-    ts=now(); cur=conn.execute('INSERT INTO ops_engagements(tenant_id,ops_request_id,assessment_id,title,service_type,objective,location,planned_start,planned_end,operational_lead,communications_plan,member_status_summary,status,authorized_by,authorized_at,created_by,created_at,updated_by,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(tid,request_id,source['assessment_id'],source['title'],p.service_type,p.objective,p.location,start,end,p.operational_lead,p.communications_plan,p.member_status_summary,'Planning',source['authorized_by'],source['authorized_at'],who,ts,who,ts)); eid=cur.lastrowid
+    service_type=source['service_name_snapshot'] or p.service_type
+    ts=now(); cur=conn.execute('''INSERT INTO ops_engagements(tenant_id,ops_request_id,service_catalog_id,service_key_snapshot,service_version_snapshot,service_member_scope_snapshot,service_deliverables_snapshot,assessment_id,title,service_type,objective,location,planned_start,planned_end,operational_lead,communications_plan,member_status_summary,status,authorized_by,authorized_at,created_by,created_at,updated_by,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,request_id,source['service_catalog_id'],source['service_key_snapshot'],source['service_version_snapshot'],source['service_member_description_snapshot'],source['service_deliverables_snapshot'],source['assessment_id'],source['title'],service_type,p.objective,p.location,start,end,p.operational_lead,p.communications_plan,p.member_status_summary,'Planning',source['authorized_by'],source['authorized_at'],who,ts,who,ts)); eid=cur.lastrowid
     audit(conn,'CREATE','ops_engagement',eid,f'Created from authorized ops_request={request_id}',who); snapshot_entity(conn,'ops_engagements',eid,who,'Operational engagement created'); conn.commit(); row=dict(conn.execute('SELECT * FROM ops_engagements WHERE id=?',(eid,)).fetchone()); conn.close(); return row
 
 @app.post('/api/salops/engagements/{engagement_id}/transition')
@@ -3063,6 +3300,12 @@ def transition_ops_engagement(engagement_id:int,p:OpsEngagementTransitionIn,requ
     require(request,'write'); require_ops_authority(request); row=_ops_engagement(request,engagement_id); allowed={'Planning':'Mobilizing','Mobilizing':'Active','Active':'Demobilizing','Demobilizing':'Closed'}
     if allowed.get(row['status'])!=p.status: raise HTTPException(409,f'Engagement transition must follow Planning → Mobilizing → Active → Demobilizing → Closed; current status is {row["status"]}.')
     tid=tenant_id(request); who=actor(request); ts=now(); conn=db()
+    if row.get('service_catalog_id') and p.status=='Mobilizing':
+        readiness_count=conn.execute('SELECT COUNT(*) c FROM ops_engagement_readiness WHERE engagement_id=? AND tenant_id=?',(engagement_id,tid)).fetchone()['c']
+        if not readiness_count: conn.close(); raise HTTPException(409,'Catalog-backed engagements require documented readiness requirements before mobilization.')
+    if row.get('service_catalog_id') and p.status=='Active':
+        pending=conn.execute("SELECT COUNT(*) c FROM ops_engagement_readiness WHERE engagement_id=? AND tenant_id=? AND status='Pending'",(engagement_id,tid)).fetchone()['c']
+        if pending: conn.close(); raise HTTPException(409,'Catalog-backed engagements cannot become Active while readiness requirements remain pending.')
     if p.status=='Closed':
         unresolved=conn.execute("SELECT COUNT(*) c FROM ops_tasks WHERE engagement_id=? AND tenant_id=? AND status NOT IN ('Completed','Cancelled')",(engagement_id,tid)).fetchone()['c']
         released=conn.execute("SELECT COUNT(*) c FROM ops_field_reports WHERE engagement_id=? AND tenant_id=? AND status='Released'",(engagement_id,tid)).fetchone()['c']
@@ -3078,6 +3321,26 @@ def transition_ops_engagement(engagement_id:int,p:OpsEngagementTransitionIn,requ
         else:
             cur=conn.execute("INSERT INTO reassessment_triggers(assessment_id,source,trigger_type,description,severity,affected_record_type,affected_record_id,status,assigned_to,due_date,resolution,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(row['assessment_id'],'SalOPS','Operational Engagement Result',f"Operational engagement closed for assessment review: {row['title']}",'Moderate','ops_engagement',engagement_id,'Open','','','',ts,ts)); trigger_id=cur.lastrowid; audit(conn,'SALOPS_TO_SALTHIRA','ops_engagement',engagement_id,f'reassessment_trigger={trigger_id}',who); snapshot_entity(conn,'reassessment_triggers',trigger_id,who,'Created from closed operational engagement')
     audit(conn,'SALOPS_ENGAGEMENT_TRANSITION','ops_engagement',engagement_id,f'{row["status"]} -> {p.status}: {p.reason}',who); snapshot_entity(conn,'ops_engagements',engagement_id,who,f'{row["status"]} -> {p.status}'); conn.commit(); result=dict(conn.execute('SELECT * FROM ops_engagements WHERE id=?',(engagement_id,)).fetchone()); conn.close(); return {'engagement':result,'reassessment_trigger_id':trigger_id}
+
+@app.get('/api/salops/engagements/{engagement_id}/readiness')
+def list_ops_readiness(engagement_id:int,request:Request):
+    require(request,'read'); _ops_engagement(request,engagement_id); tid=tenant_id(request); conn=db()
+    if protected_member_request(request):
+        rows=[dict(r) for r in conn.execute('SELECT id,engagement_id,label,member_summary,due_at,status,completed_at FROM ops_engagement_readiness WHERE tenant_id=? AND engagement_id=? AND member_visible=1 ORDER BY id',(tid,engagement_id))]
+    else: rows=[dict(r) for r in conn.execute('SELECT * FROM ops_engagement_readiness WHERE tenant_id=? AND engagement_id=? ORDER BY id',(tid,engagement_id))]
+    conn.close(); return rows
+
+@app.post('/api/salops/engagements/{engagement_id}/readiness')
+def create_ops_readiness(engagement_id:int,p:OpsReadinessIn,request:Request):
+    require(request,'write'); require_ops_authority(request); engagement=_ops_engagement(request,engagement_id)
+    if engagement['status'] not in {'Planning','Mobilizing'}: raise HTTPException(409,'Readiness requirements can be added only during planning or mobilization.')
+    due=_ops_time(p.due_at,'Readiness due time') if p.due_at.strip() else ''; tid=tenant_id(request); who=actor(request); ts=now(); conn=db(); cur=conn.execute('''INSERT INTO ops_engagement_readiness(tenant_id,engagement_id,assessment_id,label,member_summary,internal_requirement,member_visible,due_at,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,engagement_id,engagement['assessment_id'],p.label.strip(),p.member_summary.strip(),p.internal_requirement.strip(),1 if p.member_visible else 0,due,'Pending',who,ts,ts)); rid=cur.lastrowid; audit(conn,'SALOPS_READINESS_CREATED','ops_engagement_readiness',rid,f'engagement={engagement_id}; label={p.label.strip()}',who); conn.commit(); row=dict(conn.execute('SELECT * FROM ops_engagement_readiness WHERE id=?',(rid,)).fetchone()); conn.close(); return row
+
+@app.post('/api/salops/readiness/{readiness_id}/transition')
+def transition_ops_readiness(readiness_id:int,p:OpsReadinessTransitionIn,request:Request):
+    require(request,'write'); require_ops_authority(request); tid=tenant_id(request); who=actor(request); conn=db(); row=conn.execute("SELECT * FROM ops_engagement_readiness WHERE id=? AND tenant_id=? AND status='Pending'",(readiness_id,tid)).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Pending engagement readiness requirement not found')
+    assessment_row_for_request(request,row['assessment_id']); ts=now(); conn.execute('UPDATE ops_engagement_readiness SET status=?,completed_by=?,completed_at=?,completion_reason=?,updated_at=? WHERE id=?',(p.status,who,ts,p.reason.strip(),ts,readiness_id)); audit(conn,'SALOPS_READINESS_TRANSITION','ops_engagement_readiness',readiness_id,f'Pending -> {p.status}: {p.reason}',who); conn.commit(); result=dict(conn.execute('SELECT * FROM ops_engagement_readiness WHERE id=?',(readiness_id,)).fetchone()); conn.close(); return result
 
 @app.get('/api/salops/engagements/{engagement_id}/tasks')
 def list_ops_tasks(engagement_id:int,request:Request):
