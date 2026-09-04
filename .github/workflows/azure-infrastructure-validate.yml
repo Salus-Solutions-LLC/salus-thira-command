@@ -50,30 +50,48 @@ jobs:
               r'DOCKER\|[^\n]+:latest',
               r'AccountKey=',
               r'client_secret\s*[=:]\s*["\'][^"\']+',
+              r"name:\s*'Standard_GRS'",
+              r'Microsoft\.Web/serverfarms',
+              r'Microsoft\.Web/sites',
+              r'Standard_D2ds_v5',
+              r'P0v3',
           ]
           if any(re.search(pattern, infrastructure, re.IGNORECASE) for pattern in forbidden):
-              raise SystemExit('Azure infrastructure contains a mutable image or secret material')
+              raise SystemExit('Azure infrastructure contains a forbidden cost, runtime, mutable-image, or secret pattern')
 
           infrastructure_required = [
               'Microsoft.ContainerRegistry/registries@2023-07-01',
+              "name: 'Basic'",
               'adminUserEnabled: false',
               'anonymousPullEnabled: false',
+              'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31',
+              'Microsoft.App/managedEnvironments@2025-01-01',
+              "workloadProfileType: 'Consumption'",
+              'Microsoft.App/containerApps@2025-01-01',
+              'minReplicas: 0',
+              'maxReplicas: 1',
               'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01',
+              "name: 'Standard_B1ms'",
+              "tier: 'Burstable'",
               "activeDirectoryAuth: 'Enabled'",
               "passwordAuth: 'Disabled'",
               "publicNetworkAccess: 'Disabled'",
               "version: '16'",
               'Microsoft.Network/privateDnsZones@2024-06-01',
               'registryPullRole',
-              "name: 'Standard_GRS'",
+              'deploymentRegistryPushRole',
+              "name: 'Standard_LRS'",
               'isVersioningEnabled: true',
+              "dailyQuotaGb: 0.1",
+              "param monthlyCostCeilingUsd int = 30",
+              "param approvalRecord string = 'MD-APPROVAL-AZURE-LEAN-20260904'",
           ]
           missing_infrastructure = [
               value for value in infrastructure_required if value not in infrastructure
           ]
           if missing_infrastructure:
               raise SystemExit(
-                  'Azure infrastructure boundary is incomplete: '
+                  'Azure lean infrastructure boundary is incomplete: '
                   + ', '.join(missing_infrastructure)
               )
 
@@ -84,24 +102,38 @@ jobs:
               'environment: salcapa-',
               '-approval',
               'refs/heads/development/salcapa-platform',
-              'MD-APPROVAL-',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
               '@sha256:',
               'EXPECTED_REGISTRY=',
               'POSTGRES_ADMIN_OBJECT_ID',
               'POSTGRES_ADMIN_PRINCIPAL_NAME',
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
               'az deployment group what-if',
+              'monthlyCostCeilingUsd=30',
+              'provisionApplication=true',
+              'az containerapp update',
           ]
           missing = [value for value in required if value not in workflow]
           if missing:
-              raise SystemExit('Azure deployment guardrails are incomplete')
+              raise SystemExit('Azure deployment guardrails are incomplete: ' + ', '.join(missing))
           if re.search(r'^  (push|pull_request|schedule):', workflow, re.MULTILINE):
               raise SystemExit('Azure deployment must remain manual')
           if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', workflow):
               raise SystemExit('Azure login action must be pinned to a commit SHA')
 
           cost = Path('docs/AZURE_COST_AND_APPROVAL.md').read_text()
-          for value in ('Option A', 'Option B', 'Proposed monthly authorization ceiling', 'No Azure resource'):
+          for value in (
+              'Option A',
+              'Azure Container Apps',
+              'Consumption environment',
+              'Standard_LRS',
+              'approximately $15–25/month',
+              'Proposed monthly authorization ceiling',
+              '$30.00',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              'No DNS change or public production cutover',
+          ):
               if value not in cost:
-                  raise SystemExit('Azure cost and approval record is incomplete')
-          print('AZURE_INFRA_POLICY_PASS')
+                  raise SystemExit('Azure cost and approval record is incomplete: ' + value)
+          print('AZURE_LEAN_INFRA_POLICY_PASS')
           PY
