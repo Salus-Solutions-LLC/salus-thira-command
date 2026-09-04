@@ -6,7 +6,7 @@ ASSESSMENT_TABLES = [
     'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
-    'users','governed_intake','assessments','assessment_access','threats','scenarios','capabilities','evidence',
+    'users','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','assessments','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
     'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','entity_versions','audit_log','security_events'
 ]
@@ -41,6 +41,10 @@ def collect_tenant_records(conn, tenant_id:int):
     records['audit_log']=_rows(conn,'SELECT * FROM audit_log WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['security_events']=_rows(conn,'SELECT * FROM security_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['intel_findings']=_rows(conn,'SELECT * FROM intel_findings WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['observation_intake_channels']=_rows(conn,'SELECT * FROM observation_intake_channels WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['observations']=_rows(conn,'SELECT * FROM observations WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['observation_attachments']=_rows(conn,'SELECT * FROM observation_attachments WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['observation_events']=_rows(conn,'SELECT * FROM observation_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['ops_requests']=_rows(conn,'SELECT * FROM ops_requests WHERE tenant_id=? ORDER BY id',(tenant_id,))
     return records
 
@@ -72,6 +76,14 @@ def validate_records(records, tenant_id:int|None=None):
         if evidence_id not in (None,'') and int(evidence_id) not in evidence: errors.append(f'risk_override {row.get("id")} has invalid evidence_id')
         supersedes=row.get('supersedes_id')
         if supersedes not in (None,'') and int(supersedes) not in override_ids: errors.append(f'risk_override {row.get("id")} has invalid supersedes_id')
+    channels={int(r['id']) for r in records.get('observation_intake_channels',[]) if r.get('id') is not None}
+    observations={int(r['id']) for r in records.get('observations',[]) if r.get('id') is not None}
+    for row in records.get('observations',[]):
+        channel_id=row.get('channel_id')
+        if channel_id not in (None,'') and int(channel_id) not in channels: errors.append(f'observation {row.get("id")} has invalid channel_id')
+    for table in ('observation_attachments','observation_events'):
+        for row in records.get(table,[]):
+            if int(row.get('observation_id',-1)) not in observations: errors.append(f'{table} record {row.get("id")} has invalid observation_id')
     ops_requests={int(r['id']) for r in records.get('ops_requests',[]) if r.get('id') is not None}
     engagements={int(r['id']) for r in records.get('ops_engagements',[]) if r.get('id') is not None}
     tasks={int(r['id']) for r in records.get('ops_tasks',[]) if r.get('id') is not None}
@@ -125,6 +137,8 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('DELETE FROM auth_sessions WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?)',(tenant_id,))
     conn.execute('DELETE FROM assessment_access WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?) OR assessment_id IN (SELECT id FROM assessments WHERE tenant_id=?)',(tenant_id,tenant_id))
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM observations WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM observation_intake_channels WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM intel_findings WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM ops_requests WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM assessments WHERE tenant_id=?',(tenant_id,))

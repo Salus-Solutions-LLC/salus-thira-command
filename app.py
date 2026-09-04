@@ -657,6 +657,80 @@ def init_db():
       FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE SET NULL
     );
     CREATE INDEX IF NOT EXISTS idx_intel_findings_scope ON intel_findings(tenant_id,status,id);
+    CREATE TABLE IF NOT EXISTS observation_intake_channels (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'Active',
+      expires_at TEXT NOT NULL,
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL,
+      disabled_by TEXT NOT NULL DEFAULT '', disabled_at TEXT NOT NULL DEFAULT '', disable_reason TEXT NOT NULL DEFAULT '',
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_observation_channels_scope ON observation_intake_channels(tenant_id,status,id);
+    CREATE TABLE IF NOT EXISTS observations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      record_key TEXT NOT NULL UNIQUE,
+      intake_type TEXT NOT NULL,
+      channel_id INTEGER,
+      receipt_hash TEXT NOT NULL DEFAULT '',
+      reporter_choice TEXT NOT NULL,
+      reporter_name TEXT NOT NULL DEFAULT '',
+      reporter_contact TEXT NOT NULL DEFAULT '',
+      report_on_behalf_of TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL,
+      narrative TEXT NOT NULL,
+      location TEXT NOT NULL DEFAULT '',
+      observed_at TEXT NOT NULL,
+      context TEXT NOT NULL DEFAULT '',
+      reported_urgency TEXT NOT NULL DEFAULT 'Routine',
+      source_protection TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Submitted',
+      acknowledged_by TEXT NOT NULL DEFAULT '', acknowledged_at TEXT NOT NULL DEFAULT '', acknowledgement_reason TEXT NOT NULL DEFAULT '',
+      triage_category TEXT NOT NULL DEFAULT '', triage_priority TEXT NOT NULL DEFAULT '', triage_notes TEXT NOT NULL DEFAULT '',
+      assigned_to TEXT NOT NULL DEFAULT '', triaged_by TEXT NOT NULL DEFAULT '', triaged_at TEXT NOT NULL DEFAULT '',
+      route_target TEXT NOT NULL DEFAULT '', routed_record_type TEXT NOT NULL DEFAULT '', routed_record_id INTEGER,
+      route_reason TEXT NOT NULL DEFAULT '', routed_by TEXT NOT NULL DEFAULT '', routed_at TEXT NOT NULL DEFAULT '',
+      disposition TEXT NOT NULL DEFAULT '', closed_by TEXT NOT NULL DEFAULT '', closed_at TEXT NOT NULL DEFAULT '',
+      retention_until TEXT NOT NULL, legal_hold INTEGER NOT NULL DEFAULT 0,
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (channel_id) REFERENCES observation_intake_channels(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_observations_scope ON observations(tenant_id,status,id);
+    CREATE TABLE IF NOT EXISTS observation_attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      observation_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL,
+      content_type TEXT NOT NULL DEFAULT 'application/octet-stream',
+      size_bytes INTEGER NOT NULL DEFAULT 0,
+      sha256 TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL DEFAULT '',
+      scan_status TEXT NOT NULL, scan_detail TEXT NOT NULL DEFAULT '', scanned_at TEXT NOT NULL,
+      retention_until TEXT NOT NULL, legal_hold INTEGER NOT NULL DEFAULT 0,
+      disposition_status TEXT NOT NULL DEFAULT 'Active', created_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_observation_attachments_scope ON observation_attachments(tenant_id,observation_id,id);
+    CREATE TABLE IF NOT EXISTS observation_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      observation_id INTEGER NOT NULL,
+      version_no INTEGER NOT NULL,
+      event_type TEXT NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      snapshot_json TEXT NOT NULL,
+      changed_by TEXT NOT NULL, created_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE,
+      UNIQUE(observation_id,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_observation_events_scope ON observation_events(tenant_id,observation_id,version_no);
     CREATE TABLE IF NOT EXISTS ops_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -1320,6 +1394,53 @@ class IntelQualificationIn(BaseModel):
     validation_status: Literal['Qualified','Conflicting','Rejected']
     operational_significance: str = Field(min_length=1, max_length=6000)
 
+class ObservationIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    reporter_choice: Literal['Identified','Confidential Contact','Anonymous']
+    reporter_name: str = Field(default='', max_length=500)
+    reporter_contact: str = Field(default='', max_length=1000)
+    report_on_behalf_of: str = Field(default='', max_length=500)
+    title: str = Field(min_length=1, max_length=500)
+    narrative: str = Field(min_length=1, max_length=12000)
+    location: str = Field(default='', max_length=1000)
+    observed_at: str = Field(min_length=1, max_length=40)
+    context: str = Field(default='', max_length=4000)
+    reported_urgency: Literal['Routine','Priority','Urgent','Critical'] = 'Routine'
+    emergency_acknowledged: bool
+
+class ObservationChannelIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    name: str = Field(min_length=1, max_length=200)
+    expires_at: str = Field(min_length=1, max_length=40)
+
+class ObservationChannelDisableIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    reason: str = Field(min_length=1, max_length=2000)
+
+class ObservationAcknowledgeIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    reason: str = Field(min_length=1, max_length=4000)
+
+class ObservationTriageIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    category: Literal['Security Concern','Safety or Hazard','Behavioral Concern','Fraud or Misconduct','Operational','Information','Other']
+    priority: Literal['Routine','Priority','Urgent','Critical']
+    assigned_to: str = Field(min_length=1, max_length=500)
+    notes: str = Field(min_length=1, max_length=6000)
+
+class ObservationRouteIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    target: Literal['SalINTEL','SalTHIRA','SalOPS','External Escalation']
+    assessment_id: Optional[int] = None
+    member_summary: str = Field(min_length=1, max_length=2000)
+    reason: str = Field(min_length=1, max_length=6000)
+    external_reference: str = Field(default='', max_length=1000)
+
+class ObservationCloseIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    disposition: Literal['Information Only','Not Actionable','Duplicate','Resolved','Referred']
+    reason: str = Field(min_length=1, max_length=6000)
+
 class OpsRequestIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     assessment_id: Optional[int] = None
@@ -1447,6 +1568,7 @@ class LoginIn(BaseModel):
     password: str
 
 class AttachmentGovernanceIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     retention_until: Optional[str] = None
     legal_hold: Optional[bool] = None
     disposition_status: Optional[str] = None
@@ -1641,10 +1763,10 @@ def require_sensitivity(request:Request, sensitivity:str):
 
 def infer_tenant(conn, entity_type:str, entity_id:int|None):
     if entity_id is None: return 1
-    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
+    table_map={'assessment':'assessments','threat':'threats','scenario':'scenarios','capability':'capabilities','evidence':'evidence','gap':'gaps','improvement':'improvements','decision':'decisions','accepted_risk':'accepted_risks','risk_override':'risk_overrides','reassessment_trigger':'reassessment_triggers','scope_change':'scope_changes','workflow_event':'workflow_events','backup_history':'backup_history','governed_intake':'governed_intake','report_version':'report_versions','restore_request':'restore_requests','intel_finding':'intel_findings','observation_intake_channel':'observation_intake_channels','observation':'observations','observation_attachment':'observation_attachments','observation_event':'observation_events','ops_request':'ops_requests','ops_engagement':'ops_engagements','ops_task':'ops_tasks','ops_field_report':'ops_field_reports','ops_estimate':'ops_estimates','ops_estimate_line':'ops_estimate_lines','ops_expense':'ops_expenses','ops_invoice_statement':'ops_invoice_statements'}
     table=table_map.get(entity_type,entity_type if entity_type in table_map.values() else '')
     try:
-        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
+        if table in ('assessments','backup_history','governed_intake','report_versions','restore_requests','intel_findings','observation_intake_channels','observations','observation_attachments','observation_events','ops_requests','ops_engagements','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'): r=conn.execute(f'SELECT tenant_id FROM {table} WHERE id=?',(entity_id,)).fetchone()
         elif table: r=conn.execute(f'SELECT a.tenant_id FROM {table} t JOIN assessments a ON a.id=t.assessment_id WHERE t.id=?',(entity_id,)).fetchone()
         else: r=None
         return int(r['tenant_id']) if r else 1
@@ -2350,6 +2472,210 @@ def send_intel_to_salthira(finding_id:int,request:Request):
     if finding['status']!='Qualified' or not finding['assessment_id']: conn.close(); raise HTTPException(409,'Only qualified intelligence linked to an assessment can be sent to SalTHIRA.')
     assessment_row_for_request(request,finding['assessment_id']); ts=now(); cur=conn.execute("INSERT INTO reassessment_triggers(assessment_id,source,trigger_type,description,severity,affected_record_type,affected_record_id,status,assigned_to,due_date,resolution,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(finding['assessment_id'],'SalINTEL','Qualified Intelligence',f"{finding['title']}: {finding['operational_significance']}",'High','intel_finding',finding_id,'Open','','','',ts,ts)); trigger_id=cur.lastrowid
     conn.execute("UPDATE intel_findings SET status='Sent to SalTHIRA',updated_at=? WHERE id=?",(ts,finding_id)); audit(conn,'SALINTEL_TO_SALTHIRA','intel_finding',finding_id,f'reassessment_trigger={trigger_id}',who); audit(conn,'CREATE','reassessment_trigger',trigger_id,f'Created from qualified SalINTEL finding #{finding_id}',who); conn.commit(); conn.close(); return {'finding_id':finding_id,'reassessment_trigger_id':trigger_id,'status':'Sent to SalTHIRA'}
+
+def _observation_time(value:str,label:str):
+    text=str(value or '').strip()
+    try:
+        parsed=datetime.fromisoformat(text.replace('Z','+00:00'))
+    except Exception:
+        raise HTTPException(422,f'{label} must be a valid ISO 8601 date/time.')
+    if parsed.tzinfo is None: parsed=parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+
+def _observation_retention():
+    return (_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
+
+def _observation_event(conn,observation_id:int,event_type:str,reason:str,who:str):
+    row=conn.execute('SELECT * FROM observations WHERE id=?',(observation_id,)).fetchone()
+    if not row: return
+    version=conn.execute('SELECT COALESCE(MAX(version_no),0)+1 n FROM observation_events WHERE observation_id=?',(observation_id,)).fetchone()['n']
+    conn.execute('INSERT INTO observation_events(tenant_id,observation_id,version_no,event_type,reason,snapshot_json,changed_by,created_at) VALUES(?,?,?,?,?,?,?,?)',(row['tenant_id'],observation_id,version,event_type,reason,json.dumps(dict(row),sort_keys=True,default=str),who,now()))
+
+def _observation_internal_view(row):
+    result=dict(row); result.pop('receipt_hash',None); return result
+
+def _observation_member_view(row):
+    r=dict(row)
+    return {k:r.get(k) for k in ('id','record_key','title','observed_at','reported_urgency','status','acknowledged_at','route_target','disposition','created_at','updated_at')}
+
+def _validate_observation_payload(p:ObservationIn):
+    if not p.emergency_acknowledged:
+        raise HTTPException(422,'Acknowledge that this intake is not an emergency-response channel. Call emergency services for immediate danger.')
+    if p.reporter_choice!='Anonymous' and (not p.reporter_name.strip() or not p.reporter_contact.strip()):
+        raise HTTPException(422,'Reporter name and contact are required for the selected contact choice.')
+    return _observation_time(p.observed_at,'Observed time')
+
+def _create_observation(conn,p:ObservationIn,tenant:int,intake_type:str,who:str,channel_id=None,receipt_hash=''):
+    observed=_validate_observation_payload(p); ts=now(); key=f'OBS-{secrets.token_hex(10).upper()}'
+    name='' if p.reporter_choice=='Anonymous' else p.reporter_name.strip()
+    contact='' if p.reporter_choice=='Anonymous' else p.reporter_contact.strip()
+    protection='Salus Restricted' if intake_type=='Public' or p.reporter_choice in {'Confidential Contact','Anonymous'} else 'Member Restricted'
+    cur=conn.execute('''INSERT INTO observations(tenant_id,record_key,intake_type,channel_id,receipt_hash,reporter_choice,reporter_name,reporter_contact,report_on_behalf_of,title,narrative,location,observed_at,context,reported_urgency,source_protection,status,retention_until,legal_hold,created_by,created_at,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tenant,key,intake_type,channel_id,receipt_hash,p.reporter_choice,name,contact,p.report_on_behalf_of.strip(),p.title.strip(),p.narrative.strip(),p.location.strip(),observed,p.context.strip(),p.reported_urgency,protection,'Submitted',_observation_retention(),0,who,ts,ts))
+    oid=cur.lastrowid; _observation_event(conn,oid,'Submitted','Observation captured as unverified source information.',who)
+    audit(conn,'OBSERVATION_SUBMITTED','observation',oid,f'{intake_type}; reported_urgency={p.reported_urgency}; reporter_choice={p.reporter_choice}',who)
+    return oid,key
+
+def _active_observation_channel(token:str):
+    if len(token)<32 or len(token)>200: raise HTTPException(404,'Public observation channel unavailable')
+    conn=db(); row=conn.execute("SELECT * FROM observation_intake_channels WHERE token_hash=? AND status='Active'",(_hash_token(token),)).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Public observation channel unavailable')
+    try: expired=datetime.fromisoformat(str(row['expires_at']).replace('Z','+00:00'))<=_iso_now_dt()
+    except Exception: expired=True
+    if expired: conn.close(); raise HTTPException(410,'Public observation channel expired')
+    result=dict(row); conn.close(); return result
+
+@app.get('/api/observation-channels')
+def list_observation_channels(request:Request):
+    require(request,'admin'); conn=db(); rows=[]
+    for row in conn.execute('SELECT * FROM observation_intake_channels WHERE tenant_id=? ORDER BY id DESC',(tenant_id(request),)):
+        item=dict(row); item.pop('token_hash',None); rows.append(item)
+    conn.close(); return rows
+
+@app.post('/api/observation-channels')
+def create_observation_channel(p:ObservationChannelIn,request:Request):
+    require(request,'admin'); expires=_observation_time(p.expires_at,'Channel expiry')
+    if datetime.fromisoformat(expires.replace('Z','+00:00'))<=_iso_now_dt(): raise HTTPException(422,'Channel expiry must be in the future.')
+    token=secrets.token_urlsafe(36); tid=tenant_id(request); who=actor(request); ts=now(); conn=db()
+    cur=conn.execute('INSERT INTO observation_intake_channels(tenant_id,name,token_hash,status,expires_at,created_by,created_at) VALUES(?,?,?,?,?,?,?)',(tid,p.name.strip(),_hash_token(token),'Active',expires,who,ts)); cid=cur.lastrowid
+    audit(conn,'OBSERVATION_CHANNEL_CREATED','observation_intake_channel',cid,f'name={p.name.strip()}; expires={expires}',who); conn.commit(); conn.close()
+    return {'id':cid,'name':p.name.strip(),'status':'Active','expires_at':expires,'channel_token':token,'notice':'The channel token is shown once. Store and distribute it through an approved protected process.'}
+
+@app.post('/api/observation-channels/{channel_id}/disable')
+def disable_observation_channel(channel_id:int,p:ObservationChannelDisableIn,request:Request):
+    require(request,'admin'); tid=tenant_id(request); who=actor(request); ts=now(); conn=db(); row=conn.execute("SELECT * FROM observation_intake_channels WHERE id=? AND tenant_id=? AND status='Active'",(channel_id,tid)).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Active observation channel not found')
+    conn.execute("UPDATE observation_intake_channels SET status='Disabled',disabled_by=?,disabled_at=?,disable_reason=? WHERE id=?",(who,ts,p.reason,channel_id)); audit(conn,'OBSERVATION_CHANNEL_DISABLED','observation_intake_channel',channel_id,p.reason,who); conn.commit(); conn.close(); return {'id':channel_id,'status':'Disabled'}
+
+@app.post('/api/public/observations')
+def public_observation(p:ObservationIn,request:Request):
+    channel=_active_observation_channel(request.headers.get('X-Salus-Observation-Channel','')); receipt=secrets.token_urlsafe(32); conn=db()
+    oid,key=_create_observation(conn,p,int(channel['tenant_id']),'Public','Public intake',channel['id'],_hash_token(receipt)); conn.commit(); conn.close()
+    return {'record_key':key,'status':'Submitted','receipt_token':receipt,'emergency_notice':'This service does not provide emergency response. Call emergency services for immediate danger.','notice':'Submission does not establish that the report is verified intelligence, evidence, a threat finding, or an operational order.'}
+
+@app.post('/api/observations')
+def create_observation(p:ObservationIn,request:Request):
+    require(request,'write'); tid=tenant_id(request); who=actor(request); conn=db(); oid,key=_create_observation(conn,p,tid,'Authenticated',who); conn.commit(); row=conn.execute('SELECT * FROM observations WHERE id=?',(oid,)).fetchone(); conn.close(); return _observation_member_view(row) if protected_member_request(request) else _observation_internal_view(row)
+
+@app.get('/api/observations')
+def list_observations(request:Request):
+    require(request,'read'); tid=tenant_id(request); conn=db()
+    if protected_member_request(request):
+        if role(request)=='Contributor': rows=conn.execute("SELECT * FROM observations WHERE tenant_id=? AND intake_type='Authenticated' AND created_by=? ORDER BY id DESC",(tid,actor(request)))
+        else: rows=conn.execute("SELECT * FROM observations WHERE tenant_id=? AND intake_type='Authenticated' ORDER BY id DESC",(tid,))
+        result=[_observation_member_view(r) for r in rows]
+    elif role(request)=='Auditor': result=[_observation_member_view(r) for r in conn.execute('SELECT * FROM observations WHERE tenant_id=? ORDER BY id DESC',(tid,))]
+    else: result=[_observation_internal_view(r) for r in conn.execute('SELECT * FROM observations WHERE tenant_id=? ORDER BY id DESC',(tid,))]
+    conn.close(); return result
+
+def _observation_for_request(conn,observation_id:int,request:Request,internal=False):
+    row=conn.execute('SELECT * FROM observations WHERE id=?',(observation_id,)).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Observation not found')
+    if int(row['tenant_id'])!=tenant_id(request):
+        conn.close(); security_event(request,'OBSERVATION_TENANT_BOUNDARY_VIOLATION','High',f'observation_id={observation_id}'); raise HTTPException(403,'Tenant boundary violation')
+    if protected_member_request(request):
+        if internal or row['intake_type']!='Authenticated' or (role(request)=='Contributor' and row['created_by']!=actor(request)): conn.close(); raise HTTPException(403,'Observation access denied')
+    return row
+
+def _require_observation_authority(request:Request):
+    require(request,'write'); require_salus_component_authority(request,'Observation triage')
+
+@app.post('/api/observations/{observation_id}/acknowledge')
+def acknowledge_observation(observation_id:int,p:ObservationAcknowledgeIn,request:Request):
+    _require_observation_authority(request); conn=db(); row=_observation_for_request(conn,observation_id,request,True)
+    if row['status']!='Submitted': conn.close(); raise HTTPException(409,'Only Submitted observations can be acknowledged.')
+    who=actor(request); ts=now(); conn.execute("UPDATE observations SET status='Acknowledged',acknowledged_by=?,acknowledged_at=?,acknowledgement_reason=?,updated_at=? WHERE id=?",(who,ts,p.reason,ts,observation_id)); _observation_event(conn,observation_id,'Acknowledged',p.reason,who); audit(conn,'OBSERVATION_ACKNOWLEDGED','observation',observation_id,p.reason,who); conn.commit(); result=_observation_internal_view(conn.execute('SELECT * FROM observations WHERE id=?',(observation_id,)).fetchone()); conn.close(); return result
+
+@app.post('/api/observations/{observation_id}/triage')
+def triage_observation(observation_id:int,p:ObservationTriageIn,request:Request):
+    _require_observation_authority(request); conn=db(); row=_observation_for_request(conn,observation_id,request,True)
+    if row['status']!='Acknowledged': conn.close(); raise HTTPException(409,'Only Acknowledged observations can be triaged.')
+    who=actor(request); ts=now(); conn.execute("UPDATE observations SET status='Triaged',triage_category=?,triage_priority=?,triage_notes=?,assigned_to=?,triaged_by=?,triaged_at=?,updated_at=? WHERE id=?",(p.category,p.priority,p.notes,p.assigned_to,who,ts,ts,observation_id)); _observation_event(conn,observation_id,'Triaged',p.notes,who); audit(conn,'OBSERVATION_TRIAGED','observation',observation_id,f'{p.category}; priority={p.priority}; assigned={p.assigned_to}',who); conn.commit(); result=_observation_internal_view(conn.execute('SELECT * FROM observations WHERE id=?',(observation_id,)).fetchone()); conn.close(); return result
+
+@app.post('/api/observations/{observation_id}/route')
+def route_observation(observation_id:int,p:ObservationRouteIn,request:Request):
+    _require_observation_authority(request); tid=tenant_id(request); who=actor(request); conn=db(); row=_observation_for_request(conn,observation_id,request,True)
+    if row['status']!='Triaged': conn.close(); raise HTTPException(409,'Only Triaged observations can be routed.')
+    assessment_id=p.assessment_id
+    if p.target in {'SalTHIRA','SalOPS'} and not assessment_id: conn.close(); raise HTTPException(422,f'{p.target} routing requires an assessment.')
+    if assessment_id: assessment_row_for_request(request,assessment_id)
+    ts=now(); routed_type=''; routed_id=None
+    if p.target=='SalINTEL':
+        cur=conn.execute('INSERT INTO intel_findings(tenant_id,assessment_id,title,details,source,source_locator,relevance,credibility,validation_status,operational_significance,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(tid,assessment_id,row['title'],f"{row['narrative']}\n\nContext: {row['context']}\nLocation: {row['location']}",'Observation',row['record_key'],'Pending','Unrated','Unvalidated','','Collected',who,ts,ts)); routed_type='intel_finding'; routed_id=cur.lastrowid; audit(conn,'SALINTEL_COLLECT','intel_finding',routed_id,f'Created by authorized routing of {row["record_key"]}',who)
+    elif p.target=='SalTHIRA':
+        cur=conn.execute('INSERT INTO reassessment_triggers(assessment_id,source,trigger_type,description,severity,affected_record_type,affected_record_id,status,assigned_to,due_date,resolution,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',(assessment_id,'Observation','Observation Requiring Assessment',p.member_summary,row['triage_priority'],'observation',observation_id,'Open','','','',ts,ts)); routed_type='reassessment_trigger'; routed_id=cur.lastrowid; audit(conn,'CREATE','reassessment_trigger',routed_id,f'Created by authorized routing of {row["record_key"]}',who)
+    elif p.target=='SalOPS':
+        cur=conn.execute('INSERT INTO ops_requests(tenant_id,assessment_id,source_type,source_id,title,description,priority,status,requested_by,requested_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',(tid,assessment_id,'Observation',observation_id,p.member_summary,f"Authorized observation routing: {row['narrative']}",row['triage_priority'],'Requested',who,ts,ts)); routed_type='ops_request'; routed_id=cur.lastrowid; audit(conn,'SALOPS_REQUEST','ops_request',routed_id,f'Created by authorized routing of {row["record_key"]}',who)
+    else:
+        if not p.external_reference.strip(): conn.close(); raise HTTPException(422,'A recorded external reference is required. SalCAPA does not transmit the observation.')
+        routed_type='external_reference'
+    conn.execute("UPDATE observations SET status='Routed',route_target=?,routed_record_type=?,routed_record_id=?,route_reason=?,disposition=?,routed_by=?,routed_at=?,updated_at=? WHERE id=?",(p.target,routed_type,routed_id,p.reason,p.external_reference.strip() if p.target=='External Escalation' else p.member_summary,who,ts,ts,observation_id)); _observation_event(conn,observation_id,'Routed',p.reason,who); audit(conn,'OBSERVATION_ROUTED','observation',observation_id,f'target={p.target}; linked={routed_type}:{routed_id or "recorded"}',who); conn.commit(); result=_observation_internal_view(conn.execute('SELECT * FROM observations WHERE id=?',(observation_id,)).fetchone()); conn.close(); return result
+
+@app.post('/api/observations/{observation_id}/close')
+def close_observation(observation_id:int,p:ObservationCloseIn,request:Request):
+    _require_observation_authority(request); conn=db(); row=_observation_for_request(conn,observation_id,request,True)
+    if row['status'] not in {'Triaged','Routed'}: conn.close(); raise HTTPException(409,'Only Triaged or Routed observations can be closed.')
+    who=actor(request); ts=now(); conn.execute("UPDATE observations SET status='Closed',disposition=?,closed_by=?,closed_at=?,updated_at=? WHERE id=?",(p.disposition,who,ts,ts,observation_id)); _observation_event(conn,observation_id,'Closed',p.reason,who); audit(conn,'OBSERVATION_CLOSED','observation',observation_id,f'{p.disposition}: {p.reason}',who); conn.commit(); result=_observation_internal_view(conn.execute('SELECT * FROM observations WHERE id=?',(observation_id,)).fetchone()); conn.close(); return result
+
+@app.get('/api/observations/{observation_id}/history')
+def observation_history(observation_id:int,request:Request):
+    require(request,'read'); require_salus_component_authority(request,'Observation history'); conn=db(); _observation_for_request(conn,observation_id,request,True); rows=[dict(r) for r in conn.execute('SELECT id,observation_id,version_no,event_type,reason,changed_by,created_at FROM observation_events WHERE observation_id=? AND tenant_id=? ORDER BY version_no DESC',(observation_id,tenant_id(request)))]; conn.close(); return rows
+
+@app.patch('/api/observations/{observation_id}/governance')
+def observation_governance(observation_id:int,p:AttachmentGovernanceIn,request:Request):
+    require(request,'decide'); require_salus_component_authority(request,'Observation governance'); conn=db(); row=_observation_for_request(conn,observation_id,request,True); changes={}
+    if p.retention_until is not None: changes['retention_until']=_observation_time(p.retention_until,'Retention date')
+    if p.legal_hold is not None: changes['legal_hold']=1 if p.legal_hold else 0
+    if not changes: conn.close(); return _observation_internal_view(row)
+    sets=','.join(f'{k}=?' for k in changes); conn.execute(f'UPDATE observations SET {sets},updated_at=? WHERE id=?',tuple(changes.values())+(now(),observation_id)); conn.execute(f'UPDATE observation_attachments SET {sets} WHERE observation_id=?',tuple(changes.values())+(observation_id,)); who=actor(request); _observation_event(conn,observation_id,'Governance Updated',json.dumps(changes,sort_keys=True),who); audit(conn,'OBSERVATION_GOVERNANCE','observation',observation_id,json.dumps(changes,sort_keys=True),who); conn.commit(); result=_observation_internal_view(conn.execute('SELECT * FROM observations WHERE id=?',(observation_id,)).fetchone()); conn.close(); return result
+
+async def _store_observation_attachment(conn,row,file:UploadFile,uploader:str,request:Request):
+    if row['status'] in {'Triaged','Routed','Closed'}: raise HTTPException(409,'Attachments cannot be added after triage begins.')
+    content=await file.read(MAX_ATTACHMENT_BYTES+1)
+    if len(content)>MAX_ATTACHMENT_BYTES: raise HTTPException(413,'Attachment exceeds 25 MB limit')
+    original=safe_filename(file.filename or 'attachment'); scan=scan_bytes(content,original)
+    if not scan['ok']:
+        security_event(request,'OBSERVATION_UPLOAD_REJECTED','High' if scan['status']=='Infected' else 'Medium',f'{original}: {scan["status"]}'); raise HTTPException(422 if scan['status']=='Infected' else 503,f'Upload rejected: {scan["status"]}')
+    digest=hashlib.sha256(content).hexdigest(); stored=f'tenant-{row["tenant_id"]}/observation-{row["id"]}/{digest[:16]}_{original}'
+    try: storage.put_bytes(stored,content)
+    except Exception as exc: security_event(request,'STORAGE_WRITE_FAILURE','High',type(exc).__name__,tenant=int(row['tenant_id']),user_name=uploader); raise HTTPException(503,'Observation storage unavailable')
+    cur=conn.execute('INSERT INTO observation_attachments(tenant_id,observation_id,original_name,stored_name,content_type,size_bytes,sha256,uploaded_by,scan_status,scan_detail,scanned_at,retention_until,legal_hold,disposition_status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(row['tenant_id'],row['id'],original,stored,file.content_type or 'application/octet-stream',len(content),digest,uploader,scan['status'],scan['detail'][:1000],now(),row['retention_until'],row['legal_hold'],'Active',now())); audit(conn,'OBSERVATION_ATTACHMENT_ADDED','observation_attachment',cur.lastrowid,f'observation={row["record_key"]}; file={original}; sha256={digest}',uploader); return cur.lastrowid
+
+@app.post('/api/observations/{observation_id}/attachments')
+async def upload_observation_attachment(observation_id:int,request:Request,file:UploadFile=File(...)):
+    require(request,'write'); conn=db(); row=_observation_for_request(conn,observation_id,request,False); aid=await _store_observation_attachment(conn,row,file,actor(request),request); conn.commit(); result=dict(conn.execute('SELECT * FROM observation_attachments WHERE id=?',(aid,)).fetchone()); conn.close(); result.pop('stored_name',None); result.pop('scan_detail',None); return result
+
+@app.post('/api/public/observations/{record_key}/attachments')
+async def upload_public_observation_attachment(record_key:str,request:Request,file:UploadFile=File(...)):
+    channel=_active_observation_channel(request.headers.get('X-Salus-Observation-Channel','')); receipt=request.headers.get('X-Salus-Observation-Receipt',''); conn=db(); row=conn.execute("SELECT * FROM observations WHERE record_key=? AND tenant_id=? AND channel_id=? AND intake_type='Public' AND receipt_hash=?",(record_key,channel['tenant_id'],channel['id'],_hash_token(receipt))).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Public observation receipt not found')
+    aid=await _store_observation_attachment(conn,row,file,'Public intake',request); conn.commit(); result=dict(conn.execute('SELECT * FROM observation_attachments WHERE id=?',(aid,)).fetchone()); conn.close(); return {k:result[k] for k in ('id','observation_id','original_name','size_bytes','sha256','scan_status','created_at')}
+
+@app.get('/api/observations/{observation_id}/attachments')
+def list_observation_attachments(observation_id:int,request:Request):
+    require(request,'read');
+    if role(request)=='Auditor': raise HTTPException(403,'Observation source attachments are restricted to authorized operational personnel.')
+    conn=db(); row=_observation_for_request(conn,observation_id,request,False)
+    if protected_member_request(request) and row['created_by']!=actor(request): conn.close(); raise HTTPException(403,'Observation attachments are available only to the submitter and authorized Salus personnel.')
+    result=[]
+    for item in conn.execute('SELECT * FROM observation_attachments WHERE observation_id=? AND tenant_id=? ORDER BY id',(observation_id,tenant_id(request))):
+        value=dict(item); value.pop('stored_name',None); value.pop('scan_detail',None); result.append(value)
+    conn.close(); return result
+
+@app.get('/api/observation-attachments/{attachment_id}/download')
+def download_observation_attachment(attachment_id:int,request:Request):
+    require(request,'read');
+    if role(request)=='Auditor': raise HTTPException(403,'Observation source attachments are restricted to authorized operational personnel.')
+    conn=db(); item=conn.execute('SELECT * FROM observation_attachments WHERE id=? AND tenant_id=?',(attachment_id,tenant_id(request))).fetchone()
+    if not item: conn.close(); raise HTTPException(404,'Observation attachment not found')
+    row=_observation_for_request(conn,item['observation_id'],request,False)
+    if protected_member_request(request) and row['created_by']!=actor(request): conn.close(); raise HTTPException(403,'Observation attachment access denied')
+    conn.close()
+    try: data=storage.get_bytes(item['stored_name'])
+    except FileNotFoundError: raise HTTPException(404,'Stored attachment missing')
+    except Exception as exc: security_event(request,'STORAGE_READ_FAILURE','High',type(exc).__name__); raise HTTPException(503,'Observation storage unavailable')
+    if hashlib.sha256(data).hexdigest()!=item['sha256']: security_event(request,'OBSERVATION_ATTACHMENT_HASH_MISMATCH','Critical',f'attachment_id={attachment_id}'); raise HTTPException(409,'Observation attachment integrity verification failed')
+    conn=db(); audit(conn,'OBSERVATION_ATTACHMENT_DOWNLOADED','observation_attachment',attachment_id,'Hash verified before download',actor(request)); conn.commit(); conn.close(); return Response(content=data,media_type=item['content_type'],headers={'Content-Disposition':f'attachment; filename="{safe_filename(item["original_name"])}"','X-Content-SHA256':item['sha256']})
 
 @app.get('/api/salops/requests')
 def list_ops_requests(request:Request):
