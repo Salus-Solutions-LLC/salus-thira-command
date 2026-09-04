@@ -208,7 +208,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: replace('${stem}storage', '-', '')
   location: location
   sku: {
-    name: environmentName == 'prod' ? 'Standard_GRS' : 'Standard_LRS'
+    name: 'Standard_GRS'
   }
   kind: 'StorageV2'
   properties: {
