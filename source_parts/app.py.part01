@@ -12,7 +12,7 @@ ATTACHMENTS_DIR = os.path.join(BASE_DIR, 'attachments')
 os.makedirs(ATTACHMENTS_DIR, exist_ok=True)
 MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 
-app = FastAPI(title='Salus THIRA Command', version='0.4.0')
+app = FastAPI(title='Salus THIRA Command', version='1.16.0')
 app.mount('/static', StaticFiles(directory=os.path.join(BASE_DIR, 'static')), name='static')
 
 
