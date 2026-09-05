@@ -246,6 +246,8 @@ jobs:
               'id-token: write',
               ".github/workflows/azure-foundation-activate.yml",
               "deploy/azure/activations/foundation-dev.json",
+              'Evaluate required Azure provider readiness',
+              'continue-on-error: true',
               'AZURE_BUDGET_CONTACT_EMAIL',
               'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
               'az role assignment list',
