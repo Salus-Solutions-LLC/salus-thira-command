@@ -7,6 +7,6 @@
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
   "monthly_cost_ceiling_usd": 30,
   "operational_budget_usd": 25,
-  "source_release": "release/v3.7",
-  "source_commit": "ec01afd7b462cb5379fbe03e73e779d4ae41b0b1"
+  "source_release": "release/v3.8",
+  "source_commit": "ab2f30cd000c7e8d5fcac7544d7f0036a0d83982"
 }
