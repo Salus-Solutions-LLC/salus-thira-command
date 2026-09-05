@@ -90,18 +90,30 @@ jobs:
 
           ASSIGNMENT_COUNT="$(jq 'length' /tmp/salcapa-role-assignments.json)"
           test "$ASSIGNMENT_COUNT" -gt 0 || { echo "Deployment principal has no visible role assignments." >&2; exit 1; }
-          jq -e --arg scope "$EXPECTED_SCOPE" 'all(.[]; (.scope | ascii_downcase) == ($scope | ascii_downcase))' \
-            /tmp/salcapa-role-assignments.json >/dev/null || {
-              echo "Deployment principal has an assignment outside the approved resource group." >&2
+          jq -e --arg scope "$EXPECTED_SCOPE" '
+            all(.[];
+              ((.scope | ascii_downcase) == ($scope | ascii_downcase)) or
+              (.scope | ascii_downcase | startswith(($scope | ascii_downcase) + "/"))
+            )
+          ' /tmp/salcapa-role-assignments.json >/dev/null || {
+              echo "Deployment principal has an assignment outside the approved resource-group boundary." >&2
               exit 1
             }
-          jq -e 'any(.[]; .role == "Contributor" or .role == "Owner")' \
-            /tmp/salcapa-role-assignments.json >/dev/null || {
+          jq -e --arg scope "$EXPECTED_SCOPE" '
+            any(.[];
+              (.role == "Contributor" or .role == "Owner") and
+              ((.scope | ascii_downcase) == ($scope | ascii_downcase))
+            )
+          ' /tmp/salcapa-role-assignments.json >/dev/null || {
               echo "Deployment principal lacks resource-group deployment authority." >&2
               exit 1
             }
-          jq -e 'any(.[]; .role == "User Access Administrator" or .role == "Role Based Access Control Administrator" or .role == "Owner")' \
-            /tmp/salcapa-role-assignments.json >/dev/null || {
+          jq -e --arg scope "$EXPECTED_SCOPE" '
+            any(.[];
+              (.role == "User Access Administrator" or .role == "Role Based Access Control Administrator" or .role == "Owner") and
+              ((.scope | ascii_downcase) == ($scope | ascii_downcase))
+            )
+          ' /tmp/salcapa-role-assignments.json >/dev/null || {
               echo "Deployment principal lacks scoped role-assignment authority required by the template." >&2
               exit 1
             }
