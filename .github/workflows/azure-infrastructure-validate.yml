@@ -6,6 +6,7 @@ on:
     paths:
       - 'infra/azure/**'
       - 'docs/AZURE_*.md'
+      - 'docs/RELEASE_NOTES_v3.*.md'
       - 'deploy/AZURE_BACKUP_RESTORE_RUNBOOK.md'
       - '.github/workflows/azure-infrastructure-validate.yml'
       - '.github/workflows/azure-production-deploy.yml'
@@ -22,6 +23,7 @@ on:
     paths:
       - 'infra/azure/**'
       - 'docs/AZURE_*.md'
+      - 'docs/RELEASE_NOTES_v3.*.md'
       - 'deploy/AZURE_BACKUP_RESTORE_RUNBOOK.md'
       - '.github/workflows/azure-infrastructure-validate.yml'
       - '.github/workflows/azure-production-deploy.yml'
