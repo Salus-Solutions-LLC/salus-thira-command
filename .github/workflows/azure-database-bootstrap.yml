@@ -233,13 +233,13 @@ jobs:
             --arg objectId "$BOOTSTRAP_OBJECT_ID" \
             --arg tenantId "$ENTRA_TENANT_ID" \
             --arg principalName "$IDENTITY_NAME" \
-            '(.name | ascii_downcase) == $objectId and
+            '(.properties.objectId | ascii_downcase) == $objectId and
              (.properties.tenantId | ascii_downcase) == ($tenantId | ascii_downcase) and
              .properties.principalType == "ServicePrincipal" and
              .properties.principalName == $principalName' \
             /tmp/salcapa-bootstrap-admin.json >/dev/null; then
             echo "Temporary PostgreSQL administrator does not match the governed identity contract." >&2
-            jq '{name,properties:{tenantId:.properties.tenantId,principalType:.properties.principalType,principalName:.properties.principalName}}' \
+            jq '{name,properties:{objectId:.properties.objectId,tenantId:.properties.tenantId,principalType:.properties.principalType,principalName:.properties.principalName}}' \
               /tmp/salcapa-bootstrap-admin.json >&2 || true
             exit 1
           fi
