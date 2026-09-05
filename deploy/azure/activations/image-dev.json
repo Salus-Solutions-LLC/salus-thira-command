@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "operation": "publish_image",
+  "target_environment": "dev",
+  "location": "southcentralus",
+  "unique_suffix": "b48224",
+  "repository": "salcapa",
+  "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
+  "source_commit": "97acaabce5306a5563f49b3a2526966a55e2b3fc",
+  "source_release": "release/v3.13"
+}
