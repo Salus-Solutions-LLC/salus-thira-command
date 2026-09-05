@@ -2,11 +2,11 @@
   "schema_version": 1,
   "operation": "foundation",
   "target_environment": "dev",
-  "unique_suffix": "b48224",
   "location": "southcentralus",
+  "unique_suffix": "b48224",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-  "monthly_cost_ceiling_usd": 30,
   "operational_budget_usd": 25,
-  "source_release": "release/v3.9",
-  "source_commit": "18ba6d0c61dcd2d3759d712963c2ad9cead46618"
+  "monthly_cost_ceiling_usd": 30,
+  "source_commit": "18ba6d0c61dcd2d3759d712963c2ad9cead46618",
+  "source_release": "release/v3.9"
 }
