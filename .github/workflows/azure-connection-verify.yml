@@ -145,38 +145,6 @@ jobs:
       - name: Run live foundation what-if without provisioning
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-        run: |
-          set -euo pipefail
-          PROVIDERS=(
-            Microsoft.App Microsoft.ContainerRegistry Microsoft.DBforPostgreSQL
-            Microsoft.Insights Microsoft.KeyVault Microsoft.ManagedIdentity
-            Microsoft.Network Microsoft.OperationalInsights Microsoft.Storage
-            Microsoft.Consumption
-          )
-          {
-            echo "### Azure provider readiness"
-            echo ""
-            echo "| Provider | Registration state |"
-            echo "|---|---|"
-            for provider in "${PROVIDERS[@]}"; do
-              state="$(az provider show --namespace "$provider" --query registrationState --output tsv)"
-              echo "| $provider | $state |"
-              if [ "$state" != "Registered" ]; then
-                echo "::warning::Azure provider $provider is $state"
-              fi
-            done
-            echo ""
-            echo "### Current rg-salcapa-dev resource inventory"
-            echo ""
-            count="$(az resource list --resource-group "$RESOURCE_GROUP" --query 'length(@)' --output tsv)"
-            echo "- Resource count: $count"
-            echo ""
-            echo "| Resource type | Resource name |"
-            echo "|---|---|"
-            az resource list --resource-group "$RESOURCE_GROUP" --query '[].{type:type,name:name}' --output tsv |
-              while IFS=
-        env:
-          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           LOCATION: ${{ vars.AZURE_LOCATION }}
           ENTRA_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           POSTGRES_ADMIN_OBJECT_ID: ${{ vars.POSTGRES_ADMIN_OBJECT_ID }}
