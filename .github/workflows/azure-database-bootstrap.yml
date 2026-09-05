@@ -168,15 +168,24 @@ jobs:
             set +e
             BOOTSTRAP_OBJECT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name "$IDENTITY_NAME" --query principalId --output tsv 2>/dev/null)"
             az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes >/dev/null 2>&1
+            for attempt in $(seq 1 60); do
+              ! az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" >/dev/null 2>&1 && break
+              sleep 5
+            done
             delete_postgres_admin "$BOOTSTRAP_OBJECT_ID"
             az identity delete --resource-group "$RESOURCE_GROUP" --name "$IDENTITY_NAME" >/dev/null 2>&1
+            for attempt in $(seq 1 60); do
+              ! az identity show --resource-group "$RESOURCE_GROUP" --name "$IDENTITY_NAME" >/dev/null 2>&1 && break
+              sleep 5
+            done
             true
           )
           trap cleanup EXIT
           cleanup
 
-          az deployment group create \
-            --name "salcapa-database-bootstrap-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+          DEPLOYMENT_NAME="salcapa-database-bootstrap-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          if ! az deployment group create \
+            --name "$DEPLOYMENT_NAME" \
             --resource-group "$RESOURCE_GROUP" \
             --template-file frozen-release/infra/azure/database-bootstrap.bicep \
             --parameters \
@@ -186,10 +195,17 @@ jobs:
               entraTenantId="$ENTRA_TENANT_ID" \
               tenantName="Salus Solutions" tenantSlug=salus \
               initialUsersJson="$INITIAL_USERS_JSON" \
-            --query properties.outputs --output json > /tmp/salcapa-database-bootstrap-outputs.json
+            --output json > /tmp/salcapa-database-bootstrap-deployment.json; then
+            echo "Transient database-bootstrap resource deployment failed." >&2
+            jq '.error // .properties.error // .' /tmp/salcapa-database-bootstrap-deployment.json >&2 || true
+            az deployment group show \
+              --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" \
+              --query properties.error --output json >&2 || true
+            exit 1
+          fi
 
-          BOOTSTRAP_OBJECT_ID="$(jq -r '.bootstrapIdentityObjectId.value' /tmp/salcapa-database-bootstrap-outputs.json)"
-          test -n "$BOOTSTRAP_OBJECT_ID"
+          BOOTSTRAP_OBJECT_ID="$(jq -r '.properties.outputs.bootstrapIdentityObjectId.value // empty' /tmp/salcapa-database-bootstrap-deployment.json)"
+          [[ "$BOOTSTRAP_OBJECT_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]
           ADMIN_URI="$(postgres_admin_uri "$BOOTSTRAP_OBJECT_ID")"
           ADMIN_BODY="$(jq -nc \
             --arg tenantId "$ENTRA_TENANT_ID" \
