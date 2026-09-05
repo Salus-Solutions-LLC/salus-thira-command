@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen image source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.15
+          ref: release/v3.17
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -60,7 +60,7 @@ jobs:
             (.location == "southcentralus") and
             (.repository == "salcapa") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.15") and
+            (.source_release == "release/v3.17") and
             (.source_commit | test("^[0-9a-f]{40}$")) and
             ((keys - [
               "approval_record",
@@ -77,7 +77,7 @@ jobs:
 
           SOURCE_RELEASE="$(jq -r '.source_release' "$ACTIVATION_FILE")"
           SOURCE_COMMIT="$(jq -r '.source_commit' "$ACTIVATION_FILE")"
-          test "$SOURCE_RELEASE" = "release/v3.15"
+          test "$SOURCE_RELEASE" = "release/v3.17"
           test "$(git -C frozen-release rev-parse HEAD)" = "$SOURCE_COMMIT"
           git cat-file -e "$SOURCE_COMMIT^{commit}"
           git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
