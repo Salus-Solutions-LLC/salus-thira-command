@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "operation": "bootstrap_database",
+  "target_environment": "dev",
+  "unique_suffix": "b48224",
+  "location": "southcentralus",
+  "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
+  "source_release": "release/v3.14",
+  "source_commit": "2318e884e1e6c6ec9d368c9144de8d4dba0386b3",
+  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:2887c25e8b3c6fe2b9c7879a86bc51ededf901bb4eb24bc81a37dea61dc7437a",
+  "tenant": {
+    "name": "Salus Solutions",
+    "slug": "salus"
+  },
+  "initial_users": [
+    {
+      "object_id": "e1c9d79f-8dce-4f33-b435-21026748c1d8",
+      "username": "marc.duncan",
+      "display_name": "Marc Duncan",
+      "role": "System Administrator",
+      "sensitivity_clearance": "Highly Sensitive",
+      "status": "Active"
+    }
+  ]
+}
