@@ -43,20 +43,20 @@ The deployment service principal is scoped to `rg-salcapa-dev` with Contributor 
 
 Protected GitHub environments remain the approval boundary. Production federation accepts only the corresponding protected environment subject. Images are deployed by immutable digest from the governed registry.
 
-## Entra activation prerequisites
+## Staged Entra activation
 
-Before application deployment, an authorized Entra administrator must:
+Foundation and federation must be completed in this order to avoid a circular dependency:
 
-1. create or identify the single-tenant SalCAPA runtime application registration;
-2. register only the exact HTTPS callback emitted by the Bicep template;
-3. add a federated identity credential whose issuer and subject identify the SalCAPA user-assigned managed identity;
-4. record the application client ID as the non-secret GitHub variable `ENTRA_RUNTIME_CLIENT_ID`;
-5. pre-provision each permitted person in SalCAPA with their immutable Entra object ID, approved tenant, role, clearance, and active status;
-6. run login acceptance for a Protected Member and Salus user, unknown and disabled subjects, cross-tenant denial, state replay, issuer/audience rejection, and server-derived role behavior.
+1. Run the protected `foundation` operation on `development/salcapa-platform` using the approved development resource group, region, unique suffix, and approval record. Foundation provisioning does not require `ENTRA_RUNTIME_CLIENT_ID` and does not create the Container App.
+2. Capture the governed deployment outputs: managed-identity client ID, federation issuer, federation subject, federation audience, and exact runtime redirect URI. The workflow verifies these outputs and records the non-secret federation contract in its job summary.
+3. An authorized Entra administrator creates or identifies the single-tenant SalCAPA runtime application registration, registers only the emitted HTTPS callback, and adds one federated identity credential using the emitted values.
+4. Record the application client ID as the non-secret GitHub repository variable `ENTRA_RUNTIME_CLIENT_ID`. The `deploy` operation rejects a missing or malformed UUID.
+5. Pre-provision each permitted person in SalCAPA with their immutable Entra object ID, approved SalCAPA tenant, role, clearance, and active status.
+6. Run governed application deployment and login acceptance for a Protected Member and Salus user, unknown and disabled subjects, cross-tenant denial, state replay, issuer/audience rejection, and server-derived role behavior.
 
-The federated credential must use issuer `https://login.microsoftonline.com/<tenant-id>/v2.0`, the case-sensitive managed identity principal (object) ID as its subject, and `api://AzureADTokenExchange` as its audience. These three values must match the managed-identity assertion exactly.
+The federated credential must use issuer `https://login.microsoftonline.com/<tenant-id>/v2.0`, the case-sensitive managed identity principal (object) ID as its subject, and `api://AzureADTokenExchange` as its audience. These values are emitted by the exact foundation deployment and must not be guessed.
 
-Creating the app registration or federated credential does not create a long-lived credential. Azure resources, DNS, and public production cutover remain separately governed.
+The Bicep deployment records the exact source commit on every provisioned resource. Creating the app registration or federated credential does not create a long-lived credential. DNS and public production cutover remain separately governed.
 
 ## Release and rollback
 
