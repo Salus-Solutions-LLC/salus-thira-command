@@ -11,6 +11,7 @@ SalCAPA can provision the approved lean Azure development foundation before a ru
 - Every provisioned resource records the exact source commit.
 - The foundation emits and verifies the federation issuer, managed-identity subject, audience, redirect URI, and managed-identity client ID.
 - Application deployment rejects a missing or malformed runtime application UUID.
+- The globally unique Azure resource suffix is constrained to 4–6 lowercase alphanumeric characters so both development and production storage-account names remain within Azure’s 24-character limit.
 - Federated credential values must be taken from the deployment outputs and may not be guessed.
 - No DNS change or public production cutover is authorized.
 
