@@ -316,6 +316,8 @@ jobs:
               'infra/azure/database-bootstrap.bicep',
               'az containerapp job start',
               'properties.status',
+              'az postgres flexible-server ad-admin create',
+              '--type ServicePrincipal',
               'az postgres flexible-server ad-admin delete',
               'az containerapp job delete',
               'az identity delete',
@@ -343,7 +345,6 @@ jobs:
           database_bootstrap_template = Path('infra/azure/database-bootstrap.bicep').read_text()
           for value in (
               'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31',
-              'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01',
               "principalType: 'ServicePrincipal'",
               'Microsoft.App/jobs@2025-01-01',
               "triggerType: 'Manual'",

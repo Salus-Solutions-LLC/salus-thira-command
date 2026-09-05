@@ -168,6 +168,10 @@ jobs:
 
           BOOTSTRAP_OBJECT_ID="$(jq -r '.bootstrapIdentityObjectId.value' /tmp/salcapa-database-bootstrap-outputs.json)"
           test -n "$BOOTSTRAP_OBJECT_ID"
+          az postgres flexible-server ad-admin create \
+            --resource-group "$RESOURCE_GROUP" --server-name "$POSTGRES_NAME" \
+            --display-name "$IDENTITY_NAME" --object-id "$BOOTSTRAP_OBJECT_ID" \
+            --type ServicePrincipal >/dev/null
           az postgres flexible-server ad-admin show --resource-group "$RESOURCE_GROUP" --server-name "$POSTGRES_NAME" --object-id "$BOOTSTRAP_OBJECT_ID" >/dev/null
 
           EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv)"

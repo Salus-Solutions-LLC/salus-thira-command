@@ -45,16 +45,6 @@ resource bootstrapIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@202
   }
 }
 
-resource bootstrapAdministrator 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
-  parent: postgres
-  name: bootstrapIdentity.properties.principalId
-  properties: {
-    principalName: bootstrapIdentity.name
-    principalType: 'ServicePrincipal'
-    tenantId: entraTenantId
-  }
-}
-
 resource bootstrapJob 'Microsoft.App/jobs@2025-01-01' = {
   name: jobName
   location: location
@@ -121,9 +111,6 @@ resource bootstrapJob 'Microsoft.App/jobs@2025-01-01' = {
       ]
     }
   }
-  dependsOn: [
-    bootstrapAdministrator
-  ]
 }
 
 output bootstrapIdentityName string = bootstrapIdentity.name
