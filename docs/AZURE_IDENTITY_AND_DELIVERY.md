@@ -54,6 +54,8 @@ Before application deployment, an authorized Entra administrator must:
 5. pre-provision each permitted person in SalCAPA with their immutable Entra object ID, approved tenant, role, clearance, and active status;
 6. run login acceptance for a Protected Member and Salus user, unknown and disabled subjects, cross-tenant denial, state replay, issuer/audience rejection, and server-derived role behavior.
 
+The federated credential must use issuer `https://login.microsoftonline.com/<tenant-id>/v2.0`, the case-sensitive managed identity principal (object) ID as its subject, and `api://AzureADTokenExchange` as its audience. These three values must match the managed-identity assertion exactly.
+
 Creating the app registration or federated credential does not create a long-lived credential. Azure resources, DNS, and public production cutover remain separately governed.
 
 ## Release and rollback
