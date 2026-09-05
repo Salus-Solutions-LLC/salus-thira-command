@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen bootstrap source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.14
+          ref: release/v3.15
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -59,7 +59,7 @@ jobs:
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.14") and
+            (.source_release == "release/v3.15") and
             (.source_commit | test("^[0-9a-f]{40}$")) and
             (.image_digest | test("^salcapadevb48224acr[.]azurecr[.]io/salcapa@sha256:[0-9a-f]{64}$")) and
             (.tenant == {"name":"Salus Solutions","slug":"salus"}) and
@@ -141,15 +141,37 @@ jobs:
           IDENTITY_NAME="$JOB_NAME"
           POSTGRES_NAME="salcapa-dev-b48224-pg"
 
-          cleanup() {
+          POSTGRES_RESOURCE_ID="$(az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$POSTGRES_NAME" --query id --output tsv)"
+          test -n "$POSTGRES_RESOURCE_ID"
+
+          postgres_admin_uri() {
+            printf 'https://management.azure.com%s/administrators/%s?api-version=2024-08-01' "$POSTGRES_RESOURCE_ID" "$1"
+          }
+
+          delete_postgres_admin() {
+            local object_id="$1"
+            local uri
+            [ -n "$object_id" ] || return 0
+            uri="$(postgres_admin_uri "$object_id")"
+            az rest --method delete --uri "$uri" --only-show-errors >/dev/null 2>&1 || true
+            for attempt in $(seq 1 60); do
+              if ! az rest --method get --uri "$uri" --only-show-errors >/dev/null 2>&1; then
+                return 0
+              fi
+              sleep 5
+            done
+            echo "Temporary PostgreSQL Entra administrator deletion did not converge." >&2
+            return 1
+          }
+
+          cleanup() (
             set +e
             BOOTSTRAP_OBJECT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name "$IDENTITY_NAME" --query principalId --output tsv 2>/dev/null)"
             az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes >/dev/null 2>&1
-            if [ -n "$BOOTSTRAP_OBJECT_ID" ]; then
-              az postgres flexible-server ad-admin delete --resource-group "$RESOURCE_GROUP" --server-name "$POSTGRES_NAME" --object-id "$BOOTSTRAP_OBJECT_ID" --yes >/dev/null 2>&1
-            fi
+            delete_postgres_admin "$BOOTSTRAP_OBJECT_ID"
             az identity delete --resource-group "$RESOURCE_GROUP" --name "$IDENTITY_NAME" >/dev/null 2>&1
-          }
+            true
+          )
           trap cleanup EXIT
           cleanup
 
@@ -168,11 +190,32 @@ jobs:
 
           BOOTSTRAP_OBJECT_ID="$(jq -r '.bootstrapIdentityObjectId.value' /tmp/salcapa-database-bootstrap-outputs.json)"
           test -n "$BOOTSTRAP_OBJECT_ID"
-          az postgres flexible-server ad-admin create \
-            --resource-group "$RESOURCE_GROUP" --server-name "$POSTGRES_NAME" \
-            --display-name "$IDENTITY_NAME" --object-id "$BOOTSTRAP_OBJECT_ID" \
-            --type ServicePrincipal >/dev/null
-          az postgres flexible-server ad-admin show --resource-group "$RESOURCE_GROUP" --server-name "$POSTGRES_NAME" --object-id "$BOOTSTRAP_OBJECT_ID" >/dev/null
+          ADMIN_URI="$(postgres_admin_uri "$BOOTSTRAP_OBJECT_ID")"
+          ADMIN_BODY="$(jq -nc \
+            --arg tenantId "$ENTRA_TENANT_ID" \
+            --arg principalName "$IDENTITY_NAME" \
+            '{properties:{tenantId:$tenantId,principalType:"ServicePrincipal",principalName:$principalName}}')"
+          az rest --method put --uri "$ADMIN_URI" --body "$ADMIN_BODY" \
+            --headers Content-Type=application/json --only-show-errors >/dev/null
+          ADMIN_READY=false
+          for attempt in $(seq 1 60); do
+            if az rest --method get --uri "$ADMIN_URI" --only-show-errors \
+              --output json > /tmp/salcapa-bootstrap-admin.json 2>/dev/null; then
+              ADMIN_READY=true
+              break
+            fi
+            sleep 5
+          done
+          test "$ADMIN_READY" = "true"
+          jq -e \
+            --arg objectId "$BOOTSTRAP_OBJECT_ID" \
+            --arg tenantId "$ENTRA_TENANT_ID" \
+            --arg principalName "$IDENTITY_NAME" \
+            '.name == $objectId and
+             .properties.tenantId == $tenantId and
+             .properties.principalType == "ServicePrincipal" and
+             .properties.principalName == $principalName' \
+            /tmp/salcapa-bootstrap-admin.json >/dev/null
 
           EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv)"
           test -n "$EXECUTION_NAME"
@@ -189,7 +232,10 @@ jobs:
 
           cleanup
           trap - EXIT
-          test "$(az postgres flexible-server ad-admin list --resource-group "$RESOURCE_GROUP" --server-name "$POSTGRES_NAME" --query "[?objectId=='$BOOTSTRAP_OBJECT_ID'] | length(@)" --output tsv)" = "0"
+          if az rest --method get --uri "$ADMIN_URI" --only-show-errors >/dev/null 2>&1; then
+            echo "Temporary PostgreSQL Entra administrator remains after cleanup." >&2
+            exit 1
+          fi
           ! az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" >/dev/null 2>&1
           ! az identity show --resource-group "$RESOURCE_GROUP" --name "$IDENTITY_NAME" >/dev/null 2>&1
 
