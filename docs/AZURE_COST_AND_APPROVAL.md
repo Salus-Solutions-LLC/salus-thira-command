@@ -81,7 +81,7 @@ This earlier proposal remains documented for future scale-up analysis but is **n
 
 ## Live identity and scope acceptance
 
-Before foundation provisioning, `.github/workflows/azure-connection-verify.yml` must pass using passwordless GitHub OIDC. It verifies the exact approved subscription, Entra tenant, South Central US development resource group, and deployment-principal role assignments without creating or changing Azure resources. The deployment principal may not retain visible assignments outside the governed resource-group scope. It must have resource deployment authority and the scoped role-assignment authority required to grant the template's managed-identity roles.
+Before foundation provisioning, `.github/workflows/azure-connection-verify.yml` must pass using passwordless GitHub OIDC. It verifies the exact approved subscription, Entra tenant, South Central US development resource group, and deployment-principal role assignments without creating or changing Azure resources. It also runs a live Azure Resource Manager what-if for the exact foundation using suffix `b48224`, rejects any resource outside `rg-salcapa-dev`, destructive delete, or premature Container App creation, and never calls the resource-creating deployment command. The deployment principal may not retain visible assignments outside the governed resource-group scope. It must have resource deployment authority and the scoped role-assignment authority required to grant the template's managed-identity roles.
 
 The protected repository variable `AZURE_BUDGET_CONTACT_EMAIL` must contain the approved operational notification recipient before the foundation or application workflow can run.
 
