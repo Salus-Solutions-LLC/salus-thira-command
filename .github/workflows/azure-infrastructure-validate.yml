@@ -147,6 +147,14 @@ jobs:
               'federatedCredentialAudience.value == "api://AzureADTokenExchange"',
               'runtimeRedirectUri.value',
               'GITHUB_STEP_SUMMARY',
+              'Microsoft.ContainerRegistry',
+              'Microsoft.DBforPostgreSQL',
+              'Microsoft.KeyVault',
+              'Microsoft.ManagedIdentity',
+              'Microsoft.Network',
+              'Microsoft.OperationalInsights',
+              'az provider show',
+              'registrationState',
               'az deployment group what-if',
               'monthlyCostCeilingUsd=30',
               'operationalBudgetUsd=25',
@@ -181,7 +189,7 @@ jobs:
               'permissions: {}',
               'needs: authorize',
               'id-token: write',
-              'source_release == "release/v3.8"',
+              'source_release == "release/v3.9"',
               '.source_commit | test("^[0-9a-f]{40}$")',
               'path: frozen-release',
               'git -C frozen-release rev-parse HEAD',
@@ -228,6 +236,10 @@ jobs:
               raise SystemExit('Foundation Azure login action must be pinned to a commit SHA')
           if 'AZURE_CLIENT_SECRET' in activation:
               raise SystemExit('Foundation activation may not use a long-lived client secret')
+          if activation.index('az provider show') > activation.index('az deployment group what-if'):
+              raise SystemExit('Provider readiness must run before foundation what-if')
+          if activation.index('az provider show') > activation.index('az deployment group create'):
+              raise SystemExit('Provider readiness must run before foundation deployment')
 
           connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
           connection_required = [
