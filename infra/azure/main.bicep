@@ -2,7 +2,7 @@ targetScope = 'resourceGroup'
 
 @description('Short globally unique suffix used for Azure resource names.')
 @minLength(4)
-@maxLength(12)
+@maxLength(6)
 param uniqueSuffix string
 
 @allowed([
