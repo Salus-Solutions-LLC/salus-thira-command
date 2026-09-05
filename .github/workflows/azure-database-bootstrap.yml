@@ -204,8 +204,13 @@ jobs:
             exit 1
           fi
 
-          BOOTSTRAP_OBJECT_ID="$(jq -r '.properties.outputs.bootstrapIdentityObjectId.value // empty' /tmp/salcapa-database-bootstrap-deployment.json)"
-          [[ "$BOOTSTRAP_OBJECT_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]
+          BOOTSTRAP_OBJECT_ID="$(jq -r '.properties.outputs.bootstrapIdentityObjectId.value // empty' /tmp/salcapa-database-bootstrap-deployment.json | tr '[:upper:]' '[:lower:]')"
+          if [[ ! "$BOOTSTRAP_OBJECT_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+            echo "Azure deployment did not emit a canonical bootstrap identity object ID." >&2
+            jq '.properties.outputs | keys' /tmp/salcapa-database-bootstrap-deployment.json >&2 || true
+            exit 1
+          fi
+          echo "Transient resources deployed and bootstrap identity output verified."
           ADMIN_URI="$(postgres_admin_uri "$BOOTSTRAP_OBJECT_ID")"
           ADMIN_BODY="$(jq -nc \
             --arg tenantId "$ENTRA_TENANT_ID" \
@@ -213,6 +218,7 @@ jobs:
             '{properties:{tenantId:$tenantId,principalType:"ServicePrincipal",principalName:$principalName}}')"
           az rest --method put --uri "$ADMIN_URI" --body "$ADMIN_BODY" \
             --headers Content-Type=application/json --only-show-errors >/dev/null
+          echo "Temporary PostgreSQL administrator request accepted."
           ADMIN_READY=false
           for attempt in $(seq 1 60); do
             if az rest --method get --uri "$ADMIN_URI" --only-show-errors \
@@ -223,18 +229,25 @@ jobs:
             sleep 5
           done
           test "$ADMIN_READY" = "true"
-          jq -e \
+          if ! jq -e \
             --arg objectId "$BOOTSTRAP_OBJECT_ID" \
             --arg tenantId "$ENTRA_TENANT_ID" \
             --arg principalName "$IDENTITY_NAME" \
-            '.name == $objectId and
-             .properties.tenantId == $tenantId and
+            '(.name | ascii_downcase) == $objectId and
+             (.properties.tenantId | ascii_downcase) == ($tenantId | ascii_downcase) and
              .properties.principalType == "ServicePrincipal" and
              .properties.principalName == $principalName' \
-            /tmp/salcapa-bootstrap-admin.json >/dev/null
+            /tmp/salcapa-bootstrap-admin.json >/dev/null; then
+            echo "Temporary PostgreSQL administrator does not match the governed identity contract." >&2
+            jq '{name,properties:{tenantId:.properties.tenantId,principalType:.properties.principalType,principalName:.properties.principalName}}' \
+              /tmp/salcapa-bootstrap-admin.json >&2 || true
+            exit 1
+          fi
+          echo "Temporary PostgreSQL administrator verified."
 
           EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv)"
           test -n "$EXECUTION_NAME"
+          echo "Database bootstrap execution started: $EXECUTION_NAME"
           STATE=""
           for attempt in $(seq 1 90); do
             STATE="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --query properties.status --output tsv 2>/dev/null || true)"
