@@ -285,9 +285,9 @@ jobs:
               )
           if re.search(r'^  (pull_request|workflow_dispatch|schedule):', image_publication, re.MULTILINE):
               raise SystemExit('Image publication may run only from the exact governed record push')
-          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\\b', image_publication)) < 2:
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', image_publication)) < 2:
               raise SystemExit('Both image-publication checkouts must be pinned to commit SHAs')
-          if not re.search(r'uses: azure/login@[0-9a-f]{40}\\b', image_publication):
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', image_publication):
               raise SystemExit('Image-publication Azure login action must be pinned to a commit SHA')
           if 'AZURE_CLIENT_SECRET' in image_publication or ':latest' in image_publication:
               raise SystemExit('Image publication may not use a client secret or mutable latest tag')
