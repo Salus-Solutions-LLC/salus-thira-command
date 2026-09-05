@@ -143,7 +143,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Evaluate required Azure provider readiness
-        continue-on-error: true
+        id: providers
         run: |
           set -euo pipefail
           PROVIDERS=(
@@ -152,9 +152,21 @@ jobs:
             Microsoft.Network Microsoft.OperationalInsights Microsoft.Storage
             Microsoft.Consumption
           )
+          ready=true
           for provider in "${PROVIDERS[@]}"; do
-            test "$(az provider show --namespace "$provider" --query registrationState --output tsv)" = "Registered"
+            if [ "$(az provider show --namespace "$provider" --query registrationState --output tsv)" != "Registered" ]; then
+              ready=false
+            fi
           done
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+
+      - name: Required Azure providers registered
+        if: steps.providers.outputs.ready == 'true'
+        run: echo "Azure provider readiness confirmed."
+
+      - name: Required Azure providers missing
+        if: steps.providers.outputs.ready != 'true'
+        run: echo "Azure provider registration action remains required."
 
       - name: Run live foundation what-if without provisioning
         env:
