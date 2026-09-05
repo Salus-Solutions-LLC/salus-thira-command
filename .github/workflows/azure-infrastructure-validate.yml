@@ -87,7 +87,13 @@ jobs:
               'SamplingPercentage: 5',
               "param monthlyCostCeilingUsd int = 30",
               "param operationalBudgetUsd int = 25",
-              'param entraRuntimeClientId string',
+              "param entraRuntimeClientId string = ''",
+              'param sourceCommit string',
+              'sourceCommit: sourceCommit',
+              'output federatedCredentialIssuer string',
+              'output federatedCredentialSubject string',
+              "output federatedCredentialAudience string = 'api://AzureADTokenExchange'",
+              'output runtimeRedirectUri string',
               "name: 'SALUS_OIDC_CLIENT_AUTH_METHOD'",
               "value: 'managed_identity'",
               "name: 'SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID'",
@@ -127,6 +133,13 @@ jobs:
               'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
               'ENTRA_RUNTIME_CLIENT_ID',
               'entraRuntimeClientId="$ENTRA_RUNTIME_CLIENT_ID"',
+              'sourceCommit="$GITHUB_SHA"',
+              'Deploy requires the exact non-secret ENTRA_RUNTIME_CLIENT_ID UUID after federation is configured.',
+              'federatedCredentialIssuer.value',
+              'federatedCredentialSubject.value',
+              'federatedCredentialAudience.value == "api://AzureADTokenExchange"',
+              'runtimeRedirectUri.value',
+              'GITHUB_STEP_SUMMARY',
               'az deployment group what-if',
               'monthlyCostCeilingUsd=30',
               'operationalBudgetUsd=25',
@@ -140,6 +153,14 @@ jobs:
               raise SystemExit('Azure deployment guardrails are incomplete: ' + ', '.join(missing))
           if re.search(r'^  (push|pull_request|schedule):', workflow, re.MULTILINE):
               raise SystemExit('Azure deployment must remain manual')
+          foundation = workflow.split('\n  foundation:', 1)[1].split('\n  deploy:', 1)[0]
+          deployment = workflow.split('\n  deploy:', 1)[1].split('\n  rollback:', 1)[0]
+          if 'test -n "$ENTRA_RUNTIME_CLIENT_ID"' in foundation:
+              raise SystemExit('Foundation must emit the managed identity before requiring the runtime client ID')
+          if 'test -n "$ENTRA_RUNTIME_CLIENT_ID"' not in deployment:
+              raise SystemExit('Application deployment must require the runtime client ID')
+          if '--tags approvalRecord=' in workflow:
+              raise SystemExit('Deployment metadata must be carried by governed Bicep resource tags')
           if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', workflow):
               raise SystemExit('Azure login action must be pinned to a commit SHA')
 
