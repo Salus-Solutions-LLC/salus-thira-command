@@ -26,10 +26,8 @@ param provisionApplication bool = false
 @description('Microsoft Entra tenant ID used by SalCAPA.')
 param entraTenantId string
 
-@description('Client ID of the SalCAPA Microsoft Entra application registration used for interactive runtime sign-in.')
-@minLength(36)
-@maxLength(36)
-param entraRuntimeClientId string
+@description('Client ID of the SalCAPA Microsoft Entra application registration used for interactive runtime sign-in. May be empty for foundation-only provisioning; deployment requires an exact UUID.')
+param entraRuntimeClientId string = ''
 
 @description('Immutable object ID of the approved PostgreSQL Microsoft Entra administrator.')
 param postgresAdminObjectId string
@@ -60,6 +58,11 @@ param monthlyCostCeilingUsd int = 30
 @maxValue(25)
 param operationalBudgetUsd int = 25
 
+@description('Exact governed source commit used to provision or update this environment.')
+@minLength(40)
+@maxLength(40)
+param sourceCommit string
+
 @description('Notification recipient for governed Azure budget alerts. Supplied from a protected GitHub variable.')
 @minLength(3)
 param budgetContactEmail string
@@ -79,6 +82,7 @@ var commonTags = {
   approvalRecord: approvalRecord
   monthlyCostCeilingUsd: string(monthlyCostCeilingUsd)
   costArchitecture: 'lean-container-apps-consumption'
+  sourceCommit: sourceCommit
 }
 
 resource operationalBudget 'Microsoft.Consumption/budgets@2023-11-01' = {
@@ -605,6 +609,10 @@ output containerAppsEnvironmentName string = containerAppsEnvironment.name
 output managedIdentityName string = workloadIdentity.name
 output managedIdentityPrincipalId string = workloadIdentity.properties.principalId
 output managedIdentityClientId string = workloadIdentity.properties.clientId
+output federatedCredentialIssuer string = 'https://login.microsoftonline.com/${entraTenantId}/v2.0'
+output federatedCredentialSubject string = workloadIdentity.properties.principalId
+output federatedCredentialAudience string = 'api://AzureADTokenExchange'
+output runtimeRedirectUri string = 'https://${stem}.${containerAppsEnvironment.properties.defaultDomain}/api/auth/oidc/callback'
 output entraRuntimeClientId string = entraRuntimeClientId
 output storageAccountName string = storage.name
 output keyVaultName string = keyVault.name
