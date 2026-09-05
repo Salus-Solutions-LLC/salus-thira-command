@@ -10,6 +10,8 @@ on:
       - '.github/workflows/azure-infrastructure-validate.yml'
       - '.github/workflows/azure-production-deploy.yml'
       - '.github/workflows/azure-connection-verify.yml'
+      - '.github/workflows/azure-foundation-activate.yml'
+      - 'deploy/azure/activations/foundation-dev.json'
   push:
     branches:
       - 'development/**'
@@ -20,6 +22,8 @@ on:
       - '.github/workflows/azure-infrastructure-validate.yml'
       - '.github/workflows/azure-production-deploy.yml'
       - '.github/workflows/azure-connection-verify.yml'
+      - '.github/workflows/azure-foundation-activate.yml'
+      - 'deploy/azure/activations/foundation-dev.json'
   workflow_dispatch:
 
 permissions:
@@ -166,6 +170,46 @@ jobs:
               raise SystemExit('Deployment metadata must be carried by governed Bicep resource tags')
           if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', workflow):
               raise SystemExit('Azure login action must be pinned to a commit SHA')
+
+          activation = Path('.github/workflows/azure-foundation-activate.yml').read_text()
+          activation_required = [
+              'push:',
+              'development/salcapa-platform',
+              "deploy/azure/activations/foundation-dev.json",
+              'environment: salcapa-dev-approval',
+              'source_release == "release/v3.6"',
+              '.source_commit | test("^[0-9a-f]{40}$")',
+              'git merge-base --is-ancestor',
+              'AZURE_RESOURCE_GROUP" = "rg-salcapa-dev"',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              'monthly_cost_ceiling_usd == 30',
+              'operational_budget_usd == 25',
+              '.unique_suffix == "b48224"',
+              'az deployment group what-if',
+              '.changeType != "Delete"',
+              'microsoft.app/containerapps',
+              'az deployment group create',
+              '.properties.provisioningState == "Succeeded"',
+              'APP_COUNT=',
+              'test "$APP_COUNT" = "0"',
+              'GITHUB_STEP_SUMMARY',
+          ]
+          missing_activation = [
+              value for value in activation_required if value not in activation
+          ]
+          if missing_activation:
+              raise SystemExit(
+                  'Azure approved foundation activation is incomplete: '
+                  + ', '.join(missing_activation)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', activation, re.MULTILINE):
+              raise SystemExit('Foundation activation may run only from the exact governed record push')
+          if not re.search(r'uses: actions/checkout@[0-9a-f]{40}\b', activation):
+              raise SystemExit('Foundation checkout action must be pinned to a commit SHA')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', activation):
+              raise SystemExit('Foundation Azure login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in activation:
+              raise SystemExit('Foundation activation may not use a long-lived client secret')
 
           connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
           connection_required = [
