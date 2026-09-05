@@ -51,6 +51,8 @@ The infrastructure template now describes the approved lean deployment boundary 
 15. Authorize production provisioning and DNS only after every release gate is green.
 
 The live preflight is read-only: it invokes Azure Resource Manager what-if and never calls `az deployment group create`. It therefore creates no Azure resource, credential, DNS record, or deployment.
+
+Because the preserved default branch remains unchanged, the new deployment workflow cannot depend on a default-branch manual dispatch entry point. Foundation activation instead requires the exact `deploy/azure/activations/foundation-dev.json` record on `development/salcapa-platform`. That record must reference the immutable head of `release/v3.6`; the protected `salcapa-dev-approval` environment remains the final human approval boundary before the idempotent resource deployment runs.
 ## Rollback
 
 - Application rollback selects a prior approved container digest from the same governed registry.
