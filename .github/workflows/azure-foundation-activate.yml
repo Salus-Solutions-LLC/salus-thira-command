@@ -1,0 +1,229 @@
+name: SalCAPA approved Azure foundation activation
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - 'deploy/azure/activations/foundation-dev.json'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: salcapa-approved-foundation-dev
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: salcapa-dev-approval
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate immutable activation record and frozen source
+        id: activation
+        env:
+          ACTIVATION_FILE: deploy/azure/activations/foundation-dev.json
+        run: |
+          set -euo pipefail
+          jq -e '
+            type == "object" and
+            (.schema_version == 1) and
+            (.operation == "foundation") and
+            (.target_environment == "dev") and
+            (.unique_suffix == "b48224") and
+            (.location == "southcentralus") and
+            (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
+            (.monthly_cost_ceiling_usd == 30) and
+            (.operational_budget_usd == 25) and
+            (.source_release == "release/v3.6") and
+            (.source_commit | test("^[0-9a-f]{40}$")) and
+            ((keys - [
+              "approval_record",
+              "location",
+              "monthly_cost_ceiling_usd",
+              "operation",
+              "operational_budget_usd",
+              "schema_version",
+              "source_commit",
+              "source_release",
+              "target_environment",
+              "unique_suffix"
+            ]) | length == 0)
+          ' "$ACTIVATION_FILE" >/dev/null
+
+          SOURCE_RELEASE="$(jq -r '.source_release' "$ACTIVATION_FILE")"
+          SOURCE_COMMIT="$(jq -r '.source_commit' "$ACTIVATION_FILE")"
+          git fetch --no-tags origin "refs/heads/$SOURCE_RELEASE:refs/remotes/origin/$SOURCE_RELEASE"
+          test "$(git rev-parse "refs/remotes/origin/$SOURCE_RELEASE")" = "$SOURCE_COMMIT"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
+
+          {
+            echo "source_commit=$SOURCE_COMMIT"
+            echo "unique_suffix=$(jq -r '.unique_suffix' "$ACTIVATION_FILE")"
+            echo "location=$(jq -r '.location' "$ACTIVATION_FILE")"
+            echo "approval_record=$(jq -r '.approval_record' "$ACTIVATION_FILE")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate required non-secret repository variables
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          POSTGRES_ADMIN_OBJECT_ID: ${{ vars.POSTGRES_ADMIN_OBJECT_ID }}
+          POSTGRES_ADMIN_PRINCIPAL_NAME: ${{ vars.POSTGRES_ADMIN_PRINCIPAL_NAME }}
+          POSTGRES_ADMIN_PRINCIPAL_TYPE: ${{ vars.POSTGRES_ADMIN_PRINCIPAL_TYPE }}
+          DEPLOYMENT_PRINCIPAL_OBJECT_ID: ${{ vars.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
+          AZURE_BUDGET_CONTACT_EMAIL: ${{ vars.AZURE_BUDGET_CONTACT_EMAIL }}
+        run: |
+          set -euo pipefail
+          required=(
+            AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_RESOURCE_GROUP
+            AZURE_LOCATION POSTGRES_ADMIN_OBJECT_ID POSTGRES_ADMIN_PRINCIPAL_NAME
+            POSTGRES_ADMIN_PRINCIPAL_TYPE DEPLOYMENT_PRINCIPAL_OBJECT_ID
+            AZURE_BUDGET_CONTACT_EMAIL
+          )
+          for name in "${required[@]}"; do
+            test -n "${!name}" || { echo "Missing repository variable: $name" >&2; exit 1; }
+          done
+          test "$AZURE_RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$AZURE_LOCATION" = "${{ steps.activation.outputs.location }}"
+          [[ "$POSTGRES_ADMIN_PRINCIPAL_TYPE" =~ ^(Group|User)$ ]]
+          [[ "$AZURE_BUDGET_CONTACT_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]
+
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify exact Azure target and scoped deployment authority
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          EXPECTED_LOCATION: ${{ steps.activation.outputs.location }}
+          DEPLOYMENT_PRINCIPAL_OBJECT_ID: ${{ vars.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show --name "$RESOURCE_GROUP" --query location --output tsv)" = "$EXPECTED_LOCATION"
+
+          EXPECTED_SCOPE="/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+          az role assignment list \
+            --assignee-object-id "$DEPLOYMENT_PRINCIPAL_OBJECT_ID" \
+            --all \
+            --query "[].{role:roleDefinitionName,scope:scope}" \
+            --output json > /tmp/salcapa-role-assignments.json
+          jq -e --arg scope "$EXPECTED_SCOPE" '
+            length > 0 and
+            all(.[]; (.scope | ascii_downcase) == ($scope | ascii_downcase)) and
+            any(.[]; .role == "Contributor") and
+            any(.[]; .role == "Role Based Access Control Administrator")
+          ' /tmp/salcapa-role-assignments.json >/dev/null
+
+      - name: Revalidate and provision approved lean foundation
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          UNIQUE_SUFFIX: ${{ steps.activation.outputs.unique_suffix }}
+          LOCATION: ${{ steps.activation.outputs.location }}
+          SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
+          APPROVAL_RECORD: ${{ steps.activation.outputs.approval_record }}
+          ENTRA_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          POSTGRES_ADMIN_OBJECT_ID: ${{ vars.POSTGRES_ADMIN_OBJECT_ID }}
+          POSTGRES_ADMIN_PRINCIPAL_NAME: ${{ vars.POSTGRES_ADMIN_PRINCIPAL_NAME }}
+          POSTGRES_ADMIN_PRINCIPAL_TYPE: ${{ vars.POSTGRES_ADMIN_PRINCIPAL_TYPE }}
+          DEPLOYMENT_PRINCIPAL_OBJECT_ID: ${{ vars.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
+          AZURE_BUDGET_CONTACT_EMAIL: ${{ vars.AZURE_BUDGET_CONTACT_EMAIL }}
+        run: |
+          set -euo pipefail
+          PARAMETERS=(
+            uniqueSuffix="$UNIQUE_SUFFIX"
+            location="$LOCATION"
+            environmentName=dev
+            provisionApplication=false
+            entraTenantId="$ENTRA_TENANT_ID"
+            postgresAdminObjectId="$POSTGRES_ADMIN_OBJECT_ID"
+            postgresAdminPrincipalName="$POSTGRES_ADMIN_PRINCIPAL_NAME"
+            postgresAdminPrincipalType="$POSTGRES_ADMIN_PRINCIPAL_TYPE"
+            deploymentPrincipalObjectId="$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
+            sourceCommit="$SOURCE_COMMIT"
+            approvalRecord="$APPROVAL_RECORD"
+            monthlyCostCeilingUsd=30
+            operationalBudgetUsd=25
+            budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
+          )
+
+          WHAT_IF_NAME="salcapa-foundation-preflight-${SOURCE_COMMIT:0:12}"
+          az deployment group what-if \
+            --name "$WHAT_IF_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/main.bicep \
+            --parameters "${PARAMETERS[@]}" \
+            --result-format FullResourcePayloads \
+            --no-pretty-print \
+            --output json > /tmp/salcapa-foundation-what-if.json
+
+          EXPECTED_SCOPE="/subscriptions/${{ vars.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$RESOURCE_GROUP"
+          jq -e --arg scope "$EXPECTED_SCOPE" '
+            (.changes | type == "array") and
+            all(.changes[];
+              (.resourceId | type == "string") and
+              (.resourceId | ascii_downcase | startswith($scope | ascii_downcase)) and
+              (.changeType != "Delete") and
+              (((.resourceId | ascii_downcase | contains("/providers/microsoft.app/containerapps/")) | not))
+            )
+          ' /tmp/salcapa-foundation-what-if.json >/dev/null
+
+          DEPLOYMENT_NAME="salcapa-foundation-${SOURCE_COMMIT:0:12}"
+          az deployment group create \
+            --name "$DEPLOYMENT_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/main.bicep \
+            --parameters "${PARAMETERS[@]}" \
+            --output json > /tmp/salcapa-foundation-deployment.json
+
+          jq -e '
+            .properties.provisioningState == "Succeeded" and
+            .properties.outputs.monthlyCostCeilingUsd.value == 30 and
+            .properties.outputs.operationalBudgetUsd.value == 25 and
+            .properties.outputs.federatedCredentialAudience.value == "api://AzureADTokenExchange" and
+            .properties.outputs.federatedCredentialIssuer.value != null and
+            .properties.outputs.federatedCredentialSubject.value != null and
+            .properties.outputs.managedIdentityClientId.value != null and
+            .properties.outputs.runtimeRedirectUri.value != null
+          ' /tmp/salcapa-foundation-deployment.json >/dev/null
+
+          APP_COUNT="$(az resource list \
+            --resource-group "$RESOURCE_GROUP" \
+            --resource-type Microsoft.App/containerApps \
+            --query 'length(@)' --output tsv)"
+          test "$APP_COUNT" = "0"
+
+          {
+            echo "### SalCAPA approved development foundation"
+            echo ""
+            echo "- Provisioning: succeeded"
+            echo "- Frozen source: $SOURCE_COMMIT"
+            echo "- Resource group: $RESOURCE_GROUP"
+            echo "- Region: $LOCATION"
+            echo "- Unique suffix: $UNIQUE_SUFFIX"
+            echo "- Monthly authorization ceiling: USD 30"
+            echo "- Operational budget: USD 25"
+            echo "- Container App before federation: none"
+            echo "- Federation issuer: $(jq -r '.properties.outputs.federatedCredentialIssuer.value' /tmp/salcapa-foundation-deployment.json)"
+            echo "- Federation subject: $(jq -r '.properties.outputs.federatedCredentialSubject.value' /tmp/salcapa-foundation-deployment.json)"
+            echo "- Federation audience: $(jq -r '.properties.outputs.federatedCredentialAudience.value' /tmp/salcapa-foundation-deployment.json)"
+            echo "- Runtime redirect URI: $(jq -r '.properties.outputs.runtimeRedirectUri.value' /tmp/salcapa-foundation-deployment.json)"
+            echo "- Managed identity client ID: $(jq -r '.properties.outputs.managedIdentityClientId.value' /tmp/salcapa-foundation-deployment.json)"
+          } >> "$GITHUB_STEP_SUMMARY"
