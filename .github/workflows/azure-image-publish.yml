@@ -1,0 +1,196 @@
+name: SalCAPA approved immutable image publication
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - 'deploy/azure/activations/image-dev.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-approved-image-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - name: Record protected image-publication approval gate passage
+        run: echo "Protected SalCAPA development image-publication approval gate passed."
+
+  publish:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout frozen image source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.13
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate immutable image activation record and frozen source
+        id: activation
+        env:
+          ACTIVATION_FILE: deploy/azure/activations/image-dev.json
+        run: |
+          set -euo pipefail
+          jq -e '
+            type == "object" and
+            (.schema_version == 1) and
+            (.operation == "publish_image") and
+            (.target_environment == "dev") and
+            (.unique_suffix == "b48224") and
+            (.location == "southcentralus") and
+            (.repository == "salcapa") and
+            (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
+            (.source_release == "release/v3.13") and
+            (.source_commit | test("^[0-9a-f]{40}$")) and
+            ((keys - [
+              "approval_record",
+              "location",
+              "operation",
+              "repository",
+              "schema_version",
+              "source_commit",
+              "source_release",
+              "target_environment",
+              "unique_suffix"
+            ]) | length == 0)
+          ' "$ACTIVATION_FILE" >/dev/null
+
+          SOURCE_RELEASE="$(jq -r '.source_release' "$ACTIVATION_FILE")"
+          SOURCE_COMMIT="$(jq -r '.source_commit' "$ACTIVATION_FILE")"
+          test "$SOURCE_RELEASE" = "release/v3.13"
+          test "$(git -C frozen-release rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git cat-file -e "$SOURCE_COMMIT^{commit}"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
+
+          {
+            echo "source_commit=$SOURCE_COMMIT"
+            echo "unique_suffix=$(jq -r '.unique_suffix' "$ACTIVATION_FILE")"
+            echo "location=$(jq -r '.location' "$ACTIVATION_FILE")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate required non-secret repository variables
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          DEPLOYMENT_PRINCIPAL_OBJECT_ID: ${{ vars.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
+          ENTRA_RUNTIME_CLIENT_ID: ${{ vars.ENTRA_RUNTIME_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          required=(
+            AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID
+            AZURE_RESOURCE_GROUP AZURE_LOCATION DEPLOYMENT_PRINCIPAL_OBJECT_ID
+            ENTRA_RUNTIME_CLIENT_ID
+          )
+          for name in "${required[@]}"; do
+            test -n "${!name}" || { echo "Missing repository variable: $name" >&2; exit 1; }
+          done
+          test "$AZURE_RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$AZURE_LOCATION" = "${{ steps.activation.outputs.location }}"
+          [[ "$ENTRA_RUNTIME_CLIENT_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]
+
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify exact Azure target and governed registry authority
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          EXPECTED_LOCATION: ${{ steps.activation.outputs.location }}
+          DEPLOYMENT_PRINCIPAL_OBJECT_ID: ${{ vars.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
+          UNIQUE_SUFFIX: ${{ steps.activation.outputs.unique_suffix }}
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show --name "$RESOURCE_GROUP" --query location --output tsv)" = "$EXPECTED_LOCATION"
+
+          EXPECTED_SCOPE="/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+          REGISTRY_NAME="salcapadev${UNIQUE_SUFFIX}acr"
+          REGISTRY_ID="$(az acr show --resource-group "$RESOURCE_GROUP" --name "$REGISTRY_NAME" --query id --output tsv)"
+          REGISTRY_LOGIN_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name "$REGISTRY_NAME" --query loginServer --output tsv)"
+          test "$(printf '%s' "$REGISTRY_ID" | tr '[:upper:]' '[:lower:]')" = "$(printf '%s/providers/microsoft.containerregistry/registries/%s' "$EXPECTED_SCOPE" "$REGISTRY_NAME" | tr '[:upper:]' '[:lower:]')"
+          test "$REGISTRY_LOGIN_SERVER" = "${REGISTRY_NAME}.azurecr.io"
+
+          az role assignment list             --assignee-object-id "$DEPLOYMENT_PRINCIPAL_OBJECT_ID"             --all             --query "[].{role:roleDefinitionName,scope:scope}"             --output json > /tmp/salcapa-image-role-assignments.json
+          jq -e --arg scope "$EXPECTED_SCOPE" '
+            length > 0 and
+            all(.[];
+              ((.scope | ascii_downcase) == ($scope | ascii_downcase)) or
+              (.scope | ascii_downcase | startswith(($scope | ascii_downcase) + "/"))
+            )
+          ' /tmp/salcapa-image-role-assignments.json >/dev/null
+          jq -e --arg registry "$REGISTRY_ID" '
+            any(.[];
+              (.role == "AcrPush" or .role == "Owner") and
+              ((.scope | ascii_downcase) == ($registry | ascii_downcase))
+            )
+          ' /tmp/salcapa-image-role-assignments.json >/dev/null
+
+          {
+            echo "registry_name=$REGISTRY_NAME"
+            echo "registry_login_server=$REGISTRY_LOGIN_SERVER"
+          } >> "$GITHUB_OUTPUT"
+        id: registry
+
+      - name: Build, verify, and publish frozen SalCAPA image
+        env:
+          REGISTRY_NAME: ${{ steps.registry.outputs.registry_name }}
+          REGISTRY_LOGIN_SERVER: ${{ steps.registry.outputs.registry_login_server }}
+          SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
+        run: |
+          set -euo pipefail
+          IMAGE_TAG="source-$SOURCE_COMMIT"
+          IMAGE_REFERENCE="$REGISTRY_LOGIN_SERVER/salcapa:$IMAGE_TAG"
+
+          EXISTING_DIGEST="$(az acr manifest show-metadata             --registry "$REGISTRY_NAME"             --name "salcapa:$IMAGE_TAG"             --query digest --output tsv 2>/dev/null || true)"
+
+          if [ -z "$EXISTING_DIGEST" ]; then
+            docker build               --label "org.opencontainers.image.revision=$SOURCE_COMMIT"               --label "org.opencontainers.image.source=https://github.com/Salus-Solutions-LLC/salus-thira-command"               --tag "$IMAGE_REFERENCE"               frozen-release
+            test "$(docker run --rm "$IMAGE_REFERENCE" id -u)" = "10001"
+            docker run --rm "$IMAGE_REFERENCE" python tools/verify_v33_source.py
+            az acr login --name "$REGISTRY_NAME"
+            docker push "$IMAGE_REFERENCE"
+          fi
+
+          IMAGE_DIGEST="$(az acr manifest show-metadata             --registry "$REGISTRY_NAME"             --name "salcapa:$IMAGE_TAG"             --query digest --output tsv)"
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          IMMUTABLE_REFERENCE="$REGISTRY_LOGIN_SERVER/salcapa@$IMAGE_DIGEST"
+          echo "SALCAPA_IMAGE_DIGEST=$IMMUTABLE_REFERENCE"
+          {
+            echo "### SalCAPA immutable development image"
+            echo ""
+            echo "- Frozen source: $SOURCE_COMMIT"
+            echo "- Repository: salcapa"
+            echo "- Immutable reference: $IMMUTABLE_REFERENCE"
+            echo "- Mutable latest tag: not used"
+            echo "- Client secret: not used"
+            echo "- Container App deployment: not performed"
+          } >> "$GITHUB_STEP_SUMMARY"
