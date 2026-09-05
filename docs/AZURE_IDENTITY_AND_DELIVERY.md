@@ -60,6 +60,6 @@ The Bicep deployment records the exact source commit on every provisioned resour
 
 ## Release and rollback
 
-Every candidate must pass deterministic reconstruction, SQLite, PostgreSQL 16, production-container, dependency audit, Bandit, repository hygiene, CodeQL, and Azure infrastructure policy checks. A validation pull request is closed without merge.
+Every candidate must pass deterministic reconstruction, SQLite, PostgreSQL 16, production-container, dependency audit, Bandit, repository hygiene, CodeQL, Azure infrastructure policy, and live passwordless Azure scope checks. Azure naming policy constrains the shared suffix before provisioning so the generated resource names are valid in both development and production. A validation pull request is closed without merge.
 
 Application rollback selects a prior approved image digest from the same registry. Database recovery restores to a separate PostgreSQL server for independent validation. Identity configuration changes require a governed record and must preserve fail-closed tenant and subject mapping.
