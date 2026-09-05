@@ -6,10 +6,10 @@ on:
     branches:
       - development/salcapa-platform
     paths:
-      - .github/workflows/azure-connection-verify.yml
-      - .github/workflows/azure-production-deploy.yml
-      - infra/azure/**
-      - docs/AZURE_*.md
+      - 'infra/azure/**'
+      - 'docs/AZURE_*.md'
+      - '.github/workflows/azure-connection-verify.yml'
+      - '.github/workflows/azure-production-deploy.yml'
 
 permissions:
   contents: read
@@ -34,17 +34,23 @@ jobs:
           AZURE_BUDGET_CONTACT_EMAIL: ${{ vars.AZURE_BUDGET_CONTACT_EMAIL }}
         run: |
           set -euo pipefail
-          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_RESOURCE_GROUP AZURE_LOCATION POSTGRES_ADMIN_OBJECT_ID POSTGRES_ADMIN_PRINCIPAL_NAME POSTGRES_ADMIN_PRINCIPAL_TYPE DEPLOYMENT_PRINCIPAL_OBJECT_ID AZURE_BUDGET_CONTACT_EMAIL; do
+          required=(
+            AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_RESOURCE_GROUP
+            AZURE_LOCATION POSTGRES_ADMIN_OBJECT_ID POSTGRES_ADMIN_PRINCIPAL_NAME
+            POSTGRES_ADMIN_PRINCIPAL_TYPE DEPLOYMENT_PRINCIPAL_OBJECT_ID
+            AZURE_BUDGET_CONTACT_EMAIL
+          )
+          for name in "${required[@]}"; do
             test -n "${!name}" || { echo "Missing repository variable: $name" >&2; exit 1; }
           done
-          [[ "$POSTGRES_ADMIN_PRINCIPAL_TYPE" =~ ^(Group|User)$ ]] || {
+          if [[ ! "$POSTGRES_ADMIN_PRINCIPAL_TYPE" =~ ^(Group|User)$ ]]; then
             echo "POSTGRES_ADMIN_PRINCIPAL_TYPE must be Group or User." >&2
             exit 1
-          }
-          [[ "$AZURE_BUDGET_CONTACT_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || {
+          fi
+          if [[ ! "$AZURE_BUDGET_CONTACT_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]; then
             echo "AZURE_BUDGET_CONTACT_EMAIL is not a valid notification address." >&2
             exit 1
-          }
+          fi
 
       - name: Azure login through workload identity federation
         uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
@@ -53,7 +59,7 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Verify scoped Azure target without deploying
+      - name: Verify exact Azure target and principal scope without provisioning
         env:
           EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
@@ -68,21 +74,29 @@ jobs:
           test "$ACTUAL_SUBSCRIPTION_ID" = "$EXPECTED_SUBSCRIPTION_ID"
           test "$ACTUAL_TENANT_ID" = "$EXPECTED_TENANT_ID"
           test "$ACTUAL_LOCATION" = "$EXPECTED_LOCATION"
-          RESOURCE_GROUP_ID="$(az group show --name "$RESOURCE_GROUP" --query id --output tsv)"
-          ROLE_ROWS="$(az role assignment list --assignee-object-id "$DEPLOYMENT_PRINCIPAL_OBJECT_ID" --include-inherited --all --query "[].{role:roleDefinitionName,scope:scope}" --output tsv)"
-          test -n "$ROLE_ROWS" || { echo "The deployment principal has no visible Azure role assignment." >&2; exit 1; }
-          OUT_OF_SCOPE="$(az role assignment list --assignee-object-id "$DEPLOYMENT_PRINCIPAL_OBJECT_ID" --include-inherited --all --query "[?scope!='${RESOURCE_GROUP_ID}'].scope" --output tsv)"
-          test -z "$OUT_OF_SCOPE" || {
-            echo "The deployment principal has an assignment outside the approved development resource group." >&2
-            exit 1
-          }
-          ROLE_NAMES="$(az role assignment list --assignee-object-id "$DEPLOYMENT_PRINCIPAL_OBJECT_ID" --scope "$RESOURCE_GROUP_ID" --query "[?scope=='${RESOURCE_GROUP_ID}'].roleDefinitionName" --output tsv)"
-          if ! grep -Eq '^(Contributor|Owner) <<<"$ROLE_NAMES"; then
-            echo "The deployment principal requires Contributor at the approved resource group." >&2
-            exit 1
-          fi
-          if ! grep -Eq '^(Role Based Access Control Administrator|User Access Administrator|Owner) <<<"$ROLE_NAMES"; then
-            echo "The deployment principal requires scoped role-assignment authority for managed-identity grants." >&2
-            exit 1
-          fi
-          echo "Azure workload identity and resource-group-only scope verified."
+
+          EXPECTED_SCOPE="/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+          az role assignment list \
+            --assignee-object-id "$DEPLOYMENT_PRINCIPAL_OBJECT_ID" \
+            --all \
+            --query "[].{role:roleDefinitionName,scope:scope}" \
+            --output json > /tmp/salcapa-role-assignments.json
+
+          ASSIGNMENT_COUNT="$(jq 'length' /tmp/salcapa-role-assignments.json)"
+          test "$ASSIGNMENT_COUNT" -gt 0 || { echo "Deployment principal has no visible role assignments." >&2; exit 1; }
+          jq -e --arg scope "$EXPECTED_SCOPE" 'all(.[]; (.scope | ascii_downcase) == ($scope | ascii_downcase))' \
+            /tmp/salcapa-role-assignments.json >/dev/null || {
+              echo "Deployment principal has an assignment outside the approved resource group." >&2
+              exit 1
+            }
+          jq -e 'any(.[]; .role == "Contributor" or .role == "Owner")' \
+            /tmp/salcapa-role-assignments.json >/dev/null || {
+              echo "Deployment principal lacks resource-group deployment authority." >&2
+              exit 1
+            }
+          jq -e 'any(.[]; .role == "User Access Administrator" or .role == "Role Based Access Control Administrator" or .role == "Owner")' \
+            /tmp/salcapa-role-assignments.json >/dev/null || {
+              echo "Deployment principal lacks scoped role-assignment authority required by the template." >&2
+              exit 1
+            }
+          echo "Azure workload identity accepted for the exact governed resource-group scope."

@@ -6,7 +6,7 @@ This plan removes the unavailable legacy ChatGPT Site from the SalCAPA critical 
 
 ## Prepared architecture
 
-- Linux Azure App Service running the immutable SalCAPA container image by digest.
+- Azure Container Apps Consumption running the immutable SalCAPA container image by digest, initially scaled 0–1.
 - Azure Container Registry with administrative and anonymous access disabled.
 - Azure Database for PostgreSQL Flexible Server 16 as the authoritative relational store.
 - Microsoft Entra ID for user authentication and PostgreSQL administrator authentication.
@@ -17,7 +17,7 @@ This plan removes the unavailable legacy ChatGPT Site from the SalCAPA critical 
 - GitHub Actions validation without Azure credentials.
 - Production deployment through GitHub workload identity federation after approval.
 
-The infrastructure template now describes the complete approved deployment boundary without creating it. Development uses a burstable PostgreSQL server with 14-day backup retention; production uses general-purpose compute, zone-redundant high availability, 35-day retention, and geo-redundant backup. The exact tier and authorization ceiling remain governed by `AZURE_COST_AND_APPROVAL.md`.
+The infrastructure template now describes the approved lean deployment boundary without creating it. The governed starting architecture uses a burstable PostgreSQL 16 B1ms server with 14-day backup retention and Standard_LRS evidence storage. General-purpose compute, zone-redundant high availability, longer retention, or geo-redundant storage remain future scale options and require a separate cost review and approval. The exact tier and authorization ceiling remain governed by `AZURE_COST_AND_APPROVAL.md`.
 
 ## Control boundaries
 
@@ -38,10 +38,10 @@ The infrastructure template now describes the complete approved deployment bound
 2. Confirm the Azure subscription, region, Entra tenant, production domain, and named PostgreSQL Entra administrator group.
 3. Configure protected GitHub environments, workload-identity federation, and the documented non-secret environment variables.
 4. Run the credential-free Bicep and policy validation on the governed development branch.
-5. Review the Azure what-if output under the recorded approval.
-6. Run the non-mutating OIDC connection acceptance and prove the deployment principal is confined to the approved development resource group.
-7. Provision the $25 resource-group budget with actual and forecasted notifications before any billable foundation resources.
-8. Provision nonproduction resources first and publish the approved image digest to the governed registry.
+5. Run the non-provisioning OIDC connection acceptance and verify that the deployment principal has only the approved resource-group scope.
+6. Confirm the protected `AZURE_BUDGET_CONTACT_EMAIL` variable and review the Azure what-if output, including the fixed $25 monthly budget with 80% actual and 100% forecasted notifications.
+7. Provision the governed development foundation only after both validations pass; the budget is created in the same controlled deployment before the other billable resources.
+8. Publish the approved image digest to the governed registry.
 9. Grant the application managed identity its least-privilege PostgreSQL role.
 10. Run database migration, backup, restore, fail-closed authentication, and tenant-isolation tests.
 11. Complete the controlled validation PR and close it without merge.

@@ -37,9 +37,9 @@ This is the active approved course of action for initial SalCAPA production use.
 - Marc Duncan approved this course of action on 2026-09-04.
 - $30 USD/month is a hard recurring Azure authorization ceiling for this starting architecture.
 - Provisioning must stop if the current Azure estimate exceeds $30/month.
-- A **$25.00 operational budget** is provisioned at the approved resource-group scope.
-- Notifications are required at **80% actual**, **100% forecasted**, and **100% actual** of that $25 budget, before the $30 authorization ceiling.
-- The notification recipient is supplied by the protected GitHub environment variable `AZURE_BUDGET_CONTACT_EMAIL`; it is not hard-coded in source.
+- The governed Azure Consumption budget is fixed at **$25.00/month**, below the $30 authorization ceiling.
+- Notifications are required at **80% actual**, **100% forecasted**, and **100% actual** spend.
+- The protected GitHub variable **AZURE_BUDGET_CONTACT_EMAIL** supplies the notification recipient at deployment time; no address is hard-coded in source.
 - Budget alerts/checkpoints must be configured below the ceiling before production cutover.
 - Capacity, redundancy, storage, telemetry, or other recurring-cost increases require a separate cost review and approval.
 - No DNS change or public production cutover is authorized by this cost approval alone.
@@ -79,6 +79,12 @@ This earlier proposal remains documented for future scale-up analysis but is **n
 | Internet egress | 200 GB/month planning allowance | $8.70 |
 | Previous ceiling |  | **$550.00** |
 
+## Live identity and scope acceptance
+
+Before foundation provisioning, `.github/workflows/azure-connection-verify.yml` must pass using passwordless GitHub OIDC. It verifies the exact approved subscription, Entra tenant, South Central US development resource group, and deployment-principal role assignments without creating or changing Azure resources. The deployment principal may not retain visible assignments outside the governed resource-group scope. It must have resource deployment authority and the scoped role-assignment authority required to grant the template's managed-identity roles.
+
+The protected repository variable `AZURE_BUDGET_CONTACT_EMAIL` must contain the approved operational notification recipient before the foundation or application workflow can run.
+
 ## Activation boundary
 
 The $30/month approval authorizes preparation and governed provisioning of the selected lean architecture only. Provisioning still requires the existing least-privilege Azure subscription and Entra context, workload identity, approved administrators/reviewers, resource-group scope, backup settings, and controlled GitHub deployment workflow.
@@ -86,5 +92,3 @@ The $30/month approval authorizes preparation and governed provisioning of the s
 No frozen branch may be rewritten. No validation pull request may be merged. No DNS change or public production cutover may occur without a separate explicit authorization.
 
 The approval record identifier **MD-APPROVAL-AZURE-LEAN-20260904** must be preserved in the GitHub environment, deployment record, and SalCAPA audit history.
-
-Before foundation provisioning, the non-mutating connection workflow must confirm all required deployment variables, passwordless OIDC login, the exact subscription/tenant/region/resource group, Contributor capability, scoped role-assignment authority, and absence of inherited assignments outside the approved development resource group.

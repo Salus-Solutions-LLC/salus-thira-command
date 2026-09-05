@@ -69,6 +69,7 @@ jobs:
           IMAGE_DIGEST: ${{ inputs.image_digest }}
           APPROVAL_RECORD: ${{ inputs.approval_record }}
           UNIQUE_SUFFIX: ${{ inputs.unique_suffix }}
+          AZURE_BUDGET_CONTACT_EMAIL: ${{ vars.AZURE_BUDGET_CONTACT_EMAIL }}
         run: |
           set -euo pipefail
           if [[ "$OPERATION" != "validate" && "$GITHUB_REF" != "refs/heads/development/salcapa-platform" ]]; then
@@ -85,6 +86,10 @@ jobs:
           fi
           if [[ "$MONTHLY_COST_CEILING_USD" != "30" ]]; then
             echo "Azure monthly ceiling may not exceed the approved $30." >&2
+            exit 1
+          fi
+          if [[ "$OPERATION" != "validate" && ! "$AZURE_BUDGET_CONTACT_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]; then
+            echo "Protected repository variable AZURE_BUDGET_CONTACT_EMAIL is required for governed provisioning." >&2
             exit 1
           fi
           if [[ "$OPERATION" == "deploy" || "$OPERATION" == "rollback" ]]; then
@@ -137,11 +142,6 @@ jobs:
           test -n "$POSTGRES_ADMIN_OBJECT_ID"
           test -n "$POSTGRES_ADMIN_PRINCIPAL_NAME"
           test -n "$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
-          test -n "$AZURE_BUDGET_CONTACT_EMAIL"
-          [[ "$AZURE_BUDGET_CONTACT_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || {
-            echo "AZURE_BUDGET_CONTACT_EMAIL is not a valid notification address." >&2
-            exit 1
-          }
           if [[ ! "$POSTGRES_ADMIN_PRINCIPAL_TYPE" =~ ^(Group|User)$ ]]; then
             echo "The PostgreSQL Entra administrator type must be Group or User." >&2
             exit 1
@@ -156,10 +156,10 @@ jobs:
             postgresAdminPrincipalName="$POSTGRES_ADMIN_PRINCIPAL_NAME"
             postgresAdminPrincipalType="$POSTGRES_ADMIN_PRINCIPAL_TYPE"
             deploymentPrincipalObjectId="$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
-            budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
-            operationalBudgetUsd=25
             approvalRecord="$APPROVAL_RECORD"
             monthlyCostCeilingUsd=30
+            operationalBudgetUsd=25
+            budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
           )
           az deployment group what-if \
             --resource-group "$RESOURCE_GROUP" \
@@ -210,11 +210,6 @@ jobs:
           test -n "$POSTGRES_ADMIN_OBJECT_ID"
           test -n "$POSTGRES_ADMIN_PRINCIPAL_NAME"
           test -n "$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
-          test -n "$AZURE_BUDGET_CONTACT_EMAIL"
-          [[ "$AZURE_BUDGET_CONTACT_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || {
-            echo "AZURE_BUDGET_CONTACT_EMAIL is not a valid notification address." >&2
-            exit 1
-          }
           PARAMETERS=(
             uniqueSuffix="$UNIQUE_SUFFIX"
             location="$LOCATION"
@@ -226,10 +221,10 @@ jobs:
             postgresAdminPrincipalName="$POSTGRES_ADMIN_PRINCIPAL_NAME"
             postgresAdminPrincipalType="$POSTGRES_ADMIN_PRINCIPAL_TYPE"
             deploymentPrincipalObjectId="$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
-            budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
-            operationalBudgetUsd=25
             approvalRecord="$APPROVAL_RECORD"
             monthlyCostCeilingUsd=30
+            operationalBudgetUsd=25
+            budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
           )
           az deployment group what-if \
             --resource-group "$RESOURCE_GROUP" \
