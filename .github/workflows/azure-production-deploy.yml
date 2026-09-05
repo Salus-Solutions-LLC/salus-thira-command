@@ -93,6 +93,10 @@ jobs:
             echo "Protected repository variable AZURE_BUDGET_CONTACT_EMAIL is required for governed provisioning." >&2
             exit 1
           fi
+          if [[ "$OPERATION" == "deploy" && ! "$ENTRA_RUNTIME_CLIENT_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "Deploy requires the exact non-secret ENTRA_RUNTIME_CLIENT_ID UUID after federation is configured." >&2
+            exit 1
+          fi
           if [[ "$OPERATION" == "deploy" || "$OPERATION" == "rollback" ]]; then
             if [[ ! "$IMAGE_DIGEST" =~ ^[a-z0-9][a-z0-9.-]*\.azurecr\.io/[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$ ]]; then
               echo "A full immutable Azure Container Registry digest is required." >&2
@@ -141,7 +145,6 @@ jobs:
           set -euo pipefail
           test -n "$RESOURCE_GROUP"
           test -n "$ENTRA_TENANT_ID"
-          test -n "$ENTRA_RUNTIME_CLIENT_ID"
           test -n "$POSTGRES_ADMIN_OBJECT_ID"
           test -n "$POSTGRES_ADMIN_PRINCIPAL_NAME"
           test -n "$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
@@ -160,6 +163,7 @@ jobs:
             postgresAdminPrincipalName="$POSTGRES_ADMIN_PRINCIPAL_NAME"
             postgresAdminPrincipalType="$POSTGRES_ADMIN_PRINCIPAL_TYPE"
             deploymentPrincipalObjectId="$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
+            sourceCommit="$GITHUB_SHA"
             approvalRecord="$APPROVAL_RECORD"
             monthlyCostCeilingUsd=30
             operationalBudgetUsd=25
@@ -174,8 +178,32 @@ jobs:
             --name "$DEPLOYMENT_NAME" \
             --resource-group "$RESOURCE_GROUP" \
             --template-file infra/azure/main.bicep \
-            --parameters "${PARAMETERS[@]}" \
-            --tags approvalRecord="$APPROVAL_RECORD" sourceCommit="$GITHUB_SHA" monthlyCostCeilingUsd=30
+            --parameters "${PARAMETERS[@]}"
+
+          az deployment group show \
+            --name "$DEPLOYMENT_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query properties.outputs \
+            --output json > /tmp/salcapa-foundation-outputs.json
+          jq -e '
+            .managedIdentityPrincipalId.value != null and
+            .managedIdentityClientId.value != null and
+            .federatedCredentialIssuer.value != null and
+            .federatedCredentialSubject.value != null and
+            .federatedCredentialAudience.value == "api://AzureADTokenExchange" and
+            .runtimeRedirectUri.value != null
+          ' /tmp/salcapa-foundation-outputs.json >/dev/null
+          {
+            echo "### SalCAPA foundation federation contract"
+            echo ""
+            echo "Use the deployment outputs for the single-tenant runtime app registration:"
+            echo ""
+            echo "- Issuer: $(jq -r '.federatedCredentialIssuer.value' /tmp/salcapa-foundation-outputs.json)"
+            echo "- Subject: $(jq -r '.federatedCredentialSubject.value' /tmp/salcapa-foundation-outputs.json)"
+            echo "- Audience: $(jq -r '.federatedCredentialAudience.value' /tmp/salcapa-foundation-outputs.json)"
+            echo "- Redirect URI: $(jq -r '.runtimeRedirectUri.value' /tmp/salcapa-foundation-outputs.json)"
+            echo "- Managed identity client ID: $(jq -r '.managedIdentityClientId.value' /tmp/salcapa-foundation-outputs.json)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     if: inputs.operation == 'deploy'
@@ -228,6 +256,7 @@ jobs:
             postgresAdminPrincipalName="$POSTGRES_ADMIN_PRINCIPAL_NAME"
             postgresAdminPrincipalType="$POSTGRES_ADMIN_PRINCIPAL_TYPE"
             deploymentPrincipalObjectId="$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
+            sourceCommit="$GITHUB_SHA"
             approvalRecord="$APPROVAL_RECORD"
             monthlyCostCeilingUsd=30
             operationalBudgetUsd=25
@@ -242,8 +271,7 @@ jobs:
             --name "$DEPLOYMENT_NAME" \
             --resource-group "$RESOURCE_GROUP" \
             --template-file infra/azure/main.bicep \
-            --parameters "${PARAMETERS[@]}" \
-            --tags approvalRecord="$APPROVAL_RECORD" sourceCommit="$GITHUB_SHA" monthlyCostCeilingUsd=30
+            --parameters "${PARAMETERS[@]}"
 
   rollback:
     if: inputs.operation == 'rollback'
