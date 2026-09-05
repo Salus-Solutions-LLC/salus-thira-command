@@ -39,13 +39,15 @@ The infrastructure template now describes the approved lean deployment boundary 
 3. Configure protected GitHub environments, workload-identity federation, and the documented non-secret environment variables.
 4. Run the credential-free Bicep and policy validation on the governed development branch.
 5. Run the non-provisioning OIDC connection acceptance and verify that the deployment principal has only the approved resource-group scope.
-6. Confirm the protected `AZURE_BUDGET_CONTACT_EMAIL` variable and review the Azure what-if output, including the fixed $25 monthly budget with 80% actual and 100% forecasted notifications.
-7. Provision the governed development foundation only after both validations pass; the budget is created in the same controlled deployment before the other billable resources.
-8. Publish the approved image digest to the governed registry.
-9. Grant the application managed identity its least-privilege PostgreSQL role.
-10. Run database migration, backup, restore, fail-closed authentication, and tenant-isolation tests.
-11. Complete the controlled validation PR and close it without merge.
-12. Authorize production provisioning and DNS only after every release gate is green.
+6. Create or identify the single-tenant SalCAPA runtime app registration, record its non-secret client ID as `ENTRA_RUNTIME_CLIENT_ID`, and configure its exact HTTPS callback.
+7. After the user-assigned Container App identity exists, add an Entra federated identity credential that trusts only that managed identity; do not create a client secret.
+8. Confirm the protected `AZURE_BUDGET_CONTACT_EMAIL` variable and review the Azure what-if output, including the fixed $25 monthly budget with 80% actual and 100% forecasted notifications.
+9. Provision the governed development foundation only after validations pass; the budget is created in the same controlled deployment before the other billable resources.
+10. Publish the approved image digest to the governed registry.
+11. Grant the application managed identity its least-privilege PostgreSQL role and pre-provision approved Entra object-ID mappings in SalCAPA.
+12. Run database migration, backup, restore, passwordless Entra login, fail-closed identity, and tenant-isolation tests.
+13. Complete the controlled validation PR and close it without merge.
+14. Authorize production provisioning and DNS only after every release gate is green.
 
 ## Rollback
 

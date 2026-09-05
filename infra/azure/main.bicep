@@ -26,6 +26,11 @@ param provisionApplication bool = false
 @description('Microsoft Entra tenant ID used by SalCAPA.')
 param entraTenantId string
 
+@description('Client ID of the SalCAPA Microsoft Entra application registration used for interactive runtime sign-in.')
+@minLength(36)
+@maxLength(36)
+param entraRuntimeClientId string
+
 @description('Immutable object ID of the approved PostgreSQL Microsoft Entra administrator.')
 param postgresAdminObjectId string
 
@@ -466,6 +471,38 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
               value: 'oidc'
             }
             {
+              name: 'SALUS_OIDC_TENANT_ID'
+              value: entraTenantId
+            }
+            {
+              name: 'SALUS_OIDC_DISCOVERY_URL'
+              value: 'https://login.microsoftonline.com/${entraTenantId}/v2.0/.well-known/openid-configuration'
+            }
+            {
+              name: 'SALUS_OIDC_CLIENT_ID'
+              value: entraRuntimeClientId
+            }
+            {
+              name: 'SALUS_OIDC_CLIENT_AUTH_METHOD'
+              value: 'managed_identity'
+            }
+            {
+              name: 'SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID'
+              value: workloadIdentity.properties.clientId
+            }
+            {
+              name: 'SALUS_OIDC_REDIRECT_URI'
+              value: 'https://${stem}.${containerAppsEnvironment.properties.defaultDomain}/api/auth/oidc/callback'
+            }
+            {
+              name: 'SALUS_OIDC_PROVIDER_NAME'
+              value: 'entra'
+            }
+            {
+              name: 'SALUS_OIDC_AUTO_PROVISION'
+              value: '0'
+            }
+            {
               name: 'SALUS_COOKIE_SECURE'
               value: '1'
             }
@@ -567,6 +604,8 @@ output applicationName string = stem
 output containerAppsEnvironmentName string = containerAppsEnvironment.name
 output managedIdentityName string = workloadIdentity.name
 output managedIdentityPrincipalId string = workloadIdentity.properties.principalId
+output managedIdentityClientId string = workloadIdentity.properties.clientId
+output entraRuntimeClientId string = entraRuntimeClientId
 output storageAccountName string = storage.name
 output keyVaultName string = keyVault.name
 output registryName string = registry.name

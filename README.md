@@ -1,4 +1,4 @@
-# SalCAPA v3.0
+# SalCAPA v3.3
 
 SalCAPA is Salus Solutions' secure intelligence, risk, and operations platform.
 
@@ -18,8 +18,8 @@ GitHub is authoritative. Development occurs on governed development branches. Ev
 Reconstruct and verify this candidate with:
 
 ```bash
-python tools/reconstruct_v30_source.py
-python tools/verify_v30_source.py
+python tools/reconstruct_v33_source.py
+python tools/verify_v33_source.py
 ```
 
 Run the complete SalCAPA governed-workflow smoke with:
@@ -37,6 +37,7 @@ python tools/ci_salcapa_v27_smoke.py
 python tools/ci_salcapa_v28_smoke.py
 python tools/ci_salcapa_v29_smoke.py
 python tools/ci_salcapa_operating_model_acceptance.py
+python tools/ci_salcapa_v33_identity_smoke.py
 ```
 
-Production is prepared for Microsoft Azure. No Azure deployment is automatic; billable infrastructure and production activation require explicit approval.
+Production is prepared for Microsoft Azure with passwordless GitHub deployment identity and passwordless Microsoft Entra runtime authentication through the Container App managed identity. No Azure deployment is automatic; billable infrastructure and production activation require explicit approval.

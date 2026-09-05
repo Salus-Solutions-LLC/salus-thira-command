@@ -7,6 +7,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import sqlite3, json, os, hashlib, re, secrets, zipfile, shutil, tempfile, csv, io, html, uuid, subprocess
 import urllib.parse
 import httpx, jwt
+from azure.identity import ManagedIdentityCredential
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from storage import build_storage, StorageError
@@ -38,6 +39,9 @@ RETENTION_DEFAULT_DAYS = int(os.getenv('SALUS_RETENTION_DEFAULT_DAYS','2555'))
 OIDC_DISCOVERY_URL = os.getenv('SALUS_OIDC_DISCOVERY_URL','').strip()
 OIDC_CLIENT_ID = os.getenv('SALUS_OIDC_CLIENT_ID','').strip()
 OIDC_CLIENT_SECRET = secret('SALUS_OIDC_CLIENT_SECRET','').strip()
+OIDC_CLIENT_AUTH_METHOD = os.getenv('SALUS_OIDC_CLIENT_AUTH_METHOD','client_secret').strip().lower()
+OIDC_TENANT_ID = os.getenv('SALUS_OIDC_TENANT_ID','').strip()
+OIDC_MANAGED_IDENTITY_CLIENT_ID = os.getenv('SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID','').strip()
 OIDC_REDIRECT_URI = os.getenv('SALUS_OIDC_REDIRECT_URI','').strip()
 OIDC_DEFAULT_TENANT_SLUG = os.getenv('SALUS_OIDC_DEFAULT_TENANT_SLUG','salus-prototype').strip()
 OIDC_AUTO_PROVISION = os.getenv('SALUS_OIDC_AUTO_PROVISION','0').lower() in ('1','true','yes')
@@ -2238,8 +2242,55 @@ async def request_context_middleware(request:Request,call_next):
     return response
 
 _oidc_cache={}
+_oidc_credential=None
+OIDC_ASSERTION_SCOPE='api://AzureADTokenExchange/.default'
+OIDC_CLIENT_ASSERTION_TYPE='urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
+
 def oidc_configured():
-    return all([OIDC_DISCOVERY_URL,OIDC_CLIENT_ID,OIDC_CLIENT_SECRET])
+    common=all([OIDC_DISCOVERY_URL,OIDC_CLIENT_ID,OIDC_TENANT_ID])
+    if ENVIRONMENT=='production':
+        common=common and bool(OIDC_REDIRECT_URI) and not OIDC_AUTO_PROVISION
+    if OIDC_CLIENT_AUTH_METHOD=='managed_identity':
+        return common and bool(OIDC_MANAGED_IDENTITY_CLIENT_ID)
+    if OIDC_CLIENT_AUTH_METHOD=='client_secret':
+        return common and bool(OIDC_CLIENT_SECRET)
+    return False
+
+def oidc_client_auth_payload():
+    global _oidc_credential
+    if OIDC_CLIENT_AUTH_METHOD=='client_secret':
+        if not OIDC_CLIENT_SECRET: raise RuntimeError('OIDC client secret authentication is not configured')
+        return {'client_secret':OIDC_CLIENT_SECRET}
+    if OIDC_CLIENT_AUTH_METHOD!='managed_identity':
+        raise RuntimeError('Unsupported OIDC client authentication method')
+    if not OIDC_MANAGED_IDENTITY_CLIENT_ID:
+        raise RuntimeError('OIDC managed identity client ID is not configured')
+    current=int(datetime.now(timezone.utc).timestamp())
+    cached=_oidc_cache.get('client_assertion')
+    if cached and cached['expires_on']>current+60:
+        assertion=cached['token']
+    else:
+        if _oidc_credential is None:
+            _oidc_credential=ManagedIdentityCredential(client_id=OIDC_MANAGED_IDENTITY_CLIENT_ID)
+        access_token=_oidc_credential.get_token(OIDC_ASSERTION_SCOPE)
+        assertion=str(getattr(access_token,'token','') or '')
+        if not assertion: raise RuntimeError('Managed identity returned an empty client assertion')
+        _oidc_cache['client_assertion']={'token':assertion,'expires_on':int(getattr(access_token,'expires_on',current+300))}
+    return {'client_assertion_type':OIDC_CLIENT_ASSERTION_TYPE,'client_assertion':assertion}
+
+def oidc_federation_status():
+    status={'configured':oidc_configured(),'healthy':False,'mode':OIDC_CLIENT_AUTH_METHOD,'provider':OIDC_PROVIDER_NAME}
+    if not status['configured']: return status
+    if OIDC_CLIENT_AUTH_METHOD=='client_secret':
+        status['healthy']=True
+        return status
+    try:
+        oidc_client_auth_payload()
+        status['healthy']=True
+    except Exception as exc:
+        error_id=uuid.uuid4().hex
+        record_internal_failure('OIDC managed identity federation',error_id,exc)
+    return status
 
 def oidc_discovery():
     if not oidc_configured(): raise HTTPException(503,'OIDC is not fully configured')
@@ -2251,6 +2302,13 @@ def oidc_discovery():
         raise HTTPException(503,f'OIDC discovery failed. Reference: {error_id}')
     required=['authorization_endpoint','token_endpoint','jwks_uri','issuer']
     if any(not data.get(k) for k in required): raise HTTPException(503,'OIDC discovery document is incomplete')
+    expected_issuer=f'https://login.microsoftonline.com/{OIDC_TENANT_ID}/v2.0'
+    if data['issuer'].rstrip('/')!=expected_issuer:
+        raise HTTPException(503,'OIDC issuer does not match the governed Microsoft Entra tenant')
+    for key in ('authorization_endpoint','token_endpoint','jwks_uri'):
+        parsed=urllib.parse.urlparse(data[key])
+        if parsed.scheme!='https' or parsed.hostname!='login.microsoftonline.com':
+            raise HTTPException(503,'OIDC endpoint is outside the governed Microsoft Entra authority')
     _oidc_cache['config']=data; return data
 
 def oidc_redirect_uri(request:Request):
@@ -2263,12 +2321,16 @@ def production_readiness():
     telemetry_status=telemetry_readiness()
     runtime_db=runtime_database_status(DB_PATH)
     managed_db=managed_target_status()
+    oidc_status=oidc_federation_status() if AUTH_MODE=='oidc' else {'configured':False,'healthy':False,'mode':OIDC_CLIENT_AUTH_METHOD,'provider':OIDC_PROVIDER_NAME}
     if ENVIRONMENT=='production':
         if AUTH_MODE not in ('session','oidc'): issues.append('Production requires session or OIDC authentication.')
         if not COOKIE_SECURE: issues.append('SALUS_COOKIE_SECURE=1 is required in production.')
         if STORAGE_BACKEND=='local': issues.append('Managed object storage is required for production; local evidence storage is not production-grade.')
         if not AV_REQUIRED: issues.append('SALUS_REQUIRE_AV=1 should be enabled for production evidence uploads.')
         if AUTH_MODE=='oidc' and not oidc_configured(): issues.append('OIDC mode is selected but provider configuration is incomplete.')
+        if AUTH_MODE=='oidc' and OIDC_CLIENT_AUTH_METHOD!='managed_identity': issues.append('Production OIDC must use managed identity federation without a client secret.')
+        if AUTH_MODE=='oidc' and OIDC_AUTO_PROVISION: issues.append('Production OIDC automatic user provisioning must remain disabled.')
+        if AUTH_MODE=='oidc' and oidc_configured() and not oidc_status.get('healthy'): issues.append('OIDC managed identity federation is unavailable.')
         if DB_BACKEND=='sqlite' and not ALLOW_SQLITE_PRODUCTION: issues.append('SQLite remains the active runtime database. Use SALUS_DB_BACKEND=postgres with SALUS_DATABASE_URL for production, or explicitly authorize SALUS_ALLOW_SQLITE_PRODUCTION=1 for a controlled exception.')
         if secret_status.get('backend')=='env': issues.append('Azure Key Vault or another managed secret provider is recommended for production secrets.')
         if not rate_status.get('enabled'): issues.append('Rate limiting must be enabled in production.')
@@ -2290,7 +2352,7 @@ def production_readiness():
     def public_status(value):
         allowed=('configured','healthy','enabled','backend','provider','mode','target')
         return {key:value[key] for key in allowed if key in value and isinstance(value[key],(str,bool,int,float,type(None)))}
-    return {'ready':not blocking,'version':APP_VERSION,'environment':ENVIRONMENT,'auth_mode':AUTH_MODE,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'secret_provider':public_status(secret_status),'rate_limit':public_status(rate_status),'telemetry':public_status(telemetry_status),'runtime_database':public_status(runtime_db),'managed_database_target':public_status(managed_db),'issues':issues}
+    return {'ready':not blocking,'version':APP_VERSION,'environment':ENVIRONMENT,'auth_mode':AUTH_MODE,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'secret_provider':public_status(secret_status),'rate_limit':public_status(rate_status),'telemetry':public_status(telemetry_status),'runtime_database':public_status(runtime_db),'managed_database_target':public_status(managed_db),'oidc':public_status(oidc_status),'issues':issues}
 
 @app.get('/health/live')
 def health_live(): return {'status':'ok','version':APP_VERSION}
@@ -2768,20 +2830,19 @@ def oidc_callback(request:Request,code:str='',state:str='',error:str=''):
     nonce=row['nonce']; conn.execute('DELETE FROM oidc_states WHERE id=?',(row['id'],)); conn.commit(); conn.close()
     cfg=oidc_discovery()
     try:
-        tr=httpx.post(cfg['token_endpoint'],data={'grant_type':'authorization_code','code':code,'redirect_uri':oidc_redirect_uri(request),'client_id':OIDC_CLIENT_ID,'client_secret':OIDC_CLIENT_SECRET},timeout=15); tr.raise_for_status(); tokens=tr.json(); id_token=tokens.get('id_token','')
+        token_data={'grant_type':'authorization_code','code':code,'redirect_uri':oidc_redirect_uri(request),'client_id':OIDC_CLIENT_ID}; token_data.update(oidc_client_auth_payload())
+        tr=httpx.post(cfg['token_endpoint'],data=token_data,timeout=15); tr.raise_for_status(); tokens=tr.json(); id_token=tokens.get('id_token','')
         if not id_token: raise RuntimeError('No ID token returned')
         signing_key=jwt.PyJWKClient(cfg['jwks_uri']).get_signing_key_from_jwt(id_token).key
         claims=jwt.decode(id_token,signing_key,algorithms=['RS256','RS384','RS512','ES256','ES384','ES512'],audience=OIDC_CLIENT_ID,issuer=cfg['issuer'])
         if claims.get('nonce')!=nonce: raise RuntimeError('OIDC nonce mismatch')
+        if str(claims.get('tid') or '')!=OIDC_TENANT_ID: raise RuntimeError('OIDC tenant mismatch')
     except Exception as exc:
         security_event(request,'OIDC_TOKEN_FAILURE','High',type(exc).__name__); raise HTTPException(401,'OIDC token validation failed')
-    subject=str(claims.get('sub') or ''); email=str(claims.get('email') or '').strip().lower(); display=str(claims.get('name') or claims.get('preferred_username') or email or subject)
-    if not subject: raise HTTPException(401,'OIDC subject claim missing')
+    standard_subject=str(claims.get('sub') or '').strip(); entra_object_id=str(claims.get('oid') or '').strip(); subject=entra_object_id or standard_subject
+    email=str(claims.get('email') or '').strip().lower(); display=str(claims.get('name') or claims.get('preferred_username') or email or subject)
+    if not standard_subject or (OIDC_PROVIDER_NAME=='entra' and not entra_object_id): raise HTTPException(401,'OIDC subject claim missing')
     conn=db(); user=conn.execute("SELECT * FROM users WHERE identity_provider=? AND external_subject=? AND status='Active'",(OIDC_PROVIDER_NAME,subject)).fetchone()
-    if not user and email and claims.get('email_verified') is True:
-        user=conn.execute("SELECT * FROM users WHERE lower(email)=? AND status='Active'",(email,)).fetchone()
-        if user and not user['external_subject']:
-            conn.execute('UPDATE users SET external_subject=?,identity_provider=?,updated_at=? WHERE id=?',(subject,OIDC_PROVIDER_NAME,now(),user['id'])); conn.commit(); user=conn.execute('SELECT * FROM users WHERE id=?',(user['id'],)).fetchone()
     if not user:
         if not OIDC_AUTO_PROVISION:
             conn.close(); security_event(request,'OIDC_USER_NOT_PROVISIONED','Medium',f'subject={subject} email={email}'); raise HTTPException(403,'User is not provisioned for Salus THIRA Command')

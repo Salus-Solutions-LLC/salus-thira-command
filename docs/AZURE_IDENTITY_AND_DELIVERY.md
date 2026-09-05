@@ -1,63 +1,63 @@
 # SalCAPA Azure identity and delivery design
 
-## Trust boundaries
+## Authority boundary
 
-Microsoft Entra ID authenticates people. SalCAPA derives role and tenant access from server-side mappings of immutable Entra object IDs and approved group IDs. Request bodies and browser headers never select authority, lifecycle, provenance, tenant, audit, or handoff state.
+Microsoft Entra ID authenticates people. SalCAPA authorizes them from pre-provisioned server-side mappings of the immutable Entra object ID to a SalCAPA user, tenant, role, clearance, and lifecycle status. Token role/group claims, request bodies, and browser headers never select tenant, role, clearance, lifecycle, provenance, audit, handoff, or Protected Member authority.
 
-GitHub Actions authenticates to Azure through workload identity federation. No Azure client secret, publish profile, storage key, or database password is stored in GitHub.
+Production automatic user provisioning is disabled. Unknown or disabled subjects fail closed. The tenant-specific issuer and token `tid` claim must match the configured SALUS Entra tenant, and ID tokens are validated for issuer, audience, nonce, and signature before a session is created.
 
-## Entra groups
+## Passwordless runtime sign-in
 
-Create these groups only after approval and record their immutable object IDs:
+The SalCAPA Container App uses a user-assigned managed identity. The Microsoft Entra application registration has a federated identity credential that trusts only that managed identity. During the authorization-code exchange, SalCAPA requests an `api://AzureADTokenExchange/.default` managed-identity token and submits it as a standards-based client assertion. No OIDC client secret is configured or stored.
 
-- SalCAPA Platform Administrators
-- SalINTEL Analysts
-- SalTHIRA Assessment Directors
-- SalOPS Operations Leads
-- Protected Member Executives
-- Protected Member Contributors
-- Protected Member Viewers
+Server-controlled Container App settings are:
 
-Protected Member group membership must also map to an approved SalCAPA tenant. A user with a valid account but no active tenant mapping is denied. Salus personnel cross-tenant access requires an explicit server-side authorization record and audit event.
+- `SALUS_AUTH_MODE=oidc`
+- `SALUS_OIDC_TENANT_ID` — the approved SALUS tenant ID
+- `SALUS_OIDC_DISCOVERY_URL` — the tenant-specific Microsoft identity-platform discovery document
+- `SALUS_OIDC_CLIENT_ID` — the non-secret runtime application client ID
+- `SALUS_OIDC_CLIENT_AUTH_METHOD=managed_identity`
+- `SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID` — the Container App user-assigned identity client ID
+- `SALUS_OIDC_REDIRECT_URI` — the exact HTTPS Container App callback
+- `SALUS_OIDC_PROVIDER_NAME=entra`
+- `SALUS_OIDC_AUTO_PROVISION=0`
+
+The readiness endpoint validates the complete configuration and obtains the managed-identity assertion fail closed without exposing assertion or exception detail.
 
 ## Runtime managed identity
 
-The App Service system-assigned managed identity receives only:
+The user-assigned managed identity receives only:
 
-- Storage Blob Data Contributor scoped to the evidence container;
-- Key Vault Secrets User scoped to the SalCAPA vault;
-- database login mapped to a least-privilege PostgreSQL application role.
+- `AcrPull` on the governed registry;
+- `Storage Blob Data Contributor` on the evidence container;
+- `Key Vault Secrets User` on the SalCAPA vault;
+- the separately provisioned least-privilege PostgreSQL database role.
 
-It receives no subscription Owner, User Access Administrator, unrestricted Contributor, storage account key, or Key Vault Administrator role. Database schema migration uses a separate short-lived deployment identity and is not available to the running application.
+It receives no subscription Owner, unrestricted Contributor, storage account key, database password, or Key Vault Administrator role.
 
 ## GitHub deployment identity
 
-Use one federated identity per environment. Subject claims are restricted to the corresponding protected GitHub environment. Production federation accepts only the `salcapa-prod-approval` environment.
+GitHub Actions authenticates to Azure through workload identity federation. No Azure client secret, publish profile, storage key, database password, or OIDC client secret is stored in GitHub.
 
-Production deployment requires:
+The deployment service principal is scoped to `rg-salcapa-dev` with Contributor and a constrained Role Based Access Control Administrator assignment. The condition permits only `AcrPush`, `AcrPull`, `Storage Blob Data Contributor`, and `Key Vault Secrets User` assignments to service principals.
 
-- Marc Duncan or an explicitly delegated approver as a required reviewer;
-- deployment only from `development/salcapa-platform` during validation;
-- an immutable Azure Container Registry digest;
-- a written approval/change record;
-- green validation for the exact commit and digest;
-- no self-approval by the initiating actor.
+Protected GitHub environments remain the approval boundary. Production federation accepts only the corresponding protected environment subject. Images are deployed by immutable digest from the governed registry.
 
-The deployment identity is scoped to the dedicated SalCAPA resource group. Assign only the resource-provider roles required to update App Service, the registry, monitoring, storage, Key Vault configuration, and PostgreSQL configuration. Role-assignment creation remains a separate administrator action.
+## Entra activation prerequisites
 
-## Delivery sequence
+Before application deployment, an authorized Entra administrator must:
 
-1. Reconstruct and verify the exact candidate.
-2. Run SQLite, PostgreSQL 16, production-container, dependency-audit, Bandit, repository-hygiene, CodeQL, and Bicep gates.
-3. Build the container once and record its SHA-256 digest.
-4. Open a controlled validation PR and close it without merge after every gate is green.
-5. Record Marc Duncan's approval and Azure cost ceiling.
-6. Configure the protected GitHub environment and workload-identity federation.
-7. Run infrastructure what-if.
-8. Provision nonproduction resources and validate Entra, database, evidence, telemetry, backup, and restore behavior.
-9. Authorize production separately.
-10. Deploy the same validated digest and record the resulting Azure deployment ID.
+1. create or identify the single-tenant SalCAPA runtime application registration;
+2. register only the exact HTTPS callback emitted by the Bicep template;
+3. add a federated identity credential whose issuer and subject identify the SalCAPA user-assigned managed identity;
+4. record the application client ID as the non-secret GitHub variable `ENTRA_RUNTIME_CLIENT_ID`;
+5. pre-provision each permitted person in SalCAPA with their immutable Entra object ID, approved tenant, role, clearance, and active status;
+6. run login acceptance for a Protected Member and Salus user, unknown and disabled subjects, cross-tenant denial, state replay, issuer/audience rejection, and server-derived role behavior.
 
-## Rollback
+Creating the app registration or federated credential does not create a long-lived credential. Azure resources, DNS, and public production cutover remain separately governed.
 
-Rollback never uses a mutable tag. The protected workflow selects a previously validated digest, runs readiness checks, and records the approval and deployment IDs. Database recovery restores into a separate server; production data is never overwritten in place.
+## Release and rollback
+
+Every candidate must pass deterministic reconstruction, SQLite, PostgreSQL 16, production-container, dependency audit, Bandit, repository hygiene, CodeQL, and Azure infrastructure policy checks. A validation pull request is closed without merge.
+
+Application rollback selects a prior approved image digest from the same registry. Database recovery restores to a separate PostgreSQL server for independent validation. Identity configuration changes require a governed record and must preserve fail-closed tenant and subject mapping.
