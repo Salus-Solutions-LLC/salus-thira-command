@@ -8,6 +8,7 @@ on:
     paths:
       - 'infra/azure/**'
       - 'docs/AZURE_*.md'
+      - 'docs/RELEASE_NOTES_v3.*.md'
       - '.github/workflows/azure-connection-verify.yml'
       - '.github/workflows/azure-production-deploy.yml'
       - '.github/workflows/azure-infrastructure-validate.yml'
