@@ -5,9 +5,9 @@
   "location": "southcentralus",
   "unique_suffix": "b48224",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-  "source_release": "release/v3.15",
-  "source_commit": "962e82634a786c5727627494661d4d613b321ef2",
-  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:7d11e2d0ee0d23a9f9da678a9f778d883731e86a65831701716ee9bab133e12e",
+  "source_release": "release/v3.17",
+  "source_commit": "ec9f67a43c113290ac608ca81e93be9baadb392a",
+  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:e1c48344860bbde9b2f131ce0cdfb20dc6d9f557ef047e2c9e6df34ef4e666fa",
   "tenant": {
     "name": "Salus Solutions",
     "slug": "salus"
