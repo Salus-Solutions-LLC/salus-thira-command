@@ -10,6 +10,8 @@ on:
       - 'docs/AZURE_*.md'
       - '.github/workflows/azure-connection-verify.yml'
       - '.github/workflows/azure-production-deploy.yml'
+      - '.github/workflows/azure-foundation-activate.yml'
+      - 'deploy/azure/activations/foundation-dev.json'
 
 permissions:
   contents: read
