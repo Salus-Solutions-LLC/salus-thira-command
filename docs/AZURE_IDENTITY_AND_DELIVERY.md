@@ -56,7 +56,7 @@ Foundation and federation must be completed in this order to avoid a circular de
 
 The federated credential must use issuer `https://login.microsoftonline.com/<tenant-id>/v2.0`, the case-sensitive managed identity principal (object) ID as its subject, and `api://AzureADTokenExchange` as its audience. These values are emitted by the exact foundation deployment and must not be guessed.
 
-The Bicep deployment records the exact source commit on every provisioned resource. Creating the app registration or federated credential does not create a long-lived credential. DNS and public production cutover remain separately governed.
+The Bicep deployment records the exact source commit on every provisioned resource. Foundation outputs are configuration evidence, not authority to create a different application, credential, resource set, or role assignment. Creating the approved app registration or federated credential does not create a long-lived credential. DNS and public production cutover remain separately governed.
 
 ## Release and rollback
 
