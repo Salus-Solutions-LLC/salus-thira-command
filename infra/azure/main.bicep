@@ -50,6 +50,18 @@ param approvalRecord string = 'MD-APPROVAL-AZURE-LEAN-20260904'
 @maxValue(30)
 param monthlyCostCeilingUsd int = 30
 
+@description('Operational Azure budget amount, fixed below the approved monthly ceiling.')
+@minValue(25)
+@maxValue(25)
+param operationalBudgetUsd int = 25
+
+@description('Notification recipient for Azure budget alerts. Supplied only by the governed deployment environment.')
+@minLength(3)
+param budgetContactEmail string
+
+@description('First day of the current UTC month for Azure budget tracking.')
+param budgetStartDate string = utcNow('yyyy-MM-01')
+
 var stem = 'salcapa-${environmentName}-${uniqueSuffix}'
 var evidenceContainerName = 'evidence'
 var registryName = replace('${stem}acr', '-', '')
@@ -252,6 +264,56 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
     SamplingPercentage: 5
     RetentionInDays: 30
     WorkspaceResourceId: logAnalytics.id
+  }
+}
+
+resource costBudget 'Microsoft.Consumption/budgets@2023-11-01' = {
+  name: '${stem}-monthly-budget'
+  properties: {
+    amount: operationalBudgetUsd
+    category: 'Cost'
+    timeGrain: 'Monthly'
+    timePeriod: {
+      startDate: budgetStartDate
+    }
+    notifications: {
+      Actual80Percent: {
+        enabled: true
+        operator: 'GreaterThanOrEqualTo'
+        threshold: 80
+        thresholdType: 'Actual'
+        contactEmails: [
+          budgetContactEmail
+        ]
+        contactGroups: []
+        contactRoles: []
+        locale: 'en-us'
+      }
+      Forecast100Percent: {
+        enabled: true
+        operator: 'GreaterThanOrEqualTo'
+        threshold: 100
+        thresholdType: 'Forecasted'
+        contactEmails: [
+          budgetContactEmail
+        ]
+        contactGroups: []
+        contactRoles: []
+        locale: 'en-us'
+      }
+      Actual100Percent: {
+        enabled: true
+        operator: 'GreaterThanOrEqualTo'
+        threshold: 100
+        thresholdType: 'Actual'
+        contactEmails: [
+          budgetContactEmail
+        ]
+        contactGroups: []
+        contactRoles: []
+        locale: 'en-us'
+      }
+    }
   }
 }
 
@@ -522,4 +584,6 @@ output postgresServerName string = postgres.name
 output postgresHostName string = postgres.properties.fullyQualifiedDomainName
 output postgresDatabaseName string = salcapaDatabase.name
 output monthlyCostCeilingUsd int = monthlyCostCeilingUsd
+output operationalBudgetUsd int = operationalBudgetUsd
+output costBudgetName string = costBudget.name
 output approvalRecord string = approvalRecord

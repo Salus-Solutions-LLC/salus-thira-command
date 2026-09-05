@@ -37,6 +37,9 @@ This is the active approved course of action for initial SalCAPA production use.
 - Marc Duncan approved this course of action on 2026-09-04.
 - $30 USD/month is a hard recurring Azure authorization ceiling for this starting architecture.
 - Provisioning must stop if the current Azure estimate exceeds $30/month.
+- A **$25.00 operational budget** is provisioned at the approved resource-group scope.
+- Notifications are required at **80% actual**, **100% forecasted**, and **100% actual** of that $25 budget, before the $30 authorization ceiling.
+- The notification recipient is supplied by the protected GitHub environment variable `AZURE_BUDGET_CONTACT_EMAIL`; it is not hard-coded in source.
 - Budget alerts/checkpoints must be configured below the ceiling before production cutover.
 - Capacity, redundancy, storage, telemetry, or other recurring-cost increases require a separate cost review and approval.
 - No DNS change or public production cutover is authorized by this cost approval alone.
@@ -83,3 +86,5 @@ The $30/month approval authorizes preparation and governed provisioning of the s
 No frozen branch may be rewritten. No validation pull request may be merged. No DNS change or public production cutover may occur without a separate explicit authorization.
 
 The approval record identifier **MD-APPROVAL-AZURE-LEAN-20260904** must be preserved in the GitHub environment, deployment record, and SalCAPA audit history.
+
+Before foundation provisioning, the non-mutating connection workflow must confirm all required deployment variables, passwordless OIDC login, the exact subscription/tenant/region/resource group, Contributor capability, scoped role-assignment authority, and absence of inherited assignments outside the approved development resource group.

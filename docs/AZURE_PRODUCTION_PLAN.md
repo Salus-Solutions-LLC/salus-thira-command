@@ -39,11 +39,13 @@ The infrastructure template now describes the complete approved deployment bound
 3. Configure protected GitHub environments, workload-identity federation, and the documented non-secret environment variables.
 4. Run the credential-free Bicep and policy validation on the governed development branch.
 5. Review the Azure what-if output under the recorded approval.
-6. Provision nonproduction resources first and publish the approved image digest to the governed registry.
-7. Grant the application managed identity its least-privilege PostgreSQL role.
-8. Run database migration, backup, restore, fail-closed authentication, and tenant-isolation tests.
-9. Complete the controlled validation PR and close it without merge.
-10. Authorize production provisioning and DNS only after every release gate is green.
+6. Run the non-mutating OIDC connection acceptance and prove the deployment principal is confined to the approved development resource group.
+7. Provision the $25 resource-group budget with actual and forecasted notifications before any billable foundation resources.
+8. Provision nonproduction resources first and publish the approved image digest to the governed registry.
+9. Grant the application managed identity its least-privilege PostgreSQL role.
+10. Run database migration, backup, restore, fail-closed authentication, and tenant-isolation tests.
+11. Complete the controlled validation PR and close it without merge.
+12. Authorize production provisioning and DNS only after every release gate is green.
 
 ## Rollback
 

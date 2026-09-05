@@ -9,6 +9,7 @@ on:
       - 'deploy/AZURE_BACKUP_RESTORE_RUNBOOK.md'
       - '.github/workflows/azure-infrastructure-validate.yml'
       - '.github/workflows/azure-production-deploy.yml'
+      - '.github/workflows/azure-connection-verify.yml'
   push:
     branches:
       - 'development/**'
@@ -18,6 +19,7 @@ on:
       - 'deploy/AZURE_BACKUP_RESTORE_RUNBOOK.md'
       - '.github/workflows/azure-infrastructure-validate.yml'
       - '.github/workflows/azure-production-deploy.yml'
+      - '.github/workflows/azure-connection-verify.yml'
   workflow_dispatch:
 
 permissions:
@@ -84,6 +86,14 @@ jobs:
               "dailyQuotaGb: json('0.1')",
               'SamplingPercentage: 5',
               "param monthlyCostCeilingUsd int = 30",
+              "param operationalBudgetUsd int = 25",
+              'Microsoft.Consumption/budgets@2023-11-01',
+              "amount: operationalBudgetUsd",
+              "timeGrain: 'Monthly'",
+              'Actual80Percent',
+              'Forecast100Percent',
+              'Actual100Percent',
+              'budgetContactEmail',
               "param approvalRecord string = 'MD-APPROVAL-AZURE-LEAN-20260904'",
           ]
           missing_infrastructure = [
@@ -108,6 +118,9 @@ jobs:
               'POSTGRES_ADMIN_OBJECT_ID',
               'POSTGRES_ADMIN_PRINCIPAL_NAME',
               'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"',
+              'operationalBudgetUsd=25',
               'az deployment group what-if',
               'monthlyCostCeilingUsd=30',
               'provisionApplication=true',
@@ -121,6 +134,23 @@ jobs:
           if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', workflow):
               raise SystemExit('Azure login action must be pinned to a commit SHA')
 
+          connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
+          for value in (
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'az role assignment list',
+              '--include-inherited',
+              'outside the approved development resource group',
+              'Role Based Access Control Administrator',
+              'User Access Administrator',
+          ):
+              if value not in connection:
+                  raise SystemExit('Azure connection acceptance is incomplete: ' + value)
+          if 'client-secret:' in connection or 'AZURE_CLIENT_SECRET' in connection:
+              raise SystemExit('Azure connection verification may not use a long-lived client secret')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', connection):
+              raise SystemExit('Azure connection login action must be pinned to a commit SHA')
+
           cost = Path('docs/AZURE_COST_AND_APPROVAL.md').read_text()
           for value in (
               'Option A',
@@ -131,6 +161,9 @@ jobs:
               'Proposed monthly authorization ceiling',
               '$30.00',
               'MD-APPROVAL-AZURE-LEAN-20260904',
+              '$25.00 operational budget',
+              '80% actual',
+              '100% forecasted',
               'No DNS change or public production cutover',
           ):
               if value not in cost:
