@@ -122,8 +122,9 @@ def main():
     assert session['role']!='System Administrator' and session['tenant_id']!=999
     assert token_requests and 'client_secret' not in token_requests[-1]
 
-    client.cookies.set('salus_oidc_state',state)
-    callback(client,state,401)
+    replay_client=TestClient(app.app)
+    replay_client.cookies.set('salus_oidc_state',state)
+    callback(replay_client,state,401)
 
     state,nonce=start(client); set_claims(nonce,oid='unknown-object')
     callback(client,state,403)
