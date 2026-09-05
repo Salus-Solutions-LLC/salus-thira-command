@@ -253,7 +253,21 @@ jobs:
             STATE="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --query properties.status --output tsv 2>/dev/null || true)"
             case "$STATE" in
               Succeeded) break ;;
-              Failed|Degraded|Stopped) echo "Database bootstrap execution failed closed: $STATE" >&2; exit 1 ;;
+              Failed|Degraded|Stopped)
+                echo "Database bootstrap execution failed closed: $STATE" >&2
+                echo "Bounded bootstrap container logs (sensitive values redacted):" >&2
+                az containerapp job logs show \
+                  --resource-group "$RESOURCE_GROUP" \
+                  --name "$JOB_NAME" \
+                  --execution "$EXECUTION_NAME" \
+                  --container bootstrap \
+                  --tail 300 \
+                  --format text \
+                  --only-show-errors 2>&1 \
+                  | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' >&2 \
+                  || true
+                exit 1
+                ;;
             esac
             sleep 10
           done
