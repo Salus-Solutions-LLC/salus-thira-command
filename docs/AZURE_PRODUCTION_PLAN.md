@@ -34,21 +34,23 @@ The infrastructure template now describes the approved lean deployment boundary 
 
 ## Activation sequence
 
-1. Approve the exact Azure cost model, service tiers, and authorization ceiling.
-2. Confirm the Azure subscription, region, Entra tenant, production domain, and named PostgreSQL Entra administrator group.
-3. Configure protected GitHub environments, workload-identity federation, and the documented non-secret environment variables.
-4. Run the credential-free Bicep and policy validation on the governed development branch.
-5. Run the non-provisioning OIDC connection acceptance and verify that the deployment principal has only the approved resource-group scope.
-6. Create or identify the single-tenant SalCAPA runtime app registration, record its non-secret client ID as `ENTRA_RUNTIME_CLIENT_ID`, and configure its exact HTTPS callback.
-7. After the user-assigned Container App identity exists, add an Entra federated identity credential that trusts only that managed identity; do not create a client secret.
-8. Confirm the protected `AZURE_BUDGET_CONTACT_EMAIL` variable and review the Azure what-if output, including the fixed $25 monthly budget with 80% actual and 100% forecasted notifications.
-9. Provision the governed development foundation only after validations pass; the budget is created in the same controlled deployment before the other billable resources.
+1. Retain the approved lean cost model, service tiers, authorization record, and approximately $30 monthly ceiling.
+2. Confirm the Azure subscription, `southcentralus` region, SALUS Entra tenant, `rg-salcapa-dev`, and named PostgreSQL Entra administrator group.
+3. Retain the protected GitHub environments, passwordless deployment federation, scoped RBAC, and documented non-secret repository variables.
+4. Run credential-free Bicep and policy validation on the governed development branch.
+5. Run the passwordless live Azure connection acceptance and verify the deployment principal has only the approved resource-group scope.
+6. Run the live, non-provisioning foundation what-if with suffix `b48224`; reject any resource outside `rg-salcapa-dev`, destructive delete, or Container App creation before runtime federation.
+7. Review the exact what-if result and then run the protected `foundation` operation. The fixed $25 monthly budget and notifications are created with the foundation before the other billable resources.
+8. Capture the foundation outputs for the managed-identity client ID, federation issuer, immutable managed-identity subject, `api://AzureADTokenExchange` audience, and exact HTTPS redirect URI.
+9. Create or identify the single-tenant SalCAPA runtime app registration, register only the emitted callback, add one federated identity credential using the emitted values, and record its non-secret client ID as `ENTRA_RUNTIME_CLIENT_ID`. Do not create a client secret.
 10. Publish the approved image digest to the governed registry.
 11. Grant the application managed identity its least-privilege PostgreSQL role and pre-provision approved Entra object-ID mappings in SalCAPA.
-12. Run database migration, backup, restore, passwordless Entra login, fail-closed identity, and tenant-isolation tests.
-13. Complete the controlled validation PR and close it without merge.
-14. Authorize production provisioning and DNS only after every release gate is green.
+12. Deploy the Container App only after federation exists and the protected environment approves the immutable digest.
+13. Run database migration, backup, restore, passwordless Entra login, fail-closed identity, tenant-isolation, monitoring, and budget-alert tests.
+14. Complete the controlled validation PR and close it without merge.
+15. Authorize production provisioning and DNS only after every release gate is green.
 
+The live preflight is read-only: it invokes Azure Resource Manager what-if and never calls `az deployment group create`. It therefore creates no Azure resource, credential, DNS record, or deployment.
 ## Rollback
 
 - Application rollback selects a prior approved container digest from the same governed registry.
