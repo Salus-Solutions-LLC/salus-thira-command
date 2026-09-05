@@ -168,6 +168,33 @@ jobs:
         if: steps.providers.outputs.ready != 'true'
         run: echo "Azure provider registration action remains required."
 
+      - name: Evaluate runtime Entra application configuration
+        id: runtime_entra
+        env:
+          ENTRA_RUNTIME_CLIENT_ID: ${{ vars.ENTRA_RUNTIME_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ENTRA_RUNTIME_CLIENT_ID" ]; then
+            state=pending
+          elif [[ "$ENTRA_RUNTIME_CLIENT_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            state=configured
+          else
+            state=invalid
+          fi
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+
+      - name: Runtime Entra application configured
+        if: steps.runtime_entra.outputs.state == 'configured'
+        run: echo "Runtime Entra application client ID is configured for governed deployment validation."
+
+      - name: Runtime Entra application pending
+        if: steps.runtime_entra.outputs.state == 'pending'
+        run: echo "Runtime Entra application and federated credential action remain pending."
+
+      - name: Runtime Entra application configuration invalid
+        if: steps.runtime_entra.outputs.state == 'invalid'
+        run: echo "::warning::ENTRA_RUNTIME_CLIENT_ID is present but is not a valid UUID."
+
       - name: Run live foundation what-if without provisioning
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
