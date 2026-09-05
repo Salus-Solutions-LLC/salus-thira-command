@@ -10,6 +10,7 @@ on:
       - 'docs/AZURE_*.md'
       - '.github/workflows/azure-connection-verify.yml'
       - '.github/workflows/azure-production-deploy.yml'
+      - '.github/workflows/azure-infrastructure-validate.yml'
       - '.github/workflows/azure-foundation-activate.yml'
       - '.github/workflows/azure-image-publish.yml'
       - 'deploy/azure/activations/foundation-dev.json'
