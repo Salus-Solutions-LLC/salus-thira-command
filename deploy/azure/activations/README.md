@@ -1,0 +1,26 @@
+# Governed Azure activation records
+
+This directory contains explicit, reviewable one-time records that activate an already approved Azure operation from the governed development branch. It exists because the preserved default branch is not modified and therefore cannot host a newly added manual `workflow_dispatch` entry point.
+
+## Foundation development record
+
+`foundation-dev.json` is recognized only when all fields exactly match the enforced contract:
+
+- schema version `1`;
+- operation `foundation`;
+- environment `dev`;
+- location `southcentralus`;
+- unique suffix `b48224`;
+- approval record `MD-APPROVAL-AZURE-LEAN-20260904`;
+- monthly authorization ceiling `30`;
+- operational budget `25`;
+- source release `release/v3.6`;
+- source commit equal to the immutable head of that frozen release.
+
+Unknown fields, a mutable or non-frozen source, a different resource scope, cost, region, suffix, operation, or approval record fail closed. The activation workflow also pauses at the protected `salcapa-dev-approval` environment, authenticates with GitHub OIDC, confirms resource-group-only authority, reruns Azure what-if, rejects deletes and premature Container App creation, and uses a deterministic deployment name.
+
+Creating or editing this README never activates Azure. Only the exact path `deploy/azure/activations/foundation-dev.json` triggers the activation workflow.
+
+## Prohibited contents
+
+Activation records must never contain passwords, client secrets, tokens, connection strings, storage keys, database credentials, or personal authorization claims. They contain only governed non-secret identifiers and approval metadata.
