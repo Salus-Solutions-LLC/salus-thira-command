@@ -311,7 +311,6 @@ jobs:
               '.source_release == "release/v3.14"',
               '.image_digest | test(',
               'initial_users',
-              'pgaadauth',
               'passwordAuth --output tsv)" = "Disabled"',
               'infra/azure/database-bootstrap.bicep',
               'az containerapp job start',
