@@ -47,7 +47,7 @@ Protected GitHub environments remain the approval boundary. Production federatio
 
 Foundation and federation must be completed in this order to avoid a circular dependency:
 
-1. Run the protected `foundation` operation on `development/salcapa-platform` using the approved development resource group, region, unique suffix, and approval record. Foundation provisioning does not require `ENTRA_RUNTIME_CLIENT_ID` and does not create the Container App.
+1. Run the protected `foundation` operation on `development/salcapa-platform` using the approved development resource group, region, 4–6 character lowercase alphanumeric globally unique suffix, and approval record. The 4–6 character boundary keeps every generated development and production storage-account name within Azure’s 24-character limit. Foundation provisioning does not require `ENTRA_RUNTIME_CLIENT_ID` and does not create the Container App.
 2. Capture the governed deployment outputs: managed-identity client ID, federation issuer, federation subject, federation audience, and exact runtime redirect URI. The workflow verifies these outputs and records the non-secret federation contract in its job summary.
 3. An authorized Entra administrator creates or identifies the single-tenant SalCAPA runtime application registration, registers only the emitted HTTPS callback, and adds one federated identity credential using the emitted values.
 4. Record the application client ID as the non-secret GitHub repository variable `ENTRA_RUNTIME_CLIENT_ID`. The `deploy` operation rejects a missing or malformed UUID.
