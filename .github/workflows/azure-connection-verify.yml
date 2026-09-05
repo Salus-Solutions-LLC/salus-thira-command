@@ -142,6 +142,20 @@ jobs:
               jq -r '.[] | "| \(.type) | \(.name) |"'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Evaluate required Azure provider readiness
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          PROVIDERS=(
+            Microsoft.App Microsoft.ContainerRegistry Microsoft.DBforPostgreSQL
+            Microsoft.Insights Microsoft.KeyVault Microsoft.ManagedIdentity
+            Microsoft.Network Microsoft.OperationalInsights Microsoft.Storage
+            Microsoft.Consumption
+          )
+          for provider in "${PROVIDERS[@]}"; do
+            test "$(az provider show --namespace "$provider" --query registrationState --output tsv)" = "Registered"
+          done
+
       - name: Run live foundation what-if without provisioning
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
