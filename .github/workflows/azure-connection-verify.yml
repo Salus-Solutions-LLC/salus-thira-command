@@ -13,8 +13,10 @@ on:
       - '.github/workflows/azure-infrastructure-validate.yml'
       - '.github/workflows/azure-foundation-activate.yml'
       - '.github/workflows/azure-image-publish.yml'
+      - '.github/workflows/azure-database-bootstrap.yml'
       - 'deploy/azure/activations/foundation-dev.json'
       - 'deploy/azure/activations/image-dev.json'
+      - 'deploy/azure/activations/database-dev.json'
 
 permissions:
   contents: read

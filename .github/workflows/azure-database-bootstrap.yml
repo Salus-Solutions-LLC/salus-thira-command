@@ -1,0 +1,202 @@
+name: SalCAPA governed Azure database bootstrap
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - 'deploy/azure/activations/database-dev.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-database-bootstrap-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - name: Record protected database-bootstrap approval gate passage
+        run: echo "Protected SalCAPA development database-bootstrap approval gate passed."
+
+  bootstrap:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout frozen bootstrap source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.14
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate immutable database activation record and frozen source
+        id: activation
+        env:
+          ACTIVATION_FILE: deploy/azure/activations/database-dev.json
+        run: |
+          set -euo pipefail
+          jq -e '
+            type == "object" and
+            (.schema_version == 1) and
+            (.operation == "bootstrap_database") and
+            (.target_environment == "dev") and
+            (.unique_suffix == "b48224") and
+            (.location == "southcentralus") and
+            (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
+            (.source_release == "release/v3.14") and
+            (.source_commit | test("^[0-9a-f]{40}$")) and
+            (.image_digest | test("^salcapadevb48224acr[.]azurecr[.]io/salcapa@sha256:[0-9a-f]{64}$")) and
+            (.tenant == {"name":"Salus Solutions","slug":"salus"}) and
+            (.initial_users | type == "array" and length >= 1 and length <= 20) and
+            (all(.initial_users[];
+              (keys | sort) == (["display_name","object_id","role","sensitivity_clearance","status","username"] | sort) and
+              (.object_id | test("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")) and
+              (.username | test("^[A-Za-z0-9][A-Za-z0-9._@+-]{1,159}$")) and
+              (.display_name | type == "string" and length >= 1 and length <= 160) and
+              (.role | IN("System Administrator","Assessment Director","Lead Assessor","SME Assessor","Client Executive","Program Owner","Contributor","Auditor")) and
+              (.sensitivity_clearance | IN("Standard","Restricted","Sensitive","Highly Sensitive")) and
+              (.status | IN("Active","Disabled"))
+            )) and
+            (([.initial_users[].object_id] | unique | length) == (.initial_users | length)) and
+            (([.initial_users[].username | ascii_downcase] | unique | length) == (.initial_users | length)) and
+            ((keys - ["approval_record","image_digest","initial_users","location","operation","schema_version","source_commit","source_release","target_environment","tenant","unique_suffix"]) | length == 0)
+          ' "$ACTIVATION_FILE" >/dev/null
+
+          SOURCE_COMMIT="$(jq -r '.source_commit' "$ACTIVATION_FILE")"
+          test "$(git -C frozen-release rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git cat-file -e "$SOURCE_COMMIT^{commit}"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
+
+          {
+            echo "source_commit=$SOURCE_COMMIT"
+            echo "image_digest=$(jq -r '.image_digest' "$ACTIVATION_FILE")"
+            echo "initial_users_json=$(jq -c '.initial_users' "$ACTIVATION_FILE")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate required non-secret repository variables
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+        run: |
+          set -euo pipefail
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_RESOURCE_GROUP AZURE_LOCATION; do
+            test -n "${!name}" || { echo "Missing repository variable: $name" >&2; exit 1; }
+          done
+          test "$AZURE_RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$AZURE_LOCATION" = "southcentralus"
+
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify target resources and immutable image
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show --name "$RESOURCE_GROUP" --query location --output tsv)" = "southcentralus"
+          test "$(az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-pg --query network.publicNetworkAccess --output tsv)" = "Disabled"
+          test "$(az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-pg --query authConfig.passwordAuth --output tsv)" = "Disabled"
+          test "$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query adminUserEnabled --output tsv)" = "false"
+          DIGEST="${IMAGE_DIGEST##*@}"
+          test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@$DIGEST" --query digest --output tsv)" = "$DIGEST"
+
+      - name: Provision, run, and remove transient database bootstrap
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          ENTRA_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
+          INITIAL_USERS_JSON: ${{ steps.activation.outputs.initial_users_json }}
+          SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
+        run: |
+          set -euo pipefail
+          JOB_NAME="salcapa-dev-b48224-db-bootstrap"
+          IDENTITY_NAME="$JOB_NAME"
+          POSTGRES_NAME="salcapa-dev-b48224-pg"
+
+          cleanup() {
+            set +e
+            BOOTSTRAP_OBJECT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name "$IDENTITY_NAME" --query principalId --output tsv 2>/dev/null)"
+            az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes >/dev/null 2>&1
+            if [ -n "$BOOTSTRAP_OBJECT_ID" ]; then
+              az postgres flexible-server ad-admin delete --resource-group "$RESOURCE_GROUP" --server-name "$POSTGRES_NAME" --object-id "$BOOTSTRAP_OBJECT_ID" --yes >/dev/null 2>&1
+            fi
+            az identity delete --resource-group "$RESOURCE_GROUP" --name "$IDENTITY_NAME" >/dev/null 2>&1
+          }
+          trap cleanup EXIT
+          cleanup
+
+          az deployment group create \
+            --name "salcapa-database-bootstrap-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file frozen-release/infra/azure/database-bootstrap.bicep \
+            --parameters \
+              location=southcentralus environmentName=dev uniqueSuffix=b48224 \
+              imageDigest="$IMAGE_DIGEST" sourceCommit="$SOURCE_COMMIT" \
+              approvalRecord=MD-APPROVAL-AZURE-LEAN-20260904 \
+              entraTenantId="$ENTRA_TENANT_ID" \
+              tenantName="Salus Solutions" tenantSlug=salus \
+              initialUsersJson="$INITIAL_USERS_JSON" \
+            --query properties.outputs --output json > /tmp/salcapa-database-bootstrap-outputs.json
+
+          BOOTSTRAP_OBJECT_ID="$(jq -r '.bootstrapIdentityObjectId.value' /tmp/salcapa-database-bootstrap-outputs.json)"
+          test -n "$BOOTSTRAP_OBJECT_ID"
+          az postgres flexible-server ad-admin show --resource-group "$RESOURCE_GROUP" --server-name "$POSTGRES_NAME" --object-id "$BOOTSTRAP_OBJECT_ID" >/dev/null
+
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv)"
+          test -n "$EXECUTION_NAME"
+          STATE=""
+          for attempt in $(seq 1 90); do
+            STATE="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --query properties.status --output tsv 2>/dev/null || true)"
+            case "$STATE" in
+              Succeeded) break ;;
+              Failed|Degraded|Stopped) echo "Database bootstrap execution failed closed: $STATE" >&2; exit 1 ;;
+            esac
+            sleep 10
+          done
+          test "$STATE" = "Succeeded"
+
+          cleanup
+          trap - EXIT
+          test "$(az postgres flexible-server ad-admin list --resource-group "$RESOURCE_GROUP" --server-name "$POSTGRES_NAME" --query "[?objectId=='$BOOTSTRAP_OBJECT_ID'] | length(@)" --output tsv)" = "0"
+          ! az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" >/dev/null 2>&1
+          ! az identity show --resource-group "$RESOURCE_GROUP" --name "$IDENTITY_NAME" >/dev/null 2>&1
+
+          {
+            echo "### SalCAPA database bootstrap"
+            echo ""
+            echo "- PostgreSQL password authentication: disabled"
+            echo "- Runtime database role: managed identity, non-administrator"
+            echo "- Initial user authority: immutable Entra object-ID mappings"
+            echo "- Temporary administrator: removed"
+            echo "- Temporary Container Apps Job: removed"
+            echo "- Client secret or database password: not used"
+            echo "- Container App deployment: not performed"
+          } >> "$GITHUB_STEP_SUMMARY"

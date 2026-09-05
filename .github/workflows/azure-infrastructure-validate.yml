@@ -12,8 +12,10 @@ on:
       - '.github/workflows/azure-connection-verify.yml'
       - '.github/workflows/azure-foundation-activate.yml'
       - '.github/workflows/azure-image-publish.yml'
+      - '.github/workflows/azure-database-bootstrap.yml'
       - 'deploy/azure/activations/foundation-dev.json'
       - 'deploy/azure/activations/image-dev.json'
+      - 'deploy/azure/activations/database-dev.json'
   push:
     branches:
       - 'development/**'
@@ -26,8 +28,10 @@ on:
       - '.github/workflows/azure-connection-verify.yml'
       - '.github/workflows/azure-foundation-activate.yml'
       - '.github/workflows/azure-image-publish.yml'
+      - '.github/workflows/azure-database-bootstrap.yml'
       - 'deploy/azure/activations/foundation-dev.json'
       - 'deploy/azure/activations/image-dev.json'
+      - 'deploy/azure/activations/database-dev.json'
   workflow_dispatch:
 
 permissions:
@@ -46,7 +50,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Compile Bicep without Azure credentials
-        run: az bicep build --file infra/azure/main.bicep --stdout > /tmp/salcapa-arm.json
+        run: |
+          az bicep build --file infra/azure/main.bicep --stdout > /tmp/salcapa-arm.json
+          az bicep build --file infra/azure/database-bootstrap.bicep --stdout > /tmp/salcapa-database-bootstrap-arm.json
       - name: Enforce infrastructure and deployment policy
         run: |
           python - <<'PY'
@@ -256,7 +262,7 @@ jobs:
               'permissions: {}',
               'needs: authorize',
               'id-token: write',
-              'source_release == "release/v3.13"',
+              'source_release == "release/v3.14"',
               '.source_commit | test("^[0-9a-f]{40}$")',
               'path: frozen-release',
               'git -C frozen-release rev-parse HEAD',
@@ -293,6 +299,77 @@ jobs:
               raise SystemExit('Image publication may not use a client secret or mutable latest tag')
           if 'az deployment group create' in image_publication or 'az containerapp update' in image_publication:
               raise SystemExit('Image publication must not deploy the application')
+
+          database_bootstrap = Path('.github/workflows/azure-database-bootstrap.yml').read_text()
+          database_bootstrap_required = [
+              'deploy/azure/activations/database-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.14',
+              '.source_release == "release/v3.14"',
+              '.image_digest | test(',
+              'initial_users',
+              'pgaadauth',
+              'passwordAuth --output tsv)" = "Disabled"',
+              'infra/azure/database-bootstrap.bicep',
+              'az containerapp job start',
+              'properties.status',
+              'az postgres flexible-server ad-admin delete',
+              'az containerapp job delete',
+              'az identity delete',
+              'Temporary administrator: removed',
+              'Client secret or database password: not used',
+          ]
+          missing_database_bootstrap = [
+              value for value in database_bootstrap_required
+              if value not in database_bootstrap
+          ]
+          if missing_database_bootstrap:
+              raise SystemExit(
+                  'Azure database bootstrap governance is incomplete: '
+                  + ', '.join(missing_database_bootstrap)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', database_bootstrap, re.MULTILINE):
+              raise SystemExit('Database bootstrap may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\\b', database_bootstrap)) < 2:
+              raise SystemExit('Both database-bootstrap checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\\b', database_bootstrap):
+              raise SystemExit('Database-bootstrap Azure login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in database_bootstrap or 'POSTGRES_PASSWORD' in database_bootstrap:
+              raise SystemExit('Database bootstrap may not use a client secret or database password')
+
+          database_bootstrap_template = Path('infra/azure/database-bootstrap.bicep').read_text()
+          for value in (
+              'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31',
+              'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01',
+              "principalType: 'ServicePrincipal'",
+              'Microsoft.App/jobs@2025-01-01',
+              "triggerType: 'Manual'",
+              "'${runtimeIdentity.id}': {}",
+              "'${bootstrapIdentity.id}': {}",
+              'tools/azure_database_bootstrap.py',
+              'SALUS_BOOTSTRAP_INITIAL_USERS_JSON',
+          ):
+              if value not in database_bootstrap_template:
+                  raise SystemExit('Database-bootstrap Bicep is incomplete: ' + value)
+
+          database_bootstrap_command = Path('tools/azure_database_bootstrap.py').read_text()
+          for value in (
+              'pgaadauth_create_principal_with_oid',
+              'NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
+              'SALUS_OIDC_AUTO_PROVISION',
+              '"0"',
+              "identity_provider='entra'",
+              'external_subject',
+              'IDENTITY_MAPPING_PROVISIONED',
+              'SALCAPA_DATABASE_BOOTSTRAP_PASS',
+          ):
+              if value not in database_bootstrap_command:
+                  raise SystemExit('Database-bootstrap command is incomplete: ' + value)
+          if 'client_secret' in database_bootstrap_command.lower() or 'postgres_password' in database_bootstrap_command.lower():
+              raise SystemExit('Database-bootstrap command may not contain a long-lived credential path')
 
           connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
           connection_required = [

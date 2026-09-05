@@ -63,3 +63,10 @@ The Bicep deployment records the exact source commit on every provisioned resour
 Every candidate must pass deterministic reconstruction, SQLite, PostgreSQL 16, production-container, dependency audit, Bandit, repository hygiene, CodeQL, Azure infrastructure policy, and live passwordless Azure scope checks. Azure naming policy constrains the shared suffix before provisioning so the generated resource names are valid in both development and production. A validation pull request is closed without merge.
 
 Application rollback selects a prior approved image digest from the same registry. Database recovery restores to a separate PostgreSQL server for independent validation. Identity configuration changes require a governed record and must preserve fail-closed tenant and subject mapping.
+
+
+## Governed database bootstrap
+
+Private PostgreSQL initialization runs only from an exact activation record after a validation-only release is frozen and its image is published by immutable digest. A transient user-assigned managed identity is added as an additional PostgreSQL Entra administrator only for the duration of a one-time Container Apps Job inside the existing virtual network. The job creates the normal runtime identity as a non-administrator database principal, initializes the SalCAPA schema with demonstration seeding disabled, and persists only the activation record's immutable Entra object-ID user mappings.
+
+The activation contract allowlists every tenant, role, clearance, and lifecycle field. Unknown fields, email-only authority, duplicate subjects, mutable images, and client-supplied authorization state fail closed. Cleanup removes the transient PostgreSQL administrator, job, and identity on success or failure and verifies their absence. The runtime identity retains no PostgreSQL administrator, CREATEDB, CREATEROLE, subscription, or resource-group authority.

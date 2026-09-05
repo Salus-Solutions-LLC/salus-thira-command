@@ -61,6 +61,8 @@ jobs:
           SALUS_AUTH_MODE: prototype
           SALUS_SEED_DEMO: "1"
         run: python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py
+      - name: Azure database bootstrap contract smoke
+        run: python tools/ci_azure_database_bootstrap_smoke.py
       - name: Security remediation regression smoke
         run: python tools/security_regression_smoke.py
       - name: Readiness disclosure regression smoke
@@ -71,7 +73,7 @@ jobs:
         # B608 is excluded after review: interpolated SQL identifiers are selected only
         # from fixed application allowlists or schema-derived column sets; all data values
         # remain bound parameters. Medium/high findings outside these reviewed patterns block CI.
-        run: bandit -q -r app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py -ll -s B608
+        run: bandit -q -r app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/azure_database_bootstrap.py -ll -s B608
 
   postgres-runtime:
     runs-on: ubuntu-latest

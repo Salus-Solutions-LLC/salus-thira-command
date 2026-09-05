@@ -24,3 +24,10 @@ Creating or editing this README never activates Azure. Only the exact path `depl
 ## Prohibited contents
 
 Activation records must never contain passwords, client secrets, tokens, connection strings, storage keys, database credentials, or personal authorization claims. They contain only governed non-secret identifiers and approval metadata.
+
+
+## Database development record
+
+`database-dev.json` is recognized only after the v3.14 bootstrap mechanism and image are frozen. It must identify the exact immutable release commit and registry digest, the fixed Salus tenant, and one or more pre-approved people by immutable Microsoft Entra object ID. Each mapping explicitly records the server-controlled username, display name, SalCAPA role, sensitivity clearance, and lifecycle status.
+
+The protected workflow creates an in-network one-time Container Apps Job. Its temporary managed identity is an additional PostgreSQL Entra administrator only while the job creates the non-administrator runtime role and initializes the database. Cleanup removes the temporary administrator, job, and identity on both success and failure. Creating or editing this README never activates Azure.

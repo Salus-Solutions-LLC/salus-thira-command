@@ -44,7 +44,7 @@ The infrastructure template now describes the approved lean deployment boundary 
 8. Capture the foundation outputs for the managed-identity client ID, federation issuer, immutable managed-identity subject, `api://AzureADTokenExchange` audience, and exact HTTPS redirect URI.
 9. Create or identify the single-tenant SalCAPA runtime app registration, register only the emitted callback, add one federated identity credential using the emitted values, and record its non-secret client ID as `ENTRA_RUNTIME_CLIENT_ID`. Do not create a client secret.
 10. Publish the approved image digest to the governed registry.
-11. Grant the application managed identity its least-privilege PostgreSQL role and pre-provision approved Entra object-ID mappings in SalCAPA.
+11. Use the protected one-time database activation record to grant the application managed identity its least-privilege PostgreSQL role and pre-provision approved Entra object-ID mappings in SalCAPA. The in-network job must remove its temporary PostgreSQL administrator, job, and identity before it can succeed.
 12. Deploy the Container App only after federation exists and the protected environment approves the immutable digest.
 13. Run database migration, backup, restore, passwordless Entra login, fail-closed identity, tenant-isolation, monitoring, and budget-alert tests.
 14. Complete the controlled validation PR and close it without merge.
