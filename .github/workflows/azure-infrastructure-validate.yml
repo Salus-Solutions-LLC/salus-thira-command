@@ -62,6 +62,7 @@ jobs:
               raise SystemExit('Azure infrastructure contains a forbidden cost, runtime, mutable-image, or secret pattern')
 
           infrastructure_required = [
+              '@maxLength(6)',
               'Microsoft.ContainerRegistry/registries@2023-07-01',
               "name: 'Basic'",
               'adminUserEnabled: false',
@@ -121,6 +122,96 @@ jobs:
           workflow = Path('.github/workflows/azure-production-deploy.yml').read_text()
           required = [
               'workflow_dispatch:',
+              'Approved four-to-six-character globally unique resource suffix',
+              '^[a-z0-9]{4,6}
+              'environment: salcapa-',
+              '-approval',
+              'refs/heads/development/salcapa-platform',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              '@sha256:',
+              'EXPECTED_REGISTRY=',
+              'POSTGRES_ADMIN_OBJECT_ID',
+              'POSTGRES_ADMIN_PRINCIPAL_NAME',
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'ENTRA_RUNTIME_CLIENT_ID',
+              'entraRuntimeClientId="$ENTRA_RUNTIME_CLIENT_ID"',
+              'sourceCommit="$GITHUB_SHA"',
+              'Deploy requires the exact non-secret ENTRA_RUNTIME_CLIENT_ID UUID after federation is configured.',
+              'federatedCredentialIssuer.value',
+              'federatedCredentialSubject.value',
+              'federatedCredentialAudience.value == "api://AzureADTokenExchange"',
+              'runtimeRedirectUri.value',
+              'GITHUB_STEP_SUMMARY',
+              'az deployment group what-if',
+              'monthlyCostCeilingUsd=30',
+              'operationalBudgetUsd=25',
+              'budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'provisionApplication=true',
+              'az containerapp update',
+          ]
+          missing = [value for value in required if value not in workflow]
+          if missing:
+              raise SystemExit('Azure deployment guardrails are incomplete: ' + ', '.join(missing))
+          if re.search(r'^  (push|pull_request|schedule):', workflow, re.MULTILINE):
+              raise SystemExit('Azure deployment must remain manual')
+          foundation = workflow.split('\n  foundation:', 1)[1].split('\n  deploy:', 1)[0]
+          deployment = workflow.split('\n  deploy:', 1)[1].split('\n  rollback:', 1)[0]
+          if 'test -n "$ENTRA_RUNTIME_CLIENT_ID"' in foundation:
+              raise SystemExit('Foundation must emit the managed identity before requiring the runtime client ID')
+          if 'test -n "$ENTRA_RUNTIME_CLIENT_ID"' not in deployment:
+              raise SystemExit('Application deployment must require the runtime client ID')
+          if '--tags approvalRecord=' in workflow:
+              raise SystemExit('Deployment metadata must be carried by governed Bicep resource tags')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', workflow):
+              raise SystemExit('Azure login action must be pinned to a commit SHA')
+
+          connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
+          connection_required = [
+              'id-token: write',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'az role assignment list',
+              '--assignee-object-id',
+              'EXPECTED_SCOPE=',
+              'ascii_downcase',
+              'User Access Administrator',
+              'Role Based Access Control Administrator',
+          ]
+          missing_connection = [
+              value for value in connection_required if value not in connection
+          ]
+          if missing_connection:
+              raise SystemExit(
+                  'Azure connection acceptance is incomplete: '
+                  + ', '.join(missing_connection)
+              )
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', connection):
+              raise SystemExit('Azure connection login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in connection:
+              raise SystemExit('Azure connection acceptance may not use a long-lived client secret')
+
+          cost = Path('docs/AZURE_COST_AND_APPROVAL.md').read_text()
+          for value in (
+              'Option A',
+              'Azure Container Apps',
+              'Consumption environment',
+              'Standard_LRS',
+              'approximately $15–25/month',
+              'Proposed monthly authorization ceiling',
+              '$30.00',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              'No DNS change or public production cutover',
+              '$25.00',
+              '80% actual',
+              '100% forecasted',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+          ):
+              if value not in cost:
+                  raise SystemExit('Azure cost and approval record is incomplete: ' + value)
+          print('AZURE_LEAN_INFRA_POLICY_PASS')
+          PY
+,
               'id-token: write',
               'environment: salcapa-',
               '-approval',
