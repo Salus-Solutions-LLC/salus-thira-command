@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen activation source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.8
+          ref: release/v3.9
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -61,7 +61,7 @@ jobs:
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
             (.monthly_cost_ceiling_usd == 30) and
             (.operational_budget_usd == 25) and
-            (.source_release == "release/v3.8") and
+            (.source_release == "release/v3.9") and
             (.source_commit | test("^[0-9a-f]{40}$")) and
             ((keys - [
               "approval_record",
@@ -79,7 +79,7 @@ jobs:
 
           SOURCE_RELEASE="$(jq -r '.source_release' "$ACTIVATION_FILE")"
           SOURCE_COMMIT="$(jq -r '.source_commit' "$ACTIVATION_FILE")"
-          test "$SOURCE_RELEASE" = "release/v3.8"
+          test "$SOURCE_RELEASE" = "release/v3.9"
           test "$(git -C frozen-release rev-parse HEAD)" = "$SOURCE_COMMIT"
           git cat-file -e "$SOURCE_COMMIT^{commit}"
           git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
@@ -151,6 +151,27 @@ jobs:
             any(.[]; .role == "Contributor") and
             any(.[]; .role == "Role Based Access Control Administrator")
           ' /tmp/salcapa-role-assignments.json >/dev/null
+
+      - name: Require registered Azure resource providers
+        run: |
+          set -euo pipefail
+          PROVIDERS=(
+            Microsoft.App Microsoft.ContainerRegistry Microsoft.DBforPostgreSQL
+            Microsoft.Insights Microsoft.KeyVault Microsoft.ManagedIdentity
+            Microsoft.Network Microsoft.OperationalInsights Microsoft.Storage
+            Microsoft.Consumption
+          )
+          missing=()
+          for provider in "${PROVIDERS[@]}"; do
+            state="$(az provider show --namespace "$provider" --query registrationState --output tsv)"
+            if [ "$state" != "Registered" ]; then
+              missing+=("$provider=$state")
+            fi
+          done
+          if [ "${#missing[@]}" -ne 0 ]; then
+            printf 'Required Azure providers are not registered: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
 
       - name: Revalidate and provision approved lean foundation
         env:
