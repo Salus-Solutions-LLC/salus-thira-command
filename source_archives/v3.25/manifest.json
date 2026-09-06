@@ -1,0 +1,12 @@
+{
+  "version": "3.25.0",
+  "baseline": "v3.22.0",
+  "delta_sha256": "6b8d4b99def4debb86299330b2fdc7c6fc5912d1d217d90eaa623666d0e7cc16",
+  "files": {
+    "app.py": {
+      "baseline_sha256": "99401415d73ead6450313f5c2b246131a7763dd31ef3f71e6da6516329cb5d59",
+      "target_sha256": "4579043718debeba90e3c09f3374282d797818075f42aa756bda6c407867e13a",
+      "target_size_bytes": 435894
+    }
+  }
+}

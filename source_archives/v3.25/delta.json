@@ -1,0 +1,18 @@
+{
+  "version": "3.25.0",
+  "baseline": "v3.22.0",
+  "files": {
+    "app.py": {
+      "baseline_sha256": "99401415d73ead6450313f5c2b246131a7763dd31ef3f71e6da6516329cb5d59",
+      "target_sha256": "4579043718debeba90e3c09f3374282d797818075f42aa756bda6c407867e13a",
+      "target_size_bytes": 435894,
+      "operations": [
+        {
+          "old": "OIDC_CLIENT_ID = os.getenv('SALUS_OIDC_CLIENT_ID','').strip()\nOIDC_CLIENT_SECRET = secret('SALUS_OIDC_CLIENT_SECRET','').strip()\nOIDC_CLIENT_AUTH_METHOD = os.getenv('SALUS_OIDC_CLIENT_AUTH_METHOD','client_secret').strip().lower()",
+          "new": "OIDC_CLIENT_ID = os.getenv('SALUS_OIDC_CLIENT_ID','').strip()\nOIDC_CLIENT_AUTH_METHOD = os.getenv('SALUS_OIDC_CLIENT_AUTH_METHOD','client_secret').strip().lower()\nOIDC_CLIENT_SECRET = (\n    ''\n    if OIDC_CLIENT_AUTH_METHOD == 'managed_identity'\n    else secret('SALUS_OIDC_CLIENT_SECRET','').strip()\n)",
+          "count": 1
+        }
+      ]
+    }
+  }
+}
