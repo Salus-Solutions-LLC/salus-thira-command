@@ -1,0 +1,18 @@
+{
+  "version": "3.32.0",
+  "baseline": "v3.25.0",
+  "files": {
+    "app.py": {
+      "baseline_sha256": "4579043718debeba90e3c09f3374282d797818075f42aa756bda6c407867e13a",
+      "target_sha256": "b2ec36a5e663d5620d8b5aa9d84e160a935214e29d3679d869cb9e018955fb5c",
+      "target_size_bytes": 435933,
+      "operations": [
+        {
+          "old": "    require(request,'admin'); tid=tenant_id(request); ts=datetime.utcnow().strftime('%Y%m%dT%H%M%SZ'); name=f'salus-thira-tenant-{tid}-backup-{ts}.zip'; final=os.path.join(BACKUPS_DIR,name)",
+          "new": "    require(request,'admin'); tid=tenant_id(request); ts=datetime.utcnow().strftime('%Y%m%dT%H%M%S%fZ'); nonce=uuid.uuid4().hex[:12]; name=f'salus-thira-tenant-{tid}-backup-{ts}-{nonce}.zip'; final=os.path.join(BACKUPS_DIR,name)",
+          "count": 1
+        }
+      ]
+    }
+  }
+}

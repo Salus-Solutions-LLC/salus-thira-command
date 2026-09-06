@@ -38,8 +38,8 @@ jobs:
           node-version: "22"
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ]; then python tools/reconstruct_v325_source.py; fi
-          python tools/verify_v325_source.py
+          if [ ! -f app.py ]; then python tools/reconstruct_v332_source.py; fi
+          python tools/verify_v332_source.py
       - name: Validate release reconstruction entrypoints
         run: python tools/check_release_entrypoints.py
       - name: Verify repository boundary
@@ -107,8 +107,8 @@ jobs:
           cache-dependency-path: requirements.txt
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ]; then python tools/reconstruct_v325_source.py; fi
-          python tools/verify_v325_source.py
+          if [ ! -f app.py ]; then python tools/reconstruct_v332_source.py; fi
+          python tools/verify_v332_source.py
       - name: Validate release reconstruction entrypoints
         run: python tools/check_release_entrypoints.py
       - name: Install application
@@ -160,7 +160,7 @@ jobs:
       - name: Verify non-root runtime and archived source
         run: |
           test "$(docker run --rm salcapa:ci id -u)" = "10001"
-          docker run --rm salcapa:ci python tools/verify_v325_source.py
+          docker run --rm salcapa:ci python tools/verify_v332_source.py
       - name: SQLite lifecycle smoke inside container
         run: |
           docker run --rm \
