@@ -218,6 +218,8 @@ jobs:
               'az deployment group what-if',
               '.changeType != "Delete"',
               'microsoft.app/containerapps',
+              '.changeType | IN("Ignore", "NoEffect")',
+              'Container App mutation by foundation preflight: none',
               'az deployment group create',
               '.properties.provisioningState == "Succeeded"',
               'APP_COUNT=',
