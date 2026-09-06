@@ -49,7 +49,7 @@ jobs:
       - name: Verify installed dependency consistency
         run: python -m pip check
       - name: Compile Python
-        run: python -m py_compile app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
+        run: python -m py_compile app.py material_capability.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
       - name: Validate JavaScript syntax
         run: node --check static/app.js && node --check static/guidance.js && node --check static/condition-visuals.js && node --check static/intake-capture.js
       - name: Salus brand system acceptance
@@ -68,7 +68,7 @@ jobs:
           SALUS_BACKUP_DIR: /tmp/salcapa-v26-ci-backups
           SALUS_AUTH_MODE: prototype
           SALUS_SEED_DEMO: "1"
-        run: python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py && python tools/ci_recovery_rehearsal.py
+        run: python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py && python tools/ci_recovery_rehearsal.py && python tools/ci_material_capability_smoke.py
       - name: Azure database bootstrap contract smoke
         run: python tools/ci_azure_database_bootstrap_smoke.py
       - name: Passwordless runtime secret-path regression smoke
@@ -85,7 +85,7 @@ jobs:
         # B608 is excluded after review: interpolated SQL identifiers are selected only
         # from fixed application allowlists or schema-derived column sets; all data values
         # remain bound parameters. Medium/high findings outside these reviewed patterns block CI.
-        run: bandit -q -r app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/azure_database_bootstrap.py -ll -s B608
+        run: bandit -q -r app.py material_capability.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/azure_database_bootstrap.py -ll -s B608
 
   postgres-runtime:
     runs-on: ubuntu-latest
@@ -131,7 +131,7 @@ jobs:
           SALUS_SEED_DEMO: "1"
           SALUS_LOCAL_STORAGE_DIR: /tmp/salcapa-v26-pg-attachments
           SALUS_BACKUP_DIR: /tmp/salcapa-v26-pg-backups
-        run: python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py && python tools/ci_recovery_rehearsal.py
+        run: python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py && python tools/ci_recovery_rehearsal.py && python tools/ci_material_capability_smoke.py
       - name: PostgreSQL transaction smoke
         env:
           SALUS_DB_BACKEND: postgres
@@ -178,7 +178,7 @@ jobs:
             -e SALUS_BACKUP_DIR=/app/backups \
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
-            salcapa:ci sh -c "python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py && python tools/ci_recovery_rehearsal.py"
+            salcapa:ci sh -c "python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py && python tools/ci_recovery_rehearsal.py && python tools/ci_material_capability_smoke.py"
       - name: PostgreSQL 16 lifecycle smoke inside container
         run: |
           docker run --rm --network host \
@@ -188,7 +188,7 @@ jobs:
             -e SALUS_BACKUP_DIR=/app/backups \
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
-            salcapa:ci sh -c "python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py && python tools/ci_recovery_rehearsal.py"
+            salcapa:ci sh -c "python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py && python tools/ci_recovery_rehearsal.py && python tools/ci_material_capability_smoke.py"
       - name: Start production command and verify fail-closed readiness
         run: |
           docker run --detach --name salus-container-ci \
