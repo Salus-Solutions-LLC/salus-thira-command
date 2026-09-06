@@ -268,6 +268,7 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('DELETE FROM assessment_access WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?) OR assessment_id IN (SELECT id FROM assessments WHERE tenant_id=?)',(tenant_id,tenant_id))
     conn.execute('DELETE FROM material_events WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM material_links WHERE tenant_id=?',(tenant_id,))
+    conn.execute('UPDATE materials SET parent_material_id=NULL,duplicate_of_material_id=NULL WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM materials WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM observations WHERE tenant_id=?',(tenant_id,))
