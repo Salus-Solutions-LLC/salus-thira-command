@@ -109,3 +109,26 @@ The rehearsal also confirms that restore admission returns to fail-closed after
 the exercise. It does not use live member data, create Azure resources, send
 notifications or handoffs, change DNS, or authorize production recovery. Live
 Azure point-in-time restoration remains a separately governed operation.
+
+
+## Bounded live Azure point-in-time recovery exercise
+
+The workflow at `.github/workflows/azure-pitr-exercise.yml` is activated only by
+an exact governed record at
+`deploy/azure/activations/pitr-exercise-dev.json`. It requires the protected
+development approval environment and passwordless GitHub workload identity.
+
+The exercise restores the frozen v3.33 PostgreSQL source to the fixed isolated
+temporary server `salcapa-dev-b48224-pitr`, using a server-calculated point
+15 minutes before execution. It fails closed if that target already exists or
+the requested point falls outside Azure's reported recovery window.
+
+Acceptance requires PostgreSQL 16, Entra-only authentication, disabled public
+database access, presence of the `salcapa` database, an unchanged healthy
+source server, and proof that the live Container App still targets the source
+server. The restored server is never attached to application traffic.
+
+A cleanup trap removes the temporary restore server after success or failure.
+The workflow fails if cleanup cannot be verified. It records only non-secret
+management-plane evidence and performs no DNS change, application cutover,
+password authentication, client-secret creation, or production operation.
