@@ -7,6 +7,7 @@
 - Captures only a bounded tail of Azure Container App console logs when readiness fails.
 - Redacts password, secret, token, and connection-string-shaped values before diagnostic output.
 - Keeps deployment fail-closed until the health contract and exact Salus Entra authorization redirect are verified.
+- Keeps the recurring foundation preflight valid after deployment while rejecting any attempted Container App creation, modification, or deletion.
 - Retains immutable-image, passwordless identity, private PostgreSQL 16, HTTPS-only ingress, zero-to-one replica, budget, and no-custom-DNS controls.
 
 ## Governance
