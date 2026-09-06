@@ -2,10 +2,10 @@
   "schema_version": 1,
   "operation": "publish_image",
   "target_environment": "dev",
+  "repository": "salcapa",
   "location": "southcentralus",
   "unique_suffix": "b48224",
-  "repository": "salcapa",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-  "source_commit": "38a9ef92afd0ae7c5ffd6d7946aebc6750f894ad",
-  "source_release": "release/v3.25"
+  "source_release": "release/v3.25",
+  "source_commit": "38a9ef92afd0ae7c5ffd6d7946aebc6750f894ad"
 }
