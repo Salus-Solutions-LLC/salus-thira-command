@@ -6,7 +6,7 @@ ASSESSMENT_TABLES = [
     'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
-    'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','assessment_access','threats','scenarios','capabilities','evidence',
+    'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','materials','material_links','material_events','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
     'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
@@ -20,6 +20,9 @@ def collect_tenant_records(conn, tenant_id:int):
     records['users']=_rows(conn,'SELECT * FROM users WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['identity_acceptance_events']=_rows(conn,'SELECT * FROM identity_acceptance_events WHERE tenant_id=? ORDER BY accepted_at,event_key',(tenant_id,))
     records['governed_intake']=_rows(conn,'SELECT * FROM governed_intake WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['materials']=_rows(conn,'SELECT * FROM materials WHERE tenant_id=? ORDER BY CASE WHEN parent_material_id IS NULL THEN 0 ELSE 1 END,id',(tenant_id,))
+    records['material_links']=_rows(conn,'SELECT * FROM material_links WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['material_events']=_rows(conn,'SELECT * FROM material_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['industry_profiles']=_rows(conn,'SELECT * FROM industry_profiles WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['industry_profile_items']=_rows(conn,'SELECT * FROM industry_profile_items WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['industry_profile_events']=_rows(conn,'SELECT * FROM industry_profile_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
@@ -74,6 +77,21 @@ def validate_records(records, tenant_id:int|None=None):
     elif tenant_id is not None and int(tenants[0].get('id',-1))!=int(tenant_id): errors.append('Tenant ID does not match backup manifest')
     assessments={int(r['id']) for r in records.get('assessments',[]) if r.get('id') is not None}
     if not assessments: errors.append('Recovery records contain no assessments')
+    material_ids={int(r['id']) for r in records.get('materials',[]) if r.get('id') is not None}
+    for row in records.get('materials',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'material {row.get("id")} crosses the tenant boundary')
+        for field in ('parent_material_id','duplicate_of_material_id'):
+            linked=row.get(field)
+            if linked not in (None,'') and int(linked) not in material_ids: errors.append(f'material {row.get("id")} has invalid {field}')
+            if linked not in (None,'') and int(linked)==int(row.get('id',-1)): errors.append(f'material {row.get("id")} cannot reference itself through {field}')
+        if row.get('stored_name') and len(str(row.get('sha256','')))!=64: errors.append(f'material {row.get("id")} has invalid content digest')
+    for table in ('material_links','material_events'):
+        for row in records.get(table,[]):
+            if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'{table} record {row.get("id")} crosses the tenant boundary')
+            if int(row.get('material_id',-1)) not in material_ids: errors.append(f'{table} record {row.get("id")} has invalid material_id')
+    for row in records.get('material_links',[]):
+        assessment_id=row.get('assessment_id')
+        if assessment_id not in (None,'') and int(assessment_id) not in assessments: errors.append(f'material_link {row.get("id")} references an assessment outside the tenant package')
     industry_profiles={int(r['id']) for r in records.get('industry_profiles',[]) if r.get('id') is not None}
     profile_items={int(r['id']) for r in records.get('industry_profile_items',[]) if r.get('id') is not None}
     for row in records.get('industry_profiles',[]):
@@ -248,6 +266,9 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('DELETE FROM auth_sessions WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?)',(tenant_id,))
     conn.execute('DELETE FROM identity_acceptance_events WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM assessment_access WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?) OR assessment_id IN (SELECT id FROM assessments WHERE tenant_id=?)',(tenant_id,tenant_id))
+    conn.execute('DELETE FROM material_events WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM material_links WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM materials WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM observations WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM observation_intake_channels WHERE tenant_id=?',(tenant_id,))
