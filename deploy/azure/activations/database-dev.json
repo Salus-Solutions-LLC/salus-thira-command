@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "operation": "bootstrap_database",
-  "location": "southcentralus",
   "target_environment": "dev",
+  "location": "southcentralus",
   "unique_suffix": "b48224",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
   "source_release": "release/v3.17",
