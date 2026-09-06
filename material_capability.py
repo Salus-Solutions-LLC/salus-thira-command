@@ -50,7 +50,7 @@ class MaterialLinkIn(BaseModel):
         "assessment", "governed_intake", "evidence", "intel_finding",
         "observation", "threat", "scenario", "capability", "gap",
         "improvement", "decision", "ops_request", "ops_engagement",
-        "ops_task", "ops_field_report", "report",
+        "ops_task", "ops_field_report", "report", "salintel_investigation",
     ]
     target_id: int = Field(gt=0)
     purpose: str = Field(min_length=1, max_length=1000)
@@ -213,6 +213,7 @@ TARGETS = {
     "ops_task": ("ops_tasks", "tenant_assessment"),
     "ops_field_report": ("ops_field_reports", "tenant_assessment"),
     "report": ("report_versions", "tenant_assessment"),
+    "salintel_investigation": ("salintel_investigations", "tenant"),
 }
 
 

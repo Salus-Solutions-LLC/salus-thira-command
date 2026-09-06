@@ -6,7 +6,7 @@ ASSESSMENT_TABLES = [
     'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
-    'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','materials','material_links','material_events','assessment_access','threats','scenarios','capabilities','evidence',
+    'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','salintel_investigations','salintel_investigation_items','salintel_investigation_events','materials','material_links','material_events','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
     'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
@@ -21,6 +21,9 @@ def collect_tenant_records(conn, tenant_id:int):
     records['identity_acceptance_events']=_rows(conn,'SELECT * FROM identity_acceptance_events WHERE tenant_id=? ORDER BY accepted_at,event_key',(tenant_id,))
     records['governed_intake']=_rows(conn,'SELECT * FROM governed_intake WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['materials']=_rows(conn,'SELECT * FROM materials WHERE tenant_id=? ORDER BY CASE WHEN parent_material_id IS NULL THEN 0 ELSE 1 END,id',(tenant_id,))
+    records['salintel_investigations']=_rows(conn,'SELECT * FROM salintel_investigations WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['salintel_investigation_items']=_rows(conn,'SELECT * FROM salintel_investigation_items WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['salintel_investigation_events']=_rows(conn,'SELECT * FROM salintel_investigation_events WHERE tenant_id=? ORDER BY investigation_id,version_no',(tenant_id,))
     records['material_links']=_rows(conn,'SELECT * FROM material_links WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['material_events']=_rows(conn,'SELECT * FROM material_events WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['industry_profiles']=_rows(conn,'SELECT * FROM industry_profiles WHERE tenant_id=? ORDER BY id',(tenant_id,))
@@ -92,6 +95,25 @@ def validate_records(records, tenant_id:int|None=None):
     for row in records.get('material_links',[]):
         assessment_id=row.get('assessment_id')
         if assessment_id not in (None,'') and int(assessment_id) not in assessments: errors.append(f'material_link {row.get("id")} references an assessment outside the tenant package')
+    investigation_ids={int(r['id']) for r in records.get('salintel_investigations',[]) if r.get('id') is not None}
+    event_versions={}
+    for row in records.get('salintel_investigations',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'salintel investigation {row.get("id")} crosses the tenant boundary')
+        if int(row.get('requested_tier',0)) not in (1,2,3): errors.append(f'salintel investigation {row.get("id")} has invalid requested tier')
+        if int(row.get('authorized_tier',0)) not in (0,1,2,3): errors.append(f'salintel investigation {row.get("id")} has invalid authorized tier')
+        if int(row.get('completed_tier',0))>int(row.get('authorized_tier',0)): errors.append(f'salintel investigation {row.get("id")} completed beyond its authorized tier')
+    for row in records.get('salintel_investigation_items',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'salintel item {row.get("id")} crosses the tenant boundary')
+        if int(row.get('investigation_id',-1)) not in investigation_ids: errors.append(f'salintel item {row.get("id")} has invalid investigation_id')
+        source_id=row.get('source_material_id')
+        if source_id not in (None,'') and int(source_id) not in material_ids: errors.append(f'salintel item {row.get("id")} has invalid source_material_id')
+    for row in records.get('salintel_investigation_events',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'salintel event {row.get("id")} crosses the tenant boundary')
+        investigation_id=int(row.get('investigation_id',-1))
+        if investigation_id not in investigation_ids: errors.append(f'salintel event {row.get("id")} has invalid investigation_id')
+        event_versions.setdefault(investigation_id,[]).append(int(row.get('version_no',-1)))
+    for investigation_id,versions in event_versions.items():
+        if sorted(versions)!=list(range(1,len(versions)+1)): errors.append(f'salintel event history for investigation {investigation_id} is not contiguous')
     industry_profiles={int(r['id']) for r in records.get('industry_profiles',[]) if r.get('id') is not None}
     profile_items={int(r['id']) for r in records.get('industry_profile_items',[]) if r.get('id') is not None}
     for row in records.get('industry_profiles',[]):
@@ -268,6 +290,9 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('DELETE FROM assessment_access WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?) OR assessment_id IN (SELECT id FROM assessments WHERE tenant_id=?)',(tenant_id,tenant_id))
     conn.execute('DELETE FROM material_events WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM material_links WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM salintel_investigation_events WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM salintel_investigation_items WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM salintel_investigations WHERE tenant_id=?',(tenant_id,))
     conn.execute('UPDATE materials SET parent_material_id=NULL,duplicate_of_material_id=NULL WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM materials WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))

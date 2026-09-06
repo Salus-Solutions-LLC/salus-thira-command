@@ -5334,3 +5334,7 @@ def delete_entity(table:str,entity_id:int,request:Request):
 # authorization, tenancy, audit, storage, and lifecycle helpers are defined.
 from material_capability import register_material_capability
 register_material_capability(app, globals())
+
+# Register shared SalINTEL investigative domains after governed materials.
+from salintel_domains import register_salintel_domain_capability
+register_salintel_domain_capability(app, globals())
