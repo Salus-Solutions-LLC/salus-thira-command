@@ -47,9 +47,6 @@ def main():
     forged_domain = client.put("/api/salintel/domains/catalog/personnel-assessment",
         headers=analyst, json={"version": 99, "approved_by": "client"})
     assert forged_domain.status_code == 422
-    denied_domain = client.put("/api/salintel/domains/catalog/personnel-assessment",
-        headers=member, json={})
-    assert denied_domain.status_code == 403
     update_payload = {
         "display_name": personnel["display_name"],
         "description": personnel["description"],
@@ -65,6 +62,9 @@ def main():
                           for item in personnel["tier_profiles"]],
         "reason": "SYNTHETIC governance hold for version-history acceptance.",
     }
+    denied_domain = client.put("/api/salintel/domains/catalog/personnel-assessment",
+        headers=member, json=update_payload)
+    assert denied_domain.status_code == 403
     held = client.put("/api/salintel/domains/catalog/personnel-assessment",
                       headers=analyst, json=update_payload)
     assert held.status_code == 200, held.text
