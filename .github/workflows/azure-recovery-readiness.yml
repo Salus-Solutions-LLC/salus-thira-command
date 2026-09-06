@@ -60,7 +60,7 @@ jobs:
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
             (.source_release == "release/v3.30") and
             (.source_commit == "00c40997225eb6ade3637b45a3c1ad543e066db7") and
-            (.verification_revision == 2) and
+            (.verification_revision == 3) and
             ((keys - [
               "approval_record",
               "location",
@@ -152,7 +152,7 @@ jobs:
             .properties.containerDeleteRetentionPolicy.enabled == true and
             .properties.containerDeleteRetentionPolicy.days == 14
           ' /tmp/blob-service.json >/dev/null
-          jq -e '.properties.publicAccess == null' /tmp/evidence-container.json >/dev/null
+          jq -e '.properties.publicAccess == "None"' /tmp/evidence-container.json >/dev/null
 
           jq -e '
             .properties.retentionInDays == 30 and
@@ -167,12 +167,12 @@ jobs:
           jq -e '
             .properties.amount == 25 and
             .properties.timeGrain == "Monthly" and
-            .properties.notifications.Actual80Percent.enabled == true and
-            .properties.notifications.Actual80Percent.threshold == 80 and
-            .properties.notifications.Forecast100Percent.enabled == true and
-            .properties.notifications.Forecast100Percent.threshold == 100 and
-            .properties.notifications.Actual100Percent.enabled == true and
-            .properties.notifications.Actual100Percent.threshold == 100
+            .properties.notifications.actual80Percent.enabled == true and
+            .properties.notifications.actual80Percent.threshold == 80 and
+            .properties.notifications.forecast100Percent.enabled == true and
+            .properties.notifications.forecast100Percent.threshold == 100 and
+            .properties.notifications.actual100Percent.enabled == true and
+            .properties.notifications.actual100Percent.threshold == 100
           ' /tmp/budget.json >/dev/null
 
           EXPECTED_IMAGE="$(jq -r '.image_digest' deploy/azure/activations/application-dev.json)"
