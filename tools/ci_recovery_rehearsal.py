@@ -132,6 +132,8 @@ def main():
     # The mandatory pre-restore safety backup is the rollback source.
     after_restore = client.get("/api/admin/backups", headers=operator).json()
     safety = next(row for row in after_restore if row["id"] not in before_restore_ids)
+    assert safety["filename"] != baseline["filename"]
+    assert safety["sha256"] != baseline["sha256"]
     safety_validation = post(client, f"/api/admin/backups/{safety['id']}/dr-validate", reviewer)
     assert safety_validation["ok"] is True
     safety_records = package_records(safety["filename"])

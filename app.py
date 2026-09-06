@@ -2883,7 +2883,7 @@ def session_info(request:Request):
     ctx=auth_context(request); return {'authenticated':AUTH_MODE in ('session','oidc'),'auth_mode':AUTH_MODE,**ctx}
 
 def create_backup_archive(request:Request, reason:str='Manual backup'):
-    require(request,'admin'); tid=tenant_id(request); ts=datetime.utcnow().strftime('%Y%m%dT%H%M%SZ'); name=f'salus-thira-tenant-{tid}-backup-{ts}.zip'; final=os.path.join(BACKUPS_DIR,name)
+    require(request,'admin'); tid=tenant_id(request); ts=datetime.utcnow().strftime('%Y%m%dT%H%M%S%fZ'); nonce=uuid.uuid4().hex[:12]; name=f'salus-thira-tenant-{tid}-backup-{ts}-{nonce}.zip'; final=os.path.join(BACKUPS_DIR,name)
     conn=db(); assessment_ids=[r['id'] for r in conn.execute('SELECT id FROM assessments WHERE tenant_id=?',(tid,))]; conn.close()
     if assessment_ids:
         sweep_overdue_assessments(assessment_ids)
