@@ -12,6 +12,7 @@ on:
       - 'source_archives/v3.25/**'
       - 'tools/reconstruct_v325_source.py'
       - 'tools/verify_v325_source.py'
+      - 'tools/ci_passwordless_runtime_smoke.py'
       - '.github/workflows/azure-connection-verify.yml'
       - '.github/workflows/azure-production-deploy.yml'
       - '.github/workflows/azure-infrastructure-validate.yml'
