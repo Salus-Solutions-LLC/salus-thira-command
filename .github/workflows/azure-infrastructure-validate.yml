@@ -268,7 +268,7 @@ jobs:
               'permissions: {}',
               'needs: authorize',
               'id-token: write',
-              'source_release == "release/v3.22"',
+              'source_release == "release/v3.23"',
               '.source_commit | test("^[0-9a-f]{40}$")',
               'path: frozen-release',
               'git -C frozen-release rev-parse HEAD',
