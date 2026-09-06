@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 
 MIGRATE_TABLES=[
- 'tenants','users','assessments','assessment_access','threats','scenarios','capabilities','evidence',
+ 'tenants','users','assessments','assessment_access','materials','material_links','material_events','threats','scenarios','capabilities','evidence',
  'gaps','improvements','decisions','audit_log','security_events','reassessment_triggers','assessment_weights',
  'evidence_attachments','entity_versions','scope_changes','workflow_events'
 ]
