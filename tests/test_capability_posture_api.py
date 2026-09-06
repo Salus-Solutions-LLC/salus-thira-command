@@ -1,4 +1,6 @@
+import os
 import sqlite3
+import tempfile
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -6,8 +8,9 @@ from fastapi.testclient import TestClient
 from capability_posture_api import register_routes
 
 
-def make_conn():
-    conn=sqlite3.connect(":memory:", check_same_thread=False)
+def make_db():
+    fd,path=tempfile.mkstemp(suffix='.db'); os.close(fd)
+    conn=sqlite3.connect(path)
     conn.row_factory=sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript("""
@@ -25,34 +28,39 @@ def make_conn():
     aid=conn.execute("INSERT INTO assessments(tenant_id,name,organization) VALUES(?,?,?)",(tid,'Assessment','Protected Member')).lastrowid
     cid=conn.execute("INSERT INTO capabilities(assessment_id,name,mission_area,required_standard,current_performance,comparator) VALUES(?,?,?,?,?,?)",(aid,'Incident Command','Response',10,10,'>=')).lastrowid
     conn.execute("INSERT INTO evidence(assessment_id,capability_id,evidence_type,verification_status,lifecycle_status) VALUES(?,?,?,?,?)",(aid,cid,'Exercise Result','Verified','Current'))
-    conn.commit()
-    return conn,tid,aid
+    conn.commit(); conn.close()
+    def factory():
+        c=sqlite3.connect(path,check_same_thread=False); c.row_factory=sqlite3.Row; c.execute('PRAGMA foreign_keys = ON'); return c
+    return path,factory,tid,aid
 
 
 def test_refresh_requires_write_authorization_and_read_returns_gauge():
-    conn,tid,aid=make_conn()
-    app=FastAPI()
-    calls=[]
-    def authorize(request, assessment_id, write=False):
-        calls.append(write)
-        return {'tenant_id':tid,'user_name':'tester'}
-    register_routes(app,authorize,connection_factory=lambda: conn)
-    client=TestClient(app)
-    refresh=client.post(f'/api/capability-posture/{aid}/refresh')
-    assert refresh.status_code==200
-    assert refresh.json()['refreshed'] is True
-    read=client.get(f'/api/capability-posture/{aid}')
-    assert read.status_code==200
-    assert len(read.json()['mission_areas'])==5
-    assert True in calls and False in calls
+    path,factory,tid,aid=make_db()
+    try:
+        app=FastAPI(); calls=[]
+        def authorize(request, assessment_id, write=False):
+            calls.append(write); return {'tenant_id':tid,'user_name':'tester'}
+        register_routes(app,authorize,connection_factory=factory)
+        client=TestClient(app)
+        refresh=client.post(f'/api/capability-posture/{aid}/refresh')
+        assert refresh.status_code==200
+        assert refresh.json()['refreshed'] is True
+        read=client.get(f'/api/capability-posture/{aid}')
+        assert read.status_code==200
+        assert len(read.json()['mission_areas'])==5
+        assert True in calls and False in calls
+    finally:
+        os.remove(path)
 
 
 def test_denied_authorization_never_returns_member_posture():
-    conn,tid,aid=make_conn()
-    app=FastAPI()
-    def deny(request, assessment_id, write=False):
-        return {}
-    register_routes(app,deny,connection_factory=lambda: conn)
-    client=TestClient(app)
-    assert client.get(f'/api/capability-posture/{aid}').status_code==403
-    assert client.post(f'/api/capability-posture/{aid}/refresh').status_code==403
+    path,factory,tid,aid=make_db()
+    try:
+        app=FastAPI()
+        def deny(request, assessment_id, write=False): return {}
+        register_routes(app,deny,connection_factory=factory)
+        client=TestClient(app)
+        assert client.get(f'/api/capability-posture/{aid}').status_code==403
+        assert client.post(f'/api/capability-posture/{aid}/refresh').status_code==403
+    finally:
+        os.remove(path)
