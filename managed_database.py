@@ -6,6 +6,8 @@ DB_BACKEND=os.getenv('SALUS_DB_BACKEND','sqlite').strip().lower()
 POSTGRES_AUTH=os.getenv('SALUS_POSTGRES_AUTH','dsn').strip().lower()
 
 def _postgres_dsn():
+    if POSTGRES_AUTH in ('entra','azure_entra','managed_identity'):
+        return ''
     return os.getenv('SALUS_DATABASE_URL','').strip() or secret('SALUS_POSTGRES_DSN','').strip()
 
 def _postgres_connect(connect_timeout=5):

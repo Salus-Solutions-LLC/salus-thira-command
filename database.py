@@ -6,8 +6,12 @@ from collections.abc import Mapping
 
 DB_BACKEND = os.getenv('SALUS_DB_BACKEND', 'sqlite').strip().lower()
 DB_PATH = os.getenv('SALUS_DB_PATH', os.path.join(os.path.dirname(__file__), 'thira.db'))
-DATABASE_URL = (os.getenv('SALUS_DATABASE_URL', '').strip() or secret('SALUS_POSTGRES_DSN','').strip())
 POSTGRES_AUTH = os.getenv('SALUS_POSTGRES_AUTH','dsn').strip().lower()
+DATABASE_URL = (
+    ''
+    if POSTGRES_AUTH in ('entra','azure_entra','managed_identity')
+    else (os.getenv('SALUS_DATABASE_URL', '').strip() or secret('SALUS_POSTGRES_DSN','').strip())
+)
 POSTGRES_HOST = os.getenv('SALUS_POSTGRES_HOST','').strip()
 POSTGRES_PORT = int(os.getenv('SALUS_POSTGRES_PORT','5432'))
 POSTGRES_DATABASE = os.getenv('SALUS_POSTGRES_DATABASE','').strip()

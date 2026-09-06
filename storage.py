@@ -81,10 +81,12 @@ class AzureBlobStorage:
 def build_storage(base_dir: str):
     backend=os.getenv('SALUS_STORAGE_BACKEND','local').strip().lower()
     if backend=='azure':
+        account_url=os.getenv('SALUS_AZURE_STORAGE_ACCOUNT_URL','').strip()
+        connection_string='' if account_url else secret('SALUS_AZURE_STORAGE_CONNECTION_STRING','')
         return AzureBlobStorage(
-            secret('SALUS_AZURE_STORAGE_CONNECTION_STRING',''),
+            connection_string,
             os.getenv('SALUS_AZURE_STORAGE_CONTAINER','salus-thira-evidence'),
-            os.getenv('SALUS_AZURE_STORAGE_ACCOUNT_URL','').strip(),
+            account_url,
         )
     root=os.getenv('SALUS_LOCAL_STORAGE_DIR',os.path.join(base_dir,'attachments'))
     return LocalStorage(root)

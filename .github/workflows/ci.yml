@@ -63,6 +63,8 @@ jobs:
         run: python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py
       - name: Azure database bootstrap contract smoke
         run: python tools/ci_azure_database_bootstrap_smoke.py
+      - name: Passwordless runtime secret-path regression smoke
+        run: python tools/ci_passwordless_runtime_smoke.py
       - name: Security remediation regression smoke
         run: python tools/security_regression_smoke.py
       - name: Readiness disclosure regression smoke

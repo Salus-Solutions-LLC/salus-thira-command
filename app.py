@@ -38,8 +38,12 @@ ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
 RETENTION_DEFAULT_DAYS = int(os.getenv('SALUS_RETENTION_DEFAULT_DAYS','2555'))
 OIDC_DISCOVERY_URL = os.getenv('SALUS_OIDC_DISCOVERY_URL','').strip()
 OIDC_CLIENT_ID = os.getenv('SALUS_OIDC_CLIENT_ID','').strip()
-OIDC_CLIENT_SECRET = secret('SALUS_OIDC_CLIENT_SECRET','').strip()
 OIDC_CLIENT_AUTH_METHOD = os.getenv('SALUS_OIDC_CLIENT_AUTH_METHOD','client_secret').strip().lower()
+OIDC_CLIENT_SECRET = (
+    ''
+    if OIDC_CLIENT_AUTH_METHOD == 'managed_identity'
+    else secret('SALUS_OIDC_CLIENT_SECRET','').strip()
+)
 OIDC_TENANT_ID = os.getenv('SALUS_OIDC_TENANT_ID','').strip()
 OIDC_MANAGED_IDENTITY_CLIENT_ID = os.getenv('SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID','').strip()
 OIDC_REDIRECT_URI = os.getenv('SALUS_OIDC_REDIRECT_URI','').strip()
