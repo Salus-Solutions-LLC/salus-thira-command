@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.25
+          ref: release/v3.26
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -59,7 +59,7 @@ jobs:
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.25") and
+            (.source_release == "release/v3.26") and
             (.source_commit | test("^[0-9a-f]{40}$")) and
             (.image_digest | test("^salcapadevb48224acr[.]azurecr[.]io/salcapa@sha256:[0-9a-f]{64}$")) and
             ((keys - [
@@ -220,8 +220,26 @@ jobs:
           done
           if [ "$READY" != "true" ]; then
             echo "SalCAPA runtime did not become ready; final HTTP status: $STATUS" >&2
+            echo "Revision state summary (governed non-secret fields only):" >&2
+            az containerapp revision list \
+              --resource-group "$RESOURCE_GROUP" \
+              --name "$APP_NAME" \
+              --query '[].{name:name,active:properties.active,provisioningState:properties.provisioningState,healthState:properties.healthState,trafficWeight:properties.trafficWeight,replicas:properties.replicas}' \
+              --output json \
+              --only-show-errors >&2 \
+              || true
+            echo "Bounded runtime system logs (sensitive values redacted):" >&2
+            timeout 45s az containerapp logs show \
+              --resource-group "$RESOURCE_GROUP" \
+              --name "$APP_NAME" \
+              --type system \
+              --tail 200 \
+              --format text \
+              --only-show-errors 2>&1 \
+              | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' >&2 \
+              || true
             echo "Bounded runtime container logs (sensitive values redacted):" >&2
-            az containerapp logs show \
+            timeout 45s az containerapp logs show \
               --resource-group "$RESOURCE_GROUP" \
               --name "$APP_NAME" \
               --container salcapa \
