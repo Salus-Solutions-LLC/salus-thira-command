@@ -39,21 +39,7 @@ Default commercial labor rates range from $125/hour for research/investigative s
 
 ## Domain implementation
 
-`pricing_engine.py` implements:
-
-- employee fully loaded productive-hour cost;
-- contractor true hourly cost;
-- weighted Protected Member complexity/tier recommendation;
-- membership capacity status and projected overage;
-- scope-ceiling status;
-- assessment escalation;
-- assessment minimum pricing;
-- labor estimates;
-- floor/target/premium quote recommendation;
-- contribution margin and margin-required price;
-- estimate at completion and projected contribution;
-- renewal price recommendation; and
-- cost of risk reduction.
+`pricing_engine.py` implements employee/contractor cost, complexity/tier recommendation, membership capacity, assessment scope ceilings and escalation, quote recommendations, contribution margin, forecasts, renewal pricing and cost-of-risk-reduction.
 
 `tests/test_pricing_engine.py` defines the initial unit acceptance suite.
 
@@ -63,31 +49,15 @@ Planning, training and exercise are first-class SalCAPA service domains, not dis
 
 **SalTHIRA gap / capability requirement -> plan -> train -> exercise -> evaluate -> corrective action -> validation -> capability reassessment.**
 
-`pte_engine.py` implements the initial P/T/E domain and `tests/test_pte_engine.py` defines its acceptance suite.
+`pte_engine.py` implements the P/T/E domain and `tests/test_pte_engine.py` defines its acceptance suite.
 
-### Planning
+Supported plan classes include strategic, emergency operations, continuity, crisis communications, security, protective operations, incident action/response, recovery, functional annexes and SOPs/procedures. Supported training classes include awareness/orientation, role-based, skills/task, leadership/decision, train-the-trainer, refresher/sustainment and remedial/corrective training. Supported exercise classes include seminar, workshop, tabletop, game, drill, functional and full-scale.
 
-Supported initial plan classes include strategic plans, emergency operations plans, continuity plans, crisis communications plans, security plans, protective operations plans, incident action/response plans, recovery plans, functional annexes and SOPs/procedures.
-
-A planning work package must identify the linked assessment/capability/gap/improvement where applicable, the authorized budget/hours, objectives and controlled lifecycle state.
-
-### Training
-
-Supported initial training classes include awareness/orientation, role-based training, skills/task training, leadership/decision training, train-the-trainer, refresher/sustainment and remedial/corrective training.
-
-Training completion alone is not assumed to prove capability. Training records may become evidence, but capability credit remains governed by evidence validity and, when appropriate, demonstrated performance.
-
-### Exercises
-
-Supported initial exercise classes are seminar, workshop, tabletop exercise, game, drill, functional exercise and full-scale exercise.
-
-Exercises must be linked to defined objectives and, where available, SalTHIRA capabilities and performance targets. Exercise observations can produce corrective actions. Adverse observations such as Failed, Not Demonstrated, Partial, Unsatisfactory or Needs Improvement trigger corrective-action treatment rather than automatic closure.
-
-Existing THIRA evidence handling already recognizes exercise results; the P/T/E subsystem formalizes the design, conduct, evaluation and corrective-action lifecycle around that evidence.
+Training completion alone does not prove capability. Exercise conduct alone does not improve a THIRA score. Adverse observations generate corrective-action treatment and capability credit remains dependent on current, governed validation evidence.
 
 ### Readiness-cycle gate
 
-Capability readiness should distinguish the following dimensions:
+Capability readiness distinguishes:
 
 1. current approved plan/procedure;
 2. required training completed;
@@ -96,59 +66,111 @@ Capability readiness should distinguish the following dimensions:
 5. corrective actions closed or otherwise formally dispositioned; and
 6. current valid validation evidence.
 
-Only when the required dimensions are satisfied may P/T/E indicate that a capability is ready for governed capability-credit consideration. P/T/E does not independently change THIRA risk scores.
+Only when required dimensions are satisfied may P/T/E indicate readiness for governed capability-credit consideration.
 
 ### Initial P/T/E pricing minimums
 
-Pricing remains configuration-driven and uses the core Pricing & Cost Engine for labor, internal cost, margin floor, target and premium pricing. Initial service minimums are:
+Initial minimum starting points include SOP/procedure $3,500; plan annex $5,000; emergency operations plan $12,500; continuity plan $12,500; crisis communications plan $10,000; security plan $12,500; awareness training $2,500; role-based training $5,000; skills/leadership/train-the-trainer $7,500; seminar $3,500; workshop $5,000; tabletop $7,500; drill $7,500; functional exercise $15,000; full-scale exercise $30,000. Complexity and required resources can raise the recommendation.
 
-- SOP/procedure development: $3,500
-- plan annex: $5,000
-- emergency operations plan: $12,500
-- continuity plan: $12,500
-- crisis communications plan: $10,000
-- security plan: $12,500
-- awareness/orientation training: $2,500
-- role-based training: $5,000
-- skills/task training: $7,500
-- leadership/decision training: $7,500
-- train-the-trainer: $7,500
-- seminar: $3,500
-- workshop: $5,000
-- tabletop exercise: $7,500
-- drill: $7,500
-- functional exercise: $15,000
-- full-scale exercise: $30,000
+## Protected Member capability posture matrix
 
-These are minimum starting points, not fixed prices. Complexity, participant count, sites/jurisdictions, scenario design, controllers/evaluators, simulation, travel, logistics, documentation, after-action/improvement planning and required SMEs can raise the recommended price.
+Every Protected Member receives an evidence-based current capability posture across the five mission areas:
 
-### Corrective-action lifecycle
+- Prevention
+- Protection
+- Response
+- Recovery
+- Mitigation
 
-Exercise/training deficiencies create corrective actions with status values Open, In Progress, Pending Validation, Validated, Closed or Accepted Risk. P/T/E cycles cannot be represented as fully closed while required evaluation is incomplete or blocking corrective actions remain unresolved.
+`capability_posture.py` implements this posture model and `tests/test_capability_posture.py` defines its acceptance suite.
 
-Corrective-action validation should create evidence usable by the existing governed evidence lifecycle; stale evidence must not retain permanent readiness credit.
+### Purpose
+
+The posture matrix must answer: **What can this Protected Member actually do now, with current evidence, under the conditions that matter?** It must not confuse possession of a plan, attendance at training, procurement of equipment or completion of an exercise with demonstrated capability.
+
+### Capability dimensions
+
+Each capability can consider:
+
+- current approved plan/procedure;
+- required training completion;
+- exercise or real-event testing;
+- completed evaluation;
+- corrective-action closure;
+- current governed validation evidence;
+- demonstrated performance against the required standard;
+- current material gap severity; and
+- consequence/mission importance.
+
+### Fail-closed scoring
+
+The model uses progressive ceilings so missing readiness dimensions limit capability credit. A plan by itself cannot produce a high capability score. Missing training, no exercise/real-world validation, incomplete evaluation, unresolved corrective actions, stale/unverified evidence or failure to meet a performance target each cap the score. Material SalTHIRA gaps further reduce demonstrated capability.
+
+This intentionally prevents a Protected Member from appearing capable merely because documentation exists.
+
+### Capability bands
+
+Initial posture bands are:
+
+- Unknown: insufficient data
+- Critical: 0-24.9
+- Weak: 25-39.9
+- Developing: 40-59.9
+- Capable: 60-74.9
+- Strong: 75-89.9
+- Demonstrated: 90-100
+
+Bands are configurable in later persistence; historical posture snapshots must retain the thresholds in effect when calculated.
+
+### Confidence
+
+Every capability and mission-area posture also receives confidence of Low, Moderate or High. High confidence requires current governed evidence plus exercise/real-event testing and completed evaluation. Stale evidence cannot support High confidence.
+
+### Five-area aggregation
+
+Capabilities are consequence-weighted inside each mission area. Populated mission areas are then equally weighted in the overall Protected Member posture so one area with many capabilities cannot hide weakness in another mission area. Missing mission-area data displays as Unknown, not as falsely good or falsely bad capability.
+
+The dashboard must always show:
+
+- overall capability score and band;
+- confidence;
+- five mission-area gauges;
+- strongest and weakest mission areas;
+- material gap count;
+- stale/insufficient-evidence indicators;
+- capability trends over time;
+- next required readiness action; and
+- recommended P/T/E or other Salus action needed to improve position.
+
+### No automatic THIRA override
+
+The capability posture is decision support and may feed governed capability review. It does not autonomously overwrite professional risk judgments or the governed THIRA risk formula.
 
 ## Persistence model (next integration layer)
 
-The database integration will introduce effective-dated, tenant-aware entities for rate cards, labor categories, confidential cost profiles, membership plans, member contract pricing, capacity accounts, service catalog, assessment levels, modifiers, quotes and quote items, estimates, budgets, actual labor/expenses, forecasts, approvals, scope authorizations, change orders, retainers and immutable pricing audit events.
+Database integration will introduce effective-dated, tenant-aware entities for rate cards, labor categories, confidential cost profiles, membership plans, member contract pricing, capacity accounts, service catalog, assessment levels, modifiers, quotes and quote items, estimates, budgets, actual labor/expenses, forecasts, approvals, scope authorizations, change orders, retainers and immutable pricing audit events.
 
-P/T/E persistence will additionally introduce work packages, capability links, objectives, participants/audiences, plan/training/exercise events, observations, evaluations, corrective actions, after-action/improvement plans, validation events and evidence links.
+P/T/E persistence will introduce work packages, capability links, objectives, participants/audiences, plan/training/exercise events, observations, evaluations, corrective actions, after-action/improvement plans, validation events and evidence links.
+
+Capability-posture persistence will add mission-area definitions, capability posture snapshots, scoring-rule versions, evidence/confidence state, material-gap references, trend history and Protected Member overall posture snapshots. Every posture snapshot must be tenant-isolated, timestamped and reproducible from the governed source records used at calculation time.
 
 Cost-profile detail must be restricted more tightly than ordinary project economics. Project managers may receive blended cost/margin data without access to salary-derived inputs.
 
 ## THIRA integration
 
-The pricing and P/T/E domains must consume, not replace, governed THIRA outputs. Integration will map findings/gaps/improvements to recommended service, professional mix, effort range, price range, authorization state and cost-of-risk-reduction analysis. P/T/E results then feed validated evidence and corrective-action outcomes back into capability reassessment.
+The pricing, P/T/E and capability-posture domains consume, not replace, governed THIRA outputs. Findings/gaps/improvements map to recommended service, professional mix, effort range, price range, authorization state and cost-of-risk-reduction analysis. P/T/E results feed validated evidence and corrective-action outcomes back into capability reassessment. Capability posture then presents the current demonstrated position across Prevention, Protection, Response, Recovery and Mitigation.
 
 ## Release sequence
 
 1. Pricing foundation and pure-domain acceptance tests.
 2. Planning, Training & Exercise domain and acceptance tests.
-3. Tenant-aware persistence and immutable audit history, including P/T/E records.
-4. Estimate/quote API and approval workflow.
-5. Engagement budget, actuals, EAC and scope ceilings.
-6. Membership capacity, overage and renewal economics.
-7. SalTHIRA finding/improvement integration, P/T/E work-package generation and change-order recommendations.
-8. SalOPS operational pricing and mobilization rules.
-9. P/T/E scheduling, evaluation, corrective-action and evidence-lifecycle UI.
-10. Commercial analytics and estimating feedback loop.
+3. Protected Member five-area capability posture model and acceptance tests.
+4. Tenant-aware persistence and immutable audit history, including P/T/E and posture snapshots.
+5. Estimate/quote API and approval workflow.
+6. Engagement budget, actuals, EAC and scope ceilings.
+7. Membership capacity, overage and renewal economics.
+8. SalTHIRA finding/improvement integration, P/T/E work-package generation and change-order recommendations.
+9. SalOPS operational pricing and mobilization rules.
+10. P/T/E scheduling, evaluation, corrective-action and evidence-lifecycle UI.
+11. Protected Member posture dashboard, trend analysis and recommended-next-action UI.
+12. Commercial analytics and estimating feedback loop.
