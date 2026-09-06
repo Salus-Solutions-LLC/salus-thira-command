@@ -8,7 +8,7 @@ on:
     paths:
       - 'pricing_engine.py'
       - 'pte_engine.py'
-      - 'capability_posture*.py'
+      - 'capability_*.py'
       - 'static/capability_posture.*'
       - 'tools/ci_salcapa_posture_smoke.py'
       - '.github/workflows/salcapa-domain.yml'
@@ -44,7 +44,7 @@ jobs:
       - name: Compile SalCAPA domain
         run: >-
           python -m py_compile
-          pricing_engine.py pte_engine.py capability_posture.py
+          pricing_engine.py pte_engine.py capability_posture.py capability_actions.py
           capability_posture_store.py capability_posture_source.py
           capability_posture_api.py tools/ci_salcapa_posture_smoke.py
       - name: Validate capability posture JavaScript
@@ -54,6 +54,6 @@ jobs:
       - name: Static security scan
         run: >-
           bandit -q -ll -s B608
-          pricing_engine.py pte_engine.py capability_posture.py
+          pricing_engine.py pte_engine.py capability_posture.py capability_actions.py
           capability_posture_store.py capability_posture_source.py
           capability_posture_api.py tools/ci_salcapa_posture_smoke.py
