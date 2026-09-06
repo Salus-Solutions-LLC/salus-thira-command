@@ -9,7 +9,7 @@ azure-identity==1.25.3
 azure-keyvault-secrets==4.11.2
 azure-storage-blob==12.30.1
 # Managed PostgreSQL preflight / migration target validation
-psycopg[binary]==3.3.4
+psycopg[binary]==3.3.5
 # Distributed rate limiting (recommended for multiple production instances)
 redis==8.1.0
 # Optional centralized telemetry when SALUS_TELEMETRY_BACKEND=azure_monitor
