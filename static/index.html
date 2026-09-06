@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/static/intake-capture.css" />
 <link rel="stylesheet" href="/static/brand-lockup.css" />
 <link rel="stylesheet" href="/static/salintel-domains.css" />
+<link rel="stylesheet" href="/static/product-version.css" />
 </head>
 <body>
 <div class="app-shell">
@@ -31,7 +32,10 @@
       <button data-view="salthira">SalTHIRA</button>
       <button data-view="salops">SalOPS</button>
     </nav>
-    <div class="sidebar-note">Protected Member workspace<br/>See • Coordinate • Act</div>
+    <div class="sidebar-note sidebar-footer-note">
+      <div id="salcapa-version" class="salcapa-version" hidden></div>
+      <div>Protected Member workspace<br/>See • Coordinate • Act</div>
+    </div>
   </aside>
   <main class="main">
     <header class="topbar">
@@ -42,6 +46,7 @@
   </main>
 </div>
 <script src="/static/app.js"></script>
+<script src="/static/product-version.js"></script>
 <script src="/static/salintel-domains.js"></script>
 <script src="/static/guidance.js"></script>
 <script src="/static/condition-visuals.js"></script>
