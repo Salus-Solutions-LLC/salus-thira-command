@@ -1,8 +1,8 @@
 {
   "version": "3.37.0",
   "format": "salcapa-source-snapshot-v1",
-  "snapshot_sha256": "3a48b27a4bb9921491f3a32fb500348ae8b7d59ed92903ec8d1de5fae4ad7f39",
-  "snapshot_size_bytes": 531974,
+  "snapshot_sha256": "ada8ea1c47b318473b212e3ab33ea716e42a2d922c274ecea8c6f76c32d52c7c",
+  "snapshot_size_bytes": 532101,
   "files": {
     "app.py": {
       "target_sha256": "2f84458518e9431f2e5be8cecbf2f3df7ffa517ed6c0e2100e56a89e89a3ed6b",
@@ -17,8 +17,8 @@
       "target_size_bytes": 12381
     },
     "portable_backup.py": {
-      "target_sha256": "f306c46f2085a068ec08b6a17e6b2c94f14c7735ef309dfd2d74c65aeed7134c",
-      "target_size_bytes": 26750
+      "target_sha256": "9434fb218bf94d3f0eed83ecd6a0445087b847a89a940093ae7e0c81003061fd",
+      "target_size_bytes": 26876
     },
     "tools/migrate_sqlite_to_postgres.py": {
       "target_sha256": "2eccc0676e8cd88fcde93dbdbe6fc2dc186ffb63b2c08cbec7d5e0c21b52acd0",
