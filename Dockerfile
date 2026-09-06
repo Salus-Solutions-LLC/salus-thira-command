@@ -6,8 +6,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN useradd --create-home --uid 10001 salus
 COPY . .
 RUN python tools/reconstruct_v343_source.py && python tools/verify_v343_source.py
+RUN python tools/reconstruct_salops_preparedness.py
+RUN python -m py_compile salcapa_runtime.py salops_preparedness.py tools/ci_salops_preparedness_smoke.py
 RUN mkdir -p /app/attachments /app/backups /app/data && chown -R salus:salus /app
 USER salus
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"
-CMD ["uvicorn","app:app","--host","0.0.0.0","--port","8000","--proxy-headers"]
+CMD ["uvicorn","salcapa_runtime:app","--host","0.0.0.0","--port","8000","--proxy-headers"]

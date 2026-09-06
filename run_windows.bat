@@ -1,17 +1,13 @@
 @echo off
 cd /d %~dp0
-if not exist app.py (
-  echo Reconstructing verified SalCAPA source from GitHub archive parts...
-  python tools\reconstruct_v343_source.py || goto :error
-)
-if not exist static\app.js (
-  echo Reconstructing verified SalCAPA source from GitHub archive parts...
-  python tools\reconstruct_v343_source.py || goto :error
-)
+echo Reconstructing verified SalCAPA v3.43 base source...
+python tools\reconstruct_v343_source.py || goto :error
 python tools\verify_v343_source.py || goto :error
-python -m uvicorn app:app --host 127.0.0.1 --port 8000
+python tools\reconstruct_salops_preparedness.py || goto :error
+python -m py_compile salcapa_runtime.py salops_preparedness.py || goto :error
+python -m uvicorn salcapa_runtime:app --host 127.0.0.1 --port 8000
 goto :eof
 :error
-echo SalCAPA source verification failed.
+echo SalCAPA source or preparedness runtime verification failed.
 pause
 exit /b 1
