@@ -79,3 +79,19 @@ Set `SALUS_ALLOW_RESTORE=1` only inside the bounded restore operation. Return it
 - confirm telemetry contains no secrets or protected evidence content;
 - record the active application digest, database server, restore point, and storage account;
 - keep the prior environment isolated until formal closure.
+
+
+## Governed live development readiness verification
+
+The activation at `deploy/azure/activations/recovery-readiness-dev.json` runs a
+protected, passwordless, read-only verification against the existing development
+resources. It confirms the PostgreSQL restore window and 14-day retention,
+evidence versioning and soft-delete controls, Azure Monitor retention and daily
+cap, budget notifications, exact application digest, and live dependency
+readiness. It creates no server, restores no data, mutates no resource, and does
+not authorize a real recovery.
+
+A clean-room restore exercise remains separately governed and must target an
+isolated temporary server or database. Readiness verification is evidence that
+the recovery prerequisites are present; it is not evidence that a restore has
+completed.

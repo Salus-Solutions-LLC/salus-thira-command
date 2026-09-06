@@ -1,0 +1,193 @@
+name: SalCAPA governed Azure recovery readiness verification
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - 'deploy/azure/activations/recovery-readiness-dev.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-recovery-readiness-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - name: Record protected recovery-readiness approval gate passage
+        run: echo "Protected SalCAPA development recovery-readiness approval gate passed."
+
+  verify:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout frozen recovery source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.30
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate immutable recovery-readiness activation
+        env:
+          ACTIVATION_FILE: deploy/azure/activations/recovery-readiness-dev.json
+        run: |
+          set -euo pipefail
+          jq -e '
+            type == "object" and
+            (.schema_version == 1) and
+            (.operation == "verify_recovery_readiness") and
+            (.target_environment == "dev") and
+            (.location == "southcentralus") and
+            (.unique_suffix == "b48224") and
+            (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
+            (.source_release == "release/v3.30") and
+            (.source_commit == "00c40997225eb6ade3637b45a3c1ad543e066db7") and
+            ((keys - [
+              "approval_record",
+              "location",
+              "operation",
+              "schema_version",
+              "source_commit",
+              "source_release",
+              "target_environment",
+              "unique_suffix"
+            ]) | length == 0)
+          ' "$ACTIVATION_FILE" >/dev/null
+          test "$(git -C frozen-release rev-parse HEAD)" = "00c40997225eb6ade3637b45a3c1ad543e066db7"
+          git merge-base --is-ancestor "00c40997225eb6ade3637b45a3c1ad543e066db7" "$GITHUB_SHA"
+
+      - name: Validate required non-secret repository variables
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+        run: |
+          set -euo pipefail
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_RESOURCE_GROUP AZURE_LOCATION; do
+            test -n "${!name}" || { echo "Missing repository variable: $name" >&2; exit 1; }
+          done
+          test "$AZURE_RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$AZURE_LOCATION" = "southcentralus"
+
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify live backup, recovery, monitoring, and rollback readiness
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show --name "$RESOURCE_GROUP" --query location --output tsv)" = "southcentralus"
+
+          BASE="https://management.azure.com/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers"
+          az rest --method get --url "$BASE/Microsoft.DBforPostgreSQL/flexibleServers/salcapa-dev-b48224-pg?api-version=2024-08-01" --output json > /tmp/postgres.json
+          az rest --method get --url "$BASE/Microsoft.Storage/storageAccounts/salcapadevb48224storage?api-version=2023-05-01" --output json > /tmp/storage.json
+          az rest --method get --url "$BASE/Microsoft.Storage/storageAccounts/salcapadevb48224storage/blobServices/default?api-version=2023-05-01" --output json > /tmp/blob-service.json
+          az rest --method get --url "$BASE/Microsoft.Storage/storageAccounts/salcapadevb48224storage/blobServices/default/containers/evidence?api-version=2023-05-01" --output json > /tmp/evidence-container.json
+          az rest --method get --url "$BASE/Microsoft.OperationalInsights/workspaces/salcapa-dev-b48224-logs?api-version=2023-09-01" --output json > /tmp/logs.json
+          az rest --method get --url "$BASE/Microsoft.Insights/components/salcapa-dev-b48224-appinsights?api-version=2020-02-02" --output json > /tmp/appinsights.json
+          az rest --method get --url "$BASE/Microsoft.Consumption/budgets/salcapa-dev-b48224-monthly-budget?api-version=2023-11-01" --output json > /tmp/budget.json
+          az rest --method get --url "$BASE/Microsoft.App/containerApps/salcapa-dev-b48224?api-version=2025-01-01" --output json > /tmp/application.json
+
+          jq -e '
+            .properties.version == "16" and
+            .properties.state == "Ready" and
+            .properties.authConfig.activeDirectoryAuth == "Enabled" and
+            .properties.authConfig.passwordAuth == "Disabled" and
+            .properties.network.publicNetworkAccess == "Disabled" and
+            .properties.backup.backupRetentionDays == 14 and
+            .properties.backup.geoRedundantBackup == "Disabled" and
+            (.properties.backup.earliestRestoreDate | type == "string" and length > 10)
+          ' /tmp/postgres.json >/dev/null
+
+          jq -e '
+            .sku.name == "Standard_LRS" and
+            .properties.allowBlobPublicAccess == false and
+            .properties.allowSharedKeyAccess == false and
+            .properties.defaultToOAuthAuthentication == true and
+            .properties.minimumTlsVersion == "TLS1_2" and
+            .properties.supportsHttpsTrafficOnly == true
+          ' /tmp/storage.json >/dev/null
+          jq -e '
+            .properties.isVersioningEnabled == true and
+            .properties.deleteRetentionPolicy.enabled == true and
+            .properties.deleteRetentionPolicy.days == 14 and
+            .properties.containerDeleteRetentionPolicy.enabled == true and
+            .properties.containerDeleteRetentionPolicy.days == 14
+          ' /tmp/blob-service.json >/dev/null
+          jq -e '.properties.publicAccess == null' /tmp/evidence-container.json >/dev/null
+
+          jq -e '
+            .properties.retentionInDays == 30 and
+            .properties.workspaceCapping.dailyQuotaGb == 0.1 and
+            .properties.provisioningState == "Succeeded"
+          ' /tmp/logs.json >/dev/null
+          jq -e '
+            .properties.RetentionInDays == 30 and
+            .properties.SamplingPercentage == 5 and
+            (.properties.WorkspaceResourceId | ascii_downcase | endswith("/microsoft.operationalinsights/workspaces/salcapa-dev-b48224-logs"))
+          ' /tmp/appinsights.json >/dev/null
+          jq -e '
+            .properties.amount == 25 and
+            .properties.timeGrain == "Monthly" and
+            .properties.notifications.Actual80Percent.enabled == true and
+            .properties.notifications.Actual80Percent.threshold == 80 and
+            .properties.notifications.Forecast100Percent.enabled == true and
+            .properties.notifications.Forecast100Percent.threshold == 100 and
+            .properties.notifications.Actual100Percent.enabled == true and
+            .properties.notifications.Actual100Percent.threshold == 100
+          ' /tmp/budget.json >/dev/null
+
+          EXPECTED_IMAGE="$(jq -r '.image_digest' deploy/azure/activations/application-dev.json)"
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/application.json)" = "$EXPECTED_IMAGE"
+          test "$(jq -r '.properties.configuration.ingress.allowInsecure' /tmp/application.json)" = "false"
+          test "$(jq -r '(.properties.configuration.secrets // []) | length' /tmp/application.json)" = "0"
+          FQDN="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/application.json)"
+          [[ "$FQDN" == salcapa-dev-b48224.*.southcentralus.azurecontainerapps.io ]]
+          curl --connect-timeout 5 --max-time 30 --silent --show-error "https://$FQDN/health/ready" --output /tmp/readiness.json
+          python frozen-release/tools/validate_live_readiness.py /tmp/readiness.json --environment dev
+
+          RESTORE_START="$(jq -r '.properties.backup.earliestRestoreDate' /tmp/postgres.json)"
+          {
+            echo "### SalCAPA development recovery readiness"
+            echo ""
+            echo "- PostgreSQL 16 backup retention: 14 days"
+            echo "- Earliest available restore point: $RESTORE_START"
+            echo "- PostgreSQL password authentication: disabled"
+            echo "- Evidence storage: private, OAuth-only, versioned, 14-day soft delete"
+            echo "- Monitoring: Azure Monitor connected; 30-day retention; 0.1 GB/day cap"
+            echo "- Budget guardrail: $25 operational budget inside the $30 ceiling"
+            echo "- Active application: exact approved immutable digest"
+            echo "- Restore operation: not performed"
+            echo "- Resource mutation: none"
+            echo "- Client secret: not used"
+            echo "- DNS or production cutover: not performed"
+          } >> "$GITHUB_STEP_SUMMARY"
