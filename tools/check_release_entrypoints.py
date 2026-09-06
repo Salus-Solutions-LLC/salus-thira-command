@@ -3,8 +3,8 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RECONSTRUCT = 'tools/reconstruct_v342_source.py'
-VERIFY = 'tools/verify_v342_source.py'
+RECONSTRUCT = 'tools/reconstruct_v343_source.py'
+VERIFY = 'tools/verify_v343_source.py'
 FILES = (
     'README.md',
     'Dockerfile',

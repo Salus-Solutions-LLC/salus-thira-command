@@ -5,6 +5,7 @@ qualification, disclosure, tenancy, commercial treatment, and audit state are
 server-controlled; source bytes remain in the generic material capability.
 """
 from __future__ import annotations
+import hashlib
 import json
 import uuid
 from typing import Literal
@@ -104,6 +105,24 @@ class RecommendTier(BaseModel):
     reason: str = Field(min_length=1, max_length=4000)
 
 
+class CreateRegistryBackup(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reason: str = Field(min_length=1, max_length=4000)
+
+
+class CreateRegistryRestoreRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    backup_id: int = Field(gt=0)
+    scope: str = Field(min_length=1, max_length=1000)
+    reason: str = Field(min_length=1, max_length=4000)
+
+
+class DecideRegistryRestore(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    decision: Literal["Authorized", "Rejected"]
+    reason: str = Field(min_length=1, max_length=4000)
+
+
 class UpdateDomain(BaseModel):
     model_config = ConfigDict(extra="forbid")
     display_name: str = Field(min_length=1, max_length=180)
@@ -190,6 +209,23 @@ CREATE TABLE IF NOT EXISTS salintel_domain_events (
 );
 CREATE INDEX IF NOT EXISTS idx_salintel_domain_events
  ON salintel_domain_events(domain_id,version_no);
+CREATE TABLE IF NOT EXISTS salintel_domain_registry_backups (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, package_key TEXT NOT NULL UNIQUE,
+ format_version TEXT NOT NULL, domain_count INTEGER NOT NULL,
+ event_count INTEGER NOT NULL, sha256 TEXT NOT NULL, payload_json TEXT NOT NULL,
+ reason TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL,
+ verified_at TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS salintel_domain_registry_restore_requests (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, backup_id INTEGER NOT NULL,
+ status TEXT NOT NULL DEFAULT 'Requested', scope TEXT NOT NULL, reason TEXT NOT NULL,
+ requested_by TEXT NOT NULL, requested_at TEXT NOT NULL,
+ decided_by TEXT NOT NULL DEFAULT '', decided_at TEXT NOT NULL DEFAULT '',
+ decision_reason TEXT NOT NULL DEFAULT '', executed_by TEXT NOT NULL DEFAULT '',
+ executed_at TEXT NOT NULL DEFAULT '', safety_backup_id INTEGER,
+ FOREIGN KEY (backup_id) REFERENCES salintel_domain_registry_backups(id) ON DELETE RESTRICT,
+ FOREIGN KEY (safety_backup_id) REFERENCES salintel_domain_registry_backups(id) ON DELETE RESTRICT
+);
 CREATE TABLE IF NOT EXISTS salintel_investigations (
  id INTEGER PRIMARY KEY AUTOINCREMENT, tenant_id INTEGER NOT NULL,
  record_key TEXT NOT NULL UNIQUE, domain_key TEXT NOT NULL, title TEXT NOT NULL,
@@ -249,6 +285,7 @@ def register_salintel_domain_capability(app, core: dict) -> None:
     is_member = core["protected_member_request"]
     salus_authority = core["require_salus_component_authority"]
     security_event = core["security_event"]
+    allow_restore = lambda: bool(core.get("ALLOW_RESTORE", False))
 
     conn = db()
     try:
@@ -347,6 +384,112 @@ def register_salintel_domain_capability(app, core: dict) -> None:
             "VALUES(?,?,?,?,?,?,?)",
             (now(), actor(request), "SALINTEL_DOMAIN_UPDATED", "salintel_domain",
              domain_id, reason[:2000], tenant_id(request)),
+        )
+
+    def canonical(value) -> str:
+        return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str)
+
+    def registry_package(conn, created_at: str, created_by: str):
+        return {
+            "format": "salcapa-salintel-domain-registry-v1",
+            "created_at": created_at,
+            "created_by": created_by,
+            "domains": [dict(row) for row in conn.execute(
+                "SELECT * FROM salintel_domains ORDER BY domain_key"
+            )],
+            "events": [dict(row) for row in conn.execute(
+                "SELECT * FROM salintel_domain_events ORDER BY domain_id,version_no"
+            )],
+        }
+
+    def validate_registry_package(package):
+        if not isinstance(package, dict) or package.get("format") != "salcapa-salintel-domain-registry-v1":
+            raise ValueError("Unsupported SalINTEL domain-registry recovery package")
+        domains, events = package.get("domains"), package.get("events")
+        if not isinstance(domains, list) or not isinstance(events, list):
+            raise ValueError("Recovery package domains and events must be lists")
+        required = {key for key, _ in _NAMES}
+        keys = [str(row.get("domain_key", "")) for row in domains if isinstance(row, dict)]
+        if len(keys) != len(domains) or len(keys) != len(set(keys)) or not required.issubset(set(keys)):
+            raise ValueError("Recovery package has an incomplete or duplicate domain catalog")
+        ids, versions, by_id = {}, {}, {}
+        for row in domains:
+            try:
+                domain_id, version = int(row["id"]), int(row["version"])
+                lifecycle, sensitivity = row["lifecycle_status"], row["default_sensitivity"]
+                disclosure = row["default_disclosure_posture"]
+                profiles = json.loads(row["tier_profiles_json"])
+                json.loads(row["investigative_lenses_json"])
+                json.loads(row["handoff_types_json"])
+                json.loads(row["allowed_relationships_json"])
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ValueError("Recovery package contains invalid domain metadata") from exc
+            if domain_id in ids or version < 1 or lifecycle not in DomainLifecycle.__args__:
+                raise ValueError("Recovery package contains invalid domain identity or lifecycle")
+            if sensitivity not in Sensitivity.__args__ or disclosure not in DisclosurePosture.__args__:
+                raise ValueError("Recovery package contains invalid sensitivity or disclosure")
+            if sorted(int(item.get("tier", 0)) for item in profiles) != [1, 2, 3]:
+                raise ValueError("Recovery package tier profiles are incomplete")
+            if any(item.get("bounded") is not True for item in profiles):
+                raise ValueError("Recovery package tier profiles must remain bounded")
+            ids[domain_id], versions[domain_id], by_id[domain_id] = row["domain_key"], [], row
+        for row in events:
+            try:
+                domain_id, version_no = int(row["domain_id"]), int(row["version_no"])
+                json.loads(row["snapshot_json"])
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ValueError("Recovery package contains an invalid domain event") from exc
+            if domain_id not in ids:
+                raise ValueError("Recovery package event references an unknown domain")
+            versions[domain_id].append(version_no)
+        for domain_id, values in versions.items():
+            if sorted(values) != list(range(1, int(by_id[domain_id]["version"]) + 1)):
+                raise ValueError("Recovery package domain history is not contiguous")
+        return package
+
+    def create_registry_backup(conn, request: Request, reason: str):
+        ts, who = now(), actor(request)
+        package = registry_package(conn, ts, who)
+        validate_registry_package(package)
+        payload = canonical(package)
+        digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        cur = conn.execute(
+            "INSERT INTO salintel_domain_registry_backups(package_key,format_version,"
+            "domain_count,event_count,sha256,payload_json,reason,created_by,created_at) "
+            "VALUES(?,?,?,?,?,?,?,?,?)",
+            ("SIDR-" + uuid.uuid4().hex, package["format"], len(package["domains"]),
+             len(package["events"]), digest, payload, reason.strip(), who, ts),
+        )
+        return int(cur.lastrowid)
+
+    def public_registry_backup(row):
+        value = dict(row)
+        value.pop("payload_json", None)
+        return value
+
+    def load_verified_registry_backup(conn, backup_id: int):
+        row = conn.execute(
+            "SELECT * FROM salintel_domain_registry_backups WHERE id=?", (backup_id,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "SalINTEL domain-registry backup not found")
+        payload = row["payload_json"]
+        digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        if digest != row["sha256"]:
+            raise HTTPException(409, "SalINTEL domain-registry backup integrity check failed")
+        try:
+            package = validate_registry_package(json.loads(payload))
+        except (ValueError, json.JSONDecodeError) as exc:
+            raise HTTPException(409, str(exc)) from exc
+        return row, package
+
+    def registry_audit(conn, request: Request, action: str, entity_type: str,
+                       entity_id: int, detail: str):
+        conn.execute(
+            "INSERT INTO audit_log(ts,user_name,action,entity_type,entity_id,detail,tenant_id) "
+            "VALUES(?,?,?,?,?,?,?)",
+            (now(), actor(request), action, entity_type, entity_id,
+             detail[:2000], tenant_id(request)),
         )
 
     def public(row, member=False):
@@ -473,6 +616,185 @@ def register_salintel_domain_capability(app, core: dict) -> None:
         result = conn.execute("SELECT * FROM salintel_domains WHERE id=?", (row["id"],)).fetchone()
         conn.close()
         return public_domain(result)
+
+    @app.get("/api/salintel/domains/registry-backups")
+    def list_registry_backups(request: Request):
+        require(request, "admin"); authority(request, "domain registry recovery")
+        conn = db()
+        rows = [public_registry_backup(row) for row in conn.execute(
+            "SELECT * FROM salintel_domain_registry_backups ORDER BY id DESC LIMIT 200"
+        )]
+        conn.close()
+        return rows
+
+    @app.post("/api/salintel/domains/registry-backups")
+    def create_registry_recovery_point(payload: CreateRegistryBackup, request: Request):
+        require(request, "admin"); authority(request, "domain registry recovery")
+        conn = db()
+        backup_id = create_registry_backup(conn, request, payload.reason)
+        registry_audit(conn, request, "SALINTEL_DOMAIN_REGISTRY_BACKUP_CREATED",
+                       "salintel_domain_registry_backup", backup_id, payload.reason)
+        conn.commit()
+        row = conn.execute("SELECT * FROM salintel_domain_registry_backups WHERE id=?",
+                           (backup_id,)).fetchone()
+        conn.close()
+        return public_registry_backup(row)
+
+    @app.post("/api/salintel/domains/registry-backups/{backup_id}/verify")
+    def verify_registry_recovery_point(backup_id: int, request: Request):
+        require(request, "admin"); authority(request, "domain registry recovery")
+        conn = db()
+        try:
+            row, package = load_verified_registry_backup(conn, backup_id)
+        except HTTPException:
+            conn.close(); raise
+        verified_at = now()
+        conn.execute("UPDATE salintel_domain_registry_backups SET verified_at=? WHERE id=?",
+                     (verified_at, backup_id))
+        registry_audit(conn, request, "SALINTEL_DOMAIN_REGISTRY_BACKUP_VERIFIED",
+                       "salintel_domain_registry_backup", backup_id, f"sha256={row['sha256']}")
+        conn.commit(); conn.close()
+        return {"ok": True, "backup_id": backup_id, "sha256": row["sha256"],
+                "domain_count": len(package["domains"]),
+                "event_count": len(package["events"]), "verified_at": verified_at}
+
+    @app.post("/api/salintel/domains/registry-restore-requests")
+    def request_registry_restore(payload: CreateRegistryRestoreRequest, request: Request):
+        require(request, "admin"); authority(request, "domain registry recovery")
+        conn = db()
+        try:
+            load_verified_registry_backup(conn, payload.backup_id)
+        except HTTPException:
+            conn.close(); raise
+        ts = now()
+        cur = conn.execute(
+            "INSERT INTO salintel_domain_registry_restore_requests(backup_id,status,scope,"
+            "reason,requested_by,requested_at) VALUES(?,'Requested',?,?,?,?)",
+            (payload.backup_id, payload.scope.strip(), payload.reason.strip(), actor(request), ts))
+        request_id = int(cur.lastrowid)
+        registry_audit(conn, request, "SALINTEL_DOMAIN_REGISTRY_RESTORE_REQUESTED",
+                       "salintel_domain_registry_restore_request", request_id,
+                       f"backup_id={payload.backup_id}; scope={payload.scope}")
+        conn.commit()
+        row = conn.execute("SELECT * FROM salintel_domain_registry_restore_requests WHERE id=?",
+                           (request_id,)).fetchone()
+        conn.close()
+        return dict(row)
+
+    @app.post("/api/salintel/domains/registry-restore-requests/{request_id}/decision")
+    def decide_registry_restore(request_id: int, payload: DecideRegistryRestore, request: Request):
+        require(request, "admin"); authority(request, "domain registry recovery authorization")
+        conn = db()
+        row = conn.execute("SELECT * FROM salintel_domain_registry_restore_requests WHERE id=?",
+                           (request_id,)).fetchone()
+        if not row:
+            conn.close(); raise HTTPException(404, "SalINTEL domain-registry restore request not found")
+        if row["status"] != "Requested":
+            conn.close(); raise HTTPException(409, "Restore request is no longer awaiting a decision")
+        if actor(request) == row["requested_by"]:
+            conn.close(); raise HTTPException(409, "Independent Salus authorization is required")
+        ts = now()
+        conn.execute(
+            "UPDATE salintel_domain_registry_restore_requests SET status=?,decided_by=?,"
+            "decided_at=?,decision_reason=? WHERE id=?",
+            (payload.decision, actor(request), ts, payload.reason.strip(), request_id))
+        registry_audit(conn, request, "SALINTEL_DOMAIN_REGISTRY_RESTORE_DECIDED",
+                       "salintel_domain_registry_restore_request", request_id,
+                       f"decision={payload.decision}")
+        conn.commit()
+        result = conn.execute("SELECT * FROM salintel_domain_registry_restore_requests WHERE id=?",
+                              (request_id,)).fetchone()
+        conn.close()
+        return dict(result)
+
+    @app.post("/api/salintel/domains/registry-restore-requests/{request_id}/execute")
+    def execute_registry_restore(request_id: int, request: Request):
+        require(request, "admin"); authority(request, "domain registry recovery execution")
+        if not allow_restore():
+            raise HTTPException(403, "Restore execution is disabled")
+        conn = db()
+        restore_request = conn.execute(
+            "SELECT * FROM salintel_domain_registry_restore_requests WHERE id=?",
+            (request_id,)).fetchone()
+        if not restore_request:
+            conn.close(); raise HTTPException(404, "SalINTEL domain-registry restore request not found")
+        if restore_request["status"] != "Authorized":
+            conn.close(); raise HTTPException(409, "Restore request requires independent authorization")
+        try:
+            _, package = load_verified_registry_backup(conn, int(restore_request["backup_id"]))
+            package_keys = {row["domain_key"] for row in package["domains"]}
+            current_keys = {row["domain_key"] for row in
+                            conn.execute("SELECT domain_key FROM salintel_domains")}
+            if current_keys - package_keys:
+                raise HTTPException(409, "Current registry has domains absent from the recovery package")
+            safety_id = create_registry_backup(
+                conn, request, f"Automatic safety recovery point before request {request_id}.")
+            events_by_domain = {}
+            for item in package["events"]:
+                events_by_domain.setdefault(int(item["domain_id"]), []).append(item)
+            for source in package["domains"]:
+                current = conn.execute("SELECT id FROM salintel_domains WHERE domain_key=?",
+                                       (source["domain_key"],)).fetchone()
+                fields = (source["display_name"], source["description"],
+                          source["subject_entity_kinds"], source["lifecycle_status"],
+                          source["default_sensitivity"], source["default_disclosure_posture"],
+                          source["investigative_lenses_json"], source["handoff_types_json"],
+                          source["allowed_relationships_json"], source["required_review_level"],
+                          source["tier_profiles_json"], int(source["version"]) + 1,
+                          actor(request), now(), source["created_at"], now())
+                if current:
+                    domain_id = int(current["id"])
+                    conn.execute(
+                        "UPDATE salintel_domains SET display_name=?,description=?,"
+                        "subject_entity_kinds=?,lifecycle_status=?,default_sensitivity=?,"
+                        "default_disclosure_posture=?,investigative_lenses_json=?,"
+                        "handoff_types_json=?,allowed_relationships_json=?,required_review_level=?,"
+                        "tier_profiles_json=?,version=?,approved_by=?,approved_at=?,created_at=?,"
+                        "updated_at=? WHERE id=?", fields + (domain_id,))
+                else:
+                    cur = conn.execute(
+                        "INSERT INTO salintel_domains(domain_key,display_name,description,"
+                        "subject_entity_kinds,lifecycle_status,default_sensitivity,"
+                        "default_disclosure_posture,investigative_lenses_json,handoff_types_json,"
+                        "allowed_relationships_json,required_review_level,tier_profiles_json,"
+                        "version,approved_by,approved_at,created_at,updated_at) "
+                        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (source["domain_key"],) + fields)
+                    domain_id = int(cur.lastrowid)
+                conn.execute("DELETE FROM salintel_domain_events WHERE domain_id=?", (domain_id,))
+                for source_event in events_by_domain.get(int(source["id"]), []):
+                    conn.execute(
+                        "INSERT INTO salintel_domain_events(domain_id,version_no,event_type,reason,"
+                        "snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                        (domain_id, source_event["version_no"], source_event["event_type"],
+                         source_event["reason"], source_event["snapshot_json"],
+                         source_event["changed_by"], source_event["changed_by_role"],
+                         source_event["created_at"]))
+                restored = conn.execute("SELECT * FROM salintel_domains WHERE id=?",
+                                        (domain_id,)).fetchone()
+                conn.execute(
+                    "INSERT INTO salintel_domain_events(domain_id,version_no,event_type,reason,"
+                    "snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                    (domain_id, restored["version"], "DOMAIN_REGISTRY_RESTORED",
+                     f"Governed restore request {request_id}.", canonical(dict(restored)),
+                     actor(request), role(request), now()))
+            ts = now()
+            conn.execute(
+                "UPDATE salintel_domain_registry_restore_requests SET status='Executed',"
+                "executed_by=?,executed_at=?,safety_backup_id=? WHERE id=?",
+                (actor(request), ts, safety_id, request_id))
+            registry_audit(conn, request, "SALINTEL_DOMAIN_REGISTRY_RESTORE_EXECUTED",
+                           "salintel_domain_registry_restore_request", request_id,
+                           f"backup_id={restore_request['backup_id']}; safety_backup_id={safety_id}")
+            conn.commit()
+        except Exception:
+            conn.rollback(); conn.close(); raise
+        result = {"ok": True, "request_id": request_id,
+                  "backup_id": int(restore_request["backup_id"]),
+                  "safety_backup_id": safety_id, "domain_count": len(package["domains"]),
+                  "executed_at": ts}
+        conn.close()
+        return result
 
     @app.post("/api/salintel/investigations")
     def create(payload: CreateInvestigation, request: Request):

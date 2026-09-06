@@ -14,6 +14,7 @@ os.environ.setdefault("SALUS_BACKUP_DIR", str(Path(WORKSPACE.name) / "backups"))
 os.environ.setdefault("SALUS_LOCAL_STORAGE_DIR", str(Path(WORKSPACE.name) / "attachments"))
 os.environ.setdefault("SALUS_AUTH_MODE", "prototype")
 os.environ.setdefault("SALUS_SEED_DEMO", "1")
+os.environ["SALUS_ALLOW_RESTORE"] = "1"
 sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
@@ -85,6 +86,67 @@ def main():
     history = client.get("/api/salintel/domains/catalog/personnel-assessment",
                          headers=analyst).json()["events"]
     assert [item["version_no"] for item in history] == [1, 2, 3]
+
+    operator = {"X-Salus-Tenant": "1", "X-Salus-Role": "System Administrator",
+                "X-Salus-User": "Registry Recovery Operator"}
+    reviewer = {**operator, "X-Salus-User": "Independent Registry Reviewer"}
+    denied_backup = client.post("/api/salintel/domains/registry-backups", headers=member,
+                                json={"reason": "Member must not create backups."})
+    assert denied_backup.status_code == 403
+    backup = client.post("/api/salintel/domains/registry-backups", headers=operator,
+                         json={"reason": "SYNTHETIC registry recovery baseline."})
+    assert backup.status_code == 200, backup.text
+    backup_id = backup.json()["id"]
+    assert "payload_json" not in backup.json()
+    verified = client.post(f"/api/salintel/domains/registry-backups/{backup_id}/verify",
+                           headers=operator)
+    assert verified.status_code == 200 and verified.json()["ok"] is True
+    assert verified.json()["domain_count"] == len(catalog.json())
+    drift_payload = {**update_payload,
+                     "display_name": "SYNTHETIC temporary registry drift",
+                     "reason": "SYNTHETIC change that recovery must reverse."}
+    drift = client.put("/api/salintel/domains/catalog/personnel-assessment",
+                       headers=analyst, json=drift_payload)
+    assert drift.status_code == 200 and drift.json()["version"] == 4
+    restore_request = client.post(
+        "/api/salintel/domains/registry-restore-requests", headers=operator,
+        json={"backup_id": backup_id,
+              "scope": "Entire enterprise SalINTEL investigative-domain registry",
+              "reason": "Reverse synthetic configuration drift."})
+    assert restore_request.status_code == 200, restore_request.text
+    restore_id = restore_request.json()["id"]
+    self_decision = client.post(
+        f"/api/salintel/domains/registry-restore-requests/{restore_id}/decision",
+        headers=operator,
+        json={"decision": "Authorized", "reason": "Self-approval must fail."})
+    assert self_decision.status_code == 409
+    decision = client.post(
+        f"/api/salintel/domains/registry-restore-requests/{restore_id}/decision",
+        headers=reviewer,
+        json={"decision": "Authorized",
+              "reason": "Independent authorization for synthetic recovery."})
+    assert decision.status_code == 200 and decision.json()["status"] == "Authorized"
+    restored = client.post(
+        f"/api/salintel/domains/registry-restore-requests/{restore_id}/execute",
+        headers=operator)
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["ok"] is True
+    assert restored.json()["safety_backup_id"] != backup_id
+    recovered = client.get("/api/salintel/domains/catalog/personnel-assessment",
+                           headers=analyst).json()
+    assert recovered["display_name"] == personnel["display_name"]
+    assert recovered["version"] == 4
+    assert [item["version_no"] for item in recovered["events"]] == [1, 2, 3, 4]
+    assert recovered["events"][-1]["event_type"] == "DOMAIN_REGISTRY_RESTORED"
+    listed = client.get("/api/salintel/domains/registry-backups", headers=operator)
+    assert listed.status_code == 200 and len(listed.json()) == 2
+    assert all("payload_json" not in row for row in listed.json())
+    conn = app.db()
+    assert conn.execute(
+        "SELECT COUNT(*) c FROM audit_log "
+        "WHERE action='SALINTEL_DOMAIN_REGISTRY_RESTORE_EXECUTED'"
+    ).fetchone()["c"] == 1
+    conn.close()
 
     forged = client.post("/api/salintel/investigations", headers=analyst, json={
         "domain_key": "organizations", "title": "Forged",
