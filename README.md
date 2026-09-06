@@ -32,8 +32,8 @@ GitHub is authoritative. Development occurs on governed development branches. Ev
 Reconstruct and verify this candidate with:
 
 ```bash
-python tools/reconstruct_v33_source.py
-python tools/verify_v33_source.py
+python tools/reconstruct_v322_source.py
+python tools/verify_v322_source.py
 ```
 
 Run the complete SalCAPA governed-workflow smoke with:
