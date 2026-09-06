@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/static/intake-capture.css" />
 <link rel="stylesheet" href="/static/brand-lockup.css" />
 <link rel="stylesheet" href="/static/salintel-domains.css" />
+<link rel="stylesheet" href="/static/product-branding.css" />
 <link rel="stylesheet" href="/static/product-version.css" />
 </head>
 <body>
@@ -19,18 +20,23 @@
       <img src="/static/assets/salus-solutions-horizontal-white.svg" class="brand-logo" alt="Salus Solutions" />
       <div class="brand-product">SalCAPA™</div>
     </div>
-    <nav id="nav">
-      <button class="active" data-view="dashboard">Command Center</button>
-      <button data-view="common_operating_picture">Common Operating Picture</button>
-      <button data-view="salintel">Intelligence</button>
-      <button data-view="assessments">Assessments</button>
-      <button data-view="salops">Requests & Operations</button>
-      <button data-view="reports">Reports</button>
-      <div class="sidebar-note">SALUS WORKSPACES</div>
-      <button data-view="salintel">SalINTEL</button>
-      <button data-view="salintel_domains">Investigative Domains</button>
-      <button data-view="salthira">SalTHIRA</button>
-      <button data-view="salops">SalOPS</button>
+    <nav id="nav" aria-label="SalCAPA product navigation">
+      <div class="nav-product-group" data-product="salcapa">
+        <div class="nav-product-title">SalCAPA™</div><div class="nav-product-description">Secure coordination and Common Operating Picture</div>
+        <button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="reports">Reports</button>
+      </div>
+      <div class="nav-product-group" data-product="salintel">
+        <div class="nav-product-title">SalINTEL™</div><div class="nav-product-description">Intelligence and investigations</div>
+        <button data-view="salintel">Intelligence Overview</button><button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button>
+      </div>
+      <div class="nav-product-group" data-product="salthira">
+        <div class="nav-product-title">SalTHIRA™</div><div class="nav-product-description">Risk assessment and prioritization</div>
+        <button data-view="salthira">Risk Assessments</button>
+      </div>
+      <div class="nav-product-group" data-product="salops">
+        <div class="nav-product-title">SalOPS™</div><div class="nav-product-description">Operations, readiness, and protective services</div>
+        <button data-view="salops">Operations & Requests</button>
+      </div>
     </nav>
     <div class="sidebar-note sidebar-footer-note">
       <div id="salcapa-version" class="salcapa-version" hidden></div>
@@ -45,6 +51,7 @@
     <section id="content"></section>
   </main>
 </div>
+<script src="/static/product-branding.js"></script>
 <script src="/static/app.js"></script>
 <script src="/static/product-version.js"></script>
 <script src="/static/salintel-domains.js"></script>

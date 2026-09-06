@@ -65,15 +65,13 @@
   };
 
   const navHelp = {
-    'command center': 'Your role-aware starting point and current operating picture.',
-    'common operating picture': 'See cross-component priorities, coordination, decisions, and current action.',
-    'intelligence': 'Review qualified SalINTEL information and alerts.',
-    'assessments': 'Work with SalTHIRA assessments, risks, gaps, capabilities, and recommendations.',
-    'requests & operations': 'Track governed SalOPS requests, tasks, handoffs, action, and results.',
-    'reports': 'Review released executive and operational reporting.',
-    'salintel': 'Salus workspace for developing qualified intelligence.',
-    'salthira': 'Salus workspace for assessment and prioritization.',
-    'salops': 'Salus workspace for implementing, sustaining, and improving capability.'
+    'command center': 'Open the SalCAPA™ role-aware operating picture.',
+    'common operating picture': 'Use SalCAPA™ to see cross-component priorities, coordination, decisions, and current action.',
+    'reports': 'Review SalCAPA™ released executive and operational reporting.',
+    'intelligence overview': 'Review qualified SalINTEL™ information and alerts.',
+    'investigative domains': 'Develop and govern SalINTEL™ investigations across authorized domains.',
+    'risk assessments': 'Work with SalTHIRA™ assessments, risks, gaps, capabilities, and recommendations.',
+    'operations & requests': 'Track governed SalOPS™ requests, tasks, handoffs, action, and results.'
   };
 
   const stages = [
@@ -101,7 +99,7 @@
   }
 
   function guideForTitle(title) {
-    const key = normalize(title);
+    const key = normalize(title).replace(/[™®]/g, '').replace(/^(salcapa|salintel|salthira|salops)\s+/, '');
     if (pageGuides[key]) return pageGuides[key];
     if (key.includes('assessment')) return pageGuides.assessments;
     if (key.includes('intelligence') || key.includes('salintel')) return pageGuides.intelligence;
@@ -127,7 +125,7 @@
   }
 
   function isSalusWorkspaceVisible() {
-    return Array.from(document.querySelectorAll('#nav .sidebar-note')).some(node => node.textContent.trim() === 'SALUS WORKSPACES' && !node.hidden);
+    return Boolean(document.querySelector('#nav [data-salus-only="true"]:not([hidden])'));
   }
 
   function go(view) {
@@ -298,7 +296,13 @@
       <div class="guidance-panel">
         <span class="guidance-kicker">Operating model</span>
         <h3>Protected Member centered by design</h3>
-        <p>Protected Members share priorities, requests, observations, concerns, and operational context. SalCAPA coordinates the work; SalINTEL develops qualified intelligence; SalTHIRA assesses risk and establishes defensible priorities; SalOPS implements, sustains, and improves approved capability.</p>
+        <p>Protected Members share priorities, requests, observations, concerns, and operational context. SalCAPA™ coordinates the work; SalINTEL™ develops qualified intelligence; SalTHIRA™ assesses risk and establishes defensible priorities; SalOPS™ implements, sustains, and improves approved capability.</p>
+        <div class="guidance-brand-grid" aria-label="Salus product terminology">
+          <div><strong>SalCAPA™</strong><span>Secure coordination and Common Operating Picture</span></div>
+          <div><strong>SalINTEL™</strong><span>Intelligence and investigations</span></div>
+          <div><strong>SalTHIRA™</strong><span>Risk assessment and prioritization</span></div>
+          <div><strong>SalOPS™</strong><span>Operations, readiness, and protective services</span></div>
+        </div>
       </div>
       <img class="guidance-graphic" src="/static/assets/how-salcapa-works.svg" alt="Diagram showing Protected Members connected through SalCAPA to SalINTEL, SalTHIRA and SalOPS" />
       <div class="guidance-panel" style="margin-top:14px">

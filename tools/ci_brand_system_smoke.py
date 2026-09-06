@@ -65,7 +65,7 @@ for view in (
     "dashboard",
     "common_operating_picture",
     "salintel",
-    "assessments",
+    "salintel_domains",
     "salops",
     "reports",
     "salthira",

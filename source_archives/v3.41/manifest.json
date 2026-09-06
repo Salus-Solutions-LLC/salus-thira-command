@@ -1,0 +1,124 @@
+{
+  "format": "salcapa-source-manifest-v1",
+  "version": "3.41.0",
+  "snapshot_sha256": "57978ab09e4bd1b36e838e7950dcafda8cd2207f3d23db8f2796eadee4ea4d46",
+  "snapshot_size_bytes": 837919,
+  "files": {
+    "app.py": {
+      "target_sha256": "acc432739944e65a443eea341472b230152fb76e646fd3ccd87f70e58717edc7",
+      "target_size_bytes": 439333
+    },
+    "material_capability.py": {
+      "target_sha256": "5ca2dde6db6e104e3901dc2707dc88290010284ae331e60b61b323d072c77b82",
+      "target_size_bytes": 30724
+    },
+    "salintel_domains.py": {
+      "target_sha256": "cf2f22e321d50c78f6cc48ac63cb3942547e253f5e58aca96ff12479b92bf48e",
+      "target_size_bytes": 34239
+    },
+    "database.py": {
+      "target_sha256": "4ebb3a09b50c9f61565aa324db7f01288021a6ca39e300c409050a2dadb467ce",
+      "target_size_bytes": 12614
+    },
+    "portable_backup.py": {
+      "target_sha256": "7862313b99e197ab2afb43817d43af3b2bad7e8281b8308c684a4acc0aa75ac5",
+      "target_size_bytes": 29741
+    },
+    "static/app.js": {
+      "target_sha256": "d161991744e640fe6f884d3859a13a9cdcfcf8c964710b59a6f4b2dd3ccac88a",
+      "target_size_bytes": 127964
+    },
+    "static/index.html": {
+      "target_sha256": "7bfb99ba6c264d6d58fb9f1dca4dcb8e7439aafb4fe2e350b204334a89792d65",
+      "target_size_bytes": 3215
+    },
+    "static/styles.css": {
+      "target_sha256": "11acac46aea05c3c7fdb39d33eedf09b812a2878ac036bc09c3a48c7fa07eb63",
+      "target_size_bytes": 12046
+    },
+    "static/guidance.js": {
+      "target_sha256": "0e74535d6261936be6803d7198232ee52cd36fe76f3d4211a75c35b24a67eea0",
+      "target_size_bytes": 22374
+    },
+    "static/guidance.css": {
+      "target_sha256": "1f09f2332399da491c1eafa70d4b3e85dde75781b76695065dbc1bd716d39d02",
+      "target_size_bytes": 7558
+    },
+    "static/condition-visuals.js": {
+      "target_sha256": "836635414429c5686e82a4b5dc9a7804727233408fab971fd265dfece1ce6067",
+      "target_size_bytes": 2981
+    },
+    "static/condition-visuals.css": {
+      "target_sha256": "9af67ccbee534d74e959ce49164c023522abb960337941b7db7307ee2d61686b",
+      "target_size_bytes": 3755
+    },
+    "static/intake-capture.js": {
+      "target_sha256": "8e93f1697f73ecdef18c944a7086bd8b1730d53e3348790ad2d4fc4af728f4a9",
+      "target_size_bytes": 11691
+    },
+    "static/intake-capture.css": {
+      "target_sha256": "1f72e5e601a5a92b91ab7803933592ff690c6413e3e20bb1df4f67763a507af1",
+      "target_size_bytes": 2691
+    },
+    "static/brand-lockup.css": {
+      "target_sha256": "a6afc324ec61924123458ea3e0ac70b7773329c1d4f1d6dfc8d27961c9804c2e",
+      "target_size_bytes": 423
+    },
+    "static/salintel-domains.js": {
+      "target_sha256": "79a3c935db503de0928ccd4154691b3aebe59eaf535b5be97479a644541b9fda",
+      "target_size_bytes": 16834
+    },
+    "static/salintel-domains.css": {
+      "target_sha256": "b98b1b1c2591628d6a6bea12887ae0c6951ab924c95f373bd412c1a8de627326",
+      "target_size_bytes": 1926
+    },
+    "static/assets/salus-solutions-horizontal-white.svg": {
+      "target_sha256": "171edde29dbdf8b62aef254343295cc63fea8607b2df126dad45242731ed7696",
+      "target_size_bytes": 11652
+    },
+    "static/assets/salus-solutions-stacked-white.svg": {
+      "target_sha256": "78fed96cf12e668555ef9fa1466a51968543240a9699ffd2d831be48893ed36f",
+      "target_size_bytes": 15126
+    },
+    "tools/ci_material_capability_smoke.py": {
+      "target_sha256": "5289b6504dcb9f5eac78dee856e9b42ee670dee2713084c1e1caba8768b76cce",
+      "target_size_bytes": 9290
+    },
+    "tools/ci_salintel_domain_smoke.py": {
+      "target_sha256": "c5676fddcb565a3197b84734f8dd9c135203e58689e73542b63c8de2ad9c9b5f",
+      "target_size_bytes": 11773
+    },
+    "tools/ci_salintel_domain_ui_smoke.py": {
+      "target_sha256": "de640d05bd0a522b16de2ef0edf37bc13eb542e5a1231cdb159ced29b3eb0821",
+      "target_size_bytes": 1321
+    },
+    "static/product-version.js": {
+      "target_sha256": "7e18164c0c0ff4ac05e28373491a6a70c36539dfb7a35ddf520e66bb29476e99",
+      "target_size_bytes": 969
+    },
+    "static/product-version.css": {
+      "target_sha256": "5f17112c17e2ee7cbc59fb1fa84a19c6a03ac4f9e976779593fdbca6c528b504",
+      "target_size_bytes": 238
+    },
+    "static/product-branding.js": {
+      "target_sha256": "45d8a0fbd19e8dda1483cdb3ff73bd6e3934044a54c22cbe2fe147f7923e121f",
+      "target_size_bytes": 450
+    },
+    "static/product-branding.css": {
+      "target_sha256": "2c2b9759a52bd2a9c8f75cbd14ba6837fab87b10a6b1ee00bb1f8a6e2e17bdaa",
+      "target_size_bytes": 932
+    },
+    "tools/ci_guidance_smoke.py": {
+      "target_sha256": "6747381894cdcff8684fbf031374232080b274a4040f2f71394bb0a2e6090ef0",
+      "target_size_bytes": 2948
+    },
+    "tools/ci_brand_system_smoke.py": {
+      "target_sha256": "11eac3c65e26bf92da87db40512d8efdae49e65f1e63b52c1d25b530fc48493f",
+      "target_size_bytes": 3097
+    },
+    "tools/ci_product_branding_smoke.py": {
+      "target_sha256": "ce61329a9705530e76e664bae27e7fee19e189e601bb5e23eb0b92a8ab7da69b",
+      "target_size_bytes": 2412
+    }
+  }
+}

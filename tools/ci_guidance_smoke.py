@@ -40,6 +40,11 @@ for value in (
     "help or navigation shortcut to bypass required approvals",
     "Protected Member",
     "Salus workspace",
+    "SalCAPA™",
+    "SalINTEL™",
+    "SalTHIRA™",
+    "SalOPS™",
+    'aria-label="Salus product terminology"',
 ):
     require(value, JS, value)
 
@@ -76,6 +81,7 @@ for value in (
     "var(--intel)",
     "var(--thira)",
     "var(--ops)",
+    ".guidance-brand-grid",
 ):
     require(value, CSS, value)
 

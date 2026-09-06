@@ -18,7 +18,7 @@
         target.hidden = true;
         return;
       }
-      target.textContent = `Version v${version}`;
+      target.textContent = `SalCAPA™ v${version}`;
       target.setAttribute('aria-label', `SalCAPA version ${version}`);
       target.setAttribute('title', `SalCAPA™ version ${version}`);
       target.hidden = false;
