@@ -60,6 +60,7 @@ jobs:
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
             (.source_release == "release/v3.30") and
             (.source_commit == "00c40997225eb6ade3637b45a3c1ad543e066db7") and
+            (.verification_revision == 2) and
             ((keys - [
               "approval_record",
               "location",
@@ -68,7 +69,8 @@ jobs:
               "source_commit",
               "source_release",
               "target_environment",
-              "unique_suffix"
+              "unique_suffix",
+              "verification_revision"
             ]) | length == 0)
           ' "$ACTIVATION_FILE" >/dev/null
           test "$(git -C frozen-release rev-parse HEAD)" = "00c40997225eb6ade3637b45a3c1ad543e066db7"
@@ -116,6 +118,13 @@ jobs:
           az rest --method get --url "$BASE/Microsoft.Insights/components/salcapa-dev-b48224-appinsights?api-version=2020-02-02" --output json > /tmp/appinsights.json
           az rest --method get --url "$BASE/Microsoft.Consumption/budgets/salcapa-dev-b48224-monthly-budget?api-version=2023-11-01" --output json > /tmp/budget.json
           az rest --method get --url "$BASE/Microsoft.App/containerApps/salcapa-dev-b48224?api-version=2025-01-01" --output json > /tmp/application.json
+
+          echo "PostgreSQL recovery configuration (non-secret fields):"
+          jq '{version:.properties.version,state:.properties.state,activeDirectoryAuth:.properties.authConfig.activeDirectoryAuth,passwordAuth:.properties.authConfig.passwordAuth,publicNetworkAccess:.properties.network.publicNetworkAccess,backupRetentionDays:.properties.backup.backupRetentionDays,geoRedundantBackup:.properties.backup.geoRedundantBackup,earliestRestoreDate:.properties.backup.earliestRestoreDate}' /tmp/postgres.json
+          echo "Evidence recovery configuration (non-secret fields):"
+          jq -s '{account:{sku:.[0].sku.name,allowBlobPublicAccess:.[0].properties.allowBlobPublicAccess,allowSharedKeyAccess:.[0].properties.allowSharedKeyAccess,defaultToOAuthAuthentication:.[0].properties.defaultToOAuthAuthentication,minimumTlsVersion:.[0].properties.minimumTlsVersion,supportsHttpsTrafficOnly:.[0].properties.supportsHttpsTrafficOnly},blobService:{isVersioningEnabled:.[1].properties.isVersioningEnabled,deleteRetentionPolicy:.[1].properties.deleteRetentionPolicy,containerDeleteRetentionPolicy:.[1].properties.containerDeleteRetentionPolicy},container:{publicAccess:.[2].properties.publicAccess}}' /tmp/storage.json /tmp/blob-service.json /tmp/evidence-container.json
+          echo "Monitoring and budget configuration (non-secret fields):"
+          jq -s '{logs:{retentionInDays:.[0].properties.retentionInDays,dailyQuotaGb:.[0].properties.workspaceCapping.dailyQuotaGb,provisioningState:.[0].properties.provisioningState},appInsights:{retentionInDays:.[1].properties.RetentionInDays,samplingPercentage:.[1].properties.SamplingPercentage,workspaceLinked:((.[1].properties.WorkspaceResourceId // "") | ascii_downcase | endswith("/microsoft.operationalinsights/workspaces/salcapa-dev-b48224-logs"))},budget:{amount:.[2].properties.amount,timeGrain:.[2].properties.timeGrain,notifications:(.[2].properties.notifications | with_entries(.value={enabled:.value.enabled,threshold:.value.threshold,thresholdType:.value.thresholdType}))}}' /tmp/logs.json /tmp/appinsights.json /tmp/budget.json
 
           jq -e '
             .properties.version == "16" and
