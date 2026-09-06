@@ -2,7 +2,8 @@
 import hashlib, json, runpy
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]; ARCH=ROOT/'source_archives'/'v3.22'; manifest=json.loads((ARCH/'manifest.json').read_text()); delta_path=ARCH/'delta.json'
-if hashlib.sha256(delta_path.read_bytes()).hexdigest()!=manifest['delta_sha256']: raise SystemExit('Invalid v3.22 delta digest')
+actual_delta_sha256=hashlib.sha256(delta_path.read_bytes()).hexdigest()
+if actual_delta_sha256!=manifest['delta_sha256']: raise SystemExit(f'Invalid v3.22 delta digest: expected {manifest["delta_sha256"]}; actual {actual_delta_sha256}')
 delta=json.loads(delta_path.read_text())
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else ''
 def state(kind):
