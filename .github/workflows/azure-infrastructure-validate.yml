@@ -286,6 +286,7 @@ jobs:
               'AcrPush',
               'az acr login',
               'docker build',
+              'python tools/verify_v325_source.py',
               'docker push',
               'source-$SOURCE_COMMIT',
               'org.opencontainers.image.revision=$SOURCE_COMMIT',
