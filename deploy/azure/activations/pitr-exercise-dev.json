@@ -10,6 +10,6 @@
   "source_server": "salcapa-dev-b48224-pg",
   "temporary_restore_server": "salcapa-dev-b48224-pitr",
   "restore_lag_minutes": 15,
-  "exercise_revision": 1,
-  "activation_key": "salcapa-v3.33-pitr-20260906-r1"
+  "exercise_revision": 2,
+  "activation_key": "salcapa-v3.33-pitr-20260906-r2"
 }
