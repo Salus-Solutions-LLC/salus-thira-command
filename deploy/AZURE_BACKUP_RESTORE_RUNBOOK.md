@@ -95,3 +95,17 @@ A clean-room restore exercise remains separately governed and must target an
 isolated temporary server or database. Readiness verification is evidence that
 the recovery prerequisites are present; it is not evidence that a restore has
 completed.
+
+## Ephemeral clean-room restore and rollback rehearsal
+
+The CI recovery rehearsal uses only temporary SQLite or PostgreSQL databases and
+temporary local evidence storage. It creates a signed portable tenant backup,
+requires a passed recovery validation and an independent authorizer, changes the
+ephemeral tenant, restores the verified snapshot, and proves that an unrelated
+tenant remains unchanged. It then validates and restores the automatic
+pre-restore safety backup to prove rollback to the precise pre-restore state.
+
+The rehearsal also confirms that restore admission returns to fail-closed after
+the exercise. It does not use live member data, create Azure resources, send
+notifications or handoffs, change DNS, or authorize production recovery. Live
+Azure point-in-time restoration remains a separately governed operation.
