@@ -578,6 +578,63 @@ jobs:
               if value not in application_source:
                   raise SystemExit('Backup filename uniqueness control is incomplete: ' + value)
 
+          pitr_exercise = Path('.github/workflows/azure-pitr-exercise.yml').read_text()
+          pitr_exercise_required = [
+              'deploy/azure/activations/pitr-exercise-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.33',
+              '.source_release == "release/v3.33"',
+              '.source_commit == "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4"',
+              '.operation == "exercise_point_in_time_restore"',
+              '.source_server == "salcapa-dev-b48224-pg"',
+              '.temporary_restore_server == "salcapa-dev-b48224-pitr"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'Fail closed: temporary restore target already exists.',
+              'az postgres flexible-server restore',
+              '--restore-time "$RESTORE_POINT"',
+              '.authConfig.passwordAuth == "Disabled"',
+              '.network.publicNetworkAccess == "Disabled"',
+              'az postgres flexible-server db show',
+              '--database-name salcapa',
+              'SALUS_POSTGRES_HOST',
+              'Application database target: remained the source server',
+              'Source server before/after: Ready and unchanged',
+              'az postgres flexible-server delete',
+              'Temporary restore server: deleted',
+              'Client secret or database password: not used',
+              'Application traffic cutover: not performed',
+              'DNS or production cutover: not performed',
+              'LIVE_PITR_EXERCISE_ACCEPTED',
+          ]
+          missing_pitr_exercise = [
+              value for value in pitr_exercise_required if value not in pitr_exercise
+          ]
+          if missing_pitr_exercise:
+              raise SystemExit(
+                  'Azure point-in-time recovery exercise governance is incomplete: '
+                  + ', '.join(missing_pitr_exercise)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', pitr_exercise, re.MULTILINE):
+              raise SystemExit('Point-in-time recovery exercise may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\\b', pitr_exercise)) < 2:
+              raise SystemExit('Both point-in-time recovery checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\\b', pitr_exercise):
+              raise SystemExit('Point-in-time recovery Azure login action must be pinned to a commit SHA')
+          if any(value in pitr_exercise for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+              'az deployment group create',
+          )):
+              raise SystemExit('Point-in-time recovery exercise crosses a credential, DNS, application, or deployment boundary')
+
           connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
           connection_required = [
               'id-token: write',
