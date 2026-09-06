@@ -23,6 +23,14 @@ a workspace and the governed next action. A responsive Salus workflow graphic
 keeps Protected Members central while explaining how SalINTEL, SalTHIRA, and
 SalOPS support the integrated operating environment.
 
+Condition and readiness indicators use a labeled red → red-orange → orange →
+amber/yellow → yellow-green → green continuum only when the underlying
+condition genuinely moves from dangerous or degraded toward safer or readier.
+Every condition color is paired with text and a non-color symbol. Ordinary
+workflow, governance, approval, evidence-lifecycle, and record states remain
+neutral or component-colored so a later process step never falsely implies
+lower risk. Print and grayscale fallbacks preserve the distinction.
+
 The guidance layer is presentation-only. It cannot call application APIs,
 submit forms, change records, or bypass role, tenant, lifecycle, provenance,
 evidence, approval, or audit controls. Keyboard focus, Escape-to-close,

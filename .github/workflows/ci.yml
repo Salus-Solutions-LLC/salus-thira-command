@@ -51,11 +51,13 @@ jobs:
       - name: Compile Python
         run: python -m py_compile app.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
       - name: Validate JavaScript syntax
-        run: node --check static/app.js && node --check static/guidance.js
+        run: node --check static/app.js && node --check static/guidance.js && node --check static/condition-visuals.js
       - name: Salus brand system acceptance
         run: python tools/ci_brand_system_smoke.py
       - name: Contextual guidance accessibility acceptance
         run: python tools/ci_guidance_smoke.py
+      - name: Condition/readiness visual doctrine acceptance
+        run: python tools/ci_condition_visuals_smoke.py
       - name: SQLite SalCAPA governed-workflow smoke
         env:
           SALUS_DB_BACKEND: sqlite
