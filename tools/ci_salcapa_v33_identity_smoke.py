@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import hashlib
 import os
 import sys
 import tempfile
@@ -102,11 +103,20 @@ def main():
     app._oidc_credential=None
 
     conn=app.db()
+    conn.execute("DELETE FROM auth_sessions WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'identity-smoke-%')")
+    conn.execute("DELETE FROM identity_acceptance_events WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'identity-smoke-%')")
     conn.execute("DELETE FROM users WHERE username LIKE 'identity-smoke-%'")
+    other=conn.execute("SELECT id FROM tenants WHERE slug='identity-smoke-other'").fetchone()
+    if not other:
+        conn.execute("INSERT INTO tenants(name,slug,status,created_at) VALUES(?,?,?,?)",('Identity Smoke Other','identity-smoke-other','Active',app.now()))
+        other=conn.execute("SELECT id FROM tenants WHERE slug='identity-smoke-other'").fetchone()
+    other_tenant_id=int(other['id'])
     created=app.now()
     values=(1,'identity-smoke-member','Mapped Member','','Client Executive','Confidential','Active',created,created,'member@salus.solutions','entra-object-member','entra')
     conn.execute("INSERT INTO users(tenant_id,username,display_name,password_hash,role,sensitivity_clearance,status,created_at,updated_at,email,external_subject,identity_provider) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",values)
     values=(1,'identity-smoke-disabled','Disabled Member','','Contributor','Standard','Disabled',created,created,'disabled@salus.solutions','entra-object-disabled','entra')
+    conn.execute("INSERT INTO users(tenant_id,username,display_name,password_hash,role,sensitivity_clearance,status,created_at,updated_at,email,external_subject,identity_provider) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",values)
+    values=(other_tenant_id,'identity-smoke-admin-other','Other Tenant Administrator','','System Administrator','Highly Sensitive','Active',created,created,'admin-other@salus.solutions','entra-object-admin-other','entra')
     conn.execute("INSERT INTO users(tenant_id,username,display_name,password_hash,role,sensitivity_clearance,status,created_at,updated_at,email,external_subject,identity_provider) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",values)
     conn.commit(); conn.close()
 
@@ -121,6 +131,18 @@ def main():
     assert session['tenant_id']==1 and session['role']=='Client Executive' and session['clearance']=='Confidential'
     assert session['role']!='System Administrator' and session['tenant_id']!=999
     assert token_requests and 'client_secret' not in token_requests[-1]
+    assert client.get('/api/admin/identity-acceptance').status_code==403
+    conn=app.db(); accepted=[dict(r) for r in conn.execute('SELECT * FROM identity_acceptance_events ORDER BY accepted_at,event_key')]; conn.close()
+    assert len(accepted)==1
+    event=accepted[0]
+    assert event['tenant_id']==1 and event['user_id']==session['user_id']
+    assert event['identity_provider']=='entra'
+    assert event['external_subject_sha256']==hashlib.sha256(b'entra-object-member').hexdigest()
+    assert event['external_subject_sha256']!='entra-object-member'
+    assert event['mapped_role']=='Client Executive' and event['mapped_clearance']=='Confidential'
+    assert event['authority_source']=='server_user_mapping' and event['authentication_method']=='oidc_authorization_code'
+    assert event['oidc_issuer_sha256']==hashlib.sha256(ISSUER.encode()).hexdigest()
+    assert len(event['event_key'])==32 and event['accepted_at'] and event['session_expires_at']
 
     replay_client=TestClient(app.app)
     replay_client.cookies.set('salus_oidc_state',state)
@@ -143,6 +165,20 @@ def main():
         state,nonce=start(client); set_claims(nonce)
         callback(client,state,401)
     decode_failure=None
+
+    conn=app.db(); assert conn.execute('SELECT COUNT(*) c FROM identity_acceptance_events').fetchone()['c']==1; conn.close()
+
+    admin_client=TestClient(app.app)
+    state,nonce=start(admin_client); set_claims(nonce,oid='entra-object-admin-other',email='admin-other@salus.solutions')
+    callback(admin_client,state)
+    admin_session=admin_client.get('/api/auth/session').json()
+    assert admin_session['tenant_id']==other_tenant_id and admin_session['role']=='System Administrator'
+    admin_events=admin_client.get('/api/admin/identity-acceptance').json()
+    assert len(admin_events)==1 and admin_events[0]['mapped_role']=='System Administrator'
+    assert all(item['user_id']==admin_session['user_id'] for item in admin_events)
+    conn=app.db(); accepted=[dict(r) for r in conn.execute('SELECT * FROM identity_acceptance_events ORDER BY accepted_at,event_key')]; conn.close()
+    assert len(accepted)==2 and {int(item['tenant_id']) for item in accepted}=={1,other_tenant_id}
+    assert all('entra-object-' not in str(item) for item in accepted)
 
     app.ENVIRONMENT='production'
     app.OIDC_AUTO_PROVISION=False

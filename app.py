@@ -127,6 +127,27 @@ def init_db():
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS identity_acceptance_events (
+      event_key TEXT PRIMARY KEY,
+      tenant_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      identity_provider TEXT NOT NULL,
+      external_subject_sha256 TEXT NOT NULL,
+      mapped_role TEXT NOT NULL,
+      mapped_clearance TEXT NOT NULL,
+      authority_source TEXT NOT NULL,
+      authentication_method TEXT NOT NULL,
+      oidc_issuer_sha256 TEXT NOT NULL,
+      accepted_at TEXT NOT NULL,
+      session_expires_at TEXT NOT NULL,
+      request_id TEXT NOT NULL DEFAULT '',
+      source_network_sha256 TEXT NOT NULL DEFAULT '',
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_identity_acceptance_tenant_time ON identity_acceptance_events(tenant_id,accepted_at,event_key);
+    CREATE INDEX IF NOT EXISTS idx_identity_acceptance_user_time ON identity_acceptance_events(user_id,accepted_at,event_key);
+
     CREATE TABLE IF NOT EXISTS oidc_states (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       state_hash TEXT NOT NULL UNIQUE,
@@ -2854,9 +2875,12 @@ def oidc_callback(request:Request,code:str='',state:str='',error:str=''):
         if not tenant: conn.close(); raise HTTPException(503,'OIDC default tenant is not configured')
         username=email or f'{OIDC_PROVIDER_NAME}-{subject[:40]}'
         cur=conn.execute('INSERT INTO users(tenant_id,username,display_name,password_hash,role,sensitivity_clearance,status,created_at,updated_at,email,external_subject,identity_provider) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',(tenant['id'],username,display,'','Contributor','Standard','Active',now(),now(),email,subject,OIDC_PROVIDER_NAME)); conn.commit(); user=conn.execute('SELECT * FROM users WHERE id=?',(cur.lastrowid,)).fetchone()
-    token=secrets.token_urlsafe(32); session_expires=(_iso_now_dt()+timedelta(hours=SESSION_HOURS)).replace(microsecond=0).isoformat().replace('+00:00','Z')
-    conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',(user['id'],_hash_token(token),session_expires,now(),now())); conn.commit(); conn.close()
-    security_event(request,'OIDC_LOGIN_SUCCESS','Info',f'user_id={user["id"]}',tenant=int(user['tenant_id']),user_name=display)
+    token=secrets.token_urlsafe(32); session_expires=(_iso_now_dt()+timedelta(hours=SESSION_HOURS)).replace(microsecond=0).isoformat().replace('+00:00','Z'); accepted_at=now()
+    conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',(user['id'],_hash_token(token),session_expires,accepted_at,accepted_at))
+    acceptance_key=uuid.uuid4().hex
+    conn.execute('INSERT INTO identity_acceptance_events(event_key,tenant_id,user_id,identity_provider,external_subject_sha256,mapped_role,mapped_clearance,authority_source,authentication_method,oidc_issuer_sha256,accepted_at,session_expires_at,request_id,source_network_sha256) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(acceptance_key,int(user['tenant_id']),int(user['id']),OIDC_PROVIDER_NAME,_hash_token(subject),user['role'],user['sensitivity_clearance'] or 'Standard','server_user_mapping','oidc_authorization_code',_hash_token(cfg['issuer']),accepted_at,session_expires,request_id(request),_hash_token(request_ip(request)) if request_ip(request) else ''))
+    conn.commit(); conn.close()
+    security_event(request,'OIDC_LOGIN_SUCCESS','Info',f'user_id={user["id"]}; acceptance={acceptance_key}',tenant=int(user['tenant_id']),user_name=display)
     response=RedirectResponse('/',status_code=302); response.set_cookie('salus_session',token,httponly=True,secure=COOKIE_SECURE,samesite='strict',max_age=SESSION_HOURS*3600,path='/'); response.delete_cookie('salus_oidc_state',path='/'); return response
 
 @app.post('/api/auth/login')
@@ -2957,6 +2981,10 @@ def dr_validate_backup_file(path:str):
         if attachment_count!=manifest_attachment_count: errors.append(f'Attachment count mismatch: database/records={attachment_count}, package={manifest_attachment_count}')
         if assessment_count==0: errors.append('Recovery package contains no assessments')
     return {'ok':not errors,'errors':errors,'database_integrity':db_integrity,'assessment_count':assessment_count,'attachment_count':attachment_count,'manifest':base.get('manifest',{})}
+
+@app.get('/api/admin/identity-acceptance')
+def list_identity_acceptance(request:Request,limit:int=200):
+    require(request,'admin'); conn=db(); rows=[dict(r) for r in conn.execute('SELECT event_key,user_id,identity_provider,external_subject_sha256,mapped_role,mapped_clearance,authority_source,authentication_method,oidc_issuer_sha256,accepted_at,session_expires_at,request_id,source_network_sha256 FROM identity_acceptance_events WHERE tenant_id=? ORDER BY accepted_at DESC,event_key DESC LIMIT ?',(tenant_id(request),max(1,min(limit,1000))))]; conn.close(); return rows
 
 @app.get('/api/admin/security-events')
 def list_security_events(request:Request,limit:int=200):

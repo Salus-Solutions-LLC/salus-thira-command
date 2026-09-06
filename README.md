@@ -13,7 +13,7 @@ SalCAPA is not defined by a dashboard, portal, or app. Those are interfaces with
 - **SalTHIRA** applies a Salus-specific risk-assessment methodology informed by recognized THIRA principles to identify threats and hazards, establish context and capability targets, assess capabilities, identify gaps, and support risk, priority, impact, and reassessment decisions. Salus does not claim ownership of the underlying public THIRA framework.
 - **SalOPS** governs approved requests, implementation planning, authorization, assignment, operations, completion evidence, testing or verification, results, and feedback.
 
-Shared platform controls provide tenant isolation, identity and authorization, a governed See–Coordinate–Act Common Operating Picture, member decision requests, governed observation intake and triage, evidence lifecycle governance, reassessment triggers, professional judgment, Protected Member executive authority, accepted risk, immutable reporting, audit/version history, backup, governed recovery, a versioned SalOPS service catalog, readiness-gated engagement orchestration, governed expert qualification and assignment, tenant-scoped versioned industry profiles, governed estimates and actual expenses, and invoice-ready operational statements.
+Shared platform controls provide tenant isolation, identity and authorization with persisted server-controlled Entra acceptance evidence, a governed See–Coordinate–Act Common Operating Picture, member decision requests, governed observation intake and triage, evidence lifecycle governance, reassessment triggers, professional judgment, Protected Member executive authority, accepted risk, immutable reporting, audit/version history, backup, governed recovery, a versioned SalOPS service catalog, readiness-gated engagement orchestration, governed expert qualification and assignment, tenant-scoped versioned industry profiles, governed estimates and actual expenses, and invoice-ready operational statements.
 
 ## Protective Readiness operating model
 
@@ -32,8 +32,8 @@ GitHub is authoritative. Development occurs on governed development branches. Ev
 Reconstruct and verify this candidate with:
 
 ```bash
-python tools/reconstruct_v332_source.py
-python tools/verify_v332_source.py
+python tools/reconstruct_v333_source.py
+python tools/verify_v333_source.py
 ```
 
 Run the complete SalCAPA governed-workflow smoke with:

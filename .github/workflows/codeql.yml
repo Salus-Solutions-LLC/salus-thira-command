@@ -35,7 +35,7 @@ jobs:
           cache-dependency-path: requirements.txt
       - name: Reconstruct and verify archived source
         run: |
-          if [ ! -f app.py ] && [ -f tools/reconstruct_v332_source.py ]; then python tools/reconstruct_v332_source.py; fi
+          if [ ! -f app.py ] && [ -f tools/reconstruct_v333_source.py ]; then python tools/reconstruct_v333_source.py; fi
           python tools/verify_v332_source.py
       - name: Validate release reconstruction entrypoints
         run: python tools/check_release_entrypoints.py

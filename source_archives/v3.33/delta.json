@@ -1,0 +1,28 @@
+{
+  "version": "3.33.0",
+  "baseline": "v3.32.0",
+  "files": {
+    "app.py": {
+      "baseline_sha256": "b2ec36a5e663d5620d8b5aa9d84e160a935214e29d3679d869cb9e018955fb5c",
+      "target_sha256": "39296d507c1566395c8af099fac649334d7b3bbf6eca61ac5879ccb8ac839fe5",
+      "target_size_bytes": 438274,
+      "operations": [
+        {
+          "old": "    CREATE TABLE IF NOT EXISTS auth_sessions (\n      id INTEGER PRIMARY KEY AUTOINCREMENT,\n      user_id INTEGER NOT NULL,\n      token_hash TEXT NOT NULL UNIQUE,\n      expires_at TEXT NOT NULL,\n      created_at TEXT NOT NULL,\n      last_seen_at TEXT NOT NULL,\n      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE\n    );\n\n",
+          "new": "    CREATE TABLE IF NOT EXISTS auth_sessions (\n      id INTEGER PRIMARY KEY AUTOINCREMENT,\n      user_id INTEGER NOT NULL,\n      token_hash TEXT NOT NULL UNIQUE,\n      expires_at TEXT NOT NULL,\n      created_at TEXT NOT NULL,\n      last_seen_at TEXT NOT NULL,\n      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE\n    );\n\n    CREATE TABLE IF NOT EXISTS identity_acceptance_events (\n      event_key TEXT PRIMARY KEY,\n      tenant_id INTEGER NOT NULL,\n      user_id INTEGER NOT NULL,\n      identity_provider TEXT NOT NULL,\n      external_subject_sha256 TEXT NOT NULL,\n      mapped_role TEXT NOT NULL,\n      mapped_clearance TEXT NOT NULL,\n      authority_source TEXT NOT NULL,\n      authentication_method TEXT NOT NULL,\n      oidc_issuer_sha256 TEXT NOT NULL,\n      accepted_at TEXT NOT NULL,\n      session_expires_at TEXT NOT NULL,\n      request_id TEXT NOT NULL DEFAULT '',\n      source_network_sha256 TEXT NOT NULL DEFAULT '',\n      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,\n      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE\n    );\n    CREATE INDEX IF NOT EXISTS idx_identity_acceptance_tenant_time ON identity_acceptance_events(tenant_id,accepted_at,event_key);\n    CREATE INDEX IF NOT EXISTS idx_identity_acceptance_user_time ON identity_acceptance_events(user_id,accepted_at,event_key);\n\n",
+          "count": 1
+        },
+        {
+          "old": "    token=secrets.token_urlsafe(32); session_expires=(_iso_now_dt()+timedelta(hours=SESSION_HOURS)).replace(microsecond=0).isoformat().replace('+00:00','Z')\n    conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',(user['id'],_hash_token(token),session_expires,now(),now())); conn.commit(); conn.close()\n    security_event(request,'OIDC_LOGIN_SUCCESS','Info',f'user_id={user[\"id\"]}',tenant=int(user['tenant_id']),user_name=display)\n",
+          "new": "    token=secrets.token_urlsafe(32); session_expires=(_iso_now_dt()+timedelta(hours=SESSION_HOURS)).replace(microsecond=0).isoformat().replace('+00:00','Z'); accepted_at=now()\n    conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',(user['id'],_hash_token(token),session_expires,accepted_at,accepted_at))\n    acceptance_key=uuid.uuid4().hex\n    conn.execute('INSERT INTO identity_acceptance_events(event_key,tenant_id,user_id,identity_provider,external_subject_sha256,mapped_role,mapped_clearance,authority_source,authentication_method,oidc_issuer_sha256,accepted_at,session_expires_at,request_id,source_network_sha256) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(acceptance_key,int(user['tenant_id']),int(user['id']),OIDC_PROVIDER_NAME,_hash_token(subject),user['role'],user['sensitivity_clearance'] or 'Standard','server_user_mapping','oidc_authorization_code',_hash_token(cfg['issuer']),accepted_at,session_expires,request_id(request),_hash_token(request_ip(request)) if request_ip(request) else ''))\n    conn.commit(); conn.close()\n    security_event(request,'OIDC_LOGIN_SUCCESS','Info',f'user_id={user[\"id\"]}; acceptance={acceptance_key}',tenant=int(user['tenant_id']),user_name=display)\n",
+          "count": 1
+        },
+        {
+          "old": "@app.get('/api/admin/security-events')\ndef list_security_events(request:Request,limit:int=200):\n",
+          "new": "@app.get('/api/admin/identity-acceptance')\ndef list_identity_acceptance(request:Request,limit:int=200):\n    require(request,'admin'); conn=db(); rows=[dict(r) for r in conn.execute('SELECT event_key,user_id,identity_provider,external_subject_sha256,mapped_role,mapped_clearance,authority_source,authentication_method,oidc_issuer_sha256,accepted_at,session_expires_at,request_id,source_network_sha256 FROM identity_acceptance_events WHERE tenant_id=? ORDER BY accepted_at DESC,event_key DESC LIMIT ?',(tenant_id(request),max(1,min(limit,1000))))]; conn.close(); return rows\n\n@app.get('/api/admin/security-events')\ndef list_security_events(request:Request,limit:int=200):\n",
+          "count": 1
+        }
+      ]
+    }
+  }
+}

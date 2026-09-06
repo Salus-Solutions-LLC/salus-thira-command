@@ -3,7 +3,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RECONSTRUCT = 'tools/reconstruct_v332_source.py'
+RECONSTRUCT = 'tools/reconstruct_v333_source.py'
 VERIFY = 'tools/verify_v332_source.py'
 FILES = (
     'README.md',

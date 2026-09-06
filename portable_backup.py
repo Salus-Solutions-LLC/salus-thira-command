@@ -6,7 +6,7 @@ ASSESSMENT_TABLES = [
     'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
-    'users','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','assessment_access','threats','scenarios','capabilities','evidence',
+    'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
     'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
@@ -18,6 +18,7 @@ def collect_tenant_records(conn, tenant_id:int):
     records={}
     records['tenants']=_rows(conn,'SELECT * FROM tenants WHERE id=?',(tenant_id,))
     records['users']=_rows(conn,'SELECT * FROM users WHERE tenant_id=? ORDER BY id',(tenant_id,))
+    records['identity_acceptance_events']=_rows(conn,'SELECT * FROM identity_acceptance_events WHERE tenant_id=? ORDER BY accepted_at,event_key',(tenant_id,))
     records['governed_intake']=_rows(conn,'SELECT * FROM governed_intake WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['industry_profiles']=_rows(conn,'SELECT * FROM industry_profiles WHERE tenant_id=? ORDER BY id',(tenant_id,))
     records['industry_profile_items']=_rows(conn,'SELECT * FROM industry_profile_items WHERE tenant_id=? ORDER BY id',(tenant_id,))
@@ -92,6 +93,12 @@ def validate_records(records, tenant_id:int|None=None):
         for row in records.get(table,[]):
             if int(row.get('assessment_id',-1)) not in assessments: errors.append(f'{table} record {row.get("id")} references an assessment outside the tenant package')
     users={int(r['id']) for r in records.get('users',[]) if r.get('id') is not None}
+    for row in records.get('identity_acceptance_events',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'identity_acceptance_event {row.get("event_key")} crosses the tenant boundary')
+        if int(row.get('user_id',-1)) not in users: errors.append(f'identity_acceptance_event {row.get("event_key")} has invalid user_id')
+        if len(str(row.get('external_subject_sha256','')))!=64: errors.append(f'identity_acceptance_event {row.get("event_key")} has invalid subject digest')
+        if row.get('authority_source')!='server_user_mapping': errors.append(f'identity_acceptance_event {row.get("event_key")} has invalid authority source')
+        if row.get('authentication_method')!='oidc_authorization_code': errors.append(f'identity_acceptance_event {row.get("event_key")} has invalid authentication method')
     for row in records.get('assessment_access',[]):
         if int(row.get('assessment_id',-1)) not in assessments: errors.append(f'assessment_access {row.get("id")} has invalid assessment_id')
         if int(row.get('user_id',-1)) not in users: errors.append(f'assessment_access {row.get("id")} has invalid user_id')
@@ -239,6 +246,7 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     tenant=records['tenants'][0]
     # Preserve backup_history rows so the recovery action itself remains auditable.
     conn.execute('DELETE FROM auth_sessions WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?)',(tenant_id,))
+    conn.execute('DELETE FROM identity_acceptance_events WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM assessment_access WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?) OR assessment_id IN (SELECT id FROM assessments WHERE tenant_id=?)',(tenant_id,tenant_id))
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM observations WHERE tenant_id=?',(tenant_id,))
