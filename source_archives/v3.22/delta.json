@@ -1,0 +1,53 @@
+{
+  "version": "3.22.0",
+  "baseline": "v3.3.0",
+  "files": {
+    "app.py": {
+      "baseline_sha256": "4e988c537ed25399d7153248736f390e573833488ddf3c3cd922d673c56c5b1d",
+      "target_sha256": "7ecc4c1e2fae7d622621f245a40ca5310e6ad3f5d34cf04d3385db8513b7911b",
+      "target_size_bytes": 435821,
+      "operations": [
+        {
+          "old": "@app.get('/api/salcapa/common-operating-picture')",
+          "new": "def _protective_readiness_summary(conn, assessment_ids:list[int], tenant:int):\n    promise='See risk early. Decide with confidence. Act in time. Prove the work was done.'\n    lifecycle='Signal or observation -> qualification -> assessment -> capability priority -> executive decision -> responsible owner -> authorized action -> completion evidence -> testing or verification -> result -> reassessment.'\n    trace={\n        'qualified_signals':0,\n        'assessed_capability_gaps':0,\n        'prioritized_improvements':0,\n        'executive_decisions':0,\n        'owned_actions':0,\n        'authorized_actions':0,\n        'completed_actions':0,\n        'verified_actions':0,\n        'current_verified_evidence':0,\n        'released_proof_records':0,\n        'reassessment_triggers':0,\n    }\n    if assessment_ids:\n        marks=','.join('?'*len(assessment_ids)); params=tuple(assessment_ids)\n        trace['qualified_signals']=conn.execute(\n            f\"SELECT COUNT(*) c FROM intel_findings WHERE tenant_id=? AND status IN ('Qualified','Sent to SalTHIRA') AND (assessment_id IS NULL OR assessment_id IN ({marks}))\",\n            (tenant,)+params,\n        ).fetchone()['c']\n        trace['assessed_capability_gaps']=conn.execute(\n            f\"SELECT COUNT(*) c FROM gaps WHERE assessment_id IN ({marks})\",params\n        ).fetchone()['c']\n        trace['prioritized_improvements']=conn.execute(\n            f\"SELECT COUNT(*) c FROM improvements WHERE assessment_id IN ({marks})\",params\n        ).fetchone()['c']\n        trace['executive_decisions']=conn.execute(\n            f\"SELECT COUNT(*) c FROM decisions WHERE assessment_id IN ({marks})\",params\n        ).fetchone()['c']\n        trace['owned_actions']=conn.execute(\n            f\"SELECT COUNT(*) c FROM improvements WHERE assessment_id IN ({marks}) AND TRIM(owner)<>''\",params\n        ).fetchone()['c']\n        trace['authorized_actions']=conn.execute(\n            f\"SELECT COUNT(*) c FROM ops_requests WHERE tenant_id=? AND assessment_id IN ({marks}) AND status IN ('Authorized','In Progress','Completed')\",\n            (tenant,)+params,\n        ).fetchone()['c']\n        completed_requests=conn.execute(\n            f\"SELECT COUNT(*) c FROM ops_requests WHERE tenant_id=? AND assessment_id IN ({marks}) AND status='Completed'\",\n            (tenant,)+params,\n        ).fetchone()['c']\n        completed_tasks=conn.execute(\n            f\"SELECT COUNT(*) c FROM ops_tasks WHERE tenant_id=? AND assessment_id IN ({marks}) AND status='Completed'\",\n            (tenant,)+params,\n        ).fetchone()['c']\n        trace['completed_actions']=completed_requests+completed_tasks\n        trace['verified_actions']=conn.execute(\n            f\"SELECT COUNT(*) c FROM improvements WHERE assessment_id IN ({marks}) AND status='Complete' AND validation_status IN ('Validated','Partially Validated')\",\n            params,\n        ).fetchone()['c']\n        trace['current_verified_evidence']=conn.execute(\n            f\"SELECT COUNT(*) c FROM evidence WHERE assessment_id IN ({marks}) AND verification_status='Verified' AND lifecycle_status='Current'\",\n            params,\n        ).fetchone()['c']\n        released_reports=conn.execute(\n            f\"SELECT COUNT(*) c FROM report_versions WHERE tenant_id=? AND assessment_id IN ({marks}) AND status='Released'\",\n            (tenant,)+params,\n        ).fetchone()['c']\n        released_field_reports=conn.execute(\n            f\"SELECT COUNT(*) c FROM ops_field_reports WHERE tenant_id=? AND assessment_id IN ({marks}) AND status='Released'\",\n            (tenant,)+params,\n        ).fetchone()['c']\n        trace['released_proof_records']=released_reports+released_field_reports\n        trace['reassessment_triggers']=conn.execute(\n            f\"SELECT COUNT(*) c FROM reassessment_triggers WHERE assessment_id IN ({marks})\",params\n        ).fetchone()['c']\n    stages=[\n        {'key':'see','label':'See risk early','count':trace['qualified_signals']+trace['assessed_capability_gaps'],'description':'Qualified signals and assessed capability gaps.'},\n        {'key':'decide','label':'Decide with confidence','count':trace['executive_decisions'],'description':'Authority-backed executive decisions.'},\n        {'key':'act','label':'Act in time','count':trace['authorized_actions'],'description':'Authorized protective actions under accountable delivery.'},\n        {'key':'prove','label':'Prove the work was done','count':trace['completed_actions']+trace['verified_actions']+trace['released_proof_records'],'description':'Completed, verified, and released proof records.'},\n    ]\n    for stage in stages: stage['state']='Active' if stage['count'] else 'No records'\n    return {'source':'persisted_server_controlled_records','promise':promise,'lifecycle':lifecycle,'stages':stages,'trace':trace}\n\n@app.get('/api/salcapa/common-operating-picture')",
+          "count": 1
+        },
+        {
+          "old": "    decisions=_list_cop_decisions(conn,request); threads=_list_cop_threads(conn,request)\n    conn.close()",
+          "new": "    decisions=_list_cop_decisions(conn,request); threads=_list_cop_threads(conn,request)\n    readiness=_protective_readiness_summary(conn,ids,tid)\n    conn.close()",
+          "count": 1
+        },
+        {
+          "old": "return {'workspace':salcapa_workspace_contract(request),'metrics':",
+          "new": "return {'workspace':salcapa_workspace_contract(request),'protective_readiness':readiness,'metrics':",
+          "count": 1
+        },
+        {
+          "old": "Salus THIRA Command Executive Summary",
+          "new": "SalCAPA Protective Readiness Executive Briefing",
+          "count": 1
+        },
+        {
+          "old": "Salus THIRA Executive Summary",
+          "new": "SalCAPA Protective Readiness Executive Briefing",
+          "count": 2
+        },
+        {
+          "old": "salus-thira-executive-",
+          "new": "salcapa-protective-readiness-",
+          "count": 1
+        },
+        {
+          "old": "w.writerow(['Mission',a['mission']]); w.writerow([])",
+          "new": "w.writerow(['Mission',a['mission']]); w.writerow(['Methodology note','SalTHIRA applies a Salus-specific methodology informed by recognized THIRA principles; Salus does not claim ownership of the public THIRA framework.']); w.writerow([])",
+          "count": 1
+        },
+        {
+          "old": "<p><strong>Purpose:</strong> {html.escape(str(a['purpose']))}</p><h2>Risk Outlook</h2>",
+          "new": "<p><strong>Purpose:</strong> {html.escape(str(a['purpose']))}</p><p><strong>Methodology note:</strong> SalTHIRA applies a Salus-specific methodology informed by recognized THIRA principles; Salus does not claim ownership of the public THIRA framework.</p><h2>Risk Outlook</h2>",
+          "count": 1
+        }
+      ]
+    }
+  }
+}
