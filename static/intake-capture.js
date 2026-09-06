@@ -14,8 +14,24 @@
     return node;
   }
 
+  const WRITE_ROLES = new Set(['System Administrator','Assessment Director','Lead Assessor','SME Assessor','Contributor']);
+
+  function canCaptureInformation(){
+    if(['session','oidc'].includes(systemMode.auth_mode)){
+      return (accessState?.permissions||[]).includes('write');
+    }
+    return WRITE_ROLES.has(currentRole);
+  }
+
   function ensureSurface(){
-    if(document.getElementById('salcapa-intake-launch')) return;
+    const existing=document.getElementById('salcapa-intake-launch');
+    if(!canCaptureInformation()){
+      if(existing) existing.remove();
+      const open=document.getElementById('salcapa-intake-root');
+      if(open) closeDialog();
+      return;
+    }
+    if(existing) return;
     const topbar=document.querySelector('.topbar');
     if(!topbar) return;
     let actions=topbar.querySelector('.intake-topbar-actions');
@@ -161,6 +177,10 @@
     }catch(err){setStatus(err.message,'error');}
   }
 
+  window.SalusIntakeCapture=Object.freeze({sync:ensureSurface,close:closeDialog,canCapture:canCaptureInformation});
+  document.addEventListener('change',event=>{
+    if(event.target?.id==='role-select') queueMicrotask(ensureSurface);
+  },true);
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',ensureSurface);
   else ensureSurface();
 })();

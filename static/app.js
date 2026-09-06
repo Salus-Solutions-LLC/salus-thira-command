@@ -403,8 +403,9 @@ function renderIdentity(){
     box.innerHTML=`<input id="user-name" value="${esc(currentUser)}" aria-label="User name"/><select id="role-select" aria-label="Role">${['System Administrator','Assessment Director','Lead Assessor','SME Assessor','Client Executive','Program Owner','Contributor','Auditor'].map(r=>`<option ${r===currentRole?'selected':''}>${r}</option>`).join('')}</select><div class="status-pill">Private workspace</div>`;
     const oldPill=host.querySelector(':scope > .status-pill'); if(oldPill)oldPill.remove(); host.appendChild(box);
     $('#user-name').onchange=e=>{currentUser=e.target.value||'Local Operator';localStorage.setItem('salus_user',currentUser)};
-    $('#role-select').onchange=e=>{currentRole=e.target.value;localStorage.setItem('salus_role',currentRole);render()};
+    $('#role-select').onchange=e=>{currentRole=e.target.value;localStorage.setItem('salus_role',currentRole);render();window.SalusIntakeCapture?.sync()};
   }
+  window.SalusIntakeCapture?.sync();
 }
 
 function showLogin(message=''){
@@ -415,7 +416,7 @@ function showLogin(message=''){
   $('#content').innerHTML=`<div class="card" style="max-width:520px;margin:60px auto"><h2>SalCAPA</h2><p class="subtle">Authenticated session required.</p>${message?`<div class="notice">${esc(message)}</div>`:''}<form id="login-form"><label>Username<input name="username" autocomplete="username" required></label><label style="margin-top:12px">Password<input name="password" type="password" autocomplete="current-password" required></label><div class="form-actions"><button class="btn">Sign In</button></div></form></div>`;
   $('#login-form').onsubmit=async e=>{e.preventDefault();const d={};new FormData(e.target).forEach((v,k)=>d[k]=v);const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});if(!r.ok){showLogin('Invalid username or password.');return}await initialize();};
 }
-async function logoutSession(){await fetch('/api/auth/logout',{method:'POST'});accessState=null;showLogin('Signed out.');}
+async function logoutSession(){await fetch('/api/auth/logout',{method:'POST'});accessState=null;window.SalusIntakeCapture?.sync();showLogin('Signed out.');}
 
 async function securityReadiness(){
   if(currentRole!=='System Administrator'){ $('#content').innerHTML='<div class="notice">Security and readiness controls require the System Administrator role.</div>'; return; }
