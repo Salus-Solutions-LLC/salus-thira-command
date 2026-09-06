@@ -542,6 +542,40 @@ jobs:
           )):
               raise SystemExit('Recovery readiness must remain passwordless and read-only')
 
+          recovery_rehearsal = Path('tools/ci_recovery_rehearsal.py').read_text()
+          application_source = Path('app.py').read_text()
+          recovery_rehearsal_required = [
+              'CLEAN_ROOM_RECOVERY_REHEARSAL_PASS',
+              'Independent Recovery Reviewer',
+              'safety["filename"] != baseline["filename"]',
+              'assert_restored_snapshot(baseline_records)',
+              'assert_restored_snapshot(safety_records)',
+              'boundary_before',
+              'app.ALLOW_RESTORE = False',
+          ]
+          missing_recovery_rehearsal = [
+              value for value in recovery_rehearsal_required
+              if value not in recovery_rehearsal
+          ]
+          if missing_recovery_rehearsal:
+              raise SystemExit(
+                  'Clean-room recovery rehearsal is incomplete: '
+                  + ', '.join(missing_recovery_rehearsal)
+              )
+          if any(value in recovery_rehearsal for value in (
+              'management.azure.com',
+              'az postgres',
+              'az storage',
+              'SALUS_STORAGE_BACKEND"] = "azure"',
+          )):
+              raise SystemExit('Clean-room recovery rehearsal must not mutate Azure')
+          for value in (
+              "strftime('%Y%m%dT%H%M%S%fZ')",
+              'uuid.uuid4().hex[:12]',
+          ):
+              if value not in application_source:
+                  raise SystemExit('Backup filename uniqueness control is incomplete: ' + value)
+
           connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
           connection_required = [
               'id-token: write',
