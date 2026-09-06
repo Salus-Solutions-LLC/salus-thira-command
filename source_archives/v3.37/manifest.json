@@ -1,0 +1,32 @@
+{
+  "version": "3.37.0",
+  "format": "salcapa-source-snapshot-v1",
+  "snapshot_sha256": "3a48b27a4bb9921491f3a32fb500348ae8b7d59ed92903ec8d1de5fae4ad7f39",
+  "snapshot_size_bytes": 531974,
+  "files": {
+    "app.py": {
+      "target_sha256": "2f84458518e9431f2e5be8cecbf2f3df7ffa517ed6c0e2100e56a89e89a3ed6b",
+      "target_size_bytes": 439140
+    },
+    "material_capability.py": {
+      "target_sha256": "0ac3c0cefd29b7184dc6dd87e3fd8f2eaf26a70e8afd8e29146037d5e859a2e2",
+      "target_size_bytes": 30629
+    },
+    "database.py": {
+      "target_sha256": "fc902f43f62cfa1ccb97260ea9500ffbfd59495743566de002c0c99d65693f27",
+      "target_size_bytes": 12381
+    },
+    "portable_backup.py": {
+      "target_sha256": "f306c46f2085a068ec08b6a17e6b2c94f14c7735ef309dfd2d74c65aeed7134c",
+      "target_size_bytes": 26750
+    },
+    "tools/migrate_sqlite_to_postgres.py": {
+      "target_sha256": "2eccc0676e8cd88fcde93dbdbe6fc2dc186ffb63b2c08cbec7d5e0c21b52acd0",
+      "target_size_bytes": 4614
+    },
+    "tools/ci_material_capability_smoke.py": {
+      "target_sha256": "5289b6504dcb9f5eac78dee856e9b42ee670dee2713084c1e1caba8768b76cce",
+      "target_size_bytes": 9290
+    }
+  }
+}
