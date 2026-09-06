@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "operation": "exercise_point_in_time_restore",
+  "target_environment": "dev",
+  "location": "southcentralus",
+  "unique_suffix": "b48224",
+  "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
+  "source_release": "release/v3.33",
+  "source_commit": "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4",
+  "source_server": "salcapa-dev-b48224-pg",
+  "temporary_restore_server": "salcapa-dev-b48224-pitr",
+  "restore_lag_minutes": 15,
+  "exercise_revision": 1,
+  "activation_key": "salcapa-v3.33-pitr-20260906-r1"
+}
