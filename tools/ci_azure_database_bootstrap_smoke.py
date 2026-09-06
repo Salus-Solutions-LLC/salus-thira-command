@@ -28,7 +28,7 @@ BASE = {
 
 def run(env):
     return subprocess.run(
-        [sys.executable, "tools/azure_database_bootstrap.py"],
+        [sys.executable, "-m", "tools.azure_database_bootstrap"],
         env={**os.environ, **env}, capture_output=True, text=True,
     )
 
@@ -55,5 +55,15 @@ users.append(dict(users[0]))
 bad["SALUS_BOOTSTRAP_INITIAL_USERS_JSON"] = json.dumps(users)
 if run(bad).returncode == 0:
     raise SystemExit("Bootstrap accepted duplicate identity authority")
+
+
+from pathlib import Path
+
+bicep = Path("infra/azure/database-bootstrap.bicep").read_text()
+for required_command_part in ("'-m'", "'tools.azure_database_bootstrap'"):
+    if required_command_part not in bicep:
+        raise SystemExit("Bootstrap job does not use the import-safe module entry point")
+if "'tools/azure_database_bootstrap.py'" in bicep:
+    raise SystemExit("Bootstrap job retained the path-based entry point")
 
 print("AZURE_DATABASE_BOOTSTRAP_SMOKE_PASS")

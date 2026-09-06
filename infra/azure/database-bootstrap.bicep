@@ -89,7 +89,8 @@ resource bootstrapJob 'Microsoft.App/jobs@2025-01-01' = {
             'python'
           ]
           args: [
-            'tools/azure_database_bootstrap.py'
+            '-m'
+            'tools.azure_database_bootstrap'
           ]
           resources: {
             cpu: json('0.25')

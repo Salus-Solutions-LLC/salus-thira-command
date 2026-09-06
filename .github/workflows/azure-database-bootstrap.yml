@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen bootstrap source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.17
+          ref: release/v3.21
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -59,7 +59,7 @@ jobs:
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.17") and
+            (.source_release == "release/v3.21") and
             (.source_commit | test("^[0-9a-f]{40}$")) and
             (.image_digest | test("^salcapadevb48224acr[.]azurecr[.]io/salcapa@sha256:[0-9a-f]{64}$")) and
             (.tenant == {"name":"Salus Solutions","slug":"salus"}) and
