@@ -19,7 +19,9 @@ ID_TABLES = {
     'tenants','users','auth_sessions','oidc_states','assessment_access','assessments',
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions',
     'audit_log','backup_history','security_events','reassessment_triggers','evidence_attachments',
-    'entity_versions','scope_changes','workflow_events','dr_validations'
+    'entity_versions','scope_changes','workflow_events','dr_validations',
+    'capability_posture_snapshots','capability_posture_area_snapshots',
+    'capability_posture_measure_snapshots'
 }
 
 class DbRow(Mapping):
@@ -179,7 +181,7 @@ class PostgresConnection:
         return PostgresCursor(cur,lastrowid=self._lastrowid)
     def executescript(self, script):
         statements=_split_script(script)
-        order={'tenants':10,'users':20,'auth_sessions':30,'oidc_states':30,'backup_history':30,'assessments':40,'assessment_access':50,'threats':60,'scenarios':70,'capabilities':80,'evidence':90,'gaps':100,'improvements':110,'decisions':120,'audit_log':130,'security_events':140,'reassessment_triggers':140,'assessment_weights':140,'evidence_attachments':150,'entity_versions':150,'scope_changes':150,'workflow_events':150,'dr_validations':160}
+        order={'tenants':10,'users':20,'auth_sessions':30,'oidc_states':30,'backup_history':30,'assessments':40,'assessment_access':50,'threats':60,'scenarios':70,'capabilities':80,'evidence':90,'gaps':100,'improvements':110,'decisions':120,'audit_log':130,'security_events':140,'reassessment_triggers':140,'assessment_weights':140,'evidence_attachments':150,'entity_versions':150,'scope_changes':150,'workflow_events':150,'dr_validations':160,'capability_posture_snapshots':170,'capability_posture_area_snapshots':180,'capability_posture_measure_snapshots':180}
         table_stmts=[]; other=[]
         for idx,stmt in enumerate(statements):
             m=re.match(r'^\s*CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+([A-Za-z_][A-Za-z0-9_]*)',stmt,re.I)
@@ -213,7 +215,6 @@ def is_postgres(): return DB_BACKEND=='postgres'
 
 def table_columns(conn, table: str):
     return {r['name'] for r in conn.execute(f'PRAGMA table_info({table})')}
-
 def reset_identity_sequences(conn, tables=None):
     if not is_postgres(): return
     selected=sorted((set(tables) if tables else ID_TABLES) & ID_TABLES)
