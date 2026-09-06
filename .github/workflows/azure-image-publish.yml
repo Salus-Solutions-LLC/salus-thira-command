@@ -54,6 +54,7 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
+            (.activation_key == "salcapa-v3.33-image-c24e8c99") and
             (.operation == "publish_image") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
@@ -63,6 +64,7 @@ jobs:
             (.source_release == "release/v3.33") and
             (.source_commit | test("^[0-9a-f]{40}$")) and
             ((keys - [
+              "activation_key",
               "approval_record",
               "location",
               "operation",
@@ -175,7 +177,7 @@ jobs:
           if [ -z "$EXISTING_DIGEST" ]; then
             docker build               --label "org.opencontainers.image.revision=$SOURCE_COMMIT"               --label "org.opencontainers.image.source=https://github.com/Salus-Solutions-LLC/salus-thira-command"               --tag "$IMAGE_REFERENCE"               frozen-release
             test "$(docker run --rm "$IMAGE_REFERENCE" id -u)" = "10001"
-            docker run --rm "$IMAGE_REFERENCE" python tools/verify_v325_source.py
+            docker run --rm "$IMAGE_REFERENCE" python tools/verify_v333_source.py
             az acr login --name "$REGISTRY_NAME"
             docker push "$IMAGE_REFERENCE"
           fi
