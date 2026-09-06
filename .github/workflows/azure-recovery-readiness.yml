@@ -60,7 +60,7 @@ jobs:
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
             (.source_release == "release/v3.30") and
             (.source_commit == "00c40997225eb6ade3637b45a3c1ad543e066db7") and
-            (.verification_revision == 3) and
+            (.verification_revision == 4) and
             ((keys - [
               "approval_record",
               "location",
@@ -193,7 +193,7 @@ jobs:
             echo "- PostgreSQL password authentication: disabled"
             echo "- Evidence storage: private, OAuth-only, versioned, 14-day soft delete"
             echo "- Monitoring: Azure Monitor connected; 30-day retention; 0.1 GB/day cap"
-            echo "- Budget guardrail: $25 operational budget inside the $30 ceiling"
+            echo "- Budget guardrail: USD 25 operational budget inside the USD 30 ceiling"
             echo "- Active application: exact approved immutable digest"
             echo "- Restore operation: not performed"
             echo "- Resource mutation: none"

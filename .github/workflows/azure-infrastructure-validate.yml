@@ -511,7 +511,7 @@ jobs:
               'deleteRetentionPolicy.days == 14',
               'containerDeleteRetentionPolicy.days == 14',
               'workspaceCapping.dailyQuotaGb == 0.1',
-              'properties.notifications.Actual80Percent',
+              'properties.notifications.actual80Percent',
               'frozen-release/tools/validate_live_readiness.py',
               'Restore operation: not performed',
               'Resource mutation: none',
