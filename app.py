@@ -2922,13 +2922,16 @@ def create_backup_archive(request:Request, reason:str='Manual backup'):
     manifest={'format':'salus-thira-portable-backup-v1','created_at':now(),'created_by':actor(request),'tenant_id':tid,'reason':reason,'application_version':APP_VERSION,'database_backend':DB_BACKEND,'files':[]}
     with zipfile.ZipFile(final,'w',compression=zipfile.ZIP_DEFLATED) as z:
         manifest['files'].append({'path':'records.json','sha256':hashlib.sha256(records_bytes).hexdigest(),'size_bytes':len(records_bytes)}); z.writestr('records.json',records_bytes)
-        for item in sorted(records.get('evidence_attachments',[]),key=lambda x:str(x.get('stored_name',''))):
+        stored_records=records.get('evidence_attachments',[])+records.get('materials',[])
+        backed_up_objects=set()
+        for item in sorted(stored_records,key=lambda x:str(x.get('stored_name',''))):
             fn=str(item.get('stored_name','')).strip()
-            if not fn: continue
+            if not fn or fn in backed_up_objects: continue
             try: b=storage.get_bytes(fn)
             except Exception as exc:
-                error_id=uuid.uuid4().hex; record_internal_failure('backup evidence read',error_id,exc)
-                raise HTTPException(409,f'Backup cannot read an evidence object. Reference: {error_id}')
+                error_id=uuid.uuid4().hex; record_internal_failure('backup governed material read',error_id,exc)
+                raise HTTPException(409,f'Backup cannot read a governed material object. Reference: {error_id}')
+            backed_up_objects.add(fn)
             arc=f'attachments/{fn}'; manifest['files'].append({'path':arc,'sha256':hashlib.sha256(b).hexdigest(),'size_bytes':len(b)}); z.writestr(arc,b)
         z.writestr('manifest.json',json.dumps(manifest,indent=2,sort_keys=True))
     data=Path(final).read_bytes(); digest=hashlib.sha256(data).hexdigest(); conn=db(); cur=conn.execute('INSERT INTO backup_history(tenant_id,filename,sha256,size_bytes,created_by,created_at) VALUES(?,?,?,?,?,?)',(tid,name,digest,len(data),actor(request),now())); bid=cur.lastrowid; audit(conn,'BACKUP','backup_history',bid,reason,actor(request)); conn.commit(); conn.close(); return {'id':bid,'filename':name,'sha256':digest,'size_bytes':len(data),'created_at':manifest['created_at'],'format':manifest['format']}
@@ -2959,7 +2962,13 @@ def dr_validate_backup_file(path:str):
     with zipfile.ZipFile(path,'r') as z:
         if 'records.json' in z.namelist():
             package=json.loads(z.read('records.json').decode('utf-8')); records=package.get('tables',{}); db_integrity='portable-record-integrity-ok'
-            assessment_count=len(records.get('assessments',[])); attachment_count=len(records.get('evidence_attachments',[]))
+            assessment_count=len(records.get('assessments',[]))
+            attachment_count=len({
+                str(row.get('stored_name','')).strip()
+                for table in ('evidence_attachments','materials')
+                for row in records.get(table,[])
+                if str(row.get('stored_name','')).strip()
+            })
             errors.extend(validate_records(records,base.get('manifest',{}).get('tenant_id')))
         else:
             fd,tmp=tempfile.mkstemp(suffix='.db'); os.close(fd); Path(tmp).write_bytes(z.read('thira.db'))
@@ -3043,7 +3052,10 @@ def restore_backup(backup_id:int,restore_request_id:int,request:Request):
         if 'records.json' in z.namelist():
             package=json.loads(z.read('records.json').decode('utf-8')); records=package.get('tables',{})
             if int(package.get('tenant_id',tid))!=tid: raise HTTPException(409,'Backup tenant does not match the active tenant')
-            conn=db(); old_keys=[r['stored_name'] for r in conn.execute('SELECT ea.stored_name FROM evidence_attachments ea JOIN assessments a ON a.id=ea.assessment_id WHERE a.tenant_id=?',(tid,))]; conn.close()
+            conn=db()
+            old_keys=[r['stored_name'] for r in conn.execute('SELECT ea.stored_name FROM evidence_attachments ea JOIN assessments a ON a.id=ea.assessment_id WHERE a.tenant_id=?',(tid,))]
+            old_keys.extend(r['stored_name'] for r in conn.execute("SELECT stored_name FROM materials WHERE tenant_id=? AND stored_name<>''",(tid,)))
+            old_keys=list(dict.fromkeys(old_keys)); conn.close()
             new_objects={}
             for item in z.namelist():
                 if item.startswith('attachments/') and not item.endswith('/'):
@@ -5317,3 +5329,8 @@ def delete_entity(table:str,entity_id:int,request:Request):
     assessment_row_for_request(request,entity_assessment_id(table,old))
     if table=='evidence': require_sensitivity(request,old['sensitivity'])
     conn.execute(f'DELETE FROM {table} WHERE id=?',(entity_id,)); audit(conn,'DELETE',table[:-1],entity_id,'Deleted in prototype',actor(request)); conn.commit(); conn.close(); return {'ok':True}
+
+# Register the governed generic-material capability only after all shared
+# authorization, tenancy, audit, storage, and lifecycle helpers are defined.
+from material_capability import register_material_capability
+register_material_capability(app, globals())
