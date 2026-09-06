@@ -65,6 +65,8 @@ jobs:
         run: python tools/ci_azure_database_bootstrap_smoke.py
       - name: Passwordless runtime secret-path regression smoke
         run: python tools/ci_passwordless_runtime_smoke.py
+      - name: Live runtime acceptance contract smoke
+        run: python tools/validate_live_readiness.py --self-test
       - name: Security remediation regression smoke
         run: python tools/security_regression_smoke.py
       - name: Readiness disclosure regression smoke

@@ -206,9 +206,16 @@ jobs:
           test "$(jq -r '.identity.userAssignedIdentities | length' /tmp/salcapa-app.json)" = "1"
           RUNTIME_IDENTITY_CLIENT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query clientId --output tsv)"
           jq -e --arg client_id "$RUNTIME_IDENTITY_CLIENT_ID" '
-            any(.properties.template.containers[0].env[];
-              .name == "AZURE_CLIENT_ID" and .value == $client_id
-            )
+            def env_value($name):
+              first(.properties.template.containers[0].env[] | select(.name == $name) | .value);
+            env_value("AZURE_CLIENT_ID") == $client_id and
+            env_value("SALUS_DB_BACKEND") == "postgres" and
+            env_value("SALUS_POSTGRES_AUTH") == "entra" and
+            env_value("SALUS_SECRET_BACKEND") == "azure_keyvault" and
+            env_value("SALUS_STORAGE_BACKEND") == "azure" and
+            env_value("SALUS_TELEMETRY_BACKEND") == "azure_monitor" and
+            env_value("SALUS_AUTH_MODE") == "oidc" and
+            env_value("SALUS_OIDC_CLIENT_AUTH_METHOD") == "managed_identity"
           ' /tmp/salcapa-app.json >/dev/null
           FQDN="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/salcapa-app.json)"
           [[ "$FQDN" == salcapa-dev-b48224.*.southcentralus.azurecontainerapps.io ]]
@@ -218,7 +225,7 @@ jobs:
           STATUS=000
           for attempt in $(seq 1 30); do
             STATUS="$(curl --connect-timeout 5 --max-time 15 --silent --show-error --output /tmp/salcapa-ready.json --write-out '%{http_code}' "$URL/health/ready" || true)"
-            if [ "$STATUS" = "200" ] && jq -e 'type == "object"' /tmp/salcapa-ready.json >/dev/null 2>&1; then
+            if [ "$STATUS" = "200" ] && python frozen-release/tools/validate_live_readiness.py /tmp/salcapa-ready.json --environment dev >/dev/null 2>&1; then
               READY=true
               break
             fi
@@ -282,6 +289,8 @@ jobs:
             exit 1
           fi
 
+          python frozen-release/tools/validate_live_readiness.py /tmp/salcapa-ready.json --environment dev
+
           curl --connect-timeout 5 --max-time 15 --silent --show-error --dump-header /tmp/salcapa-oidc.headers --output /dev/null "$URL/api/auth/oidc/start"
           OIDC_LOCATION="$(awk 'BEGIN{IGNORECASE=1} /^location:/{sub(/^[^:]+:[[:space:]]*/,""); sub(/\r$/,""); print; exit}' /tmp/salcapa-oidc.headers)"
           [[ "$OIDC_LOCATION" == "https://login.microsoftonline.com/$EXPECTED_TENANT_ID/oauth2/v2.0/authorize"* ]]
@@ -293,6 +302,7 @@ jobs:
             echo "- Immutable image: $IMAGE_DIGEST"
             echo "- Runtime authentication: Microsoft Entra OIDC through managed identity"
             echo "- PostgreSQL authentication: Entra only; password authentication disabled"
+            echo "- Live dependencies: PostgreSQL, Key Vault, evidence storage, Azure Monitor, rate limiting, and OIDC accepted"
             echo "- HTTPS ingress: required"
             echo "- Minimum replicas: 0"
             echo "- Maximum replicas: 1"
