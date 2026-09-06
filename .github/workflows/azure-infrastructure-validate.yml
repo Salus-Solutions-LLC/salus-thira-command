@@ -14,9 +14,11 @@ on:
       - '.github/workflows/azure-foundation-activate.yml'
       - '.github/workflows/azure-image-publish.yml'
       - '.github/workflows/azure-database-bootstrap.yml'
+      - '.github/workflows/azure-application-deploy.yml'
       - 'deploy/azure/activations/foundation-dev.json'
       - 'deploy/azure/activations/image-dev.json'
       - 'deploy/azure/activations/database-dev.json'
+      - 'deploy/azure/activations/application-dev.json'
   push:
     branches:
       - 'development/**'
@@ -31,9 +33,11 @@ on:
       - '.github/workflows/azure-foundation-activate.yml'
       - '.github/workflows/azure-image-publish.yml'
       - '.github/workflows/azure-database-bootstrap.yml'
+      - '.github/workflows/azure-application-deploy.yml'
       - 'deploy/azure/activations/foundation-dev.json'
       - 'deploy/azure/activations/image-dev.json'
       - 'deploy/azure/activations/database-dev.json'
+      - 'deploy/azure/activations/application-dev.json'
   workflow_dispatch:
 
 permissions:
@@ -388,6 +392,64 @@ jobs:
                   raise SystemExit('Database-bootstrap command is incomplete: ' + value)
           if 'client_secret' in database_bootstrap_command.lower() or 'postgres_password' in database_bootstrap_command.lower():
               raise SystemExit('Database-bootstrap command may not contain a long-lived credential path')
+
+          application_deployment = Path('.github/workflows/azure-application-deploy.yml').read_text()
+          application_deployment_required = [
+              'deploy/azure/activations/application-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.23',
+              '.source_release == "release/v3.23"',
+              '.image_digest | test(',
+              'path: frozen-release',
+              'git -C frozen-release rev-parse HEAD',
+              'git merge-base --is-ancestor',
+              'passwordAuth --output tsv)" = "Disabled"',
+              'publicNetworkAccess --output tsv)" = "Disabled"',
+              'adminUserEnabled --output tsv)" = "false"',
+              'az acr manifest show-metadata',
+              'az deployment group what-if',
+              'az deployment group create',
+              'provisionApplication=true',
+              'containerImageDigest="$IMAGE_DIGEST"',
+              'sourceCommit="$SOURCE_COMMIT"',
+              'monthlyCostCeilingUsd=30',
+              'operationalBudgetUsd=25',
+              'salcapa-dev-b48224',
+              '.properties.template.containers[0].image',
+              '.properties.configuration.ingress.allowInsecure',
+              '.properties.configuration.secrets // []',
+              '.identity.userAssignedIdentities | length',
+              '/health/ready',
+              '/api/auth/oidc/start',
+              'login.microsoftonline.com/$EXPECTED_TENANT_ID/oauth2/v2.0/authorize',
+              'Minimum replicas: 0',
+              'Maximum replicas: 1',
+              'Client secret: not used',
+              'Custom DNS: not changed',
+              'Public production cutover: not performed',
+          ]
+          missing_application_deployment = [
+              value for value in application_deployment_required
+              if value not in application_deployment
+          ]
+          if missing_application_deployment:
+              raise SystemExit(
+                  'Azure application deployment governance is incomplete: '
+                  + ', '.join(missing_application_deployment)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', application_deployment, re.MULTILINE):
+              raise SystemExit('Application deployment may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\\b', application_deployment)) < 2:
+              raise SystemExit('Both application-deployment checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\\b', application_deployment):
+              raise SystemExit('Application-deployment Azure login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in application_deployment or ':latest' in application_deployment:
+              raise SystemExit('Application deployment may not use a client secret or mutable latest tag')
+          if 'customDomains:' in application_deployment or 'az network dns' in application_deployment:
+              raise SystemExit('Development deployment may not change DNS')
 
           connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
           connection_required = [
