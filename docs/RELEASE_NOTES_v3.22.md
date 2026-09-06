@@ -9,6 +9,7 @@
 - Renames the executive output to the SalCAPA Protective Readiness Executive Briefing.
 - Adds explicit SalTHIRA attribution discipline: Salus applies a specific methodology informed by recognized THIRA principles and does not claim ownership of the public framework.
 - Extends SQLite, PostgreSQL 16, and production-container acceptance coverage for the persisted lifecycle and member-facing language.
+- Retains deterministic reconstruction from the v3.3 baseline through the governed v3.22 delta; reconstructed `app.py` is 435,821 bytes with SHA-256 `99401415d73ead6450313f5c2b246131a7763dd31ef3f71e6da6516329cb5d59`.
 
 ## Governance
 
