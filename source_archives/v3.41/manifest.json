@@ -1,8 +1,8 @@
 {
   "format": "salcapa-source-manifest-v1",
   "version": "3.41.0",
-  "snapshot_sha256": "57978ab09e4bd1b36e838e7950dcafda8cd2207f3d23db8f2796eadee4ea4d46",
-  "snapshot_size_bytes": 837919,
+  "snapshot_sha256": "7bdf41b6e51336961d2e8f421b3be0e9e4aa70fdeb717a2650abe8ed9453f70f",
+  "snapshot_size_bytes": 838021,
   "files": {
     "app.py": {
       "target_sha256": "acc432739944e65a443eea341472b230152fb76e646fd3ccd87f70e58717edc7",
@@ -89,8 +89,8 @@
       "target_size_bytes": 11773
     },
     "tools/ci_salintel_domain_ui_smoke.py": {
-      "target_sha256": "de640d05bd0a522b16de2ef0edf37bc13eb542e5a1231cdb159ced29b3eb0821",
-      "target_size_bytes": 1321
+      "target_sha256": "47382be62e833ab88aef45ca0717b71d1c8a8e1849b3b4a461aee1ce3e46b826",
+      "target_size_bytes": 1414
     },
     "static/product-version.js": {
       "target_sha256": "7e18164c0c0ff4ac05e28373491a6a70c36539dfb7a35ddf520e66bb29476e99",
