@@ -175,7 +175,7 @@ jobs:
           if [ -z "$EXISTING_DIGEST" ]; then
             docker build               --label "org.opencontainers.image.revision=$SOURCE_COMMIT"               --label "org.opencontainers.image.source=https://github.com/Salus-Solutions-LLC/salus-thira-command"               --tag "$IMAGE_REFERENCE"               frozen-release
             test "$(docker run --rm "$IMAGE_REFERENCE" id -u)" = "10001"
-            docker run --rm "$IMAGE_REFERENCE" python tools/verify_v322_source.py
+            docker run --rm "$IMAGE_REFERENCE" python tools/verify_v325_source.py
             az acr login --name "$REGISTRY_NAME"
             docker push "$IMAGE_REFERENCE"
           fi
