@@ -16,12 +16,23 @@
       <div class="salcapa-posture-gauge-foot"><span>${Number(area.capability_count||0)} capabilities</span><span>${Number(area.material_gap_count||0)} material gaps</span></div>
     </section>`;
   }
+  function actionRows(actions){
+    if(!actions.length) return '<div class="salcapa-posture-empty">No readiness action is currently prioritized.</div>';
+    return `<div class="salcapa-posture-actions" role="list">${actions.map(function(a){
+      const score=a.score==null?'Unknown':Number(a.score).toFixed(1);
+      return `<div class="salcapa-posture-action" role="listitem">
+        <div><strong>${esc(a.capability_name)}</strong><span>${esc(a.mission_area)} · Score ${esc(score)} · Confidence ${esc(a.confidence)}</span></div>
+        <div><span>Next action</span><strong>${esc(a.recommended_action)}</strong></div>
+      </div>`;
+    }).join('')}</div>`;
+  }
   function render(container,payload){
     if(!container) throw new Error('Capability posture container is required');
     const overall=payload && payload.overall ? payload.overall : {score:null,band:'Unknown',confidence:'Low'};
     const unknown=overall.score == null || overall.band === 'Unknown';
     const overallLabel=unknown ? 'Unknown' : Number(overall.score).toFixed(1);
     const areas=(payload && payload.mission_areas)||[];
+    const actions=(payload && payload.prioritized_actions)||[];
     container.innerHTML=`<div class="salcapa-posture" data-status="${esc(payload&&payload.status||'Unknown')}">
       <header class="salcapa-posture-summary">
         <div><div class="eyebrow">Protected Member Capability Posture</div><h2>${esc(payload&&payload.protected_member_name||'Protected Member')}</h2></div>
@@ -36,7 +47,8 @@
         <div><span>Material gaps</span><strong>${Number(payload&&payload.material_gap_count||0)}</strong></div>
         <div><span>Scoring version</span><strong>${esc(payload&&payload.scoring_version||'—')}</strong></div>
       </div>
-      <div class="salcapa-posture-note">Capability posture reflects current demonstrated capability and evidence confidence. Documentation or training alone does not establish demonstrated capability.</div>
+      <section class="salcapa-posture-next"><div class="section-title"><h3>Prioritized Readiness Actions</h3><span>Decision support — authorization required</span></div>${actionRows(actions)}</section>
+      <div class="salcapa-posture-note">Capability posture reflects current demonstrated capability and evidence confidence. Documentation or training alone does not establish demonstrated capability. Recommended actions do not authorize work or spending.</div>
     </div>`;
   }
   async function load(container,assessmentId,api){
