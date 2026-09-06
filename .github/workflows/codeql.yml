@@ -36,7 +36,7 @@ jobs:
       - name: Reconstruct and verify archived source
         run: |
           if [ ! -f app.py ] && [ -f tools/reconstruct_v333_source.py ]; then python tools/reconstruct_v333_source.py; fi
-          python tools/verify_v332_source.py
+          python tools/verify_v333_source.py
       - name: Validate release reconstruction entrypoints
         run: python tools/check_release_entrypoints.py
       - uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
