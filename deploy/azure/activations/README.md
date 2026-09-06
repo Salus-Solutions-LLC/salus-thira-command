@@ -31,3 +31,11 @@ Activation records must never contain passwords, client secrets, tokens, connect
 `database-dev.json` is recognized only after the v3.14 bootstrap mechanism and image are frozen. It must identify the exact immutable release commit and registry digest, the fixed Salus tenant, and one or more pre-approved people by immutable Microsoft Entra object ID. Each mapping explicitly records the server-controlled username, display name, SalCAPA role, sensitivity clearance, and lifecycle status.
 
 The protected workflow creates an in-network one-time Container Apps Job. Its temporary managed identity is an additional PostgreSQL Entra administrator only while the job creates the non-administrator runtime role and initializes the database. Cleanup removes the temporary administrator, job, and identity on both success and failure. Creating or editing this README never activates Azure.
+
+## Application development record
+
+`application-dev.json` is recognized only after the exact application source is frozen and its non-root image is published by immutable Azure Container Registry digest. The record fixes the environment, region, suffix, approval record, release branch, source commit, and digest; unknown or mutable inputs fail closed.
+
+The protected workflow authenticates through GitHub workload identity federation, confirms the exact subscription, tenant, resource group, private PostgreSQL configuration, disabled registry administrator, and immutable image before running Azure what-if and deployment. It then verifies the live image, user-assigned identity, HTTPS-only ingress, zero-to-one replica cost boundary, absence of application secrets, readiness endpoint, and Microsoft Entra authorization redirect.
+
+The first deployment uses the Azure-generated development address. It does not add custom DNS, create a client secret, or perform public production cutover. Creating or editing this README never activates Azure.
