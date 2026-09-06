@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.33
+          ref: release/v3.35
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -54,13 +54,13 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.33-application-c24e8c99") and
+            (.activation_key == "salcapa-v3.35-application-b9eb8953") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.33") and
+            (.source_release == "release/v3.35") and
             (.source_commit | test("^[0-9a-f]{40}$")) and
             (.image_digest | test("^salcapadevb48224acr[.]azurecr[.]io/salcapa@sha256:[0-9a-f]{64}$")) and
             ((keys - [
