@@ -3,8 +3,8 @@
   "baseline": "v3.3.0",
   "files": {
     "app.py": {
-      "baseline_sha256": "4e988c537ed25399d7153248736f390e573833488ddf3c3cd922d673c56c5b1d",
-      "target_sha256": "7ecc4c1e2fae7d622621f245a40ca5310e6ad3f5d34cf04d3385db8513b7911b",
+      "baseline_sha256": "5e9e1e4ac7cdc7fc2fc9dfcf3cd22fea60d254abae28a013084a7cdeed03cbc4",
+      "target_sha256": "99401415d73ead6450313f5c2b246131a7763dd31ef3f71e6da6516329cb5d59",
       "target_size_bytes": 435821,
       "operations": [
         {
