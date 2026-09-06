@@ -25,6 +25,8 @@ ItemKind = Literal[
 Qualification = Literal["Unqualified", "Analyst Reviewed", "Qualified", "Rejected"]
 Commercial = Literal["Not Determined", "Included", "Bundled", "Separate Proposal", "Waived"]
 Lens = Literal["Prevention", "Protection", "Mitigation", "Response", "Recovery"]
+DomainLifecycle = Literal["Enabled", "Held", "Retired"]
+DisclosurePosture = Literal["Salus Internal", "Tenant Disclosable with Approval"]
 
 
 class CreateInvestigation(BaseModel):
@@ -102,6 +104,22 @@ class RecommendTier(BaseModel):
     reason: str = Field(min_length=1, max_length=4000)
 
 
+class UpdateDomain(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    display_name: str = Field(min_length=1, max_length=180)
+    description: str = Field(min_length=1, max_length=4000)
+    subject_entity_kinds: list[str] = Field(min_length=1, max_length=40)
+    lifecycle_status: DomainLifecycle
+    default_sensitivity: Sensitivity
+    default_disclosure_posture: DisclosurePosture
+    investigative_lenses: list[Lens] = Field(min_length=1, max_length=5)
+    handoff_types: list[str] = Field(min_length=1, max_length=10)
+    allowed_relationships: list[str] = Field(min_length=1, max_length=40)
+    required_review_level: str = Field(min_length=1, max_length=180)
+    tier_profiles: list[dict[str, str | int | bool]] = Field(min_length=3, max_length=3)
+    reason: str = Field(min_length=1, max_length=4000)
+
+
 _NAMES = [
     ("personnel-assessment", "Personnel Assessment"),
     ("facility-assessment", "Facility Assessment"),
@@ -162,6 +180,16 @@ CREATE TABLE IF NOT EXISTS salintel_domains (
  approved_by TEXT NOT NULL, approved_at TEXT NOT NULL,
  created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS salintel_domain_events (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, domain_id INTEGER NOT NULL,
+ version_no INTEGER NOT NULL, event_type TEXT NOT NULL, reason TEXT NOT NULL,
+ snapshot_json TEXT NOT NULL, changed_by TEXT NOT NULL,
+ changed_by_role TEXT NOT NULL, created_at TEXT NOT NULL,
+ FOREIGN KEY (domain_id) REFERENCES salintel_domains(id) ON DELETE RESTRICT,
+ UNIQUE(domain_id,version_no)
+);
+CREATE INDEX IF NOT EXISTS idx_salintel_domain_events
+ ON salintel_domain_events(domain_id,version_no);
 CREATE TABLE IF NOT EXISTS salintel_investigations (
  id INTEGER PRIMARY KEY AUTOINCREMENT, tenant_id INTEGER NOT NULL,
  record_key TEXT NOT NULL UNIQUE, domain_key TEXT NOT NULL, title TEXT NOT NULL,
@@ -243,6 +271,15 @@ def register_salintel_domain_capability(app, core: dict) -> None:
                  lenses, handoffs, relationships, "Salus Analyst Qualification",
                  tiers, "Salus governed architecture #142", ts, ts, ts),
             )
+        for row in conn.execute("SELECT * FROM salintel_domains ORDER BY id"):
+            conn.execute(
+                "INSERT INTO salintel_domain_events(domain_id,version_no,event_type,reason,"
+                "snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(domain_id,version_no) DO NOTHING",
+                (row["id"], 1, "DOMAIN_REGISTERED", "Initial governed domain registration.",
+                 json.dumps(dict(row), sort_keys=True, default=str), row["approved_by"],
+                 "Governance", row["approved_at"]),
+            )
         conn.commit()
     finally:
         conn.close()
@@ -281,6 +318,37 @@ def register_salintel_domain_capability(app, core: dict) -> None:
         except (TypeError, ValueError):
             return fallback
 
+    def public_domain(row):
+        value = dict(row)
+        raw_subjects = value.get("subject_entity_kinds", "")
+        value["subject_entity_kinds"] = parsed(
+            raw_subjects, [part.strip() for part in str(raw_subjects).split(",") if part.strip()]
+        )
+        for raw, name in (
+            ("investigative_lenses_json", "investigative_lenses"),
+            ("handoff_types_json", "handoff_types"),
+            ("allowed_relationships_json", "allowed_relationships"),
+            ("tier_profiles_json", "tier_profiles"),
+        ):
+            value[name] = parsed(value.pop(raw, ""), [])
+        return value
+
+    def domain_event(conn, request: Request, domain_id: int, event_type: str, reason: str):
+        row = conn.execute("SELECT * FROM salintel_domains WHERE id=?", (domain_id,)).fetchone()
+        conn.execute(
+            "INSERT INTO salintel_domain_events(domain_id,version_no,event_type,reason,"
+            "snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?)",
+            (domain_id, row["version"], event_type, reason,
+             json.dumps(dict(row), sort_keys=True, default=str),
+             actor(request), role(request), now()),
+        )
+        conn.execute(
+            "INSERT INTO audit_log(ts,user_name,action,entity_type,entity_id,detail,tenant_id) "
+            "VALUES(?,?,?,?,?,?,?)",
+            (now(), actor(request), "SALINTEL_DOMAIN_UPDATED", "salintel_domain",
+             domain_id, reason[:2000], tenant_id(request)),
+        )
+
     def public(row, member=False):
         value = dict(row)
         for raw, name, fallback in (
@@ -318,21 +386,93 @@ def register_salintel_domain_capability(app, core: dict) -> None:
     @app.get("/api/salintel/domains/catalog")
     def domains(request: Request):
         require(request, "read")
+        member = is_member(request)
         conn = db()
+        sql = ("SELECT * FROM salintel_domains WHERE lifecycle_status='Enabled' "
+               if member else "SELECT * FROM salintel_domains ")
         rows = []
-        for row in conn.execute(
-            "SELECT * FROM salintel_domains WHERE lifecycle_status='Enabled' ORDER BY display_name"
-        ):
-            item = dict(row)
-            if is_member(request):
+        for row in conn.execute(sql + "ORDER BY display_name"):
+            item = public_domain(row)
+            if member:
                 item = {key: item[key] for key in ("domain_key", "display_name", "description")}
-            else:
-                for key in ("investigative_lenses", "handoff_types",
-                            "allowed_relationships", "tier_profiles"):
-                    item[key] = parsed(item.pop(key + "_json"), [])
             rows.append(item)
         conn.close()
         return rows
+
+    @app.get("/api/salintel/domains/catalog/{domain_key}")
+    def domain_detail(domain_key: str, request: Request):
+        require(request, "read")
+        authority(request, "domain registry review")
+        conn = db()
+        row = conn.execute("SELECT * FROM salintel_domains WHERE domain_key=?", (domain_key,)).fetchone()
+        if not row:
+            conn.close()
+            raise HTTPException(404, "Investigative domain not found")
+        value = public_domain(row)
+        value["events"] = [dict(item) for item in conn.execute(
+            "SELECT version_no,event_type,reason,changed_by,changed_by_role,created_at "
+            "FROM salintel_domain_events WHERE domain_id=? ORDER BY version_no", (row["id"],)
+        )]
+        conn.close()
+        return value
+
+    @app.put("/api/salintel/domains/catalog/{domain_key}")
+    def update_domain(domain_key: str, payload: UpdateDomain, request: Request):
+        require(request, "decide")
+        authority(request, "domain registry administration")
+        clean = lambda values: list(dict.fromkeys(
+            str(value).strip() for value in values if str(value).strip()
+        ))
+        subjects = clean(payload.subject_entity_kinds)
+        handoffs = clean(payload.handoff_types)
+        relationships = clean(payload.allowed_relationships)
+        lenses = clean(payload.investigative_lenses)
+        allowed_handoffs = {"SalTHIRA", "SalOPS", "SalCAPA COP", "Reporting"}
+        if not subjects or not relationships or not lenses:
+            raise HTTPException(422, "Domain configuration lists may not be empty")
+        if any(value not in allowed_handoffs for value in handoffs):
+            raise HTTPException(422, "Unknown SalCAPA handoff type")
+        profiles = payload.tier_profiles
+        if sorted(int(item.get("tier", 0)) for item in profiles) != [1, 2, 3]:
+            raise HTTPException(422, "Tier profiles must define exactly Tier 1, Tier 2, and Tier 3")
+        if any(item.get("bounded") is not True or not str(item.get("name", "")).strip()
+               or not str(item.get("profile_version", "")).strip() for item in profiles):
+            raise HTTPException(422, "Each tier profile requires a name, profile version, and bounded=true")
+        conn = db()
+        row = conn.execute("SELECT * FROM salintel_domains WHERE domain_key=?", (domain_key,)).fetchone()
+        if not row:
+            conn.close()
+            raise HTTPException(404, "Investigative domain not found")
+        if payload.lifecycle_status == "Retired":
+            active = int(conn.execute(
+                "SELECT COUNT(*) c FROM salintel_investigations "
+                "WHERE domain_key=? AND status!='Closed'", (domain_key,)
+            ).fetchone()["c"])
+            if active:
+                conn.close()
+                raise HTTPException(409, "A domain with active investigations cannot be retired")
+        ts, who = now(), actor(request)
+        conn.execute(
+            "UPDATE salintel_domains SET display_name=?,description=?,subject_entity_kinds=?,"
+            "lifecycle_status=?,default_sensitivity=?,default_disclosure_posture=?,"
+            "investigative_lenses_json=?,handoff_types_json=?,allowed_relationships_json=?,"
+            "required_review_level=?,tier_profiles_json=?,version=version+1,approved_by=?,"
+            "approved_at=?,updated_at=? WHERE id=?",
+            (payload.display_name.strip(), payload.description.strip(),
+             json.dumps(subjects, separators=(",", ":")), payload.lifecycle_status,
+             payload.default_sensitivity, payload.default_disclosure_posture,
+             json.dumps(lenses, separators=(",", ":")),
+             json.dumps(handoffs, separators=(",", ":")),
+             json.dumps(relationships, separators=(",", ":")),
+             payload.required_review_level.strip(),
+             json.dumps(profiles, separators=(",", ":"), sort_keys=True),
+             who, ts, ts, row["id"]),
+        )
+        domain_event(conn, request, row["id"], "DOMAIN_CONFIGURATION_UPDATED", payload.reason)
+        conn.commit()
+        result = conn.execute("SELECT * FROM salintel_domains WHERE id=?", (row["id"],)).fetchone()
+        conn.close()
+        return public_domain(result)
 
     @app.post("/api/salintel/investigations")
     def create(payload: CreateInvestigation, request: Request):

@@ -38,6 +38,53 @@ def main():
     assert [row["tier"] for row in personnel["tier_profiles"]] == [1, 2, 3]
     assert personnel["investigative_lenses"] == [
         "Prevention", "Protection", "Mitigation", "Response", "Recovery"]
+    assert personnel["version"] == 1
+    baseline = client.get("/api/salintel/domains/catalog/personnel-assessment",
+                          headers=analyst)
+    assert baseline.status_code == 200 and len(baseline.json()["events"]) == 1
+    assert client.get("/api/salintel/domains/catalog/personnel-assessment",
+                      headers=member).status_code == 403
+    forged_domain = client.put("/api/salintel/domains/catalog/personnel-assessment",
+        headers=analyst, json={"version": 99, "approved_by": "client"})
+    assert forged_domain.status_code == 422
+    denied_domain = client.put("/api/salintel/domains/catalog/personnel-assessment",
+        headers=member, json={})
+    assert denied_domain.status_code == 403
+    update_payload = {
+        "display_name": personnel["display_name"],
+        "description": personnel["description"],
+        "subject_entity_kinds": ["person"],
+        "lifecycle_status": "Held",
+        "default_sensitivity": personnel["default_sensitivity"],
+        "default_disclosure_posture": personnel["default_disclosure_posture"],
+        "investigative_lenses": personnel["investigative_lenses"],
+        "handoff_types": personnel["handoff_types"],
+        "allowed_relationships": personnel["allowed_relationships"],
+        "required_review_level": personnel["required_review_level"],
+        "tier_profiles": [{**item, "profile_version": "personnel-v1"}
+                          for item in personnel["tier_profiles"]],
+        "reason": "SYNTHETIC governance hold for version-history acceptance.",
+    }
+    held = client.put("/api/salintel/domains/catalog/personnel-assessment",
+                      headers=analyst, json=update_payload)
+    assert held.status_code == 200, held.text
+    assert held.json()["version"] == 2 and held.json()["approved_by"] == "SalINTEL Analyst"
+    member_keys = {row["domain_key"] for row in client.get(
+        "/api/salintel/domains/catalog", headers=member).json()}
+    assert "personnel-assessment" not in member_keys
+    blocked_request = client.post("/api/salintel/investigations", headers=analyst,
+        json={"domain_key": "personnel-assessment", "title": "Held",
+              "subject_reference": "SYNTHETIC", "purpose": "Blocked while held",
+              "requested_tier": 1})
+    assert blocked_request.status_code == 422
+    update_payload["lifecycle_status"] = "Enabled"
+    update_payload["reason"] = "SYNTHETIC governance re-enable after review."
+    enabled_again = client.put("/api/salintel/domains/catalog/personnel-assessment",
+                               headers=analyst, json=update_payload)
+    assert enabled_again.status_code == 200 and enabled_again.json()["version"] == 3
+    history = client.get("/api/salintel/domains/catalog/personnel-assessment",
+                         headers=analyst).json()["events"]
+    assert [item["version_no"] for item in history] == [1, 2, 3]
 
     forged = client.post("/api/salintel/investigations", headers=analyst, json={
         "domain_key": "organizations", "title": "Forged",

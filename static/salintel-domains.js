@@ -1,4 +1,4 @@
-let salintelDomainUiState={domain:'',status:'',tier:'',epistemic:'',phase:'',recordId:null};
+let salintelDomainUiState={domain:'',status:'',tier:'',epistemic:'',phase:'',recordId:null,registryDomain:''};
 const salintelEpistemicStates=['Verified Fact','Reported Information','Reasonable Inference','Analyst Judgment','Hypothesis','Unresolved Allegation','Assumption','Contradiction','Information Gap','Unknown'];
 const salintelPhases=['Prevention','Protection','Mitigation','Response','Recovery'];
 
@@ -50,7 +50,7 @@ async function salintelDomains(){
   if(state.domain)params.set('domain_key',state.domain);if(state.status)params.set('status',state.status);if(state.tier)params.set('authorized_tier',state.tier);if(state.epistemic)params.set('epistemic_state',state.epistemic);if(state.phase)params.set('phase',state.phase);
   const [catalog,records]=await Promise.all([api('/api/salintel/domains/catalog'),api('/api/salintel/investigations?'+params.toString())]);
   if(state.recordId&&!records.some(row=>row.id===state.recordId))state.recordId=null;
-  const detail=state.recordId?await api('/api/salintel/investigations/'+state.recordId):null,enabled=catalog.filter(row=>row.lifecycle_status==='Enabled').length;
+  const detail=state.recordId?await api('/api/salintel/investigations/'+state.recordId):null,registryDetail=state.registryDomain?await api('/api/salintel/domains/catalog/'+state.registryDomain):null,enabled=catalog.filter(row=>row.lifecycle_status==='Enabled').length;
   $('#content').innerHTML=`<section class="salintel-domain-hero"><div><span class="component intel">SalINTEL</span><h2>Investigative Domains</h2><p>One governed workspace for source-grounded investigations, bounded research depth, explicit uncertainty, human qualification, and controlled disclosure.</p></div><div class="salintel-domain-metrics"><strong>${enabled}</strong><span>enabled domains</span><strong>${records.length}</strong><span>matching records</span></div></section>
   <div class="notice"><strong>Depth is not danger.</strong> Tier 1, Tier 2, and Tier 3 describe authorized investigative effort. They do not use the red–yellow–green condition scale and never expand scope or customer cost automatically.</div>
   <details class="card salintel-create"><summary>Start a governed investigation request</summary><form id="salintel-investigation-form"><div class="form-grid">
@@ -69,16 +69,42 @@ async function salintelDomains(){
   ${table(['Record','Domain / subject','Status','Authorized work','Disclosure','Actions'],records.map(record=>[
     `<strong>${esc(record.title)}</strong><br><span class="subtle">${esc(record.record_key)}</span>`,`${esc(salintelDomainName(catalog,record.domain_key))}<br><span class="subtle">${esc(record.subject_reference)}</span>`,esc(record.status),`${salintelTierLabel(record.authorized_tier)} · completed ${record.completed_tier||0}<br><span class="subtle">${esc(record.qualification_status)}</span>`,esc(record.disclosure_status),salintelRecordActions(record)
   ]))}
-  <details class="card salintel-registry"><summary>Investigative-domain registry</summary>${table(['Domain','Purpose','Lifecycle','Review','Available depth'],catalog.map(row=>[
-    esc(row.display_name),esc(row.description),esc(row.lifecycle_status),esc(row.required_review_level),(row.tier_profiles||[]).map(t=>`<span class="salintel-tier">Tier ${esc(t.tier)} · ${esc(t.name)}</span>`).join('')
-  ]))}</details>${salintelDetail(detail,catalog)}`;
+  <details class="card salintel-registry" open><summary>Investigative-domain registry administration</summary><p class="subtle">Salus authority controls domain lifecycle, disclosure posture, investigative lenses, relationships, handoffs, review level, and bounded tier-profile versions.</p>${table(['Domain','Lifecycle / version','Review','Available depth','Action'],catalog.map(row=>[
+    `<strong>${esc(row.display_name)}</strong><br><span class="subtle">${esc(row.description)}</span>`,`${esc(row.lifecycle_status)} · v${esc(row.version)}<br><span class="subtle">${esc(row.default_disclosure_posture)}</span>`,esc(row.required_review_level),(row.tier_profiles||[]).map(t=>`<span class="salintel-tier">Tier ${esc(t.tier)} · ${esc(t.name)}</span>`).join(''),`<button class="btn secondary" onclick="openSalintelDomainRegistry('${row.domain_key}')">Open</button>`
+  ]))}${registryDetail?salintelRegistryDetail(registryDetail):''}</details>${salintelDetail(detail,catalog)}`;
   $('#salintel-filter-form').onsubmit=event=>{event.preventDefault();const data=new FormData(event.target);for(const key of ['domain','status','tier','epistemic','phase'])state[key]=String(data.get(key)||'');state.recordId=null;salintelDomains();};
   $('#salintel-investigation-form').onsubmit=async event=>{event.preventDefault();const data=new FormData(event.target);await api('/api/salintel/investigations',{method:'POST',body:JSON.stringify({domain_key:data.get('domain_key'),title:data.get('title'),subject_reference:data.get('subject_reference'),purpose:data.get('purpose'),requested_tier:Number(data.get('requested_tier')),sensitivity:data.get('sensitivity'),engagement_context:data.get('engagement_context')})});await salintelDomains();};
   const itemForm=$('#salintel-item-form');if(itemForm)itemForm.onsubmit=async event=>{event.preventDefault();const data=new FormData(event.target),body={item_kind:data.get('item_kind'),epistemic_state:data.get('epistemic_state'),title:data.get('title'),detail:data.get('detail'),source_reliability:data.get('source_reliability'),information_confidence:data.get('information_confidence')};if(data.get('source_material_id'))body.source_material_id=Number(data.get('source_material_id'));await api('/api/salintel/investigations/'+state.recordId+'/items',{method:'POST',body:JSON.stringify(body)});await salintelDomains();};
 }
 async function selectSalintelInvestigation(id,authorize=false){salintelDomainUiState.recordId=id;await salintelDomains();if(authorize)await showSalintelTierAuthorization(id);}
+function salintelRegistryDetail(domain){
+  const events=domain.events||[];
+  return `<section class="salintel-registry-detail"><div class="section-title"><div><h3>${esc(domain.display_name)}</h3><span class="subtle">${esc(domain.domain_key)} · governed version ${esc(domain.version)}</span></div><div class="row-actions"><button class="btn" onclick="configureSalintelDomain('${domain.domain_key}')">Configure domain</button><button class="btn secondary" onclick="closeSalintelDomainRegistry()">Close</button></div></div>
+  <div class="two-col grid"><article><h3>Scope and posture</h3><p>${esc(domain.description)}</p><p><strong>Subjects:</strong> ${esc((domain.subject_entity_kinds||[]).join(', '))}</p><p><strong>Default sensitivity:</strong> ${esc(domain.default_sensitivity)}<br><strong>Disclosure:</strong> ${esc(domain.default_disclosure_posture)}</p></article><article><h3>Relationships and handoffs</h3><p><strong>Lenses:</strong> ${esc((domain.investigative_lenses||[]).join(', '))}</p><p><strong>Relationships:</strong> ${esc((domain.allowed_relationships||[]).join(', '))}</p><p><strong>Handoffs:</strong> ${esc((domain.handoff_types||[]).join(', '))}</p></article></div>
+  ${table(['Version','Event','Reason','Authority','Time'],events.map(event=>[event.version_no,esc(event.event_type),esc(event.reason),`${esc(event.changed_by)} · ${esc(event.changed_by_role)}`,esc(event.created_at)]))}</section>`;
+}
+async function openSalintelDomainRegistry(domainKey){salintelDomainUiState.registryDomain=domainKey;await salintelDomains();}
+function closeSalintelDomainRegistry(){salintelDomainUiState.registryDomain='';salintelDomains();}
+async function configureSalintelDomain(domainKey){
+  const domain=await api('/api/salintel/domains/catalog/'+domainKey);
+  const display_name=prompt('Domain display name:',domain.display_name);if(!display_name)return;
+  const description=prompt('Purpose and description:',domain.description);if(!description)return;
+  const subject_entity_kinds=(prompt('Supported subject/entity kinds (comma-separated):',(domain.subject_entity_kinds||[]).join(', '))||'').split(',').map(x=>x.trim()).filter(Boolean);if(!subject_entity_kinds.length)return;
+  const lifecycle_status=prompt('Lifecycle: Enabled, Held, or Retired',domain.lifecycle_status);if(!lifecycle_status)return;
+  const default_sensitivity=prompt('Default sensitivity: Standard, Restricted, Sensitive, or Highly Sensitive',domain.default_sensitivity);if(!default_sensitivity)return;
+  const default_disclosure_posture=prompt('Disclosure posture: Salus Internal or Tenant Disclosable with Approval',domain.default_disclosure_posture);if(!default_disclosure_posture)return;
+  const investigative_lenses=(prompt('Investigative lenses (comma-separated):',(domain.investigative_lenses||[]).join(', '))||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const handoff_types=(prompt('Allowed handoffs (comma-separated):',(domain.handoff_types||[]).join(', '))||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const allowed_relationships=(prompt('Allowed relationship types (comma-separated):',(domain.allowed_relationships||[]).join(', '))||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const required_review_level=prompt('Required human review level:',domain.required_review_level);if(!required_review_level)return;
+  const profileVersion=prompt('Version reference for all three bounded tier profiles:',((domain.tier_profiles||[])[0]||{}).profile_version||'shared-v1');if(!profileVersion)return;
+  const tier_profiles=(domain.tier_profiles||[]).map(item=>({...item,profile_version:profileVersion,bounded:true}));
+  const reason=prompt('Governance basis for this new domain version:');if(!reason)return;
+  await api('/api/salintel/domains/catalog/'+domainKey,{method:'PUT',body:JSON.stringify({display_name,description,subject_entity_kinds,lifecycle_status,default_sensitivity,default_disclosure_posture,investigative_lenses,handoff_types,allowed_relationships,required_review_level,tier_profiles,reason})});
+  salintelDomainUiState.registryDomain=domainKey;await salintelDomains();
+}
 function closeSalintelInvestigation(){salintelDomainUiState.recordId=null;salintelDomains();}
-function resetSalintelDomainFilters(){salintelDomainUiState={domain:'',status:'',tier:'',epistemic:'',phase:'',recordId:null};salintelDomains();}
+function resetSalintelDomainFilters(){salintelDomainUiState={domain:'',status:'',tier:'',epistemic:'',phase:'',recordId:null,registryDomain:''};salintelDomains();}
 async function showSalintelTierAuthorization(id){
   const tier=Number(prompt('Authorize Tier 1, 2, or 3:','1'));if(![1,2,3].includes(tier))return;
   const scope=prompt('Bounded scope statement:');if(!scope)return;const checklist=prompt('Checklist/profile version:','shared-v1');if(!checklist)return;

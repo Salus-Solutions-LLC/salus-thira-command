@@ -13,8 +13,11 @@ assert "document.querySelectorAll('#nav [data-salus-only=\"true\"]')" in app
 assert "item.hidden=protectedMember" in app
 for marker in ["Investigative Domains","Start a governed investigation request","Knowledge state","Mission lens","Depth is not danger","Human qualification","Approve for Protected Member","Known unknowns and contradictions","Version history"]:
     assert marker in ui, marker
-for endpoint in ["/api/salintel/domains/catalog","/api/salintel/investigations","/authorize-tier","/items","/qualify","/complete-tier","/recommend-tier","/disclosure","/release"]:
+for endpoint in ["/api/salintel/domains/catalog","method:'PUT'","configureSalintelDomain","openSalintelDomainRegistry","Governance basis for this new domain version","/api/salintel/investigations","/authorize-tier","/items","/qualify","/complete-tier","/recommend-tier","/disclosure","/release"]:
     assert endpoint in ui, endpoint
 assert "isProtectedMember()" in ui
+for marker in ["Investigative-domain registry administration","Configure domain","governed version","Version","Lifecycle / version"]:
+    assert marker in ui, marker
+assert ".salintel-registry-detail" in css
 assert "@media print" in css
 print("SalINTEL Investigative Domains UI acceptance passed")
