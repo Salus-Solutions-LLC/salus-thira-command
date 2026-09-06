@@ -24,6 +24,7 @@ ItemKind = Literal[
 ]
 Qualification = Literal["Unqualified", "Analyst Reviewed", "Qualified", "Rejected"]
 Commercial = Literal["Not Determined", "Included", "Bundled", "Separate Proposal", "Waived"]
+Lens = Literal["Prevention", "Protection", "Mitigation", "Response", "Recovery"]
 
 
 class CreateInvestigation(BaseModel):
@@ -55,6 +56,7 @@ class AuthorizeTier(BaseModel):
     exclusions: list[str] = Field(default_factory=list, max_length=40)
     commercial_treatment: Commercial = "Not Determined"
     commercial_reference: str = Field(default="", max_length=300)
+    investigative_lenses: list[Lens] = Field(default_factory=lambda: list(LENSES), max_length=5)
     reason: str = Field(min_length=1, max_length=4000)
 
 
@@ -367,8 +369,13 @@ def register_salintel_domain_capability(app, core: dict) -> None:
 
     @app.get("/api/salintel/investigations")
     def list_records(request: Request, domain_key: str = "", status: str = "",
-                     authorized_tier: int = 0, limit: int = 200):
+                     authorized_tier: int = 0, epistemic_state: str = "",
+                     phase: str = "", limit: int = 200):
         require(request, "read")
+        if epistemic_state and epistemic_state not in set(Epistemic.__args__):
+            raise HTTPException(422, "Unknown epistemic-state filter")
+        if phase and phase not in LENSES:
+            raise HTTPException(422, "Unknown investigative-lens filter")
         clauses, params = ["tenant_id=?"], [tenant_id(request)]
         if is_member(request):
             clauses.append("disclosure_status='Approved for Tenant'")
@@ -378,6 +385,11 @@ def register_salintel_domain_capability(app, core: dict) -> None:
             clauses.append("status=?"); params.append(status)
         if authorized_tier in (1, 2, 3):
             clauses.append("authorized_tier=?"); params.append(authorized_tier)
+        if epistemic_state:
+            clauses.append("EXISTS (SELECT 1 FROM salintel_investigation_items si "
+                           "WHERE si.investigation_id=salintel_investigations.id "
+                           "AND si.epistemic_state=?)")
+            params.append(epistemic_state)
         params.append(max(1, min(limit, 1000)))
         conn = db()
         rows = []
@@ -387,7 +399,11 @@ def register_salintel_domain_capability(app, core: dict) -> None:
         ):
             try:
                 require_sensitivity(request, row["sensitivity"])
-                rows.append(public(row, is_member(request)))
+                item = public(row, is_member(request))
+                lenses = item.get("authorized_scope", {}).get("investigative_lenses", [])
+                if phase and phase not in lenses:
+                    continue
+                rows.append(item)
             except HTTPException:
                 continue
         conn.close()
@@ -431,8 +447,12 @@ def register_salintel_domain_capability(app, core: dict) -> None:
         if len(payload.effort_bounds) > 30:
             conn.close(); raise HTTPException(422, "Too many effort bounds")
         ts, who = now(), actor(request)
+        lenses = [lens for lens in LENSES if lens in payload.investigative_lenses]
+        if not lenses:
+            conn.close(); raise HTTPException(422, "At least one investigative lens is required")
         scope = {"statement": payload.scope_statement.strip(),
-                 "checklist_version": payload.checklist_version.strip()}
+                 "checklist_version": payload.checklist_version.strip(),
+                 "investigative_lenses": lenses}
         conn.execute(
             "UPDATE salintel_investigations SET authorized_tier=?,tier_profile_version=?,"
             "authorized_scope_json=?,effort_bounds_json=?,source_categories_json=?,exclusions_json=?,"

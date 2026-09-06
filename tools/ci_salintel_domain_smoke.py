@@ -76,6 +76,7 @@ def main():
             "authorized_tier": 1,
             "scope_statement": "Identity, ownership, core operations, primary dependencies, contradictions, and known unknowns.",
             "checklist_version": "shared-v1",
+            "investigative_lenses": ["Protection", "Recovery"],
             "source_categories": ["authorized public records", "member materials"],
             "exclusions": ["deep historical network analysis"],
             "effort_bounds": {"maximum_hours": 4, "history_years": 3},
@@ -85,6 +86,7 @@ def main():
     assert response.status_code == 200, response.text
     assert response.json()["authorized_tier"] == 1
     assert response.json()["authorized_scope"]["checklist_version"] == "shared-v1"
+    assert response.json()["authorized_scope"]["investigative_lenses"] == ["Protection", "Recovery"]
 
     premature = client.post(
         f"/api/salintel/investigations/{record_id}/complete-tier",
@@ -129,6 +131,12 @@ def main():
             "detail": "Tier 1 excluded deep supplier network review.",
             "information_confidence": "Explicit Gap"})
     assert gap.status_code == 200, gap.text
+
+    filtered = client.get("/api/salintel/investigations?epistemic_state=Information%20Gap&phase=Recovery&authorized_tier=1", headers=analyst)
+    assert filtered.status_code == 200 and [row["id"] for row in filtered.json()] == [record_id]
+    excluded = client.get("/api/salintel/investigations?phase=Response", headers=analyst)
+    assert excluded.status_code == 200 and record_id not in [row["id"] for row in excluded.json()]
+    assert client.get("/api/salintel/investigations?phase=Invalid", headers=analyst).status_code == 422
 
     qualified = client.post(f"/api/salintel/investigations/{record_id}/qualify",
         headers=analyst, json={"status": "Qualified",
