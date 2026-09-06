@@ -1,0 +1,218 @@
+name: SalCAPA governed Azure point-in-time recovery exercise
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - 'deploy/azure/activations/pitr-exercise-dev.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-pitr-exercise-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - name: Record protected recovery exercise approval gate passage
+        run: echo "Protected SalCAPA development point-in-time recovery exercise approval gate passed."
+
+  exercise:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout frozen application source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.33
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate immutable recovery exercise activation
+        env:
+          ACTIVATION_FILE: deploy/azure/activations/pitr-exercise-dev.json
+        run: |
+          set -euo pipefail
+          jq -e '
+            type == "object" and
+            (.schema_version == 1) and
+            (.operation == "exercise_point_in_time_restore") and
+            (.target_environment == "dev") and
+            (.location == "southcentralus") and
+            (.unique_suffix == "b48224") and
+            (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
+            (.source_release == "release/v3.33") and
+            (.source_commit == "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4") and
+            (.source_server == "salcapa-dev-b48224-pg") and
+            (.temporary_restore_server == "salcapa-dev-b48224-pitr") and
+            (.restore_lag_minutes == 15) and
+            (.exercise_revision | type == "number" and . >= 1) and
+            (.activation_key | test("^salcapa-v3[.]33-pitr-[0-9]{8}-r[0-9]+$")) and
+            ((keys - [
+              "activation_key",
+              "approval_record",
+              "exercise_revision",
+              "location",
+              "operation",
+              "restore_lag_minutes",
+              "schema_version",
+              "source_commit",
+              "source_release",
+              "source_server",
+              "target_environment",
+              "temporary_restore_server",
+              "unique_suffix"
+            ]) | length == 0)
+          ' "$ACTIVATION_FILE" >/dev/null
+          test "$(git -C frozen-release rev-parse HEAD)" = "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4"
+          git merge-base --is-ancestor "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4" "$GITHUB_SHA"
+
+      - name: Validate required non-secret repository variables
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+        run: |
+          set -euo pipefail
+          test -n "$AZURE_CLIENT_ID"
+          test -n "$AZURE_TENANT_ID"
+          test -n "$AZURE_SUBSCRIPTION_ID"
+          test "$AZURE_RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$AZURE_LOCATION" = "southcentralus"
+
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Perform isolated point-in-time restore and rollback exercise
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          ACTIVATION_FILE: deploy/azure/activations/pitr-exercise-dev.json
+        run: |
+          set -euo pipefail
+          SOURCE_SERVER="$(jq -r '.source_server' "$ACTIVATION_FILE")"
+          RESTORE_SERVER="$(jq -r '.temporary_restore_server' "$ACTIVATION_FILE")"
+          RESTORE_LAG_MINUTES="$(jq -r '.restore_lag_minutes' "$ACTIVATION_FILE")"
+          CLEANUP_REQUIRED=0
+
+          cleanup() {
+            exit_code=$?
+            trap - EXIT
+            if [ "$CLEANUP_REQUIRED" = "1" ] && az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" >/dev/null 2>&1; then
+              echo "Removing isolated temporary restore server."
+              az postgres flexible-server delete --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" --yes
+            fi
+            if az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" >/dev/null 2>&1; then
+              echo "Temporary restore server cleanup failed." >&2
+              exit 1
+            fi
+            exit "$exit_code"
+          }
+          trap cleanup EXIT
+
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show --name "$RESOURCE_GROUP" --query location --output tsv)" = "southcentralus"
+
+          if az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" >/dev/null 2>&1; then
+            echo "Fail closed: temporary restore target already exists." >&2
+            exit 1
+          fi
+
+          az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$SOURCE_SERVER" --output json > /tmp/source-before.json
+          jq -e '
+            .version == "16" and
+            .state == "Ready" and
+            .authConfig.activeDirectoryAuth == "Enabled" and
+            .authConfig.passwordAuth == "Disabled" and
+            .network.publicNetworkAccess == "Disabled" and
+            .backup.backupRetentionDays == 14 and
+            (.backup.earliestRestoreDate | type == "string" and length > 10)
+          ' /tmp/source-before.json >/dev/null
+
+          SOURCE_ID="$(jq -r '.id' /tmp/source-before.json)"
+          SOURCE_FQDN="$(jq -r '.fullyQualifiedDomainName' /tmp/source-before.json)"
+          EARLIEST_RESTORE="$(jq -r '.backup.earliestRestoreDate' /tmp/source-before.json)"
+          RESTORE_POINT="$(date -u -d "$RESTORE_LAG_MINUTES minutes ago" '+%Y-%m-%dT%H:%M:%SZ')"
+          test "$(date -u -d "$RESTORE_POINT" +%s)" -ge "$(date -u -d "$EARLIEST_RESTORE" +%s)"
+
+          CLEANUP_REQUIRED=1
+          az postgres flexible-server restore             --resource-group "$RESOURCE_GROUP"             --name "$RESTORE_SERVER"             --source-server "$SOURCE_SERVER"             --restore-time "$RESTORE_POINT"             --yes             --output none
+
+          az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" --output json > /tmp/restored.json
+          jq -e '
+            .version == "16" and
+            .state == "Ready" and
+            .authConfig.activeDirectoryAuth == "Enabled" and
+            .authConfig.passwordAuth == "Disabled" and
+            .network.publicNetworkAccess == "Disabled" and
+            (.fullyQualifiedDomainName | type == "string" and length > 10)
+          ' /tmp/restored.json >/dev/null
+          test "$(jq -r '.fullyQualifiedDomainName' /tmp/restored.json)" != "$SOURCE_FQDN"
+
+          az postgres flexible-server db show             --resource-group "$RESOURCE_GROUP"             --server-name "$RESTORE_SERVER"             --database-name salcapa             --query name --output tsv | grep -Fx salcapa >/dev/null
+
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/application.json
+          jq -e --arg source_host "$SOURCE_FQDN" --arg restore_host "$(jq -r '.fullyQualifiedDomainName' /tmp/restored.json)" '
+            [.properties.template.containers[0].env[] | select(.name == "SALUS_POSTGRES_HOST") | .value] as $hosts |
+            ($hosts | length == 1) and
+            ($hosts[0] == $source_host) and
+            ($hosts[0] != $restore_host) and
+            (.properties.configuration.ingress.allowInsecure == false) and
+            ((.properties.configuration.secrets // []) | length == 0)
+          ' /tmp/application.json >/dev/null
+
+          az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$SOURCE_SERVER" --output json > /tmp/source-after.json
+          test "$(jq -r '.id' /tmp/source-after.json)" = "$SOURCE_ID"
+          test "$(jq -r '.state' /tmp/source-after.json)" = "Ready"
+          test "$(jq -r '.authConfig.passwordAuth' /tmp/source-after.json)" = "Disabled"
+          test "$(jq -r '.network.publicNetworkAccess' /tmp/source-after.json)" = "Disabled"
+
+          az postgres flexible-server delete --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" --yes
+          CLEANUP_REQUIRED=0
+          if az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" >/dev/null 2>&1; then
+            echo "Temporary restore server still exists after bounded cleanup." >&2
+            exit 1
+          fi
+
+          {
+            echo "### SalCAPA development point-in-time recovery exercise"
+            echo ""
+            echo "- Frozen application source: release/v3.33"
+            echo "- Restore target: isolated temporary PostgreSQL Flexible Server"
+            echo "- Restore lag: $RESTORE_LAG_MINUTES minutes"
+            echo "- Restored database: salcapa present"
+            echo "- Source server before/after: Ready and unchanged"
+            echo "- Application database target: remained the source server"
+            echo "- Temporary restore server: deleted"
+            echo "- PostgreSQL password authentication: disabled"
+            echo "- Public database access: disabled"
+            echo "- Client secret or database password: not used"
+            echo "- Application traffic cutover: not performed"
+            echo "- DNS or production cutover: not performed"
+            echo "LIVE_PITR_EXERCISE_ACCEPTED"
+          } >> "$GITHUB_STEP_SUMMARY"
