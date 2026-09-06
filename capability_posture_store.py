@@ -6,11 +6,10 @@ calculated mission-area values in effect at creation time.
 """
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import datetime, timezone
-from decimal import Decimal
 from typing import Iterable, Optional
 
+from capability_actions import next_readiness_action
 from capability_posture import CapabilityMeasure, MissionArea, protected_member_posture
 
 SCORING_VERSION = "1.0.0"
@@ -57,6 +56,7 @@ CREATE TABLE IF NOT EXISTS capability_posture_measure_snapshots(
     evidence_stale INTEGER NOT NULL DEFAULT 0,
     evidence_verified INTEGER NOT NULL DEFAULT 0,
     performance_target_met INTEGER NOT NULL DEFAULT 0,
+    recommended_action TEXT NOT NULL DEFAULT '',
     FOREIGN KEY(snapshot_id) REFERENCES capability_posture_snapshots(id),
     FOREIGN KEY(capability_id) REFERENCES capabilities(id)
 );
@@ -77,6 +77,11 @@ def now_iso() -> str:
 
 def ensure_schema(conn) -> None:
     conn.executescript(SCHEMA)
+    # Forward-compatible local migration for databases created by the first
+    # development iteration before recommended_action was introduced.
+    columns = {r["name"] for r in conn.execute("PRAGMA table_info(capability_posture_measure_snapshots)")}
+    if "recommended_action" not in columns:
+        conn.execute("ALTER TABLE capability_posture_measure_snapshots ADD COLUMN recommended_action TEXT NOT NULL DEFAULT ''")
     conn.commit()
 
 
@@ -158,8 +163,8 @@ def save_posture_snapshot(
             """INSERT INTO capability_posture_measure_snapshots(
                 snapshot_id,capability_id,capability_name,mission_area,
                 demonstrated_score,confidence,gap_severity,consequence_weight,
-                evidence_stale,evidence_verified,performance_target_met
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                evidence_stale,evidence_verified,performance_target_met,recommended_action
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 snapshot_id,
                 capability.capability_id,
@@ -172,6 +177,7 @@ def save_posture_snapshot(
                 1 if capability.evidence.evidence_stale else 0,
                 1 if capability.evidence.evidence_verified else 0,
                 1 if capability.evidence.performance_target_met else 0,
+                next_readiness_action(capability),
             ),
         )
     conn.commit()
@@ -192,7 +198,7 @@ def get_snapshot(conn, *, tenant_id: int, snapshot_id: int) -> Optional[dict]:
         (snapshot_id,),
     ).fetchall()
     measures = conn.execute(
-        "SELECT * FROM capability_posture_measure_snapshots WHERE snapshot_id=? ORDER BY mission_area, capability_name",
+        "SELECT * FROM capability_posture_measure_snapshots WHERE snapshot_id=? ORDER BY demonstrated_score ASC, gap_severity DESC, capability_name",
         (snapshot_id,),
     ).fetchall()
     result["mission_areas"] = [dict(x) for x in areas]
@@ -236,6 +242,7 @@ def dashboard_payload(conn, *, tenant_id: int, assessment_id: int) -> dict:
                 {"mission_area": area.value, "score": None, "band": "Unknown", "confidence": "Low", "capability_count": 0, "material_gap_count": 0}
                 for area in MissionArea
             ],
+            "prioritized_actions": [],
             "trend": [],
         }
     area_by_name = {x["mission_area"]: x for x in snapshot["mission_areas"]}
@@ -253,6 +260,19 @@ def dashboard_payload(conn, *, tenant_id: int, assessment_id: int) -> dict:
                 "capability_count": raw["capability_count"],
                 "material_gap_count": raw["material_gap_count"],
             })
+    prioritized_actions = [
+        {
+            "capability_id": x["capability_id"],
+            "capability_name": x["capability_name"],
+            "mission_area": x["mission_area"],
+            "score": x["demonstrated_score"],
+            "confidence": x["confidence"],
+            "gap_severity": x["gap_severity"],
+            "recommended_action": x["recommended_action"],
+        }
+        for x in snapshot["capabilities"]
+        if x["recommended_action"] != "Maintain / Sustain Capability"
+    ][:10]
     return {
         "status": "Current",
         "snapshot_id": snapshot["id"],
@@ -269,5 +289,6 @@ def dashboard_payload(conn, *, tenant_id: int, assessment_id: int) -> dict:
         "created_at": snapshot["created_at"],
         "mission_areas": areas,
         "capabilities": snapshot["capabilities"],
+        "prioritized_actions": prioritized_actions,
         "trend": posture_trend(conn, tenant_id=tenant_id, assessment_id=assessment_id),
     }
