@@ -5,7 +5,7 @@
   "location": "southcentralus",
   "unique_suffix": "b48224",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-  "source_commit": "c065fb8282dce8422e23c4ab1fa4d6f58b758086",
-  "source_release": "release/v3.27",
-  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:11bf4752352c4a00a651a8a7d276b1727d5ec292acfa5a2c305dfd751b452800"
+  "source_commit": "ede2bd87675dd8e6583617284d6164e5b9b3e59c",
+  "source_release": "release/v3.28",
+  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:d8a3700c0bf998ad532c06b7e2c223bb281c94bd1e625d85c692fcbdfed68346"
 }
