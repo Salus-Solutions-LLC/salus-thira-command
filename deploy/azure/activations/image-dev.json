@@ -6,6 +6,6 @@
   "location": "southcentralus",
   "unique_suffix": "b48224",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-  "source_release": "release/v3.28",
-  "source_commit": "ede2bd87675dd8e6583617284d6164e5b9b3e59c"
+  "source_release": "release/v3.29",
+  "source_commit": "b6ca590cf02c896fdb948c65e048bf122691dbb8"
 }
