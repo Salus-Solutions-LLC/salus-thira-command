@@ -3173,6 +3173,82 @@ def _list_cop_decisions(conn,request:Request):
 def get_salcapa_workspace(request:Request):
     require(request,'read'); return salcapa_workspace_contract(request)
 
+def _protective_readiness_summary(conn, assessment_ids:list[int], tenant:int):
+    promise='See risk early. Decide with confidence. Act in time. Prove the work was done.'
+    lifecycle='Signal or observation -> qualification -> assessment -> capability priority -> executive decision -> responsible owner -> authorized action -> completion evidence -> testing or verification -> result -> reassessment.'
+    trace={
+        'qualified_signals':0,
+        'assessed_capability_gaps':0,
+        'prioritized_improvements':0,
+        'executive_decisions':0,
+        'owned_actions':0,
+        'authorized_actions':0,
+        'completed_actions':0,
+        'verified_actions':0,
+        'current_verified_evidence':0,
+        'released_proof_records':0,
+        'reassessment_triggers':0,
+    }
+    if assessment_ids:
+        marks=','.join('?'*len(assessment_ids)); params=tuple(assessment_ids)
+        trace['qualified_signals']=conn.execute(
+            f"SELECT COUNT(*) c FROM intel_findings WHERE tenant_id=? AND status IN ('Qualified','Sent to SalTHIRA') AND (assessment_id IS NULL OR assessment_id IN ({marks}))",
+            (tenant,)+params,
+        ).fetchone()['c']
+        trace['assessed_capability_gaps']=conn.execute(
+            f"SELECT COUNT(*) c FROM gaps WHERE assessment_id IN ({marks})",params
+        ).fetchone()['c']
+        trace['prioritized_improvements']=conn.execute(
+            f"SELECT COUNT(*) c FROM improvements WHERE assessment_id IN ({marks})",params
+        ).fetchone()['c']
+        trace['executive_decisions']=conn.execute(
+            f"SELECT COUNT(*) c FROM decisions WHERE assessment_id IN ({marks})",params
+        ).fetchone()['c']
+        trace['owned_actions']=conn.execute(
+            f"SELECT COUNT(*) c FROM improvements WHERE assessment_id IN ({marks}) AND TRIM(owner)<>''",params
+        ).fetchone()['c']
+        trace['authorized_actions']=conn.execute(
+            f"SELECT COUNT(*) c FROM ops_requests WHERE tenant_id=? AND assessment_id IN ({marks}) AND status IN ('Authorized','In Progress','Completed')",
+            (tenant,)+params,
+        ).fetchone()['c']
+        completed_requests=conn.execute(
+            f"SELECT COUNT(*) c FROM ops_requests WHERE tenant_id=? AND assessment_id IN ({marks}) AND status='Completed'",
+            (tenant,)+params,
+        ).fetchone()['c']
+        completed_tasks=conn.execute(
+            f"SELECT COUNT(*) c FROM ops_tasks WHERE tenant_id=? AND assessment_id IN ({marks}) AND status='Completed'",
+            (tenant,)+params,
+        ).fetchone()['c']
+        trace['completed_actions']=completed_requests+completed_tasks
+        trace['verified_actions']=conn.execute(
+            f"SELECT COUNT(*) c FROM improvements WHERE assessment_id IN ({marks}) AND status='Complete' AND validation_status IN ('Validated','Partially Validated')",
+            params,
+        ).fetchone()['c']
+        trace['current_verified_evidence']=conn.execute(
+            f"SELECT COUNT(*) c FROM evidence WHERE assessment_id IN ({marks}) AND verification_status='Verified' AND lifecycle_status='Current'",
+            params,
+        ).fetchone()['c']
+        released_reports=conn.execute(
+            f"SELECT COUNT(*) c FROM report_versions WHERE tenant_id=? AND assessment_id IN ({marks}) AND status='Released'",
+            (tenant,)+params,
+        ).fetchone()['c']
+        released_field_reports=conn.execute(
+            f"SELECT COUNT(*) c FROM ops_field_reports WHERE tenant_id=? AND assessment_id IN ({marks}) AND status='Released'",
+            (tenant,)+params,
+        ).fetchone()['c']
+        trace['released_proof_records']=released_reports+released_field_reports
+        trace['reassessment_triggers']=conn.execute(
+            f"SELECT COUNT(*) c FROM reassessment_triggers WHERE assessment_id IN ({marks})",params
+        ).fetchone()['c']
+    stages=[
+        {'key':'see','label':'See risk early','count':trace['qualified_signals']+trace['assessed_capability_gaps'],'description':'Qualified signals and assessed capability gaps.'},
+        {'key':'decide','label':'Decide with confidence','count':trace['executive_decisions'],'description':'Authority-backed executive decisions.'},
+        {'key':'act','label':'Act in time','count':trace['authorized_actions'],'description':'Authorized protective actions under accountable delivery.'},
+        {'key':'prove','label':'Prove the work was done','count':trace['completed_actions']+trace['verified_actions']+trace['released_proof_records'],'description':'Completed, verified, and released proof records.'},
+    ]
+    for stage in stages: stage['state']='Active' if stage['count'] else 'No records'
+    return {'source':'persisted_server_controlled_records','promise':promise,'lifecycle':lifecycle,'stages':stages,'trace':trace}
+
 @app.get('/api/salcapa/common-operating-picture')
 def salcapa_common_operating_picture(request:Request):
     require(request,'read'); tid=tenant_id(request); ids=accessible_assessment_ids(request); member_safe=protected_member_request(request) or role(request)=='Auditor'; conn=db()
@@ -3205,10 +3281,11 @@ def salcapa_common_operating_picture(request:Request):
         if role(request)=='Contributor': sql+=' AND created_by=?'; p.append(actor(request))
         observations=[dict(r) for r in conn.execute(sql+' ORDER BY id DESC LIMIT 20',tuple(p))]
     decisions=_list_cop_decisions(conn,request); threads=_list_cop_threads(conn,request)
+    readiness=_protective_readiness_summary(conn,ids,tid)
     conn.close()
     pending=sum(1 for item in decisions if item['status']=='Awaiting Decision')
     active_operations=sum(1 for item in ops if item['status'] in {'Requested','Authorized','In Progress'})
-    return {'workspace':salcapa_workspace_contract(request),'metrics':{'qualified_intelligence':len(intel),'priority_actions':len(open_triggers),'pending_member_decisions':pending,'active_operations':active_operations,'stale_evidence':stale,'active_accepted_risks':len(risks)},'see':{'intelligence':intel,'alerts':open_triggers,'accepted_risks':risks,'operations':ops,'engagements':engagements,'deliverables':report_rows,'observations':observations},'coordinate':{'threads':threads},'act':{'decision_requests':decisions},'attention':{'intelligence':intel,'reassessment':open_triggers,'operations':ops}}
+    return {'workspace':salcapa_workspace_contract(request),'protective_readiness':readiness,'metrics':{'qualified_intelligence':len(intel),'priority_actions':len(open_triggers),'pending_member_decisions':pending,'active_operations':active_operations,'stale_evidence':stale,'active_accepted_risks':len(risks)},'see':{'intelligence':intel,'alerts':open_triggers,'accepted_risks':risks,'operations':ops,'engagements':engagements,'deliverables':report_rows,'observations':observations},'coordinate':{'threads':threads},'act':{'decision_requests':decisions},'attention':{'intelligence':intel,'reassessment':open_triggers,'operations':ops}}
 
 @app.post('/api/salcapa/coordination/threads')
 def create_cop_thread(p:CopThreadIn,request:Request):
@@ -5065,7 +5142,7 @@ def list_restore_requests(request:Request):
 @app.get('/api/report/{assessment_id}/executive.csv')
 def executive_csv(assessment_id:int,request:Request):
     require(request,'read'); assessment_row_for_request(request,assessment_id); package=executive_package(assessment_id); out=io.StringIO(); w=csv.writer(out)
-    a=package['assessment']; w.writerow(['Salus THIRA Command Executive Summary']); w.writerow(['Assessment',a['name']]); w.writerow(['Organization',a['organization']]); w.writerow(['Status',a['status']]); w.writerow(['Version',a['version']]); w.writerow(['Mission',a['mission']]); w.writerow([])
+    a=package['assessment']; w.writerow(['SalCAPA Protective Readiness Executive Briefing']); w.writerow(['Assessment',a['name']]); w.writerow(['Organization',a['organization']]); w.writerow(['Status',a['status']]); w.writerow(['Version',a['version']]); w.writerow(['Mission',a['mission']]); w.writerow(['Methodology note','SalTHIRA applies a Salus-specific methodology informed by recognized THIRA principles; Salus does not claim ownership of the public THIRA framework.']); w.writerow([])
     w.writerow(['Risk Outlook']); w.writerow(['Threat / Hazard','Inherent','Current','Professional Assigned Risk','Predicted Residual','Validated Residual','Validated Improvements','Methodology','Confidence','Trend'])
     for r in package['risk']: w.writerow([r['name'],f"{r['inherent_band']} {r['inherent_score']}",f"{r['current_band']} {r['current_score']}",(f"{r['assigned_risk_band']} {r['assigned_risk_score']}" if r.get('professional_override') else ''),f"{r['predicted_residual_band']} {r['predicted_residual_score']}",f"{r['validated_residual_band']} {r['validated_residual_score']}",r['validated_improvements'],r['risk_methodology_version'],r['confidence'],r['trend']])
     w.writerow([]); w.writerow(['Capability Performance']); w.writerow(['Capability','Measure','Comparator','Required','Current','Unit','Attainment','Status','Confidence'])
@@ -5080,7 +5157,7 @@ def executive_csv(assessment_id:int,request:Request):
     for r in package['accepted_risks']: w.writerow([r['status'],r['title'],r['authority'],r['residual_exposure'],r['owner'],r['review_date'],r['reconsideration_trigger']])
     w.writerow([]); w.writerow(['Professional Risk Override Register']); w.writerow(['Status','Threat ID','Calculated','Assigned','Authority','Reason','Evidence ID','Review Date','Created At','Withdrawn Reason'])
     for r in package['risk_overrides']: w.writerow([r['status'],r['threat_id'],f"{r['calculated_band']} {r['calculated_score']}",f"{r['assigned_band']} {r['assigned_score']}",r['authority'],r['reason'],r['evidence_id'] or '',r['review_date'],r['created_at'],r['withdrawn_reason']])
-    response=PlainTextResponse(out.getvalue(),media_type='text/csv; charset=utf-8'); response.headers['Content-Disposition']=f'attachment; filename=salus-thira-executive-{assessment_id}.csv'; return response
+    response=PlainTextResponse(out.getvalue(),media_type='text/csv; charset=utf-8'); response.headers['Content-Disposition']=f'attachment; filename=salcapa-protective-readiness-{assessment_id}.csv'; return response
 
 @app.get('/api/report/{assessment_id}/executive.html')
 def executive_html(assessment_id:int,request:Request):
@@ -5092,7 +5169,7 @@ def executive_html(assessment_id:int,request:Request):
     accepted_rows=''.join(f"<tr><td>{html.escape(str(r['status']))}</td><td>{html.escape(str(r['title']))}</td><td>{html.escape(str(r['authority']))}</td><td>{html.escape(str(r['residual_exposure']))}</td><td>{html.escape(str(r['review_date']))}</td></tr>" for r in p['accepted_risks'])
     override_rows=''.join(f"<tr><td>{html.escape(str(r['status']))}</td><td>{r['threat_id']}</td><td>{html.escape(str(r['calculated_band']))} {r['calculated_score']}</td><td>{html.escape(str(r['assigned_band']))} {r['assigned_score']}</td><td>{html.escape(str(r['authority']))}</td><td>{html.escape(str(r['reason']))}</td><td>{html.escape(str(r['review_date']))}</td></tr>" for r in p['risk_overrides'])
     evidence_rows=''.join(f"<tr><td>{html.escape(str(e['title']))}</td><td>{html.escape(str(e['verification_status']))}</td><td>{html.escape(str(e.get('lifecycle_status','Current')))}</td><td>{html.escape(str(e.get('valid_until','')))}</td><td>{html.escape(str(e.get('stale_reason','')))}</td></tr>" for e in p['evidence'])
-    body=f'''<!doctype html><html><head><meta charset="utf-8"><title>Salus THIRA Executive Summary</title><style>body{{font-family:Arial,sans-serif;margin:36px;color:#111}}h1{{margin-bottom:0}}.meta{{color:#555}}table{{width:100%;border-collapse:collapse;margin:16px 0 28px}}th,td{{border:1px solid #bbb;padding:8px;text-align:left;vertical-align:top}}th{{background:#eee}}@media print{{button{{display:none}}}}</style></head><body><button onclick="window.print()">Print / Save PDF</button><h1>Salus THIRA Executive Summary</h1><p class="meta">Generated {html.escape(now())}</p><h2>{html.escape(str(a['name']))}</h2><p>{html.escape(str(a['organization']))} · {html.escape(str(a['assessment_type']))} · {html.escape(str(a['status']))} · Version {a['version']}</p><p><strong>Mission:</strong> {html.escape(str(a['mission']))}</p><p><strong>Purpose:</strong> {html.escape(str(a['purpose']))}</p><h2>Risk Outlook</h2><table><tr><th>Threat / Hazard</th><th>Inherent</th><th>Current</th><th>Professional Assigned Risk</th><th>Predicted Residual</th><th>Validated Residual</th><th>Validated Improvements</th><th>Confidence</th></tr>{risk_rows}</table><h2>Professional Risk Override Register</h2><table><tr><th>Status</th><th>Threat ID</th><th>Calculated</th><th>Assigned</th><th>Authority</th><th>Reason</th><th>Review Date</th></tr>{override_rows}</table><h2>Evidence Lifecycle</h2><table><tr><th>Evidence</th><th>Verification</th><th>Lifecycle</th><th>Valid Until</th><th>Stale Reason</th></tr>{evidence_rows}</table><h2>Capability Performance</h2><table><tr><th>Capability</th><th>Measure</th><th>Target</th><th>Current</th><th>Attainment</th><th>Status</th></tr>{capability_rows}</table><h2>Top Improvement Priorities</h2><table><tr><th>Priority</th><th>Improvement</th><th>Status</th><th>Initial Cost</th></tr>{priority_rows}</table><h2>Executive Decisions</h2><table><tr><th>Decision</th><th>Authority</th><th>Funding</th><th>Rationale</th></tr>{decision_rows}</table><h2>Accepted Risk Register</h2><table><tr><th>Status</th><th>Risk</th><th>Authority</th><th>Residual Exposure</th><th>Review Date</th></tr>{accepted_rows}</table><p class="meta">Decision-support output. Professional judgment and authoritative source records remain controlling.</p></body></html>'''
+    body=f'''<!doctype html><html><head><meta charset="utf-8"><title>Salus THIRA Executive Summary</title><style>body{{font-family:Arial,sans-serif;margin:36px;color:#111}}h1{{margin-bottom:0}}.meta{{color:#555}}table{{width:100%;border-collapse:collapse;margin:16px 0 28px}}th,td{{border:1px solid #bbb;padding:8px;text-align:left;vertical-align:top}}th{{background:#eee}}@media print{{button{{display:none}}}}</style></head><body><button onclick="window.print()">Print / Save PDF</button><h1>Salus THIRA Executive Summary</h1><p class="meta">Generated {html.escape(now())}</p><h2>{html.escape(str(a['name']))}</h2><p>{html.escape(str(a['organization']))} · {html.escape(str(a['assessment_type']))} · {html.escape(str(a['status']))} · Version {a['version']}</p><p><strong>Mission:</strong> {html.escape(str(a['mission']))}</p><p><strong>Purpose:</strong> {html.escape(str(a['purpose']))}</p><p><strong>Methodology note:</strong> SalTHIRA applies a Salus-specific methodology informed by recognized THIRA principles; Salus does not claim ownership of the public THIRA framework.</p><h2>Risk Outlook</h2><table><tr><th>Threat / Hazard</th><th>Inherent</th><th>Current</th><th>Professional Assigned Risk</th><th>Predicted Residual</th><th>Validated Residual</th><th>Validated Improvements</th><th>Confidence</th></tr>{risk_rows}</table><h2>Professional Risk Override Register</h2><table><tr><th>Status</th><th>Threat ID</th><th>Calculated</th><th>Assigned</th><th>Authority</th><th>Reason</th><th>Review Date</th></tr>{override_rows}</table><h2>Evidence Lifecycle</h2><table><tr><th>Evidence</th><th>Verification</th><th>Lifecycle</th><th>Valid Until</th><th>Stale Reason</th></tr>{evidence_rows}</table><h2>Capability Performance</h2><table><tr><th>Capability</th><th>Measure</th><th>Target</th><th>Current</th><th>Attainment</th><th>Status</th></tr>{capability_rows}</table><h2>Top Improvement Priorities</h2><table><tr><th>Priority</th><th>Improvement</th><th>Status</th><th>Initial Cost</th></tr>{priority_rows}</table><h2>Executive Decisions</h2><table><tr><th>Decision</th><th>Authority</th><th>Funding</th><th>Rationale</th></tr>{decision_rows}</table><h2>Accepted Risk Register</h2><table><tr><th>Status</th><th>Risk</th><th>Authority</th><th>Residual Exposure</th><th>Review Date</th></tr>{accepted_rows}</table><p class="meta">Decision-support output. Professional judgment and authoritative source records remain controlling.</p></body></html>'''
     return HTMLResponse(body)
 
 @app.get('/api/export/{assessment_id}')
