@@ -1,0 +1,137 @@
+:root {
+  --condition-red: #a51d2a;
+  --condition-red-orange: #c94a2c;
+  --condition-orange: #d97706;
+  --condition-amber: #b7791f;
+  --condition-yellow-green: #6f8f2f;
+  --condition-green: #2f765b;
+  --condition-red-soft: #fde8ea;
+  --condition-red-orange-soft: #fcecdf;
+  --condition-orange-soft: #fff0da;
+  --condition-amber-soft: #fff4d8;
+  --condition-yellow-green-soft: #f0f5df;
+  --condition-green-soft: #e9f5ef;
+  --condition-gradient: linear-gradient(90deg,
+    var(--condition-red) 0%,
+    var(--condition-red-orange) 20%,
+    var(--condition-orange) 40%,
+    var(--condition-amber) 58%,
+    var(--condition-yellow-green) 78%,
+    var(--condition-green) 100%);
+}
+
+/* Salus doctrine: these classes describe CONDITION / EXPOSURE / READINESS,
+   not ordinary workflow progression. Color is always paired with text/symbols. */
+.badge.condition-critical,
+.condition-indicator.condition-critical {
+  background: var(--condition-red-soft);
+  color: #86131f;
+  border-color: #e7b6bc;
+}
+.badge.condition-high,
+.condition-indicator.condition-high {
+  background: var(--condition-red-orange-soft);
+  color: #8e321f;
+  border-color: #ecc2ac;
+}
+.badge.condition-elevated,
+.condition-indicator.condition-elevated {
+  background: var(--condition-orange-soft);
+  color: #8a4a00;
+  border-color: #efc993;
+}
+.badge.condition-guarded,
+.condition-indicator.condition-guarded {
+  background: var(--condition-amber-soft);
+  color: #73500d;
+  border-color: #ead39d;
+}
+.badge.condition-improving,
+.condition-indicator.condition-improving {
+  background: var(--condition-yellow-green-soft);
+  color: #4c6520;
+  border-color: #cbd9a5;
+}
+.badge.condition-ready,
+.condition-indicator.condition-ready {
+  background: var(--condition-green-soft);
+  color: #175d3d;
+  border-color: #b8d9c7;
+}
+
+.condition-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .015em;
+}
+
+.condition-symbol {
+  display: inline-block;
+  min-width: 1em;
+  text-align: center;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.condition-scale {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--condition-gradient);
+  box-shadow: inset 0 0 0 1px rgba(23, 36, 47, .10);
+  overflow: visible;
+}
+.condition-scale::before,
+.condition-scale::after {
+  position: absolute;
+  top: 14px;
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.condition-scale::before { content: "Danger / degraded"; left: 0; }
+.condition-scale::after { content: "Safer / ready"; right: 0; }
+
+.condition-progress {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: #e7ebed;
+  overflow: hidden;
+}
+.condition-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--condition-gradient);
+  background-size: 100% 100%;
+}
+
+/* Workflow progress stays neutral/component-colored so later steps do not imply
+   that the underlying risk or readiness condition has improved. */
+.workflow-progress {
+  background: #e7ebed;
+  color: var(--ink);
+}
+.workflow-progress > span { background: var(--accent); }
+.workflow-progress.intel > span { background: var(--intel); }
+.workflow-progress.thira > span { background: var(--thira); }
+.workflow-progress.ops > span { background: var(--ops); }
+
+@media print {
+  .badge[class*="condition-"], .condition-indicator[class*="condition-"] {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #555 !important;
+  }
+  .condition-scale, .condition-progress > span {
+    background: linear-gradient(90deg, #222 0%, #555 35%, #888 60%, #bbb 82%, #eee 100%) !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
