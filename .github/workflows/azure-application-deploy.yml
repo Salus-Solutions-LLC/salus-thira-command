@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.23
+          ref: release/v3.24
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -59,7 +59,7 @@ jobs:
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.23") and
+            (.source_release == "release/v3.24") and
             (.source_commit | test("^[0-9a-f]{40}$")) and
             (.image_digest | test("^salcapadevb48224acr[.]azurecr[.]io/salcapa@sha256:[0-9a-f]{64}$")) and
             ((keys - [
@@ -209,17 +209,32 @@ jobs:
           URL="https://$FQDN"
 
           READY=false
-          for attempt in $(seq 1 60); do
-            STATUS="$(curl --silent --show-error --output /tmp/salcapa-ready.json --write-out '%{http_code}' "$URL/health/ready" || true)"
+          STATUS=000
+          for attempt in $(seq 1 30); do
+            STATUS="$(curl --connect-timeout 5 --max-time 15 --silent --show-error --output /tmp/salcapa-ready.json --write-out '%{http_code}' "$URL/health/ready" || true)"
             if [ "$STATUS" = "200" ] && jq -e 'type == "object"' /tmp/salcapa-ready.json >/dev/null 2>&1; then
               READY=true
               break
             fi
             sleep 10
           done
-          test "$READY" = "true"
+          if [ "$READY" != "true" ]; then
+            echo "SalCAPA runtime did not become ready; final HTTP status: $STATUS" >&2
+            echo "Bounded runtime container logs (sensitive values redacted):" >&2
+            az containerapp logs show \
+              --resource-group "$RESOURCE_GROUP" \
+              --name "$APP_NAME" \
+              --container salcapa \
+              --type console \
+              --tail 200 \
+              --format text \
+              --only-show-errors 2>&1 \
+              | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' >&2 \
+              || true
+            exit 1
+          fi
 
-          curl --silent --show-error --dump-header /tmp/salcapa-oidc.headers --output /dev/null "$URL/api/auth/oidc/start"
+          curl --connect-timeout 5 --max-time 15 --silent --show-error --dump-header /tmp/salcapa-oidc.headers --output /dev/null "$URL/api/auth/oidc/start"
           OIDC_LOCATION="$(awk 'BEGIN{IGNORECASE=1} /^location:/{sub(/^[^:]+:[[:space:]]*/,""); sub(/\r$/,""); print; exit}' /tmp/salcapa-oidc.headers)"
           [[ "$OIDC_LOCATION" == "https://login.microsoftonline.com/$EXPECTED_TENANT_ID/oauth2/v2.0/authorize"* ]]
 
