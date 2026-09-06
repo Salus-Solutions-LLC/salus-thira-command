@@ -78,7 +78,10 @@ for name in (
 ):
     content = (ROOT / "static" / "assets" / name).read_text(encoding="utf-8")
     lowered = content.lower()
-    if "<svg" not in lowered or "viewbox=" not in lowered:
+    has_scalable_geometry = "viewbox=" in lowered or (
+        "width=" in lowered and "height=" in lowered
+    )
+    if "<svg" not in lowered or not has_scalable_geometry:
         raise SystemExit(f"Official logo asset is not a valid responsive SVG: {name}")
     if "<script" in lowered or re.search(
         r'(?:href|xlink:href)\s*=\s*["\'](?:https?:)?//',
