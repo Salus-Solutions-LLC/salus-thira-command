@@ -600,7 +600,7 @@ jobs:
               '.authConfig.passwordAuth == "Disabled"',
               '.network.publicNetworkAccess == "Disabled"',
               'az postgres flexible-server db show',
-              '--database-name salcapa',
+              '--name salcapa',
               'SALUS_POSTGRES_HOST',
               'Application database target: remained the source server',
               'Source server before/after: Ready and unchanged',

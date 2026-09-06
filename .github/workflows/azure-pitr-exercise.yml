@@ -174,7 +174,7 @@ jobs:
           ' /tmp/restored.json >/dev/null
           test "$(jq -r '.fullyQualifiedDomainName' /tmp/restored.json)" != "$SOURCE_FQDN"
 
-          az postgres flexible-server db show             --resource-group "$RESOURCE_GROUP"             --server-name "$RESTORE_SERVER"             --database-name salcapa             --query name --output tsv | grep -Fx salcapa >/dev/null
+          az postgres flexible-server db show             --resource-group "$RESOURCE_GROUP"             --server-name "$RESTORE_SERVER"             --name salcapa             --query name --output tsv | grep -Fx salcapa >/dev/null
 
           az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/application.json
           jq -e --arg source_host "$SOURCE_FQDN" --arg restore_host "$(jq -r '.fullyQualifiedDomainName' /tmp/restored.json)" '
