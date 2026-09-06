@@ -202,6 +202,27 @@ def main():
     post(client, f"/api/reports/versions/{released_report['id']}/transition", member_authority, {'status': 'Approved', 'reason': 'Member authority approved.'})
     post(client, f"/api/reports/versions/{released_report['id']}/transition", admin, {'status': 'Released', 'reason': 'Approved report released.'})
 
+    readiness_response = client.get('/api/salcapa/common-operating-picture', headers=member_authority)
+    assert readiness_response.status_code == 200
+    readiness = readiness_response.json()['protective_readiness']
+    assert readiness['source'] == 'persisted_server_controlled_records'
+    assert readiness['promise'] == 'See risk early. Decide with confidence. Act in time. Prove the work was done.'
+    assert [stage['key'] for stage in readiness['stages']] == ['see', 'decide', 'act', 'prove']
+    assert readiness['trace']['qualified_signals'] >= 1
+    assert readiness['trace']['assessed_capability_gaps'] >= 1
+    assert readiness['trace']['prioritized_improvements'] >= 1
+    assert readiness['trace']['executive_decisions'] >= 1
+    assert readiness['trace']['authorized_actions'] >= 1
+    assert readiness['trace']['completed_actions'] >= 1
+    assert readiness['trace']['released_proof_records'] >= 2
+    briefing = client.get(f'/api/report/{assessment_id}/executive.html', headers=member_authority)
+    assert briefing.status_code == 200
+    assert 'SalCAPA Protective Readiness Executive Briefing' in briefing.text
+    assert 'informed by recognized THIRA principles' in briefing.text
+    product_copy = (ROOT / 'static' / 'app.js').read_text()
+    assert 'Protective Readiness operating environment' in product_copy
+    assert 'See risk early. Decide with confidence. Act in time. Prove the work was done.' in product_copy
+
     member_payload = json.dumps({
         'cop': client.get('/api/salcapa/common-operating-picture', headers=member_authority).json(),
         'engagements': client.get('/api/salops/engagements', headers=member_authority).json(),
