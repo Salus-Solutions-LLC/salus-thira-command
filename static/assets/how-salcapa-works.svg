@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">How SalCAPA works</title>
+  <desc id="desc">Protected Members share priorities, requests, observations, concerns and operational context with SalCAPA. SalINTEL develops qualified intelligence, SalTHIRA assesses and prioritizes risk, and SalOPS implements and sustains approved action. SalCAPA coordinates the full cycle.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5f6d76"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="560" rx="26" fill="#f7f9f9"/>
+  <rect x="250" y="28" width="700" height="92" rx="18" fill="#eef6f2" stroke="#5d8c77" stroke-width="2"/>
+  <text x="600" y="68" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="28" font-weight="600" fill="#17242f">Protected Members</text>
+  <text x="600" y="96" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#55646d">Priorities • Requests • Observations • Concerns • Operational Context</text>
+
+  <line x1="600" y1="120" x2="600" y2="168" stroke="#5f6d76" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="330" y="174" width="540" height="116" rx="18" fill="#0b2236"/>
+  <text x="600" y="214" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="31" font-weight="600" fill="#ffffff">SalCAPA™</text>
+  <text x="600" y="241" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#c9d8de">Secure Coordination Environment</text>
+  <text x="600" y="268" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#9ed2cc">Collect • Analyze • Prioritize • Coordinate • Act</text>
+
+  <line x1="470" y1="290" x2="268" y2="354" stroke="#5f6d76" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="600" y1="290" x2="600" y2="354" stroke="#5f6d76" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="730" y1="290" x2="932" y2="354" stroke="#5f6d76" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <rect x="58" y="360" width="320" height="142" rx="18" fill="#eef7fb" stroke="#147fa6" stroke-width="2"/>
+  <text x="218" y="401" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="25" font-weight="600" fill="#0f6382">SalINTEL™</text>
+  <text x="218" y="428" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#365965">Qualified Intelligence</text>
+  <text x="218" y="462" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#55646d">Research • Qualify • Validate</text>
+  <text x="218" y="484" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="13" fill="#6a7880">Turn information into trusted insight</text>
+
+  <rect x="440" y="360" width="320" height="142" rx="18" fill="#fff7e7" stroke="#ad7720" stroke-width="2"/>
+  <text x="600" y="401" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="25" font-weight="600" fill="#875a15">SalTHIRA™</text>
+  <text x="600" y="428" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#695834">Risk Assessment</text>
+  <text x="600" y="462" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#55646d">Threats • Gaps • Priorities</text>
+  <text x="600" y="484" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="13" fill="#6a7880">Turn evidence into defensible decisions</text>
+
+  <rect x="822" y="360" width="320" height="142" rx="18" fill="#eef7f3" stroke="#337a65" stroke-width="2"/>
+  <text x="982" y="401" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="25" font-weight="600" fill="#27614f">SalOPS™</text>
+  <text x="982" y="428" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#365f52">Operational Readiness</text>
+  <text x="982" y="462" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#55646d">Protect • Support • Improve</text>
+  <text x="982" y="484" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="13" fill="#6a7880">Turn approved priorities into action</text>
+
+  <path d="M 218 502 C 250 536, 950 536, 982 502" fill="none" stroke="#5f6d76" stroke-width="2" stroke-dasharray="6 6" marker-end="url(#arrow)"/>
+  <text x="600" y="544" text-anchor="middle" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="13" fill="#6a7880">Results, evidence and lessons return to SalCAPA and the Protected Member</text>
+</svg>
