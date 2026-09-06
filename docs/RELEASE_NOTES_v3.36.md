@@ -26,3 +26,11 @@ This release is the first UI slice of the broader universal-ingestion program.
 Generic material records, derived extraction/transcription, cross-component
 links, corpus search, processing status, and synthetic multi-format exercises
 remain separately governed follow-on capabilities.
+
+## Salus / SalCAPA brand hierarchy
+
+The shared navigation lockup now displays the official Salus Solutions wordmark
+at a larger size and places a substantially larger **SalCAPA™** product name
+beneath it. The arrangement preserves the official supplied logo artwork,
+responsive navigation, accessible reading order, and the restrained deep-navy
+SalCAPA presentation.
