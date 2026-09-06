@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.28
+          ref: release/v3.29
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -59,7 +59,7 @@ jobs:
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.28") and
+            (.source_release == "release/v3.29") and
             (.source_commit | test("^[0-9a-f]{40}$")) and
             (.image_digest | test("^salcapadevb48224acr[.]azurecr[.]io/salcapa@sha256:[0-9a-f]{64}$")) and
             ((keys - [
@@ -204,6 +204,12 @@ jobs:
           test "$(jq -r '(.properties.configuration.secrets // []) | length' /tmp/salcapa-app.json)" = "0"
           test "$(jq -r '.identity.type' /tmp/salcapa-app.json)" = "UserAssigned"
           test "$(jq -r '.identity.userAssignedIdentities | length' /tmp/salcapa-app.json)" = "1"
+          RUNTIME_IDENTITY_CLIENT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query clientId --output tsv)"
+          jq -e --arg client_id "$RUNTIME_IDENTITY_CLIENT_ID" '
+            any(.properties.template.containers[0].env[];
+              .name == "AZURE_CLIENT_ID" and .value == $client_id
+            )
+          ' /tmp/salcapa-app.json >/dev/null
           FQDN="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/salcapa-app.json)"
           [[ "$FQDN" == salcapa-dev-b48224.*.southcentralus.azurecontainerapps.io ]]
           URL="https://$FQDN"
@@ -236,7 +242,7 @@ jobs:
               --tail 200 \
               --format json \
               --only-show-errors 2>&1 \
-              | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' >&2 \
+              | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED]/Ig' >&2 \
               || true
             echo "Bounded revision-targeted container logs (sensitive values redacted):" >&2
             while IFS= read -r REVISION; do
@@ -263,7 +269,7 @@ jobs:
                 --tail 200 \
                 --format text \
                 --only-show-errors 2>&1 \
-                | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' >&2 \
+                | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED]/Ig' >&2 \
                 || true
             done < <(
               az containerapp revision list \

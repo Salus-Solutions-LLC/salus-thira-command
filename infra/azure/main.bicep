@@ -495,6 +495,10 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
               value: workloadIdentity.properties.clientId
             }
             {
+              name: 'AZURE_CLIENT_ID'
+              value: workloadIdentity.properties.clientId
+            }
+            {
               name: 'SALUS_OIDC_REDIRECT_URI'
               value: 'https://${stem}.${containerAppsEnvironment.properties.defaultDomain}/api/auth/oidc/callback'
             }

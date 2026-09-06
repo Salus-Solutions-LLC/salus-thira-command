@@ -31,6 +31,7 @@ def main() -> None:
             "SALUS_AZURE_STORAGE_ACCOUNT_URL": "https://salcapaexample.blob.core.windows.net/",
             "SALUS_AZURE_STORAGE_CONTAINER": "evidence",
             "SALUS_OIDC_CLIENT_AUTH_METHOD": "managed_identity",
+            "AZURE_CLIENT_ID": "00000000-0000-0000-0000-000000000001",
         }
     )
     for name in ("SALUS_DATABASE_URL", "SALUS_POSTGRES_DSN", "SALUS_AZURE_STORAGE_CONNECTION_STRING", "SALUS_OIDC_CLIENT_SECRET"):
@@ -62,6 +63,9 @@ def main() -> None:
     assert method_line in app_source and secret_line in app_source
     assert app_source.index(method_line) < app_source.index(secret_line)
     assert "if OIDC_CLIENT_AUTH_METHOD == 'managed_identity'" in app_source
+    infrastructure_source = Path("infra/azure/main.bicep").read_text()
+    assert "name: 'AZURE_CLIENT_ID'" in infrastructure_source
+    assert "value: workloadIdentity.properties.clientId" in infrastructure_source
     print("PASSWORDLESS_RUNTIME_SECRET_PATHS_PASS")
 
 
