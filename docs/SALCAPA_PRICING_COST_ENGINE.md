@@ -57,23 +57,98 @@ Default commercial labor rates range from $125/hour for research/investigative s
 
 `tests/test_pricing_engine.py` defines the initial unit acceptance suite.
 
+## Planning, Training & Exercise (P/T/E) integration
+
+Planning, training and exercise are first-class SalCAPA service domains, not disconnected consulting tasks. The governed lifecycle is:
+
+**SalTHIRA gap / capability requirement -> plan -> train -> exercise -> evaluate -> corrective action -> validation -> capability reassessment.**
+
+`pte_engine.py` implements the initial P/T/E domain and `tests/test_pte_engine.py` defines its acceptance suite.
+
+### Planning
+
+Supported initial plan classes include strategic plans, emergency operations plans, continuity plans, crisis communications plans, security plans, protective operations plans, incident action/response plans, recovery plans, functional annexes and SOPs/procedures.
+
+A planning work package must identify the linked assessment/capability/gap/improvement where applicable, the authorized budget/hours, objectives and controlled lifecycle state.
+
+### Training
+
+Supported initial training classes include awareness/orientation, role-based training, skills/task training, leadership/decision training, train-the-trainer, refresher/sustainment and remedial/corrective training.
+
+Training completion alone is not assumed to prove capability. Training records may become evidence, but capability credit remains governed by evidence validity and, when appropriate, demonstrated performance.
+
+### Exercises
+
+Supported initial exercise classes are seminar, workshop, tabletop exercise, game, drill, functional exercise and full-scale exercise.
+
+Exercises must be linked to defined objectives and, where available, SalTHIRA capabilities and performance targets. Exercise observations can produce corrective actions. Adverse observations such as Failed, Not Demonstrated, Partial, Unsatisfactory or Needs Improvement trigger corrective-action treatment rather than automatic closure.
+
+Existing THIRA evidence handling already recognizes exercise results; the P/T/E subsystem formalizes the design, conduct, evaluation and corrective-action lifecycle around that evidence.
+
+### Readiness-cycle gate
+
+Capability readiness should distinguish the following dimensions:
+
+1. current approved plan/procedure;
+2. required training completed;
+3. exercise or other validation event completed;
+4. evaluation completed;
+5. corrective actions closed or otherwise formally dispositioned; and
+6. current valid validation evidence.
+
+Only when the required dimensions are satisfied may P/T/E indicate that a capability is ready for governed capability-credit consideration. P/T/E does not independently change THIRA risk scores.
+
+### Initial P/T/E pricing minimums
+
+Pricing remains configuration-driven and uses the core Pricing & Cost Engine for labor, internal cost, margin floor, target and premium pricing. Initial service minimums are:
+
+- SOP/procedure development: $3,500
+- plan annex: $5,000
+- emergency operations plan: $12,500
+- continuity plan: $12,500
+- crisis communications plan: $10,000
+- security plan: $12,500
+- awareness/orientation training: $2,500
+- role-based training: $5,000
+- skills/task training: $7,500
+- leadership/decision training: $7,500
+- train-the-trainer: $7,500
+- seminar: $3,500
+- workshop: $5,000
+- tabletop exercise: $7,500
+- drill: $7,500
+- functional exercise: $15,000
+- full-scale exercise: $30,000
+
+These are minimum starting points, not fixed prices. Complexity, participant count, sites/jurisdictions, scenario design, controllers/evaluators, simulation, travel, logistics, documentation, after-action/improvement planning and required SMEs can raise the recommended price.
+
+### Corrective-action lifecycle
+
+Exercise/training deficiencies create corrective actions with status values Open, In Progress, Pending Validation, Validated, Closed or Accepted Risk. P/T/E cycles cannot be represented as fully closed while required evaluation is incomplete or blocking corrective actions remain unresolved.
+
+Corrective-action validation should create evidence usable by the existing governed evidence lifecycle; stale evidence must not retain permanent readiness credit.
+
 ## Persistence model (next integration layer)
 
 The database integration will introduce effective-dated, tenant-aware entities for rate cards, labor categories, confidential cost profiles, membership plans, member contract pricing, capacity accounts, service catalog, assessment levels, modifiers, quotes and quote items, estimates, budgets, actual labor/expenses, forecasts, approvals, scope authorizations, change orders, retainers and immutable pricing audit events.
+
+P/T/E persistence will additionally introduce work packages, capability links, objectives, participants/audiences, plan/training/exercise events, observations, evaluations, corrective actions, after-action/improvement plans, validation events and evidence links.
 
 Cost-profile detail must be restricted more tightly than ordinary project economics. Project managers may receive blended cost/margin data without access to salary-derived inputs.
 
 ## THIRA integration
 
-The pricing domain must consume, not replace, governed THIRA outputs. A later integration layer will map findings/gaps/improvements to recommended service, professional mix, effort range, price range, authorization state and cost-of-risk-reduction analysis.
+The pricing and P/T/E domains must consume, not replace, governed THIRA outputs. Integration will map findings/gaps/improvements to recommended service, professional mix, effort range, price range, authorization state and cost-of-risk-reduction analysis. P/T/E results then feed validated evidence and corrective-action outcomes back into capability reassessment.
 
 ## Release sequence
 
 1. Pricing foundation and pure-domain acceptance tests.
-2. Tenant-aware persistence and immutable audit history.
-3. Estimate/quote API and approval workflow.
-4. Engagement budget, actuals, EAC and scope ceilings.
-5. Membership capacity, overage and renewal economics.
-6. SalTHIRA finding/improvement integration and change-order recommendations.
-7. SalOPS operational pricing and mobilization rules.
-8. Commercial analytics and estimating feedback loop.
+2. Planning, Training & Exercise domain and acceptance tests.
+3. Tenant-aware persistence and immutable audit history, including P/T/E records.
+4. Estimate/quote API and approval workflow.
+5. Engagement budget, actuals, EAC and scope ceilings.
+6. Membership capacity, overage and renewal economics.
+7. SalTHIRA finding/improvement integration, P/T/E work-package generation and change-order recommendations.
+8. SalOPS operational pricing and mobilization rules.
+9. P/T/E scheduling, evaluation, corrective-action and evidence-lifecycle UI.
+10. Commercial analytics and estimating feedback loop.
