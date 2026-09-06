@@ -6,6 +6,6 @@
   "unique_suffix": "b48224",
   "repository": "salcapa",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-  "source_commit": "eb1ea4a60fb065e62cfd11c514e1f778a65dc90e",
-  "source_release": "release/v3.24"
+  "source_commit": "38a9ef92afd0ae7c5ffd6d7946aebc6750f894ad",
+  "source_release": "release/v3.25"
 }
