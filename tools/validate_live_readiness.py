@@ -117,7 +117,7 @@ def self_test() -> None:
         ("local-storage", lambda p: p.update(storage_backend="local")),
         ("database-unhealthy", lambda p: p["runtime_database"].update(healthy=False)),
         ("oidc-secret", lambda p: p["oidc"].update(mode="client_secret")),
-        ("diagnostic", lambda p: p.update(detail="postgresql://user:password@host/db")),
+        ("diagnostic", lambda p: p.update(detail="postgresql://host/db")),
     ]
     for name, mutate in mutations:
         candidate = json.loads(json.dumps(valid))
