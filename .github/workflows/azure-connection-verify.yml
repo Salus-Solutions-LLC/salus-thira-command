@@ -269,9 +269,12 @@ jobs:
               exit 1
             }
           jq -e 'all(.changes[];
-            (.resourceId | ascii_downcase | contains("/providers/microsoft.app/containerapps/")) | not
+            if (.resourceId | ascii_downcase | contains("/providers/microsoft.app/containerapps/"))
+            then (.changeType | IN("Ignore", "NoEffect"))
+            else true
+            end
           )' /tmp/salcapa-foundation-what-if.json >/dev/null || {
-            echo "Foundation what-if attempted to provision the SalCAPA application before Entra federation." >&2
+            echo "Foundation what-if attempted to create, modify, or delete the SalCAPA application." >&2
             exit 1
           }
 
@@ -285,6 +288,6 @@ jobs:
             echo "- Unique suffix: $UNIQUE_SUFFIX"
             echo "- Proposed resource changes: $CHANGE_COUNT"
             echo "- Destructive deletes: none"
-            echo "- Container App before federation: none"
+            echo "- Container App mutation by foundation preflight: none"
             echo "- Monthly authorization ceiling: USD 30"
           } >> "$GITHUB_STEP_SUMMARY"
