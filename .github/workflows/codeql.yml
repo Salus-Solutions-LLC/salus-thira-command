@@ -42,6 +42,8 @@ jobs:
           python tools/reconstruct_salintel_relationships.py
           python tools/reconstruct_salintel_research.py
           python tools/reconstruct_salintel_handoffs.py
+          python tools/reconstruct_facility_assessment.py
+          python tools/reconstruct_salintel_monitoring.py
       - name: Validate release reconstruction entrypoints
         run: python tools/check_release_entrypoints.py
       - uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
@@ -57,11 +59,9 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-
           files = sorted(Path('codeql-results').glob('*.sarif'))
           if not files:
               raise SystemExit('No CodeQL SARIF output was produced')
-
           findings = []
           for path in files:
               data = json.loads(path.read_text(encoding='utf-8'))
@@ -72,7 +72,6 @@ jobs:
                       rules[rule.get('id')] = rule
                   for result in run.get('results', []) or []:
                       findings.append((path.name, result, rules.get(result.get('ruleId'), {})))
-
           print(f'CODEQL_FINDINGS={len(findings)}')
           for filename, result, rule in findings:
               rule_id = result.get('ruleId', 'unknown')
@@ -83,7 +82,6 @@ jobs:
               uri = physical.get('artifactLocation', {}).get('uri', 'unknown')
               line = physical.get('region', {}).get('startLine', '?')
               print(f'{filename}:{uri}:{line}: {level}: {rule_id}: {message}')
-
           if findings:
               raise SystemExit('CodeQL produced findings that require review')
           print('CODEQL_LOCAL_ANALYSIS_PASS')
@@ -96,4 +94,3 @@ jobs:
           path: codeql-results
           if-no-files-found: error
           retention-days: 14
-

@@ -57,6 +57,7 @@ function personnelDetail(detail,checklist){
     ${typeof salintelResearchPanel==='function'?salintelResearchPanel(record):''}
     ${typeof salintelHandoffPanel==='function'?salintelHandoffPanel(record):''}
     ${typeof salintelRelationshipPanel==='function'?salintelRelationshipPanel(record):''}
+    ${typeof salintelMonitoringPanel==='function'?salintelMonitoringPanel(record):''}
     <div class="form-actions personnel-governance"><button class="btn secondary" onclick="openPersonnelInDomainWorkspace()">Open governance and disclosure controls</button>${tier?`<button class="btn secondary" onclick="qualifySalintelInvestigation(${record.id})">Human qualification</button><button class="btn secondary" onclick="recommendSalintelTier(${record.id},true)">Recommend deeper tier</button>${detail.completion_readiness&&detail.completion_readiness.ready?`<button class="btn" onclick="completePersonnelTier(${record.id},${tier})">Complete authorized tier</button>`:''}`:''}</div>
   </section>`;
 }
@@ -73,6 +74,7 @@ async function personnelAssessments(){
   if(detail&&typeof loadSalintelResearch==='function')await loadSalintelResearch(detail.investigation);
   if(detail&&typeof loadSalintelHandoffs==='function')await loadSalintelHandoffs(detail.investigation);
   if(detail&&typeof loadSalintelRelationships==='function')await loadSalintelRelationships(detail.investigation);
+  if(detail&&typeof loadSalintelMonitoring==='function')await loadSalintelMonitoring(detail.investigation);
 }
 async function openPersonnelAssessment(id){personnelAssessmentState.recordId=id;await personnelAssessments();}
 function closePersonnelAssessment(){personnelAssessmentState.recordId=null;personnelAssessments();}

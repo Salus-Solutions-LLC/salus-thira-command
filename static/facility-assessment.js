@@ -94,6 +94,7 @@ function facilityDetail(detail,checklist){
     ${typeof salintelResearchPanel==='function'?salintelResearchPanel(record):''}
     ${typeof salintelHandoffPanel==='function'?salintelHandoffPanel(record):''}
     ${typeof salintelRelationshipPanel==='function'?salintelRelationshipPanel(record):''}
+    ${typeof salintelMonitoringPanel==='function'?salintelMonitoringPanel(record):''}
     <div class="form-actions facility-governance"><button class="btn secondary" onclick="openFacilityInDomainWorkspace()">Open governance and disclosure controls</button>${tier?`<button class="btn secondary" onclick="qualifySalintelInvestigation(${record.id})">Human qualification</button><button class="btn secondary" onclick="recommendSalintelTier(${record.id},true)">Recommend deeper tier</button>${detail.completion_readiness&&detail.completion_readiness.ready?`<button class="btn" onclick="completeFacilityTier(${record.id},${tier})">Complete authorized tier</button>`:''}`:''}</div>
   </section>`;
 }
@@ -111,6 +112,7 @@ async function facilityAssessments(){
   if(detail&&typeof loadSalintelResearch==='function')await loadSalintelResearch(detail.investigation);
   if(detail&&typeof loadSalintelHandoffs==='function')await loadSalintelHandoffs(detail.investigation);
   if(detail&&typeof loadSalintelRelationships==='function')await loadSalintelRelationships(detail.investigation);
+  if(detail&&typeof loadSalintelMonitoring==='function')await loadSalintelMonitoring(detail.investigation);
 }
 async function openFacilityAssessment(id){facilityAssessmentState.recordId=id;await facilityAssessments();}
 function closeFacilityAssessment(){facilityAssessmentState.recordId=null;facilityAssessments();}

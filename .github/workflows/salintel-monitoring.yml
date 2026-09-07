@@ -1,0 +1,133 @@
+name: SalINTEL Recurring Monitoring
+
+on:
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'salcapa_runtime.py'
+      - 'source_archives/development/salintel_monitoring.py.gz'
+      - 'source_archives/development/ci_salintel_monitoring_smoke.py.gz'
+      - 'tools/reconstruct_salintel_monitoring.py'
+      - 'tools/ci_salintel_monitoring_ui_smoke.py'
+      - 'static/salintel-monitoring.js'
+      - 'static/salintel-monitoring.css'
+      - 'static/personnel-assessment.js'
+      - 'static/facility-assessment.js'
+      - 'Dockerfile'
+      - 'run_mac_linux.sh'
+      - 'run_windows.bat'
+      - '.github/workflows/salintel-monitoring.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sqlite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - name: Reconstruct governed sources
+        run: |
+          python tools/reconstruct_v343_source.py
+          python tools/reconstruct_salops_preparedness.py
+          python tools/reconstruct_personnel_assessment.py
+          python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
+          python tools/reconstruct_salintel_handoffs.py
+          python tools/reconstruct_facility_assessment.py
+          python tools/reconstruct_salintel_monitoring.py
+      - name: Install application and security tools
+        run: python -m pip install -r requirements.txt -r requirements-ci.txt
+      - name: Compile recurring-monitoring capability
+        run: python -m py_compile salcapa_runtime.py salintel_monitoring.py tools/ci_salintel_monitoring_smoke.py tools/ci_salintel_monitoring_ui_smoke.py
+      - name: Validate monitoring interface JavaScript
+        run: node --check static/salintel-monitoring.js && node --check static/personnel-assessment.js && node --check static/facility-assessment.js
+      - name: Monitoring interface acceptance
+        run: python tools/ci_salintel_monitoring_ui_smoke.py
+      - name: Static security scan
+        run: bandit -q -r salcapa_runtime.py salintel_monitoring.py -ll -s B608
+      - name: SQLite recurring-monitoring acceptance
+        run: python tools/ci_salintel_monitoring_smoke.py
+
+  postgres16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: salintel_monitoring_ci
+          POSTGRES_USER: salus
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U salus -d salintel_monitoring_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Reconstruct governed sources
+        run: |
+          python tools/reconstruct_v343_source.py
+          python tools/reconstruct_salops_preparedness.py
+          python tools/reconstruct_personnel_assessment.py
+          python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
+          python tools/reconstruct_salintel_handoffs.py
+          python tools/reconstruct_facility_assessment.py
+          python tools/reconstruct_salintel_monitoring.py
+      - name: Install application
+        run: python -m pip install -r requirements.txt
+      - name: PostgreSQL 16 recurring-monitoring acceptance
+        env:
+          SALUS_DB_BACKEND: postgres
+          SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salintel_monitoring_ci
+          SALUS_AUTH_MODE: prototype
+          SALUS_SEED_DEMO: '1'
+          SALUS_LOCAL_STORAGE_DIR: /tmp/monitoring-pg-attachments
+          SALUS_BACKUP_DIR: /tmp/monitoring-pg-backups
+        run: python tools/ci_salintel_monitoring_smoke.py
+
+  production-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build production container
+        run: docker build --tag salcapa-monitoring:ci .
+      - name: Run recurring-monitoring acceptance in container
+        run: |
+          docker run --rm \
+            -e SALUS_DB_BACKEND=sqlite \
+            -e SALUS_DB_PATH=/app/data/monitoring-container.db \
+            -e SALUS_LOCAL_STORAGE_DIR=/app/attachments \
+            -e SALUS_BACKUP_DIR=/app/backups \
+            -e SALUS_AUTH_MODE=prototype \
+            -e SALUS_SEED_DEMO=1 \
+            salcapa-monitoring:ci sh -c 'python tools/ci_salintel_monitoring_smoke.py && python tools/ci_salintel_monitoring_ui_smoke.py'

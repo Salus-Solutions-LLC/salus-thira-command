@@ -17,6 +17,10 @@ from salintel_relationships import register_salintel_relationships
 from salintel_research import register_salintel_research
 from salintel_handoffs import register_salintel_handoffs
 from facility_assessment import register_facility_assessment
+try:
+    from salintel_monitoring import register_salintel_monitoring
+except ModuleNotFoundError:  # Other capability workflows may not reconstruct this archive.
+    register_salintel_monitoring = None
 
 register_salops_preparedness(core.app, core.__dict__)
 register_salintel_relationships(core.app, core.__dict__)
@@ -24,6 +28,8 @@ register_salintel_research(core.app, core.__dict__)
 register_personnel_assessment(core.app, core.__dict__)
 register_salintel_handoffs(core.app, core.__dict__)
 register_facility_assessment(core.app, core.__dict__)
+if register_salintel_monitoring is not None:
+    register_salintel_monitoring(core.app, core.__dict__)
 
 
 def _preparedness_index() -> str:
@@ -54,6 +60,9 @@ def _preparedness_index() -> str:
         ('<link rel="stylesheet" href="/static/salintel-handoffs.css" />',
          '<link rel="stylesheet" href="/static/salintel-handoffs.css" />\n<link rel="stylesheet" href="/static/facility-assessment.css" />',
          '/static/facility-assessment.css'),
+        ('<link rel="stylesheet" href="/static/facility-assessment.css" />',
+         '<link rel="stylesheet" href="/static/facility-assessment.css" />\n<link rel="stylesheet" href="/static/salintel-monitoring.css" />',
+         '/static/salintel-monitoring.css'),
         ('<button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button>',
          '<button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button><button data-view="personnel_assessments" data-salus-only="true">Personnel Assessment</button>',
          'data-view="personnel_assessments"'),
@@ -75,6 +84,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salintel-handoffs.js"></script>',
          '<script src="/static/salintel-handoffs.js"></script>\n<script src="/static/facility-assessment.js"></script>',
          '/static/facility-assessment.js'),
+        ('<script src="/static/facility-assessment.js"></script>',
+         '<script src="/static/facility-assessment.js"></script>\n<script src="/static/salintel-monitoring.js"></script>',
+         '/static/salintel-monitoring.js'),
     )
     for marker, replacement, present in edits:
         if present in text:
