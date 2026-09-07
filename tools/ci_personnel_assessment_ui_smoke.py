@@ -5,29 +5,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 index = (ROOT / "static/index.html").read_text(encoding="utf-8")
 app = (ROOT / "static/app.js").read_text(encoding="utf-8")
-runtime = (ROOT / "salcapa_runtime.py").read_text(encoding="utf-8")
 ui = (ROOT / "static/personnel-assessment.js").read_text(encoding="utf-8")
 css = (ROOT / "static/personnel-assessment.css").read_text(encoding="utf-8")
 
-assert 'data-view="personnel_assessments" data-salus-only="true">Personnel Assessment<' in runtime
-assert "/static/personnel-assessment.js" in runtime
-assert "/static/personnel-assessment.css" in runtime
-assert "currentView==='personnel_assessments'" in ui
-assert "viewTitles.personnel_assessments=`${PRODUCT_TERMS.salintel.name} Personnel Assessment`" in ui
-assert "personnelBaseRender=render" in ui
-assert 'data-view="personnel_assessments"' not in index
-assert "currentView==='personnel_assessments'" not in app
+assert 'data-view="personnel_assessments" data-salus-only="true">Personnel Assessment<' in index
+assert "/static/personnel-assessment.js" in index
+assert "/static/personnel-assessment.css" in index
+assert "currentView==='personnel_assessments'" in app
+assert "personnel_assessments:`${PRODUCT_TERMS.salintel.name} Personnel Assessment`" in app
 for marker in [
     "Personnel Assessment", "Authorized research plan", "Identity candidates",
     "Structured findings", "Depth is not a safety rating", "Same-name collision",
     "All new findings require human qualification", "Recommend deeper tier",
     "No unrestricted personal dossier", "Protected Members receive only",
+    "Bounded-tier completion", "Closure gates remain", "Complete authorized tier",
 ]:
     assert marker in ui, marker
 for endpoint in [
     "/api/salintel/investigations?domain_key=personnel-assessment",
     "/api/salintel/personnel-assessment/checklist",
     "/research-plan", "/identity-candidates", "/decision", "/findings",
+    "/complete-tier",
 ]:
     assert endpoint in ui, endpoint
 for controlled in [

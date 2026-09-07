@@ -37,6 +37,11 @@ function personnelFindings(detail){
 function personnelPlanOptions(checklist,tier){
   return (checklist.tiers||[]).filter(row=>row.tier_required<=tier).map(row=>`<option value="${esc(row.key)}" data-category="${esc(row.category)}">${esc(row.key)} — ${esc(row.category)}</option>`).join('');
 }
+function personnelCompletionReadiness(detail){
+  const readiness=detail.completion_readiness||{ready:false,blockers:['Completion readiness has not been evaluated.']};
+  const items=(readiness.blockers||[]).map(item=>`<li>${esc(item)}</li>`).join('');
+  return `<article class="card"><div class="section-title"><h3>Bounded-tier completion</h3><span class="personnel-state">${readiness.ready?'Ready for authorized completion':'Closure gates remain'}</span></div>${readiness.ready?'<p>The authorized plan, identity disposition, known-unknown record, and final human qualification satisfy the Personnel Assessment closure gate.</p>':`<p>Completion remains server-blocked until:</p><ul>${items}</ul>`}</article>`;
+}
 function personnelDetail(detail,checklist){
   const record=detail.investigation||{},tier=Number(detail.authorized_tier||0),hasPlan=(detail.checklist||[]).length>0;
   return `<section class="personnel-detail">
@@ -48,7 +53,8 @@ function personnelDetail(detail,checklist){
     <article class="card"><h3>Add structured finding</h3><form id="personnel-finding-form"><label>Checklist requirement<select name="checklist_key" required>${personnelPlanOptions(checklist,tier)}</select></label><label>Knowledge state<select name="epistemic_state">${personnelEpistemic.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Origin<select name="origin_type">${personnelOrigins.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Title<input name="title" maxlength="240" required></label><label>Narrative<textarea name="narrative" maxlength="12000" required></textarea></label><div class="form-grid"><label>Source reliability<input name="source_reliability" maxlength="80" value="Not Assessed"></label><label>Information confidence<input name="information_confidence" maxlength="80" value="Not Assessed"></label><label>Governed source material ID<input name="source_material_id" type="number" min="1"></label></div><label>Relationship context<textarea name="relationship_context" maxlength="4000"></textarea></label><div class="personnel-checks"><label><input type="checkbox" name="competing_resource_relevance"> Competing-resource relevance</label><label><input type="checkbox" name="insider_threat_relevance"> Insider-threat relevance</label><label><input type="checkbox" name="protective_intelligence_relevance"> Protective-intelligence relevance</label></div><button class="btn">Add unqualified finding</button></form></article></div>
     <div class="section-title"><h3>Identity candidates</h3><span class="subtle">${detail.identity_collision?'◆ Collision remains reviewable':'No unresolved collision detected'}</span></div>${personnelCandidates(detail)}
     <div class="section-title"><h3>Structured findings</h3><span class="subtle">All new findings require human qualification</span></div>${personnelFindings(detail)}
-    <div class="form-actions personnel-governance"><button class="btn secondary" onclick="openPersonnelInDomainWorkspace()">Open governance and disclosure controls</button>${tier?`<button class="btn secondary" onclick="qualifySalintelInvestigation(${record.id})">Human qualification</button><button class="btn secondary" onclick="recommendSalintelTier(${record.id},true)">Recommend deeper tier</button>`:''}</div>
+    ${personnelCompletionReadiness(detail)}
+    <div class="form-actions personnel-governance"><button class="btn secondary" onclick="openPersonnelInDomainWorkspace()">Open governance and disclosure controls</button>${tier?`<button class="btn secondary" onclick="qualifySalintelInvestigation(${record.id})">Human qualification</button><button class="btn secondary" onclick="recommendSalintelTier(${record.id},true)">Recommend deeper tier</button>${detail.completion_readiness&&detail.completion_readiness.ready?`<button class="btn" onclick="completePersonnelTier(${record.id},${tier})">Complete authorized tier</button>`:''}`:''}</div>
   </section>`;
 }
 async function personnelAssessments(){
@@ -69,15 +75,5 @@ function personnelIdentifiers(value){const result={};String(value||'').split(/\r
 async function submitPersonnelCandidate(event){event.preventDefault();const d=new FormData(event.target),body={candidate_name:d.get('candidate_name'),identifiers:personnelIdentifiers(d.get('identifiers')),origin_type:d.get('origin_type'),narrative:d.get('narrative')};if(d.get('source_material_id'))body.source_material_id=Number(d.get('source_material_id'));await api(`/api/salintel/personnel-assessments/${personnelAssessmentState.recordId}/identity-candidates`,{method:'POST',body:JSON.stringify(body)});await personnelAssessments();}
 async function decidePersonnelIdentity(itemId,decision){const reason=prompt(`Human decision basis for ${decision}:`);if(!reason)return;await api(`/api/salintel/personnel-assessments/${personnelAssessmentState.recordId}/identity-candidates/${itemId}/decision`,{method:'POST',body:JSON.stringify({decision,reason})});await personnelAssessments();}
 async function submitPersonnelFinding(event){event.preventDefault();const d=new FormData(event.target),select=event.target.querySelector('[name="checklist_key"]'),option=select.options[select.selectedIndex],body={checklist_key:d.get('checklist_key'),category:option.dataset.category,title:d.get('title'),narrative:d.get('narrative'),epistemic_state:d.get('epistemic_state'),origin_type:d.get('origin_type'),source_reliability:d.get('source_reliability'),information_confidence:d.get('information_confidence'),relationship_context:d.get('relationship_context'),competing_resource_relevance:d.get('competing_resource_relevance')==='on',insider_threat_relevance:d.get('insider_threat_relevance')==='on',protective_intelligence_relevance:d.get('protective_intelligence_relevance')==='on'};if(d.get('source_material_id'))body.source_material_id=Number(d.get('source_material_id'));await api(`/api/salintel/personnel-assessments/${personnelAssessmentState.recordId}/findings`,{method:'POST',body:JSON.stringify(body)});await personnelAssessments();}
+async function completePersonnelTier(recordId,tier){const completion_statement=prompt(`Bounded Tier ${tier} completion statement:`);if(!completion_statement)return;const residual_unknowns=prompt('Residual unknowns, unavailable sources, stopping points, and follow-on requirements (state “None identified” when applicable):');if(residual_unknowns===null||!residual_unknowns.trim())return;await api(`/api/salintel/investigations/${recordId}/complete-tier`,{method:'POST',body:JSON.stringify({tier,completion_statement,residual_unknowns})});await personnelAssessments();}
 function openPersonnelInDomainWorkspace(){salintelDomainUiState.recordId=personnelAssessmentState.recordId;salintelDomainUiState.domain='personnel-assessment';setView('salintel_domains');}
-
-viewTitles.personnel_assessments=`${PRODUCT_TERMS.salintel.name} Personnel Assessment`;
-subtitles.personnel_assessments='Resolve identity and investigate authorized personnel context with evidence, explicit uncertainty, and human qualification.';
-const personnelBaseRender=render;
-render=async function(){
-  if(currentView==='personnel_assessments'){
-    try{return await personnelAssessments();}
-    catch(error){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(error.message)}</div>`;return;}
-  }
-  return personnelBaseRender();
-};
