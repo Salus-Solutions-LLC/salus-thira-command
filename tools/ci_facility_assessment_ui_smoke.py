@@ -18,6 +18,9 @@ required_js = [
     "Human qualification", "Recommend deeper tier", "Open governance and disclosure controls",
     "facilityCompletionReadiness", "Complete authorized tier", "completeFacilityTier",
     "intentional_scenario_types", "facilityIntentionalScenarios",
+    "facilityGeospatialMap", "submitFacilityGeospatial", "parseFacilityCoordinates",
+    "Governed geospatial overview", "WGS84 coordinates are rendered locally",
+    "/geospatial-features", "facilityGeospatialCategories",
 ]
 for marker in required_js:
     if marker not in js:
@@ -39,7 +42,9 @@ for marker in required_runtime:
         raise SystemExit(f"Missing Facility runtime composition marker: {marker}")
 
 for marker in [".facility-hero", ".facility-status-grid", ".facility-state",
-               ".facility-context", ".facility-scenarios", "@media print"]:
+               ".facility-context", ".facility-scenarios", ".facility-map",
+               ".facility-map-point", ".facility-map-path", ".facility-map-area",
+               "@media print"]:
     if marker not in css:
         raise SystemExit(f"Missing Facility CSS marker: {marker}")
 

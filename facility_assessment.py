@@ -22,6 +22,13 @@ Epistemic = Literal["Verified Fact", "Reported Information", "Reasonable Inferen
                     "Analyst Judgment", "Hypothesis", "Unresolved Allegation",
                     "Assumption", "Contradiction", "Information Gap", "Unknown"]
 FailureMode = Literal["Natural", "Accidental", "Intentional / Adversarial"]
+GeometryType = Literal["Point", "Path", "Area"]
+GeospatialCategory = Literal[
+    "Facility Location", "Authorized Assessment Boundary", "Access or Egress",
+    "Critical Dependency", "Neighboring Hazard", "Emergency Resource",
+    "Alternate Site", "Public-Safety Resource", "Transportation or Logistics",
+    "Other Operating Context"
+]
 IntentionalScenario = Literal[
     "Sabotage", "Active-Assailant", "Insider-Enabled Disruption",
     "Coordinated Cyber-Physical Incident", "Deliberate Fire or Destructive Act",
@@ -110,6 +117,34 @@ class FacilityContext(BaseModel):
     jurisdiction: str = Field(default="", max_length=240)
     geographic_bounds: str = Field(default="", max_length=2000)
     source_material_id: int | None = Field(default=None, gt=0)
+
+
+class GeospatialFeature(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str = Field(min_length=1, max_length=240)
+    category: GeospatialCategory
+    geometry_type: GeometryType
+    coordinates: list[list[float]] = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=8000)
+    jurisdiction: str = Field(default="", max_length=240)
+    location_date: str = Field(min_length=1, max_length=80)
+    spatial_precision: Literal["Exact", "Approximate", "Generalized"]
+    origin_type: Origin
+    epistemic_state: Epistemic
+    source_reliability: str = Field(default="Not Assessed", max_length=80)
+    information_confidence: str = Field(default="Not Assessed", max_length=80)
+    source_material_id: int = Field(gt=0)
+
+    @field_validator("coordinates")
+    @classmethod
+    def validate_coordinates(cls, value: list[list[float]]) -> list[list[float]]:
+        for coordinate in value:
+            if len(coordinate) != 2:
+                raise ValueError("Each coordinate must contain longitude and latitude.")
+            longitude, latitude = coordinate
+            if not -180 <= longitude <= 180 or not -90 <= latitude <= 90:
+                raise ValueError("Coordinates must be valid WGS84 longitude and latitude.")
+        return value
 
 
 class EssentialFunction(BaseModel):
@@ -299,6 +334,10 @@ def register_facility_assessment(app, core: dict) -> None:
             item for item in records
             if item["structured_detail"].get("record_type") == "facility_context"
         ]
+        geospatial_features = [
+            item for item in records
+            if item["structured_detail"].get("record_type") == "facility_geospatial_feature"
+        ]
         functions = [
             item for item in records
             if item["structured_detail"].get("record_type") == "facility_essential_function"
@@ -329,6 +368,20 @@ def register_facility_assessment(app, core: dict) -> None:
                 blockers.append("Record the facility location and operating context.")
             if not str(latest_context.get("geographic_bounds", "")).strip():
                 blockers.append("Record the authorized geographic assessment bounds.")
+        location_points = [
+            item for item in geospatial_features
+            if item["structured_detail"].get("category") == "Facility Location"
+            and item["structured_detail"].get("geometry_type") == "Point"
+        ]
+        assessment_areas = [
+            item for item in geospatial_features
+            if item["structured_detail"].get("category") == "Authorized Assessment Boundary"
+            and item["structured_detail"].get("geometry_type") == "Area"
+        ]
+        if not location_points:
+            blockers.append("Map at least one governed facility-location point.")
+        if not assessment_areas:
+            blockers.append("Map the governed authorized-assessment boundary as an area.")
         if not functions:
             blockers.append("Record at least one governed essential function.")
         chain_types_by_function = {}
@@ -458,6 +511,9 @@ def register_facility_assessment(app, core: dict) -> None:
             "addressed_requirement_count": len(expected_keys & addressed_keys),
             "essential_function_count": len(functions),
             "dependency_chain_count": len(chains),
+            "geospatial_feature_count": len(geospatial_features),
+            "facility_location_point_count": len(location_points),
+            "assessment_boundary_area_count": len(assessment_areas),
             "incomplete_function_ids": incomplete_functions,
             "intentional_scenario_types_required": INTENTIONAL_SCENARIO_TYPES,
             "intentional_scenario_types_covered": sorted(covered_intentional),
@@ -597,6 +653,72 @@ def register_facility_assessment(app, core: dict) -> None:
             conn.commit()
             return {"id": item_id, "context_version": len(versions) + 1,
                     "qualification_status": "Unqualified"}
+        finally:
+            conn.close()
+
+    @app.post("/api/salintel/facility-assessments/{investigation_id}/geospatial-features")
+    def add_geospatial_feature(investigation_id: int, payload: GeospatialFeature,
+                               request: Request):
+        authorize(request, "geospatial analysis")
+        require(request, "write")
+        coordinate_count = len(payload.coordinates)
+        if payload.geometry_type == "Point" and coordinate_count != 1:
+            raise HTTPException(422, "A point requires exactly one coordinate pair")
+        if payload.geometry_type == "Path" and coordinate_count < 2:
+            raise HTTPException(422, "A path requires at least two coordinate pairs")
+        if payload.geometry_type == "Area":
+            if coordinate_count < 4 or payload.coordinates[0] != payload.coordinates[-1]:
+                raise HTTPException(
+                    422, "An area requires a closed ring of at least four coordinate pairs"
+                )
+        if (payload.category == "Facility Location"
+                and payload.geometry_type != "Point"):
+            raise HTTPException(422, "Facility Location must use point geometry")
+        if (payload.category == "Authorized Assessment Boundary"
+                and payload.geometry_type != "Area"):
+            raise HTTPException(422, "Authorized Assessment Boundary must use area geometry")
+        conn = db()
+        try:
+            row = scoped(conn, investigation_id, request)
+            if int(row["authorized_tier"]) == 0:
+                raise HTTPException(409, "Authorize a bounded investigation tier first")
+            linked_source(conn, investigation_id, request, payload.source_material_id)
+            validate_epistemic(payload, payload.source_material_id)
+            detail = payload.model_dump()
+            detail.update({
+                "record_type": "facility_geospatial_feature",
+                "plan_version": PLAN_VERSION,
+                "coordinate_reference_system": "WGS84 / EPSG:4326",
+                "coordinate_order": ["longitude", "latitude"],
+                "map_rendering": "local_only_no_external_tile_transmission",
+                "human_qualification_required": True,
+                "member_disclosure_authorized": False,
+                "operational_authority_granted": False,
+            })
+            item_id = create_item(
+                conn, request, row, "Finding", payload.epistemic_state,
+                f"Geospatial context — {payload.title}", detail,
+                payload.source_reliability, payload.information_confidence,
+                payload.source_material_id,
+            )
+            mark_changed(conn, request, investigation_id)
+            event(conn, request, row, "FACILITY_GEOSPATIAL_FEATURE_RECORDED",
+                  f"item_id={item_id}; category={payload.category}; "
+                  f"geometry={payload.geometry_type}; precision={payload.spatial_precision}")
+            audit(conn, request, "FACILITY_GEOSPATIAL_FEATURE_RECORDED",
+                  investigation_id,
+                  f"item_id={item_id}; category={payload.category}; "
+                  f"geometry={payload.geometry_type}; coordinate_count={coordinate_count}")
+            conn.commit()
+            return {
+                "id": item_id,
+                "geometry_type": payload.geometry_type,
+                "coordinate_count": coordinate_count,
+                "coordinate_reference_system": "WGS84 / EPSG:4326",
+                "qualification_status": "Unqualified",
+                "member_disclosure_authorized": False,
+                "operational_authority_granted": False,
+            }
         finally:
             conn.close()
 
@@ -752,6 +874,10 @@ def register_facility_assessment(app, core: dict) -> None:
             ]
             contexts = [item for item in facility_records
                         if item["structured_detail"].get("record_type") == "facility_context"]
+            geospatial_features = [
+                item for item in facility_records
+                if item["structured_detail"].get("record_type") == "facility_geospatial_feature"
+            ]
             functions = [item for item in facility_records
                          if item["structured_detail"].get("record_type") == "facility_essential_function"]
             chains = [item for item in facility_records
@@ -769,6 +895,24 @@ def register_facility_assessment(app, core: dict) -> None:
                 "plan_version": PLAN_VERSION,
                 "latest_context": contexts[-1] if contexts else None,
                 "context_history": contexts,
+                "geospatial_features": geospatial_features,
+                "geospatial_summary": {
+                    "feature_count": len(geospatial_features),
+                    "point_count": sum(
+                        1 for item in geospatial_features
+                        if item["structured_detail"].get("geometry_type") == "Point"
+                    ),
+                    "path_count": sum(
+                        1 for item in geospatial_features
+                        if item["structured_detail"].get("geometry_type") == "Path"
+                    ),
+                    "area_count": sum(
+                        1 for item in geospatial_features
+                        if item["structured_detail"].get("geometry_type") == "Area"
+                    ),
+                    "external_map_transmission": False,
+                    "coordinate_reference_system": "WGS84 / EPSG:4326",
+                },
                 "essential_functions": functions,
                 "dependency_analyses": chains,
                 "findings": findings,

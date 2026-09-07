@@ -115,6 +115,66 @@ def main():
               "purpose": "Support defensive facility and essential-function analysis."})
     assert linked.status_code == 200, linked.text
 
+    invalid_coordinate = client.post(
+        f"/api/salintel/facility-assessments/{investigation_id}/geospatial-features",
+        headers=analyst, json={
+            "title": "Invalid location", "category": "Facility Location",
+            "geometry_type": "Point", "coordinates": [[-98.4, 95.0]],
+            "description": "Invalid latitude must fail.", "spatial_precision": "Exact",
+            "origin_type": "Analyst Assessment", "epistemic_state": "Verified Fact",
+            "source_material_id": material_id})
+    assert invalid_coordinate.status_code == 422
+    forged_geospatial = client.post(
+        f"/api/salintel/facility-assessments/{investigation_id}/geospatial-features",
+        headers=analyst, json={
+            "title": "Forged release", "category": "Facility Location",
+            "geometry_type": "Point", "coordinates": [[-98.4936, 29.4241]],
+            "description": "Client authority fields must fail.", "spatial_precision": "Exact",
+            "origin_type": "Analyst Assessment", "epistemic_state": "Verified Fact",
+            "source_material_id": material_id, "member_disclosure_authorized": True})
+    assert forged_geospatial.status_code == 422
+    open_area = client.post(
+        f"/api/salintel/facility-assessments/{investigation_id}/geospatial-features",
+        headers=analyst, json={
+            "title": "Open boundary", "category": "Authorized Assessment Boundary",
+            "geometry_type": "Area",
+            "coordinates": [[-98.50, 29.42], [-98.49, 29.42], [-98.49, 29.43]],
+            "description": "An unclosed area must fail.", "spatial_precision": "Generalized",
+            "location_date": "2026-09-07", "origin_type": "Analyst Assessment",
+            "epistemic_state": "Analyst Judgment", "source_material_id": material_id})
+    assert open_area.status_code == 422
+    location = client.post(
+        f"/api/salintel/facility-assessments/{investigation_id}/geospatial-features",
+        headers=analyst, json={
+            "title": "SYNTHETIC facility location", "category": "Facility Location",
+            "geometry_type": "Point", "coordinates": [[-98.4936, 29.4241]],
+            "description": "Synthetic point used only for deterministic acceptance.",
+            "jurisdiction": "Synthetic Jurisdiction", "location_date": "2026-09-07",
+            "spatial_precision": "Exact", "origin_type": "Analyst Assessment",
+            "epistemic_state": "Verified Fact", "source_reliability": "High",
+            "information_confidence": "High", "source_material_id": material_id})
+    assert location.status_code == 200, location.text
+    assert location.json()["coordinate_reference_system"] == "WGS84 / EPSG:4326"
+    assert location.json()["member_disclosure_authorized"] is False
+    boundary_coordinates = [
+        [-98.5000, 29.4200], [-98.4870, 29.4200], [-98.4870, 29.4300],
+        [-98.5000, 29.4300], [-98.5000, 29.4200],
+    ]
+    boundary = client.post(
+        f"/api/salintel/facility-assessments/{investigation_id}/geospatial-features",
+        headers=analyst, json={
+            "title": "SYNTHETIC authorized assessment boundary",
+            "category": "Authorized Assessment Boundary", "geometry_type": "Area",
+            "coordinates": boundary_coordinates,
+            "description": "Generalized synthetic boundary for the authorized scope.",
+            "jurisdiction": "Synthetic Jurisdiction", "location_date": "2026-09-07",
+            "spatial_precision": "Generalized", "origin_type": "Analyst Assessment",
+            "epistemic_state": "Analyst Judgment", "source_reliability": "High",
+            "information_confidence": "Moderate", "source_material_id": material_id})
+    assert boundary.status_code == 200, boundary.text
+    assert boundary.json()["coordinate_count"] == 5
+    assert boundary.json()["operational_authority_granted"] is False
+
     forged_fact = client.post(
         f"/api/salintel/facility-assessments/{investigation_id}/essential-functions",
         headers=analyst, json={
@@ -201,6 +261,12 @@ def main():
     assert detail.status_code == 200, detail.text
     body = detail.json()
     assert len(body["context_history"]) == 1
+    assert len(body["geospatial_features"]) == 2
+    assert body["geospatial_summary"] == {
+        "feature_count": 2, "point_count": 1, "path_count": 0, "area_count": 1,
+        "external_map_transmission": False,
+        "coordinate_reference_system": "WGS84 / EPSG:4326",
+    }
     assert len(body["essential_functions"]) == 1
     assert len(body["dependency_analyses"]) == 1
     assert body["dependency_analyses"][0]["structured_detail"]["chain_order"] == [
@@ -211,6 +277,10 @@ def main():
     assert body["completion_readiness"]["ready"] is False
     assert any("natural, accidental, and intentional" in blocker
                for blocker in body["completion_readiness"]["blockers"])
+    assert not any("facility-location point" in blocker
+                   for blocker in body["completion_readiness"]["blockers"])
+    assert not any("assessment-boundary area" in blocker
+                   for blocker in body["completion_readiness"]["blockers"])
     blocked_completion = client.post(
         f"/api/salintel/investigations/{investigation_id}/complete-tier",
         headers=analyst, json={
@@ -234,6 +304,7 @@ def main():
             "SELECT action FROM audit_log WHERE tenant_id=? AND entity_type='facility_assessment'",
             (1,))}
         assert {"FACILITY_RESEARCH_PLAN_CREATED", "FACILITY_CONTEXT_RECORDED",
+                "FACILITY_GEOSPATIAL_FEATURE_RECORDED",
                 "FACILITY_ESSENTIAL_FUNCTION_RECORDED",
                 "FACILITY_DEPENDENCY_CHAIN_RECORDED", "FACILITY_FINDING_RECORDED"} <= actions
         records = collect_tenant_records(conn, 1)
