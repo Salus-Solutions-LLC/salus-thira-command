@@ -16,8 +16,8 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salcapa_assurance_smoke.py.gz",
         ROOT / "tools/ci_salcapa_assurance_smoke.py",
-        "520d334370f063996115ec8f8ce2677b3ef20d5ac84b0f7057efa0f599c2887a",
-        "7bc6dff8d1b8b29b419231f37bbf7d2de8cae86a1d58ed61bad83dadb6a3796b",
+        "23a98ad8d5a2975ce858b24cb54977cf5a0bd60c4eabb3aa05e04a10e74a31dd",
+        "e34126878a80ae00dfef0fb7a032097009fce4ccaeeaee092a18a7b87e89bfbd",
         9110,
     ),
 )

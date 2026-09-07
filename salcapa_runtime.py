@@ -43,7 +43,7 @@ if register_salcapa_assurance is not None:
 if register_salops_plan_assembly is not None:
     register_salops_plan_assembly(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.63"
+SALCAPA_RELEASE_VERSION = "3.64"
 
 
 _base_protective_readiness_summary = core._protective_readiness_summary
@@ -100,6 +100,9 @@ def _preparedness_index() -> str:
         ('<button data-view="salops">Operations & Requests</button>',
          '<button data-view="salops">Operations & Requests</button><button data-view="salops_preparedness">Preparedness, Planning & Exercises</button>',
          'data-view="salops_preparedness"'),
+        ('<button data-view="salops_preparedness">Preparedness, Planning & Exercises</button>',
+         '<button data-view="salops_preparedness">Preparedness, Planning & Exercises</button><button data-view="salops_plan_assembly" data-salus-only="true">Emergency Plan Assembly</button>',
+         'data-view="salops_plan_assembly"'),
         ('<script src="/static/salintel-domains.js"></script>',
          '<script src="/static/salintel-domains.js"></script>\n<script src="/static/salops-preparedness.js"></script>',
          '/static/salops-preparedness.js'),
@@ -127,6 +130,9 @@ def _preparedness_index() -> str:
         ('<link rel="stylesheet" href="/static/salcapa-assurance.css" />',
          '<link rel="stylesheet" href="/static/salcapa-assurance.css" />\n<link rel="stylesheet" href="/static/salcapa-contextual-guidance.css" />',
          '/static/salcapa-contextual-guidance.css'),
+        ('<link rel="stylesheet" href="/static/salcapa-contextual-guidance.css" />',
+         '<link rel="stylesheet" href="/static/salcapa-contextual-guidance.css" />\n<link rel="stylesheet" href="/static/salops-plan-assembly.css" />',
+         '/static/salops-plan-assembly.css'),
         ('<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="reports">Reports</button>',
          '<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="prove">PROVE — Assurance & Results</button><button data-view="reports">Reports</button>',
          'data-view="prove"'),
@@ -160,6 +166,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salcapa-display.js"></script>',
          '<script src="/static/salcapa-display.js"></script>\n<script src="/static/salcapa-assurance.js"></script>',
          '/static/salcapa-assurance.js'),
+        ('<script src="/static/salcapa-assurance.js"></script>',
+         '<script src="/static/salcapa-assurance.js"></script>\n<script src="/static/salops-plan-assembly.js"></script>',
+         '/static/salops-plan-assembly.js'),
         ('<script src="/static/guidance.js"></script>',
          '<script src="/static/guidance.js"></script>\n<script src="/static/salcapa-contextual-guidance.js"></script>',
          '/static/salcapa-contextual-guidance.js'),

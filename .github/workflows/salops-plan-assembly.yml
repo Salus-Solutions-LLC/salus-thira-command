@@ -8,8 +8,14 @@ on:
       - 'salcapa_runtime.py'
       - 'source_archives/development/salops_plan_assembly.py.gz'
       - 'source_archives/development/ci_salops_plan_assembly_smoke.py.gz'
+      - 'source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz'
+      - 'source_archives/development/salops-plan-assembly.js.gz'
+      - 'source_archives/development/salops-plan-assembly.css.gz'
       - 'tools/reconstruct_salops_plan_assembly.py'
       - 'tools/ci_salops_plan_assembly_smoke.py'
+      - 'tools/ci_salops_plan_assembly_ui_smoke.py'
+      - 'static/salops-plan-assembly.js'
+      - 'static/salops-plan-assembly.css'
       - '.github/workflows/salops-plan-assembly.yml'
   pull_request:
     branches: [main]
@@ -33,6 +39,9 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-ci.txt
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
       - name: Reconstruct governed sources
         run: |
           python tools/reconstruct_v343_source.py
@@ -49,7 +58,11 @@ jobs:
       - name: Install application and security tools
         run: python -m pip install -r requirements.txt -r requirements-ci.txt
       - name: Compile autonomous planning capability
-        run: python -m py_compile salops_plan_assembly.py salcapa_runtime.py tools/ci_salops_plan_assembly_smoke.py
+        run: python -m py_compile salops_plan_assembly.py salcapa_runtime.py tools/ci_salops_plan_assembly_smoke.py tools/ci_salops_plan_assembly_ui_smoke.py
+      - name: Validate plan-assembly interface JavaScript
+        run: node --check static/salops-plan-assembly.js
+      - name: Plan-assembly interface acceptance
+        run: python tools/ci_salops_plan_assembly_ui_smoke.py
       - name: Static security scan
         run: bandit -q -r salops_plan_assembly.py salcapa_runtime.py -ll -s B608
       - name: Dependency audit
@@ -125,4 +138,4 @@ jobs:
             -e SALUS_BACKUP_DIR=/app/backups \
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
-            salops-plan-assembly:ci python tools/ci_salops_plan_assembly_smoke.py
+            salops-plan-assembly:ci sh -c 'python tools/ci_salops_plan_assembly_smoke.py && python tools/ci_salops_plan_assembly_ui_smoke.py'

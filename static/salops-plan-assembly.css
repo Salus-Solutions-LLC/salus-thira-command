@@ -1,0 +1,26 @@
+.plan-assembly-hero{border-left:5px solid #17816f;background:linear-gradient(110deg,#eef8f5,#fff)}
+.plan-assembly-hero>span{font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#126658}
+.plan-assembly-authority{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem;margin:1rem 0}
+.plan-assembly-authority article{border:1px solid #82978f;border-radius:.45rem;padding:.75rem;background:#fff}
+.plan-assembly-authority strong{display:block;color:#17324d;margin-bottom:.25rem}
+.plan-assembly-stages{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.45rem;margin:1rem 0}
+.plan-assembly-stage{display:grid;grid-template-columns:1.7rem 1fr;gap:.45rem;align-items:center;border:1px solid #81928e;border-radius:.4rem;padding:.55rem;background:#fff;color:#253b48}
+.plan-assembly-stage.current{border-width:2px;border-color:#177f72;background:#eef8f5}
+.plan-assembly-stage.complete{border-color:#55736b}
+.plan-assembly-stage span:first-child{display:grid;place-items:center;width:1.5rem;height:1.5rem;border:1px solid currentColor;border-radius:50%;font-weight:800}
+.plan-assembly-grid{display:grid;grid-template-columns:minmax(250px,.8fr) minmax(420px,2fr);gap:1rem;align-items:start}
+.plan-assembly-run{width:100%;text-align:left;border:1px solid #879792;border-left:4px solid #177f72;border-radius:.4rem;background:#fff;padding:.7rem;margin:.35rem 0;color:#17324d}
+.plan-assembly-run[aria-current="true"]{box-shadow:0 0 0 2px #177f72;background:#eef8f5}
+.plan-assembly-run small{display:block;color:#536771;margin-top:.2rem}
+.plan-assembly-status{display:inline-flex;align-items:center;border:1px solid #687c78;border-radius:999px;background:#f5f7f7;color:#17324d;font-weight:700;padding:.2rem .55rem}
+.plan-assembly-help{border-left:3px solid #6d8e87;padding:.55rem .75rem;background:#f7faf9;color:#334d57}
+.plan-assembly-workspace details{border:1px solid #a4afac;border-radius:.4rem;background:#fff;margin:.65rem 0;padding:.65rem}
+.plan-assembly-workspace summary{cursor:pointer;font-weight:800;color:#17324d}
+.plan-assembly-workspace textarea{min-height:5rem}
+.plan-assembly-workspace .compact-textarea{min-height:3.5rem}
+.plan-assembly-actions{display:flex;flex-wrap:wrap;gap:.45rem;margin:.75rem 0}
+.plan-assembly-list{margin:.3rem 0;padding-left:1.2rem}
+.plan-assembly-list li{margin:.2rem 0}
+.plan-assembly-empty{border:1px dashed #7f918c;border-radius:.45rem;padding:1rem;color:#3f555d;background:#fafcfc}
+@media (max-width:900px){.plan-assembly-grid{grid-template-columns:1fr}}
+@media print{.plan-assembly-workspace form,.plan-assembly-actions,.plan-assembly-run{display:none!important}.plan-assembly-hero,.plan-assembly-stage,.plan-assembly-status{background:none;color:#111;border-color:#444}.plan-assembly-grid{display:block}}
