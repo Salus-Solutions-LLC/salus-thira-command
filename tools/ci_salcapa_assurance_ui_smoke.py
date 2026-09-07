@@ -14,7 +14,7 @@ for marker in ("PROVE — Assurance & Results", "Assurance gaps", "Direct tracea
                "Open verified snapshot", "salcapaFormatDateTime"):
     assert marker in js, marker
 for marker in ('data-view="prove"', "/static/salcapa-assurance.css",
-               "/static/salcapa-assurance.js", 'SALCAPA_RELEASE_VERSION = "3.62"',
+               "/static/salcapa-assurance.js", 'SALCAPA_RELEASE_VERSION = "3.63"',
                "register_salcapa_assurance"):
     assert marker in runtime, marker
 for forbidden in ("risk-low", "risk-high", "#dc2626", "#16a34a"):

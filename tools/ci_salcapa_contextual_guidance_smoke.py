@@ -14,7 +14,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.62"',
+    'SALCAPA_RELEASE_VERSION = "3.63"',
     "/static/salcapa-contextual-guidance.css",
     "/static/salcapa-contextual-guidance.js",
 ):
