@@ -9,10 +9,12 @@ css = (ROOT / "static" / "salcapa-assurance.css").read_text(encoding="utf-8")
 
 for marker in ("PROVE — Assurance & Results", "Assurance gaps", "Direct traceability",
                "Only persisted explicit links are shown", "Missing links remain visible",
-               "Released assurance outputs", "salcapaFormatDateTime"):
+               "Released assurance outputs", "Governed assurance packages",
+               "Create immutable package", "Draft → Reviewed → Approved → Released",
+               "Open verified snapshot", "salcapaFormatDateTime"):
     assert marker in js, marker
 for marker in ('data-view="prove"', "/static/salcapa-assurance.css",
-               "/static/salcapa-assurance.js", 'SALCAPA_RELEASE_VERSION = "3.59"',
+               "/static/salcapa-assurance.js", 'SALCAPA_RELEASE_VERSION = "3.60"',
                "register_salcapa_assurance"):
     assert marker in runtime, marker
 for forbidden in ("risk-low", "risk-high", "#dc2626", "#16a34a"):
