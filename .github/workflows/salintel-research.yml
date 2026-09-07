@@ -1,0 +1,130 @@
+name: SalINTEL Chat-led Research
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - 'salcapa_runtime.py'
+      - 'salintel_research.py'
+      - 'source_archives/development/salintel_research.py.gz'
+      - 'source_archives/development/ci_salintel_research_smoke.py.gz'
+      - 'tools/reconstruct_salintel_research.py'
+      - 'tools/ci_salintel_research_smoke.py'
+      - 'tools/ci_salintel_research_ui_smoke.py'
+      - 'static/personnel-assessment.js'
+      - 'static/salintel-research.js'
+      - 'static/salintel-research.css'
+      - 'Dockerfile'
+      - 'run_mac_linux.sh'
+      - 'run_windows.bat'
+      - '.github/workflows/salintel-research.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sqlite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - name: Reconstruct governed sources
+        run: |
+          python tools/reconstruct_v343_source.py
+          python tools/reconstruct_salops_preparedness.py
+          python tools/reconstruct_personnel_assessment.py
+          python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
+      - name: Install application and security tools
+        run: python -m pip install -r requirements.txt -r requirements-ci.txt
+      - name: Compile Chat-led research capability
+        run: python -m py_compile salcapa_runtime.py salintel_research.py tools/ci_salintel_research_smoke.py tools/ci_salintel_research_ui_smoke.py
+      - name: Validate research interface JavaScript
+        run: node --check static/salintel-research.js && node --check static/personnel-assessment.js
+      - name: Research interface acceptance
+        run: python tools/ci_salintel_research_ui_smoke.py
+      - name: Static security scan
+        run: bandit -q -r salcapa_runtime.py salintel_research.py -ll -s B608
+      - name: SQLite Chat-led research acceptance
+        run: python tools/ci_salintel_research_smoke.py
+
+  postgres16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: salintel_research_ci
+          POSTGRES_USER: salus
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U salus -d salintel_research_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Reconstruct governed sources
+        run: |
+          python tools/reconstruct_v343_source.py
+          python tools/reconstruct_salops_preparedness.py
+          python tools/reconstruct_personnel_assessment.py
+          python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
+      - name: Install application
+        run: python -m pip install -r requirements.txt
+      - name: PostgreSQL 16 Chat-led research acceptance
+        env:
+          SALUS_DB_BACKEND: postgres
+          SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salintel_research_ci
+          SALUS_AUTH_MODE: prototype
+          SALUS_SEED_DEMO: '1'
+          SALUS_LOCAL_STORAGE_DIR: /tmp/research-pg-attachments
+          SALUS_BACKUP_DIR: /tmp/research-pg-backups
+        run: python tools/ci_salintel_research_smoke.py
+
+  production-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build production container
+        run: docker build --tag salcapa-research:ci .
+      - name: Run Chat-led research acceptance in container
+        run: |
+          docker run --rm \
+            -e SALUS_DB_BACKEND=sqlite \
+            -e SALUS_DB_PATH=/app/data/research-container.db \
+            -e SALUS_LOCAL_STORAGE_DIR=/app/attachments \
+            -e SALUS_BACKUP_DIR=/app/backups \
+            -e SALUS_AUTH_MODE=prototype \
+            -e SALUS_SEED_DEMO=1 \
+            salcapa-research:ci sh -c 'python tools/ci_salintel_research_smoke.py && python tools/ci_salintel_research_ui_smoke.py'

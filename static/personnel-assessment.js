@@ -54,6 +54,7 @@ function personnelDetail(detail,checklist){
     <div class="section-title"><h3>Identity candidates</h3><span class="subtle">${detail.identity_collision?'◆ Collision remains reviewable':'No unresolved collision detected'}</span></div>${personnelCandidates(detail)}
     <div class="section-title"><h3>Structured findings</h3><span class="subtle">All new findings require human qualification</span></div>${personnelFindings(detail)}
     ${personnelCompletionReadiness(detail)}
+    ${typeof salintelResearchPanel==='function'?salintelResearchPanel(record):''}
     ${typeof salintelRelationshipPanel==='function'?salintelRelationshipPanel(record):''}
     <div class="form-actions personnel-governance"><button class="btn secondary" onclick="openPersonnelInDomainWorkspace()">Open governance and disclosure controls</button>${tier?`<button class="btn secondary" onclick="qualifySalintelInvestigation(${record.id})">Human qualification</button><button class="btn secondary" onclick="recommendSalintelTier(${record.id},true)">Recommend deeper tier</button>${detail.completion_readiness&&detail.completion_readiness.ready?`<button class="btn" onclick="completePersonnelTier(${record.id},${tier})">Complete authorized tier</button>`:''}`:''}</div>
   </section>`;
@@ -68,6 +69,7 @@ async function personnelAssessments(){
   ${detail?personnelDetail(detail,checklist):'<div class="card personnel-empty"><h3>Select a Personnel Assessment</h3><p>Open a governed record to work its authorized research plan, identity resolution, source-grounded findings, qualification, and tier recommendation.</p></div>'}`;
   const candidate=$('#personnel-candidate-form');if(candidate)candidate.onsubmit=submitPersonnelCandidate;
   const finding=$('#personnel-finding-form');if(finding)finding.onsubmit=submitPersonnelFinding;
+  if(detail&&typeof loadSalintelResearch==='function')await loadSalintelResearch(detail.investigation);
   if(detail&&typeof loadSalintelRelationships==='function')await loadSalintelRelationships(detail.investigation);
 }
 async function openPersonnelAssessment(id){personnelAssessmentState.recordId=id;await personnelAssessments();}
@@ -90,3 +92,4 @@ render=async function(){
   }
   return personnelBaseRender();
 };
+

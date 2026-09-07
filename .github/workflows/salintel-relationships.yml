@@ -50,6 +50,7 @@ jobs:
           python tools/reconstruct_salops_preparedness.py
           python tools/reconstruct_personnel_assessment.py
           python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
       - name: Install application and security tools
         run: python -m pip install -r requirements.txt -r requirements-ci.txt
       - name: Compile governed relationship capability
@@ -95,6 +96,7 @@ jobs:
           python tools/reconstruct_salops_preparedness.py
           python tools/reconstruct_personnel_assessment.py
           python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
       - name: Install application
         run: python -m pip install -r requirements.txt
       - name: PostgreSQL 16 relationship acceptance
@@ -126,3 +128,4 @@ jobs:
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
             salcapa-relationships:ci sh -c 'python tools/ci_salintel_relationships_smoke.py && python tools/ci_salintel_relationship_ui_smoke.py'
+
