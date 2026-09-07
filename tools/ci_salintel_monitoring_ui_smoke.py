@@ -13,6 +13,7 @@ display = (ROOT / "static" / "salcapa-display.js").read_text(encoding="utf-8")
 for marker in ("Recurring Monitoring", "<option selected>No</option>", "<option>Yes</option>",
                "Approve and activate", "Pause", "Resume", "End", "Cancel",
                "Run research cycle", "Record governed outcome",
+               "Complete Salus review", "Acknowledge",
                "Monitoring cycles and change timeline", "Salus review notifications",
                "No automatic tier change, charge, disclosure, or external escalation",
                "Immutable version history"):
@@ -22,8 +23,12 @@ for forbidden in ("risk-low", "risk-high", "background:#dc2626", "background:#16
 assert "/static/salintel-monitoring.js" in runtime
 assert "/static/salintel-monitoring.css" in runtime
 assert "/static/salcapa-display.js" in runtime
-assert 'SALCAPA_RELEASE_VERSION = "3.57"' in runtime
+assert 'SALCAPA_RELEASE_VERSION = "3.58"' in runtime
 assert 'result["version"] = SALCAPA_RELEASE_VERSION' in runtime
+for marker in ("See — SalINTEL™", "Decide — SalTHIRA™ and authorized people",
+               "Coordinate — SalCAPA™", "Act — SalOPS™",
+               "Prove — cross-cutting assurance"):
+    assert marker in runtime, marker
 for marker in ("salcapaFormatDateTime", "January", "24-hour", "MutationObserver"):
     assert marker in display, marker
 assert "toLocaleDateString" not in display

@@ -8,12 +8,12 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = (
     (ROOT / "source_archives" / "development" / "salintel_monitoring.py.gz",
      ROOT / "salintel_monitoring.py",
-     "9b8dd0750c9858ec771c7fce04951d8c138ca5c01f41e9586e2fe6100a59bb3c",
-     "12b29f335329fa5f3622bb7f9dda469143bcd0040d14ab52bf900d28c4091cd1", 38654),
+     "ac98c4445908ceede3cc42be11a5ab17ecfe806eeb7d725449928b067ded4612",
+     "3739007f15723547dfa3943cb2b2e643c24b7c2ebdc9cdb5997e4de30b63b1c5", 45828),
     (ROOT / "source_archives" / "development" / "ci_salintel_monitoring_smoke.py.gz",
      ROOT / "tools" / "ci_salintel_monitoring_smoke.py",
-     "7afd49b1d0829c95923c906deb9cbb479cabd0becb89dbd9b277d45aec3d7633",
-     "aa87e47dd51b190b0f14368f53e0ae8abb070bbccf7bc60e6856ec63e3b4028e", 14945),
+     "c8806792c43e004ec3fb0d418e303880cb56d5198d724e352fe0aa260d790381",
+     "345f6c0e5a3d8de20627c4849bbdad7273686b3706b7b48ea5afcd3956217dc3", 17783),
 )
 for archive, target, archive_sha, target_sha, target_size in ARTIFACTS:
     compressed = archive.read_bytes()

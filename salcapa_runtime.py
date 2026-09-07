@@ -31,7 +31,51 @@ register_facility_assessment(core.app, core.__dict__)
 if register_salintel_monitoring is not None:
     register_salintel_monitoring(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.57"
+SALCAPA_RELEASE_VERSION = "3.58"
+
+
+_base_protective_readiness_summary = core._protective_readiness_summary
+
+
+def _salcapa_operating_model_summary(conn, assessment_ids: list[int], tenant: int):
+    """Present the approved functional architecture without assigning human authority to software."""
+    result = _base_protective_readiness_summary(conn, assessment_ids, tenant)
+    trace = result["trace"]
+    coordination_count = int(conn.execute(
+        "SELECT COUNT(*) c FROM cop_coordination_threads WHERE tenant_id=?", (tenant,)
+    ).fetchone()["c"])
+    result["promise"] = (
+        "See with qualified intelligence. Decide with an assessed risk picture. "
+        "Coordinate people, information, decisions, and action. Act through protective capability."
+    )
+    result["stages"] = [
+        {"key": "see", "label": "See — SalINTEL™",
+         "count": trace["qualified_signals"],
+         "description": "SalINTEL develops qualified intelligence."},
+        {"key": "decide", "label": "Decide — SalTHIRA™ and authorized people",
+         "count": trace["prioritized_improvements"] + trace["executive_decisions"],
+         "description": "SalTHIRA identifies risk and establishes priorities; authorized people decide."},
+        {"key": "coordinate", "label": "Coordinate — SalCAPA™",
+         "count": coordination_count,
+         "description": "SalCAPA coordinates Protected Members, information, decisions, and action."},
+        {"key": "act", "label": "Act — SalOPS™",
+         "count": trace["authorized_actions"],
+         "description": "SalOPS implements, sustains, and improves protective capability."},
+        {"key": "prove", "label": "Prove — cross-cutting assurance",
+         "count": trace["completed_actions"] + trace["verified_actions"]
+                  + trace["released_proof_records"],
+         "description": "Evidence, accountability, results, learning, and improvement span every function."},
+    ]
+    for stage in result["stages"]:
+        stage["state"] = "Active" if stage["count"] else "No records"
+    result["functional_ownership"] = {
+        "see": "SalINTEL™", "decide": "SalTHIRA™ plus authorized decision-makers",
+        "coordinate": "SalCAPA™", "act": "SalOPS™", "prove": "Cross-cutting assurance",
+    }
+    return result
+
+
+core._protective_readiness_summary = _salcapa_operating_model_summary
 
 
 def _preparedness_index() -> str:
