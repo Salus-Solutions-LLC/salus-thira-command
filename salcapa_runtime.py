@@ -37,7 +37,7 @@ if register_salintel_monitoring is not None:
 if register_salcapa_assurance is not None:
     register_salcapa_assurance(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.60"
+SALCAPA_RELEASE_VERSION = "3.61"
 
 
 _base_protective_readiness_summary = core._protective_readiness_summary
@@ -118,6 +118,9 @@ def _preparedness_index() -> str:
         ('<link rel="stylesheet" href="/static/salintel-monitoring.css" />',
          '<link rel="stylesheet" href="/static/salintel-monitoring.css" />\n<link rel="stylesheet" href="/static/salcapa-assurance.css" />',
          '/static/salcapa-assurance.css'),
+        ('<link rel="stylesheet" href="/static/salcapa-assurance.css" />',
+         '<link rel="stylesheet" href="/static/salcapa-assurance.css" />\n<link rel="stylesheet" href="/static/salcapa-contextual-guidance.css" />',
+         '/static/salcapa-contextual-guidance.css'),
         ('<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="reports">Reports</button>',
          '<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="prove">PROVE — Assurance & Results</button><button data-view="reports">Reports</button>',
          'data-view="prove"'),
@@ -151,6 +154,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salcapa-display.js"></script>',
          '<script src="/static/salcapa-display.js"></script>\n<script src="/static/salcapa-assurance.js"></script>',
          '/static/salcapa-assurance.js'),
+        ('<script src="/static/guidance.js"></script>',
+         '<script src="/static/guidance.js"></script>\n<script src="/static/salcapa-contextual-guidance.js"></script>',
+         '/static/salcapa-contextual-guidance.js'),
     )
     for marker, replacement, present in edits:
         if present in text:

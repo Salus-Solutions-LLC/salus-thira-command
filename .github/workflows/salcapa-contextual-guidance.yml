@@ -1,0 +1,76 @@
+name: SalCAPA Contextual Guidance
+
+on:
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'salcapa_runtime.py'
+      - 'static/salcapa-contextual-guidance.js'
+      - 'static/salcapa-contextual-guidance.css'
+      - 'tools/ci_salcapa_contextual_guidance_smoke.py'
+      - 'source_archives/development/salcapa-contextual-guidance.js.gz'
+      - 'source_archives/development/salcapa-contextual-guidance.css.gz'
+      - 'source_archives/development/ci_salcapa_contextual_guidance_smoke.py.gz'
+      - 'tools/reconstruct_salcapa_contextual_guidance.py'
+      - '.github/workflows/salcapa-contextual-guidance.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contextual-guidance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - name: Reconstruct governed sources
+        run: |
+          python tools/reconstruct_v343_source.py
+          python tools/reconstruct_salops_preparedness.py
+          python tools/reconstruct_personnel_assessment.py
+          python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
+          python tools/reconstruct_salintel_handoffs.py
+          python tools/reconstruct_facility_assessment.py
+          python tools/reconstruct_salintel_monitoring.py
+          python tools/reconstruct_salcapa_assurance.py
+          python tools/reconstruct_salcapa_contextual_guidance.py
+      - name: Install application and security tools
+        run: python -m pip install -r requirements.txt -r requirements-ci.txt
+      - name: Compile contextual guidance checks
+        run: python -m py_compile salcapa_runtime.py tools/ci_salcapa_contextual_guidance_smoke.py
+      - name: Validate guidance JavaScript
+        run: node --check static/salcapa-contextual-guidance.js
+      - name: Contextual guidance acceptance
+        run: python tools/ci_salcapa_contextual_guidance_smoke.py
+      - name: Static security scan
+        run: bandit -q -r salcapa_runtime.py tools/ci_salcapa_contextual_guidance_smoke.py -ll
+      - name: Dependency audit
+        run: pip-audit -r requirements.txt
+
+  production-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build production container
+        run: docker build --tag salcapa-contextual-guidance:ci .
+      - name: Run guidance acceptance in container
+        run: docker run --rm salcapa-contextual-guidance:ci python tools/ci_salcapa_contextual_guidance_smoke.py

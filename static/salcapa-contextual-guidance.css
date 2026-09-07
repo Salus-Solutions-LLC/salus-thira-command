@@ -1,0 +1,78 @@
+.salcapa-page-guidance {
+  color: var(--muted, #526473);
+  font-size: .86rem;
+  line-height: 1.45;
+  margin-top: .35rem;
+  max-width: 78ch;
+}
+.salcapa-context-detail { margin-top: .38rem; }
+.salcapa-context-detail summary,
+.salcapa-doctrine details summary,
+.salcapa-prove-band details summary {
+  color: var(--teal, #087b83);
+  cursor: pointer;
+  font-weight: 700;
+  width: fit-content;
+}
+.salcapa-context-detail summary:focus-visible,
+.salcapa-doctrine details summary:focus-visible,
+.salcapa-prove-band details summary:focus-visible {
+  outline: 3px solid #0aa7b2;
+  outline-offset: 3px;
+}
+.salcapa-context-detail p,
+.salcapa-doctrine details p,
+.salcapa-prove-band details p { margin: .45rem 0 0; }
+.salcapa-action-guidance {
+  background: #f5f8fa;
+  border: 1px solid #c8d4db;
+  border-left: 4px solid #087b83;
+  border-radius: 6px;
+  color: #263947;
+  margin: .55rem 0;
+  padding: .45rem .65rem;
+}
+.salcapa-action-guidance .salcapa-context-detail { margin: 0; }
+.salcapa-doctrine { margin-top: 1rem; }
+.salcapa-doctrine-intro { margin-bottom: .8rem; }
+.salcapa-doctrine-grid {
+  display: grid;
+  gap: .7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.salcapa-doctrine-card {
+  border: 1px solid #c8d4db;
+  border-radius: 8px;
+  padding: .8rem;
+}
+.salcapa-doctrine-card > span {
+  display: block;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.salcapa-doctrine-card h4,
+.salcapa-doctrine-card p { margin: .25rem 0; }
+.salcapa-doctrine-see { border-top: 4px solid var(--intel, #087fc0); }
+.salcapa-doctrine-decide { border-top: 4px solid var(--thira, #c18b16); }
+.salcapa-doctrine-coordinate { border-top: 4px solid var(--teal, #087b83); }
+.salcapa-doctrine-act { border-top: 4px solid var(--ops, #16846b); }
+.salcapa-prove-band {
+  background: #eef3f5;
+  border: 2px solid #536b78;
+  border-radius: 8px;
+  margin-top: .8rem;
+  padding: .8rem;
+}
+.salcapa-prove-band > p { margin: .3rem 0; }
+@media (max-width: 700px) {
+  .salcapa-doctrine-grid { grid-template-columns: 1fr; }
+}
+@media print {
+  .salcapa-action-guidance,
+  .salcapa-doctrine-card,
+  .salcapa-prove-band { background: #fff; border-color: #333; color: #000; }
+  .salcapa-context-detail summary { color: #000; }
+  .salcapa-context-detail[open] > * { display: block; }
+}
