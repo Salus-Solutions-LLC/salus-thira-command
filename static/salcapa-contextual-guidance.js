@@ -175,13 +175,13 @@
       prove.dataset.view = 'prove';
       prove.title = 'Cross-cutting evidence, accountability, results, validation, learning, and improvement';
       const description = prove.querySelector('span');
-      if (description) description.textContent = 'Assure every function';
+      if (description && description.textContent !== 'Assure every function') description.textContent = 'Assure every function';
       prove.setAttribute('aria-label', 'Prove. Cross-cutting assurance across See, Decide, Coordinate, and Act.');
     }
     const decide = document.querySelector('#lifecycle-strip [data-stage="decide"] span');
-    if (decide) decide.textContent = 'Risk and priorities; people decide';
+    if (decide && decide.textContent !== 'Risk and priorities; people decide') decide.textContent = 'Risk and priorities; people decide';
     const coordinate = document.querySelector('#lifecycle-strip [data-stage="coordinate"] span');
-    if (coordinate) coordinate.textContent = 'SalCAPA aligns people and action';
+    if (coordinate && coordinate.textContent !== 'SalCAPA aligns people and action') coordinate.textContent = 'SalCAPA aligns people and action';
   }
 
   function enhancePageCue() {

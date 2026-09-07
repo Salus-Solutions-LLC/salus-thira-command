@@ -37,7 +37,7 @@ if register_salintel_monitoring is not None:
 if register_salcapa_assurance is not None:
     register_salcapa_assurance(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.61"
+SALCAPA_RELEASE_VERSION = "3.62"
 
 
 _base_protective_readiness_summary = core._protective_readiness_summary

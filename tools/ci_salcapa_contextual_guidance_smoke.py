@@ -14,7 +14,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.61"',
+    'SALCAPA_RELEASE_VERSION = "3.62"',
     "/static/salcapa-contextual-guidance.css",
     "/static/salcapa-contextual-guidance.js",
 ):
@@ -42,6 +42,9 @@ for value in (
     "What happens next?",
     "MutationObserver",
     "requestAnimationFrame",
+    "description && description.textContent !== 'Assure every function'",
+    "decide && decide.textContent !== 'Risk and priorities; people decide'",
+    "coordinate && coordinate.textContent !== 'SalCAPA aligns people and action'",
     "data-action-guidance",
     "aria-label",
 ):

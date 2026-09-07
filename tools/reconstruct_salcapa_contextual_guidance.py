@@ -10,9 +10,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salcapa-contextual-guidance.js.gz",
         ROOT / "static/salcapa-contextual-guidance.js",
-        "be514b553a1e53f8153f9e04c4a6d45a312c384458d03ea47ef499848587d58b",
-        "39acf51fe749d9d4374fd833d4c49655b664b0822a38cb2c63941f8430bf0b30",
-        16460,
+        "9093383021e3bdb8f797703a8aeed1d036fa1cc3d5140b203c9bb4944a0223f6",
+        "882297fa7c73845bb983e29e9a4fecf770cceae93d56a7b7a687ba9b493f06ea",
+        16643,
     ),
     (
         ROOT / "source_archives/development/salcapa-contextual-guidance.css.gz",
@@ -24,9 +24,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salcapa_contextual_guidance_smoke.py.gz",
         ROOT / "tools/ci_salcapa_contextual_guidance_smoke.py",
-        "bcb44a3a2b4af7d95828b5517bea678a408c897fd4a7f342630eb393531407df",
-        "14061363b483e023d25fba41bb627728f0c512276b78c3ac7ba14482f77bf011",
-        2214,
+        "f0437ba5e6db140e411019fdd4c3f69b91247f4fe3b86f78ae6c236c707c966f",
+        "679843bd8a3b9eba2a43bf922f5debd7024f191f828b88dc05a0beb024db0497",
+        2448,
     ),
 )
 
