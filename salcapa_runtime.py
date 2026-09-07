@@ -18,6 +18,10 @@ from salintel_research import register_salintel_research
 from salintel_handoffs import register_salintel_handoffs
 from facility_assessment import register_facility_assessment
 try:
+    from salcapa_assurance import register_salcapa_assurance
+except ModuleNotFoundError:  # Other capability workflows may not reconstruct this archive.
+    register_salcapa_assurance = None
+try:
     from salintel_monitoring import register_salintel_monitoring
 except ModuleNotFoundError:  # Other capability workflows may not reconstruct this archive.
     register_salintel_monitoring = None
@@ -30,8 +34,10 @@ register_salintel_handoffs(core.app, core.__dict__)
 register_facility_assessment(core.app, core.__dict__)
 if register_salintel_monitoring is not None:
     register_salintel_monitoring(core.app, core.__dict__)
+if register_salcapa_assurance is not None:
+    register_salcapa_assurance(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.58"
+SALCAPA_RELEASE_VERSION = "3.59"
 
 
 _base_protective_readiness_summary = core._protective_readiness_summary
@@ -109,6 +115,12 @@ def _preparedness_index() -> str:
         ('<link rel="stylesheet" href="/static/facility-assessment.css" />',
          '<link rel="stylesheet" href="/static/facility-assessment.css" />\n<link rel="stylesheet" href="/static/salintel-monitoring.css" />',
          '/static/salintel-monitoring.css'),
+        ('<link rel="stylesheet" href="/static/salintel-monitoring.css" />',
+         '<link rel="stylesheet" href="/static/salintel-monitoring.css" />\n<link rel="stylesheet" href="/static/salcapa-assurance.css" />',
+         '/static/salcapa-assurance.css'),
+        ('<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="reports">Reports</button>',
+         '<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="prove">PROVE — Assurance & Results</button><button data-view="reports">Reports</button>',
+         'data-view="prove"'),
         ('<button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button>',
          '<button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button><button data-view="personnel_assessments" data-salus-only="true">Personnel Assessment</button>',
          'data-view="personnel_assessments"'),
@@ -136,6 +148,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salintel-monitoring.js"></script>',
          '<script src="/static/salintel-monitoring.js"></script>\n<script src="/static/salcapa-display.js"></script>',
          '/static/salcapa-display.js'),
+        ('<script src="/static/salcapa-display.js"></script>',
+         '<script src="/static/salcapa-display.js"></script>\n<script src="/static/salcapa-assurance.js"></script>',
+         '/static/salcapa-assurance.js'),
     )
     for marker, replacement, present in edits:
         if present in text:
