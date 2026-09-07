@@ -13,7 +13,8 @@ RUN python tools/reconstruct_salintel_research.py
 RUN python tools/reconstruct_salintel_handoffs.py
 RUN python tools/reconstruct_facility_assessment.py
 RUN python tools/reconstruct_salintel_monitoring.py
-RUN python -m py_compile salcapa_runtime.py salops_preparedness.py personnel_assessment.py facility_assessment.py salintel_relationships.py salintel_research.py salintel_handoffs.py salintel_monitoring.py tools/ci_salops_preparedness_smoke.py tools/ci_personnel_assessment_smoke.py tools/ci_facility_assessment_smoke.py tools/ci_facility_assessment_ui_smoke.py tools/ci_salintel_relationships_smoke.py tools/ci_salintel_research_smoke.py tools/ci_salintel_handoffs_smoke.py tools/ci_salintel_monitoring_smoke.py
+RUN python tools/reconstruct_salcapa_assurance.py
+RUN python -m py_compile salcapa_runtime.py salops_preparedness.py personnel_assessment.py facility_assessment.py salintel_relationships.py salintel_research.py salintel_handoffs.py salintel_monitoring.py salcapa_assurance.py tools/ci_salops_preparedness_smoke.py tools/ci_personnel_assessment_smoke.py tools/ci_facility_assessment_smoke.py tools/ci_facility_assessment_ui_smoke.py tools/ci_salintel_relationships_smoke.py tools/ci_salintel_research_smoke.py tools/ci_salintel_handoffs_smoke.py tools/ci_salintel_monitoring_smoke.py tools/ci_salcapa_assurance_smoke.py tools/ci_salcapa_assurance_ui_smoke.py
 RUN mkdir -p /app/attachments /app/backups /app/data && chown -R salus:salus /app
 USER salus
 EXPOSE 8000
