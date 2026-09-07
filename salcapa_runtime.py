@@ -51,9 +51,15 @@ def _preparedness_index() -> str:
         ('<link rel="stylesheet" href="/static/salintel-research.css" />',
          '<link rel="stylesheet" href="/static/salintel-research.css" />\n<link rel="stylesheet" href="/static/salintel-handoffs.css" />',
          '/static/salintel-handoffs.css'),
+        ('<link rel="stylesheet" href="/static/salintel-handoffs.css" />',
+         '<link rel="stylesheet" href="/static/salintel-handoffs.css" />\n<link rel="stylesheet" href="/static/facility-assessment.css" />',
+         '/static/facility-assessment.css'),
         ('<button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button>',
          '<button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button><button data-view="personnel_assessments" data-salus-only="true">Personnel Assessment</button>',
          'data-view="personnel_assessments"'),
+        ('<button data-view="personnel_assessments" data-salus-only="true">Personnel Assessment</button>',
+         '<button data-view="personnel_assessments" data-salus-only="true">Personnel Assessment</button><button data-view="facility_assessments" data-salus-only="true">Facility Assessment</button>',
+         'data-view="facility_assessments"'),
         ('<script src="/static/salops-preparedness.js"></script>',
          '<script src="/static/salops-preparedness.js"></script>\n<script src="/static/personnel-assessment.js"></script>',
          '/static/personnel-assessment.js'),
@@ -66,6 +72,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salintel-research.js"></script>',
          '<script src="/static/salintel-research.js"></script>\n<script src="/static/salintel-handoffs.js"></script>',
          '/static/salintel-handoffs.js'),
+        ('<script src="/static/salintel-handoffs.js"></script>',
+         '<script src="/static/salintel-handoffs.js"></script>\n<script src="/static/facility-assessment.js"></script>',
+         '/static/facility-assessment.js'),
     )
     for marker, replacement, present in edits:
         if present in text:

@@ -1,0 +1,108 @@
+const facilityAssessmentState={recordId:null};
+const facilityOrigins=['Chat Research','Human Investigator','Protected Member Input','Source Extraction','Analyst Assessment','Site or Field Work','Approved Partner Return'];
+const facilityEpistemic=['Verified Fact','Reported Information','Reasonable Inference','Analyst Judgment','Hypothesis','Unresolved Allegation','Assumption','Contradiction','Information Gap','Unknown'];
+const facilityFailureModes=['Natural','Accidental','Intentional / Adversarial'];
+
+function facilityStructured(item){
+  if(item&&item.structured_detail)return item.structured_detail;
+  try{return JSON.parse((item&&item.detail)||'{}');}catch(_error){return {};}
+}
+function facilityPlanOptions(checklist,tier){
+  return (checklist.tiers||[]).filter(row=>row.tier_required<=tier).map(row=>`<option value="${esc(row.key)}" data-category="${esc(row.category)}">${esc(row.key)} — ${esc(row.category)}</option>`).join('');
+}
+function facilityChecklist(detail){
+  const tier=Number((detail.investigation||{}).authorized_tier||0);
+  return table(['Requirement','Authorized depth','Question'],(facilityAssessmentState.checklist.tiers||[]).filter(row=>row.tier_required<=tier).map(row=>[
+    `<strong>${esc(row.key)}</strong><br><span class="subtle">${esc(row.category)}</span>`,
+    `Tier ${esc(row.tier_required)}`,
+    esc(row.question)
+  ]));
+}
+function facilityFunctions(detail){
+  return table(['Essential function','Mission and criticality','Source / state'],(detail.essential_functions||[]).map(item=>{
+    const d=facilityStructured(item);
+    return [`<strong>${esc(d.title||item.title)}</strong><br><span class="subtle">Item ${esc(item.id)}</span>`,
+      `${esc(d.mission_statement||'')}<br><span class="subtle">${esc(d.criticality_basis||'')}</span>`,
+      `<span class="facility-state">${esc(item.epistemic_state)}</span><br><span class="subtle">${esc(d.origin_type||'')} · Material ${esc(item.source_material_id||'not linked')}</span>`];
+  }));
+}
+function facilityChains(detail){
+  return table(['Function → dependency → failure','Controls and detection','Consequence → alternate → restoration'],(detail.dependency_analyses||[]).map(item=>{
+    const d=facilityStructured(item);
+    return [`<strong>Function item ${esc(d.essential_function_item_id)}</strong><br>${esc(d.dependency)}<br><span class="facility-state">${esc(d.failure_mode_type)}</span> ${esc(d.failure_mode)}`,
+      `<strong>Prevent</strong> — ${esc(d.preventive_controls)}<br><strong>Detect</strong> — ${esc(d.detection)}`,
+      `<strong>Consequence</strong> — ${esc(d.consequences)}<br><strong>Alternate</strong> — ${esc(d.alternate_capability)}<br><strong>Restore</strong> — ${esc(d.restoration_requirement)}`];
+  }));
+}
+function facilityFindings(detail){
+  return table(['Knowledge state','Finding','Defensive implication / reassessment','Source'],(detail.findings||[]).map(item=>{
+    const d=facilityStructured(item);
+    return [`<span class="facility-state">${esc(item.epistemic_state)}</span>`,
+      `<strong>${esc(item.title)}</strong><br><span class="subtle">${esc(d.category||'')} · ${esc(d.origin_type||'')}</span><br>${esc(d.narrative||'')}`,
+      `${esc(d.defensive_implication||'Not recorded')}<br><span class="subtle">Trigger: ${esc(d.reassessment_trigger||'Not recorded')}</span>`,
+      `${esc(item.source_reliability)} / ${esc(item.information_confidence)}<br><span class="subtle">Material ${esc(item.source_material_id||'not linked')}</span>`];
+  }));
+}
+function facilityContext(detail){
+  const item=detail.latest_context;
+  if(!item)return '<p>No governed facility context has been recorded.</p>';
+  const d=facilityStructured(item);
+  return `<dl class="facility-context"><div><dt>Facility</dt><dd>${esc(d.facility_name)} · ${esc(d.facility_reference)}</dd></div><div><dt>Location / jurisdiction</dt><dd>${esc(d.location_context)} ${d.jurisdiction?`· ${esc(d.jurisdiction)}`:''}</dd></div><div><dt>Mission</dt><dd>${esc(d.mission_summary)}</dd></div><div><dt>Geographic bounds</dt><dd>${esc(d.geographic_bounds||'Not specified')}</dd></div><div><dt>Context version</dt><dd>${esc(d.context_version)}</dd></div></dl>`;
+}
+function facilityDetail(detail,checklist){
+  const record=detail.investigation||{},tier=Number(record.authorized_tier||0),hasPlan=detail.progress&&detail.progress.planned>0;
+  const functionOptions=(detail.essential_functions||[]).map(item=>`<option value="${item.id}">${esc(facilityStructured(item).title||item.title)}</option>`).join('');
+  return `<section class="facility-detail">
+    <div class="section-title"><div><span class="component intel">SalINTEL™</span><h2>${esc(record.title||'Facility Assessment')}</h2><p class="subtle">${esc(record.record_key||'')} · ${esc(record.subject_reference||'')}</p></div><button class="btn secondary" onclick="closeFacilityAssessment()">Close</button></div>
+    <div class="facility-status-grid"><div><span>Investigation depth</span><strong>${tier?`Tier ${tier}`:'Not authorized'}</strong></div><div><span>Workflow status</span><strong>${esc(record.status)}</strong></div><div><span>Human qualification</span><strong>${esc(record.qualification_status)}</strong></div><div><span>Disclosure</span><strong>${esc(record.disclosure_status)}</strong></div></div>
+    <div class="notice"><strong>Depth is not a danger or readiness rating.</strong><br>Tier ${tier||'authorization pending'} bounds effort and sources. This workspace supports defensive analysis only; it does not authorize disclosure, cost, a deeper tier, external escalation, or operational action.</div>
+    <article class="card"><div class="section-title"><h3>Authorized research plan</h3>${tier&&!hasPlan?'<button class="btn" onclick="generateFacilityPlan()">Generate bounded plan</button>':''}</div><p class="subtle">${esc((detail.progress||{}).planned||0)} planned · ${esc((detail.progress||{}).addressed||0)} addressed · ${esc((detail.progress||{}).total||0)} authorized</p>${hasPlan?facilityChecklist(detail):'<p>No Facility Assessment research plan has been generated. Tier authorization is required first.</p>'}</article>
+    <div class="two-col grid"><article class="card"><h3>Record facility context</h3><form id="facility-context-form"><label>Facility name<input name="facility_name" maxlength="240" required></label><label>Facility reference<input name="facility_reference" maxlength="240" required></label><label>Location context<textarea name="location_context" maxlength="4000" required></textarea></label><label>Mission summary<textarea name="mission_summary" maxlength="8000" required></textarea></label><div class="form-grid"><label>Jurisdiction<input name="jurisdiction" maxlength="240"></label><label>Governed source material ID<input name="source_material_id" type="number" min="1"></label></div><label>Geographic bounds<textarea name="geographic_bounds" maxlength="2000"></textarea></label><button class="btn">Record new context version</button></form></article>
+    <article class="card"><h3>Add essential function</h3><form id="facility-function-form"><label>Function title<input name="title" maxlength="240" required></label><label>Mission statement<textarea name="mission_statement" maxlength="8000" required></textarea></label><label>Criticality basis<textarea name="criticality_basis" maxlength="4000" required></textarea></label><label>Maximum tolerable disruption<input name="maximum_tolerable_disruption" maxlength="1000"></label><div class="form-grid"><label>Knowledge state<select name="epistemic_state">${facilityEpistemic.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Origin<select name="origin_type">${facilityOrigins.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Governed source material ID<input name="source_material_id" type="number" min="1"></label></div><button class="btn">Add unqualified function</button></form></article></div>
+    <article class="card"><h3>Add defensive dependency chain</h3><p class="subtle">Mission function → dependency → natural, accidental, or intentional failure mode → preventive controls → detection → consequences → alternate capability → restoration requirement.</p><form id="facility-chain-form"><div class="form-grid"><label>Essential function<select name="function_item_id" required>${functionOptions}</select></label><label>Failure mode type<select name="failure_mode_type">${facilityFailureModes.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Knowledge state<select name="epistemic_state">${facilityEpistemic.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Origin<select name="origin_type">${facilityOrigins.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label></div><label>Dependency<textarea name="dependency" maxlength="4000" required></textarea></label><label>Defensive failure-mode description<textarea name="failure_mode" maxlength="8000" required></textarea></label><div class="two-col grid"><label>Preventive controls<textarea name="preventive_controls" maxlength="8000" required></textarea></label><label>Detection<textarea name="detection" maxlength="8000" required></textarea></label><label>Consequences<textarea name="consequences" maxlength="8000" required></textarea></label><label>Alternate capability<textarea name="alternate_capability" maxlength="8000" required></textarea></label></div><label>Restoration requirement<textarea name="restoration_requirement" maxlength="8000" required></textarea></label><div class="form-grid"><label>Source reliability<input name="source_reliability" maxlength="80" value="Not Assessed"></label><label>Information confidence<input name="information_confidence" maxlength="80" value="Not Assessed"></label><label>Governed source material ID<input name="source_material_id" type="number" min="1"></label></div><div class="facility-checks"><label><input type="checkbox" name="insider_threat_relevance"> Insider-threat relevance</label><label><input type="checkbox" name="emergency_exploitation_relevance"> Emergency-exploitation relevance</label><label><input type="checkbox" name="competing_resource_relevance"> Competing-resource relevance</label></div><button class="btn" ${functionOptions?'':'disabled'}>Add defensive chain</button></form></article>
+    <article class="card"><h3>Add structured facility finding</h3><form id="facility-finding-form"><div class="form-grid"><label>Checklist requirement<select name="checklist_key" required>${facilityPlanOptions(checklist,tier)}</select></label><label>Knowledge state<select name="epistemic_state">${facilityEpistemic.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Origin<select name="origin_type">${facilityOrigins.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label></div><label>Title<input name="title" maxlength="240" required></label><label>Narrative<textarea name="narrative" maxlength="12000" required></textarea></label><label>Defensive implication<textarea name="defensive_implication" maxlength="8000"></textarea></label><label>Reassessment trigger<textarea name="reassessment_trigger" maxlength="4000"></textarea></label><div class="form-grid"><label>Source reliability<input name="source_reliability" maxlength="80" value="Not Assessed"></label><label>Information confidence<input name="information_confidence" maxlength="80" value="Not Assessed"></label><label>Governed source material ID<input name="source_material_id" type="number" min="1"></label></div><button class="btn">Add unqualified finding</button></form></article>
+    <article class="card"><div class="section-title"><h3>Latest facility context</h3><span class="subtle">${(detail.context_history||[]).length} governed version(s)</span></div>${facilityContext(detail)}</article>
+    <div class="section-title"><h3>Essential functions</h3><span class="subtle">${(detail.essential_functions||[]).length} recorded</span></div>${facilityFunctions(detail)}
+    <div class="section-title"><h3>Defensive dependency chains</h3><span class="subtle">${(detail.dependency_analyses||[]).length} recorded</span></div>${facilityChains(detail)}
+    <div class="section-title"><h3>Structured findings</h3><span class="subtle">All new findings require human qualification</span></div>${facilityFindings(detail)}
+    ${typeof salintelResearchPanel==='function'?salintelResearchPanel(record):''}
+    ${typeof salintelHandoffPanel==='function'?salintelHandoffPanel(record):''}
+    ${typeof salintelRelationshipPanel==='function'?salintelRelationshipPanel(record):''}
+    <div class="form-actions facility-governance"><button class="btn secondary" onclick="openFacilityInDomainWorkspace()">Open governance and disclosure controls</button>${tier?`<button class="btn secondary" onclick="qualifySalintelInvestigation(${record.id})">Human qualification</button><button class="btn secondary" onclick="recommendSalintelTier(${record.id},true)">Recommend deeper tier</button>`:''}</div>
+  </section>`;
+}
+async function facilityAssessments(){
+  if(isProtectedMember()){$('#content').innerHTML='<div class="notice"><strong>Salus investigative workspace</strong><br>Protected Members receive only facility conclusions, priorities, alerts, recommendations, and supporting detail explicitly qualified and released by authorized Salus personnel.</div>';return;}
+  const [records,checklist]=await Promise.all([api('/api/salintel/investigations?domain_key=facility-assessment'),api('/api/salintel/facility-assessment/checklist')]);
+  facilityAssessmentState.checklist=checklist;
+  const detail=facilityAssessmentState.recordId?await api('/api/salintel/facility-assessments/'+facilityAssessmentState.recordId):null;
+  $('#content').innerHTML=`<section class="facility-hero"><div><span class="component intel">SalINTEL™</span><h2>Facility Assessment</h2><p>Investigate authorized facility context, essential functions, dependencies, controls, alternate capability, restoration, and defensive natural, accidental, and intentional conditions.</p></div><div><strong>${records.length}</strong><span>governed records</span></div></section>
+  <div class="notice"><strong>Defensive assessment and bounded scope apply.</strong><br>No offensive instructions, silent tier expansion, automatic customer charge, external transmission, disclosure, or operational authorization.</div>
+  ${table(['Record','Facility / subject','Status','Depth','Qualification','Action'],records.map(record=>[`<strong>${esc(record.title)}</strong><br><span class="subtle">${esc(record.record_key)}</span>`,esc(record.subject_reference),esc(record.status),record.authorized_tier?`Tier ${record.authorized_tier}`:'Not authorized',esc(record.qualification_status),`<button class="btn secondary" onclick="openFacilityAssessment(${record.id})">Open assessment</button>`]))}
+  ${detail?facilityDetail(detail,checklist):'<div class="card facility-empty"><h3>Select a Facility Assessment</h3><p>Open a governed record to work its authorized research plan, facility context, essential functions, dependency chains, source-grounded findings, qualification, and tier recommendation.</p></div>'}`;
+  const forms=[['#facility-context-form',submitFacilityContext],['#facility-function-form',submitFacilityFunction],['#facility-chain-form',submitFacilityChain],['#facility-finding-form',submitFacilityFinding]];
+  forms.forEach(([selector,handler])=>{const form=$(selector);if(form)form.onsubmit=handler;});
+  if(detail&&typeof loadSalintelResearch==='function')await loadSalintelResearch(detail.investigation);
+  if(detail&&typeof loadSalintelHandoffs==='function')await loadSalintelHandoffs(detail.investigation);
+  if(detail&&typeof loadSalintelRelationships==='function')await loadSalintelRelationships(detail.investigation);
+}
+async function openFacilityAssessment(id){facilityAssessmentState.recordId=id;await facilityAssessments();}
+function closeFacilityAssessment(){facilityAssessmentState.recordId=null;facilityAssessments();}
+async function generateFacilityPlan(){const reason=prompt('Governance basis for generating the authorized bounded Facility Assessment plan:');if(!reason)return;await api(`/api/salintel/facility-assessments/${facilityAssessmentState.recordId}/research-plan`,{method:'POST',body:JSON.stringify({reason})});await facilityAssessments();}
+function facilityFormBody(form,names){const d=new FormData(form),body={};names.forEach(name=>{const value=d.get(name);if(value!==null)body[name]=value;});if(d.get('source_material_id'))body.source_material_id=Number(d.get('source_material_id'));return body;}
+async function submitFacilityContext(event){event.preventDefault();const body=facilityFormBody(event.target,['facility_name','facility_reference','location_context','mission_summary','jurisdiction','geographic_bounds']);await api(`/api/salintel/facility-assessments/${facilityAssessmentState.recordId}/context`,{method:'POST',body:JSON.stringify(body)});await facilityAssessments();}
+async function submitFacilityFunction(event){event.preventDefault();const body=facilityFormBody(event.target,['title','mission_statement','criticality_basis','maximum_tolerable_disruption','origin_type','epistemic_state']);await api(`/api/salintel/facility-assessments/${facilityAssessmentState.recordId}/essential-functions`,{method:'POST',body:JSON.stringify(body)});await facilityAssessments();}
+async function submitFacilityChain(event){event.preventDefault();const d=new FormData(event.target),body=facilityFormBody(event.target,['dependency','failure_mode_type','failure_mode','preventive_controls','detection','consequences','alternate_capability','restoration_requirement','origin_type','epistemic_state','source_reliability','information_confidence']);body.analysis_mode='Defensive';body.insider_threat_relevance=d.get('insider_threat_relevance')==='on';body.emergency_exploitation_relevance=d.get('emergency_exploitation_relevance')==='on';body.competing_resource_relevance=d.get('competing_resource_relevance')==='on';await api(`/api/salintel/facility-assessments/${facilityAssessmentState.recordId}/essential-functions/${Number(d.get('function_item_id'))}/dependency-analysis`,{method:'POST',body:JSON.stringify(body)});await facilityAssessments();}
+async function submitFacilityFinding(event){event.preventDefault();const d=new FormData(event.target),select=event.target.querySelector('[name="checklist_key"]'),option=select.options[select.selectedIndex],body=facilityFormBody(event.target,['checklist_key','title','narrative','epistemic_state','origin_type','source_reliability','information_confidence','defensive_implication','reassessment_trigger']);body.category=option.dataset.category;await api(`/api/salintel/facility-assessments/${facilityAssessmentState.recordId}/findings`,{method:'POST',body:JSON.stringify(body)});await facilityAssessments();}
+function openFacilityInDomainWorkspace(){salintelDomainUiState.recordId=facilityAssessmentState.recordId;salintelDomainUiState.domain='facility-assessment';setView('salintel_domains');}
+
+viewTitles.facility_assessments=`${PRODUCT_TERMS.salintel.name} Facility Assessment`;
+subtitles.facility_assessments='Investigate facility mission, dependencies, controls, alternate capability, restoration, and defensive conditions with evidence and human qualification.';
+const facilityBaseRender=render;
+render=async function(){
+  if(currentView==='facility_assessments'){
+    try{return await facilityAssessments();}
+    catch(error){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(error.message)}</div>`;return;}
+  }
+  return facilityBaseRender();
+};
