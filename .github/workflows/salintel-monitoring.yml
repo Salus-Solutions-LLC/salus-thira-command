@@ -11,6 +11,7 @@ on:
       - 'tools/ci_salintel_monitoring_ui_smoke.py'
       - 'static/salintel-monitoring.js'
       - 'static/salintel-monitoring.css'
+      - 'static/salcapa-display.js'
       - 'static/personnel-assessment.js'
       - 'static/facility-assessment.js'
       - 'Dockerfile'
@@ -57,7 +58,7 @@ jobs:
       - name: Compile recurring-monitoring capability
         run: python -m py_compile salcapa_runtime.py salintel_monitoring.py tools/ci_salintel_monitoring_smoke.py tools/ci_salintel_monitoring_ui_smoke.py
       - name: Validate monitoring interface JavaScript
-        run: node --check static/salintel-monitoring.js && node --check static/personnel-assessment.js && node --check static/facility-assessment.js
+        run: node --check static/salintel-monitoring.js && node --check static/salcapa-display.js && node --check static/personnel-assessment.js && node --check static/facility-assessment.js
       - name: Monitoring interface acceptance
         run: python tools/ci_salintel_monitoring_ui_smoke.py
       - name: Static security scan

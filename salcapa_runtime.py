@@ -31,6 +31,8 @@ register_facility_assessment(core.app, core.__dict__)
 if register_salintel_monitoring is not None:
     register_salintel_monitoring(core.app, core.__dict__)
 
+SALCAPA_RELEASE_VERSION = "3.57"
+
 
 def _preparedness_index() -> str:
     path = Path(core.BASE_DIR) / "static" / "index.html"
@@ -87,6 +89,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/facility-assessment.js"></script>',
          '<script src="/static/facility-assessment.js"></script>\n<script src="/static/salintel-monitoring.js"></script>',
          '/static/salintel-monitoring.js'),
+        ('<script src="/static/salintel-monitoring.js"></script>',
+         '<script src="/static/salintel-monitoring.js"></script>\n<script src="/static/salcapa-display.js"></script>',
+         '/static/salcapa-display.js'),
     )
     for marker, replacement, present in edits:
         if present in text:
@@ -106,7 +111,10 @@ except (OSError, RuntimeError) as exc:
 # unchanged on disk and all API/static routes retain the core application's guards.
 core.app.router.routes[:] = [
     route for route in core.app.router.routes
-    if not (getattr(route, "path", None) == "/" and "GET" in (getattr(route, "methods", None) or set()))
+    if not (
+        getattr(route, "path", None) in ("/", "/api/system/mode")
+        and "GET" in (getattr(route, "methods", None) or set())
+    )
 ]
 
 
@@ -115,6 +123,13 @@ def preparedness_root():
     if not PREPAREDNESS_INDEX:
         raise HTTPException(503, "SalCAPA interface unavailable")
     return HTMLResponse(PREPAREDNESS_INDEX)
+
+
+@core.app.get("/api/system/mode", include_in_schema=False)
+def salcapa_system_mode():
+    result = dict(core.system_mode())
+    result["version"] = SALCAPA_RELEASE_VERSION
+    return result
 
 
 app = core.app
