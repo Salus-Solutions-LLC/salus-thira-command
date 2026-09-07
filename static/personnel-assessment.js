@@ -40,7 +40,7 @@ function personnelPlanOptions(checklist,tier){
 function personnelCompletionReadiness(detail){
   const readiness=detail.completion_readiness||{ready:false,blockers:['Completion readiness has not been evaluated.']};
   const items=(readiness.blockers||[]).map(item=>`<li>${esc(item)}</li>`).join('');
-  return `<article class="card"><div class="section-title"><h3>Bounded-tier completion</h3><span class="personnel-state">${readiness.ready?'Ready for authorized completion':'Closure gates remain'}</span></div>${readiness.ready?'<p>The authorized plan, identity disposition, known-unknown record, and final human qualification satisfy the Personnel Assessment closure gate.</p>':`<p>Completion remains server-blocked until:</p><ul>${items}</ul>`}</article>`;
+  return `<article class="card"><div class="section-title"><h3>Bounded-tier completion</h3><span class="personnel-state">${readiness.ready?'Ready for authorized completion':'Closure gates remain'}</span></div>${readiness.ready?'<p>The authorized checklist, identity disposition, truthful mixed-source plan, real Chat source access, qualified tier research product, known-unknown record, and final human qualification satisfy the Personnel Assessment closure gate.</p>':`<p>Completion remains server-blocked until:</p><ul>${items}</ul>`}</article>`;
 }
 function personnelDetail(detail,checklist){
   const record=detail.investigation||{},tier=Number(detail.authorized_tier||0),hasPlan=(detail.checklist||[]).length>0;
@@ -55,6 +55,7 @@ function personnelDetail(detail,checklist){
     <div class="section-title"><h3>Structured findings</h3><span class="subtle">All new findings require human qualification</span></div>${personnelFindings(detail)}
     ${personnelCompletionReadiness(detail)}
     ${typeof salintelResearchPanel==='function'?salintelResearchPanel(record):''}
+    ${typeof salintelHandoffPanel==='function'?salintelHandoffPanel(record):''}
     ${typeof salintelRelationshipPanel==='function'?salintelRelationshipPanel(record):''}
     <div class="form-actions personnel-governance"><button class="btn secondary" onclick="openPersonnelInDomainWorkspace()">Open governance and disclosure controls</button>${tier?`<button class="btn secondary" onclick="qualifySalintelInvestigation(${record.id})">Human qualification</button><button class="btn secondary" onclick="recommendSalintelTier(${record.id},true)">Recommend deeper tier</button>${detail.completion_readiness&&detail.completion_readiness.ready?`<button class="btn" onclick="completePersonnelTier(${record.id},${tier})">Complete authorized tier</button>`:''}`:''}</div>
   </section>`;
@@ -70,6 +71,7 @@ async function personnelAssessments(){
   const candidate=$('#personnel-candidate-form');if(candidate)candidate.onsubmit=submitPersonnelCandidate;
   const finding=$('#personnel-finding-form');if(finding)finding.onsubmit=submitPersonnelFinding;
   if(detail&&typeof loadSalintelResearch==='function')await loadSalintelResearch(detail.investigation);
+  if(detail&&typeof loadSalintelHandoffs==='function')await loadSalintelHandoffs(detail.investigation);
   if(detail&&typeof loadSalintelRelationships==='function')await loadSalintelRelationships(detail.investigation);
 }
 async function openPersonnelAssessment(id){personnelAssessmentState.recordId=id;await personnelAssessments();}
@@ -92,4 +94,3 @@ render=async function(){
   }
   return personnelBaseRender();
 };
-

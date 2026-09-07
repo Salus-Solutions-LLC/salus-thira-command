@@ -8,10 +8,10 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = (
     (ROOT / "source_archives" / "development" / "personnel_assessment.py.gz",
      ROOT / "personnel_assessment.py",
-     "8aabd5859939924ff009b81a3c68be892ae2e07b2ee533b69490a9cc27a4a660", "53a1c7f6ab6ad41d2bea034c2ceedba55a5efb61f7923b96701d6214f7efd6f9", 33601),
+     "99da11dd5e3a60db99959a69dc1af7f988112fdecf89a9e44efe69439241756f", "79e293aeef8f79cba38a4f7fbdab1a40b744a8e4ef422a60c57818739f0d5fc4", 37514),
     (ROOT / "source_archives" / "development" / "ci_personnel_assessment_smoke.py.gz",
      ROOT / "tools" / "ci_personnel_assessment_smoke.py",
-     "3686557d0cdb9fc547af9c87e5e5e32d1790978ba6dc246fa8d8891db795bc8f", "6a960399f5ccc20baa6c05bd06571dc9cc6539d9b200e2cfc76cb80d1362d639", 15726),
+     "1d2aa9a826b1daed3926dc0cb98e6183c042ecf7b198586aa9239b7dfeaaada7", "17f16e680ff27fbcfa2d21d81b08a81fe3b39dbaf70dc98904df3ad34bf5ac7c", 20679),
 )
 for archive, target, archive_sha, target_sha, target_size in ARTIFACTS:
     compressed = archive.read_bytes()

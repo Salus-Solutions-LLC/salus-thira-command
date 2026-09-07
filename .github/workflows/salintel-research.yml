@@ -51,6 +51,7 @@ jobs:
           python tools/reconstruct_personnel_assessment.py
           python tools/reconstruct_salintel_relationships.py
           python tools/reconstruct_salintel_research.py
+          python tools/reconstruct_salintel_handoffs.py
       - name: Install application and security tools
         run: python -m pip install -r requirements.txt -r requirements-ci.txt
       - name: Compile Chat-led research capability
@@ -97,6 +98,7 @@ jobs:
           python tools/reconstruct_personnel_assessment.py
           python tools/reconstruct_salintel_relationships.py
           python tools/reconstruct_salintel_research.py
+          python tools/reconstruct_salintel_handoffs.py
       - name: Install application
         run: python -m pip install -r requirements.txt
       - name: PostgreSQL 16 Chat-led research acceptance

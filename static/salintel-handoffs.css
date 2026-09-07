@@ -1,0 +1,7 @@
+.salintel-handoff-workspace{margin-top:1rem;padding-top:1rem;border-top:2px solid #2f89a8}
+.salintel-handoff-workspace fieldset{border:1px solid #b7cbd4;border-radius:.45rem;padding:.75rem;margin:.8rem 0}
+.salintel-handoff-workspace legend{font-weight:700;color:#123f61;padding:0 .3rem}
+.handoff-check{display:block;padding:.4rem .2rem}
+.handoff-check input{margin-right:.45rem}
+.handoff-target,.handoff-state{display:inline-block;border:1px solid #5d9bb3;border-radius:999px;padding:.18rem .55rem;color:#123f61;background:#eef8fb;font-weight:700}
+@media print{.salintel-handoff-workspace button,.salintel-handoff-workspace form{display:none!important}.handoff-target,.handoff-state{border:1px solid #555;background:#fff;color:#111}}

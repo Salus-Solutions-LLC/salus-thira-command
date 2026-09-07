@@ -8,7 +8,7 @@ python tools/reconstruct_salops_preparedness.py
 python tools/reconstruct_personnel_assessment.py
 python tools/reconstruct_salintel_relationships.py
 python tools/reconstruct_salintel_research.py
-python -m py_compile salcapa_runtime.py salops_preparedness.py personnel_assessment.py salintel_relationships.py salintel_research.py
+python tools/reconstruct_salintel_handoffs.py
+python -m py_compile salcapa_runtime.py salops_preparedness.py personnel_assessment.py salintel_relationships.py salintel_research.py salintel_handoffs.py
 exec python -m uvicorn salcapa_runtime:app --host 127.0.0.1 --port 8000
-
 
