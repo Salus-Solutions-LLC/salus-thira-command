@@ -168,7 +168,12 @@ def main():
             "origin_type": "Analyst Assessment", "epistemic_state": "Analyst Judgment",
             "source_material_id": material_id, "insider_threat_relevance": True,
             "emergency_exploitation_relevance": True,
-            "competing_resource_relevance": True})
+            "competing_resource_relevance": True,
+            "intentional_scenario_types": [
+                "Sabotage", "Active-Assailant", "Insider-Enabled Disruption",
+                "Coordinated Cyber-Physical Incident", "Deliberate Fire or Destructive Act",
+                "Theft or Diversion", "Supply-Chain Interference", "Workplace Violence",
+                "Attack Timed with Emergency", "Exploitation of Degraded Conditions"]})
     assert chain.status_code == 200, chain.text
     assert chain.json()["analysis_mode"] == "Defensive"
     assert chain.json()["operational_authority_granted"] is False
@@ -203,6 +208,16 @@ def main():
         "detection", "consequences", "alternate_capability", "restoration_requirement"]
     assert body["governance"]["salus_only"] is True
     assert body["governance"]["operational_authority_granted"] is False
+    assert body["completion_readiness"]["ready"] is False
+    assert any("natural, accidental, and intentional" in blocker
+               for blocker in body["completion_readiness"]["blockers"])
+    blocked_completion = client.post(
+        f"/api/salintel/investigations/{investigation_id}/complete-tier",
+        headers=analyst, json={
+            "tier": 1,
+            "completion_statement": "Must not bypass the Facility closure gate.",
+            "residual_unknowns": "Open authorized requirements remain."})
+    assert blocked_completion.status_code == 409, blocked_completion.text
     assert client.get(
         f"/api/salintel/facility-assessments/{investigation_id}",
         headers=member).status_code == 403

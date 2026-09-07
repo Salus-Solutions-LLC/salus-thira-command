@@ -16,6 +16,8 @@ required_js = [
     "Mission function → dependency", "Depth is not a danger or readiness rating",
     "salintelResearchPanel", "salintelHandoffPanel", "salintelRelationshipPanel",
     "Human qualification", "Recommend deeper tier", "Open governance and disclosure controls",
+    "facilityCompletionReadiness", "Complete authorized tier", "completeFacilityTier",
+    "intentional_scenario_types", "facilityIntentionalScenarios",
 ]
 for marker in required_js:
     if marker not in js:
@@ -37,7 +39,7 @@ for marker in required_runtime:
         raise SystemExit(f"Missing Facility runtime composition marker: {marker}")
 
 for marker in [".facility-hero", ".facility-status-grid", ".facility-state",
-               ".facility-context", "@media print"]:
+               ".facility-context", ".facility-scenarios", "@media print"]:
     if marker not in css:
         raise SystemExit(f"Missing Facility CSS marker: {marker}")
 

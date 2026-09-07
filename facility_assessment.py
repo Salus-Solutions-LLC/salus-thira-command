@@ -22,6 +22,18 @@ Epistemic = Literal["Verified Fact", "Reported Information", "Reasonable Inferen
                     "Analyst Judgment", "Hypothesis", "Unresolved Allegation",
                     "Assumption", "Contradiction", "Information Gap", "Unknown"]
 FailureMode = Literal["Natural", "Accidental", "Intentional / Adversarial"]
+IntentionalScenario = Literal[
+    "Sabotage", "Active-Assailant", "Insider-Enabled Disruption",
+    "Coordinated Cyber-Physical Incident", "Deliberate Fire or Destructive Act",
+    "Theft or Diversion", "Supply-Chain Interference", "Workplace Violence",
+    "Attack Timed with Emergency", "Exploitation of Degraded Conditions"
+]
+INTENTIONAL_SCENARIO_TYPES = [
+    "Sabotage", "Active-Assailant", "Insider-Enabled Disruption",
+    "Coordinated Cyber-Physical Incident", "Deliberate Fire or Destructive Act",
+    "Theft or Diversion", "Supply-Chain Interference", "Workplace Violence",
+    "Attack Timed with Emergency", "Exploitation of Degraded Conditions",
+]
 Category = Literal[
     "Facility Identity and Operating Context", "Mission and Essential Functions",
     "Dependencies and Interdependencies", "Natural and Accidental Conditions",
@@ -130,6 +142,9 @@ class DependencyAnalysis(BaseModel):
     insider_threat_relevance: bool = False
     emergency_exploitation_relevance: bool = False
     competing_resource_relevance: bool = False
+    intentional_scenario_types: list[IntentionalScenario] = Field(
+        default_factory=list, max_length=10
+    )
 
 
 class FacilityFinding(BaseModel):
@@ -260,6 +275,238 @@ def register_facility_assessment(app, core: dict) -> None:
             "qualification_status='Unqualified',updated_by=?,updated_at=? WHERE id=?",
             (actor(request), now(), investigation_id),
         )
+
+    def completion_readiness(conn, row):
+        """Return deterministic, domain-specific bounded-tier closure readiness."""
+        tier = int(row["authorized_tier"])
+        records = items(conn, int(row["id"]))
+        expected = [entry for entry in CHECKLIST if entry[1] <= tier]
+        expected_keys = {entry[0] for entry in expected}
+        planned_keys = {
+            item["structured_detail"].get("checklist_key")
+            for item in records
+            if item["structured_detail"].get("record_type") == "facility_checklist"
+            and item["structured_detail"].get("plan_version") == PLAN_VERSION
+        }
+        findings = [
+            item for item in records
+            if item["structured_detail"].get("record_type") == "facility_finding"
+        ]
+        addressed_keys = {
+            item["structured_detail"].get("checklist_key") for item in findings
+        }
+        contexts = [
+            item for item in records
+            if item["structured_detail"].get("record_type") == "facility_context"
+        ]
+        functions = [
+            item for item in records
+            if item["structured_detail"].get("record_type") == "facility_essential_function"
+        ]
+        chains = [
+            item for item in records
+            if item["structured_detail"].get("record_type") == "facility_dependency_analysis"
+        ]
+        blockers = []
+        if tier not in (1, 2, 3):
+            blockers.append("Authorize a bounded investigation tier.")
+        missing_plan = expected_keys - planned_keys
+        if missing_plan:
+            blockers.append(
+                f"Generate the complete {PLAN_VERSION} research plan "
+                f"({len(missing_plan)} requirements missing)."
+            )
+        open_keys = expected_keys - addressed_keys
+        if open_keys:
+            blockers.append(
+                f"Address every authorized Facility Assessment requirement ({len(open_keys)} open)."
+            )
+        if not contexts:
+            blockers.append("Record a governed facility context version.")
+        else:
+            latest_context = contexts[-1]["structured_detail"]
+            if not str(latest_context.get("location_context", "")).strip():
+                blockers.append("Record the facility location and operating context.")
+            if not str(latest_context.get("geographic_bounds", "")).strip():
+                blockers.append("Record the authorized geographic assessment bounds.")
+        if not functions:
+            blockers.append("Record at least one governed essential function.")
+        chain_types_by_function = {}
+        covered_intentional = set()
+        insider_reviewed = emergency_reviewed = resource_reviewed = False
+        for chain in chains:
+            detail = chain["structured_detail"]
+            function_id = int(detail.get("essential_function_item_id", 0))
+            chain_types_by_function.setdefault(function_id, set()).add(
+                detail.get("failure_mode_type")
+            )
+            covered_intentional.update(detail.get("intentional_scenario_types", []))
+            insider_reviewed = insider_reviewed or bool(
+                detail.get("insider_threat_relevance")
+            )
+            emergency_reviewed = emergency_reviewed or bool(
+                detail.get("emergency_exploitation_relevance")
+            )
+            resource_reviewed = resource_reviewed or bool(
+                detail.get("competing_resource_relevance")
+            )
+        required_modes = {"Natural", "Accidental", "Intentional / Adversarial"}
+        incomplete_functions = [
+            int(function["id"]) for function in functions
+            if not required_modes.issubset(
+                chain_types_by_function.get(int(function["id"]), set())
+            )
+        ]
+        if incomplete_functions:
+            blockers.append(
+                "Complete natural, accidental, and intentional/adversarial defensive "
+                f"chains for every essential function ({len(incomplete_functions)} incomplete)."
+            )
+        missing_intentional = set(INTENTIONAL_SCENARIO_TYPES) - covered_intentional
+        if missing_intentional:
+            blockers.append(
+                "Complete the formal defensive intentional-threat coverage "
+                f"({len(missing_intentional)} scenario types not addressed)."
+            )
+        if not insider_reviewed:
+            blockers.append("Complete and mark the dedicated insider-threat review.")
+        if not emergency_reviewed:
+            blockers.append("Complete and mark emergency-exploitation analysis.")
+        if not resource_reviewed:
+            blockers.append("Complete and mark competing/shared-resource analysis.")
+        if "FA1-UNKNOWNS" not in addressed_keys:
+            blockers.append(
+                "Record residual known unknowns, collection requirements, and reassessment triggers."
+            )
+
+        research_plans = [
+            item for item in records
+            if item["structured_detail"].get("record_type") == "salintel_research_plan"
+            and int(item["structured_detail"].get("authorized_tier", 0)) == tier
+        ]
+        research_plan = research_plans[-1] if research_plans else None
+        research_task_count = research_tasks_dispositioned = 0
+        chat_sources_accessed = qualified_research_product_count = 0
+        if not research_plan:
+            blockers.append(
+                "Authorize and complete the shared Chat-led mixed-source research plan for this tier."
+            )
+        else:
+            plan_id = int(research_plan["id"])
+            tasks = research_plan["structured_detail"].get("tasks", [])
+            research_task_count = len(tasks)
+            task_keys = {str(task.get("task_key", "")) for task in tasks}
+            results = [
+                item for item in records
+                if item["structured_detail"].get("record_type") == "salintel_source_result"
+                and int(item["structured_detail"].get("plan_id", 0)) == plan_id
+            ]
+            dispositioned = {
+                str(item["structured_detail"].get("task_key", "")) for item in results
+            }
+            research_tasks_dispositioned = len(task_keys & dispositioned)
+            missing_research = task_keys - dispositioned
+            if not tasks or missing_research:
+                blockers.append(
+                    "Truthfully disposition every authorized mixed-source research task "
+                    f"({len(missing_research) if tasks else 1} open)."
+                )
+            chat_sources_accessed = sum(
+                1 for item in results
+                if item["structured_detail"].get("authorized_contributor") == "Chat Research"
+                and item["structured_detail"].get("outcome") == "Accessed"
+                and item["source_material_id"] not in (None, "")
+                and str(item["structured_detail"].get("source_locator", "")).strip()
+            )
+            if not chat_sources_accessed:
+                blockers.append(
+                    "Complete real Chat research against at least one accessed, cited, governed source."
+                )
+            products = [
+                item for item in records
+                if item["structured_detail"].get("record_type") == "salintel_research_product"
+                and int(item["structured_detail"].get("plan_id", 0)) == plan_id
+                and int(item["structured_detail"].get("authorized_tier", 0)) == tier
+            ]
+            latest_product = products[-1] if products else None
+            latest_result_at = max(
+                (str(item["updated_at"]) for item in results), default=""
+            )
+            qualified = bool(
+                latest_product
+                and latest_product["structured_detail"].get("review_status") == "Qualified"
+                and str(latest_product["structured_detail"].get("reviewed_by", "")).strip()
+                and str(latest_product["structured_detail"].get("reviewed_at", "")).strip()
+                and str(latest_product["created_at"]) >= latest_result_at
+            )
+            qualified_research_product_count = 1 if qualified else 0
+            if not qualified:
+                blockers.append(
+                    "Obtain Salus human qualification of the current tier-specific Chat "
+                    "research product after the latest source result."
+                )
+        if row["qualification_status"] != "Qualified":
+            blockers.append(
+                "Obtain final human qualification after the latest facility record or finding."
+            )
+        if row["status"] in ("Tier Complete", "Closed"):
+            blockers.append("Completed work cannot be silently reopened or recompleted.")
+        return {
+            "ready": not blockers,
+            "blockers": blockers,
+            "expected_requirement_count": len(expected_keys),
+            "addressed_requirement_count": len(expected_keys & addressed_keys),
+            "essential_function_count": len(functions),
+            "dependency_chain_count": len(chains),
+            "incomplete_function_ids": incomplete_functions,
+            "intentional_scenario_types_required": INTENTIONAL_SCENARIO_TYPES,
+            "intentional_scenario_types_covered": sorted(covered_intentional),
+            "research_plan_id": int(research_plan["id"]) if research_plan else None,
+            "research_task_count": research_task_count,
+            "research_tasks_dispositioned": research_tasks_dispositioned,
+            "chat_sources_accessed": chat_sources_accessed,
+            "qualified_research_product_count": qualified_research_product_count,
+        }
+
+    @app.middleware("http")
+    async def facility_completion_gate(request: Request, call_next):
+        """Prevent the generic tier endpoint from bypassing Facility closure rules."""
+        prefix = "/api/salintel/investigations/"
+        suffix = "/complete-tier"
+        path = request.url.path
+        if request.method != "POST" or not path.startswith(prefix) or not path.endswith(suffix):
+            return await call_next(request)
+        record_part = path[len(prefix):-len(suffix)]
+        if not record_part.isdigit():
+            return await call_next(request)
+        conn = db()
+        try:
+            row = conn.execute(
+                "SELECT * FROM salintel_investigations WHERE id=?", (int(record_part),)
+            ).fetchone()
+            if (not row or row["domain_key"] != "facility-assessment"
+                    or int(row["tenant_id"]) != tenant_id(request)):
+                row = None
+            readiness = completion_readiness(conn, row) if row else None
+        finally:
+            conn.close()
+        if row is None:
+            return await call_next(request)
+        try:
+            require(request, "decide")
+            authority(request, "SalINTEL Facility Assessment tier completion")
+        except HTTPException:
+            return await call_next(request)
+        if not readiness["ready"]:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "detail": "Facility Assessment is not ready for bounded-tier completion.",
+                    "blockers": readiness["blockers"],
+                },
+            )
+        return await call_next(request)
 
     def validate_epistemic(payload, source_material_id):
         if payload.epistemic_state == "Verified Fact":
@@ -408,6 +655,16 @@ def register_facility_assessment(app, core: dict) -> None:
             validate_epistemic(payload, payload.source_material_id)
             if payload.failure_mode_type == "Intentional / Adversarial" and not payload.detection.strip():
                 raise HTTPException(422, "Defensive intentional-threat analysis requires detection")
+            if (payload.failure_mode_type == "Intentional / Adversarial"
+                    and not payload.intentional_scenario_types):
+                raise HTTPException(
+                    422, "Defensive intentional-threat analysis requires governed scenario coverage"
+                )
+            if (payload.failure_mode_type != "Intentional / Adversarial"
+                    and payload.intentional_scenario_types):
+                raise HTTPException(
+                    422, "Intentional scenario types require an intentional/adversarial failure mode"
+                )
             detail = payload.model_dump()
             detail.update({
                 "record_type": "facility_dependency_analysis",
@@ -528,7 +785,7 @@ def register_facility_assessment(app, core: dict) -> None:
                     "commercial_change_requires_salus_authorization": True,
                     "operational_authority_granted": False,
                 },
+                "completion_readiness": completion_readiness(conn, row),
             }
         finally:
             conn.close()
-
