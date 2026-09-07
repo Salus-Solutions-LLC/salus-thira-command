@@ -213,7 +213,7 @@ def main():
         f"/api/salintel/facility-assessments/{investigation_id}",
         headers=other_tenant).status_code in (403, 404)
 
-    conn = app.db()
+    conn = salcapa_runtime.core.db()
     try:
         actions = {row["action"] for row in conn.execute(
             "SELECT action FROM audit_log WHERE tenant_id=? AND entity_type='facility_assessment'",
