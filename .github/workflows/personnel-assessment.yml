@@ -34,14 +34,16 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
       - name: Reconstruct governed sources
         run: |
           python tools/reconstruct_v343_source.py
           python tools/reconstruct_salops_preparedness.py
           python tools/reconstruct_personnel_assessment.py
       - name: Install application
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt -r requirements-ci.txt
       - name: Compile Personnel Assessment
         run: python -m py_compile salcapa_runtime.py personnel_assessment.py tools/ci_personnel_assessment_smoke.py
       - name: Static security scan
