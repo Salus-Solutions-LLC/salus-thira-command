@@ -1,0 +1,114 @@
+name: SalINTEL Facility Assessment
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - 'salcapa_runtime.py'
+      - 'facility_assessment.py'
+      - 'source_archives/development/facility_assessment.py.gz'
+      - 'source_archives/development/ci_facility_assessment_smoke.py.gz'
+      - 'tools/reconstruct_facility_assessment.py'
+      - 'tools/ci_facility_assessment_smoke.py'
+      - 'Dockerfile'
+      - '.github/workflows/facility-assessment.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sqlite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
+      - name: Reconstruct governed sources
+        run: |
+          python tools/reconstruct_v343_source.py
+          python tools/reconstruct_salops_preparedness.py
+          python tools/reconstruct_personnel_assessment.py
+          python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
+          python tools/reconstruct_salintel_handoffs.py
+          python tools/reconstruct_facility_assessment.py
+      - name: Install application
+        run: python -m pip install -r requirements.txt -r requirements-ci.txt
+      - name: Compile Facility Assessment
+        run: python -m py_compile salcapa_runtime.py facility_assessment.py tools/ci_facility_assessment_smoke.py
+      - name: Static security scan
+        run: bandit -q -r salcapa_runtime.py facility_assessment.py -ll -s B608
+      - name: SQLite Facility Assessment acceptance
+        run: python tools/ci_facility_assessment_smoke.py
+
+  postgres16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: facility_assessment_ci
+          POSTGRES_USER: salus
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U salus -d facility_assessment_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Reconstruct governed sources
+        run: |
+          python tools/reconstruct_v343_source.py
+          python tools/reconstruct_salops_preparedness.py
+          python tools/reconstruct_personnel_assessment.py
+          python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
+          python tools/reconstruct_salintel_handoffs.py
+          python tools/reconstruct_facility_assessment.py
+      - name: Install application
+        run: python -m pip install -r requirements.txt
+      - name: PostgreSQL 16 Facility Assessment acceptance
+        env:
+          SALUS_DB_BACKEND: postgres
+          SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/facility_assessment_ci
+          SALUS_AUTH_MODE: prototype
+          SALUS_SEED_DEMO: '1'
+          SALUS_LOCAL_STORAGE_DIR: /tmp/facility-pg-attachments
+          SALUS_BACKUP_DIR: /tmp/facility-pg-backups
+        run: python tools/ci_facility_assessment_smoke.py
+
+  production-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build production container
+        run: docker build --tag salcapa-facility:ci .
+      - name: Run Facility Assessment acceptance in container
+        run: |
+          docker run --rm -e SALUS_DB_BACKEND=sqlite -e SALUS_DB_PATH=/app/data/facility-container.db -e SALUS_LOCAL_STORAGE_DIR=/app/attachments -e SALUS_BACKUP_DIR=/app/backups -e SALUS_AUTH_MODE=prototype -e SALUS_SEED_DEMO=1 salcapa-facility:ci python tools/ci_facility_assessment_smoke.py

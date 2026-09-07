@@ -16,12 +16,14 @@ from personnel_assessment import register_personnel_assessment
 from salintel_relationships import register_salintel_relationships
 from salintel_research import register_salintel_research
 from salintel_handoffs import register_salintel_handoffs
+from facility_assessment import register_facility_assessment
 
 register_salops_preparedness(core.app, core.__dict__)
 register_salintel_relationships(core.app, core.__dict__)
 register_salintel_research(core.app, core.__dict__)
 register_personnel_assessment(core.app, core.__dict__)
 register_salintel_handoffs(core.app, core.__dict__)
+register_facility_assessment(core.app, core.__dict__)
 
 
 def _preparedness_index() -> str:
