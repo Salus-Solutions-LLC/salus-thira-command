@@ -39,6 +39,7 @@ jobs:
           python tools/verify_v343_source.py
           python tools/reconstruct_salops_preparedness.py
           python tools/reconstruct_personnel_assessment.py
+          python tools/reconstruct_salintel_relationships.py
       - name: Validate release reconstruction entrypoints
         run: python tools/check_release_entrypoints.py
       - uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
@@ -93,3 +94,4 @@ jobs:
           path: codeql-results
           if-no-files-found: error
           retention-days: 14
+
