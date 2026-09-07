@@ -78,3 +78,17 @@ async function recordSalintelResearchResult(taskKey,contributor){
 async function submitSalintelResearchProduct(event){event.preventDefault();const d=new FormData(event.target),sourceId=d.get('source_result_id'),epistemic=d.get('epistemic_state'),ids=sourceId?[Number(sourceId)]:[];if(epistemic==='Reported Information'&&!ids.length){alert('Reported Information requires a source-result citation.');return;}const body={executive_summary:d.get('executive_summary'),findings:[{statement:d.get('statement'),epistemic_state:epistemic,source_result_ids:ids,information_confidence:d.get('information_confidence'),implications:d.get('implications')}],contradictions:d.get('contradictions'),known_unknowns:d.get('known_unknowns'),implications:d.get('implications'),completion_statement:d.get('completion_statement'),deeper_tier_recommended:d.get('deeper_tier_recommended')==='on',deeper_tier_reason:d.get('deeper_tier_reason')};await api(`/api/salintel/investigations/${salintelResearchState.recordId}/research-plans/${salintelResearchState.data.plan.id}/products`,{method:'POST',body:JSON.stringify(body)});await refreshSalintelResearchHost();}
 async function reviewSalintelResearchProduct(productId,status){const reason=prompt(`Salus human ${status.toLowerCase()} basis:`);if(!reason)return;await api(`/api/salintel/investigations/${salintelResearchState.recordId}/research-products/${productId}/review`,{method:'POST',body:JSON.stringify({status,reason})});await refreshSalintelResearchHost();}
 async function acknowledgeSalintelResearchNotification(notificationId){const reason=prompt('Salus acknowledgement note:');if(!reason)return;await api(`/api/salintel/investigations/${salintelResearchState.recordId}/research-notifications/${notificationId}/acknowledge`,{method:'POST',body:JSON.stringify({reason})});await refreshSalintelResearchHost();}
+
+/* Extend the verified shared-domain workspace without rewriting its frozen source. */
+const salintelDomainDetailWithoutResearch=salintelDetail;
+salintelDetail=function(record,catalog){
+  const detail=salintelDomainDetailWithoutResearch(record,catalog);
+  return record?`${detail}${salintelResearchPanel(record)}`:detail;
+};
+const salintelDomainsWithoutResearch=salintelDomains;
+salintelDomains=async function(){
+  await salintelDomainsWithoutResearch();
+  if(!isProtectedMember()&&salintelDomainUiState.recordId){
+    await loadSalintelResearch({id:salintelDomainUiState.recordId});
+  }
+};
