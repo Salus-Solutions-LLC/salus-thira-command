@@ -12,8 +12,10 @@ from fastapi.responses import HTMLResponse
 
 import app as core
 from salops_preparedness import register_salops_preparedness
+from personnel_assessment import register_personnel_assessment
 
 register_salops_preparedness(core.app, core.__dict__)
+register_personnel_assessment(core.app, core.__dict__)
 
 
 def _preparedness_index() -> str:

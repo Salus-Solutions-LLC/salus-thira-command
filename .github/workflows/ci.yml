@@ -40,6 +40,8 @@ jobs:
         run: |
           if [ ! -f app.py ]; then python tools/reconstruct_v343_source.py; fi
           python tools/verify_v343_source.py
+          python tools/reconstruct_salops_preparedness.py
+          python tools/reconstruct_personnel_assessment.py
       - name: Validate release reconstruction entrypoints
         run: python tools/check_release_entrypoints.py
       - name: Verify repository boundary
@@ -49,7 +51,7 @@ jobs:
       - name: Verify installed dependency consistency
         run: python -m pip check
       - name: Compile Python
-        run: python -m py_compile app.py material_capability.py salintel_domains.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
+        run: python -m py_compile app.py salcapa_runtime.py material_capability.py salintel_domains.py salops_preparedness.py personnel_assessment.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
       - name: Validate JavaScript syntax
         run: node --check static/product-branding.js && node --check static/product-version.js && node --check static/app.js && node --check static/guidance.js && node --check static/condition-visuals.js && node --check static/intake-capture.js && node --check static/salintel-domains.js
       - name: Salus brand system acceptance
@@ -89,7 +91,7 @@ jobs:
         # B608 is excluded after review: interpolated SQL identifiers are selected only
         # from fixed application allowlists or schema-derived column sets; all data values
         # remain bound parameters. Medium/high findings outside these reviewed patterns block CI.
-        run: bandit -q -r app.py material_capability.py salintel_domains.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/azure_database_bootstrap.py -ll -s B608
+        run: bandit -q -r app.py salcapa_runtime.py material_capability.py salintel_domains.py salops_preparedness.py personnel_assessment.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/azure_database_bootstrap.py -ll -s B608
 
   postgres-runtime:
     runs-on: ubuntu-latest
@@ -121,6 +123,8 @@ jobs:
         run: |
           if [ ! -f app.py ]; then python tools/reconstruct_v343_source.py; fi
           python tools/verify_v343_source.py
+          python tools/reconstruct_salops_preparedness.py
+          python tools/reconstruct_personnel_assessment.py
       - name: Validate release reconstruction entrypoints
         run: python tools/check_release_entrypoints.py
       - name: Install application
