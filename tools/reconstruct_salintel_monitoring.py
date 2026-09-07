@@ -8,8 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = (
     (ROOT / "source_archives" / "development" / "salintel_monitoring.py.gz",
      ROOT / "salintel_monitoring.py",
-     "742cea4489cb4e35bed1fdcbcf3ca6e9cbb18cc1f4b4be9a18d28092b5b52d63",
-     "ae3d36dafae5efe6e8a74226a32a1591605f626f859f46efd08c64e4d7af581c", 20196),
+     "04532d0e476993771692da89eba4e60620e6db4a8673a1947e40be90ab1c0ad7",
+     "722e4cdd850bfe638dcab0cd8a1dc07ab8caebcf59531aed8d86d4ef7933b108", 20262),
     (ROOT / "source_archives" / "development" / "ci_salintel_monitoring_smoke.py.gz",
      ROOT / "tools" / "ci_salintel_monitoring_smoke.py",
      "d3741e18cbd431d169c3954ea1214c7c2838c2b788a7d996cb86344e89679d94",
