@@ -70,3 +70,14 @@ async function submitPersonnelCandidate(event){event.preventDefault();const d=ne
 async function decidePersonnelIdentity(itemId,decision){const reason=prompt(`Human decision basis for ${decision}:`);if(!reason)return;await api(`/api/salintel/personnel-assessments/${personnelAssessmentState.recordId}/identity-candidates/${itemId}/decision`,{method:'POST',body:JSON.stringify({decision,reason})});await personnelAssessments();}
 async function submitPersonnelFinding(event){event.preventDefault();const d=new FormData(event.target),select=event.target.querySelector('[name="checklist_key"]'),option=select.options[select.selectedIndex],body={checklist_key:d.get('checklist_key'),category:option.dataset.category,title:d.get('title'),narrative:d.get('narrative'),epistemic_state:d.get('epistemic_state'),origin_type:d.get('origin_type'),source_reliability:d.get('source_reliability'),information_confidence:d.get('information_confidence'),relationship_context:d.get('relationship_context'),competing_resource_relevance:d.get('competing_resource_relevance')==='on',insider_threat_relevance:d.get('insider_threat_relevance')==='on',protective_intelligence_relevance:d.get('protective_intelligence_relevance')==='on'};if(d.get('source_material_id'))body.source_material_id=Number(d.get('source_material_id'));await api(`/api/salintel/personnel-assessments/${personnelAssessmentState.recordId}/findings`,{method:'POST',body:JSON.stringify(body)});await personnelAssessments();}
 function openPersonnelInDomainWorkspace(){salintelDomainUiState.recordId=personnelAssessmentState.recordId;salintelDomainUiState.domain='personnel-assessment';setView('salintel_domains');}
+
+viewTitles.personnel_assessments=`${PRODUCT_TERMS.salintel.name} Personnel Assessment`;
+subtitles.personnel_assessments='Resolve identity and investigate authorized personnel context with evidence, explicit uncertainty, and human qualification.';
+const personnelBaseRender=render;
+render=async function(){
+  if(currentView==='personnel_assessments'){
+    try{return await personnelAssessments();}
+    catch(error){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(error.message)}</div>`;return;}
+  }
+  return personnelBaseRender();
+};

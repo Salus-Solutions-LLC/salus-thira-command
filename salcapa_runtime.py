@@ -31,6 +31,15 @@ def _preparedness_index() -> str:
         ('<script src="/static/salintel-domains.js"></script>',
          '<script src="/static/salintel-domains.js"></script>\n<script src="/static/salops-preparedness.js"></script>',
          '/static/salops-preparedness.js'),
+        ('<link rel="stylesheet" href="/static/salops-preparedness.css" />',
+         '<link rel="stylesheet" href="/static/salops-preparedness.css" />\n<link rel="stylesheet" href="/static/personnel-assessment.css" />',
+         '/static/personnel-assessment.css'),
+        ('<button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button>',
+         '<button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button><button data-view="personnel_assessments" data-salus-only="true">Personnel Assessment</button>',
+         'data-view="personnel_assessments"'),
+        ('<script src="/static/salops-preparedness.js"></script>',
+         '<script src="/static/salops-preparedness.js"></script>\n<script src="/static/personnel-assessment.js"></script>',
+         '/static/personnel-assessment.js'),
     )
     for marker, replacement, present in edits:
         if present in text:
