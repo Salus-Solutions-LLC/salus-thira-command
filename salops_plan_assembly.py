@@ -16,7 +16,7 @@ import socket
 import uuid
 from html.parser import HTMLParser
 from typing import Any, Literal, Optional
-from urllib.parse import urljoin, urlsplit, urlunsplit
+from urllib.parse import urlencode, urljoin, urlsplit, urlunsplit
 
 import httpx
 from defusedxml import ElementTree as ET
@@ -693,6 +693,19 @@ def _configured_live_research_domains() -> list[str]:
     return _clean_list(os.environ.get("SALUS_PLAN_RESEARCH_ALLOWED_DOMAINS", "").lower().split(","))
 
 
+def _configured_public_search_endpoint() -> str:
+    value = os.environ.get("SALUS_PLAN_RESEARCH_SEARCH_ENDPOINT", "").strip()
+    if not value:
+        return ""
+    try:
+        normalized, _ = _normalize_https_url(value)
+    except ValueError:
+        return ""
+    if urlsplit(normalized).query:
+        return ""
+    return normalized
+
+
 def _normalize_https_url(value: str) -> tuple[str, str]:
     try:
         parsed = urlsplit(value.strip())
@@ -923,6 +936,19 @@ class SourceCreate(StrictModel):
 class ExternalResearchRequestCreate(StrictModel):
     url: str = Field(min_length=9, max_length=4000)
     purpose: str = Field(min_length=3, max_length=8000)
+
+
+class ExternalSearchRequestCreate(StrictModel):
+    query: str = Field(min_length=3, max_length=500)
+    purpose: str = Field(min_length=3, max_length=8000)
+
+    @field_validator("query")
+    @classmethod
+    def bounded_query(cls, value: str):
+        clean = " ".join(value.split())
+        if not clean:
+            raise ValueError("Search query is required")
+        return clean
 
 
 class ExternalResearchAuthorize(StrictModel):
@@ -1775,6 +1801,20 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "automatic_disclosure": False,
                 "automatic_charge": False,
             },
+            "external_search_adapter": {
+                "type": "Public JSON Search",
+                "enabled": bool(_configured_public_search_endpoint()),
+                "endpoint_hostname": (
+                    urlsplit(_configured_public_search_endpoint()).hostname
+                    if _configured_public_search_endpoint() else ""
+                ),
+                "query_transmitted_only_after_authorization": True,
+                "credentials_sent": False,
+                "automatic_candidate_access": False,
+                "automatic_verified_fact": False,
+                "automatic_disclosure": False,
+                "automatic_charge": False,
+            },
             "authority": {
                 "chat_may": ["Inspect", "Research", "Reconcile", "Draft", "Compare", "Recommend"],
                 "human_controls": ["Legal authority", "Organizational policy", "Emergency command authority",
@@ -2010,9 +2050,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         finally:
             conn.close()
 
-    @app.post("/api/salops/preparedness/plan-assembly/{run_id}/external-research")
-    def create_external_research_request(run_id: str, payload: ExternalResearchRequestCreate,
-                                         request: Request):
+    def create_external_research_record(run_id: str, requested_url: str, purpose: str,
+                                        adapter_type: str, request: Request):
         salus_access(request, "write")
         conn = db()
         try:
@@ -2020,7 +2059,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             if run["status"] not in ("Research Planning", "Collecting", "Drafting", "Returned for Revision"):
                 raise HTTPException(409, "Live research cannot be requested after submission unless the run is returned for revision")
             try:
-                normalized_url, hostname = _normalize_https_url(payload.url)
+                normalized_url, hostname = _normalize_https_url(requested_url)
             except ValueError as exc:
                 raise HTTPException(422, str(exc)) from exc
             configured_domains = _configured_live_research_domains()
@@ -2043,7 +2082,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             request_id, stamp, who = _key("parr"), now(), actor(request)
             policy = {
                 "schema": "salus.external-research-policy.v1",
-                "adapter_type": "Public HTTPS Retrieval",
+                "adapter_type": adapter_type,
                 "configured_domain_rule": configured_match,
                 "run_authorized_source_rule": run_match,
                 "https_only": True,
@@ -2059,8 +2098,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             }
             content = {
                 "id": request_id, "tenant_id": tenant_id(request), "run_id": run_id,
-                "adapter_type": "Public HTTPS Retrieval", "requested_url": payload.url.strip(),
-                "normalized_url": normalized_url, "hostname": hostname, "purpose": payload.purpose,
+                "adapter_type": adapter_type, "requested_url": requested_url.strip(),
+                "normalized_url": normalized_url, "hostname": hostname, "purpose": purpose,
                 "policy_snapshot_json": _json(policy), "policy_sha256": _digest(policy),
                 "immutable_request": 1, "creates_verified_fact": 0,
                 "creates_disclosure": 0, "creates_charge": 0,
@@ -2073,8 +2112,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 policy_snapshot_json,policy_sha256,request_sha256,immutable_request,status,access_status,
                 creates_verified_fact,creates_disclosure,creates_charge,created_by,created_at)
                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (request_id, tenant_id(request), run_id, "Public HTTPS Retrieval",
-                 payload.url.strip(), normalized_url, hostname, payload.purpose,
+                (request_id, tenant_id(request), run_id, adapter_type,
+                 requested_url.strip(), normalized_url, hostname, purpose,
                  _json(policy), _digest(policy), request_sha256, 1,
                  "Pending Human Authorization", "Not Attempted", 0, 0, 0, who, stamp),
             )
@@ -2092,6 +2131,27 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             return decode("salops_plan_external_research_requests", created)
         finally:
             conn.close()
+
+    @app.post("/api/salops/preparedness/plan-assembly/{run_id}/external-research")
+    def create_external_research_request(run_id: str, payload: ExternalResearchRequestCreate,
+                                         request: Request):
+        return create_external_research_record(
+            run_id, payload.url, payload.purpose, "Public HTTPS Retrieval", request,
+        )
+
+    @app.post("/api/salops/preparedness/plan-assembly/{run_id}/external-search")
+    def create_external_search_request(run_id: str, payload: ExternalSearchRequestCreate,
+                                       request: Request):
+        endpoint = _configured_public_search_endpoint()
+        if not endpoint:
+            raise HTTPException(409, "No server-controlled public search endpoint is configured")
+        parsed = urlsplit(endpoint)
+        exact_url = urlunsplit((
+            parsed.scheme, parsed.netloc, parsed.path, urlencode({"q": payload.query}), "",
+        ))
+        return create_external_research_record(
+            run_id, exact_url, payload.purpose, "Public JSON Search", request,
+        )
 
     @app.post("/api/salops/preparedness/plan-assembly/external-research/{request_id}/authorize")
     def authorize_external_research(request_id: str, payload: ExternalResearchAuthorize,

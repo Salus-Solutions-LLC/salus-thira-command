@@ -10,23 +10,23 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salops_plan_assembly.py.gz",
         ROOT / "salops_plan_assembly.py",
-        "4b30ddffd2f18628e69d19783e9a13a7fd16a57c4b2c8e3accdb11353118e339",
-        "1b47b6d08c4634c3aa7d5d499990bb927ba19638a14ba01d3688ac303b651930",
-        210355,
+        "a96a6381c4da7b32a7dae6e70c321625821249dc48ba995ae29eb32662236a4b",
+        "148ee4a24e59ab40512ae33d933ae280666bc538d4e6c1a4f1e50d69120054fa",
+        212755,
     ),
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "9c120afd8b6d35adad99c95b45743ef4792310d89620dcd1065f0f5816721f71",
-        "d1c723b05f4902e935953059c4a57499e39207f9e939593e9b8f7f0f5ce94910",
-        61971,
+        "0e4b9d3732a7b9bb3771ee083acfdb16dfe505cdd2e492ef89a55150b3a24db5",
+        "8317a5bb64efa990d8b23fbddaaeb3e04aff407642b8e52d9efc859a6d84e63f",
+        65231,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.js.gz",
         ROOT / "static/salops-plan-assembly.js",
-        "ccda33d49398bb85857b2036b54a8da2f4e78d3fbc5844c1d5705252cc54aafd",
-        "02e1ee390816e4276d0dcab125fcc8cec22eba2477302bc9202e80bf7ce14788",
-        54442,
+        "0278099baa8a82835b29a828dc968a2297dc06b7b39a97fbae2447eabe575f10",
+        "9c639e05c8c39645ce419ea7f51ce6f71e2d6e734fe25517f9fb3baf118cd91d",
+        56624,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.css.gz",
@@ -38,9 +38,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "b464e56df978b3b6ba6b9b74669eb8b8ec8cf992f406e94b2b1a45b20138db41",
-        "1ebfe05b67545a4e75d0af44de4ffda5f21f6d4904ad659386b536d3a0551559",
-        7571,
+        "29410213276f09748108b813d50f82f2ef55f0dfe88402e8c5c6b29d38b2f2c5",
+        "1a8eef6235a8b84b127f0c53f8b4436918eef1ea0d67f691baf24d11fb4e92e1",
+        7994,
     ),
 )
 

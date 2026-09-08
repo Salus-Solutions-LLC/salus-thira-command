@@ -16,6 +16,7 @@ os.environ.setdefault("SALUS_LOCAL_STORAGE_DIR", str(Path(WORKSPACE.name) / "att
 os.environ.setdefault("SALUS_AUTH_MODE", "prototype")
 os.environ.setdefault("SALUS_SEED_DEMO", "1")
 os.environ.setdefault("SALUS_PLAN_RESEARCH_ALLOWED_DOMAINS", "example.com")
+os.environ.setdefault("SALUS_PLAN_RESEARCH_SEARCH_ENDPOINT", "https://example.com/search")
 sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
@@ -46,7 +47,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.76"
+    assert client.get("/api/system/mode").json()["version"] == "3.77"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -64,6 +65,12 @@ def main() -> None:
     assert "application/rss+xml" in adapter["allowed_content_types"]
     assert "application/atom+xml" in adapter["allowed_content_types"]
     assert "application/json" in adapter["allowed_content_types"]
+    search_adapter = catalog.json()["external_search_adapter"]
+    assert search_adapter["enabled"] is True
+    assert search_adapter["type"] == "Public JSON Search"
+    assert search_adapter["endpoint_hostname"] == "example.com"
+    assert search_adapter["query_transmitted_only_after_authorization"] is True
+    assert search_adapter["automatic_candidate_access"] is False
     try:
         salops_plan_assembly._research_document(b"{", "application/json", "https://example.com/api")
         raise AssertionError("Malformed JSON must fail closed")
@@ -305,6 +312,59 @@ def main() -> None:
     )
     assert api_source["source_derived_statements"] == []
     assert api_source["reliability"] == "Not Assessed" and api_source["confidence"] == "Not Assessed"
+
+    search_path = f"{create_path}/{run_id}/external-search"
+    assert client.post(search_path, headers=member, json={
+        "query": "synthetic continuity guidance", "purpose": "Member cannot initiate search.",
+    }).status_code == 403
+    assert client.post(search_path, headers=director, json={
+        "query": "x", "purpose": "Reject an underspecified query.",
+    }).status_code == 422
+    searched = client.post(search_path, headers=director, json={
+        "query": "synthetic severe weather continuity 2026",
+        "purpose": "Discover current public sources for separate analyst collection.",
+    })
+    assert searched.status_code == 200, searched.text
+    search_request = searched.json()
+    search_id = search_request["id"]
+    assert search_request["adapter_type"] == "Public JSON Search"
+    assert search_request["status"] == "Pending Human Authorization"
+    assert search_request["access_status"] == "Not Attempted"
+    assert search_request["normalized_url"].startswith("https://example.com/search?q=")
+    assert "synthetic+severe+weather+continuity+2026" in search_request["normalized_url"]
+    assert client.post(
+        f"{create_path}/external-research/{search_id}/authorize", headers=administrator,
+        json={
+            "reason": "Exact public query and destination approved for transmission.",
+            "scope_confirmed": True, "external_transmission_authorized": True,
+            "sensitive_data_absent": True,
+        },
+    ).status_code == 200
+    salops_plan_assembly.LIVE_RESEARCH_FETCHER = lambda url, maximum_bytes: {
+        "status": 200, "content_type": "application/json",
+        "headers": {"content-type": "application/json"},
+        "content": json.dumps({
+            "query": "synthetic severe weather continuity 2026",
+            "results": [
+                {"title": "SYNTHETIC Result One", "url": "https://example.com/search/result-one"},
+                {"title": "Outside Scope", "url": "https://outside.example.org/result-two"},
+            ],
+        }).encode("utf-8"),
+    }
+    search_live = client.post(
+        f"{create_path}/external-research/{search_id}/execute", headers=owner,
+        json={"reason": "Execute the separately authorized exact public search."},
+    )
+    assert search_live.status_code == 200, search_live.text
+    search_result = search_live.json()
+    assert search_result["status"] == "Accessed"
+    assert search_result["adapter_type"] == "Public JSON Search"
+    assert search_result["discovered_links"] == ["https://example.com/search/result-one"]
+    search_source = next(
+        item for item in client.get(f"{create_path}/{run_id}", headers=director).json()["sources"]
+        if item["id"] == search_result["source_id"]
+    )
+    assert search_source["source_derived_statements"] == []
 
     hostile_request = client.post(live_path, headers=director, json={
         "url": "https://example.com/feed/hostile.xml",
@@ -933,8 +993,8 @@ def main() -> None:
     assert still_approved["status"] == "Approved" and still_approved["version"] == 1
     bundle = client.get(f"{create_path}/{run_id}", headers=director)
     assert bundle.status_code == 200, bundle.text
-    assert len(bundle.json()["sources"]) == 7
-    assert len(bundle.json()["external_research_requests"]) == 5
+    assert len(bundle.json()["sources"]) == 8
+    assert len(bundle.json()["external_research_requests"]) == 6
     assert len(bundle.json()["sections"]) == 1
     assert len(bundle.json()["revision_recommendations"]) == 1
     assert len(bundle.json()["version_candidates"]) == 1
