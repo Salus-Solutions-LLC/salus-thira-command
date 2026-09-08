@@ -14,6 +14,7 @@ on:
       - 'tools/reconstruct_salops_plan_assembly.py'
       - 'tools/ci_salops_plan_assembly_smoke.py'
       - 'tools/ci_salops_plan_assembly_ui_smoke.py'
+      - 'tools/run_current_release_smoke.py'
       - 'static/salops-plan-assembly.js'
       - 'static/salops-plan-assembly.css'
       - '.github/workflows/salops-plan-assembly.yml'
@@ -58,17 +59,17 @@ jobs:
       - name: Install application and security tools
         run: python -m pip install -r requirements.txt -r requirements-ci.txt
       - name: Compile autonomous planning capability
-        run: python -m py_compile salops_plan_assembly.py salcapa_runtime.py tools/ci_salops_plan_assembly_smoke.py tools/ci_salops_plan_assembly_ui_smoke.py
+        run: python -m py_compile salops_plan_assembly.py salcapa_runtime.py tools/ci_salops_plan_assembly_smoke.py tools/ci_salops_plan_assembly_ui_smoke.py tools/run_current_release_smoke.py
       - name: Validate plan-assembly interface JavaScript
         run: node --check static/salops-plan-assembly.js
       - name: Plan-assembly interface acceptance
-        run: python tools/ci_salops_plan_assembly_ui_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salops_plan_assembly_ui_smoke.py
       - name: Static security scan
         run: bandit -q -r salops_plan_assembly.py salcapa_runtime.py -ll -s B608
       - name: Dependency audit
         run: pip-audit -r requirements.txt
       - name: SQLite autonomous planning acceptance
-        run: python tools/ci_salops_plan_assembly_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salops_plan_assembly_smoke.py
 
   postgres16:
     runs-on: ubuntu-latest
@@ -118,7 +119,7 @@ jobs:
           SALUS_SEED_DEMO: '1'
           SALUS_LOCAL_STORAGE_DIR: /tmp/plan-assembly-pg-attachments
           SALUS_BACKUP_DIR: /tmp/plan-assembly-pg-backups
-        run: python tools/ci_salops_plan_assembly_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salops_plan_assembly_smoke.py
 
   production-container:
     runs-on: ubuntu-latest
@@ -138,4 +139,4 @@ jobs:
             -e SALUS_BACKUP_DIR=/app/backups \
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
-            salops-plan-assembly:ci sh -c 'python tools/ci_salops_plan_assembly_smoke.py && python tools/ci_salops_plan_assembly_ui_smoke.py'
+            salops-plan-assembly:ci sh -c 'python tools/run_current_release_smoke.py tools/ci_salops_plan_assembly_smoke.py tools/ci_salops_plan_assembly_ui_smoke.py'
