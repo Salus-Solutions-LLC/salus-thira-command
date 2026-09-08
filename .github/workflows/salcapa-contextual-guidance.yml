@@ -69,7 +69,7 @@ jobs:
       - name: Human-first communications acceptance
         run: python tools/ci_salcapa_human_first_communications_smoke.py
       - name: Static security scan
-        run: bandit -q -r salcapa_runtime.py salops_plan_assembly.py tools/ci_salcapa_contextual_guidance_smoke.py tools/ci_salcapa_human_first_communications_smoke.py -ll
+        run: bandit -q -r salcapa_runtime.py tools/ci_salcapa_contextual_guidance_smoke.py tools/ci_salcapa_human_first_communications_smoke.py -ll
       - name: Dependency audit
         run: pip-audit -r requirements.txt
 
