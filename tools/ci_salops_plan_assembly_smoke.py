@@ -35,7 +35,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.67"
+    assert client.get("/api/system/mode").json()["version"] == "3.68"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -104,6 +104,79 @@ def main() -> None:
     assert not {"commercial_treatment", "release_status", "approved_by"} & set(run)
     assert client.get(f"{create_path}/{run_id}", headers=member).status_code == 403
     assert client.get(f"{create_path}/{run_id}", headers=other).status_code == 404
+
+    cost_path = f"{create_path}/{run_id}/research-cost-envelopes"
+    forged_cost = client.post(cost_path, headers=director, json={
+        "estimated_chat_ai_cost_cents": 400, "estimated_human_cost_cents": 9000,
+        "maximum_authorized_cost_cents": 9400, "scope_basis": "SYNTHETIC bounded planning research.",
+        "status": "Authorized", "creates_charge": True,
+    })
+    assert forged_cost.status_code == 422
+    underfunded = client.post(cost_path, headers=director, json={
+        "estimated_chat_ai_cost_cents": 400, "estimated_human_cost_cents": 9000,
+        "maximum_authorized_cost_cents": 9000, "scope_basis": "SYNTHETIC bounded planning research.",
+    })
+    assert underfunded.status_code == 422
+    cost = client.post(cost_path, headers=director, json={
+        "currency": "USD", "estimated_chat_ai_cost_cents": 400,
+        "estimated_human_cost_cents": 9000, "external_data_allowance_cents": 500,
+        "partner_allowance_cents": 0, "other_direct_allowance_cents": 100,
+        "maximum_authorized_cost_cents": 10000,
+        "scope_basis": "SYNTHETIC bounded plan research, source capture, analysis, and human review.",
+        "commercial_reference": "SYNTHETIC-ESTIMATE-001",
+    })
+    assert cost.status_code == 200, cost.text
+    envelope = cost.json()["envelope"]
+    envelope_id = envelope["id"]
+    assert envelope["status"] == "Draft" and len(envelope["content_sha256"]) == 64
+    assert cost.json()["creates_charge"] is False and cost.json()["creates_invoice"] is False
+    usage_path = f"/api/salops/preparedness/plan-assembly/research-cost-envelopes/{envelope_id}/usage"
+    usage_payload = {
+        "category": "Chat / AI", "provider_tool": "SYNTHETIC model",
+        "task_reference": "SYNTHETIC-RESEARCH-TASK-001", "metered_units": {"input": 100},
+        "measurement_status": "Actual Metered", "amount_cents": 125,
+        "occurred_at": "2026-09-07T20:00:00Z",
+        "recording_basis": "SYNTHETIC provider receipt.",
+    }
+    assert client.post(usage_path, headers=director, json=usage_payload).status_code == 409
+    assert client.post(usage_path, headers=member, json=usage_payload).status_code == 403
+    authorized = client.post(
+        f"/api/salops/preparedness/plan-assembly/research-cost-envelopes/{envelope_id}/authorize",
+        headers=director, json={"reason": "SYNTHETIC exact internal delivery-cost authorization."},
+    )
+    assert authorized.status_code == 200, authorized.text
+    assert authorized.json()["envelope"]["status"] == "Authorized"
+    assert authorized.json()["envelope"]["creates_customer_price"] is False
+    used = client.post(usage_path, headers=director, json=usage_payload)
+    assert used.status_code == 200, used.text
+    assert used.json()["recognized_cost_cents"] == 125
+    assert used.json()["actual_metered_cost_cents"] == 125
+    assert used.json()["remaining_authorized_cost_cents"] == 9875
+    exceeds = dict(usage_payload, amount_cents=276, task_reference="SYNTHETIC-OVER-COMPONENT")
+    over = client.post(usage_path, headers=director, json=exceeds)
+    assert over.status_code == 409 and "new governed envelope" in over.text
+    no_partner = dict(usage_payload, category="Approved Partner", amount_cents=1,
+                      task_reference="SYNTHETIC-UNAUTHORIZED-PARTNER")
+    assert client.post(usage_path, headers=director, json=no_partner).status_code == 409
+    revised_cost = client.post(cost_path, headers=director, json={
+        "estimated_chat_ai_cost_cents": 500, "estimated_human_cost_cents": 9000,
+        "external_data_allowance_cents": 500, "partner_allowance_cents": 500,
+        "other_direct_allowance_cents": 100, "maximum_authorized_cost_cents": 10600,
+        "scope_basis": "SYNTHETIC governed change envelope adding bounded partner eligibility.",
+        "commercial_reference": "SYNTHETIC-ESTIMATE-CHANGE-001",
+    })
+    assert revised_cost.status_code == 200, revised_cost.text
+    revised_id = revised_cost.json()["envelope"]["id"]
+    revised_authorized = client.post(
+        f"/api/salops/preparedness/plan-assembly/research-cost-envelopes/{revised_id}/authorize",
+        headers=director, json={"reason": "SYNTHETIC separately approved change envelope."},
+    )
+    assert revised_authorized.status_code == 200, revised_authorized.text
+    cost_history = client.get(f"{create_path}/{run_id}", headers=director).json()["research_cost_envelopes"]
+    assert [item["envelope"]["status"] for item in cost_history] == ["Superseded", "Authorized"]
+    assert cost_history[0]["envelope"]["content_sha256"] == envelope["content_sha256"]
+    assert cost_history[0]["recognized_cost_cents"] == 125
+    assert client.post(usage_path, headers=director, json=usage_payload).status_code == 409
 
     upload = client.post(
         "/api/materials/upload", headers=director,
@@ -458,6 +531,8 @@ def main() -> None:
     assert len(bundle.json()["sections"]) == 1
     assert len(bundle.json()["revision_recommendations"]) == 1
     assert len(bundle.json()["version_candidates"]) == 1
+    assert len(bundle.json()["research_cost_envelopes"]) == 2
+    assert bundle.json()["research_cost_envelopes"][0]["recognized_cost_cents"] == 125
     assert len(bundle.json()["events"]) >= 13
 
     backup_conn = salcapa_runtime.core.db()
@@ -470,6 +545,7 @@ def main() -> None:
         "salops_plan_assembly_questions", "salops_plan_assembly_sections",
         "salops_plan_revision_recommendations", "salops_plan_version_candidates",
         "salops_plan_materializations",
+        "salops_plan_research_cost_envelopes", "salops_plan_research_cost_usage",
         "salops_plan_impact_detections", "salops_plan_impact_events",
         "salops_plan_assembly_events",
     ):
@@ -490,6 +566,14 @@ def main() -> None:
     tampered_materialization["salops_plan_materializations"][0]["draft_plan_snapshot_json"] = '{}'
     errors = salcapa_runtime.core.validate_records(tampered_materialization, 1)
     assert any("plan materialization" in error and "integrity" in error for error in errors)
+    tampered_cost = {key: [dict(row) for row in value] for key, value in records.items()}
+    tampered_cost["salops_plan_research_cost_envelopes"][0]["maximum_authorized_cost_cents"] = 1
+    errors = salcapa_runtime.core.validate_records(tampered_cost, 1)
+    assert any("research-cost envelope" in error and ("integrity" in error or "maximum" in error) for error in errors)
+    tampered_usage = {key: [dict(row) for row in value] for key, value in records.items()}
+    tampered_usage["salops_plan_research_cost_usage"][0]["creates_charge"] = 1
+    errors = salcapa_runtime.core.validate_records(tampered_usage, 1)
+    assert any("research-cost usage" in error and "commercial effect" in error for error in errors)
 
     print("SALOPS_AUTONOMOUS_PLAN_ASSEMBLY_PASS")
 

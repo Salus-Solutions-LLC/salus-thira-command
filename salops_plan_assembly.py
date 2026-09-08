@@ -44,6 +44,10 @@ PLAN_IMPACT_SOURCE_TYPES = (
     "PROVE Released Assurance", "Governed Material",
 )
 PLAN_IMPACT_DECISIONS = ("Material Change", "No Material Change", "More Collection Required")
+RESEARCH_COST_CATEGORIES = (
+    "Chat / AI", "Salus Human Labor", "External Data", "Approved Partner", "Other Direct",
+)
+RESEARCH_COST_MEASUREMENTS = ("Actual Metered", "Provider Estimate", "Planning Allowance Applied")
 PLAN_SECTION_FIELDS = {
     "authorities": "authorities_references", "authorities_references": "authorities_references",
     "assumptions": "assumptions", "roles": "roles_responsibilities",
@@ -277,6 +281,58 @@ CREATE TABLE IF NOT EXISTS salops_plan_materializations (
 );
 CREATE INDEX IF NOT EXISTS idx_plan_materializations_scope ON salops_plan_materializations(tenant_id,status,baseline_plan_id,draft_plan_id,created_at);
 
+CREATE TABLE IF NOT EXISTS salops_plan_research_cost_envelopes (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  run_id TEXT NOT NULL,
+  envelope_version INTEGER NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  estimated_chat_ai_cost_cents INTEGER NOT NULL DEFAULT 0,
+  estimated_human_cost_cents INTEGER NOT NULL DEFAULT 0,
+  external_data_allowance_cents INTEGER NOT NULL DEFAULT 0,
+  partner_allowance_cents INTEGER NOT NULL DEFAULT 0,
+  other_direct_allowance_cents INTEGER NOT NULL DEFAULT 0,
+  maximum_authorized_cost_cents INTEGER NOT NULL,
+  scope_basis TEXT NOT NULL,
+  commercial_reference TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'Draft',
+  content_sha256 TEXT NOT NULL,
+  creates_customer_price INTEGER NOT NULL DEFAULT 0,
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  authorized_by TEXT NOT NULL DEFAULT '',
+  authorized_at TEXT NOT NULL DEFAULT '',
+  authorization_reason TEXT NOT NULL DEFAULT '',
+  UNIQUE(tenant_id,run_id,envelope_version),
+  FOREIGN KEY (run_id) REFERENCES salops_plan_assembly_runs(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_plan_research_cost_envelopes_scope ON salops_plan_research_cost_envelopes(tenant_id,run_id,status,envelope_version);
+
+CREATE TABLE IF NOT EXISTS salops_plan_research_cost_usage (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  run_id TEXT NOT NULL,
+  envelope_id TEXT NOT NULL,
+  category TEXT NOT NULL,
+  provider_tool TEXT NOT NULL DEFAULT '',
+  task_reference TEXT NOT NULL,
+  metered_units_json TEXT NOT NULL DEFAULT '{}',
+  measurement_status TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  occurred_at TEXT NOT NULL,
+  recording_basis TEXT NOT NULL,
+  creates_customer_price INTEGER NOT NULL DEFAULT 0,
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  recorded_by TEXT NOT NULL,
+  recorded_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES salops_plan_assembly_runs(id) ON DELETE CASCADE,
+  FOREIGN KEY (envelope_id) REFERENCES salops_plan_research_cost_envelopes(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_plan_research_cost_usage_scope ON salops_plan_research_cost_usage(tenant_id,run_id,envelope_id,category,occurred_at);
+
 CREATE TABLE IF NOT EXISTS salops_plan_impact_detections (
   id TEXT PRIMARY KEY,
   tenant_id INTEGER NOT NULL,
@@ -373,6 +429,7 @@ JSON_COLUMNS = {
         "unresolved_items",
     ),
     "salops_plan_materializations": ("draft_plan_snapshot", "unmapped_sections"),
+    "salops_plan_research_cost_usage": ("metered_units",),
     "salops_plan_impact_detections": (
         "source_snapshot", "suggested_affected_sections", "detection_reasons",
         "research_questions", "known_unknowns", "confirmed_affected_sections",
@@ -383,6 +440,7 @@ BACKUP_TABLES = (
     "salops_plan_assembly_questions", "salops_plan_assembly_sections",
     "salops_plan_revision_recommendations", "salops_plan_version_candidates",
     "salops_plan_materializations",
+    "salops_plan_research_cost_envelopes", "salops_plan_research_cost_usage",
     "salops_plan_impact_detections", "salops_plan_impact_events",
     "salops_plan_assembly_events",
 )
@@ -597,6 +655,42 @@ class PlanMaterializeDraft(StrictModel):
     reason: str = Field(min_length=3, max_length=8000)
 
 
+class ResearchCostEnvelopeCreate(StrictModel):
+    currency: Literal["USD"] = "USD"
+    estimated_chat_ai_cost_cents: int = Field(default=0, ge=0, le=100_000_000)
+    estimated_human_cost_cents: int = Field(default=0, ge=0, le=100_000_000)
+    external_data_allowance_cents: int = Field(default=0, ge=0, le=100_000_000)
+    partner_allowance_cents: int = Field(default=0, ge=0, le=100_000_000)
+    other_direct_allowance_cents: int = Field(default=0, ge=0, le=100_000_000)
+    maximum_authorized_cost_cents: int = Field(ge=0, le=500_000_000)
+    scope_basis: str = Field(min_length=3, max_length=8000)
+    commercial_reference: str = Field(default="", max_length=1000)
+
+    @model_validator(mode="after")
+    def maximum_covers_planned_components(self):
+        planned = (self.estimated_chat_ai_cost_cents + self.estimated_human_cost_cents
+                   + self.external_data_allowance_cents + self.partner_allowance_cents
+                   + self.other_direct_allowance_cents)
+        if planned > self.maximum_authorized_cost_cents:
+            raise ValueError("Maximum authorized cost must cover every planned component")
+        return self
+
+
+class ResearchCostEnvelopeAuthorize(StrictModel):
+    reason: str = Field(min_length=3, max_length=8000)
+
+
+class ResearchCostUsageCreate(StrictModel):
+    category: Literal["Chat / AI", "Salus Human Labor", "External Data", "Approved Partner", "Other Direct"]
+    provider_tool: str = Field(default="", max_length=500)
+    task_reference: str = Field(min_length=1, max_length=1000)
+    metered_units: dict[str, Any] = Field(default_factory=dict)
+    measurement_status: Literal["Actual Metered", "Provider Estimate", "Planning Allowance Applied"]
+    amount_cents: int = Field(ge=0, le=100_000_000)
+    occurred_at: str = Field(min_length=3, max_length=100)
+    recording_basis: str = Field(min_length=3, max_length=4000)
+
+
 class PlanImpactDetect(StrictModel):
     source_record_type: Literal[
         "SalINTEL Qualified Investigation", "SalINTEL Qualified Finding",
@@ -663,7 +757,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             out[name] = _loads(out.pop(storage, None), {} if name == "portfolio_scope" else [])
         for name in ("human_authority_required", "immutable_content", "server_detected",
                      "revision_recommended", "approved_plan_preserved", "creates_plan_version",
-                     "creates_release", "creates_authority", "creates_charge"):
+                     "creates_release", "creates_authority", "creates_customer_price",
+                     "creates_charge", "creates_invoice"):
             if name in out:
                 out[name] = bool(out[name])
         return out
@@ -760,6 +855,57 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             raise HTTPException(409, "Materialized Draft candidate lineage verification failed")
         plan_row(conn, data["draft_plan_id"], request)
         return data
+
+    def cost_envelope_content(data: dict[str, Any]) -> dict[str, Any]:
+        return {name: data.get(name) for name in (
+            "id", "tenant_id", "run_id", "envelope_version", "currency",
+            "estimated_chat_ai_cost_cents", "estimated_human_cost_cents",
+            "external_data_allowance_cents", "partner_allowance_cents",
+            "other_direct_allowance_cents", "maximum_authorized_cost_cents",
+            "scope_basis", "commercial_reference", "creates_customer_price",
+            "creates_charge", "creates_invoice", "created_by", "created_at",
+        )}
+
+    def cost_envelope_row(conn, envelope_id: str, request: Request) -> dict[str, Any]:
+        row = conn.execute(
+            "SELECT * FROM salops_plan_research_cost_envelopes WHERE id=? AND tenant_id=?",
+            (envelope_id, tenant_id(request)),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Research-cost envelope not found")
+        data = dict(row)
+        if _digest(cost_envelope_content(data)) != data.get("content_sha256"):
+            raise HTTPException(409, "Research-cost envelope integrity verification failed")
+        run_row(conn, data["run_id"], request)
+        return data
+
+    def cost_summary(conn, run_id: str, envelope: dict[str, Any]) -> dict[str, Any]:
+        usage = [decode("salops_plan_research_cost_usage", dict(item)) for item in conn.execute(
+            "SELECT * FROM salops_plan_research_cost_usage WHERE tenant_id=? AND run_id=? AND envelope_id=? ORDER BY occurred_at,id",
+            (envelope["tenant_id"], run_id, envelope["id"]),
+        )]
+        caps = {
+            "Chat / AI": int(envelope["estimated_chat_ai_cost_cents"]),
+            "Salus Human Labor": int(envelope["estimated_human_cost_cents"]),
+            "External Data": int(envelope["external_data_allowance_cents"]),
+            "Approved Partner": int(envelope["partner_allowance_cents"]),
+            "Other Direct": int(envelope["other_direct_allowance_cents"]),
+        }
+        by_category = {category: sum(int(item["amount_cents"]) for item in usage if item["category"] == category)
+                       for category in RESEARCH_COST_CATEGORIES}
+        recognized = sum(by_category.values())
+        actual = sum(int(item["amount_cents"]) for item in usage if item["measurement_status"] == "Actual Metered")
+        return {
+            "envelope": decode("salops_plan_research_cost_envelopes", envelope),
+            "usage": usage,
+            "category_caps_cents": caps,
+            "recognized_cost_cents": recognized,
+            "actual_metered_cost_cents": actual,
+            "estimated_or_allowance_cost_cents": recognized - actual,
+            "remaining_authorized_cost_cents": max(0, int(envelope["maximum_authorized_cost_cents"]) - recognized),
+            "category_remaining_cents": {key: max(0, caps[key] - by_category[key]) for key in caps},
+            "creates_customer_price": False, "creates_charge": False, "creates_invoice": False,
+        }
 
     def impact_row(conn, detection_id: str, request: Request) -> dict[str, Any]:
         row = conn.execute(
@@ -916,11 +1062,16 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             "SELECT event_no,event_type,reason,changed_by,changed_by_role,created_at FROM salops_plan_assembly_events WHERE tenant_id=? AND run_id=? ORDER BY event_no",
             (tenant_id(request), run_id),
         )]
+        cost_envelopes = [cost_summary(conn, run_id, dict(item)) for item in conn.execute(
+            "SELECT * FROM salops_plan_research_cost_envelopes WHERE tenant_id=? AND run_id=? ORDER BY envelope_version",
+            (tenant_id(request), run_id),
+        )]
         return {"run": decode("salops_plan_assembly_runs", row), "sources": sources,
                 "questions": questions, "sections": sections,
                 "revision_recommendations": recommendations,
                 "version_candidates": candidates, "plan_materializations": materializations,
                 "plan_impact_detections": impacts,
+                "research_cost_envelopes": cost_envelopes,
                 "events": events}
 
     @app.get("/api/salops/preparedness/plan-assembly/catalog")
@@ -935,6 +1086,14 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             "candidate_workflow": list(CANDIDATE_STATES),
             "plan_impact_source_types": list(PLAN_IMPACT_SOURCE_TYPES),
             "plan_impact_review_decisions": list(PLAN_IMPACT_DECISIONS),
+            "research_cost_categories": list(RESEARCH_COST_CATEGORIES),
+            "research_cost_measurements": list(RESEARCH_COST_MEASUREMENTS),
+            "research_cost_doctrine": {
+                "default_paid_research_authorized": False,
+                "new_scope_requires_new_envelope": True,
+                "customer_price_separate": True,
+                "automatic_charge": False,
+            },
             "authority": {
                 "chat_may": ["Inspect", "Research", "Reconcile", "Draft", "Compare", "Recommend"],
                 "human_controls": ["Legal authority", "Organizational policy", "Emergency command authority",
@@ -1011,6 +1170,120 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         conn = db()
         try:
             return run_bundle(conn, run_row(conn, run_id, request), request)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-assembly/{run_id}/research-cost-envelopes")
+    def create_research_cost_envelope(run_id: str, payload: ResearchCostEnvelopeCreate, request: Request):
+        salus_access(request, "write")
+        conn = db()
+        try:
+            run = run_row(conn, run_id, request)
+            if run["status"] == "Rejected":
+                raise HTTPException(409, "A rejected assembly run cannot receive a research-cost envelope")
+            version = int(conn.execute(
+                "SELECT COUNT(*) c FROM salops_plan_research_cost_envelopes WHERE tenant_id=? AND run_id=?",
+                (tenant_id(request), run_id),
+            ).fetchone()["c"]) + 1
+            stamp, who, envelope_id = now(), actor(request), _key("parce")
+            data = payload.model_dump()
+            content = {
+                "id": envelope_id, "tenant_id": tenant_id(request), "run_id": run_id,
+                "envelope_version": version, **data,
+                "creates_customer_price": 0, "creates_charge": 0, "creates_invoice": 0,
+                "created_by": who, "created_at": stamp,
+            }
+            conn.execute(
+                """INSERT INTO salops_plan_research_cost_envelopes(
+                id,tenant_id,run_id,envelope_version,currency,estimated_chat_ai_cost_cents,
+                estimated_human_cost_cents,external_data_allowance_cents,partner_allowance_cents,
+                other_direct_allowance_cents,maximum_authorized_cost_cents,scope_basis,
+                commercial_reference,status,content_sha256,creates_customer_price,creates_charge,
+                creates_invoice,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (envelope_id, tenant_id(request), run_id, version, data["currency"],
+                 data["estimated_chat_ai_cost_cents"], data["estimated_human_cost_cents"],
+                 data["external_data_allowance_cents"], data["partner_allowance_cents"],
+                 data["other_direct_allowance_cents"], data["maximum_authorized_cost_cents"],
+                 data["scope_basis"], data["commercial_reference"], "Draft", _digest(content),
+                 0, 0, 0, who, stamp),
+            )
+            created = dict(conn.execute(
+                "SELECT * FROM salops_plan_research_cost_envelopes WHERE id=?", (envelope_id,),
+            ).fetchone())
+            event(conn, run, "Research Cost Envelope Drafted",
+                  f"{envelope_id} v{version}: internal delivery-cost proposal only; no paid activity, customer price, charge, or invoice authorized.", request)
+            conn.commit()
+            return cost_summary(conn, run_id, created)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-assembly/research-cost-envelopes/{envelope_id}/authorize")
+    def authorize_research_cost_envelope(envelope_id: str, payload: ResearchCostEnvelopeAuthorize, request: Request):
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Program Owner"):
+            raise HTTPException(403, "This role cannot authorize a research-cost envelope")
+        conn = db()
+        try:
+            envelope = cost_envelope_row(conn, envelope_id, request)
+            if envelope["status"] != "Draft":
+                raise HTTPException(409, "Only a Draft research-cost envelope can be authorized")
+            stamp = now()
+            conn.execute(
+                "UPDATE salops_plan_research_cost_envelopes SET status='Superseded' WHERE tenant_id=? AND run_id=? AND status='Authorized'",
+                (tenant_id(request), envelope["run_id"]),
+            )
+            conn.execute(
+                """UPDATE salops_plan_research_cost_envelopes
+                   SET status='Authorized',authorized_by=?,authorized_at=?,authorization_reason=?
+                   WHERE id=? AND tenant_id=?""",
+                (actor(request), stamp, payload.reason, envelope_id, tenant_id(request)),
+            )
+            updated = dict(conn.execute(
+                "SELECT * FROM salops_plan_research_cost_envelopes WHERE id=?", (envelope_id,),
+            ).fetchone())
+            run = run_row(conn, envelope["run_id"], request)
+            event(conn, run, "Research Cost Envelope Authorized",
+                  f"{envelope_id} v{envelope['envelope_version']}: maximum internal delivery cost {envelope['currency']} {int(envelope['maximum_authorized_cost_cents']) / 100:.2f}; exceeding a component or total requires a new governed envelope; no customer price, charge, or invoice created.", request)
+            conn.commit()
+            return cost_summary(conn, envelope["run_id"], updated)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-assembly/research-cost-envelopes/{envelope_id}/usage")
+    def record_research_cost_usage(envelope_id: str, payload: ResearchCostUsageCreate, request: Request):
+        salus_access(request, "write")
+        conn = db()
+        try:
+            envelope = cost_envelope_row(conn, envelope_id, request)
+            if envelope["status"] != "Authorized":
+                raise HTTPException(409, "Paid or metered research requires the current Authorized cost envelope")
+            summary = cost_summary(conn, envelope["run_id"], envelope)
+            cap = int(summary["category_caps_cents"][payload.category])
+            remaining_category = int(summary["category_remaining_cents"][payload.category])
+            remaining_total = int(summary["remaining_authorized_cost_cents"])
+            if payload.amount_cents > remaining_category or payload.amount_cents > remaining_total:
+                raise HTTPException(
+                    409,
+                    f"Research cost exceeds the authorized {payload.category} or total ceiling; create and separately authorize a new governed envelope before incurring more cost",
+                )
+            data, usage_id, stamp = payload.model_dump(), _key("parcu"), now()
+            conn.execute(
+                """INSERT INTO salops_plan_research_cost_usage(
+                id,tenant_id,run_id,envelope_id,category,provider_tool,task_reference,
+                metered_units_json,measurement_status,amount_cents,occurred_at,recording_basis,
+                creates_customer_price,creates_charge,creates_invoice,recorded_by,recorded_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (usage_id, tenant_id(request), envelope["run_id"], envelope_id,
+                 data["category"], data["provider_tool"], data["task_reference"],
+                 _json(data["metered_units"]), data["measurement_status"], data["amount_cents"],
+                 data["occurred_at"], data["recording_basis"], 0, 0, 0, actor(request), stamp),
+            )
+            run = run_row(conn, envelope["run_id"], request)
+            event(conn, run, "Research Cost Usage Recorded",
+                  f"{usage_id}: {data['category']} {envelope['currency']} {data['amount_cents'] / 100:.2f} recorded as {data['measurement_status']} against envelope v{envelope['envelope_version']}; no customer price, charge, or invoice created.", request)
+            conn.commit()
+            refreshed = cost_envelope_row(conn, envelope_id, request)
+            return cost_summary(conn, envelope["run_id"], refreshed)
         finally:
             conn.close()
 
@@ -1850,6 +2123,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             source_ids_in_backup = ids["salops_plan_assembly_sources"]
             recommendation_ids = ids["salops_plan_revision_recommendations"]
             candidate_ids = ids["salops_plan_version_candidates"]
+            envelope_ids = ids["salops_plan_research_cost_envelopes"]
+            envelope_records = {str(row.get("id")): row for row in records.get("salops_plan_research_cost_envelopes", []) if row.get("id")}
             candidate_hashes = {
                 str(row.get("id")): str(row.get("candidate_sha256") or "")
                 for row in records.get("salops_plan_version_candidates", []) if row.get("id")
@@ -1893,6 +2168,63 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 snapshot = _loads(row.get("draft_plan_snapshot_json"), {})
                 if not snapshot or _digest(snapshot) != row.get("draft_plan_sha256"):
                     errors.append(f"plan materialization {row.get('id')} failed Draft plan integrity verification")
+            for row in records.get("salops_plan_research_cost_envelopes", []):
+                if row.get("status") not in ("Draft", "Authorized", "Superseded", "Closed"):
+                    errors.append(f"research-cost envelope {row.get('id')} has invalid status")
+                if any(int(row.get(name) or 0) != 0 for name in
+                       ("creates_customer_price", "creates_charge", "creates_invoice")):
+                    errors.append(f"research-cost envelope {row.get('id')} forges a customer commercial effect")
+                if _digest(cost_envelope_content(row)) != row.get("content_sha256"):
+                    errors.append(f"research-cost envelope {row.get('id')} failed integrity verification")
+                planned = sum(int(row.get(name) or 0) for name in (
+                    "estimated_chat_ai_cost_cents", "estimated_human_cost_cents",
+                    "external_data_allowance_cents", "partner_allowance_cents",
+                    "other_direct_allowance_cents",
+                ))
+                if planned > int(row.get("maximum_authorized_cost_cents") or 0):
+                    errors.append(f"research-cost envelope {row.get('id')} exceeds its maximum")
+            for row in records.get("salops_plan_research_cost_usage", []):
+                if str(row.get("envelope_id")) not in envelope_ids:
+                    errors.append(f"research-cost usage {row.get('id')} has invalid envelope_id")
+                elif str(row.get("run_id")) != str(envelope_records[str(row.get("envelope_id"))].get("run_id")):
+                    errors.append(f"research-cost usage {row.get('id')} crosses its envelope run boundary")
+                if row.get("category") not in RESEARCH_COST_CATEGORIES:
+                    errors.append(f"research-cost usage {row.get('id')} has invalid category")
+                if row.get("measurement_status") not in RESEARCH_COST_MEASUREMENTS:
+                    errors.append(f"research-cost usage {row.get('id')} has invalid measurement status")
+                if int(row.get("amount_cents") or 0) < 0:
+                    errors.append(f"research-cost usage {row.get('id')} has a negative amount")
+                if any(int(row.get(name) or 0) != 0 for name in
+                       ("creates_customer_price", "creates_charge", "creates_invoice")):
+                    errors.append(f"research-cost usage {row.get('id')} forges a customer commercial effect")
+            usage_by_envelope: dict[str, dict[str, int]] = {}
+            for row in records.get("salops_plan_research_cost_usage", []):
+                totals = usage_by_envelope.setdefault(str(row.get("envelope_id")), {})
+                category = str(row.get("category") or "")
+                totals[category] = totals.get(category, 0) + int(row.get("amount_cents") or 0)
+            cap_fields = {
+                "Chat / AI": "estimated_chat_ai_cost_cents",
+                "Salus Human Labor": "estimated_human_cost_cents",
+                "External Data": "external_data_allowance_cents",
+                "Approved Partner": "partner_allowance_cents",
+                "Other Direct": "other_direct_allowance_cents",
+            }
+            for envelope_id, totals in usage_by_envelope.items():
+                envelope = envelope_records.get(envelope_id)
+                if not envelope:
+                    continue
+                if sum(totals.values()) > int(envelope.get("maximum_authorized_cost_cents") or 0):
+                    errors.append(f"research-cost envelope {envelope_id} restored usage exceeds its maximum")
+                for category, amount in totals.items():
+                    if category in cap_fields and amount > int(envelope.get(cap_fields[category]) or 0):
+                        errors.append(f"research-cost envelope {envelope_id} restored {category} usage exceeds its component allowance")
+            active_by_run: dict[str, int] = {}
+            for row in records.get("salops_plan_research_cost_envelopes", []):
+                if row.get("status") == "Authorized":
+                    key = str(row.get("run_id"))
+                    active_by_run[key] = active_by_run.get(key, 0) + 1
+            if any(count > 1 for count in active_by_run.values()):
+                errors.append("research-cost backup contains multiple Authorized envelopes for one assembly run")
             for row in records.get("salops_plan_impact_detections", []):
                 if str(row.get("approved_plan_id")) not in plan_ids:
                     errors.append(f"plan-impact detection {row.get('id')} has invalid approved_plan_id")

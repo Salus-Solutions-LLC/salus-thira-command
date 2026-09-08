@@ -32,7 +32,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.67"',
+    'SALCAPA_RELEASE_VERSION = "3.68"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -78,6 +78,14 @@ for value in (
     "That human action creates only a Draft",
     "The Approved baseline remains unchanged",
     "normal review and approval gates",
+    "Internal research-cost control",
+    "separate from customer pricing and creates no charge or invoice",
+    "Without an Authorized envelope, paid or metered research remains blocked",
+    "Each category and the total have hard ceilings",
+    "Propose a governed change envelope",
+    "createSalopsPlanResearchCostEnvelope",
+    "authorizeSalopsPlanResearchCost",
+    "recordSalopsPlanResearchCost",
 ):
     require(value, JS)
 
@@ -85,6 +93,10 @@ for value in (
     "SalINTEL Monitoring Review",
     "SalTHIRA Reassessment Trigger",
     "PROVE Released Assurance",
+    "salops_plan_research_cost_envelopes",
+    "Maximum authorized cost must cover every planned component",
+    "create and separately authorize a new governed envelope",
+    '"default_paid_research_authorized": False',
 ):
     require(value, SERVER)
 
@@ -126,6 +138,6 @@ member = {
 path = "/api/salops/preparedness/plan-assembly/catalog"
 assert client.get(path, headers=director).status_code == 200
 assert client.get(path, headers=member).status_code == 403
-assert client.get("/api/system/mode").json()["version"] == "3.67"
+assert client.get("/api/system/mode").json()["version"] == "3.68"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")

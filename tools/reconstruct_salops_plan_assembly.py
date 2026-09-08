@@ -10,23 +10,23 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salops_plan_assembly.py.gz",
         ROOT / "salops_plan_assembly.py",
-        "7f3a9ba0869286d6aa76ae8c349d32da44cc77227c5b1fb8b9ea837988e0ea03",
-        "c424d58995deb42963e542e35f815c6e011c39ea445f3cbbc6a22227bb006d0a",
-        110493,
+        "2ec8af1758ed7f57bffe6e1c89bbd0645a561b789158b4988bacd76a8d8f8e19",
+        "d4d7bfe0f7c9de6538d1cd70a57bfbe603c36e94612679a283b2bcb9511e00a6",
+        130821,
     ),
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "0addadd544953928ad2b9c89afb2e657c93b7fa53f3ae2a680c64672e03b2fdc",
-        "9bca810b61c68eacb568ed37a0eab8e06a956fe87fc89363f83a4ca4cdfa5b4e",
-        29738,
+        "bb4fd491cb2df024325ef4bcee174aff92e2859eb947e342e58a4ebfdb056dea",
+        "60b385137c482e740deb042215e6c58db77f3cf2c2c1071a99eb540ddc31c88e",
+        35405,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.js.gz",
         ROOT / "static/salops-plan-assembly.js",
-        "5871273b6659761defd664946dbe32b0ac8c5f6530c180cc97052fc7d8299454",
-        "98dd43ba2c0dde2dd8f7eaeda1b46d037dcc35e24559727af91143ed53cd6d80",
-        37187,
+        "43aabc7c9e7da580d43c86c50418c9491ac1f625a5732d443565a276947fd064",
+        "5462cb69235819ed8dd239e7f4c0b9690fdc186f8c81f1ba0b5a80e6fbd7cf90",
+        43133,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.css.gz",
@@ -38,9 +38,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "d23bf2b7d2ed529b8e4354c1f534b58e64a392bd257861465342543b69795871",
-        "5d847bd86961c51fc837c81aa3304901dae4189fa507b01955c46e136e315413",
-        4688,
+        "c0ed11b22829a06c3116d3e196deb3fe6eb20c16da21356911facb2c6d11d960",
+        "da14082a18bf195ce8b6e3ba335f2062a0a5d3a1f3d2ecdf5b3f1d941cd09431",
+        5313,
     ),
 )
 
