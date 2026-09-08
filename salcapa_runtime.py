@@ -18,6 +18,7 @@ from salintel_research import register_salintel_research
 from salintel_handoffs import register_salintel_handoffs
 from facility_assessment import register_facility_assessment
 from salcapa_commercial import register_salcapa_commercial
+from mission_map import register_mission_map
 try:
     from salops_plan_assembly import register_salops_plan_assembly
 except ModuleNotFoundError:  # Other capability workflows may not reconstruct this archive.
@@ -44,8 +45,9 @@ if register_salcapa_assurance is not None:
 if register_salops_plan_assembly is not None:
     register_salops_plan_assembly(core.app, core.__dict__)
 register_salcapa_commercial(core.app, core.__dict__)
+register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.85"
+SALCAPA_RELEASE_VERSION = "3.86"
 
 
 _base_protective_readiness_summary = core._protective_readiness_summary
@@ -135,9 +137,12 @@ def _preparedness_index() -> str:
         ('<link rel="stylesheet" href="/static/salcapa-contextual-guidance.css" />',
          '<link rel="stylesheet" href="/static/salcapa-contextual-guidance.css" />\n<link rel="stylesheet" href="/static/salops-plan-assembly.css" />',
          '/static/salops-plan-assembly.css'),
+        ('<link rel="stylesheet" href="/static/salops-plan-assembly.css" />',
+         '<link rel="stylesheet" href="/static/salops-plan-assembly.css" />\n<link rel="stylesheet" href="/static/mission-map.css" />',
+         '/static/mission-map.css'),
         ('<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="reports">Reports</button>',
-         '<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="prove">PROVE — Assurance & Results</button><button data-view="reports">Reports</button>',
-         'data-view="prove"'),
+         '<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="mission_map">Mission Map</button><button data-view="prove">PROVE — Assurance & Results</button><button data-view="reports">Reports</button>',
+         'data-view="mission_map"'),
         ('<button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button>',
          '<button data-view="salintel_domains" data-salus-only="true">Investigative Domains</button><button data-view="personnel_assessments" data-salus-only="true">Personnel Assessment</button>',
          'data-view="personnel_assessments"'),
@@ -171,6 +176,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salcapa-assurance.js"></script>',
          '<script src="/static/salcapa-assurance.js"></script>\n<script src="/static/salops-plan-assembly.js"></script>',
          '/static/salops-plan-assembly.js'),
+        ('<script src="/static/salops-plan-assembly.js"></script>',
+         '<script src="/static/salops-plan-assembly.js"></script>\n<script src="/static/mission-map.js"></script>',
+         '/static/mission-map.js'),
         ('<script src="/static/guidance.js"></script>',
          '<script src="/static/guidance.js"></script>\n<script src="/static/salcapa-contextual-guidance.js"></script>',
          '/static/salcapa-contextual-guidance.js'),
