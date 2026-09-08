@@ -1,0 +1,68 @@
+name: SalCAPA Mission Map
+
+on:
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'mission_map.py'
+      - 'salcapa_runtime.py'
+      - 'static/mission-map.js'
+      - 'static/mission-map.css'
+      - 'tools/ci_mission_map_smoke.py'
+      - '.github/workflows/mission-map.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mission-map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - name: Install application and security tools
+        run: python -m pip install -r requirements.txt -r requirements-ci.txt
+      - name: Compile Mission Map sources
+        run: python -m py_compile mission_map.py salcapa_runtime.py tools/ci_mission_map_smoke.py
+      - name: Validate Mission Map JavaScript
+        run: node --check static/mission-map.js
+      - name: Mission Map acceptance
+        run: python tools/ci_mission_map_smoke.py
+      - name: Human-first and functional-distinction guardrails
+        run: |
+          grep -Fq 'People lead. Methods guide. Technology supports. Evidence proves.' mission_map.py
+          grep -Fq 'SalTHIRA identifies risk, consequences, capability gaps, and priorities; authorized people decide.' mission_map.py
+          grep -Fq 'SalCAPA coordinates Protected Members, information, decisions, requests, workflows, actions, and status.' mission_map.py
+          grep -Fq 'PROVE — cross-cutting Assurance & Results' mission_map.py
+          ! grep -Eiq 'Generate with AI|AI Recommendation|Automated Monitoring' static/mission-map.js
+      - name: Static security scan
+        run: bandit -q -r mission_map.py salcapa_runtime.py tools/ci_mission_map_smoke.py -ll
+      - name: Dependency audit
+        run: pip-audit -r requirements.txt
+
+  production-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build production container
+        run: docker build --tag salcapa-mission-map:ci .
+      - name: Run Mission Map acceptance in container
+        run: docker run --rm salcapa-mission-map:ci python tools/ci_mission_map_smoke.py
