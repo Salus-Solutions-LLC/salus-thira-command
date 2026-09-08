@@ -573,23 +573,24 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
         tid = tenant_id(request)
         is_member = protected_member(request)
         permitted_assessments = set(accessible_assessment_ids(request))
-        specs = (
-            ("Plan", "salops_preparedness_plans", "status='Approved'" if is_member else ""),
-            ("Training", "salops_preparedness_training", "member_release_status='Released'" if is_member else ""),
-            (
-                "Exercise", "salops_preparedness_exercises",
-                "status IN ('Approved','In Progress','Completed','Evaluated','Closed')" if is_member else "",
-            ),
-        )
+        if is_member:
+            specs = (
+                ("Plan", "SELECT * FROM salops_preparedness_plans WHERE tenant_id=? AND status='Approved'"),
+                ("Training", "SELECT * FROM salops_preparedness_training WHERE tenant_id=? AND member_release_status='Released'"),
+                ("Exercise", "SELECT * FROM salops_preparedness_exercises WHERE tenant_id=? AND status IN ('Approved','In Progress','Completed','Evaluated','Closed')"),
+            )
+        else:
+            specs = (
+                ("Plan", "SELECT * FROM salops_preparedness_plans WHERE tenant_id=?"),
+                ("Training", "SELECT * FROM salops_preparedness_training WHERE tenant_id=?"),
+                ("Exercise", "SELECT * FROM salops_preparedness_exercises WHERE tenant_id=?"),
+            )
         projected: list[dict[str, Any]] = []
-        for source_type, table, role_clause in specs:
-            sql = f"SELECT * FROM {table} WHERE tenant_id=?"
+        for source_type, sql in specs:
             params: list[Any] = [tid]
             if assessment_id is not None:
                 sql += " AND assessment_id=?"
                 params.append(assessment_id)
-            if role_clause:
-                sql += f" AND {role_clause}"
             sql += " ORDER BY updated_at,id"
             for found in conn.execute(sql, tuple(params)):
                 source = dict(found)
