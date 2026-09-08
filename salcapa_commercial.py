@@ -51,15 +51,15 @@ PARTNER_TREATMENTS = (
 ACTUAL_COST_BASES = {"Metered Actual", "Supplier Invoice", "Receipt"}
 BACKUP_TABLES = (
     "salcapa_rate_cards", "salcapa_commercial_estimates",
-    "salcapa_time_entries", "salcapa_cost_entries",
+    "salcapa_time_entries", "salcapa_cost_entries", "salcapa_commercial_forecasts",
 )
 DELETE_ORDER = (
-    "salcapa_time_entries", "salcapa_cost_entries",
+    "salcapa_commercial_forecasts", "salcapa_time_entries", "salcapa_cost_entries",
     "salcapa_commercial_estimates", "salcapa_rate_cards",
 )
 RESTORE_ORDER = (
     "salcapa_rate_cards", "salcapa_commercial_estimates",
-    "salcapa_time_entries", "salcapa_cost_entries",
+    "salcapa_time_entries", "salcapa_cost_entries", "salcapa_commercial_forecasts",
 )
 
 
@@ -238,6 +238,51 @@ CREATE TABLE IF NOT EXISTS salcapa_cost_entries (
 );
 CREATE INDEX IF NOT EXISTS idx_salcapa_cost_entries_scope
   ON salcapa_cost_entries(tenant_id,estimate_id,status,cost_category,version_no);
+
+CREATE TABLE IF NOT EXISTS salcapa_commercial_forecasts (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  version_no INTEGER NOT NULL,
+  estimate_id TEXT NOT NULL,
+  supersedes_forecast_id TEXT,
+  engagement_id INTEGER,
+  assessment_id INTEGER,
+  as_of_date TEXT NOT NULL,
+  forecast_through_date TEXT NOT NULL,
+  confidence_state TEXT NOT NULL,
+  unavailable_cost_handling TEXT NOT NULL,
+  remaining_labor_minutes INTEGER NOT NULL,
+  loaded_rate_cents_per_hour INTEGER NOT NULL,
+  forecast_remaining_labor_cost_cents INTEGER NOT NULL,
+  forecast_additional_direct_cost_cents INTEGER NOT NULL,
+  actual_snapshot_json TEXT NOT NULL,
+  assumptions TEXT NOT NULL,
+  known_constraints TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  recognized_actual_cost_to_date_cents INTEGER NOT NULL,
+  approved_provisional_cost_cents INTEGER NOT NULL,
+  forecast_to_complete_cents INTEGER NOT NULL,
+  forecast_at_completion_cents INTEGER NOT NULL,
+  variance_to_estimated_internal_cost_cents INTEGER NOT NULL,
+  projected_contribution_cents INTEGER NOT NULL,
+  projected_contribution_basis_points INTEGER,
+  completeness_state TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Draft',
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  submitted_by TEXT NOT NULL DEFAULT '',
+  submitted_at TEXT NOT NULL DEFAULT '',
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT '',
+  decision_reason TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (estimate_id) REFERENCES salcapa_commercial_estimates(id),
+  UNIQUE(tenant_id, version_no)
+);
+CREATE INDEX IF NOT EXISTS idx_salcapa_commercial_forecasts_scope
+  ON salcapa_commercial_forecasts(tenant_id,estimate_id,status,as_of_date,version_no);
 """
 
 
@@ -390,6 +435,39 @@ class CostEntryCreate(StrictModel):
 
 
 class ActualEntryTransition(StrictModel):
+    status: Literal["Submitted", "Approved", "Rejected"]
+    reason: str = Field(min_length=3, max_length=4000)
+
+
+class ForecastCreate(StrictModel):
+    estimate_id: str = Field(min_length=3, max_length=80)
+    supersedes_forecast_id: Optional[str] = Field(default=None, max_length=80)
+    as_of_date: str = Field(min_length=10, max_length=10)
+    forecast_through_date: str = Field(min_length=10, max_length=10)
+    confidence_state: Literal[
+        "Reasonably Supported", "Evidence Needed", "Awaiting Validation",
+    ] = "Awaiting Validation"
+    unavailable_cost_handling: Literal[
+        "Included in remaining estimate", "Excluded pending evidence",
+    ] = "Excluded pending evidence"
+    remaining_labor_minutes: int = Field(default=0, ge=0, le=10_000_000)
+    additional_remaining_direct_cost_cents: int = Field(default=0, ge=0, le=2_000_000_000)
+    assumptions: str = Field(min_length=3, max_length=8000)
+    known_constraints: str = Field(min_length=3, max_length=8000)
+
+    @model_validator(mode="after")
+    def valid_forecast_dates(self):
+        try:
+            as_of = date.fromisoformat(self.as_of_date)
+            through = date.fromisoformat(self.forecast_through_date)
+        except ValueError as exc:
+            raise ValueError("Forecast dates must be valid ISO dates") from exc
+        if through < as_of:
+            raise ValueError("forecast_through_date cannot precede as_of_date")
+        return self
+
+
+class ForecastTransition(StrictModel):
     status: Literal["Submitted", "Approved", "Rejected"]
     reason: str = Field(min_length=3, max_length=4000)
 
@@ -610,6 +688,103 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             if int(row["recognized_actual_cost_cents"]) != expected:
                 raise HTTPException(409, "Cost basis and recognized actual cost do not agree")
 
+    def active_actual_summary(conn, tid: int, estimate_id: str) -> dict[str, Any]:
+        time_rows = [dict(r) for r in conn.execute(
+            "SELECT * FROM salcapa_time_entries WHERE tenant_id=? AND estimate_id=? ORDER BY version_no",
+            (tid, estimate_id),
+        )]
+        cost_rows = [dict(r) for r in conn.execute(
+            "SELECT * FROM salcapa_cost_entries WHERE tenant_id=? AND estimate_id=? ORDER BY version_no",
+            (tid, estimate_id),
+        )]
+        for row in time_rows:
+            verify_actual_entry(row, "time")
+        for row in cost_rows:
+            verify_actual_entry(row, "cost")
+        approved_time = [row for row in time_rows if row["status"] == "Approved"]
+        approved_cost = [row for row in cost_rows if row["status"] == "Approved"]
+        superseded_time = {row["supersedes_entry_id"] for row in approved_time if row["supersedes_entry_id"]}
+        superseded_cost = {row["supersedes_entry_id"] for row in approved_cost if row["supersedes_entry_id"]}
+        active_time = [row for row in approved_time if row["id"] not in superseded_time]
+        active_cost = [row for row in approved_cost if row["id"] not in superseded_cost]
+        time_cost = sum(int(row["calculated_cost_cents"]) for row in active_time)
+        recognized_direct = sum(int(row["recognized_actual_cost_cents"]) for row in active_cost)
+        provisional = sum(
+            int(row["amount_cents"]) for row in active_cost
+            if row["cost_basis"] in {"Authorized Estimate", "Planning Allowance"}
+        )
+        unavailable_count = sum(1 for row in active_cost if row["cost_basis"] == "Unavailable")
+        return {
+            "time_rows": time_rows, "cost_rows": cost_rows,
+            "active_time": active_time, "active_cost": active_cost,
+            "superseded_time": superseded_time, "superseded_cost": superseded_cost,
+            "approved_time_cost_cents": time_cost,
+            "approved_direct_actual_cost_cents": recognized_direct,
+            "recognized_actual_cost_to_date_cents": time_cost + recognized_direct,
+            "approved_provisional_cost_cents": provisional,
+            "approved_unavailable_cost_record_count": unavailable_count,
+        }
+
+    def actual_snapshot(summary: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "recognized_actual_cost_to_date_cents": summary["recognized_actual_cost_to_date_cents"],
+            "approved_provisional_cost_cents": summary["approved_provisional_cost_cents"],
+            "approved_unavailable_cost_record_count": summary["approved_unavailable_cost_record_count"],
+            "active_time_entries": [
+                {"id": row["id"], "content_sha256": row["content_sha256"]}
+                for row in summary["active_time"]
+            ],
+            "active_cost_entries": [
+                {"id": row["id"], "content_sha256": row["content_sha256"]}
+                for row in summary["active_cost"]
+            ],
+        }
+
+    def forecast_content(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "tenant_id": int(row["tenant_id"]),
+            "version_no": int(row["version_no"]), "estimate_id": row["estimate_id"],
+            "supersedes_forecast_id": row["supersedes_forecast_id"],
+            "engagement_id": row["engagement_id"], "assessment_id": row["assessment_id"],
+            "as_of_date": row["as_of_date"], "forecast_through_date": row["forecast_through_date"],
+            "confidence_state": row["confidence_state"],
+            "unavailable_cost_handling": row["unavailable_cost_handling"],
+            "remaining_labor_minutes": int(row["remaining_labor_minutes"]),
+            "loaded_rate_cents_per_hour": int(row["loaded_rate_cents_per_hour"]),
+            "forecast_remaining_labor_cost_cents": int(row["forecast_remaining_labor_cost_cents"]),
+            "forecast_additional_direct_cost_cents": int(row["forecast_additional_direct_cost_cents"]),
+            "actual_snapshot": json.loads(row["actual_snapshot_json"]),
+            "assumptions": row["assumptions"], "known_constraints": row["known_constraints"],
+            "recognized_actual_cost_to_date_cents": int(row["recognized_actual_cost_to_date_cents"]),
+            "approved_provisional_cost_cents": int(row["approved_provisional_cost_cents"]),
+            "forecast_to_complete_cents": int(row["forecast_to_complete_cents"]),
+            "forecast_at_completion_cents": int(row["forecast_at_completion_cents"]),
+            "variance_to_estimated_internal_cost_cents": int(row["variance_to_estimated_internal_cost_cents"]),
+            "projected_contribution_cents": int(row["projected_contribution_cents"]),
+            "projected_contribution_basis_points": row["projected_contribution_basis_points"],
+            "completeness_state": row["completeness_state"],
+        }
+
+    def verify_forecast(row: dict[str, Any]) -> None:
+        if _digest(forecast_content(row)) != row["content_sha256"]:
+            raise HTTPException(409, "Commercial forecast integrity verification failed")
+        if int(row["creates_charge"]) or int(row["creates_invoice"]):
+            raise HTTPException(409, "Commercial forecast contains a prohibited billing effect")
+        snapshot = json.loads(row["actual_snapshot_json"])
+        if int(row["recognized_actual_cost_to_date_cents"]) != int(
+            snapshot["recognized_actual_cost_to_date_cents"]
+        ) or int(row["approved_provisional_cost_cents"]) != int(
+            snapshot["approved_provisional_cost_cents"]
+        ):
+            raise HTTPException(409, "Commercial forecast summary failed integrity verification")
+
+    def forecast_view(row: dict[str, Any]) -> dict[str, Any]:
+        out = dict(row)
+        out["actual_snapshot"] = json.loads(out.pop("actual_snapshot_json"))
+        out["creates_charge"] = bool(out["creates_charge"])
+        out["creates_invoice"] = bool(out["creates_invoice"])
+        return out
+
     def actual_view(row: dict[str, Any], kind: str) -> dict[str, Any]:
         out = dict(row)
         out["entry_type"] = kind
@@ -629,6 +804,21 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         if estimate["status"] not in {"Approved", "Released"}:
             raise HTTPException(409, "Actual cost may be recorded only against an Approved or Released estimate")
         return estimate
+
+    def active_approved_forecast(conn, tid: int, estimate_id: str) -> Optional[dict[str, Any]]:
+        found = conn.execute(
+            """SELECT f.* FROM salcapa_commercial_forecasts f
+               WHERE f.tenant_id=? AND f.estimate_id=? AND f.status='Approved'
+                 AND NOT EXISTS (
+                   SELECT 1 FROM salcapa_commercial_forecasts successor
+                   WHERE successor.tenant_id=f.tenant_id
+                     AND successor.supersedes_forecast_id=f.id
+                     AND successor.status='Approved'
+                 )
+               ORDER BY f.version_no DESC LIMIT 1""",
+            (tid, estimate_id),
+        ).fetchone()
+        return dict(found) if found else None
 
     def member_view(row: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -670,6 +860,10 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "actual_cost_truth": "When actual provider or labor cost is unavailable, the planning allowance remains clearly identified rather than presented as metered actual cost.",
                 "actuals_authority": "Salus personnel record work and cost evidence; a different authorized person approves what becomes recognized actual cost.",
                 "actuals_consequence": "An approved actual-cost record updates internal cost visibility only. It does not charge a Protected Member or create an invoice.",
+                "forecast_purpose": "Prepare a dated internal view of recorded cost, supported remaining work, unresolved cost, and expected cost at completion.",
+                "forecast_uncertainty": "A forecast is a planning judgment, not a final cost. It shows its evidence state, assumptions, constraints, unavailable-cost handling, and source-record snapshot.",
+                "forecast_authority": "A different authorized Salus person must approve the forecast, and changed source records require a new forecast rather than a silent update.",
+                "forecast_consequence": "An approved forecast informs Salus planning only. It does not alter scope, customer price, margin recognition, charges, invoices, or commitments.",
             },
         }
 
@@ -1113,36 +1307,19 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         conn = db()
         try:
             estimate = estimate_for_actuals(conn, request, estimate_id)
-            time_rows = [dict(r) for r in conn.execute(
-                "SELECT * FROM salcapa_time_entries WHERE tenant_id=? AND estimate_id=? ORDER BY version_no",
-                (tid, estimate_id),
-            )]
-            cost_rows = [dict(r) for r in conn.execute(
-                "SELECT * FROM salcapa_cost_entries WHERE tenant_id=? AND estimate_id=? ORDER BY version_no",
-                (tid, estimate_id),
-            )]
+            summary = active_actual_summary(conn, tid, estimate_id)
         finally:
             conn.close()
-        for row in time_rows:
-            verify_actual_entry(row, "time")
-        for row in cost_rows:
-            verify_actual_entry(row, "cost")
-        approved_time = [row for row in time_rows if row["status"] == "Approved"]
-        approved_cost = [row for row in cost_rows if row["status"] == "Approved"]
-        superseded_time = {row["supersedes_entry_id"] for row in approved_time if row["supersedes_entry_id"]}
-        superseded_cost = {row["supersedes_entry_id"] for row in approved_cost if row["supersedes_entry_id"]}
-        active_time = [row for row in approved_time if row["id"] not in superseded_time]
-        active_cost = [row for row in approved_cost if row["id"] not in superseded_cost]
-        time_cost = sum(int(row["calculated_cost_cents"]) for row in active_time)
-        recognized_direct = sum(int(row["recognized_actual_cost_cents"]) for row in active_cost)
-        provisional = sum(
-            int(row["amount_cents"]) for row in active_cost
-            if row["cost_basis"] in {"Authorized Estimate", "Planning Allowance"}
-        )
-        unavailable_count = sum(1 for row in active_cost if row["cost_basis"] == "Unavailable")
-        recognized_total = time_cost + recognized_direct
+        time_rows, cost_rows = summary["time_rows"], summary["cost_rows"]
+        superseded_time = summary["superseded_time"]
+        superseded_cost = summary["superseded_cost"]
+        time_cost = summary["approved_time_cost_cents"]
+        recognized_direct = summary["approved_direct_actual_cost_cents"]
+        provisional = summary["approved_provisional_cost_cents"]
+        unavailable_count = summary["approved_unavailable_cost_record_count"]
+        recognized_total = summary["recognized_actual_cost_to_date_cents"]
         estimated_internal = int(estimate["estimated_internal_cost_cents"])
-        if not active_time and not active_cost:
+        if not summary["active_time"] and not summary["active_cost"]:
             actual_status = "Not Recorded"
         elif provisional or unavailable_count:
             actual_status = "Partial Actuals"
@@ -1170,6 +1347,204 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "time_entries": time_views, "cost_entries": cost_views,
         }
 
+    @app.post("/api/salcapa/commercial/forecasts")
+    def create_forecast(payload: ForecastCreate, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            estimate = estimate_for_actuals(conn, request, payload.estimate_id)
+            if payload.supersedes_forecast_id:
+                prior = conn.execute(
+                    "SELECT * FROM salcapa_commercial_forecasts WHERE id=? AND tenant_id=? AND estimate_id=? AND status='Approved'",
+                    (payload.supersedes_forecast_id, tid, payload.estimate_id),
+                ).fetchone()
+                if not prior:
+                    raise HTTPException(422, "A revised forecast must replace an Approved forecast for this estimate")
+                verify_forecast(dict(prior))
+                duplicate = conn.execute(
+                    "SELECT id FROM salcapa_commercial_forecasts WHERE supersedes_forecast_id=? AND tenant_id=? AND status<>'Rejected'",
+                    (payload.supersedes_forecast_id, tid),
+                ).fetchone()
+                if duplicate:
+                    raise HTTPException(409, "This forecast already has an active revision")
+            active_prior = active_approved_forecast(conn, tid, payload.estimate_id)
+            if active_prior and payload.supersedes_forecast_id != active_prior["id"]:
+                raise HTTPException(
+                    409, "A new forecast must explicitly revise the current Approved forecast"
+                )
+            summary = active_actual_summary(conn, tid, payload.estimate_id)
+            snapshot = actual_snapshot(summary)
+            rate_snapshot = json.loads(estimate["rate_snapshot_json"])
+            loaded_rate = int(rate_snapshot["rules"]["loaded_labor_cost_cents_per_hour"])
+            remaining_labor_cost = _money(
+                Decimal(payload.remaining_labor_minutes) * Decimal(loaded_rate) / Decimal(60)
+            )
+            provisional = int(summary["approved_provisional_cost_cents"])
+            recognized = int(summary["recognized_actual_cost_to_date_cents"])
+            forecast_to_complete = (
+                remaining_labor_cost + provisional + payload.additional_remaining_direct_cost_cents
+            )
+            forecast_at_completion = recognized + forecast_to_complete
+            estimated_internal = int(estimate["estimated_internal_cost_cents"])
+            approved_price = int(estimate["approved_customer_price_cents"] or 0)
+            contribution = approved_price - forecast_at_completion
+            contribution_bps = None if approved_price <= 0 else _money(
+                Decimal(contribution) * Decimal(10000) / Decimal(approved_price)
+            )
+            unavailable_count = int(summary["approved_unavailable_cost_record_count"])
+            incomplete_unavailable = (
+                unavailable_count > 0
+                and payload.unavailable_cost_handling == "Excluded pending evidence"
+            )
+            completeness = "Evidence Needed" if incomplete_unavailable else payload.confidence_state
+            version = int(conn.execute(
+                "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_commercial_forecasts WHERE tenant_id=?",
+                (tid,),
+            ).fetchone()["v"])
+            forecast_id = _key("forecast")
+            content = {
+                "id": forecast_id, "tenant_id": tid, "version_no": version,
+                "estimate_id": payload.estimate_id,
+                "supersedes_forecast_id": payload.supersedes_forecast_id,
+                "engagement_id": estimate["engagement_id"], "assessment_id": estimate["assessment_id"],
+                "as_of_date": payload.as_of_date,
+                "forecast_through_date": payload.forecast_through_date,
+                "confidence_state": payload.confidence_state,
+                "unavailable_cost_handling": payload.unavailable_cost_handling,
+                "remaining_labor_minutes": payload.remaining_labor_minutes,
+                "loaded_rate_cents_per_hour": loaded_rate,
+                "forecast_remaining_labor_cost_cents": remaining_labor_cost,
+                "forecast_additional_direct_cost_cents": payload.additional_remaining_direct_cost_cents,
+                "actual_snapshot": snapshot,
+                "assumptions": payload.assumptions.strip(),
+                "known_constraints": payload.known_constraints.strip(),
+                "recognized_actual_cost_to_date_cents": recognized,
+                "approved_provisional_cost_cents": provisional,
+                "forecast_to_complete_cents": forecast_to_complete,
+                "forecast_at_completion_cents": forecast_at_completion,
+                "variance_to_estimated_internal_cost_cents": forecast_at_completion - estimated_internal,
+                "projected_contribution_cents": contribution,
+                "projected_contribution_basis_points": contribution_bps,
+                "completeness_state": completeness,
+            }
+            conn.execute(
+                """INSERT INTO salcapa_commercial_forecasts(
+                  id,tenant_id,version_no,estimate_id,supersedes_forecast_id,engagement_id,assessment_id,
+                  as_of_date,forecast_through_date,confidence_state,unavailable_cost_handling,
+                  remaining_labor_minutes,loaded_rate_cents_per_hour,forecast_remaining_labor_cost_cents,
+                  forecast_additional_direct_cost_cents,actual_snapshot_json,assumptions,known_constraints,
+                  content_sha256,recognized_actual_cost_to_date_cents,approved_provisional_cost_cents,
+                  forecast_to_complete_cents,forecast_at_completion_cents,
+                  variance_to_estimated_internal_cost_cents,projected_contribution_cents,
+                  projected_contribution_basis_points,completeness_state,status,creates_charge,creates_invoice,
+                  created_by,created_at,updated_at)
+                  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (forecast_id, tid, version, payload.estimate_id, payload.supersedes_forecast_id,
+                 estimate["engagement_id"], estimate["assessment_id"], payload.as_of_date,
+                 payload.forecast_through_date, payload.confidence_state,
+                 payload.unavailable_cost_handling, payload.remaining_labor_minutes, loaded_rate,
+                 remaining_labor_cost, payload.additional_remaining_direct_cost_cents,
+                 _canonical(snapshot), content["assumptions"], content["known_constraints"],
+                 _digest(content), recognized, provisional, forecast_to_complete, forecast_at_completion,
+                 content["variance_to_estimated_internal_cost_cents"], contribution, contribution_bps,
+                 completeness, "Draft", 0, 0, who, stamp, stamp),
+            )
+            audit(conn, "SALCAPA_COMMERCIAL_FORECAST_CREATE", "salcapa_commercial_forecast",
+                  estimate["assessment_id"],
+                  f"{forecast_id} v{version}: dated internal forecast prepared from approved source records; no scope, price, charge, invoice, or commitment changed.", who)
+            conn.commit()
+            row = dict(conn.execute(
+                "SELECT * FROM salcapa_commercial_forecasts WHERE id=?", (forecast_id,)
+            ).fetchone())
+        finally:
+            conn.close()
+        verify_forecast(row)
+        return forecast_view(row)
+
+    @app.get("/api/salcapa/commercial/estimates/{estimate_id}/forecasts")
+    def list_forecasts(estimate_id: str, request: Request):
+        salus_read(request)
+        tid = tenant_id(request)
+        conn = db()
+        try:
+            estimate_for_actuals(conn, request, estimate_id)
+            rows = [dict(r) for r in conn.execute(
+                "SELECT * FROM salcapa_commercial_forecasts WHERE tenant_id=? AND estimate_id=? ORDER BY version_no",
+                (tid, estimate_id),
+            )]
+        finally:
+            conn.close()
+        for row in rows:
+            verify_forecast(row)
+        approved = [row for row in rows if row["status"] == "Approved"]
+        superseded = {row["supersedes_forecast_id"] for row in approved if row["supersedes_forecast_id"]}
+        views = [forecast_view(row) for row in rows]
+        for item in views:
+            item["active_approved_forecast"] = item["status"] == "Approved" and item["id"] not in superseded
+            item["interpretation"] = (
+                "Internal planning view as of the recorded date; not a final cost, savings, overrun, "
+                "recognized margin, customer price, charge, invoice, or commitment."
+            )
+        return views
+
+    @app.post("/api/salcapa/commercial/forecasts/{forecast_id}/transition")
+    def transition_forecast(forecast_id: str, payload: ForecastTransition, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            found = conn.execute(
+                "SELECT * FROM salcapa_commercial_forecasts WHERE id=? AND tenant_id=?",
+                (forecast_id, tid),
+            ).fetchone()
+            if not found:
+                raise HTTPException(404, "Commercial forecast not found")
+            row = dict(found)
+            verify_forecast(row)
+            expected = {"Draft": {"Submitted"}, "Submitted": {"Approved", "Rejected"}}
+            if payload.status not in expected.get(row["status"], set()):
+                raise HTTPException(409, f"Commercial forecast cannot transition from {row['status']} to {payload.status}")
+            submitted_by, submitted_at = row["submitted_by"], row["submitted_at"]
+            approved_by, approved_at = row["approved_by"], row["approved_at"]
+            decision_reason = row["decision_reason"]
+            if payload.status == "Submitted":
+                submitted_by, submitted_at = who, stamp
+            else:
+                commercial_authority(request)
+                if row["created_by"] == who:
+                    raise HTTPException(409, "Commercial forecast decision requires an actor other than the creator")
+                if payload.status == "Approved":
+                    active_prior = active_approved_forecast(conn, tid, row["estimate_id"])
+                    if active_prior and row["supersedes_forecast_id"] != active_prior["id"]:
+                        raise HTTPException(
+                            409, "Another Approved forecast is current; prepare an explicit revision"
+                        )
+                    current = actual_snapshot(active_actual_summary(conn, tid, row["estimate_id"]))
+                    if _canonical(current) != _canonical(json.loads(row["actual_snapshot_json"])):
+                        raise HTTPException(
+                            409, "Approved source records changed; prepare a current forecast rather than approving a stale snapshot"
+                        )
+                    approved_by, approved_at = who, stamp
+                decision_reason = payload.reason
+            conn.execute(
+                """UPDATE salcapa_commercial_forecasts SET status=?,submitted_by=?,submitted_at=?,
+                   approved_by=?,approved_at=?,decision_reason=?,updated_at=? WHERE id=? AND tenant_id=?""",
+                (payload.status, submitted_by, submitted_at, approved_by, approved_at,
+                 decision_reason, stamp, forecast_id, tid),
+            )
+            audit(conn, "SALCAPA_COMMERCIAL_FORECAST_TRANSITION", "salcapa_commercial_forecast",
+                  row["assessment_id"],
+                  f"{forecast_id}: {row['status']} -> {payload.status}; internal planning only; no scope, price, charge, invoice, or commitment changed; {payload.reason}"[:1000], who)
+            conn.commit()
+            result = dict(conn.execute(
+                "SELECT * FROM salcapa_commercial_forecasts WHERE id=?", (forecast_id,)
+            ).fetchone())
+        finally:
+            conn.close()
+        verify_forecast(result)
+        return forecast_view(result)
+
     original_collect = core.get("collect_tenant_records")
     original_validate = core.get("validate_records")
     original_replace = core.get("replace_tenant_records")
@@ -1188,6 +1563,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             estimates = {str(r.get("id")): r for r in records.get("salcapa_commercial_estimates", [])}
             time_entries = {str(r.get("id")): r for r in records.get("salcapa_time_entries", [])}
             cost_entries = {str(r.get("id")): r for r in records.get("salcapa_cost_entries", [])}
+            forecasts = {str(r.get("id")): r for r in records.get("salcapa_commercial_forecasts", [])}
             for row in cards.values():
                 if int(row.get("tenant_id", -1)) != int(tid):
                     errors.append(f"rate card {row.get('id')} crosses the tenant boundary")
@@ -1232,6 +1608,25 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                         verify_actual_entry(dict(row), kind)
                     except (HTTPException, ValueError, TypeError, KeyError):
                         errors.append(f"commercial {kind} entry {row.get('id')} failed integrity verification")
+            for row in forecasts.values():
+                if int(row.get("tenant_id", -1)) != int(tid):
+                    errors.append(f"commercial forecast {row.get('id')} crosses the tenant boundary")
+                    continue
+                estimate = estimates.get(str(row.get("estimate_id")))
+                if not estimate:
+                    errors.append(f"commercial forecast {row.get('id')} has invalid estimate_id")
+                elif (row.get("engagement_id") != estimate.get("engagement_id") or
+                      row.get("assessment_id") != estimate.get("assessment_id")):
+                    errors.append(f"commercial forecast {row.get('id')} crosses its estimate scope")
+                prior_id = row.get("supersedes_forecast_id")
+                if prior_id:
+                    prior = forecasts.get(str(prior_id))
+                    if not prior or prior.get("estimate_id") != row.get("estimate_id"):
+                        errors.append(f"commercial forecast {row.get('id')} has invalid revision lineage")
+                try:
+                    verify_forecast(dict(row))
+                except (HTTPException, ValueError, TypeError, KeyError):
+                    errors.append(f"commercial forecast {row.get('id')} failed integrity verification")
             return errors
 
         def extended_validate(records: dict, tid: Optional[int] = None):

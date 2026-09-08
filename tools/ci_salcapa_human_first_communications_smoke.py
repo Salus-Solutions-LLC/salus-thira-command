@@ -15,7 +15,7 @@ def require(value: str, source: str) -> None:
         raise SystemExit(f"Human-first communications acceptance is incomplete: {value}")
 
 
-require('SALCAPA_RELEASE_VERSION = "3.82"', RUNTIME)
+require('SALCAPA_RELEASE_VERSION = "3.83"', RUNTIME)
 
 for value in (
     "People lead. Methods guide. Technology supports. Evidence proves.",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Acceptance checks for Issue #154 governed rate cards and estimate snapshots."""
+"""Acceptance checks for Issue #154 estimates, actuals, and governed forecasts."""
 import copy
 import json
 import os
@@ -42,7 +42,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.82"
+    assert client.get("/api/system/mode").json()["version"] == "3.83"
     assert client.get("/api/salcapa/commercial/catalog", headers=member).status_code == 403
     catalog = client.get("/api/salcapa/commercial/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
@@ -311,6 +311,137 @@ def main() -> None:
     active_time = {row["id"]: row["active_approved_record"] for row in corrected_summary["time_entries"]}
     assert active_time[time_id] is False and active_time[correction_id] is True
 
+    # Forecasts snapshot the approved cost record, explain uncertainty, and require independent review.
+    forecast_payload = {
+        "estimate_id": estimate_id,
+        "as_of_date": "2026-09-08",
+        "forecast_through_date": "2026-09-30",
+        "confidence_state": "Reasonably Supported",
+        "unavailable_cost_handling": "Excluded pending evidence",
+        "remaining_labor_minutes": 60,
+        "additional_remaining_direct_cost_cents": 2000,
+        "assumptions": "One hour of review remains after the fictional demonstration research.",
+        "known_constraints": "One provider cost remains unavailable and requires supporting evidence.",
+    }
+    assert client.post("/api/salcapa/commercial/forecasts", headers=member, json=forecast_payload).status_code == 403
+    forged_forecast = dict(forecast_payload, status="Approved")
+    assert client.post(
+        "/api/salcapa/commercial/forecasts", headers=director, json=forged_forecast
+    ).status_code == 422
+    invalid_dates = dict(forecast_payload, forecast_through_date="2026-09-01")
+    assert client.post(
+        "/api/salcapa/commercial/forecasts", headers=director, json=invalid_dates
+    ).status_code == 422
+    stale_forecast = client.post(
+        "/api/salcapa/commercial/forecasts", headers=director, json=forecast_payload
+    )
+    assert stale_forecast.status_code == 200, stale_forecast.text
+    stale_id = stale_forecast.json()["id"]
+    assert stale_forecast.json()["recognized_actual_cost_to_date_cents"] == 18925
+    assert stale_forecast.json()["approved_provisional_cost_cents"] == 500
+    assert stale_forecast.json()["forecast_remaining_labor_cost_cents"] == 9000
+    assert stale_forecast.json()["forecast_to_complete_cents"] == 11500
+    assert stale_forecast.json()["forecast_at_completion_cents"] == 30425
+    assert stale_forecast.json()["completeness_state"] == "Evidence Needed"
+    assert stale_forecast.json()["creates_charge"] is False
+    assert client.post(
+        f"/api/salcapa/commercial/forecasts/{stale_id}/transition", headers=director,
+        json={"status": "Submitted", "reason": "Submit the dated forecast for independent review."},
+    ).status_code == 200
+    assert client.post(
+        f"/api/salcapa/commercial/forecasts/{stale_id}/transition", headers=director,
+        json={"status": "Approved", "reason": "Attempt self-approval."},
+    ).status_code == 409
+
+    later_cost_payload = dict(
+        actual_cost_payload,
+        amount_cents=100,
+        source_reference="usage-record-demo-002",
+        notes="Later fictional metered cost that makes the submitted forecast stale.",
+    )
+    later_cost = client.post(
+        "/api/salcapa/commercial/cost-entries", headers=director, json=later_cost_payload
+    )
+    assert later_cost.status_code == 200, later_cost.text
+    later_cost_id = later_cost.json()["id"]
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the later metered record for review."),
+        ("Approved", administrator, "The later provider record supports the cost."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/cost-entries/{later_cost_id}/transition", headers=headers,
+            json={"status": status, "reason": reason},
+        ).status_code == 200
+    stale_approval = client.post(
+        f"/api/salcapa/commercial/forecasts/{stale_id}/transition", headers=administrator,
+        json={"status": "Approved", "reason": "Attempt approval after source costs changed."},
+    )
+    assert stale_approval.status_code == 409
+
+    current_forecast = client.post(
+        "/api/salcapa/commercial/forecasts", headers=director, json=forecast_payload
+    )
+    assert current_forecast.status_code == 200, current_forecast.text
+    current_id = current_forecast.json()["id"]
+    assert current_forecast.json()["recognized_actual_cost_to_date_cents"] == 19025
+    assert current_forecast.json()["forecast_at_completion_cents"] == 30525
+    assert current_forecast.json()["variance_to_estimated_internal_cost_cents"] == 12125
+    assert current_forecast.json()["projected_contribution_cents"] == 31975
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the current source-grounded forecast."),
+        ("Approved", administrator, "Independent review confirms the dated planning judgment."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/forecasts/{current_id}/transition", headers=headers,
+            json={"status": status, "reason": reason},
+        ).status_code == 200
+    assert client.get(
+        f"/api/salcapa/commercial/estimates/{estimate_id}/forecasts", headers=member
+    ).status_code == 403
+    assert client.get(
+        f"/api/salcapa/commercial/estimates/{estimate_id}/forecasts", headers=other
+    ).status_code == 404
+    forecasts = client.get(
+        f"/api/salcapa/commercial/estimates/{estimate_id}/forecasts", headers=administrator
+    )
+    assert forecasts.status_code == 200, forecasts.text
+    forecast_rows = forecasts.json()
+    assert len(forecast_rows) == 2
+    assert next(row for row in forecast_rows if row["id"] == current_id)["active_approved_forecast"] is True
+    assert all("not a final cost" in row["interpretation"] for row in forecast_rows)
+
+    revision_payload = dict(
+        forecast_payload,
+        supersedes_forecast_id=current_id,
+        as_of_date="2026-09-09",
+        remaining_labor_minutes=30,
+        additional_remaining_direct_cost_cents=1000,
+        assumptions="Thirty minutes of review and one bounded direct cost remain.",
+    )
+    revision = client.post(
+        "/api/salcapa/commercial/forecasts", headers=director, json=revision_payload
+    )
+    assert revision.status_code == 200, revision.text
+    revision_id = revision.json()["id"]
+    assert revision.json()["forecast_to_complete_cents"] == 6000
+    assert revision.json()["forecast_at_completion_cents"] == 25025
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the revised forecast for review."),
+        ("Approved", administrator, "Independent review confirms the revised planning judgment."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/forecasts/{revision_id}/transition", headers=headers,
+            json={"status": status, "reason": reason},
+        ).status_code == 200
+    assert client.post(
+        "/api/salcapa/commercial/forecasts", headers=director, json=revision_payload
+    ).status_code == 409
+    revised_rows = client.get(
+        f"/api/salcapa/commercial/estimates/{estimate_id}/forecasts", headers=administrator
+    ).json()
+    active_forecasts = {row["id"]: row["active_approved_forecast"] for row in revised_rows}
+    assert active_forecasts[current_id] is False and active_forecasts[revision_id] is True
+
     # A later card cannot rewrite the immutable estimate snapshot.
     changed_rules = copy.deepcopy(DEFAULT_RULES)
     changed_rules["standard_bill_rate_cents_per_hour"] = 30000
@@ -329,7 +460,8 @@ def main() -> None:
     assert len(records["salcapa_rate_cards"]) == 2
     assert len(records["salcapa_commercial_estimates"]) == 1
     assert len(records["salcapa_time_entries"]) == 2
-    assert len(records["salcapa_cost_entries"]) == 3
+    assert len(records["salcapa_cost_entries"]) == 4
+    assert len(records["salcapa_commercial_forecasts"]) == 3
     assert salcapa_runtime.core.validate_records(records, 1) == []
     tampered = copy.deepcopy(records)
     tampered["salcapa_commercial_estimates"][0]["recommended_customer_price_cents"] = 1
@@ -338,6 +470,9 @@ def main() -> None:
     tampered_actual = copy.deepcopy(records)
     tampered_actual["salcapa_cost_entries"][0]["recognized_actual_cost_cents"] = 1
     assert salcapa_runtime.core.validate_records(tampered_actual, 1) != []
+    tampered_forecast = copy.deepcopy(records)
+    tampered_forecast["salcapa_commercial_forecasts"][0]["forecast_at_completion_cents"] = 1
+    assert salcapa_runtime.core.validate_records(tampered_forecast, 1) != []
 
     # Direct persisted tampering is rejected before any lifecycle action.
     conn = salcapa_runtime.core.db()
