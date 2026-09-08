@@ -45,7 +45,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.74"
+    assert client.get("/api/system/mode").json()["version"] == "3.75"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -60,6 +60,8 @@ def main() -> None:
     assert adapter["https_only"] is True and adapter["redirects_followed"] is False
     assert adapter["credentials_sent"] is False and adapter["automatic_verified_fact"] is False
     assert adapter["maximum_discovered_links"] == 50
+    assert "application/rss+xml" in adapter["allowed_content_types"]
+    assert "application/atom+xml" in adapter["allowed_content_types"]
 
     plan = client.post("/api/salops/preparedness/plans", headers=director, json={
         "assessment_id": 1,
@@ -213,6 +215,71 @@ def main() -> None:
     unavailable_source = next(item for item in refreshed_live_bundle["sources"] if item["id"] == unavailable_source_id)
     assert unavailable_source["access_status"] == "Unavailable"
     assert unavailable_source["source_derived_statements"] == []
+
+    feed_request = client.post(live_path, headers=director, json={
+        "url": "https://example.com/feed/current.xml",
+        "purpose": "Discover current synthetic public-feed entries for separate review.",
+    }).json()
+    feed_id = feed_request["id"]
+    assert client.post(
+        f"{create_path}/external-research/{feed_id}/authorize", headers=administrator,
+        json={
+            "reason": "SYNTHETIC exact public RSS source authorization.",
+            "scope_confirmed": True, "external_transmission_authorized": True,
+            "sensitive_data_absent": True,
+        },
+    ).status_code == 200
+    salops_plan_assembly.LIVE_RESEARCH_FETCHER = lambda url, maximum_bytes: {
+        "status": 200, "content_type": "application/rss+xml",
+        "headers": {"content-type": "application/rss+xml; charset=utf-8"},
+        "content": b'''<?xml version="1.0"?><rss><channel><title>SYNTHETIC Alerts</title>
+        <item><title>Entry One</title><link>https://example.com/bulletins/one</link></item>
+        <item><title>Entry Two</title><guid>https://example.com/bulletins/two</guid></item>
+        <item><link>https://outside.example.org/blocked</link></item></channel></rss>''',
+    }
+    feed_live = client.post(
+        f"{create_path}/external-research/{feed_id}/execute", headers=owner,
+        json={"reason": "Parse the separately authorized feed without visiting entries."},
+    )
+    assert feed_live.status_code == 200, feed_live.text
+    feed_result = feed_live.json()
+    assert feed_result["status"] == "Accessed" and feed_result["content_type"] == "application/rss+xml"
+    assert "SYNTHETIC Alerts" in feed_result["content_text"] and "Entry One" in feed_result["content_text"]
+    assert feed_result["discovered_links"] == [
+        "https://example.com/bulletins/one", "https://example.com/bulletins/two",
+    ]
+    feed_source = next(
+        item for item in client.get(f"{create_path}/{run_id}", headers=director).json()["sources"]
+        if item["id"] == feed_result["source_id"]
+    )
+    assert feed_source["source_derived_statements"] == []
+    assert feed_source["reliability"] == "Not Assessed" and feed_source["confidence"] == "Not Assessed"
+
+    hostile_request = client.post(live_path, headers=director, json={
+        "url": "https://example.com/feed/hostile.xml",
+        "purpose": "Verify prohibited XML declarations fail closed.",
+    }).json()
+    hostile_id = hostile_request["id"]
+    assert client.post(
+        f"{create_path}/external-research/{hostile_id}/authorize", headers=administrator,
+        json={
+            "reason": "SYNTHETIC parser-hardening validation.", "scope_confirmed": True,
+            "external_transmission_authorized": True, "sensitive_data_absent": True,
+        },
+    ).status_code == 200
+    salops_plan_assembly.LIVE_RESEARCH_FETCHER = lambda url, maximum_bytes: {
+        "status": 200, "content_type": "application/xml",
+        "headers": {"content-type": "application/xml"},
+        "content": b'<!DOCTYPE rss [<!ENTITY probe "blocked">]><rss><title>&probe;</title></rss>',
+    }
+    hostile_live = client.post(
+        f"{create_path}/external-research/{hostile_id}/execute", headers=owner,
+        json={"reason": "Confirm the authorized hostile XML sample fails closed."},
+    )
+    assert hostile_live.status_code == 200, hostile_live.text
+    assert hostile_live.json()["status"] == "Unavailable"
+    assert "prohibited" in hostile_live.json()["unavailable_reason"].lower()
+    assert hostile_live.json()["discovered_links"] == []
 
     cost_path = f"{create_path}/{run_id}/research-cost-envelopes"
     forged_cost = client.post(cost_path, headers=director, json={
@@ -815,8 +882,8 @@ def main() -> None:
     assert still_approved["status"] == "Approved" and still_approved["version"] == 1
     bundle = client.get(f"{create_path}/{run_id}", headers=director)
     assert bundle.status_code == 200, bundle.text
-    assert len(bundle.json()["sources"]) == 4
-    assert len(bundle.json()["external_research_requests"]) == 2
+    assert len(bundle.json()["sources"]) == 6
+    assert len(bundle.json()["external_research_requests"]) == 4
     assert len(bundle.json()["sections"]) == 1
     assert len(bundle.json()["revision_recommendations"]) == 1
     assert len(bundle.json()["version_candidates"]) == 1

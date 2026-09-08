@@ -11,6 +11,7 @@ import hashlib
 import ipaddress
 import json
 import os
+import re
 import socket
 import uuid
 from html.parser import HTMLParser
@@ -18,6 +19,7 @@ from typing import Any, Literal, Optional
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
+from defusedxml import ElementTree as ET
 from fastapi import HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -60,6 +62,7 @@ LIVE_RESEARCH_MAX_BYTES = 524288
 LIVE_RESEARCH_MAX_DISCOVERED_LINKS = 50
 LIVE_RESEARCH_CONTENT_TYPES = (
     "text/plain", "text/html", "application/json", "application/xml", "text/xml",
+    "application/rss+xml", "application/atom+xml",
 )
 PLAN_SECTION_FIELDS = {
     "authorities": "authorities_references", "authorities_references": "authorities_references",
@@ -742,6 +745,29 @@ def _research_document(content: bytes, content_type: str, base_url: str) -> tupl
         parser.feed(text)
         text = "\n".join(parser.parts)
         for href in parser.links:
+            try:
+                normalized, _ = _normalize_https_url(urljoin(base_url, href))
+            except ValueError:
+                continue
+            if normalized != base_url and normalized not in discovered:
+                discovered.append(normalized)
+            if len(discovered) >= LIVE_RESEARCH_MAX_DISCOVERED_LINKS:
+                break
+    elif content_type in ("application/xml", "text/xml", "application/rss+xml", "application/atom+xml"):
+        if re.search(r"<!\s*(?:DOCTYPE|ENTITY)\b", text, flags=re.IGNORECASE):
+            raise ValueError("External XML source contains a prohibited document type or entity declaration")
+        try:
+            root = ET.fromstring(text)
+        except ET.ParseError as exc:
+            raise ValueError("External XML source is not well formed") from exc
+        text = "\n".join(" ".join(value.split()) for value in root.itertext() if value.strip())
+        for element in root.iter():
+            local_name = str(element.tag).rsplit("}", 1)[-1].lower()
+            if local_name not in ("link", "guid", "loc"):
+                continue
+            href = (element.attrib.get("href") or element.text or "").strip()
+            if not href:
+                continue
             try:
                 normalized, _ = _normalize_https_url(urljoin(base_url, href))
             except ValueError:
