@@ -94,6 +94,47 @@ MARKER_SHAPES = {
     "Reassessment / Improvement": "loop",
 }
 
+PREPAREDNESS_OVERLAY_TYPES = ("Plan", "Training", "Exercise")
+PLAN_OVERLAY_STATES = {
+    "Draft": "Draft", "Reviewed": "Awaiting Approval",
+    "Approved": "Authorized", "Retired": "Closed",
+}
+TRAINING_OVERLAY_STATES = {
+    "Draft": "Draft", "Scheduled": "Planned", "In Progress": "In Progress",
+    "Completed": "Awaiting Validation", "Cancelled": "Closed",
+}
+EXERCISE_OVERLAY_STATES = {
+    "Planned": "Planned", "Reviewed": "Awaiting Approval", "Approved": "Authorized",
+    "In Progress": "In Progress", "Completed": "Awaiting Validation",
+    "Evaluated": "Awaiting Validation", "Closed": "Closed", "Cancelled": "Closed",
+}
+
+PREPAREDNESS_NEXT_STEPS = {
+    "Plan": {
+        "Draft": "Review the current draft with the responsible planners and authorities.",
+        "Reviewed": "Record the authorized approval decision or return the plan for revision.",
+        "Approved": "Maintain the approved plan and review it when conditions or governed review dates require.",
+        "Retired": "Use the approved successor or retained historical record as applicable.",
+    },
+    "Training": {
+        "Draft": "Complete the training record and schedule the authorized delivery.",
+        "Scheduled": "Deliver the scheduled training and preserve the completion record.",
+        "In Progress": "Complete the training and preserve relevant performance evidence.",
+        "Completed": "Review completion evidence and determine any validation or follow-up need.",
+        "Cancelled": "Review whether replacement training or another capability measure is needed.",
+    },
+    "Exercise": {
+        "Planned": "Review the exercise design and prepare it for the required authority gates.",
+        "Reviewed": "Record the authorized approval decision or return the exercise for revision.",
+        "Approved": "Coordinate the approved exercise start within the recorded scope and controls.",
+        "In Progress": "Conduct the exercise, preserve observations, and maintain real-world safety controls.",
+        "Completed": "Evaluate observations and identify any improvement or validation needs.",
+        "Evaluated": "Review results, approve any appropriate follow-up actions, and determine closure.",
+        "Closed": "Maintain the record and feed validated learning into reassessment and improvement.",
+        "Cancelled": "Review whether a replacement exercise or alternate validation method is needed.",
+    },
+}
+
 SCHEMA = r"""
 CREATE TABLE IF NOT EXISTS salcapa_mission_nodes (
   id TEXT PRIMARY KEY,
@@ -431,6 +472,151 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             })
         return common
 
+    def preparedness_plan_path(conn, request: Request, plan_id: Optional[str]) -> list[dict[str, Any]]:
+        """Return only a plan reference already authorized for the requesting role."""
+        if not plan_id:
+            return []
+        found = conn.execute(
+            "SELECT id,tenant_id,assessment_id,title,status,sensitivity FROM salops_preparedness_plans "
+            "WHERE id=? AND tenant_id=?", (plan_id, tenant_id(request)),
+        ).fetchone()
+        if not found:
+            return []
+        plan = dict(found)
+        if plan["assessment_id"] is not None and plan["assessment_id"] not in set(accessible_assessment_ids(request)):
+            return []
+        try:
+            require_sensitivity(request, plan["sensitivity"])
+        except HTTPException:
+            return []
+        if protected_member(request) and plan["status"] != "Approved":
+            return []
+        return [{"id": f"salops-plan:{plan['id']}", "node_type": "Plan", "title": plan["title"]}]
+
+    def preparedness_overlay(
+        request: Request,
+        source_type: str,
+        source: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Project an authoritative SalOPS record without duplicating or changing it."""
+        source_status = source["status"]
+        if source_type == "Plan":
+            status = PLAN_OVERLAY_STATES[source_status]
+            purpose = source.get("purpose") or source.get("scope_statement") or "Plan purpose is not yet recorded."
+            owner = source.get("owner", "")
+            evidence_state = "Not Applicable"
+            marker_shape = "hexagon"
+            released_at = source.get("approved_at", "")
+            authority = "Plan approval and member adoption remain governed by the SalOPS plan record and authorized people."
+        elif source_type == "Training":
+            status = TRAINING_OVERLAY_STATES[source_status]
+            purpose = source.get("objective") or "Training objective is not yet recorded."
+            owner = source.get("instructor", "")
+            evidence_state = "Awaiting Validation" if source_status == "Completed" else (
+                "Not Applicable" if source_status == "Cancelled" else "Evidence Needed"
+            )
+            marker_shape = "square"
+            released_at = source.get("released_at", "")
+            authority = "Training delivery, completion, disclosure, and capability judgments remain governed by the authoritative training record and authorized people."
+        else:
+            status = EXERCISE_OVERLAY_STATES[source_status]
+            purpose = source.get("purpose") or source.get("scope_statement") or "Exercise purpose is not yet recorded."
+            owner = ""
+            evidence_state = "Awaiting Validation" if source_status in {"Completed", "Evaluated", "Closed"} else (
+                "Not Applicable" if source_status == "Cancelled" else "Evidence Needed"
+            )
+            marker_shape = "circle"
+            released_at = source.get("approved_at", "")
+            authority = "Exercise approval, conduct, evaluation, and closure remain governed by the authoritative exercise record and authorized people."
+        item = {
+            "id": f"salops-{source_type.casefold()}:{source['id']}",
+            "assessment_id": source.get("assessment_id"),
+            "node_type": source_type,
+            "title": source["title"], "functional_area": "SalOPS", "status": status,
+            "route_key": "salops", "station": _route_station({"functional_area": "SalOPS", "status": status})[1],
+            "marker_shape": marker_shape, "evidence_state": evidence_state,
+            "updated_at": source["updated_at"], "released_at": released_at,
+            "purpose": purpose, "owner": owner, "waiting_on": "",
+            "next_step": PREPAREDNESS_NEXT_STEPS[source_type][source_status],
+            "result_summary": "", "read_only": True,
+            "projection_kind": "Preparedness overlay", "source_type": source_type,
+            "source_id": source["id"], "source_status": source_status,
+            "projection_basis": (
+                "Read-only projection of the authoritative SalOPS preparedness record. "
+                "Change status, ownership, dates, or disclosure only in that source record."
+            ),
+            "guidance": (
+                "This marker reflects the current authorized SalOPS record. It does not create a new assignment, "
+                "approval, completion judgment, or readiness finding."
+            ),
+        }
+        route_key, station = _route_station(item)
+        item["route_key"], item["station"] = route_key, station
+        item["next_station"] = _next_station(route_key, station, status)
+        if not protected_member(request):
+            item.update({
+                "authority": authority, "visibility": (
+                    "Released" if (
+                        (source_type == "Plan" and source_status == "Approved")
+                        or (source_type == "Training" and source.get("member_release_status") == "Released")
+                        or (source_type == "Exercise" and source_status in {"Approved", "In Progress", "Completed", "Evaluated", "Closed"})
+                    ) else "Salus Only"
+                ),
+                "sensitivity": source.get("sensitivity", "Inherited from governed scope"),
+            })
+        return item
+
+    def preparedness_overlays(
+        conn, request: Request, assessment_id: Optional[int], workflow_status: Optional[str],
+    ) -> list[dict[str, Any]]:
+        """Read role-safe source rows using the disclosure rules of SalOPS Preparedness."""
+        tid = tenant_id(request)
+        is_member = protected_member(request)
+        permitted_assessments = set(accessible_assessment_ids(request))
+        specs = (
+            ("Plan", "salops_preparedness_plans", "status='Approved'" if is_member else ""),
+            ("Training", "salops_preparedness_training", "member_release_status='Released'" if is_member else ""),
+            (
+                "Exercise", "salops_preparedness_exercises",
+                "status IN ('Approved','In Progress','Completed','Evaluated','Closed')" if is_member else "",
+            ),
+        )
+        projected: list[dict[str, Any]] = []
+        for source_type, table, role_clause in specs:
+            sql = f"SELECT * FROM {table} WHERE tenant_id=?"
+            params: list[Any] = [tid]
+            if assessment_id is not None:
+                sql += " AND assessment_id=?"
+                params.append(assessment_id)
+            if role_clause:
+                sql += f" AND {role_clause}"
+            sql += " ORDER BY updated_at,id"
+            for found in conn.execute(sql, tuple(params)):
+                source = dict(found)
+                if source.get("assessment_id") is not None and source["assessment_id"] not in permitted_assessments:
+                    continue
+                sensitivity = source.get("sensitivity")
+                if source_type == "Training" and source.get("plan_id"):
+                    plan = conn.execute(
+                        "SELECT sensitivity,status FROM salops_preparedness_plans WHERE id=? AND tenant_id=?",
+                        (source["plan_id"], tid),
+                    ).fetchone()
+                    if plan:
+                        sensitivity = plan["sensitivity"]
+                if sensitivity:
+                    try:
+                        require_sensitivity(request, sensitivity)
+                    except HTTPException:
+                        continue
+                item = preparedness_overlay(request, source_type, source)
+                if workflow_status is not None and item["status"] != workflow_status:
+                    continue
+                item["mission_path"] = (
+                    [] if source_type == "Plan" else preparedness_plan_path(conn, request, source.get("plan_id"))
+                )
+                projected.append(item)
+        return projected
+
     def parent_path(conn, request: Request, node: dict[str, Any]) -> list[dict[str, Any]]:
         path: list[dict[str, Any]] = []
         seen: set[str] = set()
@@ -459,9 +645,11 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
                 "Ownership / next step needed", "No recorded hold",
             ],
             "routes": list(ROUTES), "marker_shapes": MARKER_SHAPES,
+            "preparedness_overlay_types": list(PREPAREDNESS_OVERLAY_TYPES),
             "mission_structure": "Mission → Priorities → Objectives → Strategies → Tactics → Tasks / Assignments → Evidence & Results → Reassessment / Improvement",
             "principle": "People lead. Methods guide. Technology supports. Evidence proves.",
             "filter_guidance": "Filters narrow the records already authorized for your view. They do not change scope, priority, ownership, or workflow state.",
+            "overlay_guidance": "Plans, training, and exercises appear as read-only projections of their authoritative SalOPS records. Update the source record to change their state, scope, dates, ownership, or disclosure.",
         }
 
     @app.get("/api/salcapa/mission-map")
@@ -530,6 +718,15 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
                 else:
                     raise
             visible.append(projected)
+        if functional_area in (None, "SalOPS"):
+            for projected in preparedness_overlays(conn, request, assessment_id, workflow_status):
+                projected["age_days"], projected["age_band"] = _record_age(projected["updated_at"], reference)
+                projected["attention"] = _attention_state(projected)
+                if owner and owner.strip().casefold() not in projected.get("owner", "").casefold():
+                    continue
+                if attention and projected["attention"] != attention:
+                    continue
+                visible.append(projected)
         by_route = {route["key"]: 0 for route in ROUTES}
         by_status: dict[str, int] = {}
         by_evidence: dict[str, int] = {}

@@ -46,19 +46,19 @@ def main():
     }
 
     mode = client.get("/api/system/mode").json()
-    assert mode["version"] == "3.87", mode
+    assert mode["version"] == "3.88", mode
     adapter_fixture = Path(WORKSPACE.name) / "release-adapter-fixture.py"
     adapter_fixture.write_text(
         'xml = b\'<?xml version="1.0"?>\'\n'
-        'assert mode["version"] == "3.86"\n'
-        'marker = \'SALCAPA_RELEASE_VERSION = "3.86"\'\n',
+        'assert mode["version"] == "3.87"\n'
+        'marker = \'SALCAPA_RELEASE_VERSION = "3.87"\'\n',
         encoding="utf-8",
     )
-    adapted, changes = normalized_source(adapter_fixture, "3.87")
+    adapted, changes = normalized_source(adapter_fixture, "3.88")
     assert 'version="1.0"' in adapted
-    assert 'mode["version"] == "3.87"' in adapted
-    assert 'SALCAPA_RELEASE_VERSION = "3.87"' in adapted
-    assert [old for _, old, _ in changes] == ["3.86", "3.86"]
+    assert 'mode["version"] == "3.88"' in adapted
+    assert 'SALCAPA_RELEASE_VERSION = "3.88"' in adapted
+    assert [old for _, old, _ in changes] == ["3.87", "3.87"]
     catalog = client.get("/api/salcapa/mission-map/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
     catalog = catalog.json()
@@ -74,6 +74,8 @@ def main():
     assert not any(state in {"Red", "Orange", "Amber", "Green"} for state in catalog["workflow_states"])
     assert "Waiting / input needed" in catalog["attention_states"]
     assert "do not change scope" in catalog["filter_guidance"]
+    assert catalog["preparedness_overlay_types"] == ["Plan", "Training", "Exercise"]
+    assert "read-only projections" in catalog["overlay_guidance"]
 
     # No browser-provided map coordinate or arbitrary state can enter the governed model.
     forged_position = dict(
@@ -290,6 +292,89 @@ def main():
     assert member_internal_owner.status_code == 200, member_internal_owner.text
     assert member_internal_owner.json()["items"] == []
     assert member_internal_owner.json()["portfolio"]["total_items"] == 0
+
+    # Existing SalOPS plans, training, and exercises are projected without creating duplicate work records.
+    plan = post(client, "/api/salops/preparedness/plans", director, {
+        "assessment_id": 1, "title": "Continuity plan", "plan_type": "Emergency Operations Plan",
+        "purpose": "Guide coordinated continuity actions during an extended utility outage.",
+        "scope_statement": "Essential operations within the authorized assessment scope.",
+        "owner": "Salus Planning Lead", "approver": "Protected Member Executive",
+    }).json()
+    training = post(client, "/api/salops/preparedness/training", director, {
+        "assessment_id": 1, "plan_id": plan["id"], "title": "Continuity roles workshop",
+        "objective": "Prepare assigned personnel to carry out the approved continuity plan.",
+        "audience": "Continuity team", "delivery_type": "Workshop", "instructor": "Salus Training Lead",
+        "scheduled_at": "2026-09-20T14:00:00Z",
+    }).json()
+    exercise = post(client, "/api/salops/preparedness/exercises", director, {
+        "assessment_id": 1, "plan_id": plan["id"], "title": "Utility outage tabletop exercise",
+        "exercise_type": "Tabletop Exercise", "purpose": "Examine the approved continuity plan.",
+        "scope_statement": "Authorized continuity team and essential operations.",
+        "scheduled_at": "2026-09-25T15:00:00Z", "sensitivity": "Standard",
+    }).json()
+
+    internal_overlays = client.get(
+        "/api/salcapa/mission-map?assessment_id=1&functional_area=SalOPS", headers=director
+    )
+    assert internal_overlays.status_code == 200, internal_overlays.text
+    internal_overlays = [item for item in internal_overlays.json()["items"] if item.get("read_only")]
+    assert {item["id"] for item in internal_overlays} == {
+        f"salops-plan:{plan['id']}", f"salops-training:{training['id']}", f"salops-exercise:{exercise['id']}"
+    }
+    assert {item["source_type"] for item in internal_overlays} == {"Plan", "Training", "Exercise"}
+    assert all(item["projection_kind"] == "Preparedness overlay" for item in internal_overlays)
+    assert all(item["functional_area"] == "SalOPS" for item in internal_overlays)
+    assert all("Change status" in item["projection_basis"] for item in internal_overlays)
+    assert next(item for item in internal_overlays if item["source_type"] == "Plan")["owner"] == "Salus Planning Lead"
+    assert next(item for item in internal_overlays if item["source_type"] == "Training")["owner"] == "Salus Training Lead"
+    assert next(item for item in internal_overlays if item["source_type"] == "Exercise")["owner"] == ""
+
+    # Source disclosure gates—not Mission Map—control Protected Member visibility.
+    member_before_sources = client.get("/api/salcapa/mission-map?assessment_id=1", headers=member).json()
+    assert not any(item.get("read_only") for item in member_before_sources["items"])
+    post(client, f"/api/salops/preparedness/plans/{plan['id']}/transition", analyst,
+         {"status": "Reviewed", "reason": "Planning review completed within the authorized scope."})
+    post(client, f"/api/salops/preparedness/plans/{plan['id']}/transition", director,
+         {"status": "Approved", "reason": "Authorized approver records plan approval for member use."})
+    post(client, f"/api/salops/preparedness/training/{training['id']}/release", director,
+         {"approved_for_member": True, "reason": "Release the governed training record to the Protected Member."})
+    post(client, f"/api/salops/preparedness/exercises/{exercise['id']}/transition", analyst,
+         {"status": "Reviewed", "reason": "Exercise design review completed."})
+    post(client, f"/api/salops/preparedness/exercises/{exercise['id']}/transition", director,
+         {"status": "Approved", "reason": "Authorized approver records exercise approval."})
+
+    member_sources = client.get("/api/salcapa/mission-map?assessment_id=1", headers=member)
+    assert member_sources.status_code == 200, member_sources.text
+    member_overlays = [item for item in member_sources.json()["items"] if item.get("read_only")]
+    assert {item["source_type"] for item in member_overlays} == {"Plan", "Training", "Exercise"}
+    member_plan_overlay = next(item for item in member_overlays if item["source_type"] == "Plan")
+    member_training = next(item for item in member_overlays if item["source_type"] == "Training")
+    member_exercise = next(item for item in member_overlays if item["source_type"] == "Exercise")
+    assert (member_plan_overlay["source_status"], member_plan_overlay["status"]) == ("Approved", "Authorized")
+    assert (member_training["source_status"], member_training["status"]) == ("Scheduled", "Planned")
+    assert (member_exercise["source_status"], member_exercise["status"]) == ("Approved", "Authorized")
+    assert member_training["evidence_state"] == "Evidence Needed"
+    assert all("authority" not in item and "sensitivity" not in item and "visibility" not in item for item in member_overlays)
+    assert "Salus Planning Lead" in str(member_overlays)
+    assert "Protected Member Executive" not in str(member_overlays)
+    assert member_training["mission_path"] == [
+        {"id": f"salops-plan:{plan['id']}", "node_type": "Plan", "title": "Continuity plan"}
+    ]
+
+    # Overlay identifiers cannot enter Mission Structure write or transition routes.
+    overlay_id = f"salops-plan:{plan['id']}"
+    cannot_transition_overlay = client.post(
+        f"/api/salcapa/mission-map/nodes/{overlay_id}/transition", headers=director,
+        json={"status": "Planned", "reason": "Attempt to change a projection.",
+              "internal_next_step": None, "internal_waiting_on": None,
+              "member_next_step": None, "member_waiting_on": None},
+    )
+    assert cannot_transition_overlay.status_code == 404, cannot_transition_overlay.text
+    filtered_overlay = client.get(
+        "/api/salcapa/mission-map?assessment_id=1&functional_area=SalOPS&workflow_status=Authorized&owner=Salus%20Planning",
+        headers=director,
+    )
+    assert [item["id"] for item in filtered_overlay.json()["items"]] == [overlay_id]
     assert client.get(
         "/api/salcapa/mission-map?workflow_status=Red", headers=director
     ).status_code == 422
@@ -302,6 +387,7 @@ def main():
     js = (ROOT / "static" / "mission-map.js").read_text(encoding="utf-8")
     assert "Mission Map" in js and "Conventional list view" in js
     assert "Authorized portfolio view" in js and "Apply filters" in js
+    assert "Authoritative source" in js and "!item.read_only" in js
     assert "Waiting / input needed" in js and "not scores or judgments about people" not in js
     assert "SalCAPA makes" not in js and "SalTHIRA coordinates" not in js
     css = (ROOT / "static" / "mission-map.css").read_text(encoding="utf-8")
