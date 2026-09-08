@@ -5,6 +5,7 @@ on:
     branches: [development/salcapa-platform]
     paths:
       - 'salcapa_runtime.py'
+      - 'tools/run_current_release_smoke.py'
       - 'salops_plan_assembly.py'
       - 'static/salcapa-contextual-guidance.js'
       - 'static/salcapa-contextual-guidance.css'
@@ -59,15 +60,15 @@ jobs:
       - name: Install application and security tools
         run: python -m pip install -r requirements.txt -r requirements-ci.txt
       - name: Compile contextual guidance checks
-        run: python -m py_compile salcapa_runtime.py tools/ci_salcapa_contextual_guidance_smoke.py tools/ci_salcapa_human_first_communications_smoke.py
+        run: python -m py_compile salcapa_runtime.py tools/ci_salcapa_contextual_guidance_smoke.py tools/ci_salcapa_human_first_communications_smoke.py tools/run_current_release_smoke.py
       - name: Validate guidance JavaScript
         run: |
           node --check static/salcapa-contextual-guidance.js
           node --check static/salops-plan-assembly.js
       - name: Contextual guidance acceptance
-        run: python tools/ci_salcapa_contextual_guidance_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salcapa_contextual_guidance_smoke.py
       - name: Human-first communications acceptance
-        run: python tools/ci_salcapa_human_first_communications_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salcapa_human_first_communications_smoke.py
       - name: Static security scan
         run: bandit -q -r salcapa_runtime.py tools/ci_salcapa_contextual_guidance_smoke.py tools/ci_salcapa_human_first_communications_smoke.py -ll
       - name: Dependency audit
@@ -84,5 +85,5 @@ jobs:
         run: docker build --tag salcapa-contextual-guidance:ci .
       - name: Run guidance acceptance in container
         run: |
-          docker run --rm salcapa-contextual-guidance:ci python tools/ci_salcapa_contextual_guidance_smoke.py
-          docker run --rm salcapa-contextual-guidance:ci python tools/ci_salcapa_human_first_communications_smoke.py
+          docker run --rm salcapa-contextual-guidance:ci python tools/run_current_release_smoke.py tools/ci_salcapa_contextual_guidance_smoke.py
+          docker run --rm salcapa-contextual-guidance:ci python tools/run_current_release_smoke.py tools/ci_salcapa_human_first_communications_smoke.py

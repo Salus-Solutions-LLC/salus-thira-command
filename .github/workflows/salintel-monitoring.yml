@@ -5,6 +5,7 @@ on:
     branches: [development/salcapa-platform]
     paths:
       - 'salcapa_runtime.py'
+      - 'tools/run_current_release_smoke.py'
       - 'source_archives/development/salintel_monitoring.py.gz'
       - 'source_archives/development/ci_salintel_monitoring_smoke.py.gz'
       - 'tools/reconstruct_salintel_monitoring.py'
@@ -56,15 +57,15 @@ jobs:
       - name: Install application and security tools
         run: python -m pip install -r requirements.txt -r requirements-ci.txt
       - name: Compile recurring-monitoring capability
-        run: python -m py_compile salcapa_runtime.py salintel_monitoring.py tools/ci_salintel_monitoring_smoke.py tools/ci_salintel_monitoring_ui_smoke.py
+        run: python -m py_compile salcapa_runtime.py salintel_monitoring.py tools/ci_salintel_monitoring_smoke.py tools/ci_salintel_monitoring_ui_smoke.py tools/run_current_release_smoke.py
       - name: Validate monitoring interface JavaScript
         run: node --check static/salintel-monitoring.js && node --check static/salcapa-display.js && node --check static/personnel-assessment.js && node --check static/facility-assessment.js
       - name: Monitoring interface acceptance
-        run: python tools/ci_salintel_monitoring_ui_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salintel_monitoring_ui_smoke.py
       - name: Static security scan
         run: bandit -q -r salcapa_runtime.py salintel_monitoring.py -ll -s B608
       - name: SQLite recurring-monitoring acceptance
-        run: python tools/ci_salintel_monitoring_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salintel_monitoring_smoke.py
 
   postgres16:
     runs-on: ubuntu-latest
@@ -111,7 +112,7 @@ jobs:
           SALUS_SEED_DEMO: '1'
           SALUS_LOCAL_STORAGE_DIR: /tmp/monitoring-pg-attachments
           SALUS_BACKUP_DIR: /tmp/monitoring-pg-backups
-        run: python tools/ci_salintel_monitoring_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salintel_monitoring_smoke.py
 
   production-container:
     runs-on: ubuntu-latest
@@ -131,4 +132,4 @@ jobs:
             -e SALUS_BACKUP_DIR=/app/backups \
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
-            salcapa-monitoring:ci sh -c 'python tools/ci_salintel_monitoring_smoke.py && python tools/ci_salintel_monitoring_ui_smoke.py'
+            salcapa-monitoring:ci python tools/run_current_release_smoke.py tools/ci_salintel_monitoring_smoke.py tools/ci_salintel_monitoring_ui_smoke.py

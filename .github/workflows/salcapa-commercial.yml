@@ -6,6 +6,7 @@ on:
     paths:
       - 'salcapa_commercial.py'
       - 'salcapa_runtime.py'
+      - 'tools/run_current_release_smoke.py'
       - 'source_archives/development/salcapa_commercial.py.gz'
       - 'source_archives/development/ci_salcapa_commercial_smoke.py.gz'
       - 'tools/reconstruct_salcapa_commercial.py'
@@ -50,13 +51,13 @@ jobs:
       - name: Install application and security tools
         run: python -m pip install -r requirements.txt -r requirements-ci.txt
       - name: Compile commercial capability
-        run: python -m py_compile salcapa_commercial.py salcapa_runtime.py tools/ci_salcapa_commercial_smoke.py
+        run: python -m py_compile salcapa_commercial.py salcapa_runtime.py tools/ci_salcapa_commercial_smoke.py tools/run_current_release_smoke.py
       - name: Static security scan
         run: bandit -q -r salcapa_commercial.py salcapa_runtime.py -ll -s B608
       - name: Dependency audit
         run: pip-audit -r requirements.txt
       - name: SQLite commercial acceptance
-        run: python tools/ci_salcapa_commercial_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salcapa_commercial_smoke.py
 
   postgres16:
     runs-on: ubuntu-latest
@@ -107,7 +108,7 @@ jobs:
           SALUS_SEED_DEMO: '1'
           SALUS_LOCAL_STORAGE_DIR: /tmp/commercial-pg-attachments
           SALUS_BACKUP_DIR: /tmp/commercial-pg-backups
-        run: python tools/ci_salcapa_commercial_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salcapa_commercial_smoke.py
 
   production-container:
     runs-on: ubuntu-latest
@@ -127,4 +128,4 @@ jobs:
             -e SALUS_BACKUP_DIR=/app/backups \
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
-            salcapa-commercial:ci python tools/ci_salcapa_commercial_smoke.py
+            salcapa-commercial:ci python tools/run_current_release_smoke.py tools/ci_salcapa_commercial_smoke.py

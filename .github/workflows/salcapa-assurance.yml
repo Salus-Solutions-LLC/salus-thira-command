@@ -5,6 +5,7 @@ on:
     branches: [development/salcapa-platform]
     paths:
       - 'salcapa_runtime.py'
+      - 'tools/run_current_release_smoke.py'
       - 'source_archives/development/salcapa_assurance.py.gz'
       - 'source_archives/development/ci_salcapa_assurance_smoke.py.gz'
       - 'tools/reconstruct_salcapa_assurance.py'
@@ -51,15 +52,15 @@ jobs:
       - name: Install application and security tools
         run: python -m pip install -r requirements.txt -r requirements-ci.txt
       - name: Compile PROVE capability
-        run: python -m py_compile salcapa_runtime.py salcapa_assurance.py tools/ci_salcapa_assurance_smoke.py tools/ci_salcapa_assurance_ui_smoke.py
+        run: python -m py_compile salcapa_runtime.py salcapa_assurance.py tools/ci_salcapa_assurance_smoke.py tools/ci_salcapa_assurance_ui_smoke.py tools/run_current_release_smoke.py
       - name: Validate PROVE interface JavaScript
         run: node --check static/salcapa-assurance.js
       - name: PROVE interface acceptance
-        run: python tools/ci_salcapa_assurance_ui_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salcapa_assurance_ui_smoke.py
       - name: Static security scan
         run: bandit -q -r salcapa_runtime.py salcapa_assurance.py -ll -s B608
       - name: SQLite PROVE acceptance
-        run: python tools/ci_salcapa_assurance_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salcapa_assurance_smoke.py
 
   postgres16:
     runs-on: ubuntu-latest
@@ -107,7 +108,7 @@ jobs:
           SALUS_SEED_DEMO: '1'
           SALUS_LOCAL_STORAGE_DIR: /tmp/assurance-pg-attachments
           SALUS_BACKUP_DIR: /tmp/assurance-pg-backups
-        run: python tools/ci_salcapa_assurance_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salcapa_assurance_smoke.py
 
   production-container:
     runs-on: ubuntu-latest
@@ -127,4 +128,4 @@ jobs:
             -e SALUS_BACKUP_DIR=/app/backups \
             -e SALUS_AUTH_MODE=prototype \
             -e SALUS_SEED_DEMO=1 \
-            salcapa-assurance:ci sh -c 'python tools/ci_salcapa_assurance_smoke.py && python tools/ci_salcapa_assurance_ui_smoke.py'
+            salcapa-assurance:ci python tools/run_current_release_smoke.py tools/ci_salcapa_assurance_smoke.py tools/ci_salcapa_assurance_ui_smoke.py
