@@ -242,7 +242,7 @@ def register_salcapa_assurance(app, core: dict) -> None:
 
         correctives = []
         for item in conn.execute(
-            "SELECT DISTINCT action.id,action.observation_id,action.exercise_id,action.plan_id,"
+            "SELECT action.id,action.observation_id,action.exercise_id,action.plan_id,"
             "action.title,action.status,action.member_release_status,action.completion_evidence_json,"
             "action.validation_result,action.reexercise_required "
             "FROM salops_preparedness_corrective_actions action "
