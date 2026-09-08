@@ -34,17 +34,17 @@ WORKFLOW_STATES = (
 )
 TRANSITIONS = {
     "Draft": {"Planned"},
-    "Planned": {"Awaiting Input", "Awaiting Review", "Awaiting Approval", "Authorized", "In Progress", "Closed"},
-    "Awaiting Input": {"Planned", "In Progress", "Waiting"},
+    "Planned": {"Awaiting Input", "Awaiting Review", "Awaiting Approval", "Authorized", "Closed"},
+    "Awaiting Input": {"Planned", "Awaiting Review", "Awaiting Approval", "Waiting"},
     "Awaiting Review": {"Planned", "Awaiting Approval"},
     "Awaiting Approval": {"Planned", "Authorized"},
     "Authorized": {"In Progress"},
     "In Progress": {"Waiting", "Awaiting Input", "Awaiting Review", "Completed"},
-    "Waiting": {"Planned", "Awaiting Input", "In Progress"},
+    "Waiting": {"Planned", "Awaiting Input", "Awaiting Review", "Awaiting Approval", "Authorized"},
     "Completed": {"Awaiting Validation", "Validated", "Needs Reassessment", "Closed"},
     "Awaiting Validation": {"In Progress", "Validated", "Needs Reassessment"},
     "Validated": {"Needs Reassessment", "Closed"},
-    "Needs Reassessment": {"Planned", "In Progress", "Closed"},
+    "Needs Reassessment": {"Planned", "Awaiting Review", "Awaiting Approval", "Authorized", "Closed"},
     "Closed": set(),
 }
 LINK_TYPES = (
