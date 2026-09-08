@@ -35,7 +35,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.65"
+    assert client.get("/api/system/mode").json()["version"] == "3.66"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -325,6 +325,81 @@ def main() -> None:
     assert accepted_candidate.json()["creates_plan_version"] is False
     assert accepted_candidate.json()["creates_release"] is False
 
+    impact_path = f"/api/salops/preparedness/plans/{plan_id}/impact-detections"
+    forged_impact = client.post(impact_path, headers=director, json={
+        "source_record_type": "Governed Material", "source_record_id": str(material_id),
+        "change_summary": "Attempt to forge materiality and lifecycle.",
+        "status": "Material Change", "materiality_decision": "Material Change",
+        "revision_recommended": True, "creates_plan_version": True,
+    })
+    assert forged_impact.status_code == 422
+    detected = client.post(impact_path, headers=director, json={
+        "source_record_type": "Governed Material", "source_record_id": str(material_id),
+        "change_summary": "The governed communications source may invalidate the approved plan dependency assumption.",
+        "suggested_affected_sections": ["communications", "dependencies"],
+        "detection_reasons": ["The source describes a changed external communications dependency."],
+        "research_questions": ["What exact communications and continuity provisions require revision?"],
+        "known_unknowns": ["Alternate communications endurance remains unvalidated."],
+    })
+    assert detected.status_code == 200, detected.text
+    impact = detected.json()
+    impact_id = impact["id"]
+    assert impact["status"] == "Potential Impact"
+    assert impact["materiality_decision"] == "Not Reviewed"
+    assert impact["server_detected"] is True and impact["revision_recommended"] is False
+    assert impact["approved_plan_preserved"] is True
+    assert impact["creates_plan_version"] is False and impact["creates_release"] is False
+    assert impact["creates_authority"] is False and impact["creates_charge"] is False
+    assert impact["source_snapshot"]["id"] == material_id
+    assert len(impact["source_sha256"]) == 64
+    assert impact["suggested_affected_sections"] == ["communications", "dependencies"]
+    assert client.post(impact_path, headers=director, json={
+        "source_record_type": "Governed Material", "source_record_id": str(material_id),
+        "change_summary": "Exact duplicate must fail.",
+    }).status_code == 409
+    assert client.post(impact_path, headers=member, json={
+        "source_record_type": "Governed Material", "source_record_id": str(material_id),
+        "change_summary": "Protected Member must not create an internal detection.",
+    }).status_code == 403
+    assert client.get("/api/salops/preparedness/plan-impact-detections", headers=member).status_code == 403
+    assert client.get("/api/salops/preparedness/plan-impact-detections", headers=other).json() == []
+
+    missing_recommendation = client.post(
+        f"/api/salops/preparedness/plan-impact-detections/{impact_id}/review", headers=director,
+        json={"decision": "Material Change", "reason": "Materiality confirmed by human review."},
+    )
+    assert missing_recommendation.status_code == 422
+    impact_review = client.post(
+        f"/api/salops/preparedness/plan-impact-detections/{impact_id}/review", headers=director,
+        json={
+            "decision": "Material Change",
+            "reason": "Salus reviewed the governed source against the exact Approved plan and confirmed material impact.",
+            "confirmed_affected_sections": ["communications", "dependencies"],
+            "revision_recommendation": "Research and prepare a separate proposed plan revision; preserve the Approved version until authorized replacement.",
+        },
+    )
+    assert impact_review.status_code == 200, impact_review.text
+    reviewed_impact = impact_review.json()
+    assert reviewed_impact["status"] == "Revision Recommended"
+    assert reviewed_impact["materiality_decision"] == "Material Change"
+    assert reviewed_impact["revision_recommended"] is True
+    assert reviewed_impact["assembly_run_id"]
+    assert reviewed_impact["creates_plan_version"] is False
+    impact_run = client.get(
+        f"{create_path}/{reviewed_impact['assembly_run_id']}", headers=director,
+    )
+    assert impact_run.status_code == 200, impact_run.text
+    impact_run_data = impact_run.json()["run"]
+    assert impact_run_data["status"] == "Research Planning"
+    assert impact_run_data["base_plan_id"] == plan_id and impact_run_data["base_plan_version"] == 1
+    assert impact_run_data["affected_sections"] == ["communications", "dependencies"]
+    assert f"plan-impact:{impact_id}" in impact_run_data["internal_record_refs"]
+    assert impact_run.json()["plan_impact_detections"][0]["id"] == impact_id
+    assert client.post(
+        f"/api/salops/preparedness/plan-impact-detections/{impact_id}/review", headers=director,
+        json={"decision": "No Material Change", "reason": "Second decision must fail."},
+    ).status_code == 409
+
     still_approved = client.get(f"/api/salops/preparedness/plans/{plan_id}", headers=director).json()["plan"]
     assert still_approved["status"] == "Approved" and still_approved["version"] == 1
     bundle = client.get(f"{create_path}/{run_id}", headers=director)
@@ -344,6 +419,7 @@ def main() -> None:
         "salops_plan_assembly_runs", "salops_plan_assembly_sources",
         "salops_plan_assembly_questions", "salops_plan_assembly_sections",
         "salops_plan_revision_recommendations", "salops_plan_version_candidates",
+        "salops_plan_impact_detections", "salops_plan_impact_events",
         "salops_plan_assembly_events",
     ):
         assert table in records and records[table], table
@@ -355,6 +431,10 @@ def main() -> None:
     tampered_candidate["salops_plan_version_candidates"][0]["candidate_snapshot_json"] = '{}'
     errors = salcapa_runtime.core.validate_records(tampered_candidate, 1)
     assert any("failed integrity verification" in error for error in errors)
+    tampered_impact = {key: [dict(row) for row in value] for key, value in records.items()}
+    tampered_impact["salops_plan_impact_detections"][0]["source_snapshot_json"] = '{}'
+    errors = salcapa_runtime.core.validate_records(tampered_impact, 1)
+    assert any("plan-impact detection" in error and "integrity" in error for error in errors)
 
     print("SALOPS_AUTONOMOUS_PLAN_ASSEMBLY_PASS")
 

@@ -37,6 +37,13 @@ QUESTION_TARGETS = (
 )
 REVISION_STATES = ("Pending Salus Review", "Accepted for Drafting", "Rejected")
 CANDIDATE_STATES = ("Draft Candidate", "Candidate Reviewed", "Returned for Revision", "Accepted for Plan Revision", "Rejected")
+PLAN_IMPACT_SOURCE_TYPES = (
+    "SalINTEL Qualified Investigation", "SalINTEL Qualified Finding",
+    "SalINTEL Monitoring Review", "SalTHIRA Reassessment Trigger",
+    "SalOPS Exercise", "SalOPS Observation", "SalOPS Corrective Action",
+    "PROVE Released Assurance", "Governed Material",
+)
+PLAN_IMPACT_DECISIONS = ("Material Change", "No Material Change", "More Collection Required")
 
 
 SCHEMA = r"""
@@ -226,6 +233,63 @@ CREATE TABLE IF NOT EXISTS salops_plan_version_candidates (
 );
 CREATE INDEX IF NOT EXISTS idx_plan_version_candidates_scope ON salops_plan_version_candidates(tenant_id,status,baseline_plan_id,created_at);
 
+CREATE TABLE IF NOT EXISTS salops_plan_impact_detections (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  approved_plan_id TEXT NOT NULL,
+  approved_plan_version INTEGER NOT NULL,
+  approved_plan_sha256 TEXT NOT NULL,
+  source_record_type TEXT NOT NULL,
+  source_record_id TEXT NOT NULL,
+  source_snapshot_json TEXT NOT NULL,
+  source_sha256 TEXT NOT NULL,
+  source_recorded_at TEXT NOT NULL,
+  source_title TEXT NOT NULL,
+  temporal_relation TEXT NOT NULL,
+  change_summary TEXT NOT NULL,
+  suggested_affected_sections_json TEXT NOT NULL DEFAULT '[]',
+  detection_reasons_json TEXT NOT NULL DEFAULT '[]',
+  research_questions_json TEXT NOT NULL DEFAULT '[]',
+  known_unknowns_json TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'Potential Impact',
+  materiality_decision TEXT NOT NULL DEFAULT 'Not Reviewed',
+  confirmed_affected_sections_json TEXT NOT NULL DEFAULT '[]',
+  revision_recommended INTEGER NOT NULL DEFAULT 0,
+  revision_recommendation TEXT NOT NULL DEFAULT '',
+  assembly_run_id TEXT,
+  server_detected INTEGER NOT NULL DEFAULT 1,
+  approved_plan_preserved INTEGER NOT NULL DEFAULT 1,
+  creates_plan_version INTEGER NOT NULL DEFAULT 0,
+  creates_release INTEGER NOT NULL DEFAULT 0,
+  creates_authority INTEGER NOT NULL DEFAULT 0,
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  reviewed_by TEXT NOT NULL DEFAULT '',
+  reviewed_at TEXT NOT NULL DEFAULT '',
+  review_reason TEXT NOT NULL DEFAULT '',
+  UNIQUE(tenant_id,approved_plan_id,source_record_type,source_record_id,source_sha256),
+  FOREIGN KEY (approved_plan_id) REFERENCES salops_preparedness_plans(id) ON DELETE RESTRICT,
+  FOREIGN KEY (assembly_run_id) REFERENCES salops_plan_assembly_runs(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_plan_impact_detections_scope ON salops_plan_impact_detections(tenant_id,status,approved_plan_id,created_at);
+
+CREATE TABLE IF NOT EXISTS salops_plan_impact_events (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  detection_id TEXT NOT NULL,
+  event_no INTEGER NOT NULL,
+  event_type TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  changed_by TEXT NOT NULL,
+  changed_by_role TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(tenant_id,detection_id,event_no),
+  FOREIGN KEY (detection_id) REFERENCES salops_plan_impact_detections(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_plan_impact_events_scope ON salops_plan_impact_events(tenant_id,detection_id,event_no);
+
 CREATE TABLE IF NOT EXISTS salops_plan_assembly_events (
   id TEXT PRIMARY KEY,
   tenant_id INTEGER NOT NULL,
@@ -264,11 +328,16 @@ JSON_COLUMNS = {
         "candidate_snapshot", "section_manifest", "diff_manifest", "source_manifest",
         "unresolved_items",
     ),
+    "salops_plan_impact_detections": (
+        "source_snapshot", "suggested_affected_sections", "detection_reasons",
+        "research_questions", "known_unknowns", "confirmed_affected_sections",
+    ),
 }
 BACKUP_TABLES = (
     "salops_plan_assembly_runs", "salops_plan_assembly_sources",
     "salops_plan_assembly_questions", "salops_plan_assembly_sections",
     "salops_plan_revision_recommendations", "salops_plan_version_candidates",
+    "salops_plan_impact_detections", "salops_plan_impact_events",
     "salops_plan_assembly_events",
 )
 RESTORE_ORDER = BACKUP_TABLES
@@ -478,6 +547,45 @@ class VersionCandidateAccept(StrictModel):
     reason: str = Field(min_length=3, max_length=8000)
 
 
+class PlanImpactDetect(StrictModel):
+    source_record_type: Literal[
+        "SalINTEL Qualified Investigation", "SalINTEL Qualified Finding",
+        "SalINTEL Monitoring Review", "SalTHIRA Reassessment Trigger",
+        "SalOPS Exercise", "SalOPS Observation", "SalOPS Corrective Action",
+        "PROVE Released Assurance", "Governed Material",
+    ]
+    source_record_id: str = Field(min_length=1, max_length=200)
+    change_summary: str = Field(min_length=3, max_length=12000)
+    suggested_affected_sections: list[str] = Field(default_factory=list, max_length=100)
+    detection_reasons: list[str] = Field(default_factory=list, max_length=100)
+    research_questions: list[str] = Field(default_factory=list, max_length=100)
+    known_unknowns: list[str] = Field(default_factory=list, max_length=100)
+
+    @field_validator(
+        "suggested_affected_sections", "detection_reasons", "research_questions",
+        "known_unknowns",
+    )
+    @classmethod
+    def clean_impact_lists(cls, value: list[str]) -> list[str]:
+        cleaned = _clean_list(value)
+        if any(len(item) > 2000 for item in cleaned):
+            raise ValueError("Plan-impact entries may not exceed 2000 characters")
+        return cleaned
+
+
+class PlanImpactReview(StrictModel):
+    decision: Literal["Material Change", "No Material Change", "More Collection Required"]
+    reason: str = Field(min_length=3, max_length=8000)
+    confirmed_affected_sections: list[str] = Field(default_factory=list, max_length=100)
+    revision_recommendation: str = Field(default="", max_length=12000)
+
+    @model_validator(mode="after")
+    def material_decision_requires_recommendation(self):
+        if self.decision == "Material Change" and not self.revision_recommendation.strip():
+            raise ValueError("A Material Change decision requires a governed revision recommendation")
+        return self
+
+
 def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
     db = core["db"]
     now = core["now"]
@@ -503,7 +611,9 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         for name in JSON_COLUMNS.get(table, ()):
             storage = f"{name}_json"
             out[name] = _loads(out.pop(storage, None), {} if name == "portfolio_scope" else [])
-        for name in ("human_authority_required", "immutable_content", "approved_plan_preserved", "creates_plan_version", "creates_release", "creates_authority", "creates_charge"):
+        for name in ("human_authority_required", "immutable_content", "server_detected",
+                     "revision_recommended", "approved_plan_preserved", "creates_plan_version",
+                     "creates_release", "creates_authority", "creates_charge"):
             if name in out:
                 out[name] = bool(out[name])
         return out
@@ -584,6 +694,124 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             require_sensitivity(request, str(run.get("sensitivity") or "Standard"))
         return data
 
+    def impact_row(conn, detection_id: str, request: Request) -> dict[str, Any]:
+        row = conn.execute(
+            "SELECT * FROM salops_plan_impact_detections WHERE id=? AND tenant_id=?",
+            (detection_id, tenant_id(request)),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Plan-impact detection not found")
+        data = dict(row)
+        if _digest(_loads(data.get("source_snapshot_json"), {})) != data.get("source_sha256"):
+            raise HTTPException(409, "Plan-impact source snapshot integrity verification failed")
+        plan_row(conn, data["approved_plan_id"], request)
+        return data
+
+    def impact_event(conn, detection: dict[str, Any], event_type: str, reason: str, request: Request) -> None:
+        number = int(conn.execute(
+            "SELECT COUNT(*) c FROM salops_plan_impact_events WHERE tenant_id=? AND detection_id=?",
+            (detection["tenant_id"], detection["id"]),
+        ).fetchone()["c"]) + 1
+        conn.execute(
+            """INSERT INTO salops_plan_impact_events(
+            id,tenant_id,detection_id,event_no,event_type,reason,snapshot_json,
+            changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (_key("pie"), detection["tenant_id"], detection["id"], number,
+             event_type, reason, _json(detection), actor(request), role(request), now()),
+        )
+        audit(conn, f"SALOPS_PLAN_IMPACT_{event_type.upper().replace(' ', '_')}",
+              "salops_plan_impact", None, f"{detection['id']}: {reason}"[:1000], actor(request))
+
+    def numeric_source_id(value: str) -> int:
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            raise HTTPException(422, "This governed source type requires a numeric record ID")
+        if number <= 0:
+            raise HTTPException(422, "Governed source record ID must be positive")
+        return number
+
+    def resolve_impact_source(conn, plan: dict[str, Any], source_type: str,
+                              source_id: str, request: Request) -> tuple[dict[str, Any], str, str]:
+        """Resolve an allowlisted source and derive title/time without trusting client state."""
+        tid = tenant_id(request)
+        row = None
+        title_field, time_field = "title", "updated_at"
+        if source_type == "SalINTEL Qualified Investigation":
+            number = numeric_source_id(source_id)
+            row = conn.execute(
+                "SELECT * FROM salintel_investigations WHERE id=? AND tenant_id=?",
+                (number, tid),
+            ).fetchone()
+            if row and row["qualification_status"] != "Qualified":
+                raise HTTPException(409, "SalINTEL investigation must be human-qualified before plan-impact detection")
+        elif source_type == "SalINTEL Qualified Finding":
+            number = numeric_source_id(source_id)
+            row = conn.execute("SELECT * FROM intel_findings WHERE id=? AND tenant_id=?", (number, tid)).fetchone()
+            if row and row["status"] not in ("Qualified", "Sent to SalTHIRA"):
+                raise HTTPException(409, "SalINTEL finding must be qualified before plan-impact detection")
+            time_field = "qualified_at"
+        elif source_type == "SalINTEL Monitoring Review":
+            number = numeric_source_id(source_id)
+            row = conn.execute(
+                """SELECT item.* FROM salintel_investigation_items item
+                   JOIN salintel_investigations investigation ON investigation.id=item.investigation_id
+                   WHERE item.id=? AND item.tenant_id=? AND investigation.tenant_id=?""",
+                (number, tid, tid),
+            ).fetchone()
+            if row:
+                detail = _loads(row["detail"], {})
+                if (detail.get("record_type") != "salintel_monitoring_outcome_review"
+                        or detail.get("decision") != "Qualified" or detail.get("human_qualified") is not True):
+                    raise HTTPException(409, "Monitoring source must be a separately qualified outcome review")
+            time_field = "updated_at"
+        elif source_type == "SalTHIRA Reassessment Trigger":
+            number = numeric_source_id(source_id)
+            row = conn.execute(
+                """SELECT trigger.* FROM reassessment_triggers trigger
+                   JOIN assessments assessment ON assessment.id=trigger.assessment_id
+                   WHERE trigger.id=? AND assessment.tenant_id=?""", (number, tid),
+            ).fetchone()
+            if row and plan.get("assessment_id") and int(row["assessment_id"]) != int(plan["assessment_id"]):
+                raise HTTPException(409, "SalTHIRA trigger is outside the approved plan assessment scope")
+            title_field, time_field = "trigger_type", "updated_at"
+        elif source_type == "SalOPS Exercise":
+            row = conn.execute("SELECT * FROM salops_preparedness_exercises WHERE id=? AND tenant_id=?", (source_id, tid)).fetchone()
+            if row and (row["plan_id"] != plan["id"] or row["status"] not in ("Completed", "Evaluated", "Closed")):
+                raise HTTPException(409, "Exercise must be completed and explicitly linked to this approved plan")
+        elif source_type == "SalOPS Observation":
+            row = conn.execute(
+                """SELECT observation.* FROM salops_preparedness_observations observation
+                   JOIN salops_preparedness_exercises exercise ON exercise.id=observation.exercise_id
+                   WHERE observation.id=? AND observation.tenant_id=? AND exercise.tenant_id=? AND exercise.plan_id=?""",
+                (source_id, tid, tid, plan["id"]),
+            ).fetchone()
+            title_field = "title"
+        elif source_type == "SalOPS Corrective Action":
+            row = conn.execute("SELECT * FROM salops_preparedness_corrective_actions WHERE id=? AND tenant_id=?", (source_id, tid)).fetchone()
+            if row and row["plan_id"] != plan["id"]:
+                raise HTTPException(409, "Corrective action is not explicitly linked to this approved plan")
+        elif source_type == "PROVE Released Assurance":
+            number = numeric_source_id(source_id)
+            row = conn.execute("SELECT * FROM report_versions WHERE id=? AND tenant_id=?", (number, tid)).fetchone()
+            if row and (row["status"] != "Released" or not str(row["report_type"]).startswith("PROVE — ")):
+                raise HTTPException(409, "PROVE source must be a released assurance package")
+            if row and plan.get("assessment_id") and int(row["assessment_id"]) != int(plan["assessment_id"]):
+                raise HTTPException(409, "PROVE package is outside the approved plan assessment scope")
+            title_field, time_field = "report_type", "released_at"
+        elif source_type == "Governed Material":
+            number = numeric_source_id(source_id)
+            row = conn.execute("SELECT * FROM materials WHERE id=? AND tenant_id=?", (number, tid)).fetchone()
+            if row and row["disposition_status"] != "Active":
+                raise HTTPException(409, "Governed material is not active")
+            if row and str(row["scan_status"] or "").lower() in ("infected", "rejected", "blocked"):
+                raise HTTPException(409, "Unsafe or rejected material cannot create a plan-impact detection")
+            time_field = "updated_at"
+        if not row:
+            raise HTTPException(404, "Governed source record not found within this tenant and plan scope")
+        data = dict(row)
+        return data, str(data.get(title_field) or f"{source_type} {source_id}"), str(data.get(time_field) or data.get("created_at") or now())
+
     def run_bundle(conn, row: dict[str, Any], request: Request) -> dict[str, Any]:
         run_id = row["id"]
         sources = [decode("salops_plan_assembly_sources", dict(item)) for item in conn.execute(
@@ -606,6 +834,10 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             "SELECT * FROM salops_plan_version_candidates WHERE tenant_id=? AND run_id=? ORDER BY created_at,id",
             (tenant_id(request), run_id),
         )]
+        impacts = [decode("salops_plan_impact_detections", dict(item)) for item in conn.execute(
+            "SELECT * FROM salops_plan_impact_detections WHERE tenant_id=? AND assembly_run_id=? ORDER BY created_at,id",
+            (tenant_id(request), run_id),
+        )]
         events = [dict(item) for item in conn.execute(
             "SELECT event_no,event_type,reason,changed_by,changed_by_role,created_at FROM salops_plan_assembly_events WHERE tenant_id=? AND run_id=? ORDER BY event_no",
             (tenant_id(request), run_id),
@@ -613,7 +845,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         return {"run": decode("salops_plan_assembly_runs", row), "sources": sources,
                 "questions": questions, "sections": sections,
                 "revision_recommendations": recommendations,
-                "version_candidates": candidates, "events": events}
+                "version_candidates": candidates, "plan_impact_detections": impacts,
+                "events": events}
 
     @app.get("/api/salops/preparedness/plan-assembly/catalog")
     def catalog(request: Request):
@@ -625,6 +858,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             "automated_draft_epistemic_states": [state for state in EPISTEMIC_STATES if state != "Verified Fact"],
             "workflow": list(RUN_STATES),
             "candidate_workflow": list(CANDIDATE_STATES),
+            "plan_impact_source_types": list(PLAN_IMPACT_SOURCE_TYPES),
+            "plan_impact_review_decisions": list(PLAN_IMPACT_DECISIONS),
             "authority": {
                 "chat_may": ["Inspect", "Research", "Reconcile", "Draft", "Compare", "Recommend"],
                 "human_controls": ["Legal authority", "Organizational policy", "Emergency command authority",
@@ -1234,6 +1469,172 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         finally:
             conn.close()
 
+    @app.get("/api/salops/preparedness/plan-impact-detections")
+    def list_plan_impact_detections(request: Request, status: str = ""):
+        salus_access(request)
+        clauses = ["tenant_id=?"]
+        params: list[Any] = [tenant_id(request)]
+        if status:
+            clauses.append("status=?")
+            params.append(status)
+        conn = db()
+        try:
+            rows = []
+            for item in conn.execute(
+                "SELECT * FROM salops_plan_impact_detections WHERE " + " AND ".join(clauses)
+                + " ORDER BY created_at DESC,id", tuple(params),
+            ):
+                data = impact_row(conn, item["id"], request)
+                rows.append(decode("salops_plan_impact_detections", data))
+            return rows
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plans/{plan_id}/impact-detections")
+    def detect_plan_impact(plan_id: str, payload: PlanImpactDetect, request: Request):
+        salus_access(request, "write")
+        conn = db()
+        try:
+            plan = plan_row(conn, plan_id, request)
+            if plan["status"] != "Approved":
+                raise HTTPException(409, "Plan-impact detection requires the current Approved plan baseline")
+            source, source_title, source_recorded_at = resolve_impact_source(
+                conn, plan, payload.source_record_type, payload.source_record_id, request,
+            )
+            source_sha256 = _digest(source)
+            existing = conn.execute(
+                """SELECT id FROM salops_plan_impact_detections
+                   WHERE tenant_id=? AND approved_plan_id=? AND source_record_type=?
+                   AND source_record_id=? AND source_sha256=?""",
+                (tenant_id(request), plan_id, payload.source_record_type,
+                 payload.source_record_id, source_sha256),
+            ).fetchone()
+            if existing:
+                raise HTTPException(409, "This exact governed source version has already been evaluated for plan impact")
+            defaults = {
+                "SalINTEL Qualified Investigation": ["assumptions", "concept_of_operations", "dependencies"],
+                "SalINTEL Qualified Finding": ["assumptions", "activation_criteria", "concept_of_operations"],
+                "SalINTEL Monitoring Review": ["assumptions", "dependencies", "activation_criteria"],
+                "SalTHIRA Reassessment Trigger": ["assumptions", "concept_of_operations", "exercise_validation_requirements"],
+                "SalOPS Exercise": ["concept_of_operations", "training_requirements", "exercise_validation_requirements"],
+                "SalOPS Observation": ["concept_of_operations", "checklists_job_aids", "training_requirements"],
+                "SalOPS Corrective Action": ["checklists_job_aids", "training_requirements", "exercise_validation_requirements"],
+                "PROVE Released Assurance": ["evidence_refs", "exercise_validation_requirements"],
+                "Governed Material": ["authorities_references", "assumptions", "dependencies"],
+            }
+            affected = payload.suggested_affected_sections or defaults[payload.source_record_type]
+            reasons = _clean_list([
+                "The source is an actual tenant-scoped governed record resolved by an allowlisted adapter.",
+                f"The current Approved plan v{plan['version']} was integrity-snapshotted before impact review.",
+                *payload.detection_reasons,
+            ])
+            research_questions = payload.research_questions or [
+                f"How does {source_title} affect the current approved plan and its documented assumptions?",
+                "Which proposed changes require legal, policy, command, evacuation, contractual, or other human authority?",
+            ]
+            unknowns = payload.known_unknowns or [
+                "Materiality and exact plan impact remain subject to Salus human review."
+            ]
+            temporal = ("Recorded after plan approval" if source_recorded_at > str(plan.get("approved_at") or "")
+                        else "Recorded on or before plan approval — review possible omission or later qualification")
+            detection_id = _key("pid")
+            stamp = now()
+            conn.execute(
+                """INSERT INTO salops_plan_impact_detections(
+                id,tenant_id,approved_plan_id,approved_plan_version,approved_plan_sha256,
+                source_record_type,source_record_id,source_snapshot_json,source_sha256,
+                source_recorded_at,source_title,temporal_relation,change_summary,
+                suggested_affected_sections_json,detection_reasons_json,research_questions_json,
+                known_unknowns_json,status,materiality_decision,revision_recommended,
+                server_detected,approved_plan_preserved,creates_plan_version,creates_release,
+                creates_authority,creates_charge,created_by,created_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (detection_id, tenant_id(request), plan_id, int(plan["version"]), _digest(plan),
+                 payload.source_record_type, payload.source_record_id, _json(source), source_sha256,
+                 source_recorded_at, source_title, temporal, payload.change_summary,
+                 _json(affected), _json(reasons), _json(research_questions), _json(unknowns),
+                 "Potential Impact", "Not Reviewed", 0, 1, 1, 0, 0, 0, 0,
+                 actor(request), stamp),
+            )
+            created = impact_row(conn, detection_id, request)
+            impact_event(conn, created, "Potential Impact Detected",
+                         "Actual governed source resolved and compared to the Approved baseline; materiality, revision, authority, release, disclosure, and cost remain undecided.", request)
+            conn.commit()
+            return decode("salops_plan_impact_detections", created)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-impact-detections/{detection_id}/review")
+    def review_plan_impact(detection_id: str, payload: PlanImpactReview, request: Request):
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Program Owner"):
+            raise HTTPException(403, "This role cannot determine plan-impact materiality")
+        conn = db()
+        try:
+            detection = impact_row(conn, detection_id, request)
+            if detection["status"] != "Potential Impact" or detection["materiality_decision"] != "Not Reviewed":
+                raise HTTPException(409, "This potential plan impact already has a materiality decision")
+            plan = plan_row(conn, detection["approved_plan_id"], request)
+            if (plan["status"] != "Approved" or int(plan["version"]) != int(detection["approved_plan_version"])
+                    or _digest(plan) != detection["approved_plan_sha256"]):
+                raise HTTPException(409, "The Approved plan baseline changed; create a new impact detection")
+            confirmed = _clean_list(payload.confirmed_affected_sections) or _loads(
+                detection["suggested_affected_sections_json"], []
+            )
+            status = {
+                "Material Change": "Revision Recommended",
+                "No Material Change": "Closed — No Material Change",
+                "More Collection Required": "Collection Required",
+            }[payload.decision]
+            run_id: Optional[str] = None
+            stamp, who = now(), actor(request)
+            if payload.decision == "Material Change":
+                if not confirmed:
+                    raise HTTPException(409, "A Material Change decision requires at least one affected plan section")
+                run_id = _key("par")
+                research_questions = _loads(detection["research_questions_json"], []) or [
+                    "What exact source-grounded changes are required in the approved plan?"
+                ]
+                known_unknowns = _loads(detection["known_unknowns_json"], [])
+                conn.execute(
+                    """INSERT INTO salops_plan_assembly_runs(
+                    id,tenant_id,base_plan_id,base_plan_version,base_plan_status,base_plan_snapshot_json,
+                    base_plan_sha256,assembly_mode,plan_title,plan_type,purpose,scope_statement,
+                    portfolio_scope_json,internal_record_refs_json,library_refs_json,
+                    authorized_external_sources_json,source_exclusions_json,research_questions_json,
+                    known_unknowns_json,assumptions_to_validate_json,affected_sections_json,sensitivity,
+                    status,current_iteration,created_by,created_at,updated_by,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (run_id, tenant_id(request), plan["id"], int(plan["version"]), plan["status"],
+                     _json(plan), _digest(plan), "Revision", f"{plan['title']} — proposed revision",
+                     plan["plan_type"], f"Research and draft the human-confirmed material plan impact {detection_id}.",
+                     plan["scope_statement"], plan["portfolio_scope_json"],
+                     _json([f"plan-impact:{detection_id}", f"{detection['source_record_type']}:{detection['source_record_id']}"]),
+                     "[]", "[]", "[]", _json(research_questions), _json(known_unknowns),
+                     _json(known_unknowns), _json(confirmed), plan["sensitivity"], "Research Planning", 1,
+                     who, stamp, who, stamp),
+                )
+                run = dict(conn.execute("SELECT * FROM salops_plan_assembly_runs WHERE id=?", (run_id,)).fetchone())
+                event(conn, run, "Create from Material Plan Impact",
+                      f"{detection_id}: separate bounded revision research started; Approved plan v{plan['version']} remains unchanged.", request)
+            conn.execute(
+                """UPDATE salops_plan_impact_detections SET status=?,materiality_decision=?,
+                confirmed_affected_sections_json=?,revision_recommended=?,revision_recommendation=?,
+                assembly_run_id=?,reviewed_by=?,reviewed_at=?,review_reason=?
+                WHERE id=? AND tenant_id=?""",
+                (status, payload.decision, _json(confirmed),
+                 1 if payload.decision == "Material Change" else 0,
+                 payload.revision_recommendation if payload.decision == "Material Change" else "",
+                 run_id, who, stamp, payload.reason, detection_id, tenant_id(request)),
+            )
+            updated = impact_row(conn, detection_id, request)
+            impact_event(conn, updated, f"Materiality Review — {payload.decision}",
+                         f"{payload.reason}; Approved plan preserved and no plan version, authority, release, disclosure, or charge created.", request)
+            conn.commit()
+            return decode("salops_plan_impact_detections", updated)
+        finally:
+            conn.close()
+
     original_collect = core.get("collect_tenant_records")
     original_validate = core.get("validate_records")
     original_replace = core.get("replace_tenant_records")
@@ -1253,6 +1654,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             plan_ids = {str(row.get("id")) for row in records.get("salops_preparedness_plans", []) if row.get("id")}
             source_ids_in_backup = ids["salops_plan_assembly_sources"]
             recommendation_ids = ids["salops_plan_revision_recommendations"]
+            impact_ids = ids["salops_plan_impact_detections"]
             for table in BACKUP_TABLES:
                 for row in records.get(table, []):
                     if int(row.get("tenant_id", -1)) != int(tid):
@@ -1279,6 +1681,17 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 snapshot = _loads(row.get("candidate_snapshot_json"), {})
                 if not snapshot or _digest(snapshot) != row.get("candidate_sha256"):
                     errors.append(f"plan-version candidate {row.get('id')} failed integrity verification")
+            for row in records.get("salops_plan_impact_detections", []):
+                if str(row.get("approved_plan_id")) not in plan_ids:
+                    errors.append(f"plan-impact detection {row.get('id')} has invalid approved_plan_id")
+                if row.get("assembly_run_id") and str(row["assembly_run_id"]) not in run_ids:
+                    errors.append(f"plan-impact detection {row.get('id')} has invalid assembly_run_id")
+                snapshot = _loads(row.get("source_snapshot_json"), {})
+                if not snapshot or _digest(snapshot) != row.get("source_sha256"):
+                    errors.append(f"plan-impact detection {row.get('id')} failed source snapshot integrity verification")
+            for row in records.get("salops_plan_impact_events", []):
+                if str(row.get("detection_id")) not in impact_ids:
+                    errors.append(f"plan-impact event {row.get('id')} has invalid detection_id")
             return errors
 
         def extended_validate(records: dict, tid: Optional[int] = None):

@@ -23,6 +23,7 @@ import salcapa_runtime
 JS = (ROOT / "static" / "salops-plan-assembly.js").read_text(encoding="utf-8")
 CSS = (ROOT / "static" / "salops-plan-assembly.css").read_text(encoding="utf-8")
 RUNTIME = (ROOT / "salcapa_runtime.py").read_text(encoding="utf-8")
+SERVER = (ROOT / "salops_plan_assembly.py").read_text(encoding="utf-8")
 
 
 def require(value: str, source: str) -> None:
@@ -31,7 +32,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.65"',
+    'SALCAPA_RELEASE_VERSION = "3.66"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -40,7 +41,7 @@ for value in (
 
 for value in (
     "Emergency Plan Assembly",
-    "SalCAPA can inspect, research, reconcile, draft, compare, and recommend",
+    "SalCAPA can inspect, research, reconcile, draft, compare, detect potential change, and recommend",
     "Salus personnel validate, establish authority, approve, and release",
     "It does not approve a plan, establish authority, release information, or create a charge",
     "Accessed",
@@ -66,8 +67,21 @@ for value in (
     "reviewSalopsPlanVersionCandidate",
     "acceptSalopsPlanVersionCandidate",
     "Accepted for Plan Revision",
+    "Living-plan material-change detection",
+    "Potential impacts are detected from actual tenant-scoped records",
+    "Authorized Salus personnel decide materiality",
+    "No plan version, authority, release, disclosure, or charge created",
+    "detectSalopsPlanImpact",
+    "reviewSalopsPlanImpact",
 ):
     require(value, JS)
+
+for value in (
+    "SalINTEL Monitoring Review",
+    "SalTHIRA Reassessment Trigger",
+    "PROVE Released Assurance",
+):
+    require(value, SERVER)
 
 for forbidden in (
     "risk-low", "risk-high", "background:#dc2626", "background:#16a34a",
@@ -107,6 +121,6 @@ member = {
 path = "/api/salops/preparedness/plan-assembly/catalog"
 assert client.get(path, headers=director).status_code == 200
 assert client.get(path, headers=member).status_code == 403
-assert client.get("/api/system/mode").json()["version"] == "3.65"
+assert client.get("/api/system/mode").json()["version"] == "3.66"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")
