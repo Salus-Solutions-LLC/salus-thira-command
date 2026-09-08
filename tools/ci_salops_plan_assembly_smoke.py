@@ -35,7 +35,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.66"
+    assert client.get("/api/system/mode").json()["version"] == "3.67"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -325,6 +325,56 @@ def main() -> None:
     assert accepted_candidate.json()["creates_plan_version"] is False
     assert accepted_candidate.json()["creates_release"] is False
 
+    materialize_path = f"{create_path}/version-candidates/{candidate_id}/materialize-draft"
+    forged_materialization = client.post(materialize_path, headers=director, json={
+        "reason": "Attempt to forge plan release.", "status": "Approved", "creates_release": True,
+    })
+    assert forged_materialization.status_code == 422
+    assert client.post(materialize_path, headers=member, json={
+        "reason": "Protected Member must not materialize an internal plan candidate.",
+    }).status_code == 403
+    assert client.post(materialize_path, headers=other, json={
+        "reason": "Other tenant must not access the candidate.",
+    }).status_code == 404
+    materialized = client.post(materialize_path, headers=director, json={
+        "reason": "Create a separate Draft from the accepted immutable candidate for normal Salus review; preserve the Approved baseline.",
+    })
+    assert materialized.status_code == 200, materialized.text
+    materialization = materialized.json()
+    draft_plan_id = materialization["draft_plan_id"]
+    assert materialization["status"] == "Draft Materialized"
+    assert materialization["draft_plan_version"] == 2
+    assert materialization["candidate_sha256"] == frozen["candidate_sha256"]
+    assert materialization["approved_plan_preserved"] is True
+    assert materialization["creates_plan_version"] is True
+    assert materialization["creates_release"] is False
+    assert materialization["creates_authority"] is False
+    assert materialization["creates_charge"] is False
+    assert len(materialization["draft_plan_sha256"]) == 64
+    assert materialization["draft_plan_snapshot"]["id"] == draft_plan_id
+    assert materialization["draft_plan_snapshot"]["status"] == "Draft"
+    assert materialization["draft_plan_snapshot"]["version"] == 2
+    assert materialization["draft_plan_snapshot"]["communications"] == section.json()["content"]
+    assert materialization["draft_plan_snapshot"]["commercial_treatment"] == "Not Determined"
+    draft_bundle = client.get(f"/api/salops/preparedness/plans/{draft_plan_id}", headers=director)
+    assert draft_bundle.status_code == 200
+    assert draft_bundle.json()["events"][0]["event_type"] == "Materialize Separate Draft"
+    assert client.get(f"/api/salops/preparedness/plans/{draft_plan_id}", headers=member).status_code == 403
+    assert client.post(materialize_path, headers=director, json={
+        "reason": "Duplicate materialization must fail.",
+    }).status_code == 409
+    listed_materializations = client.get("/api/salops/preparedness/plan-materializations", headers=director)
+    assert listed_materializations.status_code == 200
+    assert listed_materializations.json()[0]["draft_plan_id"] == draft_plan_id
+    assert client.get("/api/salops/preparedness/plan-materializations", headers=member).status_code == 403
+    assert client.get("/api/salops/preparedness/plan-materializations", headers=other).json() == []
+    preserved_after_materialization = client.get(
+        f"/api/salops/preparedness/plans/{plan_id}", headers=director,
+    ).json()["plan"]
+    assert preserved_after_materialization == approved
+    materialized_bundle = client.get(f"{create_path}/{run_id}", headers=director).json()
+    assert materialized_bundle["plan_materializations"][0]["draft_plan_id"] == draft_plan_id
+
     impact_path = f"/api/salops/preparedness/plans/{plan_id}/impact-detections"
     forged_impact = client.post(impact_path, headers=director, json={
         "source_record_type": "Governed Material", "source_record_id": str(material_id),
@@ -419,6 +469,7 @@ def main() -> None:
         "salops_plan_assembly_runs", "salops_plan_assembly_sources",
         "salops_plan_assembly_questions", "salops_plan_assembly_sections",
         "salops_plan_revision_recommendations", "salops_plan_version_candidates",
+        "salops_plan_materializations",
         "salops_plan_impact_detections", "salops_plan_impact_events",
         "salops_plan_assembly_events",
     ):
@@ -435,6 +486,10 @@ def main() -> None:
     tampered_impact["salops_plan_impact_detections"][0]["source_snapshot_json"] = '{}'
     errors = salcapa_runtime.core.validate_records(tampered_impact, 1)
     assert any("plan-impact detection" in error and "integrity" in error for error in errors)
+    tampered_materialization = {key: [dict(row) for row in value] for key, value in records.items()}
+    tampered_materialization["salops_plan_materializations"][0]["draft_plan_snapshot_json"] = '{}'
+    errors = salcapa_runtime.core.validate_records(tampered_materialization, 1)
+    assert any("plan materialization" in error and "integrity" in error for error in errors)
 
     print("SALOPS_AUTONOMOUS_PLAN_ASSEMBLY_PASS")
 

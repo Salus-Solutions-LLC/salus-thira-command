@@ -10,23 +10,23 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salops_plan_assembly.py.gz",
         ROOT / "salops_plan_assembly.py",
-        "1fa865d90c42701a6522f21947855268907cd7bc1ef96939e75f3f08fd06b6ba",
-        "81e3f7765b3cb893124a9351a435b7661bfd16ac6d6623509fb81f628fefe7ec",
-        97154,
+        "7f3a9ba0869286d6aa76ae8c349d32da44cc77227c5b1fb8b9ea837988e0ea03",
+        "c424d58995deb42963e542e35f815c6e011c39ea445f3cbbc6a22227bb006d0a",
+        110493,
     ),
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "9a94e6a4dcd832d501d69948f40e6d01635aec9a8621f2df987d33f98ebcfdf0",
-        "1ca14a30cea4f72a2b51732faeef2bc2781b8dbea4c8ae476f2d6f8b8d3e8865",
-        26023,
+        "0addadd544953928ad2b9c89afb2e657c93b7fa53f3ae2a680c64672e03b2fdc",
+        "9bca810b61c68eacb568ed37a0eab8e06a956fe87fc89363f83a4ca4cdfa5b4e",
+        29738,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.js.gz",
         ROOT / "static/salops-plan-assembly.js",
-        "c1f207901a970fccd3a0a817a32dda85e96e845a3688945772cb97931911e078",
-        "3e197aea019ae3a32b61cf4ab595dbc8ef3bec3c7484a7c1d1f8697fb52c9760",
-        35983,
+        "5871273b6659761defd664946dbe32b0ac8c5f6530c180cc97052fc7d8299454",
+        "98dd43ba2c0dde2dd8f7eaeda1b46d037dcc35e24559727af91143ed53cd6d80",
+        37187,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.css.gz",
@@ -38,9 +38,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "c8fc3995421b1341776f1d850f12e1fec6ea56c126ecb52e056199e78a00d4fb",
-        "de2650080a3488d71b12fe553a95b5c8b1e6238e1d44d2c3baaabb8631dfc946",
-        4468,
+        "d23bf2b7d2ed529b8e4354c1f534b58e64a392bd257861465342543b69795871",
+        "5d847bd86961c51fc837c81aa3304901dae4189fa507b01955c46e136e315413",
+        4688,
     ),
 )
 
