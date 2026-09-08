@@ -48,6 +48,8 @@ RESEARCH_COST_CATEGORIES = (
     "Chat / AI", "Salus Human Labor", "External Data", "Approved Partner", "Other Direct",
 )
 RESEARCH_COST_MEASUREMENTS = ("Actual Metered", "Provider Estimate", "Planning Allowance Applied")
+PREPAREDNESS_HANDOFF_TYPES = ("Training", "Exercise", "Validation")
+PREPAREDNESS_HANDOFF_STATES = ("Pending Human Review", "Accepted", "Rejected", "Materialized")
 PLAN_SECTION_FIELDS = {
     "authorities": "authorities_references", "authorities_references": "authorities_references",
     "assumptions": "assumptions", "roles": "roles_responsibilities",
@@ -342,6 +344,55 @@ CREATE TABLE IF NOT EXISTS salops_plan_successor_events (
 );
 CREATE INDEX IF NOT EXISTS idx_plan_successor_events_scope ON salops_plan_successor_events(tenant_id,governance_id,event_no);
 
+CREATE TABLE IF NOT EXISTS salops_plan_preparedness_handoffs (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  run_id TEXT NOT NULL,
+  governance_id TEXT NOT NULL,
+  released_plan_id TEXT NOT NULL,
+  handoff_type TEXT NOT NULL,
+  recommendation TEXT NOT NULL,
+  recommendation_sha256 TEXT NOT NULL,
+  proposal_snapshot_json TEXT NOT NULL,
+  proposal_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Pending Human Review',
+  target_record_type TEXT NOT NULL DEFAULT '',
+  target_record_id TEXT NOT NULL DEFAULT '',
+  creates_schedule INTEGER NOT NULL DEFAULT 0,
+  creates_release INTEGER NOT NULL DEFAULT 0,
+  creates_authority INTEGER NOT NULL DEFAULT 0,
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  reviewed_by TEXT NOT NULL DEFAULT '',
+  reviewed_at TEXT NOT NULL DEFAULT '',
+  review_reason TEXT NOT NULL DEFAULT '',
+  materialized_by TEXT NOT NULL DEFAULT '',
+  materialized_at TEXT NOT NULL DEFAULT '',
+  materialization_reason TEXT NOT NULL DEFAULT '',
+  UNIQUE(tenant_id,run_id,handoff_type,recommendation_sha256),
+  FOREIGN KEY (run_id) REFERENCES salops_plan_assembly_runs(id) ON DELETE RESTRICT,
+  FOREIGN KEY (governance_id) REFERENCES salops_plan_successor_governance(id) ON DELETE RESTRICT,
+  FOREIGN KEY (released_plan_id) REFERENCES salops_preparedness_plans(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_plan_preparedness_handoffs_scope ON salops_plan_preparedness_handoffs(tenant_id,run_id,status,handoff_type,created_at);
+
+CREATE TABLE IF NOT EXISTS salops_plan_preparedness_handoff_events (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  handoff_id TEXT NOT NULL,
+  event_no INTEGER NOT NULL,
+  event_type TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  changed_by TEXT NOT NULL,
+  changed_by_role TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(tenant_id,handoff_id,event_no),
+  FOREIGN KEY (handoff_id) REFERENCES salops_plan_preparedness_handoffs(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_plan_preparedness_handoff_events_scope ON salops_plan_preparedness_handoff_events(tenant_id,handoff_id,event_no);
+
 CREATE TABLE IF NOT EXISTS salops_plan_research_cost_envelopes (
   id TEXT PRIMARY KEY,
   tenant_id INTEGER NOT NULL,
@@ -493,6 +544,7 @@ JSON_COLUMNS = {
     "salops_plan_successor_governance": (
         "review_snapshot", "approval_snapshot", "released_plan_snapshot",
     ),
+    "salops_plan_preparedness_handoffs": ("proposal_snapshot",),
     "salops_plan_research_cost_usage": ("metered_units",),
     "salops_plan_impact_detections": (
         "source_snapshot", "suggested_affected_sections", "detection_reasons",
@@ -505,6 +557,7 @@ BACKUP_TABLES = (
     "salops_plan_revision_recommendations", "salops_plan_version_candidates",
     "salops_plan_materializations",
     "salops_plan_successor_governance", "salops_plan_successor_events",
+    "salops_plan_preparedness_handoffs", "salops_plan_preparedness_handoff_events",
     "salops_plan_research_cost_envelopes", "salops_plan_research_cost_usage",
     "salops_plan_impact_detections", "salops_plan_impact_events",
     "salops_plan_assembly_events",
@@ -735,6 +788,15 @@ class PlanSuccessorRelease(StrictModel):
     unresolved_items_accepted: Literal[True]
 
 
+class PreparednessHandoffReview(StrictModel):
+    decision: Literal["Accepted", "Rejected"]
+    reason: str = Field(min_length=3, max_length=8000)
+
+
+class PreparednessHandoffMaterialize(StrictModel):
+    reason: str = Field(min_length=3, max_length=8000)
+
+
 class ResearchCostEnvelopeCreate(StrictModel):
     currency: Literal["USD"] = "USD"
     estimated_chat_ai_cost_cents: int = Field(default=0, ge=0, le=100_000_000)
@@ -860,7 +922,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                      "revision_recommended", "approved_plan_preserved", "creates_plan_version",
                      "approved_baseline_preserved", "authority_confirmed", "disclosure_authorized",
                      "unresolved_items_accepted",
-                     "creates_release", "creates_authority", "creates_customer_price",
+                     "creates_schedule", "creates_release", "creates_authority", "creates_customer_price",
                      "creates_charge", "creates_invoice"):
             if name in out:
                 out[name] = bool(out[name])
@@ -1014,6 +1076,102 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         audit(conn, f"SALOPS_PLAN_SUCCESSOR_{event_type.upper().replace(' ', '_')}",
               "salops_plan_successor_governance", None,
               f"{governance['id']}: {reason}"[:1000], actor(request))
+
+    def handoff_row(conn, handoff_id: str, request: Request) -> dict[str, Any]:
+        row = conn.execute(
+            "SELECT * FROM salops_plan_preparedness_handoffs WHERE id=? AND tenant_id=?",
+            (handoff_id, tenant_id(request)),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Preparedness handoff not found")
+        data = dict(row)
+        proposal = _loads(data.get("proposal_snapshot_json"), {})
+        if (_digest(data.get("recommendation") or "") != data.get("recommendation_sha256")
+                or not proposal or _digest(proposal) != data.get("proposal_sha256")):
+            raise HTTPException(409, "Preparedness handoff integrity verification failed")
+        governance = conn.execute(
+            "SELECT * FROM salops_plan_successor_governance WHERE id=? AND tenant_id=?",
+            (data["governance_id"], tenant_id(request)),
+        ).fetchone()
+        if not governance or governance["status"] != "Released" or governance["released_plan_id"] != data["released_plan_id"]:
+            raise HTTPException(409, "Preparedness handoff is not linked to a released governed successor")
+        plan_row(conn, data["released_plan_id"], request)
+        return data
+
+    def handoff_event(conn, handoff: dict[str, Any], event_type: str,
+                      reason: str, request: Request) -> None:
+        number = int(conn.execute(
+            "SELECT COUNT(*) c FROM salops_plan_preparedness_handoff_events WHERE tenant_id=? AND handoff_id=?",
+            (handoff["tenant_id"], handoff["id"]),
+        ).fetchone()["c"]) + 1
+        conn.execute(
+            """INSERT INTO salops_plan_preparedness_handoff_events(
+            id,tenant_id,handoff_id,event_no,event_type,reason,snapshot_json,
+            changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (_key("phe"), handoff["tenant_id"], handoff["id"], number, event_type,
+             reason, _json(handoff), actor(request), role(request), now()),
+        )
+        audit(conn, f"SALOPS_PLAN_HANDOFF_{event_type.upper().replace(' ', '_')}",
+              "salops_plan_preparedness_handoffs", None,
+              f"{handoff['id']}: {reason}"[:1000], actor(request))
+
+    def create_preparedness_handoffs(conn, governance: dict[str, Any],
+                                     released: dict[str, Any], request: Request) -> None:
+        """Create inert, immutable proposals from qualified recommendations after plan release."""
+        candidate = candidate_row(conn, governance["candidate_id"], request)
+        run = run_row(conn, candidate["run_id"], request)
+        recommendation_sets = (
+            ("Training", _loads(run["proposed_training_actions_json"], [])),
+            ("Exercise", _loads(run["proposed_exercise_actions_json"], [])),
+            ("Validation", _loads(run["proposed_validation_actions_json"], [])),
+        )
+        stamp, who = now(), actor(request)
+        for handoff_type, recommendations in recommendation_sets:
+            for recommendation in _clean_list([str(item) for item in recommendations]):
+                recommendation_sha = _digest(recommendation)
+                title = recommendation[:180].rstrip(" .") or f"{handoff_type} requirement"
+                proposal = {
+                    "schema": "salops.plan-preparedness-handoff.v1",
+                    "handoff_type": handoff_type,
+                    "recommendation": recommendation,
+                    "title": title,
+                    "run_id": run["id"],
+                    "released_plan_id": released["id"],
+                    "released_plan_version": int(released["version"]),
+                    "assessment_id": released.get("assessment_id"),
+                    "plan_title": released["title"],
+                    "scope_statement": released["scope_statement"],
+                    "portfolio_scope": _loads(released.get("portfolio_scope_json"), {}),
+                    "mission_lenses": _loads(released.get("mission_lenses_json"), []),
+                    "salthira_refs": _loads(released.get("salthira_refs_json"), []),
+                    "sensitivity": released.get("sensitivity") or run["sensitivity"],
+                    "source_refs": [f"plan-assembly:{run['id']}", f"plan:{released['id']}"],
+                    "commercial_treatment": "Not Determined",
+                    "creates_schedule": False,
+                    "creates_release": False,
+                    "creates_authority": False,
+                    "creates_charge": False,
+                }
+                handoff_id = _key("phf")
+                conn.execute(
+                    """INSERT INTO salops_plan_preparedness_handoffs(
+                    id,tenant_id,run_id,governance_id,released_plan_id,handoff_type,
+                    recommendation,recommendation_sha256,proposal_snapshot_json,proposal_sha256,
+                    status,creates_schedule,creates_release,creates_authority,creates_charge,
+                    created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (handoff_id, tenant_id(request), run["id"], governance["id"], released["id"],
+                     handoff_type, recommendation, recommendation_sha, _json(proposal), _digest(proposal),
+                     "Pending Human Review", 0, 0, 0, 0, who, stamp),
+                )
+                created = conn.execute(
+                    "SELECT * FROM salops_plan_preparedness_handoffs WHERE id=?", (handoff_id,),
+                ).fetchone()
+                if created:
+                    handoff_event(
+                        conn, dict(created), "Proposal Created",
+                        "Released-plan recommendation recorded for separate human review; no activity, schedule, release, authority, disclosure, or charge was created.",
+                        request,
+                    )
 
     def cost_envelope_content(data: dict[str, Any]) -> dict[str, Any]:
         return {name: data.get(name) for name in (
@@ -1221,6 +1379,10 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                ORDER BY governance.created_at,governance.id""",
             (tenant_id(request), tenant_id(request), run_id),
         )]
+        preparedness_handoffs = [decode("salops_plan_preparedness_handoffs", handoff_row(conn, item["id"], request)) for item in conn.execute(
+            "SELECT id FROM salops_plan_preparedness_handoffs WHERE tenant_id=? AND run_id=? ORDER BY created_at,id",
+            (tenant_id(request), run_id),
+        )]
         impacts = [decode("salops_plan_impact_detections", dict(item)) for item in conn.execute(
             "SELECT * FROM salops_plan_impact_detections WHERE tenant_id=? AND assembly_run_id=? ORDER BY created_at,id",
             (tenant_id(request), run_id),
@@ -1238,6 +1400,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "revision_recommendations": recommendations,
                 "version_candidates": candidates, "plan_materializations": materializations,
                 "plan_successor_governance": successor_governance,
+                "preparedness_handoffs": preparedness_handoffs,
                 "plan_impact_detections": impacts,
                 "research_cost_envelopes": cost_envelopes,
                 "events": events}
@@ -1256,6 +1419,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             "plan_impact_review_decisions": list(PLAN_IMPACT_DECISIONS),
             "research_cost_categories": list(RESEARCH_COST_CATEGORIES),
             "research_cost_measurements": list(RESEARCH_COST_MEASUREMENTS),
+            "preparedness_handoff_types": list(PREPAREDNESS_HANDOFF_TYPES),
+            "preparedness_handoff_workflow": list(PREPAREDNESS_HANDOFF_STATES),
             "research_cost_doctrine": {
                 "default_paid_research_authorized": False,
                 "new_scope_requires_new_envelope": True,
@@ -2233,10 +2398,156 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             updated = successor_row(conn, materialization_id, request)
             successor_event(conn, updated, "Successor Plan Released",
                             f"{payload.reason}; authorized disclosure created plan {released_id}; predecessor preserved; no authority or charge created.", request)
+            create_preparedness_handoffs(conn, updated, released, request)
             audit(conn, "SALOPS_PLAN_SUCCESSOR_RELEASED", "salops_preparedness_plans", None,
                   f"{released_id}: released from {materialization_id}; baseline {governance['baseline_plan_id']} preserved."[:1000], who)
             conn.commit()
             return decode("salops_plan_successor_governance", updated)
+        finally:
+            conn.close()
+
+    @app.get("/api/salops/preparedness/plan-handoffs")
+    def list_preparedness_handoffs(request: Request, status: str = ""):
+        salus_access(request)
+        if status and status not in PREPAREDNESS_HANDOFF_STATES:
+            raise HTTPException(422, "Unknown preparedness-handoff status")
+        clauses, params = ["tenant_id=?"], [tenant_id(request)]
+        if status:
+            clauses.append("status=?")
+            params.append(status)
+        conn = db()
+        try:
+            return [decode("salops_plan_preparedness_handoffs", handoff_row(conn, item["id"], request))
+                    for item in conn.execute(
+                        "SELECT id FROM salops_plan_preparedness_handoffs WHERE "
+                        + " AND ".join(clauses) + " ORDER BY created_at,id", tuple(params))]
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-handoffs/{handoff_id}/review")
+    def review_preparedness_handoff(handoff_id: str, payload: PreparednessHandoffReview,
+                                    request: Request):
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Lead Assessor", "Program Owner"):
+            raise HTTPException(403, "This role cannot review a released-plan preparedness handoff")
+        conn = db()
+        try:
+            handoff = handoff_row(conn, handoff_id, request)
+            if handoff["status"] != "Pending Human Review":
+                raise HTTPException(409, "Preparedness handoff review is available only from Pending Human Review")
+            stamp, who = now(), actor(request)
+            conn.execute(
+                """UPDATE salops_plan_preparedness_handoffs SET status=?,reviewed_by=?,reviewed_at=?,review_reason=?
+                   WHERE id=? AND tenant_id=?""",
+                (payload.decision, who, stamp, payload.reason, handoff_id, tenant_id(request)),
+            )
+            updated = handoff_row(conn, handoff_id, request)
+            handoff_event(
+                conn, updated, f"Human Review {payload.decision}",
+                f"{payload.reason}; review did not schedule, perform, release, disclose, authorize, or charge for work.",
+                request,
+            )
+            conn.commit()
+            return decode("salops_plan_preparedness_handoffs", updated)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-handoffs/{handoff_id}/materialize")
+    def materialize_preparedness_handoff(handoff_id: str, payload: PreparednessHandoffMaterialize,
+                                         request: Request):
+        """Create one governed internal activity from an accepted immutable proposal."""
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Program Owner"):
+            raise HTTPException(403, "This role cannot create a preparedness activity from a plan handoff")
+        conn = db()
+        try:
+            handoff = handoff_row(conn, handoff_id, request)
+            if handoff["status"] != "Accepted":
+                raise HTTPException(409, "Materialization requires a separately accepted preparedness handoff")
+            proposal = _loads(handoff["proposal_snapshot_json"], {})
+            plan = plan_row(conn, handoff["released_plan_id"], request)
+            stamp, who = now(), actor(request)
+            target_id, target_type = "", ""
+            if handoff["handoff_type"] == "Training":
+                target_id, target_type = _key("train"), "Training"
+                conn.execute(
+                    """INSERT INTO salops_preparedness_training(
+                    id,tenant_id,assessment_id,plan_id,title,objective,capability_ref,role_addressed,
+                    audience,participants_json,prerequisites,delivery_type,materials_json,instructor,
+                    scheduled_at,performance_check,follow_up_requirements,recurrence_schedule,
+                    mission_lenses_json,status,commercial_treatment,commercial_reference,
+                    membership_entitlement_ref,version,created_by,created_at,updated_by,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (target_id, tenant_id(request), plan.get("assessment_id"), plan["id"],
+                     proposal["title"], proposal["recommendation"], "", "", "", "[]", "", "",
+                     "[]", "", "", "", "", "", plan.get("mission_lenses_json") or "[]", "Draft",
+                     "Not Determined", "", "", 1, who, stamp, who, stamp),
+                )
+                target = dict(conn.execute("SELECT * FROM salops_preparedness_training WHERE id=?", (target_id,)).fetchone())
+            elif handoff["handoff_type"] == "Exercise":
+                target_id, target_type = _key("exercise"), "Exercise"
+                conn.execute(
+                    """INSERT INTO salops_preparedness_exercises(
+                    id,tenant_id,assessment_id,plan_id,title,exercise_type,purpose,objectives_json,
+                    capabilities_json,scope_statement,portfolio_scope_json,mission_lenses_json,
+                    salthira_refs_json,assumptions_artificialities,participating_organizations_json,
+                    control_evaluation_roles_json,scenario_summary,scenario_control_json,
+                    expected_actions_json,evaluation_criteria_json,safety_real_world_controls,
+                    logistics_resources,scheduled_at,location,external_partners_json,communications_plan,
+                    documentation_requirements,sensitivity,status,commercial_treatment,commercial_reference,
+                    membership_entitlement_ref,version,created_by,created_at,updated_by,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (target_id, tenant_id(request), plan.get("assessment_id"), plan["id"], proposal["title"],
+                     "Tabletop Exercise", proposal["recommendation"], _json([proposal["recommendation"]]),
+                     "[]", plan["scope_statement"], plan.get("portfolio_scope_json") or "{}",
+                     plan.get("mission_lenses_json") or "[]", plan.get("salthira_refs_json") or "[]",
+                     "Requires separate human exercise design and approval.", "[]", "[]", "", "{}", "[]",
+                     _json(["Evaluate the released-plan recommendation against documented capability evidence."]),
+                     "No execution is authorized by this Planned record.", "", "", "", "[]", "",
+                     "Capture observations, source references, decisions, and validation evidence.",
+                     plan.get("sensitivity") or "Standard", "Planned", "Not Determined", "", "", 1,
+                     who, stamp, who, stamp),
+                )
+                target = dict(conn.execute("SELECT * FROM salops_preparedness_exercises WHERE id=?", (target_id,)).fetchone())
+            else:
+                target_id, target_type = _key("action"), "Corrective Action"
+                conn.execute(
+                    """INSERT INTO salops_preparedness_corrective_actions(
+                    id,tenant_id,observation_id,exercise_id,plan_id,assessment_id,title,description,
+                    owner,priority,due_date,resources_required,estimate_reference,membership_entitlement_ref,
+                    validation_method,reexercise_required,status,member_release_status,version,
+                    created_by,created_at,updated_by,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (target_id, tenant_id(request), None, None, plan["id"], plan.get("assessment_id"),
+                     proposal["title"], proposal["recommendation"], "", "Normal", "", "", "", "",
+                     proposal["recommendation"], 1, "Open", "Internal", 1, who, stamp, who, stamp),
+                )
+                target = dict(conn.execute("SELECT * FROM salops_preparedness_corrective_actions WHERE id=?", (target_id,)).fetchone())
+            conn.execute(
+                """UPDATE salops_plan_preparedness_handoffs SET status='Materialized',target_record_type=?,
+                target_record_id=?,materialized_by=?,materialized_at=?,materialization_reason=?
+                WHERE id=? AND tenant_id=?""",
+                (target_type, target_id, who, stamp, payload.reason, handoff_id, tenant_id(request)),
+            )
+            conn.execute(
+                """INSERT INTO salops_preparedness_events(
+                id,tenant_id,entity_type,entity_id,event_no,record_version,event_type,reason,
+                snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (_key("pevt"), tenant_id(request), target_type, target_id, 1, 1,
+                 "Materialize Released-Plan Handoff",
+                 f"Created from separately accepted immutable handoff {handoff_id}. No release, disclosure, execution authority, or charge was created.",
+                 _json(target), who, role(request), stamp),
+            )
+            updated = handoff_row(conn, handoff_id, request)
+            handoff_event(
+                conn, updated, "Governed Activity Materialized",
+                f"{payload.reason}; created internal {target_type} {target_id}. Scheduling/execution, disclosure, commercial treatment, and completion/validation remain separate.",
+                request,
+            )
+            run = run_row(conn, handoff["run_id"], request)
+            event(conn, run, "Preparedness Handoff Materialized",
+                  f"{handoff_id}: created internal {target_type} {target_id}; no automatic release, authority, or charge.", request)
+            conn.commit()
+            return decode("salops_plan_preparedness_handoffs", updated)
         finally:
             conn.close()
 
@@ -2428,6 +2739,12 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             candidate_ids = ids["salops_plan_version_candidates"]
             materialization_ids = ids["salops_plan_materializations"]
             governance_ids = ids["salops_plan_successor_governance"]
+            handoff_ids = ids["salops_plan_preparedness_handoffs"]
+            preparedness_target_ids = {
+                "Training": {str(row.get("id")) for row in records.get("salops_preparedness_training", []) if row.get("id")},
+                "Exercise": {str(row.get("id")) for row in records.get("salops_preparedness_exercises", []) if row.get("id")},
+                "Corrective Action": {str(row.get("id")) for row in records.get("salops_preparedness_corrective_actions", []) if row.get("id")},
+            }
             envelope_ids = ids["salops_plan_research_cost_envelopes"]
             envelope_records = {str(row.get("id")): row for row in records.get("salops_plan_research_cost_envelopes", []) if row.get("id")}
             candidate_hashes = {
@@ -2500,6 +2817,32 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             for row in records.get("salops_plan_successor_events", []):
                 if str(row.get("governance_id")) not in governance_ids:
                     errors.append(f"plan successor event {row.get('id')} has invalid governance_id")
+            for row in records.get("salops_plan_preparedness_handoffs", []):
+                if str(row.get("governance_id")) not in governance_ids:
+                    errors.append(f"preparedness handoff {row.get('id')} has invalid governance_id")
+                if str(row.get("released_plan_id")) not in plan_ids:
+                    errors.append(f"preparedness handoff {row.get('id')} has invalid released_plan_id")
+                if row.get("handoff_type") not in PREPAREDNESS_HANDOFF_TYPES:
+                    errors.append(f"preparedness handoff {row.get('id')} has invalid type")
+                if row.get("status") not in PREPAREDNESS_HANDOFF_STATES:
+                    errors.append(f"preparedness handoff {row.get('id')} has invalid status")
+                proposal = _loads(row.get("proposal_snapshot_json"), {})
+                if (_digest(row.get("recommendation") or "") != row.get("recommendation_sha256")
+                        or not proposal or _digest(proposal) != row.get("proposal_sha256")):
+                    errors.append(f"preparedness handoff {row.get('id')} failed integrity verification")
+                if any(int(row.get(name) or 0) != 0 for name in
+                       ("creates_schedule", "creates_release", "creates_authority", "creates_charge")):
+                    errors.append(f"preparedness handoff {row.get('id')} forges schedule, release, authority, or charge")
+                target_id = str(row.get("target_record_id") or "")
+                target_type = str(row.get("target_record_type") or "")
+                if row.get("status") == "Materialized":
+                    if target_type not in preparedness_target_ids or target_id not in preparedness_target_ids[target_type]:
+                        errors.append(f"materialized preparedness handoff {row.get('id')} has invalid target lineage")
+                elif target_id or target_type:
+                    errors.append(f"unmaterialized preparedness handoff {row.get('id')} forges a target record")
+            for row in records.get("salops_plan_preparedness_handoff_events", []):
+                if str(row.get("handoff_id")) not in handoff_ids:
+                    errors.append(f"preparedness handoff event {row.get('id')} has invalid handoff_id")
             for row in records.get("salops_plan_research_cost_envelopes", []):
                 if row.get("status") not in ("Draft", "Authorized", "Superseded", "Closed"):
                     errors.append(f"research-cost envelope {row.get('id')} has invalid status")

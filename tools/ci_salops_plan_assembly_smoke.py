@@ -43,7 +43,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.69"
+    assert client.get("/api/system/mode").json()["version"] == "3.70"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -536,6 +536,71 @@ def main() -> None:
     assert preserved_after_release == approved
     released_run_bundle = client.get(f"{create_path}/{run_id}", headers=director).json()
     assert released_run_bundle["plan_successor_governance"][0]["status"] == "Released"
+    handoffs = released_run_bundle["preparedness_handoffs"]
+    assert len(handoffs) == 3
+    assert {item["handoff_type"] for item in handoffs} == {"Training", "Exercise", "Validation"}
+    assert all(item["status"] == "Pending Human Review" for item in handoffs)
+    assert all(len(item["proposal_sha256"]) == 64 for item in handoffs)
+    assert all(item["released_plan_id"] == released_plan_id for item in handoffs)
+    assert all(not item["creates_schedule"] and not item["creates_release"]
+               and not item["creates_authority"] and not item["creates_charge"] for item in handoffs)
+    handoff_list_path = "/api/salops/preparedness/plan-handoffs"
+    assert client.get(handoff_list_path, headers=member).status_code == 403
+    assert client.get(handoff_list_path, headers=other).json() == []
+    assert client.post(
+        f"{handoff_list_path}/{handoffs[0]['id']}/materialize", headers=owner,
+        json={"reason": "Premature materialization must fail."},
+    ).status_code == 409
+    forged_handoff_review = client.post(
+        f"{handoff_list_path}/{handoffs[0]['id']}/review", headers=director,
+        json={"decision": "Accepted", "reason": "Attempt to forge effects.", "creates_charge": True},
+    )
+    assert forged_handoff_review.status_code == 422
+    materialized_handoffs = []
+    for handoff in handoffs:
+        review_path = f"{handoff_list_path}/{handoff['id']}/review"
+        assert client.post(review_path, headers=member, json={
+            "decision": "Accepted", "reason": "Member cannot accept an internal work proposal.",
+        }).status_code == 403
+        accepted = client.post(review_path, headers=director, json={
+            "decision": "Accepted",
+            "reason": "Accept the exact released-plan recommendation as input to a separate internal preparedness record.",
+        })
+        assert accepted.status_code == 200, accepted.text
+        assert accepted.json()["status"] == "Accepted"
+        materialized = client.post(
+            f"{handoff_list_path}/{handoff['id']}/materialize", headers=owner,
+            json={"reason": "Create the bounded internal record; downstream lifecycle decisions remain separate."},
+        )
+        assert materialized.status_code == 200, materialized.text
+        item = materialized.json()
+        assert item["status"] == "Materialized" and item["target_record_id"]
+        assert item["target_record_type"] in {"Training", "Exercise", "Corrective Action"}
+        assert item["creates_schedule"] is False and item["creates_charge"] is False
+        materialized_handoffs.append(item)
+        assert client.post(
+            f"{handoff_list_path}/{handoff['id']}/materialize", headers=owner,
+            json={"reason": "Duplicate materialization must fail."},
+        ).status_code == 409
+    training_handoff = next(item for item in materialized_handoffs if item["target_record_type"] == "Training")
+    exercise_handoff = next(item for item in materialized_handoffs if item["target_record_type"] == "Exercise")
+    validation_handoff = next(item for item in materialized_handoffs if item["target_record_type"] == "Corrective Action")
+    training_rows = client.get("/api/salops/preparedness/training", headers=director).json()
+    assert next(item for item in training_rows if item["id"] == training_handoff["target_record_id"])["status"] == "Draft"
+    exercise_rows = client.get("/api/salops/preparedness/exercises", headers=director).json()
+    assert next(item for item in exercise_rows if item["id"] == exercise_handoff["target_record_id"])["status"] == "Planned"
+    corrective_rows = client.get("/api/salops/preparedness/corrective-actions", headers=director).json()
+    validation_record = next(item for item in corrective_rows if item["id"] == validation_handoff["target_record_id"])
+    assert validation_record["status"] == "Open" and validation_record["reexercise_required"] is True
+    assert training_handoff["target_record_id"] not in {
+        item["id"] for item in client.get("/api/salops/preparedness/training", headers=member).json()
+    }
+    assert exercise_handoff["target_record_id"] not in {
+        item["id"] for item in client.get("/api/salops/preparedness/exercises", headers=member).json()
+    }
+    assert validation_handoff["target_record_id"] not in {
+        item["id"] for item in client.get("/api/salops/preparedness/corrective-actions", headers=member).json()
+    }
 
     impact_path = f"/api/salops/preparedness/plans/{plan_id}/impact-detections"
     forged_impact = client.post(impact_path, headers=director, json={
@@ -634,6 +699,8 @@ def main() -> None:
         "salops_plan_assembly_questions", "salops_plan_assembly_sections",
         "salops_plan_revision_recommendations", "salops_plan_version_candidates",
         "salops_plan_materializations",
+        "salops_plan_successor_governance", "salops_plan_successor_events",
+        "salops_plan_preparedness_handoffs", "salops_plan_preparedness_handoff_events",
         "salops_plan_research_cost_envelopes", "salops_plan_research_cost_usage",
         "salops_plan_impact_detections", "salops_plan_impact_events",
         "salops_plan_assembly_events",
@@ -663,6 +730,10 @@ def main() -> None:
     tampered_usage["salops_plan_research_cost_usage"][0]["creates_charge"] = 1
     errors = salcapa_runtime.core.validate_records(tampered_usage, 1)
     assert any("research-cost usage" in error and "commercial effect" in error for error in errors)
+    tampered_handoff = {key: [dict(row) for row in value] for key, value in records.items()}
+    tampered_handoff["salops_plan_preparedness_handoffs"][0]["proposal_snapshot_json"] = '{}'
+    errors = salcapa_runtime.core.validate_records(tampered_handoff, 1)
+    assert any("preparedness handoff" in error and "integrity" in error for error in errors)
 
     print("SALOPS_AUTONOMOUS_PLAN_ASSEMBLY_PASS")
 

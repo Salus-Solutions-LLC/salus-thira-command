@@ -12,8 +12,8 @@ ARTIFACTS = (
      "3739007f15723547dfa3943cb2b2e643c24b7c2ebdc9cdb5997e4de30b63b1c5", 45828),
     (ROOT / "source_archives" / "development" / "ci_salintel_monitoring_smoke.py.gz",
      ROOT / "tools" / "ci_salintel_monitoring_smoke.py",
-     "5109c068db195fb99827bb4bf3b3ff3c08825f11bca15eec437180e87e9d02d9",
-     "4ad6c304d4c68304ac112c18f76db2f7b1f0ae8852ce47c097461bfd2107a508", 17783),
+     "8803a6815b2260b6fa1e253e2e06d90f93eed7b4d56d9a3e9938b6080e07e2f4",
+     "33a1c5305cab4be66a9b27805658751119ec91fc1a62998ac7788bf247af8f90", 17783),
 )
 for archive, target, archive_sha, target_sha, target_size in ARTIFACTS:
     compressed = archive.read_bytes()

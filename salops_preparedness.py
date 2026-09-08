@@ -20,7 +20,7 @@ EXERCISE_TYPES = (
 )
 PLAN_STATUSES = ("Draft", "Reviewed", "Approved", "Retired")
 EXERCISE_STATUSES = ("Planned", "Reviewed", "Approved", "In Progress", "Completed", "Evaluated", "Closed", "Cancelled")
-TRAINING_STATUSES = ("Scheduled", "In Progress", "Completed", "Cancelled")
+TRAINING_STATUSES = ("Draft", "Scheduled", "In Progress", "Completed", "Cancelled")
 CORRECTIVE_STATUSES = ("Open", "In Progress", "Implemented", "Awaiting Validation", "Validated", "Closed", "Deferred")
 AAR_STATUSES = ("Draft", "Reviewed", "Approved", "Released")
 EPISTEMIC_STATES = (

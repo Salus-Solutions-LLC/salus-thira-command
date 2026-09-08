@@ -32,7 +32,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.69"',
+    'SALCAPA_RELEASE_VERSION = "3.70"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -94,6 +94,11 @@ for value in (
     "approveSalopsPlanSuccessor",
     "releaseSalopsPlanSuccessor",
     "The predecessor remains unchanged",
+    "Released-plan preparedness handoffs",
+    "immutable proposals for separate human review",
+    "reviewSalopsPreparednessHandoff",
+    "materializeSalopsPreparednessHandoff",
+    "Commercial treatment, scheduling/execution, disclosure, completion, and validation remain separate",
 ):
     require(value, JS)
 
@@ -109,6 +114,9 @@ for value in (
     "Successor approval requires the separate human-review gate",
     "Release requires separate review and successor-approval gates",
     "The Approved baseline changed; successor governance is stopped",
+    "salops_plan_preparedness_handoffs",
+    "Materialization requires a separately accepted preparedness handoff",
+    "no activity, schedule, release, authority, disclosure, or charge was created",
 ):
     require(value, SERVER)
 
@@ -150,6 +158,6 @@ member = {
 path = "/api/salops/preparedness/plan-assembly/catalog"
 assert client.get(path, headers=director).status_code == 200
 assert client.get(path, headers=member).status_code == 403
-assert client.get("/api/system/mode").json()["version"] == "3.69"
+assert client.get("/api/system/mode").json()["version"] == "3.70"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")

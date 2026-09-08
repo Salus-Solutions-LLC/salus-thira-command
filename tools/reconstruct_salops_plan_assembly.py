@@ -10,23 +10,23 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salops_plan_assembly.py.gz",
         ROOT / "salops_plan_assembly.py",
-        "8a8098e8590dcd047bad6e211d1097629118fd4df899117ce7764f5ef52d0db9",
-        "c9ff1aff82bb4ba4d184a6509dfa157d5d87b92695bc357cd6ad3d597b7f70cc",
-        151549,
+        "1482e71dea260d867426f4dcdd7c5b39e15858b4b9ea0ac75a4a216212b43ebc",
+        "b4f79db95d94ae7d81b073226c48b365d80320c314d991e73ff72abaafe9f43d",
+        173460,
     ),
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "4afbbc68e84cbcf90caf648ddb1bc4c2f390ea03e537a7ffb970b2e239121251",
-        "f2d12a94736ae129f8aede5751ca7f39352fd7f324588b7bcf44150a64945454",
-        40898,
+        "7eda145e348b1952cc2cd5af98f234f4bf68caac186be1439096e07bad5821d9",
+        "58b58ac72bd8262b835955a143586d96a0a0fe41a159174b8931f1460094160a",
+        45822,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.js.gz",
         ROOT / "static/salops-plan-assembly.js",
-        "c32c020d1c9e2b43f1419eb7801667f1c003e574193df30d4a1c0ab15b56ce15",
-        "bc10c1310e7696ae64e6dbe20d58d5d86f4b5fc96a20e45b0d4648fc52118538",
-        45374,
+        "74bc326dc66fecdecf5a76ad585a2c53fb17144b912e98f3727a7c80a0089824",
+        "9a3e1964abf7fd8ad84a18677db3eb2af61455eac994b28e73574aa989b10d89",
+        47740,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.css.gz",
@@ -38,9 +38,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "e3c96e92ef0ee008cba52577feda6d6486bf7a728af04de3b1cfea2a12f60a56",
-        "a70eb0590caa3ba22c9f9b73b1ded3ac1384a9cbf2cb2bb2e1f8e5d9f8fecd43",
-        5881,
+        "aaee60845ac8fa65bc02fb12d88894171a9f496c0454d8ec3771854d27de1049",
+        "319ec1719d21e65ec0132972f55c2fc689b17809d1f64ee3dad3f72673444c59",
+        6366,
     ),
 )
 
