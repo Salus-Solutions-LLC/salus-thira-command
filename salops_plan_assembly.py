@@ -182,6 +182,11 @@ CREATE TABLE IF NOT EXISTS salops_plan_external_research_requests (
   scope_confirmed INTEGER NOT NULL DEFAULT 0,
   external_transmission_authorized INTEGER NOT NULL DEFAULT 0,
   sensitive_data_absent INTEGER NOT NULL DEFAULT 0,
+  premium_source_key TEXT NOT NULL DEFAULT '',
+  estimated_cost_cents INTEGER NOT NULL DEFAULT 0,
+  cost_envelope_id TEXT NOT NULL DEFAULT '',
+  paid_source_cost_authorized INTEGER NOT NULL DEFAULT 0,
+  credential_transmission_authorized INTEGER NOT NULL DEFAULT 0,
   executed_by TEXT NOT NULL DEFAULT '',
   executed_at TEXT NOT NULL DEFAULT '',
   http_status INTEGER NOT NULL DEFAULT 0,
@@ -706,6 +711,51 @@ def _configured_public_search_endpoint() -> str:
     return normalized
 
 
+def _configured_premium_sources() -> dict[str, dict[str, Any]]:
+    """Return validated, non-secret premium-source definitions plus in-memory credentials."""
+    raw = os.environ.get("SALUS_PLAN_RESEARCH_PREMIUM_SOURCES_JSON", "").strip()
+    if not raw:
+        return {}
+    try:
+        items = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    if not isinstance(items, list):
+        return {}
+    configured: dict[str, dict[str, Any]] = {}
+    for item in items[:25]:
+        if not isinstance(item, dict):
+            continue
+        key = str(item.get("key") or "").strip().lower()
+        label = str(item.get("label") or "").strip()
+        query_parameter = str(item.get("query_parameter") or "q").strip()
+        auth_mode = str(item.get("auth_mode") or "bearer").strip().lower()
+        if (not re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,49}", key)
+                or not 2 <= len(label) <= 100
+                or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,49}", query_parameter)
+                or auth_mode not in ("bearer", "x-api-key")):
+            continue
+        try:
+            endpoint, hostname = _normalize_https_url(str(item.get("endpoint") or ""))
+            estimated_cost_cents = int(item.get("estimated_cost_cents") or 0)
+        except (ValueError, TypeError):
+            continue
+        if urlsplit(endpoint).query or not 1 <= estimated_cost_cents <= 10_000_000:
+            continue
+        definition = {
+            "key": key, "label": label, "endpoint": endpoint, "hostname": hostname,
+            "query_parameter": query_parameter, "auth_mode": auth_mode,
+            "estimated_cost_cents": estimated_cost_cents,
+        }
+        credential_name = f"SALUS_PLAN_RESEARCH_PREMIUM_{key.upper().replace('-', '_')}_TOKEN"
+        configured[key] = {
+            **definition,
+            "definition_sha256": _digest(definition),
+            "credential": os.environ.get(credential_name, "").strip(),
+        }
+    return configured
+
+
 def _normalize_https_url(value: str) -> tuple[str, str]:
     try:
         parsed = urlsplit(value.strip())
@@ -825,11 +875,12 @@ def _research_document(content: bytes, content_type: str, base_url: str) -> tupl
     return text[:60000], discovered
 
 
-def _fetch_live_https(url: str, maximum_bytes: int = LIVE_RESEARCH_MAX_BYTES) -> dict[str, Any]:
+def _fetch_https(url: str, maximum_bytes: int, extra_headers: Optional[dict[str, str]] = None) -> dict[str, Any]:
     headers = {
         "User-Agent": "SalCAPA/1.0 governed-external-research",
         "Accept": ",".join(LIVE_RESEARCH_CONTENT_TYPES),
     }
+    headers.update(extra_headers or {})
     with httpx.Client(follow_redirects=False, trust_env=False, timeout=httpx.Timeout(15.0, connect=5.0)) as client:
         with client.stream("GET", url, headers=headers) as response:
             content_type = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
@@ -850,7 +901,20 @@ def _fetch_live_https(url: str, maximum_bytes: int = LIVE_RESEARCH_MAX_BYTES) ->
             }
 
 
+def _fetch_live_https(url: str, maximum_bytes: int = LIVE_RESEARCH_MAX_BYTES) -> dict[str, Any]:
+    return _fetch_https(url, maximum_bytes)
+
+
+def _fetch_premium_https(url: str, maximum_bytes: int, auth_mode: str,
+                         credential: str) -> dict[str, Any]:
+    if not credential:
+        raise ValueError("The approved premium-source credential is unavailable")
+    header = {"Authorization": f"Bearer {credential}"} if auth_mode == "bearer" else {"X-API-Key": credential}
+    return _fetch_https(url, maximum_bytes, header)
+
+
 LIVE_RESEARCH_FETCHER = _fetch_live_https
+PREMIUM_RESEARCH_FETCHER = _fetch_premium_https
 
 
 class StrictModel(BaseModel):
@@ -951,11 +1015,28 @@ class ExternalSearchRequestCreate(StrictModel):
         return clean
 
 
+class ExternalPremiumSearchRequestCreate(StrictModel):
+    source_key: str = Field(min_length=2, max_length=50, pattern=r"^[a-z0-9][a-z0-9_-]+$")
+    query: str = Field(min_length=3, max_length=500)
+    purpose: str = Field(min_length=3, max_length=8000)
+
+    @field_validator("query")
+    @classmethod
+    def bounded_query(cls, value: str):
+        clean = " ".join(value.split())
+        if not clean:
+            raise ValueError("Premium-source query is required")
+        return clean
+
+
 class ExternalResearchAuthorize(StrictModel):
     reason: str = Field(min_length=3, max_length=8000)
     scope_confirmed: Literal[True]
     external_transmission_authorized: Literal[True]
     sensitive_data_absent: Literal[True]
+    cost_envelope_id: Optional[str] = Field(default=None, max_length=100)
+    paid_source_cost_authorized: bool = False
+    credential_transmission_authorized: bool = False
 
 
 class ExternalResearchExecute(StrictModel):
@@ -1195,6 +1276,20 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             "ALTER TABLE salops_plan_external_research_requests ADD COLUMN "
             "discovered_links_json TEXT NOT NULL DEFAULT '[]'"
         )
+    for column, definition in (
+        ("premium_source_key", "TEXT NOT NULL DEFAULT ''"),
+        ("estimated_cost_cents", "INTEGER NOT NULL DEFAULT 0"),
+        ("cost_envelope_id", "TEXT NOT NULL DEFAULT ''"),
+        ("paid_source_cost_authorized", "INTEGER NOT NULL DEFAULT 0"),
+        ("credential_transmission_authorized", "INTEGER NOT NULL DEFAULT 0"),
+    ):
+        try:
+            conn.execute(f"SELECT {column} FROM salops_plan_external_research_requests LIMIT 0")
+        except Exception:
+            conn.rollback()
+            conn.execute(
+                f"ALTER TABLE salops_plan_external_research_requests ADD COLUMN {column} {definition}"
+            )
     legacy_materializations = list(conn.execute(
         """SELECT materialization.* FROM salops_plan_materializations materialization
            LEFT JOIN salops_plan_successor_governance governance
@@ -1233,7 +1328,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                      "approved_baseline_preserved", "authority_confirmed", "disclosure_authorized",
                      "unresolved_items_accepted",
                      "immutable_request", "scope_confirmed", "external_transmission_authorized",
-                     "sensitive_data_absent", "creates_verified_fact", "creates_disclosure",
+                     "sensitive_data_absent", "paid_source_cost_authorized",
+                     "credential_transmission_authorized", "creates_verified_fact", "creates_disclosure",
                      "creates_schedule", "creates_release", "creates_authority", "creates_customer_price",
                      "creates_charge", "creates_invoice"):
             if name in out:
@@ -1271,7 +1367,13 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             "immutable_request", "creates_verified_fact", "creates_disclosure", "creates_charge",
             "created_by", "created_at",
         )
-        return {key: row.get(key) for key in keys}
+        content = {key: row.get(key) for key in keys}
+        if row.get("adapter_type") == "Approved Premium JSON Search":
+            content.update({
+                "premium_source_key": row.get("premium_source_key"),
+                "estimated_cost_cents": row.get("estimated_cost_cents"),
+            })
+        return content
 
     def external_request_row(conn, request_id: str, request: Request) -> dict[str, Any]:
         row = conn.execute(
@@ -1815,6 +1917,26 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "automatic_disclosure": False,
                 "automatic_charge": False,
             },
+            "premium_source_adapter": {
+                "type": "Approved Premium JSON Search",
+                "enabled": any(item.get("credential") for item in _configured_premium_sources().values()),
+                "sources": [
+                    {
+                        "key": item["key"], "label": item["label"],
+                        "endpoint_hostname": item["hostname"],
+                        "estimated_cost_cents": item["estimated_cost_cents"],
+                        "credential_ready": bool(item.get("credential")),
+                    }
+                    for item in _configured_premium_sources().values()
+                ],
+                "query_transmitted_only_after_authorization": True,
+                "credential_transmitted_only_after_authorization": True,
+                "authorized_external_data_envelope_required": True,
+                "automatic_candidate_access": False,
+                "automatic_verified_fact": False,
+                "automatic_disclosure": False,
+                "automatic_customer_charge": False,
+            },
             "authority": {
                 "chat_may": ["Inspect", "Research", "Reconcile", "Draft", "Compare", "Recommend"],
                 "human_controls": ["Legal authority", "Organizational policy", "Emergency command authority",
@@ -2051,7 +2173,10 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             conn.close()
 
     def create_external_research_record(run_id: str, requested_url: str, purpose: str,
-                                        adapter_type: str, request: Request):
+                                        adapter_type: str, request: Request,
+                                        premium_source_key: str = "",
+                                        estimated_cost_cents: int = 0,
+                                        policy_overrides: Optional[dict[str, Any]] = None):
         salus_access(request, "write")
         conn = db()
         try:
@@ -2096,6 +2221,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "automatic_disclosure": False,
                 "automatic_charge": False,
             }
+            policy.update(policy_overrides or {})
             content = {
                 "id": request_id, "tenant_id": tenant_id(request), "run_id": run_id,
                 "adapter_type": adapter_type, "requested_url": requested_url.strip(),
@@ -2105,16 +2231,23 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "creates_disclosure": 0, "creates_charge": 0,
                 "created_by": who, "created_at": stamp,
             }
+            if adapter_type == "Approved Premium JSON Search":
+                content.update({
+                    "premium_source_key": premium_source_key,
+                    "estimated_cost_cents": estimated_cost_cents,
+                })
             request_sha256 = _digest(content)
             conn.execute(
                 """INSERT INTO salops_plan_external_research_requests(
                 id,tenant_id,run_id,adapter_type,requested_url,normalized_url,hostname,purpose,
-                policy_snapshot_json,policy_sha256,request_sha256,immutable_request,status,access_status,
+                policy_snapshot_json,policy_sha256,request_sha256,premium_source_key,
+                estimated_cost_cents,immutable_request,status,access_status,
                 creates_verified_fact,creates_disclosure,creates_charge,created_by,created_at)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (request_id, tenant_id(request), run_id, adapter_type,
                  requested_url.strip(), normalized_url, hostname, purpose,
-                 _json(policy), _digest(policy), request_sha256, 1,
+                 _json(policy), _digest(policy), request_sha256, premium_source_key,
+                 estimated_cost_cents, 1,
                  "Pending Human Authorization", "Not Attempted", 0, 0, 0, who, stamp),
             )
             created = dict(conn.execute(
@@ -2153,6 +2286,30 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             run_id, exact_url, payload.purpose, "Public JSON Search", request,
         )
 
+    @app.post("/api/salops/preparedness/plan-assembly/{run_id}/external-premium-search")
+    def create_external_premium_search_request(
+            run_id: str, payload: ExternalPremiumSearchRequestCreate, request: Request):
+        source = _configured_premium_sources().get(payload.source_key)
+        if not source or not source.get("credential"):
+            raise HTTPException(409, "The selected approved premium source is not ready")
+        parsed = urlsplit(source["endpoint"])
+        exact_url = urlunsplit((
+            parsed.scheme, parsed.netloc, parsed.path,
+            urlencode({source["query_parameter"]: payload.query}), "",
+        ))
+        return create_external_research_record(
+            run_id, exact_url, payload.purpose, "Approved Premium JSON Search", request,
+            premium_source_key=source["key"],
+            estimated_cost_cents=source["estimated_cost_cents"],
+            policy_overrides={
+                "premium_source_definition_sha256": source["definition_sha256"],
+                "credentials_sent": True,
+                "paid_source_authorized": False,
+                "estimated_external_data_cost_cents": source["estimated_cost_cents"],
+                "credential_value_stored": False,
+            },
+        )
+
     @app.post("/api/salops/preparedness/plan-assembly/external-research/{request_id}/authorize")
     def authorize_external_research(request_id: str, payload: ExternalResearchAuthorize,
                                     request: Request):
@@ -2164,25 +2321,50 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             item = external_request_row(conn, request_id, request)
             if item["status"] != "Pending Human Authorization" or item["access_status"] != "Not Attempted":
                 raise HTTPException(409, "Only an unattempted Pending Human Authorization request can be authorized")
+            premium = item["adapter_type"] == "Approved Premium JSON Search"
+            envelope_id = ""
+            if premium:
+                if not payload.credential_transmission_authorized:
+                    raise HTTPException(422, "Premium research requires explicit credential-transmission authorization")
+                if not payload.paid_source_cost_authorized or not payload.cost_envelope_id:
+                    raise HTTPException(422, "Premium research requires explicit paid-source authorization and an exact cost envelope")
+                policy = _loads(item.get("policy_snapshot_json"), {})
+                source = _configured_premium_sources().get(item.get("premium_source_key") or "")
+                if (not source or not source.get("credential")
+                        or source.get("definition_sha256") != policy.get("premium_source_definition_sha256")):
+                    raise HTTPException(409, "The approved premium-source configuration or credential is unavailable or changed")
+                envelope = cost_envelope_row(conn, payload.cost_envelope_id, request)
+                if envelope["run_id"] != item["run_id"] or envelope["status"] != "Authorized":
+                    raise HTTPException(409, "Premium research requires this run's current Authorized cost envelope")
+                summary = cost_summary(conn, item["run_id"], envelope)
+                estimated_cost = int(item.get("estimated_cost_cents") or 0)
+                if (estimated_cost > int(summary["category_remaining_cents"]["External Data"])
+                        or estimated_cost > int(summary["remaining_authorized_cost_cents"])):
+                    raise HTTPException(409, "Premium research exceeds the authorized External Data or total ceiling; authorize a new governed envelope")
+                envelope_id = envelope["id"]
             stamp = now()
             conn.execute(
                 """UPDATE salops_plan_external_research_requests
                    SET status='Authorized',authorized_by=?,authorized_at=?,authorization_reason=?,
-                       scope_confirmed=1,external_transmission_authorized=1,sensitive_data_absent=1
+                       scope_confirmed=1,external_transmission_authorized=1,sensitive_data_absent=1,
+                       cost_envelope_id=?,paid_source_cost_authorized=?,credential_transmission_authorized=?
                    WHERE id=? AND tenant_id=?""",
-                (actor(request), stamp, payload.reason, request_id, tenant_id(request)),
+                (actor(request), stamp, payload.reason, envelope_id, int(premium), int(premium),
+                 request_id, tenant_id(request)),
             )
             updated = dict(conn.execute(
                 "SELECT * FROM salops_plan_external_research_requests WHERE id=?", (request_id,),
             ).fetchone())
             external_request_event(
                 conn, updated, "Human Authorized",
-                f"{payload.reason}; exact scope and external transmission confirmed, and the URL was confirmed free of sensitive data.",
+                f"{payload.reason}; exact scope and external transmission confirmed, and the URL was confirmed free of sensitive data."
+                + (" Credential transmission and the bounded premium-source estimate were separately authorized against the exact cost envelope."
+                   if premium else ""),
                 request,
             )
             run = run_row(conn, item["run_id"], request)
             event(conn, run, "Live External Research Authorized",
-                  f"{request_id}: exact public HTTPS retrieval authorized; no source accessed yet and no fact, disclosure, or charge created.", request)
+                  f"{request_id}: exact HTTPS retrieval authorized; no source accessed yet and no fact, disclosure, customer charge, or invoice created.", request)
             conn.commit()
             return decode("salops_plan_external_research_requests", updated)
         finally:
@@ -2212,12 +2394,41 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             if _matching_domain(item["hostname"], _loads(run.get("source_exclusions_json"), [])):
                 raise HTTPException(409, "The live-research source is now excluded by the run")
 
+            premium = item["adapter_type"] == "Approved Premium JSON Search"
+            premium_source: Optional[dict[str, Any]] = None
+            premium_envelope: Optional[dict[str, Any]] = None
+            if premium:
+                policy = _loads(item.get("policy_snapshot_json"), {})
+                premium_source = _configured_premium_sources().get(item.get("premium_source_key") or "")
+                if (not premium_source or not premium_source.get("credential")
+                        or premium_source.get("definition_sha256") != policy.get("premium_source_definition_sha256")):
+                    raise HTTPException(409, "The approved premium-source configuration or credential is unavailable or changed")
+                if not all(int(item.get(name) or 0) == 1 for name in
+                           ("paid_source_cost_authorized", "credential_transmission_authorized")):
+                    raise HTTPException(409, "Premium research lacks cost or credential-transmission authorization")
+                premium_envelope = cost_envelope_row(conn, item.get("cost_envelope_id") or "", request)
+                if premium_envelope["run_id"] != item["run_id"] or premium_envelope["status"] != "Authorized":
+                    raise HTTPException(409, "The premium request's cost envelope is no longer current and Authorized")
+                summary = cost_summary(conn, item["run_id"], premium_envelope)
+                estimated_cost = int(item.get("estimated_cost_cents") or 0)
+                if (estimated_cost > int(summary["category_remaining_cents"]["External Data"])
+                        or estimated_cost > int(summary["remaining_authorized_cost_cents"])):
+                    raise HTTPException(409, "Premium research exceeds the authorized External Data or total ceiling")
+
             access_status, unavailable_reason = "Accessed", ""
             http_status, content_type, content_bytes = 0, "", 0
             content_sha256, response_headers, content_text, discovered_links = "", {}, "", []
+            premium_attempted = False
             try:
                 _resolve_public_host(item["hostname"])
-                fetched = LIVE_RESEARCH_FETCHER(item["normalized_url"], LIVE_RESEARCH_MAX_BYTES)
+                if premium and premium_source:
+                    premium_attempted = True
+                    fetched = PREMIUM_RESEARCH_FETCHER(
+                        item["normalized_url"], LIVE_RESEARCH_MAX_BYTES,
+                        premium_source["auth_mode"], premium_source["credential"],
+                    )
+                else:
+                    fetched = LIVE_RESEARCH_FETCHER(item["normalized_url"], LIVE_RESEARCH_MAX_BYTES)
                 http_status = int(fetched.get("status") or 0)
                 content_type = str(fetched.get("content_type") or "").lower()
                 response_headers = dict(fetched.get("headers") or {})
@@ -2250,7 +2461,23 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 unavailable_reason = str(exc)[:8000] or "External source retrieval failed"
                 content_sha256, content_text, discovered_links = "", "", []
 
-            source_id, stamp, who = _key("pas"), now(), actor(request)
+            stamp, who = now(), actor(request)
+            if premium_attempted and premium_source and premium_envelope:
+                estimated_cost = int(item.get("estimated_cost_cents") or 0)
+                conn.execute(
+                    """INSERT INTO salops_plan_research_cost_usage(
+                    id,tenant_id,run_id,envelope_id,category,provider_tool,task_reference,
+                    metered_units_json,measurement_status,amount_cents,occurred_at,recording_basis,
+                    creates_customer_price,creates_charge,creates_invoice,recorded_by,recorded_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (_key("parcu"), tenant_id(request), item["run_id"], premium_envelope["id"],
+                     "External Data", premium_source["label"], request_id,
+                     _json({"requests": 1}), "Provider Estimate", estimated_cost, stamp,
+                     "Configured per-request premium-source estimate; reconcile against the provider invoice when available.",
+                     0, 0, 0, who, stamp),
+                )
+
+            source_id = _key("pas")
             summary = (
                 "Content captured as untrusted external source material for analyst review; it is not a Verified Fact."
                 if access_status == "Accessed" else "No source-derived facts were created because the external source was unavailable."
@@ -2264,7 +2491,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 (source_id, tenant_id(request), item["run_id"], "External Research", access_status,
                  item["normalized_url"], item["normalized_url"], None,
                  "External Research Request", request_id,
-                 "Human-authorized Public HTTPS Retrieval", summary, "[]",
+                 ("Human-authorized Approved Premium JSON Search" if premium
+                  else "Human-authorized Public HTTPS Retrieval"), summary, "[]",
                  "Not Assessed", "Not Assessed", unavailable_reason,
                  who if access_status == "Accessed" else "", stamp if access_status == "Accessed" else "",
                  who, stamp),
@@ -2288,7 +2516,9 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 request,
             )
             event(conn, run, f"Live External Research {terminal_status}",
-                  f"{request_id}: {access_status}; source record {source_id} created with no source-derived facts.", request)
+                  f"{request_id}: {access_status}; source record {source_id} created with no source-derived facts."
+                  + (" The authorized provider estimate was recorded as internal External Data cost, not a customer price, charge, or invoice."
+                     if premium_attempted else ""), request)
             conn.commit()
             return decode("salops_plan_external_research_requests", updated)
         finally:
@@ -3443,6 +3673,18 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 if any(int(row.get(name) or 0) != 0 for name in
                        ("creates_verified_fact", "creates_disclosure", "creates_charge")):
                     errors.append(f"external research request {request_id} forges a fact, disclosure, or charge")
+                premium = row.get("adapter_type") == "Approved Premium JSON Search"
+                if premium:
+                    if (not str(row.get("premium_source_key") or "").strip()
+                            or int(row.get("estimated_cost_cents") or 0) < 1
+                            or not str(policy.get("premium_source_definition_sha256") or "")):
+                        errors.append(f"premium research request {request_id} lacks immutable provider or cost scope")
+                elif (str(row.get("premium_source_key") or "").strip()
+                      or int(row.get("estimated_cost_cents") or 0)
+                      or str(row.get("cost_envelope_id") or "").strip()
+                      or int(row.get("paid_source_cost_authorized") or 0)
+                      or int(row.get("credential_transmission_authorized") or 0)):
+                    errors.append(f"public research request {request_id} forges premium-source controls")
                 status = str(row.get("status") or "")
                 access = str(row.get("access_status") or "")
                 source_id = str(row.get("source_id") or "")
@@ -3454,6 +3696,14 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 if status == "Authorized" and not all(int(row.get(name) or 0) == 1 for name in
                                                        ("scope_confirmed", "external_transmission_authorized", "sensitive_data_absent")):
                     errors.append(f"authorized external research request {request_id} lacks required confirmations")
+                if premium and status in ("Authorized", "Accessed", "Unavailable"):
+                    envelope_id = str(row.get("cost_envelope_id") or "")
+                    envelope = envelope_records.get(envelope_id)
+                    if not envelope or str(envelope.get("run_id")) != str(row.get("run_id")):
+                        errors.append(f"premium research request {request_id} has invalid cost-envelope lineage")
+                    if not all(int(row.get(name) or 0) == 1 for name in
+                               ("paid_source_cost_authorized", "credential_transmission_authorized")):
+                        errors.append(f"premium research request {request_id} lacks paid-source or credential authorization")
                 if status in ("Accessed", "Unavailable"):
                     if source_id not in source_ids_in_backup:
                         errors.append(f"external research request {request_id} has invalid source lineage")

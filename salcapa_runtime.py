@@ -43,7 +43,7 @@ if register_salcapa_assurance is not None:
 if register_salops_plan_assembly is not None:
     register_salops_plan_assembly(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.77"
+SALCAPA_RELEASE_VERSION = "3.78"
 
 
 _base_protective_readiness_summary = core._protective_readiness_summary

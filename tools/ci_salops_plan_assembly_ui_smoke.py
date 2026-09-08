@@ -33,7 +33,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.77"',
+    'SALCAPA_RELEASE_VERSION = "3.78"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -128,6 +128,13 @@ for value in (
     "Search results are source candidates only",
     "returned links are not visited, qualified, disclosed, or charged automatically",
     "createSalopsExternalSearchRequest",
+    "Approved premium research",
+    "Before cost or credentials are used",
+    "Creation contacts no provider",
+    "current External Data cost envelope",
+    "creates no customer price, charge, or invoice",
+    "Retrieved content remains untrusted",
+    "createSalopsExternalPremiumSearchRequest",
 ):
     require(value, JS)
 
@@ -150,6 +157,10 @@ for value in (
     "server-controlled live-research allowlist",
     "External research request integrity verification failed",
     "Retrieved content remains untrusted source material",
+    "Approved Premium JSON Search",
+    "Premium research requires explicit credential-transmission authorization",
+    "Premium research requires this run's current Authorized cost envelope",
+    "credential_value_stored",
 ):
     require(value, SERVER)
 
@@ -191,6 +202,6 @@ member = {
 path = "/api/salops/preparedness/plan-assembly/catalog"
 assert client.get(path, headers=director).status_code == 200
 assert client.get(path, headers=member).status_code == 403
-assert client.get("/api/system/mode").json()["version"] == "3.77"
+assert client.get("/api/system/mode").json()["version"] == "3.78"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")

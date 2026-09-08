@@ -17,6 +17,12 @@ os.environ.setdefault("SALUS_AUTH_MODE", "prototype")
 os.environ.setdefault("SALUS_SEED_DEMO", "1")
 os.environ.setdefault("SALUS_PLAN_RESEARCH_ALLOWED_DOMAINS", "example.com")
 os.environ.setdefault("SALUS_PLAN_RESEARCH_SEARCH_ENDPOINT", "https://example.com/search")
+os.environ.setdefault("SALUS_PLAN_RESEARCH_PREMIUM_SOURCES_JSON", json.dumps([{
+    "key": "synthetic", "label": "SYNTHETIC Premium Research",
+    "endpoint": "https://example.com/premium-search", "query_parameter": "query",
+    "auth_mode": "bearer", "estimated_cost_cents": 75,
+}]))
+os.environ.setdefault("SALUS_PLAN_RESEARCH_PREMIUM_SYNTHETIC_TOKEN", "SYNTHETIC-SECRET-TOKEN")
 sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
@@ -47,7 +53,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.77"
+    assert client.get("/api/system/mode").json()["version"] == "3.78"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -71,6 +77,15 @@ def main() -> None:
     assert search_adapter["endpoint_hostname"] == "example.com"
     assert search_adapter["query_transmitted_only_after_authorization"] is True
     assert search_adapter["automatic_candidate_access"] is False
+    premium_adapter = catalog.json()["premium_source_adapter"]
+    assert premium_adapter["enabled"] is True
+    assert premium_adapter["authorized_external_data_envelope_required"] is True
+    assert premium_adapter["credential_transmitted_only_after_authorization"] is True
+    assert premium_adapter["sources"] == [{
+        "key": "synthetic", "label": "SYNTHETIC Premium Research",
+        "endpoint_hostname": "example.com", "estimated_cost_cents": 75,
+        "credential_ready": True,
+    }]
     try:
         salops_plan_assembly._research_document(b"{", "application/json", "https://example.com/api")
         raise AssertionError("Malformed JSON must fail closed")
@@ -464,6 +479,73 @@ def main() -> None:
     assert cost_history[0]["envelope"]["content_sha256"] == envelope["content_sha256"]
     assert cost_history[0]["recognized_cost_cents"] == 125
     assert client.post(usage_path, headers=director, json=usage_payload).status_code == 409
+
+    premium_path = f"{create_path}/{run_id}/external-premium-search"
+    assert client.post(premium_path, headers=member, json={
+        "source_key": "synthetic", "query": "synthetic continuity records",
+        "purpose": "A Protected Member cannot initiate paid external research.",
+    }).status_code == 403
+    premium_created = client.post(premium_path, headers=director, json={
+        "source_key": "synthetic", "query": "synthetic continuity records 2026",
+        "purpose": "Retrieve bounded premium-source candidates for analyst review.",
+    })
+    assert premium_created.status_code == 200, premium_created.text
+    premium_request = premium_created.json()
+    premium_id = premium_request["id"]
+    assert premium_request["adapter_type"] == "Approved Premium JSON Search"
+    assert premium_request["status"] == "Pending Human Authorization"
+    assert premium_request["estimated_cost_cents"] == 75
+    assert premium_request["cost_envelope_id"] == ""
+    assert "SYNTHETIC-SECRET-TOKEN" not in json.dumps(premium_request)
+    premium_authorize_path = f"{create_path}/external-research/{premium_id}/authorize"
+    missing_cost = client.post(premium_authorize_path, headers=administrator, json={
+        "reason": "Cost controls deliberately omitted.", "scope_confirmed": True,
+        "external_transmission_authorized": True, "sensitive_data_absent": True,
+    })
+    assert missing_cost.status_code == 422
+    premium_authorized = client.post(premium_authorize_path, headers=administrator, json={
+        "reason": "Exact provider query, credential transmission, and bounded cost approved.",
+        "scope_confirmed": True, "external_transmission_authorized": True,
+        "sensitive_data_absent": True, "cost_envelope_id": revised_id,
+        "paid_source_cost_authorized": True, "credential_transmission_authorized": True,
+    })
+    assert premium_authorized.status_code == 200, premium_authorized.text
+    assert premium_authorized.json()["cost_envelope_id"] == revised_id
+    assert premium_authorized.json()["paid_source_cost_authorized"] is True
+    premium_calls = []
+    salops_plan_assembly.PREMIUM_RESEARCH_FETCHER = lambda url, maximum_bytes, auth_mode, credential: (
+        premium_calls.append((url, maximum_bytes, auth_mode, credential)) or {
+            "status": 200, "content_type": "application/json",
+            "headers": {"content-type": "application/json"},
+            "content": json.dumps({
+                "results": [
+                    {"url": "https://example.com/premium/result-one"},
+                    {"url": "https://outside.example.org/blocked"},
+                ],
+            }).encode("utf-8"),
+        }
+    )
+    premium_live = client.post(
+        f"{create_path}/external-research/{premium_id}/execute", headers=owner,
+        json={"reason": "Execute the separately authorized paid-source request."},
+    )
+    assert premium_live.status_code == 200, premium_live.text
+    premium_result = premium_live.json()
+    assert premium_result["status"] == "Accessed"
+    assert premium_result["discovered_links"] == ["https://example.com/premium/result-one"]
+    assert premium_calls and premium_calls[0][2:] == ("bearer", "SYNTHETIC-SECRET-TOKEN")
+    active_cost = next(
+        item for item in client.get(f"{create_path}/{run_id}", headers=director).json()["research_cost_envelopes"]
+        if item["envelope"]["id"] == revised_id
+    )
+    assert active_cost["recognized_cost_cents"] == 75
+    assert active_cost["estimated_or_allowance_cost_cents"] == 75
+    assert active_cost["usage"][0]["category"] == "External Data"
+    assert active_cost["usage"][0]["task_reference"] == premium_id
+    assert active_cost["usage"][0]["creates_charge"] is False
+    assert "SYNTHETIC-SECRET-TOKEN" not in json.dumps(
+        client.get(f"{create_path}/{run_id}", headers=director).json()
+    )
 
     upload = client.post(
         "/api/materials/upload", headers=director,
@@ -993,8 +1075,8 @@ def main() -> None:
     assert still_approved["status"] == "Approved" and still_approved["version"] == 1
     bundle = client.get(f"{create_path}/{run_id}", headers=director)
     assert bundle.status_code == 200, bundle.text
-    assert len(bundle.json()["sources"]) == 8
-    assert len(bundle.json()["external_research_requests"]) == 6
+    assert len(bundle.json()["sources"]) == 9
+    assert len(bundle.json()["external_research_requests"]) == 7
     assert len(bundle.json()["sections"]) == 1
     assert len(bundle.json()["revision_recommendations"]) == 1
     assert len(bundle.json()["version_candidates"]) == 1

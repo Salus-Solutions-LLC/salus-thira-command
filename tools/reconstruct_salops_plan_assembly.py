@@ -10,23 +10,23 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salops_plan_assembly.py.gz",
         ROOT / "salops_plan_assembly.py",
-        "a96a6381c4da7b32a7dae6e70c321625821249dc48ba995ae29eb32662236a4b",
-        "148ee4a24e59ab40512ae33d933ae280666bc538d4e6c1a4f1e50d69120054fa",
-        212755,
+        "48e5f8853c16365bda6bb39d7583cbc9e0f395b13f232e7cd52d091422d999f1",
+        "ffff74a313b165c4bc03f7d57304179b2037b43c2c3c831a9493de853625ddd6",
+        227821,
     ),
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "0e4b9d3732a7b9bb3771ee083acfdb16dfe505cdd2e492ef89a55150b3a24db5",
-        "8317a5bb64efa990d8b23fbddaaeb3e04aff407642b8e52d9efc859a6d84e63f",
-        65231,
+        "36e4dd10e3d9921a30594be23a346db901c9a10b982ac81524affc891bba78b0",
+        "3bbd0b03af402826a5a93f39aa412d8bd4e279c83c1e6c51ab72d2bc24d42390",
+        69961,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.js.gz",
         ROOT / "static/salops-plan-assembly.js",
-        "0278099baa8a82835b29a828dc968a2297dc06b7b39a97fbae2447eabe575f10",
-        "9c639e05c8c39645ce419ea7f51ce6f71e2d6e734fe25517f9fb3baf118cd91d",
-        56624,
+        "c83a2362eb96090d5016aeec286f44f2a668fe39f1e7db2715e265b68a9289e3",
+        "70b2a71ae18601b011fd91f995876d74b879a0f12d1c136a06f56253f298aea5",
+        60910,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.css.gz",
@@ -38,9 +38,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "29410213276f09748108b813d50f82f2ef55f0dfe88402e8c5c6b29d38b2f2c5",
-        "1a8eef6235a8b84b127f0c53f8b4436918eef1ea0d67f691baf24d11fb4e92e1",
-        7994,
+        "7f7260b464792f69044bb7c7b3d33663761edddf6fe7c4fdc9d12fbe1bd7719d",
+        "dd9ffb1e3f03ed20bb9903baa6350e8e572e5149066a64df7e8e3de7856f7c50",
+        8518,
     ),
 )
 
