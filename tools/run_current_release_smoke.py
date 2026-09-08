@@ -6,10 +6,11 @@ was current when each capability was accepted. Current-candidate PR validation
 must preserve all substantive archived assertions while adapting only explicit
 release-version assertions to the candidate under test.
 
-This runner copies each smoke beside the original, changes version literals only
-on lines that explicitly reference ``version`` or ``SALCAPA_RELEASE_VERSION``,
-executes that temporary copy, and then removes it. The archived reconstruction and
-its digest remain unchanged and independently verifiable.
+This runner copies each smoke beside the original, changes only an explicit
+``SALCAPA_RELEASE_VERSION`` marker or an equality assertion against the runtime's
+``["version"]`` value, executes that temporary copy, and then removes it. Other
+version-like values remain byte-for-byte unchanged. The archived reconstruction
+and its digest remain independently verifiable.
 """
 from __future__ import annotations
 
@@ -22,7 +23,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "salcapa_runtime.py"
 VERSION_DECLARATION = re.compile(r'^SALCAPA_RELEASE_VERSION\s*=\s*["\'](?P<version>\d+\.\d+)["\']', re.MULTILINE)
-QUOTED_VERSION = re.compile(r'(?P<quote>["\'])(?P<version>\d+\.\d+)(?P=quote)')
+RELEASE_MARKER = re.compile(
+    r'(?P<prefix>SALCAPA_RELEASE_VERSION\s*=\s*(?P<quote>["\']))'
+    r'(?P<version>\d+\.\d+)(?P=quote)'
+)
+RUNTIME_VERSION_ASSERTION = re.compile(
+    r'(?P<prefix>\[\s*(?P<keyquote>["\'])version(?P=keyquote)\s*\]\s*==\s*(?P<quote>["\']))'
+    r'(?P<version>\d+\.\d+)(?P=quote)'
+)
 
 
 def candidate_version() -> str:
@@ -38,8 +46,9 @@ def normalized_source(path: Path, current: str) -> tuple[str, list[tuple[int, st
     changes: list[tuple[int, str, str]] = []
 
     for number, line in enumerate(original.splitlines(keepends=True), start=1):
-        lower = line.lower()
-        if "version" not in lower and "salcapa_release_version" not in lower:
+        if "SALCAPA_RELEASE_VERSION" not in line and not re.search(
+            r'\[\s*["\']version["\']\s*\]\s*==', line
+        ):
             output.append(line)
             continue
 
@@ -47,11 +56,11 @@ def normalized_source(path: Path, current: str) -> tuple[str, list[tuple[int, st
             old = match.group("version")
             if old == current:
                 return match.group(0)
-            quote = match.group("quote")
             changes.append((number, old, current))
-            return f"{quote}{current}{quote}"
+            return f"{match.group('prefix')}{current}{match.group('quote')}"
 
-        output.append(QUOTED_VERSION.sub(replace, line))
+        line = RELEASE_MARKER.sub(replace, line)
+        output.append(RUNTIME_VERSION_ASSERTION.sub(replace, line))
 
     normalized = "".join(output)
     if normalized != original:
@@ -60,8 +69,9 @@ def normalized_source(path: Path, current: str) -> tuple[str, list[tuple[int, st
         for index, (before, after) in enumerate(zip(original_lines, normalized_lines), start=1):
             if before == after:
                 continue
-            marker = before.lower()
-            if "version" not in marker and "salcapa_release_version" not in marker:
+            if "SALCAPA_RELEASE_VERSION" not in before and not re.search(
+                r'\[\s*["\']version["\']\s*\]\s*==', before
+            ):
                 raise SystemExit(f"Refusing unscoped smoke normalization at {path}:{index}")
     return normalized, changes
 

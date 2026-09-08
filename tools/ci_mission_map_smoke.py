@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
 import salcapa_runtime
+from tools.run_current_release_smoke import normalized_source
 
 
 def post(client, path, headers, payload, expected=200):
@@ -45,7 +46,19 @@ def main():
     }
 
     mode = client.get("/api/system/mode").json()
-    assert mode["version"] == "3.86", mode
+    assert mode["version"] == "3.87", mode
+    adapter_fixture = Path(WORKSPACE.name) / "release-adapter-fixture.py"
+    adapter_fixture.write_text(
+        'xml = b\'<?xml version="1.0"?>\'\n'
+        'assert mode["version"] == "3.86"\n'
+        'marker = \'SALCAPA_RELEASE_VERSION = "3.86"\'\n',
+        encoding="utf-8",
+    )
+    adapted, changes = normalized_source(adapter_fixture, "3.87")
+    assert 'version="1.0"' in adapted
+    assert 'mode["version"] == "3.87"' in adapted
+    assert 'SALCAPA_RELEASE_VERSION = "3.87"' in adapted
+    assert [old for _, old, _ in changes] == ["3.86", "3.86"]
     catalog = client.get("/api/salcapa/mission-map/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
     catalog = catalog.json()
@@ -59,6 +72,8 @@ def main():
     assert "ACT — SalOPS™" in labels
     assert "PROVE — cross-cutting Assurance & Results" in labels
     assert not any(state in {"Red", "Orange", "Amber", "Green"} for state in catalog["workflow_states"])
+    assert "Waiting / input needed" in catalog["attention_states"]
+    assert "do not change scope" in catalog["filter_guidance"]
 
     # No browser-provided map coordinate or arbitrary state can enter the governed model.
     forged_position = dict(
@@ -240,6 +255,44 @@ def main():
     assert salus_task["authority"].startswith("Task remains subject")
     assert salus_map["fallback"]["available"] is True
     assert any(link["relationship"] == "Produces Evidence For" for link in salus_map["links"])
+    assert salus_map["portfolio"]["total_items"] == 4
+    assert salus_map["portfolio"]["by_route"]["mission-structure"] == 2
+    assert salus_map["portfolio"]["by_route"]["salops"] == 1
+    assert salus_map["portfolio"]["by_route"]["prove"] == 1
+    assert sum(salus_map["portfolio"]["by_age_band"].values()) == 4
+    assert all(item["age_days"] >= 0 for item in salus_map["items"])
+    assert all(item["age_band"] in {"0–7 days", "8–30 days", "31+ days"} for item in salus_map["items"])
+    assert "not scores or judgments about people" in salus_map["portfolio"]["interpretation"]
+
+    filtered = client.get(
+        "/api/salcapa/mission-map?assessment_id=1&functional_area=SalOPS&workflow_status=In%20Progress&owner=Salus%20Operations",
+        headers=director,
+    )
+    assert filtered.status_code == 200, filtered.text
+    filtered = filtered.json()
+    assert [item["id"] for item in filtered["items"]] == [task["id"]]
+    assert filtered["portfolio"]["total_items"] == 1
+    assert filtered["active_filters"]["functional_area"] == "SalOPS"
+    assert filtered["active_filters"]["workflow_status"] == "In Progress"
+
+    waiting = client.get(
+        "/api/salcapa/mission-map?assessment_id=1&functional_area=PROVE&attention=Waiting%20%2F%20input%20needed",
+        headers=director,
+    )
+    assert waiting.status_code == 200, waiting.text
+    assert [item["id"] for item in waiting.json()["items"]] == [evidence["id"]]
+    assert waiting.json()["portfolio"]["by_attention"] == {"Waiting / input needed": 1}
+
+    # Filtering is applied to each role-safe projection; internal owner names cannot be inferred by a member.
+    member_internal_owner = client.get(
+        "/api/salcapa/mission-map?assessment_id=1&owner=Salus%20Operations", headers=member
+    )
+    assert member_internal_owner.status_code == 200, member_internal_owner.text
+    assert member_internal_owner.json()["items"] == []
+    assert member_internal_owner.json()["portfolio"]["total_items"] == 0
+    assert client.get(
+        "/api/salcapa/mission-map?workflow_status=Red", headers=director
+    ).status_code == 422
 
     root = client.get("/")
     assert root.status_code == 200
@@ -248,9 +301,12 @@ def main():
     assert '/static/mission-map.css' in html and '/static/mission-map.js' in html
     js = (ROOT / "static" / "mission-map.js").read_text(encoding="utf-8")
     assert "Mission Map" in js and "Conventional list view" in js
+    assert "Authorized portfolio view" in js and "Apply filters" in js
+    assert "Waiting / input needed" in js and "not scores or judgments about people" not in js
     assert "SalCAPA makes" not in js and "SalTHIRA coordinates" not in js
     css = (ROOT / "static" / "mission-map.css").read_text(encoding="utf-8")
     assert "prefers-reduced-motion" in css
+    assert ".mission-filter-grid" in css and ".mission-portfolio-grid" in css
     print("SalCAPA Mission Map acceptance checks passed.")
 
 

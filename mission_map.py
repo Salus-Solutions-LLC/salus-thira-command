@@ -9,9 +9,10 @@ released member-facing content within the active tenant and sensitivity boundary
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -294,6 +295,34 @@ def _next_station(route_key: str, station: str, status: str) -> str:
     return stations[index + 1]
 
 
+def _record_age(updated_at: str, reference: datetime) -> tuple[int, str]:
+    """Return a neutral age measure and band without implying severity or blame."""
+    try:
+        recorded = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+        if recorded.tzinfo is None:
+            recorded = recorded.replace(tzinfo=timezone.utc)
+        age_days = max(0, (reference.date() - recorded.astimezone(timezone.utc).date()).days)
+    except (TypeError, ValueError):
+        age_days = 0
+    if age_days <= 7:
+        return age_days, "0–7 days"
+    if age_days <= 30:
+        return age_days, "8–30 days"
+    return age_days, "31+ days"
+
+
+def _attention_state(item: dict[str, Any]) -> str:
+    if item["status"] == "Needs Reassessment":
+        return "Reassessment needed"
+    if item["status"] in {"Waiting", "Awaiting Input"} or item.get("waiting_on"):
+        return "Waiting / input needed"
+    if item["status"] in {"Awaiting Review", "Awaiting Approval", "Awaiting Validation"}:
+        return "Review / validation needed"
+    if not item.get("owner") or not item.get("next_step"):
+        return "Ownership / next step needed"
+    return "No recorded hold"
+
+
 def register_mission_map(app, core: dict[str, Any]) -> None:
     db = core["db"]
     require = core["require"]
@@ -425,13 +454,34 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             "name": "Mission Map", "node_types": list(NODE_TYPES),
             "functional_areas": list(FUNCTIONAL_AREAS), "workflow_states": list(WORKFLOW_STATES),
             "evidence_states": list(EVIDENCE_STATES), "link_types": list(LINK_TYPES),
+            "attention_states": [
+                "Waiting / input needed", "Review / validation needed", "Reassessment needed",
+                "Ownership / next step needed", "No recorded hold",
+            ],
             "routes": list(ROUTES), "marker_shapes": MARKER_SHAPES,
             "mission_structure": "Mission → Priorities → Objectives → Strategies → Tactics → Tasks / Assignments → Evidence & Results → Reassessment / Improvement",
             "principle": "People lead. Methods guide. Technology supports. Evidence proves.",
+            "filter_guidance": "Filters narrow the records already authorized for your view. They do not change scope, priority, ownership, or workflow state.",
         }
 
     @app.get("/api/salcapa/mission-map")
-    def mission_map(request: Request, assessment_id: Optional[int] = None):
+    def mission_map(
+        request: Request,
+        assessment_id: Optional[int] = Query(default=None, gt=0),
+        functional_area: Optional[Literal[
+            "Mission Structure", "SalINTEL", "SalTHIRA", "SalCAPA", "SalOPS", "PROVE",
+        ]] = None,
+        workflow_status: Optional[Literal[
+            "Draft", "Planned", "Awaiting Input", "Awaiting Review", "Awaiting Approval",
+            "Authorized", "In Progress", "Waiting", "Completed", "Awaiting Validation",
+            "Validated", "Needs Reassessment", "Closed",
+        ]] = None,
+        attention: Optional[Literal[
+            "Waiting / input needed", "Review / validation needed", "Reassessment needed",
+            "Ownership / next step needed", "No recorded hold",
+        ]] = None,
+        owner: Optional[str] = Query(default=None, max_length=120),
+    ):
         require(request, "read")
         assessment_allowed(request, assessment_id)
         tid = tenant_id(request)
@@ -441,10 +491,22 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
         if assessment_id is not None:
             sql += " AND assessment_id=?"
             params.append(assessment_id)
+        if functional_area is not None:
+            sql += " AND functional_area=?"
+            params.append(functional_area)
+        if workflow_status is not None:
+            sql += " AND status=?"
+            params.append(workflow_status)
         if protected_member(request):
             sql += " AND visibility='Released'"
         sql += " ORDER BY created_at,id"
         visible: list[dict[str, Any]] = []
+        try:
+            reference = datetime.fromisoformat(now().replace("Z", "+00:00"))
+            if reference.tzinfo is None:
+                reference = reference.replace(tzinfo=timezone.utc)
+        except (TypeError, ValueError):
+            reference = datetime.now(timezone.utc)
         for item in conn.execute(sql, tuple(params)):
             node = dict(item)
             if node["assessment_id"] is not None and node["assessment_id"] not in set(accessible_assessment_ids(request)):
@@ -454,6 +516,12 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             except HTTPException:
                 continue
             projected = safe_projection(request, node)
+            projected["age_days"], projected["age_band"] = _record_age(node["updated_at"], reference)
+            projected["attention"] = _attention_state(projected)
+            if owner and owner.strip().casefold() not in projected.get("owner", "").casefold():
+                continue
+            if attention and projected["attention"] != attention:
+                continue
             try:
                 projected["mission_path"] = parent_path(conn, request, node)
             except HTTPException:
@@ -462,6 +530,17 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
                 else:
                     raise
             visible.append(projected)
+        by_route = {route["key"]: 0 for route in ROUTES}
+        by_status: dict[str, int] = {}
+        by_evidence: dict[str, int] = {}
+        by_attention: dict[str, int] = {}
+        by_age = {"0–7 days": 0, "8–30 days": 0, "31+ days": 0}
+        for item in visible:
+            by_route[item["route_key"]] += 1
+            by_status[item["status"]] = by_status.get(item["status"], 0) + 1
+            by_evidence[item["evidence_state"]] = by_evidence.get(item["evidence_state"], 0) + 1
+            by_attention[item["attention"]] = by_attention.get(item["attention"], 0) + 1
+            by_age[item["age_band"]] += 1
         visible_ids = {item["id"] for item in visible}
         links = []
         for item in conn.execute(
@@ -478,6 +557,19 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
         return {
             "name": "Mission Map", "assessment_id": assessment_id, "routes": list(ROUTES),
             "items": visible, "links": links,
+            "active_filters": {
+                "functional_area": functional_area, "workflow_status": workflow_status,
+                "attention": attention, "owner": owner.strip() if owner else None,
+            },
+            "portfolio": {
+                "total_items": len(visible), "by_route": by_route,
+                "by_status": by_status, "by_evidence_state": by_evidence,
+                "by_attention": by_attention, "by_age_band": by_age,
+                "interpretation": (
+                    "These are counts of governed records in this authorized view, not scores or judgments about people. "
+                    "Age shows time since the latest recorded update and does not by itself establish urgency, risk, or fault."
+                ),
+            },
             "fallback": {
                 "available": True,
                 "description": "The same governed items remain available as a conventional list when the visual map is not useful or unavailable.",
