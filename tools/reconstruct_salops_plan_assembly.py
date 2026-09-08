@@ -10,23 +10,23 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salops_plan_assembly.py.gz",
         ROOT / "salops_plan_assembly.py",
-        "dd5a6b922f2491c9d07bd0d9ef5662c0396eef999cf1d1e1ab5801ce4561959c",
-        "984e662b061ac844e22ad52ea04420a4f4b1db100260178de33f3ecf15ea168d",
-        176439,
+        "e6defd78e08c1cf383329ada130542313af49a5daa32f49660863601a8111231",
+        "c752681b18133375321f2024509726ba986de4e53312174cca249609ab2542dc",
+        204002,
     ),
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "46f49e95aad18d027de9b2cc5457fe42fda4fc011943c4eda16237b26ddf4543",
-        "fccee7aa26886e181dac2b6891871877b54804cd19a9a787951a2fe491d8c934",
-        47839,
+        "8f472c024edebf05a0d252a9b8d31903420c7053a9a7acd1ce01cb3a553567a0",
+        "7a24c0f8a8cb85e09dc96496c81677dce31c7b4c5b3d27fc1aa1dbb84db62bad",
+        54907,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.js.gz",
         ROOT / "static/salops-plan-assembly.js",
-        "9a42980a59601565c7d4cad65d663d94ff2b911a101ce2b88e27ece38a98c1f0",
-        "e23a2eff161be95f4984b7b904d6511afb5d6bf51ba8d722eb25fcebb18b4f6e",
-        48243,
+        "0188e55b488dcf4b895624ac73626454c8ba149dbd1e195864fdf3ad635bcdf8",
+        "b42c3df4d00951167faa86ededefe8f2d3a3a961e9013af306aa0afc813d1b14",
+        53130,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.css.gz",
@@ -38,9 +38,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "f559b03c6b89e1fdeefc969f79e3cd95502394ced83e3af59f56e7e6e8083726",
-        "8041d0f188bca13c7bac3a41c73da8bd997197e378d988e6c601af814ab4457a",
-        6502,
+        "55a1dce6bc12528e12bbbe5f423f4f0eeb42ade30e8aac1cc1d96f5d79e3ecae",
+        "87fcebeb96438f367b7ec95233726839b42523e1b1b4f9626220689219e0fef4",
+        7175,
     ),
 )
 

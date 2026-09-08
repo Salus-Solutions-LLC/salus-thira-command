@@ -14,10 +14,12 @@ os.environ.setdefault("SALUS_BACKUP_DIR", str(Path(WORKSPACE.name) / "backups"))
 os.environ.setdefault("SALUS_LOCAL_STORAGE_DIR", str(Path(WORKSPACE.name) / "attachments"))
 os.environ.setdefault("SALUS_AUTH_MODE", "prototype")
 os.environ.setdefault("SALUS_SEED_DEMO", "1")
+os.environ.setdefault("SALUS_PLAN_RESEARCH_ALLOWED_DOMAINS", "example.com")
 sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
 import salcapa_runtime
+import salops_plan_assembly
 
 
 def main() -> None:
@@ -43,7 +45,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.72"
+    assert client.get("/api/system/mode").json()["version"] == "3.73"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -53,6 +55,10 @@ def main() -> None:
     assert authority["automatic_release"] is False
     assert authority["automatic_plan_replacement"] is False
     assert authority["automatic_charge"] is False
+    adapter = catalog.json()["external_research_adapter"]
+    assert adapter["enabled"] is True and adapter["configured_domains"] == ["example.com"]
+    assert adapter["https_only"] is True and adapter["redirects_followed"] is False
+    assert adapter["credentials_sent"] is False and adapter["automatic_verified_fact"] is False
 
     plan = client.post("/api/salops/preparedness/plans", headers=director, json={
         "assessment_id": 1,
@@ -97,7 +103,7 @@ def main() -> None:
         "portfolio_scope": {"facility_refs": ["SYNTHETIC-FACILITY-001"]},
         "internal_record_refs": ["SalINTEL:SYNTHETIC-CHANGE-001", "SalTHIRA:1"],
         "library_refs": ["SALUS-LIB:EOP-STRUCTURE-V1"],
-        "authorized_external_sources": ["Authoritative public emergency-management guidance"],
+        "authorized_external_sources": ["example.com"],
         "source_exclusions": ["Unapproved personal information", "Unapproved partner databases"],
         "research_questions": ["Did the communications dependency materially change?"],
         "known_unknowns": ["Current alternate communications endurance"],
@@ -113,6 +119,95 @@ def main() -> None:
     assert not {"commercial_treatment", "release_status", "approved_by"} & set(run)
     assert client.get(f"{create_path}/{run_id}", headers=member).status_code == 403
     assert client.get(f"{create_path}/{run_id}", headers=other).status_code == 404
+
+    live_path = f"{create_path}/{run_id}/external-research"
+    assert client.post(live_path, headers=director, json={
+        "url": "http://example.com/guidance", "purpose": "Reject plaintext retrieval.",
+    }).status_code == 422
+    assert client.post(live_path, headers=director, json={
+        "url": "https://127.0.0.1/private", "purpose": "Reject IP-literal retrieval.",
+    }).status_code == 422
+    assert client.post(live_path, headers=director, json={
+        "url": "https://unapproved.example.org/guidance", "purpose": "Reject unapproved host.",
+    }).status_code == 409
+    requested = client.post(live_path, headers=director, json={
+        "url": "https://example.com/emergency-guidance?edition=current",
+        "purpose": "Retrieve the exact synthetic public guidance for analyst review.",
+    })
+    assert requested.status_code == 200, requested.text
+    live = requested.json()
+    live_id = live["id"]
+    assert live["status"] == "Pending Human Authorization" and live["access_status"] == "Not Attempted"
+    assert live["creates_verified_fact"] is False and live["creates_disclosure"] is False
+    assert live["creates_charge"] is False and len(live["request_sha256"]) == 64
+    execute_live = f"{create_path}/external-research/{live_id}/execute"
+    authorize_live = f"{create_path}/external-research/{live_id}/authorize"
+    assert client.post(execute_live, headers=director, json={"reason": "Premature execution."}).status_code == 409
+    assert client.post(authorize_live, headers=member, json={
+        "reason": "Member must not authorize.", "scope_confirmed": True,
+        "external_transmission_authorized": True, "sensitive_data_absent": True,
+    }).status_code == 403
+    assert client.post(authorize_live, headers=director, json={
+        "reason": "Missing confirmation must fail.", "scope_confirmed": True,
+        "external_transmission_authorized": True, "sensitive_data_absent": False,
+    }).status_code == 422
+    authorized_live = client.post(authorize_live, headers=director, json={
+        "reason": "SYNTHETIC exact public source and external transmission authorization.",
+        "scope_confirmed": True, "external_transmission_authorized": True,
+        "sensitive_data_absent": True,
+    })
+    assert authorized_live.status_code == 200, authorized_live.text
+    assert authorized_live.json()["status"] == "Authorized"
+    salops_plan_assembly._resolve_public_host = lambda hostname: ["93.184.216.34"]
+    salops_plan_assembly.LIVE_RESEARCH_FETCHER = lambda url, maximum_bytes: {
+        "status": 200, "content_type": "text/html",
+        "headers": {"content-type": "text/html; charset=utf-8", "etag": '"synthetic"'},
+        "content": b"<html><body>SYNTHETIC public emergency guidance for analyst review.</body></html>",
+    }
+    executed_live = client.post(execute_live, headers=owner, json={
+        "reason": "Execute the separately authorized exact public retrieval.",
+    })
+    assert executed_live.status_code == 200, executed_live.text
+    live_result = executed_live.json()
+    live_source_id = live_result["source_id"]
+    assert live_result["status"] == "Accessed" and live_result["access_status"] == "Accessed"
+    assert live_result["content_type"] == "text/html" and live_result["content_bytes"] > 0
+    assert len(live_result["content_sha256"]) == 64
+    assert "SYNTHETIC public emergency guidance" in live_result["content_text"]
+    assert client.post(execute_live, headers=owner, json={"reason": "Duplicate must fail."}).status_code == 409
+    live_bundle = client.get(f"{create_path}/{run_id}", headers=director).json()
+    live_source = next(item for item in live_bundle["sources"] if item["id"] == live_source_id)
+    assert live_source["access_status"] == "Accessed"
+    assert live_source["linked_record_type"] == "External Research Request"
+    assert live_source["source_derived_statements"] == []
+    assert live_source["reliability"] == "Not Assessed" and live_source["confidence"] == "Not Assessed"
+    assert client.get(f"{create_path}/{run_id}", headers=other).status_code == 404
+
+    unavailable_request = client.post(live_path, headers=director, json={
+        "url": "https://example.com/unavailable-guidance",
+        "purpose": "Truthfully capture an unavailable synthetic source.",
+    }).json()
+    unavailable_id = unavailable_request["id"]
+    unavailable_authorize = f"{create_path}/external-research/{unavailable_id}/authorize"
+    unavailable_execute = f"{create_path}/external-research/{unavailable_id}/execute"
+    assert client.post(unavailable_authorize, headers=administrator, json={
+        "reason": "SYNTHETIC bounded unavailable-source test.", "scope_confirmed": True,
+        "external_transmission_authorized": True, "sensitive_data_absent": True,
+    }).status_code == 200
+    def unavailable_fetch(url, maximum_bytes):
+        raise ValueError("SYNTHETIC upstream source unavailable")
+    salops_plan_assembly.LIVE_RESEARCH_FETCHER = unavailable_fetch
+    unavailable_live = client.post(unavailable_execute, headers=administrator, json={
+        "reason": "Record actual unavailable outcome without inventing facts.",
+    })
+    assert unavailable_live.status_code == 200, unavailable_live.text
+    assert unavailable_live.json()["status"] == "Unavailable"
+    assert "upstream source unavailable" in unavailable_live.json()["unavailable_reason"]
+    unavailable_source_id = unavailable_live.json()["source_id"]
+    refreshed_live_bundle = client.get(f"{create_path}/{run_id}", headers=director).json()
+    unavailable_source = next(item for item in refreshed_live_bundle["sources"] if item["id"] == unavailable_source_id)
+    assert unavailable_source["access_status"] == "Unavailable"
+    assert unavailable_source["source_derived_statements"] == []
 
     cost_path = f"{create_path}/{run_id}/research-cost-envelopes"
     forged_cost = client.post(cost_path, headers=director, json={
@@ -715,7 +810,8 @@ def main() -> None:
     assert still_approved["status"] == "Approved" and still_approved["version"] == 1
     bundle = client.get(f"{create_path}/{run_id}", headers=director)
     assert bundle.status_code == 200, bundle.text
-    assert len(bundle.json()["sources"]) == 2
+    assert len(bundle.json()["sources"]) == 4
+    assert len(bundle.json()["external_research_requests"]) == 2
     assert len(bundle.json()["sections"]) == 1
     assert len(bundle.json()["revision_recommendations"]) == 1
     assert len(bundle.json()["version_candidates"]) == 1
@@ -730,6 +826,7 @@ def main() -> None:
         backup_conn.close()
     for table in (
         "salops_plan_assembly_runs", "salops_plan_assembly_sources",
+        "salops_plan_external_research_requests", "salops_plan_external_research_events",
         "salops_plan_assembly_questions", "salops_plan_assembly_sections",
         "salops_plan_revision_recommendations", "salops_plan_version_candidates",
         "salops_plan_materializations",
@@ -744,6 +841,14 @@ def main() -> None:
     tampered["salops_plan_assembly_runs"] = [dict(records["salops_plan_assembly_runs"][0], tenant_id=2)]
     errors = salcapa_runtime.core.validate_records(tampered, 1)
     assert any("crosses the tenant boundary" in error for error in errors)
+    tampered_research = {key: [dict(row) for row in value] for key, value in records.items()}
+    tampered_research["salops_plan_external_research_requests"][0]["policy_snapshot_json"] = '{}'
+    errors = salcapa_runtime.core.validate_records(tampered_research, 1)
+    assert any("external research request" in error and "integrity" in error for error in errors)
+    tampered_research_lineage = {key: [dict(row) for row in value] for key, value in records.items()}
+    tampered_research_lineage["salops_plan_external_research_requests"][0]["source_id"] = "pas_missing"
+    errors = salcapa_runtime.core.validate_records(tampered_research_lineage, 1)
+    assert any("external research request" in error and "source lineage" in error for error in errors)
     tampered_candidate = {key: [dict(row) for row in value] for key, value in records.items()}
     tampered_candidate["salops_plan_version_candidates"][0]["candidate_snapshot_json"] = '{}'
     errors = salcapa_runtime.core.validate_records(tampered_candidate, 1)

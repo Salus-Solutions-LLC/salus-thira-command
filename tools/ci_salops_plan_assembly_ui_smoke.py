@@ -14,6 +14,7 @@ os.environ.setdefault("SALUS_BACKUP_DIR", str(Path(WORKSPACE.name) / "backups"))
 os.environ.setdefault("SALUS_LOCAL_STORAGE_DIR", str(Path(WORKSPACE.name) / "attachments"))
 os.environ.setdefault("SALUS_AUTH_MODE", "prototype")
 os.environ.setdefault("SALUS_SEED_DEMO", "1")
+os.environ.setdefault("SALUS_PLAN_RESEARCH_ALLOWED_DOMAINS", "example.com")
 sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
@@ -32,7 +33,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.72"',
+    'SALCAPA_RELEASE_VERSION = "3.73"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -102,6 +103,14 @@ for value in (
     "SalTHIRA reassessment recommendations",
     "creates no SalTHIRA finding or priority",
     "separate Salus review and acceptance",
+    "Governed live external research",
+    "Before anything is sent",
+    "do not place Protected Member, Salus-internal, credential, or personal data in the URL",
+    "until SalINTEL analysis, corroboration, and qualification",
+    "createSalopsExternalResearchRequest",
+    "authorizeSalopsExternalResearch",
+    "executeSalopsExternalResearch",
+    "Redirects remain blocked",
 ):
     require(value, JS)
 
@@ -120,6 +129,10 @@ for value in (
     "salops_plan_preparedness_handoffs",
     "Materialization requires a separately accepted preparedness handoff",
     "no activity, schedule, release, authority, disclosure, or charge was created",
+    "salops_plan_external_research_requests",
+    "server-controlled live-research allowlist",
+    "External research request integrity verification failed",
+    "Retrieved content remains untrusted source material",
 ):
     require(value, SERVER)
 
@@ -161,6 +174,6 @@ member = {
 path = "/api/salops/preparedness/plan-assembly/catalog"
 assert client.get(path, headers=director).status_code == 200
 assert client.get(path, headers=member).status_code == 403
-assert client.get("/api/system/mode").json()["version"] == "3.72"
+assert client.get("/api/system/mode").json()["version"] == "3.73"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")

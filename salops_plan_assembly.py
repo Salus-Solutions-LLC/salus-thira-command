@@ -8,10 +8,16 @@ Protected Member disclosure outside automated control.
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
+import os
+import socket
 import uuid
+from html.parser import HTMLParser
 from typing import Any, Literal, Optional
+from urllib.parse import urlsplit, urlunsplit
 
+import httpx
 from fastapi import HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -50,6 +56,10 @@ RESEARCH_COST_CATEGORIES = (
 RESEARCH_COST_MEASUREMENTS = ("Actual Metered", "Provider Estimate", "Planning Allowance Applied")
 PREPAREDNESS_HANDOFF_TYPES = ("Training", "Exercise", "Validation", "SalTHIRA Reassessment")
 PREPAREDNESS_HANDOFF_STATES = ("Pending Human Review", "Accepted", "Rejected", "Materialized")
+LIVE_RESEARCH_MAX_BYTES = 524288
+LIVE_RESEARCH_CONTENT_TYPES = (
+    "text/plain", "text/html", "application/json", "application/xml", "text/xml",
+)
 PLAN_SECTION_FIELDS = {
     "authorities": "authorities_references", "authorities_references": "authorities_references",
     "assumptions": "assumptions", "roles": "roles_responsibilities",
@@ -142,6 +152,63 @@ CREATE TABLE IF NOT EXISTS salops_plan_assembly_sources (
   FOREIGN KEY (run_id) REFERENCES salops_plan_assembly_runs(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_plan_assembly_sources_scope ON salops_plan_assembly_sources(tenant_id,run_id,source_kind,access_status);
+
+CREATE TABLE IF NOT EXISTS salops_plan_external_research_requests (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  run_id TEXT NOT NULL,
+  adapter_type TEXT NOT NULL DEFAULT 'Public HTTPS Retrieval',
+  requested_url TEXT NOT NULL,
+  normalized_url TEXT NOT NULL,
+  hostname TEXT NOT NULL,
+  purpose TEXT NOT NULL,
+  policy_snapshot_json TEXT NOT NULL,
+  policy_sha256 TEXT NOT NULL,
+  request_sha256 TEXT NOT NULL,
+  immutable_request INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'Pending Human Authorization',
+  access_status TEXT NOT NULL DEFAULT 'Not Attempted',
+  authorized_by TEXT NOT NULL DEFAULT '',
+  authorized_at TEXT NOT NULL DEFAULT '',
+  authorization_reason TEXT NOT NULL DEFAULT '',
+  scope_confirmed INTEGER NOT NULL DEFAULT 0,
+  external_transmission_authorized INTEGER NOT NULL DEFAULT 0,
+  sensitive_data_absent INTEGER NOT NULL DEFAULT 0,
+  executed_by TEXT NOT NULL DEFAULT '',
+  executed_at TEXT NOT NULL DEFAULT '',
+  http_status INTEGER NOT NULL DEFAULT 0,
+  content_type TEXT NOT NULL DEFAULT '',
+  content_bytes INTEGER NOT NULL DEFAULT 0,
+  content_sha256 TEXT NOT NULL DEFAULT '',
+  response_headers_json TEXT NOT NULL DEFAULT '{}',
+  content_text TEXT NOT NULL DEFAULT '',
+  unavailable_reason TEXT NOT NULL DEFAULT '',
+  source_id TEXT NOT NULL DEFAULT '',
+  creates_verified_fact INTEGER NOT NULL DEFAULT 0,
+  creates_disclosure INTEGER NOT NULL DEFAULT 0,
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(tenant_id,run_id,normalized_url),
+  FOREIGN KEY (run_id) REFERENCES salops_plan_assembly_runs(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_plan_external_research_scope ON salops_plan_external_research_requests(tenant_id,run_id,status,created_at);
+
+CREATE TABLE IF NOT EXISTS salops_plan_external_research_events (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  request_id TEXT NOT NULL,
+  event_no INTEGER NOT NULL,
+  event_type TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  changed_by TEXT NOT NULL,
+  changed_by_role TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(tenant_id,request_id,event_no),
+  FOREIGN KEY (request_id) REFERENCES salops_plan_external_research_requests(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_plan_external_research_events_scope ON salops_plan_external_research_events(tenant_id,request_id,event_no);
 
 CREATE TABLE IF NOT EXISTS salops_plan_assembly_questions (
   id TEXT PRIMARY KEY,
@@ -531,6 +598,7 @@ JSON_COLUMNS = {
         "proposed_validation_actions", "proposed_reassessment_actions",
     ),
     "salops_plan_assembly_sources": ("source_derived_statements",),
+    "salops_plan_external_research_requests": ("policy_snapshot", "response_headers"),
     "salops_plan_assembly_questions": ("related_section_keys",),
     "salops_plan_assembly_sections": (
         "source_refs", "epistemic_items", "unsupported_assumptions", "known_unknowns",
@@ -554,6 +622,7 @@ JSON_COLUMNS = {
 }
 BACKUP_TABLES = (
     "salops_plan_assembly_runs", "salops_plan_assembly_sources",
+    "salops_plan_external_research_requests", "salops_plan_external_research_events",
     "salops_plan_assembly_questions", "salops_plan_assembly_sections",
     "salops_plan_revision_recommendations", "salops_plan_version_candidates",
     "salops_plan_materializations",
@@ -590,6 +659,106 @@ def _digest(value: Any) -> str:
 
 def _clean_list(value: list[str]) -> list[str]:
     return list(dict.fromkeys(str(item).strip() for item in value if str(item).strip()))
+
+
+class _HTMLTextExtractor(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        value = " ".join(data.split())
+        if value:
+            self.parts.append(value)
+
+
+def _configured_live_research_domains() -> list[str]:
+    return _clean_list(os.environ.get("SALUS_PLAN_RESEARCH_ALLOWED_DOMAINS", "").lower().split(","))
+
+
+def _normalize_https_url(value: str) -> tuple[str, str]:
+    try:
+        parsed = urlsplit(value.strip())
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("The research URL is invalid") from exc
+    if parsed.scheme.lower() != "https" or not parsed.hostname:
+        raise ValueError("Live external research requires an exact HTTPS URL")
+    if parsed.username or parsed.password or parsed.fragment or port not in (None, 443):
+        raise ValueError("The research URL cannot contain credentials, fragments, or a nonstandard port")
+    hostname = parsed.hostname.rstrip(".").lower()
+    try:
+        ipaddress.ip_address(hostname)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("IP-literal research URLs are not allowed")
+    normalized = urlunsplit(("https", hostname, parsed.path or "/", parsed.query, ""))
+    return normalized, hostname
+
+
+def _domain_match(hostname: str, rule: str) -> bool:
+    value = rule.strip().lower()
+    if "://" in value:
+        try:
+            value = (urlsplit(value).hostname or "").lower()
+        except ValueError:
+            return False
+    value = value.lstrip("*.").rstrip(".")
+    return bool(value) and (hostname == value or hostname.endswith("." + value))
+
+
+def _matching_domain(hostname: str, rules: list[str]) -> str:
+    return next((rule for rule in rules if _domain_match(hostname, rule)), "")
+
+
+def _resolve_public_host(hostname: str) -> list[str]:
+    try:
+        values = sorted({item[4][0] for item in socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)})
+    except OSError as exc:
+        raise ValueError("The external source hostname could not be resolved") from exc
+    if not values:
+        raise ValueError("The external source hostname did not resolve")
+    if any(not ipaddress.ip_address(value).is_global for value in values):
+        raise ValueError("The external source resolves to a non-public network address")
+    return values
+
+
+def _research_text(content: bytes, content_type: str) -> str:
+    text = content.decode("utf-8", errors="replace")
+    if content_type == "text/html":
+        parser = _HTMLTextExtractor()
+        parser.feed(text)
+        text = "\n".join(parser.parts)
+    return text[:60000]
+
+
+def _fetch_live_https(url: str, maximum_bytes: int = LIVE_RESEARCH_MAX_BYTES) -> dict[str, Any]:
+    headers = {
+        "User-Agent": "SalCAPA/1.0 governed-external-research",
+        "Accept": ",".join(LIVE_RESEARCH_CONTENT_TYPES),
+    }
+    with httpx.Client(follow_redirects=False, trust_env=False, timeout=httpx.Timeout(15.0, connect=5.0)) as client:
+        with client.stream("GET", url, headers=headers) as response:
+            content_type = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+            content = bytearray()
+            for chunk in response.iter_bytes():
+                content.extend(chunk)
+                if len(content) > maximum_bytes:
+                    raise ValueError(f"External source exceeds the {maximum_bytes}-byte governed retrieval limit")
+            return {
+                "status": int(response.status_code),
+                "content_type": content_type,
+                "headers": {
+                    key: response.headers[key]
+                    for key in ("content-type", "content-length", "last-modified", "etag")
+                    if key in response.headers
+                },
+                "content": bytes(content),
+            }
+
+
+LIVE_RESEARCH_FETCHER = _fetch_live_https
 
 
 class StrictModel(BaseModel):
@@ -670,6 +839,22 @@ class SourceCreate(StrictModel):
             if not self.unavailable_reason.strip():
                 raise ValueError("Unavailable or human/partner-needed sources require a truthful reason")
         return self
+
+
+class ExternalResearchRequestCreate(StrictModel):
+    url: str = Field(min_length=9, max_length=4000)
+    purpose: str = Field(min_length=3, max_length=8000)
+
+
+class ExternalResearchAuthorize(StrictModel):
+    reason: str = Field(min_length=3, max_length=8000)
+    scope_confirmed: Literal[True]
+    external_transmission_authorized: Literal[True]
+    sensitive_data_absent: Literal[True]
+
+
+class ExternalResearchExecute(StrictModel):
+    reason: str = Field(min_length=3, max_length=8000)
 
 
 class CollectionQuestionCreate(StrictModel):
@@ -934,6 +1119,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                      "revision_recommended", "approved_plan_preserved", "creates_plan_version",
                      "approved_baseline_preserved", "authority_confirmed", "disclosure_authorized",
                      "unresolved_items_accepted",
+                     "immutable_request", "scope_confirmed", "external_transmission_authorized",
+                     "sensitive_data_absent", "creates_verified_fact", "creates_disclosure",
                      "creates_schedule", "creates_release", "creates_authority", "creates_customer_price",
                      "creates_charge", "creates_invoice"):
             if name in out:
@@ -963,6 +1150,48 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         if require_sensitivity:
             require_sensitivity(request, str(data.get("sensitivity") or "Standard"))
         return data
+
+    def external_request_content(row: dict[str, Any]) -> dict[str, Any]:
+        keys = (
+            "id", "tenant_id", "run_id", "adapter_type", "requested_url", "normalized_url",
+            "hostname", "purpose", "policy_snapshot_json", "policy_sha256",
+            "immutable_request", "creates_verified_fact", "creates_disclosure", "creates_charge",
+            "created_by", "created_at",
+        )
+        return {key: row.get(key) for key in keys}
+
+    def external_request_row(conn, request_id: str, request: Request) -> dict[str, Any]:
+        row = conn.execute(
+            "SELECT * FROM salops_plan_external_research_requests WHERE id=? AND tenant_id=?",
+            (request_id, tenant_id(request)),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "External research request not found")
+        data = dict(row)
+        policy = _loads(data.get("policy_snapshot_json"), {})
+        if (not policy or _digest(policy) != data.get("policy_sha256")
+                or _digest(external_request_content(data)) != data.get("request_sha256")
+                or int(data.get("immutable_request") or 0) != 1):
+            raise HTTPException(409, "External research request integrity verification failed")
+        if any(int(data.get(name) or 0) != 0 for name in
+               ("creates_verified_fact", "creates_disclosure", "creates_charge")):
+            raise HTTPException(409, "External research request contains a forbidden automated effect")
+        run_row(conn, data["run_id"], request)
+        return data
+
+    def external_request_event(conn, row: dict[str, Any], event_type: str,
+                               reason: str, request: Request) -> None:
+        number = int(conn.execute(
+            "SELECT COUNT(*) c FROM salops_plan_external_research_events WHERE tenant_id=? AND request_id=?",
+            (row["tenant_id"], row["id"]),
+        ).fetchone()["c"]) + 1
+        conn.execute(
+            """INSERT INTO salops_plan_external_research_events(
+            id,tenant_id,request_id,event_no,event_type,reason,snapshot_json,
+            changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (_key("pare"), row["tenant_id"], row["id"], number, event_type, reason,
+             _json(row), actor(request), role(request), now()),
+        )
 
     def event(conn, row: dict[str, Any], event_type: str, reason: str, request: Request) -> None:
         number = int(conn.execute(
@@ -1361,6 +1590,10 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             "SELECT * FROM salops_plan_assembly_sources WHERE tenant_id=? AND run_id=? ORDER BY created_at,id",
             (tenant_id(request), run_id),
         )]
+        external_research_requests = [decode("salops_plan_external_research_requests", dict(item)) for item in conn.execute(
+            "SELECT * FROM salops_plan_external_research_requests WHERE tenant_id=? AND run_id=? ORDER BY created_at,id",
+            (tenant_id(request), run_id),
+        )]
         questions = [decode("salops_plan_assembly_questions", dict(item)) for item in conn.execute(
             "SELECT * FROM salops_plan_assembly_questions WHERE tenant_id=? AND run_id=? ORDER BY created_at,id",
             (tenant_id(request), run_id),
@@ -1409,6 +1642,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             (tenant_id(request), run_id),
         )]
         return {"run": decode("salops_plan_assembly_runs", row), "sources": sources,
+                "external_research_requests": external_research_requests,
                 "questions": questions, "sections": sections,
                 "revision_recommendations": recommendations,
                 "version_candidates": candidates, "plan_materializations": materializations,
@@ -1438,6 +1672,19 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "default_paid_research_authorized": False,
                 "new_scope_requires_new_envelope": True,
                 "customer_price_separate": True,
+                "automatic_charge": False,
+            },
+            "external_research_adapter": {
+                "type": "Public HTTPS Retrieval",
+                "enabled": bool(_configured_live_research_domains()),
+                "configured_domains": _configured_live_research_domains(),
+                "https_only": True,
+                "redirects_followed": False,
+                "credentials_sent": False,
+                "maximum_response_bytes": LIVE_RESEARCH_MAX_BYTES,
+                "allowed_content_types": list(LIVE_RESEARCH_CONTENT_TYPES),
+                "automatic_verified_fact": False,
+                "automatic_disclosure": False,
                 "automatic_charge": False,
             },
             "authority": {
@@ -1672,6 +1919,217 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             event(conn, run, "Source Recorded", f"{source_id}: {data['source_kind']} recorded as {data['access_status']}; unavailable sources yielded no facts.", request)
             conn.commit()
             return decode("salops_plan_assembly_sources", source)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-assembly/{run_id}/external-research")
+    def create_external_research_request(run_id: str, payload: ExternalResearchRequestCreate,
+                                         request: Request):
+        salus_access(request, "write")
+        conn = db()
+        try:
+            run = run_row(conn, run_id, request)
+            if run["status"] not in ("Research Planning", "Collecting", "Drafting", "Returned for Revision"):
+                raise HTTPException(409, "Live research cannot be requested after submission unless the run is returned for revision")
+            try:
+                normalized_url, hostname = _normalize_https_url(payload.url)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from exc
+            configured_domains = _configured_live_research_domains()
+            configured_match = _matching_domain(hostname, configured_domains)
+            run_sources = _loads(run.get("authorized_external_sources_json"), [])
+            run_match = _matching_domain(hostname, run_sources)
+            exclusions = _loads(run.get("source_exclusions_json"), [])
+            if not configured_match:
+                raise HTTPException(409, "The source hostname is not on the server-controlled live-research allowlist")
+            if not run_match:
+                raise HTTPException(409, "The source hostname is outside this run's authorized external-source scope")
+            if _matching_domain(hostname, exclusions):
+                raise HTTPException(409, "The source hostname is excluded by this run's collection plan")
+            duplicate = conn.execute(
+                "SELECT id FROM salops_plan_external_research_requests WHERE tenant_id=? AND run_id=? AND normalized_url=?",
+                (tenant_id(request), run_id, normalized_url),
+            ).fetchone()
+            if duplicate:
+                raise HTTPException(409, "This exact external research URL already has a governed request in the run")
+            request_id, stamp, who = _key("parr"), now(), actor(request)
+            policy = {
+                "schema": "salus.external-research-policy.v1",
+                "adapter_type": "Public HTTPS Retrieval",
+                "configured_domain_rule": configured_match,
+                "run_authorized_source_rule": run_match,
+                "https_only": True,
+                "redirects_followed": False,
+                "credentials_sent": False,
+                "maximum_response_bytes": LIVE_RESEARCH_MAX_BYTES,
+                "allowed_content_types": list(LIVE_RESEARCH_CONTENT_TYPES),
+                "paid_source_authorized": False,
+                "automatic_verified_fact": False,
+                "automatic_disclosure": False,
+                "automatic_charge": False,
+            }
+            content = {
+                "id": request_id, "tenant_id": tenant_id(request), "run_id": run_id,
+                "adapter_type": "Public HTTPS Retrieval", "requested_url": payload.url.strip(),
+                "normalized_url": normalized_url, "hostname": hostname, "purpose": payload.purpose,
+                "policy_snapshot_json": _json(policy), "policy_sha256": _digest(policy),
+                "immutable_request": 1, "creates_verified_fact": 0,
+                "creates_disclosure": 0, "creates_charge": 0,
+                "created_by": who, "created_at": stamp,
+            }
+            request_sha256 = _digest(content)
+            conn.execute(
+                """INSERT INTO salops_plan_external_research_requests(
+                id,tenant_id,run_id,adapter_type,requested_url,normalized_url,hostname,purpose,
+                policy_snapshot_json,policy_sha256,request_sha256,immutable_request,status,access_status,
+                creates_verified_fact,creates_disclosure,creates_charge,created_by,created_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (request_id, tenant_id(request), run_id, "Public HTTPS Retrieval",
+                 payload.url.strip(), normalized_url, hostname, payload.purpose,
+                 _json(policy), _digest(policy), request_sha256, 1,
+                 "Pending Human Authorization", "Not Attempted", 0, 0, 0, who, stamp),
+            )
+            created = dict(conn.execute(
+                "SELECT * FROM salops_plan_external_research_requests WHERE id=?", (request_id,),
+            ).fetchone())
+            external_request_event(
+                conn, created, "Request Created",
+                "Exact HTTPS retrieval requested; no network access, external transmission, fact qualification, disclosure, or charge occurred.",
+                request,
+            )
+            event(conn, run, "Live External Research Requested",
+                  f"{request_id}: exact HTTPS source queued for separate human authorization; no source was accessed.", request)
+            conn.commit()
+            return decode("salops_plan_external_research_requests", created)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-assembly/external-research/{request_id}/authorize")
+    def authorize_external_research(request_id: str, payload: ExternalResearchAuthorize,
+                                    request: Request):
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Program Owner"):
+            raise HTTPException(403, "This role cannot authorize an external research transmission")
+        conn = db()
+        try:
+            item = external_request_row(conn, request_id, request)
+            if item["status"] != "Pending Human Authorization" or item["access_status"] != "Not Attempted":
+                raise HTTPException(409, "Only an unattempted Pending Human Authorization request can be authorized")
+            stamp = now()
+            conn.execute(
+                """UPDATE salops_plan_external_research_requests
+                   SET status='Authorized',authorized_by=?,authorized_at=?,authorization_reason=?,
+                       scope_confirmed=1,external_transmission_authorized=1,sensitive_data_absent=1
+                   WHERE id=? AND tenant_id=?""",
+                (actor(request), stamp, payload.reason, request_id, tenant_id(request)),
+            )
+            updated = dict(conn.execute(
+                "SELECT * FROM salops_plan_external_research_requests WHERE id=?", (request_id,),
+            ).fetchone())
+            external_request_event(
+                conn, updated, "Human Authorized",
+                f"{payload.reason}; exact scope and external transmission confirmed, and the URL was confirmed free of sensitive data.",
+                request,
+            )
+            run = run_row(conn, item["run_id"], request)
+            event(conn, run, "Live External Research Authorized",
+                  f"{request_id}: exact public HTTPS retrieval authorized; no source accessed yet and no fact, disclosure, or charge created.", request)
+            conn.commit()
+            return decode("salops_plan_external_research_requests", updated)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-assembly/external-research/{request_id}/execute")
+    def execute_external_research(request_id: str, payload: ExternalResearchExecute,
+                                  request: Request):
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Program Owner"):
+            raise HTTPException(403, "This role cannot execute an external research transmission")
+        conn = db()
+        try:
+            item = external_request_row(conn, request_id, request)
+            if item["status"] != "Authorized" or item["access_status"] != "Not Attempted":
+                raise HTTPException(409, "Only an Authorized, unattempted external research request can execute")
+            if not all(int(item.get(name) or 0) == 1 for name in
+                       ("scope_confirmed", "external_transmission_authorized", "sensitive_data_absent")):
+                raise HTTPException(409, "External research execution lacks all required human confirmations")
+            run = run_row(conn, item["run_id"], request)
+            if run["status"] not in ("Research Planning", "Collecting", "Drafting", "Returned for Revision"):
+                raise HTTPException(409, "The assembly run no longer permits live research")
+            configured_match = _matching_domain(item["hostname"], _configured_live_research_domains())
+            run_match = _matching_domain(item["hostname"], _loads(run.get("authorized_external_sources_json"), []))
+            if not configured_match or not run_match:
+                raise HTTPException(409, "Live-research authorization no longer matches current server and run scope")
+            if _matching_domain(item["hostname"], _loads(run.get("source_exclusions_json"), [])):
+                raise HTTPException(409, "The live-research source is now excluded by the run")
+
+            access_status, unavailable_reason = "Accessed", ""
+            http_status, content_type, content_bytes = 0, "", 0
+            content_sha256, response_headers, content_text = "", {}, ""
+            try:
+                _resolve_public_host(item["hostname"])
+                fetched = LIVE_RESEARCH_FETCHER(item["normalized_url"], LIVE_RESEARCH_MAX_BYTES)
+                http_status = int(fetched.get("status") or 0)
+                content_type = str(fetched.get("content_type") or "").lower()
+                response_headers = dict(fetched.get("headers") or {})
+                raw = bytes(fetched.get("content") or b"")
+                content_bytes = len(raw)
+                if 300 <= http_status < 400:
+                    raise ValueError("Redirect response was not followed; authorize the exact destination URL separately")
+                if not 200 <= http_status < 300:
+                    raise ValueError(f"External source returned HTTP {http_status}")
+                if content_type not in LIVE_RESEARCH_CONTENT_TYPES:
+                    raise ValueError(f"External source content type {content_type or 'unknown'} is not permitted")
+                if not raw:
+                    raise ValueError("External source returned no content")
+                content_sha256 = hashlib.sha256(raw).hexdigest()
+                content_text = _research_text(raw, content_type)
+            except Exception as exc:
+                access_status = "Unavailable"
+                unavailable_reason = str(exc)[:8000] or "External source retrieval failed"
+                content_sha256, content_text = "", ""
+
+            source_id, stamp, who = _key("pas"), now(), actor(request)
+            summary = (
+                "Content captured as untrusted external source material for analyst review; it is not a Verified Fact."
+                if access_status == "Accessed" else "No source-derived facts were created because the external source was unavailable."
+            )
+            conn.execute(
+                """INSERT INTO salops_plan_assembly_sources(
+                id,tenant_id,run_id,source_kind,access_status,locator,citation,governed_material_id,
+                linked_record_type,linked_record_id,search_or_collection_method,source_summary,
+                source_derived_statements_json,reliability,confidence,unavailable_reason,accessed_by,
+                accessed_at,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (source_id, tenant_id(request), item["run_id"], "External Research", access_status,
+                 item["normalized_url"], item["normalized_url"], None,
+                 "External Research Request", request_id,
+                 "Human-authorized Public HTTPS Retrieval", summary, "[]",
+                 "Not Assessed", "Not Assessed", unavailable_reason,
+                 who if access_status == "Accessed" else "", stamp if access_status == "Accessed" else "",
+                 who, stamp),
+            )
+            terminal_status = "Accessed" if access_status == "Accessed" else "Unavailable"
+            conn.execute(
+                """UPDATE salops_plan_external_research_requests SET
+                status=?,access_status=?,executed_by=?,executed_at=?,http_status=?,content_type=?,
+                content_bytes=?,content_sha256=?,response_headers_json=?,content_text=?,
+                unavailable_reason=?,source_id=? WHERE id=? AND tenant_id=?""",
+                (terminal_status, access_status, who, stamp, http_status, content_type,
+                 content_bytes, content_sha256, _json(response_headers), content_text,
+                 unavailable_reason, source_id, request_id, tenant_id(request)),
+            )
+            updated = dict(conn.execute(
+                "SELECT * FROM salops_plan_external_research_requests WHERE id=?", (request_id,),
+            ).fetchone())
+            external_request_event(
+                conn, updated, f"Execution {terminal_status}",
+                f"{payload.reason}; access truth recorded as {access_status}. Retrieved content remains untrusted source material and no fact, disclosure, or charge was created.",
+                request,
+            )
+            event(conn, run, f"Live External Research {terminal_status}",
+                  f"{request_id}: {access_status}; source record {source_id} created with no source-derived facts.", request)
+            conn.commit()
+            return decode("salops_plan_external_research_requests", updated)
         finally:
             conn.close()
 
@@ -2779,6 +3237,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             run_ids = ids["salops_plan_assembly_runs"]
             plan_ids = {str(row.get("id")) for row in records.get("salops_preparedness_plans", []) if row.get("id")}
             source_ids_in_backup = ids["salops_plan_assembly_sources"]
+            external_request_ids = ids["salops_plan_external_research_requests"]
             recommendation_ids = ids["salops_plan_revision_recommendations"]
             candidate_ids = ids["salops_plan_version_candidates"]
             materialization_ids = ids["salops_plan_materializations"]
@@ -2812,6 +3271,40 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 refs = _loads(row.get("source_refs_json"), [])
                 if any(str(ref) not in source_ids_in_backup for ref in refs):
                     errors.append(f"plan assembly section {row.get('id')} has invalid source reference")
+            for row in records.get("salops_plan_external_research_requests", []):
+                request_id = row.get("id")
+                policy = _loads(row.get("policy_snapshot_json"), {})
+                if (not policy or _digest(policy) != row.get("policy_sha256")
+                        or _digest(external_request_content(row)) != row.get("request_sha256")):
+                    errors.append(f"external research request {request_id} failed integrity verification")
+                if int(row.get("immutable_request") or 0) != 1:
+                    errors.append(f"external research request {request_id} is not immutable")
+                if any(int(row.get(name) or 0) != 0 for name in
+                       ("creates_verified_fact", "creates_disclosure", "creates_charge")):
+                    errors.append(f"external research request {request_id} forges a fact, disclosure, or charge")
+                status = str(row.get("status") or "")
+                access = str(row.get("access_status") or "")
+                source_id = str(row.get("source_id") or "")
+                if status not in ("Pending Human Authorization", "Authorized", "Accessed", "Unavailable"):
+                    errors.append(f"external research request {request_id} has invalid status")
+                if status in ("Pending Human Authorization", "Authorized"):
+                    if access != "Not Attempted" or source_id or row.get("content_sha256"):
+                        errors.append(f"unattempted external research request {request_id} contains execution results")
+                if status == "Authorized" and not all(int(row.get(name) or 0) == 1 for name in
+                                                       ("scope_confirmed", "external_transmission_authorized", "sensitive_data_absent")):
+                    errors.append(f"authorized external research request {request_id} lacks required confirmations")
+                if status in ("Accessed", "Unavailable"):
+                    if source_id not in source_ids_in_backup:
+                        errors.append(f"external research request {request_id} has invalid source lineage")
+                    if access != status:
+                        errors.append(f"external research request {request_id} has inconsistent access truth")
+                if status == "Accessed" and (not row.get("content_sha256") or int(row.get("content_bytes") or 0) < 1):
+                    errors.append(f"accessed external research request {request_id} lacks captured-content integrity")
+                if status == "Unavailable" and not str(row.get("unavailable_reason") or "").strip():
+                    errors.append(f"unavailable external research request {request_id} lacks a truthful reason")
+            for row in records.get("salops_plan_external_research_events", []):
+                if str(row.get("request_id")) not in external_request_ids:
+                    errors.append(f"external research event {row.get('id')} has invalid request_id")
             for row in records.get("salops_plan_revision_recommendations", []):
                 if str(row.get("approved_plan_id")) not in plan_ids:
                     errors.append(f"plan revision recommendation {row.get('id')} has invalid approved_plan_id")
