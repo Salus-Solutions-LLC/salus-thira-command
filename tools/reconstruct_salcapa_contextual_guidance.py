@@ -24,8 +24,8 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salcapa_contextual_guidance_smoke.py.gz",
         ROOT / "tools/ci_salcapa_contextual_guidance_smoke.py",
-        "08719c2010a7e7760a8ba35af37d13b1bee889ad332cc2ac1d4d01fc4ec4aab2",
-        "b72346532d10f66fe65b9e9f1b215b65af800d101d6f508b1d021466147f3d1c",
+        "ea256bf2fa787b527d09ecb1626095453680cd35a3ca8faf412b5298f0dcdc60",
+        "26fdfa217d80c8052bdf7a843c353364364ed36eef9de9cb8851423611e1f143",
         2448,
     ),
 )

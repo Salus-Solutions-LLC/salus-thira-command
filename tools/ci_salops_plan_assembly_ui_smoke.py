@@ -32,7 +32,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.68"',
+    'SALCAPA_RELEASE_VERSION = "3.69"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -77,7 +77,6 @@ for value in (
     "materializeSalopsPlanVersionCandidate",
     "That human action creates only a Draft",
     "The Approved baseline remains unchanged",
-    "normal review and approval gates",
     "Internal research-cost control",
     "separate from customer pricing and creates no charge or invoice",
     "Without an Authorized envelope, paid or metered research remains blocked",
@@ -86,6 +85,15 @@ for value in (
     "createSalopsPlanResearchCostEnvelope",
     "authorizeSalopsPlanResearchCost",
     "recordSalopsPlanResearchCost",
+    "Review, approval, and release are separate human gates",
+    "approval alone does not disclose the plan",
+    "Record successor review",
+    "Approve proposal for release decision",
+    "Release approved successor",
+    "reviewSalopsPlanSuccessor",
+    "approveSalopsPlanSuccessor",
+    "releaseSalopsPlanSuccessor",
+    "The predecessor remains unchanged",
 ):
     require(value, JS)
 
@@ -97,6 +105,10 @@ for value in (
     "Maximum authorized cost must cover every planned component",
     "create and separately authorize a new governed envelope",
     '"default_paid_research_authorized": False',
+    "salops_plan_successor_governance",
+    "Successor approval requires the separate human-review gate",
+    "Release requires separate review and successor-approval gates",
+    "The Approved baseline changed; successor governance is stopped",
 ):
     require(value, SERVER)
 
@@ -138,6 +150,6 @@ member = {
 path = "/api/salops/preparedness/plan-assembly/catalog"
 assert client.get(path, headers=director).status_code == 200
 assert client.get(path, headers=member).status_code == 403
-assert client.get("/api/system/mode").json()["version"] == "3.68"
+assert client.get("/api/system/mode").json()["version"] == "3.69"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")

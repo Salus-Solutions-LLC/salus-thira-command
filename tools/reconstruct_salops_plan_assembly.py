@@ -10,23 +10,23 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salops_plan_assembly.py.gz",
         ROOT / "salops_plan_assembly.py",
-        "2ec8af1758ed7f57bffe6e1c89bbd0645a561b789158b4988bacd76a8d8f8e19",
-        "d4d7bfe0f7c9de6538d1cd70a57bfbe603c36e94612679a283b2bcb9511e00a6",
-        130821,
+        "8a8098e8590dcd047bad6e211d1097629118fd4df899117ce7764f5ef52d0db9",
+        "c9ff1aff82bb4ba4d184a6509dfa157d5d87b92695bc357cd6ad3d597b7f70cc",
+        151549,
     ),
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "bb4fd491cb2df024325ef4bcee174aff92e2859eb947e342e58a4ebfdb056dea",
-        "60b385137c482e740deb042215e6c58db77f3cf2c2c1071a99eb540ddc31c88e",
-        35405,
+        "4afbbc68e84cbcf90caf648ddb1bc4c2f390ea03e537a7ffb970b2e239121251",
+        "f2d12a94736ae129f8aede5751ca7f39352fd7f324588b7bcf44150a64945454",
+        40898,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.js.gz",
         ROOT / "static/salops-plan-assembly.js",
-        "43aabc7c9e7da580d43c86c50418c9491ac1f625a5732d443565a276947fd064",
-        "5462cb69235819ed8dd239e7f4c0b9690fdc186f8c81f1ba0b5a80e6fbd7cf90",
-        43133,
+        "c32c020d1c9e2b43f1419eb7801667f1c003e574193df30d4a1c0ab15b56ce15",
+        "bc10c1310e7696ae64e6dbe20d58d5d86f4b5fc96a20e45b0d4648fc52118538",
+        45374,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.css.gz",
@@ -38,9 +38,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "c0ed11b22829a06c3116d3e196deb3fe6eb20c16da21356911facb2c6d11d960",
-        "da14082a18bf195ce8b6e3ba335f2062a0a5d3a1f3d2ecdf5b3f1d941cd09431",
-        5313,
+        "e3c96e92ef0ee008cba52577feda6d6486bf7a728af04de3b1cfea2a12f60a56",
+        "a70eb0590caa3ba22c9f9b73b1ded3ac1384a9cbf2cb2bb2e1f8e5d9f8fecd43",
+        5881,
     ),
 )
 

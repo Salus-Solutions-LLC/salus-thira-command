@@ -9,9 +9,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives" / "development" / "salops_preparedness.py.gz",
         ROOT / "salops_preparedness.py",
-        "57e4bb64b97c965946e6bd7dda3ec446f1115954a535dac7e4005bbb4bcb65f3",
-        "e09e02f56387492280039fe1e6592ae3bae6d4af94f3b8467d85afd380a550c2",
-        76031,
+        "bbd956731254a0c47832d8d1873b3925009a48ea959addd25d8d5cb43dfe4a0a",
+        "7f0ad35ef3510f98ae1ac5580faff887315fb1a606ab251e33c4e2e933904c40",
+        76765,
     ),
     (
         ROOT / "source_archives" / "development" / "ci_salops_preparedness_smoke.py.gz",

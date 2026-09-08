@@ -281,6 +281,67 @@ CREATE TABLE IF NOT EXISTS salops_plan_materializations (
 );
 CREATE INDEX IF NOT EXISTS idx_plan_materializations_scope ON salops_plan_materializations(tenant_id,status,baseline_plan_id,draft_plan_id,created_at);
 
+CREATE TABLE IF NOT EXISTS salops_plan_successor_governance (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  materialization_id TEXT NOT NULL,
+  baseline_plan_id TEXT,
+  baseline_plan_version INTEGER NOT NULL,
+  baseline_plan_sha256 TEXT NOT NULL,
+  draft_plan_id TEXT NOT NULL,
+  draft_plan_version INTEGER NOT NULL,
+  candidate_id TEXT NOT NULL,
+  candidate_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Pending Review',
+  review_snapshot_json TEXT NOT NULL DEFAULT '{}',
+  review_snapshot_sha256 TEXT NOT NULL DEFAULT '',
+  reviewed_by TEXT NOT NULL DEFAULT '',
+  reviewed_at TEXT NOT NULL DEFAULT '',
+  review_reason TEXT NOT NULL DEFAULT '',
+  approval_snapshot_json TEXT NOT NULL DEFAULT '{}',
+  approval_snapshot_sha256 TEXT NOT NULL DEFAULT '',
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT '',
+  approval_reason TEXT NOT NULL DEFAULT '',
+  released_plan_id TEXT,
+  released_plan_snapshot_json TEXT NOT NULL DEFAULT '{}',
+  released_plan_sha256 TEXT NOT NULL DEFAULT '',
+  released_by TEXT NOT NULL DEFAULT '',
+  released_at TEXT NOT NULL DEFAULT '',
+  release_reason TEXT NOT NULL DEFAULT '',
+  authority_confirmed INTEGER NOT NULL DEFAULT 0,
+  disclosure_authorized INTEGER NOT NULL DEFAULT 0,
+  unresolved_items_accepted INTEGER NOT NULL DEFAULT 0,
+  approved_baseline_preserved INTEGER NOT NULL DEFAULT 1,
+  creates_release INTEGER NOT NULL DEFAULT 0,
+  creates_authority INTEGER NOT NULL DEFAULT 0,
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(tenant_id,materialization_id),
+  FOREIGN KEY (materialization_id) REFERENCES salops_plan_materializations(id) ON DELETE RESTRICT,
+  FOREIGN KEY (baseline_plan_id) REFERENCES salops_preparedness_plans(id) ON DELETE RESTRICT,
+  FOREIGN KEY (draft_plan_id) REFERENCES salops_preparedness_plans(id) ON DELETE RESTRICT,
+  FOREIGN KEY (candidate_id) REFERENCES salops_plan_version_candidates(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_plan_successor_governance_scope ON salops_plan_successor_governance(tenant_id,status,baseline_plan_id,draft_plan_id,created_at);
+
+CREATE TABLE IF NOT EXISTS salops_plan_successor_events (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  governance_id TEXT NOT NULL,
+  event_no INTEGER NOT NULL,
+  event_type TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  changed_by TEXT NOT NULL,
+  changed_by_role TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(tenant_id,governance_id,event_no),
+  FOREIGN KEY (governance_id) REFERENCES salops_plan_successor_governance(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_plan_successor_events_scope ON salops_plan_successor_events(tenant_id,governance_id,event_no);
+
 CREATE TABLE IF NOT EXISTS salops_plan_research_cost_envelopes (
   id TEXT PRIMARY KEY,
   tenant_id INTEGER NOT NULL,
@@ -429,6 +490,9 @@ JSON_COLUMNS = {
         "unresolved_items",
     ),
     "salops_plan_materializations": ("draft_plan_snapshot", "unmapped_sections"),
+    "salops_plan_successor_governance": (
+        "review_snapshot", "approval_snapshot", "released_plan_snapshot",
+    ),
     "salops_plan_research_cost_usage": ("metered_units",),
     "salops_plan_impact_detections": (
         "source_snapshot", "suggested_affected_sections", "detection_reasons",
@@ -440,6 +504,7 @@ BACKUP_TABLES = (
     "salops_plan_assembly_questions", "salops_plan_assembly_sections",
     "salops_plan_revision_recommendations", "salops_plan_version_candidates",
     "salops_plan_materializations",
+    "salops_plan_successor_governance", "salops_plan_successor_events",
     "salops_plan_research_cost_envelopes", "salops_plan_research_cost_usage",
     "salops_plan_impact_detections", "salops_plan_impact_events",
     "salops_plan_assembly_events",
@@ -655,6 +720,21 @@ class PlanMaterializeDraft(StrictModel):
     reason: str = Field(min_length=3, max_length=8000)
 
 
+class PlanSuccessorReview(StrictModel):
+    reason: str = Field(min_length=3, max_length=8000)
+
+
+class PlanSuccessorApprove(StrictModel):
+    reason: str = Field(min_length=3, max_length=8000)
+
+
+class PlanSuccessorRelease(StrictModel):
+    reason: str = Field(min_length=3, max_length=8000)
+    authority_confirmed: Literal[True]
+    disclosure_authorized: Literal[True]
+    unresolved_items_accepted: Literal[True]
+
+
 class ResearchCostEnvelopeCreate(StrictModel):
     currency: Literal["USD"] = "USD"
     estimated_chat_ai_cost_cents: int = Field(default=0, ge=0, le=100_000_000)
@@ -743,6 +823,27 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
 
     conn = db()
     conn.executescript(SCHEMA)
+    legacy_materializations = list(conn.execute(
+        """SELECT materialization.* FROM salops_plan_materializations materialization
+           LEFT JOIN salops_plan_successor_governance governance
+             ON governance.tenant_id=materialization.tenant_id
+            AND governance.materialization_id=materialization.id
+           WHERE governance.id IS NULL"""
+    ))
+    for item in legacy_materializations:
+        materialization = dict(item)
+        conn.execute(
+            """INSERT INTO salops_plan_successor_governance(
+            id,tenant_id,materialization_id,baseline_plan_id,baseline_plan_version,
+            baseline_plan_sha256,draft_plan_id,draft_plan_version,candidate_id,candidate_sha256,
+            status,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (_key("psg"), materialization["tenant_id"], materialization["id"],
+             materialization.get("baseline_plan_id"), int(materialization.get("baseline_plan_version") or 0),
+             materialization.get("baseline_plan_sha256") or "", materialization["draft_plan_id"],
+             int(materialization["draft_plan_version"]), materialization["candidate_id"],
+             materialization["candidate_sha256"], "Pending Review",
+             materialization["created_by"], materialization["created_at"]),
+        )
     conn.commit()
     conn.close()
 
@@ -757,6 +858,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             out[name] = _loads(out.pop(storage, None), {} if name == "portfolio_scope" else [])
         for name in ("human_authority_required", "immutable_content", "server_detected",
                      "revision_recommended", "approved_plan_preserved", "creates_plan_version",
+                     "approved_baseline_preserved", "authority_confirmed", "disclosure_authorized",
+                     "unresolved_items_accepted",
                      "creates_release", "creates_authority", "creates_customer_price",
                      "creates_charge", "creates_invoice"):
             if name in out:
@@ -855,6 +958,62 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             raise HTTPException(409, "Materialized Draft candidate lineage verification failed")
         plan_row(conn, data["draft_plan_id"], request)
         return data
+
+    def plan_proposal_snapshot(row: dict[str, Any]) -> dict[str, Any]:
+        """Return plan meaning without mutable lifecycle and adoption fields."""
+        excluded = {
+            "status", "member_adoption_status", "member_adoption_reason", "member_adopted_by",
+            "member_adopted_at", "updated_by", "updated_at", "reviewed_by", "reviewed_at",
+            "approved_by", "approved_at",
+        }
+        return {key: value for key, value in row.items() if key not in excluded}
+
+    def verify_baseline(conn, governance: dict[str, Any], request: Request) -> dict[str, Any]:
+        if not governance.get("baseline_plan_id"):
+            return {}
+        baseline = plan_row(conn, governance["baseline_plan_id"], request)
+        if (baseline["status"] != "Approved"
+                or int(baseline["version"]) != int(governance["baseline_plan_version"])
+                or _digest(baseline) != governance["baseline_plan_sha256"]):
+            raise HTTPException(409, "The Approved baseline changed; successor governance is stopped")
+        return baseline
+
+    def successor_row(conn, materialization_id: str, request: Request) -> dict[str, Any]:
+        materialization = materialization_row(conn, materialization_id, request)
+        row = conn.execute(
+            "SELECT * FROM salops_plan_successor_governance WHERE tenant_id=? AND materialization_id=?",
+            (tenant_id(request), materialization_id),
+        ).fetchone()
+        if not row:
+            raise HTTPException(409, "This materialized Draft has no controlled successor-governance record")
+        data = dict(row)
+        if (data["draft_plan_id"] != materialization["draft_plan_id"]
+                or data["candidate_id"] != materialization["candidate_id"]
+                or data["candidate_sha256"] != materialization["candidate_sha256"]):
+            raise HTTPException(409, "Successor-plan lineage verification failed")
+        for prefix in ("review", "approval", "released_plan"):
+            snapshot = _loads(data.get(f"{prefix}_snapshot_json"), {})
+            digest = str(data.get(f"{prefix}_snapshot_sha256") or "")
+            if digest and (not snapshot or _digest(snapshot) != digest):
+                raise HTTPException(409, f"Successor-plan {prefix.replace('_', ' ')} integrity verification failed")
+        return data
+
+    def successor_event(conn, governance: dict[str, Any], event_type: str,
+                        reason: str, request: Request) -> None:
+        number = int(conn.execute(
+            "SELECT COUNT(*) c FROM salops_plan_successor_events WHERE tenant_id=? AND governance_id=?",
+            (governance["tenant_id"], governance["id"]),
+        ).fetchone()["c"]) + 1
+        conn.execute(
+            """INSERT INTO salops_plan_successor_events(
+            id,tenant_id,governance_id,event_no,event_type,reason,snapshot_json,
+            changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (_key("pse"), governance["tenant_id"], governance["id"], number, event_type,
+             reason, _json(governance), actor(request), role(request), now()),
+        )
+        audit(conn, f"SALOPS_PLAN_SUCCESSOR_{event_type.upper().replace(' ', '_')}",
+              "salops_plan_successor_governance", None,
+              f"{governance['id']}: {reason}"[:1000], actor(request))
 
     def cost_envelope_content(data: dict[str, Any]) -> dict[str, Any]:
         return {name: data.get(name) for name in (
@@ -1054,6 +1213,14 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                ORDER BY materialization.created_at,materialization.id""",
             (tenant_id(request), tenant_id(request), run_id),
         )]
+        successor_governance = [decode("salops_plan_successor_governance", dict(item)) for item in conn.execute(
+            """SELECT governance.* FROM salops_plan_successor_governance governance
+               JOIN salops_plan_materializations materialization ON materialization.id=governance.materialization_id
+               JOIN salops_plan_version_candidates candidate ON candidate.id=materialization.candidate_id
+               WHERE governance.tenant_id=? AND candidate.tenant_id=? AND candidate.run_id=?
+               ORDER BY governance.created_at,governance.id""",
+            (tenant_id(request), tenant_id(request), run_id),
+        )]
         impacts = [decode("salops_plan_impact_detections", dict(item)) for item in conn.execute(
             "SELECT * FROM salops_plan_impact_detections WHERE tenant_id=? AND assembly_run_id=? ORDER BY created_at,id",
             (tenant_id(request), run_id),
@@ -1070,6 +1237,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "questions": questions, "sections": sections,
                 "revision_recommendations": recommendations,
                 "version_candidates": candidates, "plan_materializations": materializations,
+                "plan_successor_governance": successor_governance,
                 "plan_impact_detections": impacts,
                 "research_cost_envelopes": cost_envelopes,
                 "events": events}
@@ -1918,6 +2086,19 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                  draft_version, candidate["candidate_sha256"], _json(draft), _digest(draft),
                  _json(unmapped_sections), "Draft Materialized", payload.reason, 1, 1, 0, 0, 0, who, stamp),
             )
+            governance_id = _key("psg")
+            conn.execute(
+                """INSERT INTO salops_plan_successor_governance(
+                id,tenant_id,materialization_id,baseline_plan_id,baseline_plan_version,
+                baseline_plan_sha256,draft_plan_id,draft_plan_version,candidate_id,candidate_sha256,
+                status,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (governance_id, tenant_id(request), materialization_id, candidate["baseline_plan_id"],
+                 int(candidate["baseline_plan_version"]), candidate["baseline_plan_sha256"], draft_id,
+                 draft_version, candidate_id, candidate["candidate_sha256"], "Pending Review", who, stamp),
+            )
+            governance = successor_row(conn, materialization_id, request)
+            successor_event(conn, governance, "Controlled Draft Created",
+                            f"Separate Draft {draft_id} requires controlled review, approval, and release; Approved baseline preserved.", request)
             created = materialization_row(conn, materialization_id, request)
             event(conn, run, "Draft Plan Materialized",
                   f"{candidate_id}: separate Draft plan {draft_id} v{draft_version} created for governed review; Approved baseline unchanged and no authority, release, disclosure, or charge created.", request)
@@ -1934,6 +2115,128 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                   f"{draft_id}: candidate {candidate_id}; separate Draft only; Approved baseline preserved."[:1000], who)
             conn.commit()
             return decode("salops_plan_materializations", created)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-materializations/{materialization_id}/review")
+    def review_plan_successor(materialization_id: str, payload: PlanSuccessorReview, request: Request):
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Lead Assessor"):
+            raise HTTPException(403, "This role cannot review a controlled successor plan")
+        conn = db()
+        try:
+            governance = successor_row(conn, materialization_id, request)
+            if governance["status"] != "Pending Review":
+                raise HTTPException(409, "Successor review requires a materialized Draft pending review")
+            verify_baseline(conn, governance, request)
+            draft = plan_row(conn, governance["draft_plan_id"], request)
+            materialization = materialization_row(conn, materialization_id, request)
+            original = _loads(materialization["draft_plan_snapshot_json"], {})
+            if _digest(plan_proposal_snapshot(draft)) != _digest(plan_proposal_snapshot(original)):
+                raise HTTPException(409, "The materialized Draft changed outside its governed candidate lineage")
+            stamp, who = now(), actor(request)
+            snapshot = dict(draft)
+            conn.execute(
+                """UPDATE salops_plan_successor_governance SET status='Human Reviewed',
+                review_snapshot_json=?,review_snapshot_sha256=?,reviewed_by=?,reviewed_at=?,review_reason=?
+                WHERE id=? AND tenant_id=?""",
+                (_json(snapshot), _digest(snapshot), who, stamp, payload.reason,
+                 governance["id"], tenant_id(request)),
+            )
+            updated = successor_row(conn, materialization_id, request)
+            successor_event(conn, updated, "Human Review Recorded",
+                            f"{payload.reason}; no approval, release, disclosure, authority, or charge created.", request)
+            conn.commit()
+            return decode("salops_plan_successor_governance", updated)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-materializations/{materialization_id}/approve")
+    def approve_plan_successor(materialization_id: str, payload: PlanSuccessorApprove, request: Request):
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Program Owner"):
+            raise HTTPException(403, "This role cannot approve a controlled successor proposal")
+        conn = db()
+        try:
+            governance = successor_row(conn, materialization_id, request)
+            if governance["status"] != "Human Reviewed":
+                raise HTTPException(409, "Successor approval requires the separate human-review gate")
+            verify_baseline(conn, governance, request)
+            draft = plan_row(conn, governance["draft_plan_id"], request)
+            reviewed = _loads(governance["review_snapshot_json"], {})
+            if _digest(draft) != governance["review_snapshot_sha256"] or draft != reviewed:
+                raise HTTPException(409, "The reviewed successor content changed; approval is stopped")
+            stamp, who = now(), actor(request)
+            conn.execute(
+                """UPDATE salops_plan_successor_governance SET status='Approved for Release',
+                approval_snapshot_json=?,approval_snapshot_sha256=?,approved_by=?,approved_at=?,approval_reason=?
+                WHERE id=? AND tenant_id=?""",
+                (_json(draft), _digest(draft), who, stamp, payload.reason,
+                 governance["id"], tenant_id(request)),
+            )
+            updated = successor_row(conn, materialization_id, request)
+            successor_event(conn, updated, "Successor Proposal Approved",
+                            f"{payload.reason}; approval does not release or disclose the plan and creates no authority or charge.", request)
+            conn.commit()
+            return decode("salops_plan_successor_governance", updated)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-materializations/{materialization_id}/release")
+    def release_plan_successor(materialization_id: str, payload: PlanSuccessorRelease, request: Request):
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Program Owner"):
+            raise HTTPException(403, "This role cannot release a controlled successor plan")
+        conn = db()
+        try:
+            governance = successor_row(conn, materialization_id, request)
+            if governance["status"] != "Approved for Release":
+                raise HTTPException(409, "Release requires separate review and successor-approval gates")
+            verify_baseline(conn, governance, request)
+            draft = plan_row(conn, governance["draft_plan_id"], request)
+            if _digest(draft) != governance["approval_snapshot_sha256"]:
+                raise HTTPException(409, "The approved successor proposal changed; release is stopped")
+            stamp, who, released_id = now(), actor(request), _key("plan")
+            released = dict(draft)
+            released.update({
+                "id": released_id, "status": "Approved", "member_adoption_status": "Not Recorded",
+                "member_adoption_reason": "", "member_adopted_by": "", "member_adopted_at": "",
+                "commercial_treatment": "Not Determined", "commercial_reference": "",
+                "membership_entitlement_ref": "", "created_by": who, "created_at": stamp,
+                "updated_by": who, "updated_at": stamp, "reviewed_by": governance["reviewed_by"],
+                "reviewed_at": governance["reviewed_at"], "approved_by": governance["approved_by"],
+                "approved_at": governance["approved_at"],
+            })
+            columns = [item["name"] for item in conn.execute("PRAGMA table_info(salops_preparedness_plans)")]
+            conn.execute(
+                f"INSERT INTO salops_preparedness_plans({','.join(columns)}) VALUES({','.join('?' * len(columns))})",
+                tuple(released.get(column) for column in columns),
+            )
+            released = plan_row(conn, released_id, request)
+            conn.execute(
+                """UPDATE salops_plan_successor_governance SET status='Released',released_plan_id=?,
+                released_plan_snapshot_json=?,released_plan_sha256=?,released_by=?,released_at=?,release_reason=?,
+                authority_confirmed=1,disclosure_authorized=1,unresolved_items_accepted=1,creates_release=1
+                WHERE id=? AND tenant_id=?""",
+                (released_id, _json(released), _digest(released), who, stamp, payload.reason,
+                 governance["id"], tenant_id(request)),
+            )
+            conn.execute(
+                """INSERT INTO salops_preparedness_events(
+                id,tenant_id,entity_type,entity_id,event_no,record_version,event_type,reason,
+                snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (_key("pevt"), tenant_id(request), "Plan", released_id, 1, int(released["version"]),
+                 "Controlled Successor Released",
+                 f"Released from governed materialization {materialization_id}; predecessor {governance['baseline_plan_id']} remains immutable.",
+                 _json(released), who, role(request), stamp),
+            )
+            updated = successor_row(conn, materialization_id, request)
+            successor_event(conn, updated, "Successor Plan Released",
+                            f"{payload.reason}; authorized disclosure created plan {released_id}; predecessor preserved; no authority or charge created.", request)
+            audit(conn, "SALOPS_PLAN_SUCCESSOR_RELEASED", "salops_preparedness_plans", None,
+                  f"{released_id}: released from {materialization_id}; baseline {governance['baseline_plan_id']} preserved."[:1000], who)
+            conn.commit()
+            return decode("salops_plan_successor_governance", updated)
         finally:
             conn.close()
 
@@ -2123,6 +2426,8 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             source_ids_in_backup = ids["salops_plan_assembly_sources"]
             recommendation_ids = ids["salops_plan_revision_recommendations"]
             candidate_ids = ids["salops_plan_version_candidates"]
+            materialization_ids = ids["salops_plan_materializations"]
+            governance_ids = ids["salops_plan_successor_governance"]
             envelope_ids = ids["salops_plan_research_cost_envelopes"]
             envelope_records = {str(row.get("id")): row for row in records.get("salops_plan_research_cost_envelopes", []) if row.get("id")}
             candidate_hashes = {
@@ -2168,6 +2473,33 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 snapshot = _loads(row.get("draft_plan_snapshot_json"), {})
                 if not snapshot or _digest(snapshot) != row.get("draft_plan_sha256"):
                     errors.append(f"plan materialization {row.get('id')} failed Draft plan integrity verification")
+            for row in records.get("salops_plan_successor_governance", []):
+                if str(row.get("materialization_id")) not in materialization_ids:
+                    errors.append(f"plan successor governance {row.get('id')} has invalid materialization_id")
+                if row.get("baseline_plan_id") and str(row.get("baseline_plan_id")) not in plan_ids:
+                    errors.append(f"plan successor governance {row.get('id')} has invalid baseline_plan_id")
+                if str(row.get("draft_plan_id")) not in plan_ids:
+                    errors.append(f"plan successor governance {row.get('id')} has invalid draft_plan_id")
+                if str(row.get("candidate_id")) not in candidate_ids:
+                    errors.append(f"plan successor governance {row.get('id')} has invalid candidate lineage")
+                if row.get("released_plan_id") and str(row.get("released_plan_id")) not in plan_ids:
+                    errors.append(f"plan successor governance {row.get('id')} has invalid released_plan_id")
+                if row.get("status") not in ("Pending Review", "Human Reviewed", "Approved for Release", "Released"):
+                    errors.append(f"plan successor governance {row.get('id')} has invalid status")
+                for prefix in ("review", "approval", "released_plan"):
+                    digest = str(row.get(f"{prefix}_snapshot_sha256") or "")
+                    snapshot = _loads(row.get(f"{prefix}_snapshot_json"), {})
+                    if digest and (not snapshot or _digest(snapshot) != digest):
+                        errors.append(f"plan successor governance {row.get('id')} failed {prefix} integrity verification")
+                if int(row.get("creates_authority") or 0) or int(row.get("creates_charge") or 0):
+                    errors.append(f"plan successor governance {row.get('id')} forges authority or charge")
+                if row.get("status") == "Released" and not all(int(row.get(name) or 0) == 1 for name in (
+                    "authority_confirmed", "disclosure_authorized", "unresolved_items_accepted", "creates_release",
+                )):
+                    errors.append(f"released plan successor governance {row.get('id')} lacks explicit release confirmations")
+            for row in records.get("salops_plan_successor_events", []):
+                if str(row.get("governance_id")) not in governance_ids:
+                    errors.append(f"plan successor event {row.get('id')} has invalid governance_id")
             for row in records.get("salops_plan_research_cost_envelopes", []):
                 if row.get("status") not in ("Draft", "Authorized", "Superseded", "Closed"):
                     errors.append(f"research-cost envelope {row.get('id')} has invalid status")

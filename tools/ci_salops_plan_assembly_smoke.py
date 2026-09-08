@@ -30,12 +30,20 @@ def main() -> None:
         "X-Salus-Tenant": "1", "X-Salus-Role": "Contributor",
         "X-Salus-User": "Protected Member", "X-Salus-Clearance": "Standard",
     }
+    owner = {
+        "X-Salus-Tenant": "1", "X-Salus-Role": "Program Owner",
+        "X-Salus-User": "Preparedness Program Owner", "X-Salus-Clearance": "Highly Sensitive",
+    }
+    administrator = {
+        "X-Salus-Tenant": "1", "X-Salus-Role": "System Administrator",
+        "X-Salus-User": "Release Administrator", "X-Salus-Clearance": "Highly Sensitive",
+    }
     other = {
         "X-Salus-Tenant": "2", "X-Salus-Role": "Assessment Director",
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.68"
+    assert client.get("/api/system/mode").json()["version"] == "3.69"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -447,6 +455,87 @@ def main() -> None:
     assert preserved_after_materialization == approved
     materialized_bundle = client.get(f"{create_path}/{run_id}", headers=director).json()
     assert materialized_bundle["plan_materializations"][0]["draft_plan_id"] == draft_plan_id
+    successor = materialized_bundle["plan_successor_governance"][0]
+    materialization_id = materialization["id"]
+    assert successor["materialization_id"] == materialization_id
+    assert successor["status"] == "Pending Review"
+    assert successor["creates_release"] is False
+    assert successor["creates_authority"] is False and successor["creates_charge"] is False
+
+    bypass_transition = client.post(
+        f"/api/salops/preparedness/plans/{draft_plan_id}/transition", headers=director,
+        json={"status": "Reviewed", "reason": "Attempt to bypass controlled successor governance."},
+    )
+    assert bypass_transition.status_code == 409 and "controlled review" in bypass_transition.text
+    bypass_revision = client.post(
+        f"/api/salops/preparedness/plans/{draft_plan_id}/revise", headers=director,
+        json={"reason": "Attempt to escape controlled successor governance."},
+    )
+    assert bypass_revision.status_code == 409 and "controlled review" in bypass_revision.text
+
+    successor_path = f"/api/salops/preparedness/plan-materializations/{materialization_id}"
+    assert client.post(f"{successor_path}/approve", headers=owner, json={
+        "reason": "Premature approval must fail.",
+    }).status_code == 409
+    assert client.post(f"{successor_path}/release", headers=administrator, json={
+        "reason": "Premature release must fail.", "authority_confirmed": True,
+        "disclosure_authorized": True, "unresolved_items_accepted": True,
+    }).status_code == 409
+    assert client.post(f"{successor_path}/review", headers=member, json={
+        "reason": "Protected Member cannot perform an internal Salus review.",
+    }).status_code == 403
+    reviewed_successor = client.post(f"{successor_path}/review", headers=director, json={
+        "reason": "Reviewed the exact candidate lineage, source manifest, unresolved items, and proposed plan text.",
+    })
+    assert reviewed_successor.status_code == 200, reviewed_successor.text
+    assert reviewed_successor.json()["status"] == "Human Reviewed"
+    assert len(reviewed_successor.json()["review_snapshot_sha256"]) == 64
+    assert client.get(f"/api/salops/preparedness/plans/{draft_plan_id}", headers=member).status_code == 403
+
+    approved_successor = client.post(f"{successor_path}/approve", headers=owner, json={
+        "reason": "Approve this exact successor proposal for a separate release decision; no disclosure yet.",
+    })
+    assert approved_successor.status_code == 200, approved_successor.text
+    assert approved_successor.json()["status"] == "Approved for Release"
+    assert approved_successor.json()["creates_release"] is False
+    assert len(approved_successor.json()["approval_snapshot_sha256"]) == 64
+    assert client.get(f"/api/salops/preparedness/plans/{draft_plan_id}", headers=member).status_code == 403
+    missing_release_authority = client.post(f"{successor_path}/release", headers=administrator, json={
+        "reason": "Missing explicit authority acknowledgements must fail.",
+    })
+    assert missing_release_authority.status_code == 422
+
+    released_successor = client.post(f"{successor_path}/release", headers=administrator, json={
+        "reason": "Release the separately reviewed and approved successor for authorized Protected Member use.",
+        "authority_confirmed": True, "disclosure_authorized": True,
+        "unresolved_items_accepted": True,
+    })
+    assert released_successor.status_code == 200, released_successor.text
+    release_record = released_successor.json()
+    released_plan_id = release_record["released_plan_id"]
+    assert release_record["status"] == "Released" and released_plan_id != draft_plan_id
+    assert release_record["creates_release"] is True
+    assert release_record["creates_authority"] is False and release_record["creates_charge"] is False
+    assert release_record["approved_baseline_preserved"] is True
+    assert release_record["authority_confirmed"] is True
+    assert release_record["disclosure_authorized"] is True
+    assert release_record["unresolved_items_accepted"] is True
+    assert len(release_record["released_plan_sha256"]) == 64
+    released_bundle = client.get(f"/api/salops/preparedness/plans/{released_plan_id}", headers=member)
+    assert released_bundle.status_code == 200, released_bundle.text
+    assert released_bundle.json()["plan"]["status"] == "Approved"
+    assert released_bundle.json()["plan"]["version"] == 2
+    assert released_bundle.json()["plan"]["communications"] == section.json()["content"]
+    assert client.post(f"{successor_path}/release", headers=administrator, json={
+        "reason": "Duplicate release must fail.", "authority_confirmed": True,
+        "disclosure_authorized": True, "unresolved_items_accepted": True,
+    }).status_code == 409
+    preserved_after_release = client.get(
+        f"/api/salops/preparedness/plans/{plan_id}", headers=director,
+    ).json()["plan"]
+    assert preserved_after_release == approved
+    released_run_bundle = client.get(f"{create_path}/{run_id}", headers=director).json()
+    assert released_run_bundle["plan_successor_governance"][0]["status"] == "Released"
 
     impact_path = f"/api/salops/preparedness/plans/{plan_id}/impact-detections"
     forged_impact = client.post(impact_path, headers=director, json={

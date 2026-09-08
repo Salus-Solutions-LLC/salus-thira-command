@@ -32,7 +32,7 @@ def main():
     other = {"X-Salus-Tenant": "2", "X-Salus-Role": "Assessment Director",
              "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive"}
 
-    assert client.get("/api/system/mode").json()["version"] == "3.68"
+    assert client.get("/api/system/mode").json()["version"] == "3.69"
     root = client.get("/")
     assert root.status_code == 200
     assert "/static/product-version.js" in root.text
