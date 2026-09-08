@@ -33,7 +33,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.73"',
+    'SALCAPA_RELEASE_VERSION = "3.74"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -111,6 +111,10 @@ for value in (
     "authorizeSalopsExternalResearch",
     "executeSalopsExternalResearch",
     "Redirects remain blocked",
+    "Authorized source candidates discovered",
+    "Candidate only · not accessed",
+    "Discovery did not visit them",
+    "separate human authorization is required before retrieval",
 ):
     require(value, JS)
 
@@ -174,6 +178,6 @@ member = {
 path = "/api/salops/preparedness/plan-assembly/catalog"
 assert client.get(path, headers=director).status_code == 200
 assert client.get(path, headers=member).status_code == 403
-assert client.get("/api/system/mode").json()["version"] == "3.73"
+assert client.get("/api/system/mode").json()["version"] == "3.74"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")

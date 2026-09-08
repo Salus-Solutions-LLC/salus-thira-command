@@ -45,7 +45,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.73"
+    assert client.get("/api/system/mode").json()["version"] == "3.74"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -59,6 +59,7 @@ def main() -> None:
     assert adapter["enabled"] is True and adapter["configured_domains"] == ["example.com"]
     assert adapter["https_only"] is True and adapter["redirects_followed"] is False
     assert adapter["credentials_sent"] is False and adapter["automatic_verified_fact"] is False
+    assert adapter["maximum_discovered_links"] == 50
 
     plan = client.post("/api/salops/preparedness/plans", headers=director, json={
         "assessment_id": 1,
@@ -162,7 +163,10 @@ def main() -> None:
     salops_plan_assembly.LIVE_RESEARCH_FETCHER = lambda url, maximum_bytes: {
         "status": 200, "content_type": "text/html",
         "headers": {"content-type": "text/html; charset=utf-8", "etag": '"synthetic"'},
-        "content": b"<html><body>SYNTHETIC public emergency guidance for analyst review.</body></html>",
+        "content": (b"<html><body>SYNTHETIC public emergency guidance for analyst review."
+                    b"<a href='/annex/current'>Current annex</a>"
+                    b"<a href='https://outside.example.org/not-authorized'>Outside scope</a>"
+                    b"<a href='http://example.com/plaintext'>Plaintext</a></body></html>"),
     }
     executed_live = client.post(execute_live, headers=owner, json={
         "reason": "Execute the separately authorized exact public retrieval.",
@@ -174,6 +178,7 @@ def main() -> None:
     assert live_result["content_type"] == "text/html" and live_result["content_bytes"] > 0
     assert len(live_result["content_sha256"]) == 64
     assert "SYNTHETIC public emergency guidance" in live_result["content_text"]
+    assert live_result["discovered_links"] == ["https://example.com/annex/current"]
     assert client.post(execute_live, headers=owner, json={"reason": "Duplicate must fail."}).status_code == 409
     live_bundle = client.get(f"{create_path}/{run_id}", headers=director).json()
     live_source = next(item for item in live_bundle["sources"] if item["id"] == live_source_id)
@@ -849,6 +854,14 @@ def main() -> None:
     tampered_research_lineage["salops_plan_external_research_requests"][0]["source_id"] = "pas_missing"
     errors = salcapa_runtime.core.validate_records(tampered_research_lineage, 1)
     assert any("external research request" in error and "source lineage" in error for error in errors)
+    tampered_discovery = {key: [dict(row) for row in value] for key, value in records.items()}
+    accessed_research = next(
+        row for row in tampered_discovery["salops_plan_external_research_requests"]
+        if row["status"] == "Accessed"
+    )
+    accessed_research["discovered_links_json"] = '["http://127.0.0.1/private"]'
+    errors = salcapa_runtime.core.validate_records(tampered_discovery, 1)
+    assert any("external research request" in error and "unsafe discovered link" in error for error in errors)
     tampered_candidate = {key: [dict(row) for row in value] for key, value in records.items()}
     tampered_candidate["salops_plan_version_candidates"][0]["candidate_snapshot_json"] = '{}'
     errors = salcapa_runtime.core.validate_records(tampered_candidate, 1)

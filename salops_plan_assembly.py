@@ -15,7 +15,7 @@ import socket
 import uuid
 from html.parser import HTMLParser
 from typing import Any, Literal, Optional
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 from fastapi import HTTPException, Request
@@ -57,6 +57,7 @@ RESEARCH_COST_MEASUREMENTS = ("Actual Metered", "Provider Estimate", "Planning A
 PREPAREDNESS_HANDOFF_TYPES = ("Training", "Exercise", "Validation", "SalTHIRA Reassessment")
 PREPAREDNESS_HANDOFF_STATES = ("Pending Human Review", "Accepted", "Rejected", "Materialized")
 LIVE_RESEARCH_MAX_BYTES = 524288
+LIVE_RESEARCH_MAX_DISCOVERED_LINKS = 50
 LIVE_RESEARCH_CONTENT_TYPES = (
     "text/plain", "text/html", "application/json", "application/xml", "text/xml",
 )
@@ -182,6 +183,7 @@ CREATE TABLE IF NOT EXISTS salops_plan_external_research_requests (
   content_sha256 TEXT NOT NULL DEFAULT '',
   response_headers_json TEXT NOT NULL DEFAULT '{}',
   content_text TEXT NOT NULL DEFAULT '',
+  discovered_links_json TEXT NOT NULL DEFAULT '[]',
   unavailable_reason TEXT NOT NULL DEFAULT '',
   source_id TEXT NOT NULL DEFAULT '',
   creates_verified_fact INTEGER NOT NULL DEFAULT 0,
@@ -598,7 +600,7 @@ JSON_COLUMNS = {
         "proposed_validation_actions", "proposed_reassessment_actions",
     ),
     "salops_plan_assembly_sources": ("source_derived_statements",),
-    "salops_plan_external_research_requests": ("policy_snapshot", "response_headers"),
+    "salops_plan_external_research_requests": ("policy_snapshot", "response_headers", "discovered_links"),
     "salops_plan_assembly_questions": ("related_section_keys",),
     "salops_plan_assembly_sections": (
         "source_refs", "epistemic_items", "unsupported_assumptions", "known_unknowns",
@@ -665,11 +667,19 @@ class _HTMLTextExtractor(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.parts: list[str] = []
+        self.links: list[str] = []
 
     def handle_data(self, data: str) -> None:
         value = " ".join(data.split())
         if value:
             self.parts.append(value)
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
+        if tag.lower() != "a":
+            return
+        href = next((value for name, value in attrs if name.lower() == "href" and value), None)
+        if href:
+            self.links.append(href.strip())
 
 
 def _configured_live_research_domains() -> list[str]:
@@ -724,13 +734,23 @@ def _resolve_public_host(hostname: str) -> list[str]:
     return values
 
 
-def _research_text(content: bytes, content_type: str) -> str:
+def _research_document(content: bytes, content_type: str, base_url: str) -> tuple[str, list[str]]:
     text = content.decode("utf-8", errors="replace")
+    discovered: list[str] = []
     if content_type == "text/html":
         parser = _HTMLTextExtractor()
         parser.feed(text)
         text = "\n".join(parser.parts)
-    return text[:60000]
+        for href in parser.links:
+            try:
+                normalized, _ = _normalize_https_url(urljoin(base_url, href))
+            except ValueError:
+                continue
+            if normalized != base_url and normalized not in discovered:
+                discovered.append(normalized)
+            if len(discovered) >= LIVE_RESEARCH_MAX_DISCOVERED_LINKS:
+                break
+    return text[:60000], discovered
 
 
 def _fetch_live_https(url: str, maximum_bytes: int = LIVE_RESEARCH_MAX_BYTES) -> dict[str, Any]:
@@ -1081,6 +1101,14 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         conn.execute(
             "ALTER TABLE salops_plan_assembly_runs ADD COLUMN "
             "proposed_reassessment_actions_json TEXT NOT NULL DEFAULT '[]'"
+        )
+    try:
+        conn.execute("SELECT discovered_links_json FROM salops_plan_external_research_requests LIMIT 0")
+    except Exception:
+        conn.rollback()
+        conn.execute(
+            "ALTER TABLE salops_plan_external_research_requests ADD COLUMN "
+            "discovered_links_json TEXT NOT NULL DEFAULT '[]'"
         )
     legacy_materializations = list(conn.execute(
         """SELECT materialization.* FROM salops_plan_materializations materialization
@@ -1682,6 +1710,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "redirects_followed": False,
                 "credentials_sent": False,
                 "maximum_response_bytes": LIVE_RESEARCH_MAX_BYTES,
+                "maximum_discovered_links": LIVE_RESEARCH_MAX_DISCOVERED_LINKS,
                 "allowed_content_types": list(LIVE_RESEARCH_CONTENT_TYPES),
                 "automatic_verified_fact": False,
                 "automatic_disclosure": False,
@@ -1962,6 +1991,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "redirects_followed": False,
                 "credentials_sent": False,
                 "maximum_response_bytes": LIVE_RESEARCH_MAX_BYTES,
+                "maximum_discovered_links": LIVE_RESEARCH_MAX_DISCOVERED_LINKS,
                 "allowed_content_types": list(LIVE_RESEARCH_CONTENT_TYPES),
                 "paid_source_authorized": False,
                 "automatic_verified_fact": False,
@@ -2065,7 +2095,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
 
             access_status, unavailable_reason = "Accessed", ""
             http_status, content_type, content_bytes = 0, "", 0
-            content_sha256, response_headers, content_text = "", {}, ""
+            content_sha256, response_headers, content_text, discovered_links = "", {}, "", []
             try:
                 _resolve_public_host(item["hostname"])
                 fetched = LIVE_RESEARCH_FETCHER(item["normalized_url"], LIVE_RESEARCH_MAX_BYTES)
@@ -2083,11 +2113,23 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 if not raw:
                     raise ValueError("External source returned no content")
                 content_sha256 = hashlib.sha256(raw).hexdigest()
-                content_text = _research_text(raw, content_type)
+                content_text, candidates = _research_document(raw, content_type, item["normalized_url"])
+                for candidate in candidates:
+                    try:
+                        _, candidate_host = _normalize_https_url(candidate)
+                    except ValueError:
+                        continue
+                    if (not _matching_domain(candidate_host, _configured_live_research_domains())
+                            or not _matching_domain(candidate_host, _loads(run.get("authorized_external_sources_json"), []))
+                            or _matching_domain(candidate_host, _loads(run.get("source_exclusions_json"), []))):
+                        continue
+                    discovered_links.append(candidate)
+                    if len(discovered_links) >= LIVE_RESEARCH_MAX_DISCOVERED_LINKS:
+                        break
             except Exception as exc:
                 access_status = "Unavailable"
                 unavailable_reason = str(exc)[:8000] or "External source retrieval failed"
-                content_sha256, content_text = "", ""
+                content_sha256, content_text, discovered_links = "", "", []
 
             source_id, stamp, who = _key("pas"), now(), actor(request)
             summary = (
@@ -2113,17 +2155,17 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 """UPDATE salops_plan_external_research_requests SET
                 status=?,access_status=?,executed_by=?,executed_at=?,http_status=?,content_type=?,
                 content_bytes=?,content_sha256=?,response_headers_json=?,content_text=?,
-                unavailable_reason=?,source_id=? WHERE id=? AND tenant_id=?""",
+                discovered_links_json=?,unavailable_reason=?,source_id=? WHERE id=? AND tenant_id=?""",
                 (terminal_status, access_status, who, stamp, http_status, content_type,
                  content_bytes, content_sha256, _json(response_headers), content_text,
-                 unavailable_reason, source_id, request_id, tenant_id(request)),
+                 _json(discovered_links), unavailable_reason, source_id, request_id, tenant_id(request)),
             )
             updated = dict(conn.execute(
                 "SELECT * FROM salops_plan_external_research_requests WHERE id=?", (request_id,),
             ).fetchone())
             external_request_event(
                 conn, updated, f"Execution {terminal_status}",
-                f"{payload.reason}; access truth recorded as {access_status}. Retrieved content remains untrusted source material and no fact, disclosure, or charge was created.",
+                f"{payload.reason}; access truth recorded as {access_status}. {len(discovered_links)} authorized source candidate(s) recorded without access. Retrieved content remains untrusted source material and no fact, disclosure, or charge was created.",
                 request,
             )
             event(conn, run, f"Live External Research {terminal_status}",
@@ -3302,6 +3344,21 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                     errors.append(f"accessed external research request {request_id} lacks captured-content integrity")
                 if status == "Unavailable" and not str(row.get("unavailable_reason") or "").strip():
                     errors.append(f"unavailable external research request {request_id} lacks a truthful reason")
+                discoveries = _loads(row.get("discovered_links_json"), [])
+                if not isinstance(discoveries, list) or len(discoveries) > LIVE_RESEARCH_MAX_DISCOVERED_LINKS:
+                    errors.append(f"external research request {request_id} has invalid discovered-link results")
+                elif status != "Accessed" and discoveries:
+                    errors.append(f"unaccessed external research request {request_id} forges discovered links")
+                else:
+                    for candidate in discoveries:
+                        try:
+                            normalized, _ = _normalize_https_url(str(candidate))
+                        except ValueError:
+                            errors.append(f"external research request {request_id} has an unsafe discovered link")
+                            break
+                        if normalized != candidate:
+                            errors.append(f"external research request {request_id} has a non-normalized discovered link")
+                            break
             for row in records.get("salops_plan_external_research_events", []):
                 if str(row.get("request_id")) not in external_request_ids:
                     errors.append(f"external research event {row.get('id')} has invalid request_id")

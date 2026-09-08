@@ -10,23 +10,23 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salops_plan_assembly.py.gz",
         ROOT / "salops_plan_assembly.py",
-        "e6defd78e08c1cf383329ada130542313af49a5daa32f49660863601a8111231",
-        "c752681b18133375321f2024509726ba986de4e53312174cca249609ab2542dc",
-        204002,
+        "66772ce65bc9f64152e78eef85f25cbbd13a6f5afd4f3a62b7f7cef3514fc030",
+        "098a2bb49c99e5cce9792bee6f095dd75cdeacbf6660054fccb91e75bec0fbed",
+        207443,
     ),
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "8f472c024edebf05a0d252a9b8d31903420c7053a9a7acd1ce01cb3a553567a0",
-        "7a24c0f8a8cb85e09dc96496c81677dce31c7b4c5b3d27fc1aa1dbb84db62bad",
-        54907,
+        "7ac011e208035f9e08ab541b76cdeba7f6e21d7679cfee6a07ee3d1e03b7ce5b",
+        "2009362e40500130d59d4a23d4060b064205bd35c4ce229677529ef481dab264",
+        55801,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.js.gz",
         ROOT / "static/salops-plan-assembly.js",
-        "0188e55b488dcf4b895624ac73626454c8ba149dbd1e195864fdf3ad635bcdf8",
-        "b42c3df4d00951167faa86ededefe8f2d3a3a961e9013af306aa0afc813d1b14",
-        53130,
+        "9ac90461c65a6b649a63b87ca1e7b710007f5ceb2cba9bd3a08490a739024fd9",
+        "45c724b3a3f4d0ae88c2d30b04bcbc2841f780779f3945be76a0c2207a911093",
+        54031,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.css.gz",
@@ -38,9 +38,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "55a1dce6bc12528e12bbbe5f423f4f0eeb42ade30e8aac1cc1d96f5d79e3ecae",
-        "87fcebeb96438f367b7ec95233726839b42523e1b1b4f9626220689219e0fef4",
-        7175,
+        "ab6fedb6b272bd3bf1c21d7f0628fdd44e9412999e3161e8fc521b6a1acbb279",
+        "83aadb97a5c2fa60c237f6aa5457977674939a6c435f646f8c3b95d868f08393",
+        7361,
     ),
 )
 

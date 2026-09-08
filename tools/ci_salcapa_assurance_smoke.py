@@ -28,7 +28,7 @@ def main():
     other = {"X-Salus-Tenant": "2", "X-Salus-Role": "Assessment Director",
              "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive"}
 
-    assert client.get("/api/system/mode").json()["version"] == "3.73"
+    assert client.get("/api/system/mode").json()["version"] == "3.74"
     root = client.get("/")
     assert root.status_code == 200
     for marker in ('data-view="prove"', "/static/salcapa-assurance.css",
