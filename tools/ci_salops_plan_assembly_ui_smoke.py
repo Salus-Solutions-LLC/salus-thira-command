@@ -31,7 +31,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.64"',
+    'SALCAPA_RELEASE_VERSION = "3.65"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -60,6 +60,12 @@ for value in (
     "answerSalopsPlanAssemblyQuestion",
     "qualifySalopsPlanAssembly",
     "recommendSalopsPlanRevision",
+    "Governed plan-version candidate",
+    "immutable, integrity-verified proposal",
+    "createSalopsPlanVersionCandidate",
+    "reviewSalopsPlanVersionCandidate",
+    "acceptSalopsPlanVersionCandidate",
+    "Accepted for Plan Revision",
 ):
     require(value, JS)
 
@@ -101,6 +107,6 @@ member = {
 path = "/api/salops/preparedness/plan-assembly/catalog"
 assert client.get(path, headers=director).status_code == 200
 assert client.get(path, headers=member).status_code == 403
-assert client.get("/api/system/mode").json()["version"] == "3.64"
+assert client.get("/api/system/mode").json()["version"] == "3.65"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")

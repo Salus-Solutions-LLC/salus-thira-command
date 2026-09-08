@@ -36,6 +36,7 @@ QUESTION_TARGETS = (
     "Document Request", "Specialist", "Approved Partner",
 )
 REVISION_STATES = ("Pending Salus Review", "Accepted for Drafting", "Rejected")
+CANDIDATE_STATES = ("Draft Candidate", "Candidate Reviewed", "Returned for Revision", "Accepted for Plan Revision", "Rejected")
 
 
 SCHEMA = r"""
@@ -187,6 +188,44 @@ CREATE TABLE IF NOT EXISTS salops_plan_revision_recommendations (
 );
 CREATE INDEX IF NOT EXISTS idx_plan_revision_recommendations_scope ON salops_plan_revision_recommendations(tenant_id,status,approved_plan_id,created_at);
 
+CREATE TABLE IF NOT EXISTS salops_plan_version_candidates (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  run_id TEXT NOT NULL,
+  revision_recommendation_id TEXT,
+  baseline_plan_id TEXT,
+  baseline_plan_version INTEGER NOT NULL DEFAULT 0,
+  baseline_plan_sha256 TEXT NOT NULL DEFAULT '',
+  suggested_plan_version INTEGER NOT NULL,
+  candidate_snapshot_json TEXT NOT NULL,
+  section_manifest_json TEXT NOT NULL DEFAULT '[]',
+  diff_manifest_json TEXT NOT NULL DEFAULT '[]',
+  source_manifest_json TEXT NOT NULL DEFAULT '[]',
+  unresolved_items_json TEXT NOT NULL DEFAULT '[]',
+  candidate_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Draft Candidate',
+  rationale TEXT NOT NULL,
+  immutable_content INTEGER NOT NULL DEFAULT 1,
+  approved_plan_preserved INTEGER NOT NULL DEFAULT 1,
+  creates_plan_version INTEGER NOT NULL DEFAULT 0,
+  creates_release INTEGER NOT NULL DEFAULT 0,
+  creates_authority INTEGER NOT NULL DEFAULT 0,
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  reviewed_by TEXT NOT NULL DEFAULT '',
+  reviewed_at TEXT NOT NULL DEFAULT '',
+  review_reason TEXT NOT NULL DEFAULT '',
+  accepted_by TEXT NOT NULL DEFAULT '',
+  accepted_at TEXT NOT NULL DEFAULT '',
+  acceptance_reason TEXT NOT NULL DEFAULT '',
+  UNIQUE(tenant_id,run_id),
+  FOREIGN KEY (run_id) REFERENCES salops_plan_assembly_runs(id) ON DELETE CASCADE,
+  FOREIGN KEY (revision_recommendation_id) REFERENCES salops_plan_revision_recommendations(id) ON DELETE RESTRICT,
+  FOREIGN KEY (baseline_plan_id) REFERENCES salops_preparedness_plans(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_plan_version_candidates_scope ON salops_plan_version_candidates(tenant_id,status,baseline_plan_id,created_at);
+
 CREATE TABLE IF NOT EXISTS salops_plan_assembly_events (
   id TEXT PRIMARY KEY,
   tenant_id INTEGER NOT NULL,
@@ -221,11 +260,16 @@ JSON_COLUMNS = {
         "dependencies", "alternate_capabilities", "capability_gaps",
     ),
     "salops_plan_revision_recommendations": ("affected_sections", "supporting_source_refs"),
+    "salops_plan_version_candidates": (
+        "candidate_snapshot", "section_manifest", "diff_manifest", "source_manifest",
+        "unresolved_items",
+    ),
 }
 BACKUP_TABLES = (
     "salops_plan_assembly_runs", "salops_plan_assembly_sources",
     "salops_plan_assembly_questions", "salops_plan_assembly_sections",
-    "salops_plan_revision_recommendations", "salops_plan_assembly_events",
+    "salops_plan_revision_recommendations", "salops_plan_version_candidates",
+    "salops_plan_assembly_events",
 )
 RESTORE_ORDER = BACKUP_TABLES
 DELETE_ORDER = tuple(reversed(RESTORE_ORDER))
@@ -420,6 +464,20 @@ class RevisionRecommendationReview(StrictModel):
     reason: str = Field(min_length=3, max_length=8000)
 
 
+class VersionCandidateCreate(StrictModel):
+    rationale: str = Field(min_length=3, max_length=12000)
+    revision_recommendation_id: Optional[str] = Field(default=None, max_length=200)
+
+
+class VersionCandidateReview(StrictModel):
+    decision: Literal["Candidate Reviewed", "Returned for Revision", "Rejected"]
+    reason: str = Field(min_length=3, max_length=8000)
+
+
+class VersionCandidateAccept(StrictModel):
+    reason: str = Field(min_length=3, max_length=8000)
+
+
 def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
     db = core["db"]
     now = core["now"]
@@ -445,7 +503,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         for name in JSON_COLUMNS.get(table, ()):
             storage = f"{name}_json"
             out[name] = _loads(out.pop(storage, None), {} if name == "portfolio_scope" else [])
-        for name in ("human_authority_required", "approved_plan_preserved", "creates_plan_version", "creates_release", "creates_authority", "creates_charge"):
+        for name in ("human_authority_required", "immutable_content", "approved_plan_preserved", "creates_plan_version", "creates_release", "creates_authority", "creates_charge"):
             if name in out:
                 out[name] = bool(out[name])
         return out
@@ -498,6 +556,34 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         if missing:
             raise HTTPException(422, f"Unknown plan-assembly source references: {', '.join(missing)}")
 
+    def latest_sections(conn, run_id: str, request: Request) -> list[dict[str, Any]]:
+        rows = conn.execute(
+            """SELECT section.* FROM salops_plan_assembly_sections section
+               JOIN (SELECT section_key,MAX(section_version) latest_version
+                     FROM salops_plan_assembly_sections
+                     WHERE tenant_id=? AND run_id=? GROUP BY section_key) latest
+                 ON latest.section_key=section.section_key AND latest.latest_version=section.section_version
+               WHERE section.tenant_id=? AND section.run_id=? ORDER BY section.section_key""",
+            (tenant_id(request), run_id, tenant_id(request), run_id),
+        )
+        return [decode("salops_plan_assembly_sections", dict(item)) for item in rows]
+
+    def candidate_row(conn, candidate_id: str, request: Request) -> dict[str, Any]:
+        row = conn.execute(
+            "SELECT * FROM salops_plan_version_candidates WHERE id=? AND tenant_id=?",
+            (candidate_id, tenant_id(request)),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Plan-version candidate not found")
+        data = dict(row)
+        snapshot = _loads(data.get("candidate_snapshot_json"), {})
+        if _digest(snapshot) != data.get("candidate_sha256"):
+            raise HTTPException(409, "Plan-version candidate integrity verification failed")
+        run = run_row(conn, data["run_id"], request)
+        if require_sensitivity:
+            require_sensitivity(request, str(run.get("sensitivity") or "Standard"))
+        return data
+
     def run_bundle(conn, row: dict[str, Any], request: Request) -> dict[str, Any]:
         run_id = row["id"]
         sources = [decode("salops_plan_assembly_sources", dict(item)) for item in conn.execute(
@@ -516,13 +602,18 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             "SELECT * FROM salops_plan_revision_recommendations WHERE tenant_id=? AND run_id=? ORDER BY created_at,id",
             (tenant_id(request), run_id),
         )]
+        candidates = [decode("salops_plan_version_candidates", dict(item)) for item in conn.execute(
+            "SELECT * FROM salops_plan_version_candidates WHERE tenant_id=? AND run_id=? ORDER BY created_at,id",
+            (tenant_id(request), run_id),
+        )]
         events = [dict(item) for item in conn.execute(
             "SELECT event_no,event_type,reason,changed_by,changed_by_role,created_at FROM salops_plan_assembly_events WHERE tenant_id=? AND run_id=? ORDER BY event_no",
             (tenant_id(request), run_id),
         )]
         return {"run": decode("salops_plan_assembly_runs", row), "sources": sources,
                 "questions": questions, "sections": sections,
-                "revision_recommendations": recommendations, "events": events}
+                "revision_recommendations": recommendations,
+                "version_candidates": candidates, "events": events}
 
     @app.get("/api/salops/preparedness/plan-assembly/catalog")
     def catalog(request: Request):
@@ -533,6 +624,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             "epistemic_states": list(EPISTEMIC_STATES), "question_targets": list(QUESTION_TARGETS),
             "automated_draft_epistemic_states": [state for state in EPISTEMIC_STATES if state != "Verified Fact"],
             "workflow": list(RUN_STATES),
+            "candidate_workflow": list(CANDIDATE_STATES),
             "authority": {
                 "chat_may": ["Inspect", "Research", "Reconcile", "Draft", "Compare", "Recommend"],
                 "human_controls": ["Legal authority", "Organizational policy", "Emergency command authority",
@@ -958,6 +1050,190 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
         finally:
             conn.close()
 
+    @app.post("/api/salops/preparedness/plan-assembly/{run_id}/version-candidates")
+    def create_version_candidate(run_id: str, payload: VersionCandidateCreate, request: Request):
+        """Freeze server-derived proposed content without creating or replacing a plan."""
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Program Owner"):
+            raise HTTPException(403, "This role cannot create a governed plan-version candidate")
+        conn = db()
+        try:
+            run = run_row(conn, run_id, request)
+            if run["status"] != "Qualified":
+                raise HTTPException(409, "A plan-version candidate requires a human-reviewed, qualified assembly run")
+            duplicate = conn.execute(
+                "SELECT id FROM salops_plan_version_candidates WHERE tenant_id=? AND run_id=?",
+                (tenant_id(request), run_id),
+            ).fetchone()
+            if duplicate:
+                raise HTTPException(409, "This qualified run already has an immutable plan-version candidate")
+
+            recommendation: Optional[dict[str, Any]] = None
+            baseline: dict[str, Any] = {}
+            if run.get("base_plan_id"):
+                baseline = plan_row(conn, run["base_plan_id"], request)
+                if (run["base_plan_status"] != "Approved" or baseline["status"] != "Approved"
+                        or int(baseline["version"]) != int(run["base_plan_version"])
+                        or _digest(baseline) != run["base_plan_sha256"]):
+                    raise HTTPException(409, "The approved baseline changed; start a new assembly run before preparing a candidate")
+                if not payload.revision_recommendation_id:
+                    raise HTTPException(409, "A revision candidate requires an accepted material-change recommendation")
+                rec_row = conn.execute(
+                    "SELECT * FROM salops_plan_revision_recommendations WHERE id=? AND tenant_id=? AND run_id=?",
+                    (payload.revision_recommendation_id, tenant_id(request), run_id),
+                ).fetchone()
+                if not rec_row or rec_row["status"] != "Accepted for Drafting":
+                    raise HTTPException(409, "The linked revision recommendation must be accepted for drafting")
+                recommendation = dict(rec_row)
+            elif payload.revision_recommendation_id:
+                raise HTTPException(422, "A new-plan candidate cannot claim a revision recommendation")
+
+            sections = latest_sections(conn, run_id, request)
+            if not sections:
+                raise HTTPException(409, "A plan-version candidate requires at least one structured draft section")
+            source_rows = [decode("salops_plan_assembly_sources", dict(item)) for item in conn.execute(
+                "SELECT * FROM salops_plan_assembly_sources WHERE tenant_id=? AND run_id=? ORDER BY created_at,id",
+                (tenant_id(request), run_id),
+            )]
+            section_to_plan_field = {
+                "authorities": "authorities_references", "authorities_references": "authorities_references",
+                "assumptions": "assumptions", "roles": "roles_responsibilities",
+                "roles_responsibilities": "roles_responsibilities", "concept_of_operations": "concept_of_operations",
+                "activation": "activation_criteria", "activation_criteria": "activation_criteria",
+                "command": "command_coordination", "command_coordination": "command_coordination",
+                "communications": "communications", "resources": "resource_requirements",
+                "resource_requirements": "resource_requirements", "dependencies": "dependencies",
+                "alternate_capability": "alternate_capability", "checklists": "checklists_job_aids",
+                "checklists_job_aids": "checklists_job_aids", "annexes": "annexes_appendices",
+                "annexes_appendices": "annexes_appendices", "training": "training_requirements",
+                "training_requirements": "training_requirements", "exercise_validation": "exercise_validation_requirements",
+                "exercise_validation_requirements": "exercise_validation_requirements",
+            }
+            diff_manifest = []
+            for section in sections:
+                plan_field = section_to_plan_field.get(section["section_key"], "")
+                before = str(baseline.get(plan_field) or "") if plan_field else ""
+                after = str(section["content"])
+                diff_manifest.append({
+                    "section_key": section["section_key"], "plan_field": plan_field,
+                    "change": "Unchanged" if before == after else ("Changed" if before else "Added"),
+                    "baseline_content": before, "proposed_content": after,
+                    "source_refs": section["source_refs"],
+                    "human_authority_required": bool(section["human_authority_required"]),
+                })
+            source_manifest = [{
+                "id": item["id"], "source_kind": item["source_kind"],
+                "access_status": item["access_status"], "locator": item["locator"],
+                "citation": item["citation"], "governed_material_id": item["governed_material_id"],
+                "accessed_at": item["accessed_at"], "unavailable_reason": item["unavailable_reason"],
+            } for item in source_rows]
+            unresolved = _clean_list(
+                _loads(run["known_unknowns_json"], []) + _loads(run["assumptions_to_validate_json"], [])
+                + _loads(run["contradictions_json"], []) + _loads(run["missing_authorities_json"], [])
+                + _loads(run["unresolved_dependencies_json"], [])
+                + [item for section in sections for item in (
+                    section["unsupported_assumptions"] + section["known_unknowns"] + section["capability_gaps"]
+                )]
+            )
+            snapshot = {
+                "schema": "salops.plan-version-candidate.v1", "run_id": run_id,
+                "assembly_content_sha256": run["content_sha256"],
+                "mode": run["assembly_mode"], "title": run["plan_title"], "plan_type": run["plan_type"],
+                "purpose": run["purpose"], "scope_statement": run["scope_statement"],
+                "portfolio_scope": _loads(run["portfolio_scope_json"], {}),
+                "baseline": {"plan_id": run.get("base_plan_id") or "", "version": int(run["base_plan_version"]),
+                             "sha256": run["base_plan_sha256"], "status": run["base_plan_status"]},
+                "suggested_plan_version": int(run["base_plan_version"]) + 1 if baseline else 1,
+                "sections": sections, "sources": source_manifest, "diff": diff_manifest,
+                "unresolved_items": unresolved, "completion_statement": run["completion_statement"],
+                "change_rationale": run["change_rationale"],
+                "training_recommendations": _loads(run["proposed_training_actions_json"], []),
+                "exercise_recommendations": _loads(run["proposed_exercise_actions_json"], []),
+                "validation_recommendations": _loads(run["proposed_validation_actions_json"], []),
+                "authority_effect": {"creates_plan_version": False, "creates_release": False,
+                                     "creates_authority": False, "creates_charge": False},
+            }
+            candidate_id = _key("pvc")
+            stamp = now()
+            candidate_sha256 = _digest(snapshot)
+            conn.execute(
+                """INSERT INTO salops_plan_version_candidates(
+                id,tenant_id,run_id,revision_recommendation_id,baseline_plan_id,baseline_plan_version,
+                baseline_plan_sha256,suggested_plan_version,candidate_snapshot_json,section_manifest_json,
+                diff_manifest_json,source_manifest_json,unresolved_items_json,candidate_sha256,status,rationale,
+                immutable_content,approved_plan_preserved,creates_plan_version,creates_release,creates_authority,
+                creates_charge,created_by,created_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (candidate_id, tenant_id(request), run_id,
+                 recommendation["id"] if recommendation else None, run.get("base_plan_id"),
+                 int(run["base_plan_version"]), run["base_plan_sha256"], snapshot["suggested_plan_version"],
+                 _json(snapshot), _json(sections), _json(diff_manifest), _json(source_manifest),
+                 _json(unresolved), candidate_sha256, "Draft Candidate", payload.rationale,
+                 1, 1, 0, 0, 0, 0, actor(request), stamp),
+            )
+            created = candidate_row(conn, candidate_id, request)
+            event(conn, run, "Version Candidate Created",
+                  f"{candidate_id}: immutable proposed v{snapshot['suggested_plan_version']} candidate; approved baseline preserved and no plan version, authority, release, disclosure, or charge created.", request)
+            conn.commit()
+            return decode("salops_plan_version_candidates", created)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-assembly/version-candidates/{candidate_id}/review")
+    def review_version_candidate(candidate_id: str, payload: VersionCandidateReview, request: Request):
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Program Owner", "Lead Assessor"):
+            raise HTTPException(403, "This role cannot review plan-version candidates")
+        conn = db()
+        try:
+            candidate = candidate_row(conn, candidate_id, request)
+            if candidate["status"] != "Draft Candidate":
+                raise HTTPException(409, "Candidate review requires an immutable Draft Candidate")
+            stamp = now()
+            conn.execute(
+                "UPDATE salops_plan_version_candidates SET status=?,reviewed_by=?,reviewed_at=?,review_reason=? WHERE id=? AND tenant_id=?",
+                (payload.decision, actor(request), stamp, payload.reason, candidate_id, tenant_id(request)),
+            )
+            updated = candidate_row(conn, candidate_id, request)
+            run = run_row(conn, updated["run_id"], request)
+            event(conn, run, f"Version Candidate {payload.decision}",
+                  f"{candidate_id}: {payload.reason}; immutable candidate content and approved plan remain unchanged.", request)
+            conn.commit()
+            return decode("salops_plan_version_candidates", updated)
+        finally:
+            conn.close()
+
+    @app.post("/api/salops/preparedness/plan-assembly/version-candidates/{candidate_id}/accept")
+    def accept_version_candidate(candidate_id: str, payload: VersionCandidateAccept, request: Request):
+        salus_access(request, "write")
+        if role(request) not in ("System Administrator", "Assessment Director", "Program Owner"):
+            raise HTTPException(403, "This role cannot accept a candidate for governed plan revision")
+        conn = db()
+        try:
+            candidate = candidate_row(conn, candidate_id, request)
+            if candidate["status"] != "Candidate Reviewed":
+                raise HTTPException(409, "Acceptance requires a separately reviewed plan-version candidate")
+            if candidate.get("baseline_plan_id"):
+                baseline = plan_row(conn, candidate["baseline_plan_id"], request)
+                if (baseline["status"] != "Approved"
+                        or int(baseline["version"]) != int(candidate["baseline_plan_version"])
+                        or _digest(baseline) != candidate["baseline_plan_sha256"]):
+                    raise HTTPException(409, "The approved baseline changed; this candidate cannot be accepted")
+            stamp = now()
+            conn.execute(
+                """UPDATE salops_plan_version_candidates SET status='Accepted for Plan Revision',
+                accepted_by=?,accepted_at=?,acceptance_reason=? WHERE id=? AND tenant_id=?""",
+                (actor(request), stamp, payload.reason, candidate_id, tenant_id(request)),
+            )
+            updated = candidate_row(conn, candidate_id, request)
+            run = run_row(conn, updated["run_id"], request)
+            event(conn, run, "Version Candidate Accepted",
+                  f"{candidate_id}: accepted only as governed revision input; approved plan remains unchanged and no plan version or release was created.", request)
+            conn.commit()
+            return decode("salops_plan_version_candidates", updated)
+        finally:
+            conn.close()
+
     original_collect = core.get("collect_tenant_records")
     original_validate = core.get("validate_records")
     original_replace = core.get("replace_tenant_records")
@@ -976,6 +1252,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             run_ids = ids["salops_plan_assembly_runs"]
             plan_ids = {str(row.get("id")) for row in records.get("salops_preparedness_plans", []) if row.get("id")}
             source_ids_in_backup = ids["salops_plan_assembly_sources"]
+            recommendation_ids = ids["salops_plan_revision_recommendations"]
             for table in BACKUP_TABLES:
                 for row in records.get(table, []):
                     if int(row.get("tenant_id", -1)) != int(tid):
@@ -994,6 +1271,14 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             for row in records.get("salops_plan_revision_recommendations", []):
                 if str(row.get("approved_plan_id")) not in plan_ids:
                     errors.append(f"plan revision recommendation {row.get('id')} has invalid approved_plan_id")
+            for row in records.get("salops_plan_version_candidates", []):
+                if row.get("baseline_plan_id") and str(row["baseline_plan_id"]) not in plan_ids:
+                    errors.append(f"plan-version candidate {row.get('id')} has invalid baseline_plan_id")
+                if row.get("revision_recommendation_id") and str(row["revision_recommendation_id"]) not in recommendation_ids:
+                    errors.append(f"plan-version candidate {row.get('id')} has invalid revision_recommendation_id")
+                snapshot = _loads(row.get("candidate_snapshot_json"), {})
+                if not snapshot or _digest(snapshot) != row.get("candidate_sha256"):
+                    errors.append(f"plan-version candidate {row.get('id')} failed integrity verification")
             return errors
 
         def extended_validate(records: dict, tid: Optional[int] = None):

@@ -14,6 +14,7 @@
 .plan-assembly-run small{display:block;color:#536771;margin-top:.2rem}
 .plan-assembly-status{display:inline-flex;align-items:center;border:1px solid #687c78;border-radius:999px;background:#f5f7f7;color:#17324d;font-weight:700;padding:.2rem .55rem}
 .plan-assembly-help{border-left:3px solid #6d8e87;padding:.55rem .75rem;background:#f7faf9;color:#334d57}
+.plan-version-candidate{border:1px solid #9baaa6;border-radius:.45rem;padding:.8rem;margin-top:.7rem;overflow-wrap:anywhere}
 .plan-assembly-workspace details{border:1px solid #a4afac;border-radius:.4rem;background:#fff;margin:.65rem 0;padding:.65rem}
 .plan-assembly-workspace summary{cursor:pointer;font-weight:800;color:#17324d}
 .plan-assembly-workspace textarea{min-height:5rem}

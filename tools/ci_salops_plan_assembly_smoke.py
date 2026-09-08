@@ -35,7 +35,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.64"
+    assert client.get("/api/system/mode").json()["version"] == "3.65"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -271,6 +271,60 @@ def main() -> None:
     assert rec_review.json()["status"] == "Accepted for Drafting"
     assert rec_review.json()["creates_plan_version"] is False
 
+    candidate_path = f"{create_path}/{run_id}/version-candidates"
+    forged_candidate = client.post(candidate_path, headers=director, json={
+        "rationale": "Attempt to forge plan authority.",
+        "revision_recommendation_id": rec["id"], "status": "Accepted",
+        "creates_plan_version": True, "creates_release": True,
+    })
+    assert forged_candidate.status_code == 422
+    candidate = client.post(candidate_path, headers=director, json={
+        "rationale": "Freeze the exact qualified, source-grounded proposal for separate review.",
+        "revision_recommendation_id": rec["id"],
+    })
+    assert candidate.status_code == 200, candidate.text
+    frozen = candidate.json()
+    candidate_id = frozen["id"]
+    assert frozen["status"] == "Draft Candidate"
+    assert frozen["suggested_plan_version"] == 2
+    assert frozen["immutable_content"] is True and frozen["approved_plan_preserved"] is True
+    assert frozen["creates_plan_version"] is False and frozen["creates_release"] is False
+    assert frozen["creates_authority"] is False and frozen["creates_charge"] is False
+    assert len(frozen["candidate_sha256"]) == 64
+    assert frozen["candidate_snapshot"]["baseline"]["version"] == 1
+    assert frozen["candidate_snapshot"]["authority_effect"]["creates_release"] is False
+    assert frozen["diff_manifest"][0]["section_key"] == "communications"
+    assert frozen["diff_manifest"][0]["change"] == "Added"
+    assert source_id in frozen["diff_manifest"][0]["source_refs"]
+    assert any("endurance" in item.lower() for item in frozen["unresolved_items"])
+    assert client.post(candidate_path, headers=director, json={
+        "rationale": "Duplicate must fail.", "revision_recommendation_id": rec["id"],
+    }).status_code == 409
+    assert client.post(candidate_path, headers=member, json={
+        "rationale": "Member must not create candidates.", "revision_recommendation_id": rec["id"],
+    }).status_code == 403
+
+    premature_accept = client.post(
+        f"{create_path}/version-candidates/{candidate_id}/accept", headers=director,
+        json={"reason": "Acceptance before review must fail."},
+    )
+    assert premature_accept.status_code == 409
+    candidate_review = client.post(
+        f"{create_path}/version-candidates/{candidate_id}/review", headers=director,
+        json={"decision": "Candidate Reviewed", "reason": "Reviewed the exact frozen content, provenance, diff, unknowns, and authority flags."},
+    )
+    assert candidate_review.status_code == 200, candidate_review.text
+    assert candidate_review.json()["status"] == "Candidate Reviewed"
+    assert candidate_review.json()["candidate_sha256"] == frozen["candidate_sha256"]
+    accepted_candidate = client.post(
+        f"{create_path}/version-candidates/{candidate_id}/accept", headers=director,
+        json={"reason": "Accept only as input to a future governed plan revision; no replacement or release."},
+    )
+    assert accepted_candidate.status_code == 200, accepted_candidate.text
+    assert accepted_candidate.json()["status"] == "Accepted for Plan Revision"
+    assert accepted_candidate.json()["creates_plan_version"] is False
+    assert accepted_candidate.json()["creates_release"] is False
+
     still_approved = client.get(f"/api/salops/preparedness/plans/{plan_id}", headers=director).json()["plan"]
     assert still_approved["status"] == "Approved" and still_approved["version"] == 1
     bundle = client.get(f"{create_path}/{run_id}", headers=director)
@@ -278,7 +332,8 @@ def main() -> None:
     assert len(bundle.json()["sources"]) == 2
     assert len(bundle.json()["sections"]) == 1
     assert len(bundle.json()["revision_recommendations"]) == 1
-    assert len(bundle.json()["events"]) >= 10
+    assert len(bundle.json()["version_candidates"]) == 1
+    assert len(bundle.json()["events"]) >= 13
 
     backup_conn = salcapa_runtime.core.db()
     try:
@@ -288,13 +343,18 @@ def main() -> None:
     for table in (
         "salops_plan_assembly_runs", "salops_plan_assembly_sources",
         "salops_plan_assembly_questions", "salops_plan_assembly_sections",
-        "salops_plan_revision_recommendations", "salops_plan_assembly_events",
+        "salops_plan_revision_recommendations", "salops_plan_version_candidates",
+        "salops_plan_assembly_events",
     ):
         assert table in records and records[table], table
     tampered = {key: list(value) for key, value in records.items()}
     tampered["salops_plan_assembly_runs"] = [dict(records["salops_plan_assembly_runs"][0], tenant_id=2)]
     errors = salcapa_runtime.core.validate_records(tampered, 1)
     assert any("crosses the tenant boundary" in error for error in errors)
+    tampered_candidate = {key: [dict(row) for row in value] for key, value in records.items()}
+    tampered_candidate["salops_plan_version_candidates"][0]["candidate_snapshot_json"] = '{}'
+    errors = salcapa_runtime.core.validate_records(tampered_candidate, 1)
+    assert any("failed integrity verification" in error for error in errors)
 
     print("SALOPS_AUTONOMOUS_PLAN_ASSEMBLY_PASS")
 
