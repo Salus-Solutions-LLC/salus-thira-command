@@ -10,23 +10,23 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salops_plan_assembly.py.gz",
         ROOT / "salops_plan_assembly.py",
-        "48e5f8853c16365bda6bb39d7583cbc9e0f395b13f232e7cd52d091422d999f1",
-        "ffff74a313b165c4bc03f7d57304179b2037b43c2c3c831a9493de853625ddd6",
-        227821,
+        "7efbe4c300eba27949716bdd7ed1e03832d648e1600916799a16b984622c0368",
+        "7b7869a0a4cb6001db730caec2fab66f920922f2ab54e09e27e97914f635cc56",
+        228588,
     ),
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "36e4dd10e3d9921a30594be23a346db901c9a10b982ac81524affc891bba78b0",
-        "3bbd0b03af402826a5a93f39aa412d8bd4e279c83c1e6c51ab72d2bc24d42390",
+        "c2af1db0d8ea1ae2aab4648143d0f5c4acfbbdfda88d47425c7f4182e3f0c1b6",
+        "18eccd8a197ddf6082fb8d9265d65eb9872a3ac918c7b9ee294fb96a5218df63",
         69961,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.js.gz",
         ROOT / "static/salops-plan-assembly.js",
-        "c83a2362eb96090d5016aeec286f44f2a668fe39f1e7db2715e265b68a9289e3",
-        "70b2a71ae18601b011fd91f995876d74b879a0f12d1c136a06f56253f298aea5",
-        60910,
+        "596f413299892e7f35990066879a4d5328d682416889bf96baec466735888a51",
+        "e7a1bcc20b763dd5625b56ba77daf17710e11e6b6bbc81c7fa428fd73855beb2",
+        61025,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.css.gz",
@@ -38,9 +38,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "7f7260b464792f69044bb7c7b3d33663761edddf6fe7c4fdc9d12fbe1bd7719d",
-        "dd9ffb1e3f03ed20bb9903baa6350e8e572e5149066a64df7e8e3de7856f7c50",
-        8518,
+        "a006a007833c44fd5d96a16ffbd4486a8f0f6654b9a700e393e3748a9a197a1f",
+        "ed446ad337e96536dc04424cab3a1415f63126b057f643c50e5094cbd0e90eb2",
+        9193,
     ),
 )
 

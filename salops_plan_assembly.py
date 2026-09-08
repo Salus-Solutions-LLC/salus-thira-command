@@ -1316,7 +1316,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
 
     def salus_access(request: Request, permission: str = "read") -> None:
         require(request, permission)
-        require_salus(request, "autonomous emergency-plan research and assembly")
+        require_salus(request, "emergency-plan research and assembly")
 
     def decode(table: str, row: dict[str, Any]) -> dict[str, Any]:
         out = dict(row)
@@ -1390,7 +1390,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             raise HTTPException(409, "External research request integrity verification failed")
         if any(int(data.get(name) or 0) != 0 for name in
                ("creates_verified_fact", "creates_disclosure", "creates_charge")):
-            raise HTTPException(409, "External research request contains a forbidden automated effect")
+            raise HTTPException(409, "External research request contains a forbidden unapproved effect")
         run_row(conn, data["run_id"], request)
         return data
 
@@ -1871,7 +1871,14 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
     def catalog(request: Request):
         salus_access(request)
         return {
-            "capability": "Autonomous Emergency-Plan Research & Assembly",
+            "capability": "Salus Emergency-Plan Research & Assembly",
+            "communications_doctrine": {
+                "principle": "People lead. Methods guide. Technology supports. Evidence proves.",
+                "human_authority": "Judgment, decisions, approval, release, and action remain with authorized people.",
+                "technology_support": "Purpose-built technology helps Salus personnel research, reconcile, prepare, trace, and maintain governed work.",
+                "truthful_disclosure": "Material technology use remains explicit when relevant to privacy, provenance, cost, contractual obligations, limitations, or decision authority.",
+                "prepared_work_status": "Prepared content is not human-reviewed, approved, released, or validated until the corresponding governed step is complete.",
+            },
             "source_kinds": list(SOURCE_KINDS), "access_states": list(ACCESS_STATES),
             "epistemic_states": list(EPISTEMIC_STATES), "question_targets": list(QUESTION_TARGETS),
             "automated_draft_epistemic_states": [state for state in EPISTEMIC_STATES if state != "Verified Fact"],

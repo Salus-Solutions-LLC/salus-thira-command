@@ -1,6 +1,20 @@
 (() => {
   'use strict';
 
+  const HUMAN_FIRST_COMMUNICATIONS = Object.freeze({
+    principle: 'People lead. Methods guide. Technology supports. Evidence proves.',
+    publicDescription: 'Salus people use disciplined methods and purpose-built technology to help Protected Members understand risk, make informed decisions, coordinate action, and improve protective capability.',
+    authority: 'Authorized people remain responsible for judgment, decisions, approval, release, and action.',
+    disclosure: 'Technology is described plainly when it materially affects privacy, data handling, provenance, cost, contractual obligations, limitations, or decision authority. Prepared work is never presented as human-reviewed, approved, released, or validated until that governed step occurs.',
+    preferredLabels: Object.freeze({
+      prepare: 'Prepare Draft',
+      recommend: 'Recommended Next Step',
+      monitor: 'Ongoing Monitoring',
+      analyze: 'Review and Analyze'
+    })
+  });
+  window.salcapaHumanFirstCommunications = HUMAN_FIRST_COMMUNICATIONS;
+
   const PRODUCT_GUIDANCE = [
     {
       key: 'see',
@@ -78,7 +92,7 @@
       pattern: /(?:qualify|qualification)/,
       label: 'Before qualification',
       summary: 'Qualification is accountable human judgment, not automatic fact creation.',
-      salus: 'Review provenance, source access, reliability, confidence, contradictions, epistemic state, known unknowns, and scope. Automated content, allegations, and inferred associations do not become verified facts merely through this action.',
+      salus: 'Review provenance, source access, reliability, confidence, contradictions, epistemic state, known unknowns, and scope. Technology-assisted content, allegations, and inferred associations do not become verified facts merely through this action.',
       member: 'Only authorized, qualified, and released results enter the Protected Member experience. Internal investigative records and cross-member information remain controlled.'
     },
     {
@@ -159,7 +173,7 @@
       </article>`).join('');
     return `
       <section class="salcapa-doctrine" aria-label="SalCAPA operating model">
-        <p class="salcapa-doctrine-intro">Four connected functions support one governed operating model. Authorized people retain decision authority.</p>
+        <p class="salcapa-doctrine-intro"><strong>${HUMAN_FIRST_COMMUNICATIONS.principle}</strong> Four connected functions support one governed operating model. Authorized people retain decision authority.</p>
         <div class="salcapa-doctrine-grid">${cards}</div>
         <article class="salcapa-prove-band">
           <strong>PROVE — Assurance &amp; Results</strong>
@@ -240,6 +254,13 @@
         <p><strong>What is this?</strong> ${guide.cue}</p>
         <p><strong>Why it matters.</strong> ${guide.detail}</p>
         <p><strong>What happens next?</strong> Use only the actions available to your role. Guidance cannot grant authority, change lifecycle state, disclose information, expand scope, activate monitoring, incur cost, or establish completion.</p>
+      </div>
+      <div class="guidance-panel salcapa-role-guidance">
+        <span class="guidance-kicker">How the work is performed</span>
+        <h3>${HUMAN_FIRST_COMMUNICATIONS.principle}</h3>
+        <p>${HUMAN_FIRST_COMMUNICATIONS.publicDescription}</p>
+        <p><strong>Human authority.</strong> ${HUMAN_FIRST_COMMUNICATIONS.authority}</p>
+        <details><summary>When technology use is explained</summary><p>${HUMAN_FIRST_COMMUNICATIONS.disclosure}</p></details>
       </div>
       ${operatingModelMarkup()}`;
   }

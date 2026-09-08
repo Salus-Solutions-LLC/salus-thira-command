@@ -33,7 +33,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.78"',
+    'SALCAPA_RELEASE_VERSION = "3.79"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -42,8 +42,11 @@ for value in (
 
 for value in (
     "Emergency Plan Assembly",
-    "SalCAPA can inspect, research, reconcile, draft, compare, detect potential change, and recommend",
+    "Salus emergency-plan research and assembly",
+    "Our planning process brings together governed records, authorized research, professional judgment, and purpose-built technology",
+    "Our planning process supports",
     "Salus personnel validate, establish authority, approve, and release",
+    "Research technology allowance, including AI",
     "It does not approve a plan, establish authority, release information, or create a charge",
     "Accessed",
     "Unavailable",
@@ -161,6 +164,10 @@ for value in (
     "Premium research requires explicit credential-transmission authorization",
     "Premium research requires this run's current Authorized cost envelope",
     "credential_value_stored",
+    '"capability": "Salus Emergency-Plan Research & Assembly"',
+    '"communications_doctrine"',
+    "People lead. Methods guide. Technology supports. Evidence proves.",
+    "Prepared content is not human-reviewed, approved, released, or validated",
 ):
     require(value, SERVER)
 
@@ -202,6 +209,9 @@ member = {
 path = "/api/salops/preparedness/plan-assembly/catalog"
 assert client.get(path, headers=director).status_code == 200
 assert client.get(path, headers=member).status_code == 403
-assert client.get("/api/system/mode").json()["version"] == "3.78"
+catalog = client.get(path, headers=director).json()
+assert catalog["communications_doctrine"]["principle"] == "People lead. Methods guide. Technology supports. Evidence proves."
+assert "privacy" in catalog["communications_doctrine"]["truthful_disclosure"]
+assert client.get("/api/system/mode").json()["version"] == "3.79"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")

@@ -14,7 +14,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.78"',
+    'SALCAPA_RELEASE_VERSION = "3.79"',
     "/static/salcapa-contextual-guidance.css",
     "/static/salcapa-contextual-guidance.js",
 ):
@@ -40,6 +40,15 @@ for value in (
     "Salus personnel",
     "Purpose, authority, and next step",
     "What happens next?",
+    "People lead. Methods guide. Technology supports. Evidence proves.",
+    "Salus people use disciplined methods and purpose-built technology",
+    "Authorized people remain responsible for judgment, decisions, approval, release, and action.",
+    "Prepared work is never presented as human-reviewed, approved, released, or validated",
+    "window.salcapaHumanFirstCommunications",
+    "Prepare Draft",
+    "Recommended Next Step",
+    "Ongoing Monitoring",
+    "Review and Analyze",
     "MutationObserver",
     "requestAnimationFrame",
     "description && description.textContent !== 'Assure every function'",
@@ -56,6 +65,7 @@ for forbidden in (
     "/api/",
     ".submit(",
     "localStorage.setItem",
+    "Automated content, allegations",
 ):
     if forbidden in JS:
         raise SystemExit("Guidance may not call APIs, submit forms, or mutate governed state")

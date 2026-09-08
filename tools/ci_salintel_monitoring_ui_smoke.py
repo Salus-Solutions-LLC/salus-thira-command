@@ -23,7 +23,7 @@ for forbidden in ("risk-low", "risk-high", "background:#dc2626", "background:#16
 assert "/static/salintel-monitoring.js" in runtime
 assert "/static/salintel-monitoring.css" in runtime
 assert "/static/salcapa-display.js" in runtime
-assert 'SALCAPA_RELEASE_VERSION = "3.78"' in runtime
+assert 'SALCAPA_RELEASE_VERSION = "3.79"' in runtime
 assert 'result["version"] = SALCAPA_RELEASE_VERSION' in runtime
 for marker in ("See — SalINTEL™", "Decide — SalTHIRA™ and authorized people",
                "Coordinate — SalCAPA™", "Act — SalOPS™",
