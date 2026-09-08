@@ -43,7 +43,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.70"
+    assert client.get("/api/system/mode").json()["version"] == "3.71"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)

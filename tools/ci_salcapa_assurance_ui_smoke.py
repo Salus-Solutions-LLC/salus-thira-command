@@ -11,10 +11,13 @@ for marker in ("PROVE — Assurance & Results", "Assurance gaps", "Direct tracea
                "Only persisted explicit links are shown", "Missing links remain visible",
                "Released assurance outputs", "Governed assurance packages",
                "Create immutable package", "Draft → Reviewed → Approved → Released",
-               "Open verified snapshot", "salcapaFormatDateTime"):
+               "Open verified snapshot", "Preparedness assurance trace",
+               "Their SalOPS lifecycles remain authoritative",
+               "does not schedule work, prove readiness, authorize disclosure, or close a gap",
+               "salcapaFormatDateTime"):
     assert marker in js, marker
 for marker in ('data-view="prove"', "/static/salcapa-assurance.css",
-               "/static/salcapa-assurance.js", 'SALCAPA_RELEASE_VERSION = "3.70"',
+               "/static/salcapa-assurance.js", 'SALCAPA_RELEASE_VERSION = "3.71"',
                "register_salcapa_assurance"):
     assert marker in runtime, marker
 for forbidden in ("risk-low", "risk-high", "#dc2626", "#16a34a"):

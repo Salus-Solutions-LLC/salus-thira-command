@@ -9,16 +9,16 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salcapa_assurance.py.gz",
         ROOT / "salcapa_assurance.py",
-        "60568adc42d41b983a7f27d03f716cae887e00f435a4eb3034e355a24da37ef5",
-        "6a2b1af42df6167465593fb8cdfa1bf3a75f69fd14fec5b221f1f2cb0e98cd4a",
-        24841,
+        "b37a7b06f0a3f942d60df715ff4d91d385c21531126af6b5d12d952a18093295",
+        "1bc039381685b3e5c7e213188a27dc939117cb193fb5f66492e269f3ab4719e0",
+        38565,
     ),
     (
         ROOT / "source_archives/development/ci_salcapa_assurance_smoke.py.gz",
         ROOT / "tools/ci_salcapa_assurance_smoke.py",
-        "0a6977c4d37b6b557667c2edbb1a0cdf3a2eebd39524fa741108286485cb1bbe",
-        "3fc1513be80fd6e0fdaeef196df97032d8417cc7532eec3a1ea9c5aba83b0334",
-        9110,
+        "f2fb6402b47de11ec174839f6ccfc8a16742a2617103f45a27412242e7524680",
+        "e65eba15718c80cb0eb3bebed93f96dd56b39c4555a36a6441ac16b6041f3c06",
+        15556,
     ),
 )
 

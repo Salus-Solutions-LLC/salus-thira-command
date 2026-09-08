@@ -28,7 +28,7 @@ def main():
     other = {"X-Salus-Tenant": "2", "X-Salus-Role": "Assessment Director",
              "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive"}
 
-    assert client.get("/api/system/mode").json()["version"] == "3.70"
+    assert client.get("/api/system/mode").json()["version"] == "3.71"
     root = client.get("/")
     assert root.status_code == 200
     for marker in ('data-view="prove"', "/static/salcapa-assurance.css",
@@ -58,10 +58,64 @@ def main():
         "VALUES(1,1,?,'Verified','Current','Standard',?,?)",
         ("SYNTHETIC member-safe evidence", stamp, stamp),
     )
+    member_evidence_id = int(conn.execute("SELECT MAX(id) id FROM evidence").fetchone()["id"])
     conn.execute(
         "INSERT INTO decisions(assessment_id,improvement_id,decision_type,authority,rationale,"
         "created_at,updated_at) VALUES(1,1,'Approve','Synthetic Authority',"
         "'Synthetic approval without action for gap testing',?,?)", (stamp, stamp),
+    )
+    conn.execute(
+        "INSERT INTO salops_preparedness_plans(id,tenant_id,assessment_id,title,plan_type,"
+        "scope_statement,training_requirements,exercise_validation_requirements,evidence_refs_json,"
+        "sensitivity,status,member_adoption_status,created_by,created_at,updated_by,updated_at) "
+        "VALUES('synthetic-plan-prove',1,1,'SYNTHETIC released preparedness plan','EOP',"
+        "'Synthetic assurance scope','Required training','Required exercise',?,'Standard','Approved','Adopted',?,?,?,?)",
+        (f'[\"{member_evidence_id}\"]', "Assurance Director", stamp, "Assurance Director", stamp),
+    )
+    conn.execute(
+        "INSERT INTO salops_preparedness_plans(id,tenant_id,assessment_id,title,plan_type,"
+        "scope_statement,training_requirements,exercise_validation_requirements,sensitivity,status,"
+        "created_by,created_at,updated_by,updated_at) VALUES('synthetic-plan-gap',1,1,"
+        "'SYNTHETIC plan with missing handoffs','COOP','Synthetic assurance gap scope',"
+        "'Required training','Required exercise','Standard','Approved',?,?,?,?)",
+        ("Assurance Director", stamp, "Assurance Director", stamp),
+    )
+    conn.execute(
+        "INSERT INTO salops_preparedness_training(id,tenant_id,assessment_id,plan_id,title,objective,"
+        "status,member_release_status,evidence_refs_json,created_by,created_at,updated_by,updated_at) "
+        "VALUES('synthetic-training-prove',1,1,'synthetic-plan-prove','SYNTHETIC completed training',"
+        "'Demonstrate plan role', 'Completed','Released',?,?,?, ?,?)",
+        (f'[\"{member_evidence_id}\"]', "Assurance Director", stamp, "Assurance Director", stamp),
+    )
+    conn.execute(
+        "INSERT INTO salops_preparedness_exercises(id,tenant_id,assessment_id,plan_id,title,"
+        "exercise_type,scope_statement,sensitivity,status,created_by,created_at,updated_by,updated_at) "
+        "VALUES('synthetic-exercise-prove',1,1,'synthetic-plan-prove','SYNTHETIC evaluated exercise',"
+        "'Tabletop Exercise','Synthetic validation scope','Standard','Evaluated',?,?,?,?)",
+        ("Assurance Director", stamp, "Assurance Director", stamp),
+    )
+    conn.execute(
+        "INSERT INTO salops_preparedness_observations(id,tenant_id,exercise_id,epistemic_state,title,"
+        "observation,status,member_release_status,created_by,created_at,updated_by,updated_at) "
+        "VALUES('synthetic-observation-prove',1,'synthetic-exercise-prove','Verified Fact',"
+        "'SYNTHETIC exercise observation','Observed synthetic result','Open','Released',?,?,?,?)",
+        ("Assurance Director", stamp, "Assurance Director", stamp),
+    )
+    conn.execute(
+        "INSERT INTO salops_preparedness_corrective_actions(id,tenant_id,observation_id,exercise_id,"
+        "plan_id,assessment_id,title,description,completion_evidence_json,validation_result,status,"
+        "member_release_status,created_by,created_at,updated_by,updated_at) VALUES("
+        "'synthetic-corrective-prove',1,'synthetic-observation-prove','synthetic-exercise-prove',"
+        "'synthetic-plan-prove',1,'SYNTHETIC validated corrective','Synthetic corrective result',"
+        "'[\"field-evidence\"]','Validated through synthetic evaluation','Validated','Released',?,?,?,?)",
+        ("Assurance Director", stamp, "Assurance Director", stamp),
+    )
+    conn.execute(
+        "INSERT INTO salops_preparedness_aars(id,tenant_id,exercise_id,title,corrective_action_ids_json,"
+        "status,created_by,created_at,updated_by,updated_at) VALUES('synthetic-aar-prove',1,"
+        "'synthetic-exercise-prove','SYNTHETIC released AAR','[\"synthetic-corrective-prove\"]',"
+        "'Released',?,?,?,?)",
+        ("Assurance Director", stamp, "Assurance Director", stamp),
     )
     conn.commit()
     conn.close()
@@ -111,6 +165,21 @@ def main():
         "VALUES(1,1,?,'Verified','Current','Highly Sensitive',?,?)",
         ("SYNTHETIC restricted evidence", stamp, stamp),
     )
+    conn.execute(
+        "INSERT INTO salops_preparedness_plans(id,tenant_id,assessment_id,title,plan_type,"
+        "scope_statement,sensitivity,status,created_by,created_at,updated_by,updated_at) VALUES("
+        "'synthetic-plan-restricted',1,1,'SYNTHETIC restricted plan','EOP','Restricted scope',"
+        "'Highly Sensitive','Approved',?,?,?,?)",
+        ("Assurance Director", stamp, "Assurance Director", stamp),
+    )
+    conn.execute(
+        "INSERT INTO salops_preparedness_exercises(id,tenant_id,assessment_id,plan_id,title,"
+        "exercise_type,scope_statement,sensitivity,status,created_by,created_at,updated_by,updated_at) "
+        "VALUES('synthetic-exercise-restricted',1,1,'synthetic-plan-restricted',"
+        "'SYNTHETIC restricted exercise','Tabletop Exercise','Restricted exercise scope',"
+        "'Highly Sensitive','Approved',?,?,?,?)",
+        ("Assurance Director", stamp, "Assurance Director", stamp),
+    )
     conn.commit()
     conn.close()
     restricted = client.post(
@@ -144,6 +213,8 @@ def main():
         "server_derived": True, "explicit_links_only": True,
         "missing_links_are_gaps": True, "automatic_completion": False,
         "automatic_disclosure": False, "automatic_authority": False,
+        "preparedness_lifecycles_remain_authoritative": True,
+        "training_completion_is_readiness_proof": False,
     }
     stages = {item["key"]: item for item in result["stages"]}
     assert list(stages) == [
@@ -151,8 +222,14 @@ def main():
         "execution", "evidence", "result_validation", "reassessment",
     ]
     assert stages["qualified_intelligence"]["record_count"] == 1
-    assert stages["evidence"]["record_count"] == 4
-    assert stages["authorized_action"]["state"] == "Assurance gap"
+    assert stages["evidence"]["record_count"] == 8
+    assert stages["authorized_action"]["state"] == "Evidence present"
+    assert stages["execution"]["record_count"] == 2
+    assert stages["result_validation"]["record_count"] == 2
+    assert result["preparedness_trace"] == {
+        "plans": 3, "training": 1, "exercises": 2, "observations": 1,
+        "corrective_actions": 1, "after_action_reports": 1,
+    }
     edges = {(item["source"], item["target"]) for item in result["explicit_edges"]}
     assert (f"intel_finding:{intel_id}", "reassessment_trigger:1") in edges
     assert ("threat:1", "scenario:1") in edges
@@ -160,16 +237,30 @@ def main():
     assert ("capability:1", "gap:1") in edges
     assert ("gap:1", "improvement:1") in edges
     assert ("improvement:1", "decision:1") in edges
+    assert (f"evidence:{member_evidence_id}", "preparedness_plan:synthetic-plan-prove") in edges
+    assert ("preparedness_plan:synthetic-plan-prove", "preparedness_training:synthetic-training-prove") in edges
+    assert ("preparedness_plan:synthetic-plan-prove", "preparedness_exercise:synthetic-exercise-prove") in edges
+    assert ("preparedness_exercise:synthetic-exercise-prove", "preparedness_observation:synthetic-observation-prove") in edges
+    assert ("preparedness_observation:synthetic-observation-prove", "preparedness_corrective_action:synthetic-corrective-prove") in edges
+    assert ("preparedness_exercise:synthetic-exercise-prove", "preparedness_aar:synthetic-aar-prove") in edges
+    assert ("preparedness_corrective_action:synthetic-corrective-prove", "preparedness_aar:synthetic-aar-prove") in edges
     gap_keys = {item["gap_key"] for item in result["assurance_gaps"]}
     assert "decision:1:action" in gap_keys
+    assert "preparedness_plan:synthetic-plan-gap:training" in gap_keys
+    assert "preparedness_plan:synthetic-plan-gap:exercise" in gap_keys
     assert client.post(path, headers=analyst, json={"complete": True}).status_code == 405
 
     member_response = client.get(path, headers=member)
     assert member_response.status_code == 200, member_response.text
     member_result = member_response.json()["assessments"][0]
-    assert member_result["stages"][5]["record_count"] == 2
+    assert member_result["stages"][5]["record_count"] == 6
+    assert member_result["preparedness_trace"] == {
+        "plans": 2, "training": 1, "exercises": 1, "observations": 1,
+        "corrective_actions": 1, "after_action_reports": 1,
+    }
     evidence_nodes = [item for item in member_result["nodes"] if item["record_type"] == "evidence"]
     assert [item["label"] for item in evidence_nodes] == ["SYNTHETIC member-safe evidence"]
+    assert not any("restricted" in item["label"].lower() for item in member_result["nodes"])
     assert len(member_result["assurance_packages"]) == 1
     assert client.get(path, headers=other).status_code == 403
     print("SALCAPA_ASSURANCE_SMOKE_PASS")
