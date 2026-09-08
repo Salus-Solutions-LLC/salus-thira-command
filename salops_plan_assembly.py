@@ -64,6 +64,10 @@ LIVE_RESEARCH_CONTENT_TYPES = (
     "text/plain", "text/html", "application/json", "application/xml", "text/xml",
     "application/rss+xml", "application/atom+xml",
 )
+JSON_LINK_FIELDS = frozenset({
+    "url", "uri", "href", "link", "links", "self", "next", "related",
+    "alternate", "canonical",
+})
 PLAN_SECTION_FIELDS = {
     "authorities": "authorities_references", "authorities_references": "authorities_references",
     "assumptions": "assumptions", "roles": "roles_responsibilities",
@@ -753,6 +757,35 @@ def _research_document(content: bytes, content_type: str, base_url: str) -> tupl
                 discovered.append(normalized)
             if len(discovered) >= LIVE_RESEARCH_MAX_DISCOVERED_LINKS:
                 break
+    elif content_type == "application/json":
+        try:
+            document = json.loads(text)
+        except (json.JSONDecodeError, RecursionError) as exc:
+            raise ValueError("External JSON source is not valid JSON") from exc
+        pending: list[tuple[str, Any]] = [("", document)]
+        inspected = 0
+        while pending and inspected < 10000 and len(discovered) < LIVE_RESEARCH_MAX_DISCOVERED_LINKS:
+            field_name, value = pending.pop()
+            inspected += 1
+            if isinstance(value, dict):
+                pending.extend(reversed([(str(key), item) for key, item in value.items()]))
+                continue
+            if isinstance(value, list):
+                pending.extend(reversed([(field_name, item) for item in value]))
+                continue
+            normalized_field = field_name.strip().lower().replace("-", "_")
+            is_link_field = (
+                normalized_field in JSON_LINK_FIELDS
+                or normalized_field.endswith(("_url", "_uri", "_href", "_link"))
+            )
+            if not is_link_field or not isinstance(value, str) or not value.strip():
+                continue
+            try:
+                normalized, _ = _normalize_https_url(urljoin(base_url, value.strip()))
+            except ValueError:
+                continue
+            if normalized != base_url and normalized not in discovered:
+                discovered.append(normalized)
     elif content_type in ("application/xml", "text/xml", "application/rss+xml", "application/atom+xml"):
         if re.search(r"<!\s*(?:DOCTYPE|ENTITY)\b", text, flags=re.IGNORECASE):
             raise ValueError("External XML source contains a prohibited document type or entity declaration")

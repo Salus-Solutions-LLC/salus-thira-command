@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Acceptance checks for governed autonomous emergency-plan assembly."""
+import json
 import os
 import sys
 import tempfile
@@ -45,7 +46,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.75"
+    assert client.get("/api/system/mode").json()["version"] == "3.76"
     catalog_path = "/api/salops/preparedness/plan-assembly/catalog"
     assert client.get(catalog_path, headers=member).status_code == 403
     catalog = client.get(catalog_path, headers=director)
@@ -62,6 +63,12 @@ def main() -> None:
     assert adapter["maximum_discovered_links"] == 50
     assert "application/rss+xml" in adapter["allowed_content_types"]
     assert "application/atom+xml" in adapter["allowed_content_types"]
+    assert "application/json" in adapter["allowed_content_types"]
+    try:
+        salops_plan_assembly._research_document(b"{", "application/json", "https://example.com/api")
+        raise AssertionError("Malformed JSON must fail closed")
+    except ValueError as exc:
+        assert "not valid JSON" in str(exc)
 
     plan = client.post("/api/salops/preparedness/plans", headers=director, json={
         "assessment_id": 1,
@@ -254,6 +261,50 @@ def main() -> None:
     )
     assert feed_source["source_derived_statements"] == []
     assert feed_source["reliability"] == "Not Assessed" and feed_source["confidence"] == "Not Assessed"
+
+    api_request = client.post(live_path, headers=director, json={
+        "url": "https://example.com/api/current.json",
+        "purpose": "Discover source links returned by an exact authorized public API endpoint.",
+    }).json()
+    api_id = api_request["id"]
+    assert client.post(
+        f"{create_path}/external-research/{api_id}/authorize", headers=administrator,
+        json={
+            "reason": "SYNTHETIC exact public JSON API authorization.",
+            "scope_confirmed": True, "external_transmission_authorized": True,
+            "sensitive_data_absent": True,
+        },
+    ).status_code == 200
+    salops_plan_assembly.LIVE_RESEARCH_FETCHER = lambda url, maximum_bytes: {
+        "status": 200, "content_type": "application/json",
+        "headers": {"content-type": "application/json; charset=utf-8"},
+        "content": json.dumps({
+            "title": "SYNTHETIC Public API",
+            "records": [
+                {"url": "/api/bulletins/one"},
+                {"links": [{"href": "https://example.com/api/bulletins/two"}]},
+                {"url": "https://outside.example.org/blocked"},
+                {"description": "https://example.com/not-a-link-field"},
+            ],
+        }).encode("utf-8"),
+    }
+    api_live = client.post(
+        f"{create_path}/external-research/{api_id}/execute", headers=owner,
+        json={"reason": "Parse the authorized API response without following returned links."},
+    )
+    assert api_live.status_code == 200, api_live.text
+    api_result = api_live.json()
+    assert api_result["status"] == "Accessed" and api_result["content_type"] == "application/json"
+    assert "SYNTHETIC Public API" in api_result["content_text"]
+    assert api_result["discovered_links"] == [
+        "https://example.com/api/bulletins/one", "https://example.com/api/bulletins/two",
+    ]
+    api_source = next(
+        item for item in client.get(f"{create_path}/{run_id}", headers=director).json()["sources"]
+        if item["id"] == api_result["source_id"]
+    )
+    assert api_source["source_derived_statements"] == []
+    assert api_source["reliability"] == "Not Assessed" and api_source["confidence"] == "Not Assessed"
 
     hostile_request = client.post(live_path, headers=director, json={
         "url": "https://example.com/feed/hostile.xml",
@@ -882,8 +933,8 @@ def main() -> None:
     assert still_approved["status"] == "Approved" and still_approved["version"] == 1
     bundle = client.get(f"{create_path}/{run_id}", headers=director)
     assert bundle.status_code == 200, bundle.text
-    assert len(bundle.json()["sources"]) == 6
-    assert len(bundle.json()["external_research_requests"]) == 4
+    assert len(bundle.json()["sources"]) == 7
+    assert len(bundle.json()["external_research_requests"]) == 5
     assert len(bundle.json()["sections"]) == 1
     assert len(bundle.json()["revision_recommendations"]) == 1
     assert len(bundle.json()["version_candidates"]) == 1
