@@ -14,7 +14,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.79"',
+    'SALCAPA_RELEASE_VERSION = "3.80"',
     "/static/salcapa-contextual-guidance.css",
     "/static/salcapa-contextual-guidance.js",
 ):
@@ -45,6 +45,20 @@ for value in (
     "Authorized people remain responsible for judgment, decisions, approval, release, and action.",
     "Prepared work is never presented as human-reviewed, approved, released, or validated",
     "window.salcapaHumanFirstCommunications",
+    "window.salcapaHumanTrustGuidance",
+    "Respect expertise. Preserve authority. Explain uncertainty. Protect information. Minimize burden. Avoid blame.",
+    "Salus should make people feel more capable and informed—not watched, graded, replaced, or controlled.",
+    "A preliminary signal is not a final judgment about a person.",
+    "Monitoring is not indiscriminate surveillance.",
+    "SalTHIRA works with existing frameworks",
+    "Improvement Action or Action to Validate unless formal Corrective Action terminology is required.",
+    "Demonstrated",
+    "Partially Demonstrated",
+    "Evidence Needed",
+    "Improvement Underway",
+    "Awaiting Validation",
+    "How Salus explains uncertainty",
+    "These states describe available evidence, not personal worth, blame, or a percentage-safe conclusion.",
     "Prepare Draft",
     "Recommended Next Step",
     "Ongoing Monitoring",

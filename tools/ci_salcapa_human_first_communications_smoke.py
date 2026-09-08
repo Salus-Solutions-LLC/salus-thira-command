@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Acceptance checks for Issue #204 human-first customer communications."""
+"""Acceptance checks for Issues #204/#205 human-first and human-trust doctrine."""
 from pathlib import Path
 
 
@@ -15,7 +15,7 @@ def require(value: str, source: str) -> None:
         raise SystemExit(f"Human-first communications acceptance is incomplete: {value}")
 
 
-require('SALCAPA_RELEASE_VERSION = "3.79"', RUNTIME)
+require('SALCAPA_RELEASE_VERSION = "3.80"', RUNTIME)
 
 for value in (
     "People lead. Methods guide. Technology supports. Evidence proves.",
@@ -27,6 +27,20 @@ for value in (
     "Recommended Next Step",
     "Ongoing Monitoring",
     "Review and Analyze",
+    "Respect expertise. Preserve authority. Explain uncertainty. Protect information. Minimize burden. Avoid blame.",
+    "Salus should make people feel more capable and informed—not watched, graded, replaced, or controlled.",
+    "Here is what we found, what supports it, what remains uncertain, and what may deserve attention.",
+    "Monitoring is not indiscriminate surveillance.",
+    "A preliminary signal is not a final judgment about a person.",
+    "SalTHIRA works with existing frameworks",
+    "Human and manual operating capability remain important when digital tools are unavailable.",
+    "Known or verified; Reported but unverified; Reasonably supported",
+    "Demonstrated",
+    "Partially Demonstrated",
+    "Evidence Needed",
+    "Improvement Underway",
+    "Awaiting Validation",
+    "window.salcapaHumanTrustGuidance",
 ):
     require(value, GUIDANCE)
 

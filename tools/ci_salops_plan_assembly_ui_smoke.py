@@ -33,7 +33,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.79"',
+    'SALCAPA_RELEASE_VERSION = "3.80"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -168,6 +168,12 @@ for value in (
     '"communications_doctrine"',
     "People lead. Methods guide. Technology supports. Evidence proves.",
     "Prepared content is not human-reviewed, approved, released, or validated",
+    '"human_trust"',
+    "Respect expertise. Preserve authority. Explain uncertainty. Protect information. Minimize burden. Avoid blame.",
+    "Human and manual operating capability remain important when digital tools are unavailable.",
+    '"preliminary_signal_is_person_judgment": False',
+    '"workflow_progress_is_readiness": False',
+    '"salus_replaces_command_authority": False',
 ):
     require(value, SERVER)
 
@@ -212,6 +218,9 @@ assert client.get(path, headers=member).status_code == 403
 catalog = client.get(path, headers=director).json()
 assert catalog["communications_doctrine"]["principle"] == "People lead. Methods guide. Technology supports. Evidence proves."
 assert "privacy" in catalog["communications_doctrine"]["truthful_disclosure"]
-assert client.get("/api/system/mode").json()["version"] == "3.79"
+assert catalog["communications_doctrine"]["human_trust"]["preliminary_signal_is_person_judgment"] is False
+assert catalog["communications_doctrine"]["human_trust"]["workflow_progress_is_readiness"] is False
+assert catalog["communications_doctrine"]["human_trust"]["salus_replaces_command_authority"] is False
+assert client.get("/api/system/mode").json()["version"] == "3.80"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")

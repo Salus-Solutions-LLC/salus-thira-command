@@ -15,6 +15,41 @@
   });
   window.salcapaHumanFirstCommunications = HUMAN_FIRST_COMMUNICATIONS;
 
+  const HUMAN_TRUST_GUIDANCE = Object.freeze({
+    principle: 'Respect expertise. Preserve authority. Explain uncertainty. Protect information. Minimize burden. Avoid blame.',
+    promise: 'Salus should make people feel more capable and informed—not watched, graded, replaced, or controlled.',
+    decisionSupport: 'Here is what we found, what supports it, what remains uncertain, and what may deserve attention.',
+    uncertainty: 'Use the state the evidence supports: Known or verified; Reported but unverified; Reasonably supported; Inference or professional judgment; Conflicting information; Assumption requiring validation; Information gap or known unknown; Unknown at this time.',
+    capabilityStates: Object.freeze(['Demonstrated', 'Partially Demonstrated', 'Evidence Needed', 'Improvement Underway', 'Awaiting Validation']),
+    pages: Object.freeze({
+      prove: Object.freeze({
+        cue: 'Evidence state and validation remain distinct from workflow progress.',
+        control: 'Authorized reviewers determine what the evidence demonstrates. Missing evidence remains visible and never becomes a favorable result merely because work advanced.'
+      }),
+      monitoring: Object.freeze({
+        cue: 'Ongoing monitoring has a legitimate purpose, authorized scope, defined cadence, accountable reviewer, and a way to pause, change, or end it.',
+        control: 'Monitoring is not indiscriminate surveillance. It cannot expand its own scope, change investigation depth, disclose results, or make a preliminary signal a judgment about a person.'
+      }),
+      investigation: Object.freeze({
+        cue: 'Observations, reports, allegations, indicators, concerns, hypotheses, inferences, qualified findings, contradictions, gaps, and unknowns remain distinct.',
+        control: 'A preliminary signal is not a final judgment about a person. Authorized investigators qualify meaning, preserve correction and supersession history, and control disclosure.'
+      }),
+      assessment: Object.freeze({
+        cue: 'Assess the required capability, current capability, consequence, difference, and practical improvement options—not the worth of a person or organization.',
+        control: 'Scores and colors require an explicit, evidence-supported meaning. SalTHIRA works with existing frameworks and supports authorized leaders; it neither replaces professional judgment nor assigns blame.'
+      }),
+      operations: Object.freeze({
+        cue: 'Use improvement-oriented language unless doctrine, regulation, contract, or an established process requires formal Corrective Action terminology.',
+        control: 'Operational status must show responsibility, evidence, exceptions, alternate capability, and the next authorized step without implying that software overrides command or regulated roles.'
+      }),
+      default: Object.freeze({
+        cue: 'Use familiar language, progressive disclosure, role-specific views, and governed references so people provide information once and can understand what happens next.',
+        control: 'Protected Member information remains tenant- and sensitivity-controlled. Human and manual operating capability remain important when digital tools are unavailable.'
+      })
+    })
+  });
+  window.salcapaHumanTrustGuidance = HUMAN_TRUST_GUIDANCE;
+
   const PRODUCT_GUIDANCE = [
     {
       key: 'see',
@@ -53,7 +88,7 @@
     },
     monitoring: {
       cue: 'Compare approved sources with a governed baseline without silently expanding the investigation.',
-      detail: 'Monitoring is separate from investigation depth. It defaults to No and begins only after an affirmative request or Salus initiation and authorized approval of scope, cadence, sources, recipients, release policy, and commercial treatment.'
+      detail: 'Monitoring is separate from investigation depth. It defaults to No and begins only after an affirmative request or Salus initiation and authorized approval of purpose, scope, cadence, duration, sources, recipients, review and release policy, and commercial treatment. Authorized people can pause, change, or end it.'
     },
     investigation: {
       cue: 'Develop source-grounded intelligence within the exact authorized tier and scope.',
@@ -78,8 +113,8 @@
       pattern: /(?:start|request|resume) monitoring/,
       label: 'Before monitoring begins',
       summary: 'Monitoring does not activate automatically.',
-      salus: 'Confirm the approved purpose, scope, cadence, dates, sources and exclusions, thresholds, review and release policy, recipients, partner eligibility, and commercial treatment. This action does not change investigation tier or create a charge.',
-      member: 'Your request is sent for Salus review. It does not activate monitoring, change an investigation tier, authorize an external partner, or create a charge.'
+      salus: 'Confirm who requested and approved the work, its legitimate purpose, scope, cadence, dates, sources and exclusions, thresholds, reviewer, pause/end authority, release policy, recipients, partner eligibility, and commercial treatment. This action does not change investigation tier or create a charge.',
+      member: 'Your request is sent for Salus review. It does not activate monitoring, change an investigation tier, authorize an external partner, label a person, or create a charge. Approved monitoring will identify its purpose, scope, cadence, and review authority.'
     },
     {
       pattern: /(?:change|upgrade|authorize|recommend).*(?:tier|investigation)|(?:tier|investigation).*(?:change|upgrade|authorize|recommend)/,
@@ -92,8 +127,8 @@
       pattern: /(?:qualify|qualification)/,
       label: 'Before qualification',
       summary: 'Qualification is accountable human judgment, not automatic fact creation.',
-      salus: 'Review provenance, source access, reliability, confidence, contradictions, epistemic state, known unknowns, and scope. Technology-assisted content, allegations, and inferred associations do not become verified facts merely through this action.',
-      member: 'Only authorized, qualified, and released results enter the Protected Member experience. Internal investigative records and cross-member information remain controlled.'
+      salus: 'Review provenance, source access, reliability, confidence, contradictions, epistemic state, known unknowns, and scope. Keep observations, reports, allegations, indicators, concerns, hypotheses, inferences, findings, contradictions, gaps, and unknowns distinct. Technology-assisted content and inferred associations do not become verified facts merely through this action.',
+      member: 'Only authorized, qualified, and released results enter the Protected Member experience. A preliminary signal is not a final judgment about a person. Internal investigative records and cross-member information remain controlled.'
     },
     {
       pattern: /(?:disclos|release|publish|share with member)/,
@@ -127,7 +162,7 @@
       pattern: /(?:complete|close|validate)/,
       label: 'Before completion or validation',
       summary: 'Completion and validation are distinct claims and require supporting evidence.',
-      salus: 'Confirm required scope, checklist, evidence, exceptions, human qualification, known unknowns, downstream handoffs, and reassessment needs. Do not treat workflow progress alone as proof of improved safety or readiness.',
+      salus: 'Confirm required scope, checklist, evidence, exceptions, human qualification, known unknowns, downstream handoffs, and reassessment needs. Do not treat workflow progress alone as proof of improved safety or readiness. Prefer Improvement Action or Action to Validate unless formal Corrective Action terminology is required.',
       member: 'Completion records what was done; validation establishes what the evidence supports. Remaining gaps and reassessment needs stay visible.'
     },
     {
@@ -183,6 +218,10 @@
       </section>`;
   }
 
+  function trustGuidance() {
+    return HUMAN_TRUST_GUIDANCE.pages[pageKey()] || HUMAN_TRUST_GUIDANCE.pages.default;
+  }
+
   function enhanceLifecycle() {
     const prove = document.querySelector('#lifecycle-strip [data-stage="prove"]');
     if (prove) {
@@ -203,6 +242,7 @@
     if (!subtitle) return;
     const key = pageKey();
     const guide = PAGE_GUIDANCE[key];
+    const trust = trustGuidance();
     let cue = document.getElementById('salcapa-page-guidance');
     if (!cue) {
       cue = document.createElement('div');
@@ -212,7 +252,7 @@
     }
     if (cue.dataset.key === `${key}:${isSalus()}`) return;
     cue.dataset.key = `${key}:${isSalus()}`;
-    cue.innerHTML = `<span>${guide.cue}</span>${detailMarkup('Purpose, authority, and next step', guide.cue, guide.detail)}`;
+    cue.innerHTML = `<span>${guide.cue}</span>${detailMarkup('Purpose, authority, and next step', guide.cue, `${guide.detail} ${trust.cue}`)}`;
   }
 
   function actionFor(button) {
@@ -244,6 +284,7 @@
     if (!drawer || !body || !drawer.classList.contains('open')) return;
     const key = pageKey();
     const guide = PAGE_GUIDANCE[key];
+    const trust = trustGuidance();
     const role = isSalus() ? 'Salus personnel' : 'Protected Member';
     document.getElementById('guidance-title').textContent = 'How SalCAPA Works';
     document.getElementById('guidance-subtitle').textContent = `${role} guidance for ${document.getElementById('page-title')?.textContent || 'this workspace'}`;
@@ -261,6 +302,15 @@
         <p>${HUMAN_FIRST_COMMUNICATIONS.publicDescription}</p>
         <p><strong>Human authority.</strong> ${HUMAN_FIRST_COMMUNICATIONS.authority}</p>
         <details><summary>When technology use is explained</summary><p>${HUMAN_FIRST_COMMUNICATIONS.disclosure}</p></details>
+      </div>
+      <div class="guidance-panel salcapa-role-guidance">
+        <span class="guidance-kicker">Human trust and comprehension</span>
+        <h3>${HUMAN_TRUST_GUIDANCE.principle}</h3>
+        <p><strong>Our intent.</strong> ${HUMAN_TRUST_GUIDANCE.promise}</p>
+        <p><strong>In this workspace.</strong> ${trust.cue}</p>
+        <p><strong>Authority and control.</strong> ${trust.control}</p>
+        <details><summary>How Salus explains uncertainty</summary><p>${HUMAN_TRUST_GUIDANCE.uncertainty}</p></details>
+        <details><summary>Evidence-grounded capability states</summary><p>${HUMAN_TRUST_GUIDANCE.capabilityStates.join(' · ')}. These states describe available evidence, not personal worth, blame, or a percentage-safe conclusion.</p></details>
       </div>
       ${operatingModelMarkup()}`;
   }
