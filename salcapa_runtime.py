@@ -17,6 +17,7 @@ from salintel_relationships import register_salintel_relationships
 from salintel_research import register_salintel_research
 from salintel_handoffs import register_salintel_handoffs
 from facility_assessment import register_facility_assessment
+from salcapa_commercial import register_salcapa_commercial
 try:
     from salops_plan_assembly import register_salops_plan_assembly
 except ModuleNotFoundError:  # Other capability workflows may not reconstruct this archive.
@@ -42,8 +43,9 @@ if register_salcapa_assurance is not None:
     register_salcapa_assurance(core.app, core.__dict__)
 if register_salops_plan_assembly is not None:
     register_salops_plan_assembly(core.app, core.__dict__)
+register_salcapa_commercial(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.80"
+SALCAPA_RELEASE_VERSION = "3.81"
 
 
 _base_protective_readiness_summary = core._protective_readiness_summary

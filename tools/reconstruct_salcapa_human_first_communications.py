@@ -10,8 +10,8 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salcapa_human_first_communications_smoke.py.gz",
         ROOT / "tools/ci_salcapa_human_first_communications_smoke.py",
-        "393d549db36a938476ce0828ae5c56993ed048a9ecbac68ad996398955ee6a0c",
-        "4db05722199751b00aa98665941afc7e398caee05bdad04840ac3d83607ce614",
+        "811f4630d0ed5f7e06d28c7862d6455cb75afff6635aaf092e17358453be6445",
+        "2e75d6990ae372c1eb383794f8843f18dc52ecd73f5d0b472cfd3a9b05bcf98f",
         3421,
     ),
 )
