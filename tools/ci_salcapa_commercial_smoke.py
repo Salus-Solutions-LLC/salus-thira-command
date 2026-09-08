@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Acceptance checks for Issue #154 estimates, actuals, and governed forecasts."""
+"""Acceptance checks for Issue #154 estimates, actuals, forecasts, and reporting."""
 import copy
 import json
 import os
@@ -42,7 +42,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.84"
+    assert client.get("/api/system/mode").json()["version"] == "3.85"
     assert client.get("/api/salcapa/commercial/catalog", headers=member).status_code == 403
     catalog = client.get("/api/salcapa/commercial/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
@@ -56,6 +56,11 @@ def main() -> None:
         "Protected Member", "Engagement",
     ]
     assert "Monthly" in body["monitoring_services"]
+    assert body["management_report_groups"] == [
+        "Product Line", "Investigative Domain", "Tier", "Engagement", "Pricing Method",
+    ]
+    assert body["guidance"]["report_purpose"].startswith("Review current approved")
+    assert "not financial statements" in body["guidance"]["report_uncertainty"]
 
     forged = client.post("/api/salcapa/commercial/rate-cards", headers=director, json={
         "name": "Forged card", "status": "Approved", "rules": DEFAULT_RULES,
@@ -565,6 +570,66 @@ def main() -> None:
         "Product Line", "Investigative Domain", "Tier", "Monitoring Service", "Protected Member",
     ]
     assert resolution["human_authority_required"] is True
+
+    # Management reporting is Salus-only, period-bounded, revision-safe, and explicit about uncertainty.
+    report_path = (
+        "/api/salcapa/commercial/management-report"
+        "?start_date=2026-09-08&end_date=2026-09-09&group_by=Product%20Line"
+    )
+    assert client.get(report_path, headers=member).status_code == 403
+    other_report = client.get(report_path, headers=other)
+    assert other_report.status_code == 200, other_report.text
+    assert other_report.json()["groups"] == []
+    assert other_report.json()["totals"]["support_state"] == "Awaiting Validation"
+    assert client.get(
+        "/api/salcapa/commercial/management-report"
+        "?start_date=2026-09-10&end_date=2026-09-09", headers=administrator,
+    ).status_code == 422
+    assert client.get(
+        "/api/salcapa/commercial/management-report"
+        "?start_date=2025-09-01&end_date=2026-09-09", headers=administrator,
+    ).status_code == 422
+    report_response = client.get(report_path, headers=administrator)
+    assert report_response.status_code == 200, report_response.text
+    report = report_response.json()
+    assert report["scope"] == {
+        "protected_member_id": 1,
+        "start_date": "2026-09-08",
+        "end_date": "2026-09-09",
+        "group_by": "Product Line",
+    }
+    assert report["support_state"] == "Evidence Needed"
+    assert "not a financial statement" in report["interpretation"]
+    assert report["creates_charge"] is False and report["creates_invoice"] is False
+    assert report["authorizes_scope"] is False
+    assert len(report["groups"]) == 1
+    management = report["groups"][0]
+    assert management["group"] == "SalINTEL Investigation"
+    assert management["active_estimate_count"] == 1
+    assert management["new_estimate_count"] == 1
+    assert management["released_estimate_count"] == 1
+    assert management["approved_customer_price_cents"] == 62500
+    assert management["estimated_internal_cost_cents"] == 18400
+    assert management["approved_estimated_contribution_cents"] == 44100
+    assert management["period_time_minutes"] == 120
+    assert management["period_time_cost_cents"] == 18000
+    assert management["period_direct_actual_cost_cents"] == 1025
+    assert management["period_recognized_actual_cost_cents"] == 19025
+    assert management["period_provisional_cost_cents"] == 500
+    assert management["period_unavailable_cost_record_count"] == 1
+    assert management["current_approved_forecast_count"] == 1
+    assert management["current_forecast_at_completion_cents"] == 25025
+    assert management["current_projected_contribution_cents"] == 37475
+    assert management["support_state"] == "Evidence Needed"
+    assert report["totals"]["period_recognized_actual_cost_cents"] == 19025
+
+    csv_report = client.get(report_path + "&export=csv", headers=administrator)
+    assert csv_report.status_code == 200, csv_report.text
+    assert csv_report.headers["content-disposition"].endswith(
+        'filename="salcapa-commercial-2026-09-08-2026-09-09.csv"'
+    )
+    assert csv_report.text.startswith("group,support_state,active_estimate_count")
+    assert "SalINTEL Investigation,Evidence Needed,1,1,1,62500,18400,44100" in csv_report.text
 
     conn = salcapa_runtime.core.db()
     records = salcapa_runtime.core.collect_tenant_records(conn, 1)

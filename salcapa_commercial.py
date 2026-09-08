@@ -9,14 +9,16 @@ authorization, or customer commitment.
 """
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
 import uuid
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Literal, Optional
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
@@ -70,6 +72,9 @@ PARTNER_TREATMENTS = (
     "Separately Quoted", "Not Yet Decided",
 )
 ACTUAL_COST_BASES = {"Metered Actual", "Supplier Invoice", "Receipt"}
+REPORT_GROUPS = (
+    "Product Line", "Investigative Domain", "Tier", "Engagement", "Pricing Method",
+)
 BACKUP_TABLES = (
     "salcapa_rate_cards", "salcapa_commercial_estimates",
     "salcapa_time_entries", "salcapa_cost_entries", "salcapa_commercial_forecasts",
@@ -985,6 +990,199 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         out["creates_invoice"] = bool(out["creates_invoice"])
         return out
 
+    def report_date(value: str, field_name: str) -> date:
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise HTTPException(422, f"{field_name} must be a valid ISO date") from exc
+
+    def report_group_label(row: dict[str, Any], group_by: str) -> str:
+        if group_by == "Product Line":
+            return row["product_line"]
+        if group_by == "Investigative Domain":
+            return row["domain_key"] or "Not Specified"
+        if group_by == "Tier":
+            return row["investigation_tier"]
+        if group_by == "Engagement":
+            return f"Engagement {row['engagement_id']}" if row["engagement_id"] else "Not Assigned"
+        return row["pricing_method"]
+
+    def management_report(conn, tid: int, start: date, end: date,
+                          group_by: str) -> dict[str, Any]:
+        rows = [dict(r) for r in conn.execute(
+            "SELECT * FROM salcapa_commercial_estimates WHERE tenant_id=? ORDER BY version_no",
+            (tid,),
+        )]
+        for row in rows:
+            verify_estimate(row)
+        governed = [row for row in rows if row["status"] in {"Approved", "Released"}]
+        superseded = {
+            row["supersedes_estimate_id"] for row in governed if row["supersedes_estimate_id"]
+        }
+        active = [
+            row for row in governed
+            if row["id"] not in superseded and date.fromisoformat(row["created_at"][:10]) <= end
+        ]
+        groups: dict[str, dict[str, Any]] = {}
+        for estimate in active:
+            label = report_group_label(estimate, group_by)
+            group = groups.setdefault(label, {
+                "group": label,
+                "active_estimate_count": 0,
+                "new_estimate_count": 0,
+                "released_estimate_count": 0,
+                "approved_customer_price_cents": 0,
+                "estimated_internal_cost_cents": 0,
+                "approved_estimated_contribution_cents": 0,
+                "period_time_minutes": 0,
+                "period_time_cost_cents": 0,
+                "period_direct_actual_cost_cents": 0,
+                "period_recognized_actual_cost_cents": 0,
+                "period_provisional_cost_cents": 0,
+                "period_unavailable_cost_record_count": 0,
+                "current_approved_forecast_count": 0,
+                "current_forecast_at_completion_cents": 0,
+                "current_projected_contribution_cents": 0,
+                "support_state": "Reasonably Supported",
+            })
+            group["active_estimate_count"] += 1
+            created_date = date.fromisoformat(estimate["created_at"][:10])
+            if start <= created_date <= end:
+                group["new_estimate_count"] += 1
+            if estimate["status"] == "Released":
+                group["released_estimate_count"] += 1
+            approved_price = int(estimate["approved_customer_price_cents"] or 0)
+            estimated_internal = int(estimate["estimated_internal_cost_cents"])
+            group["approved_customer_price_cents"] += approved_price
+            group["estimated_internal_cost_cents"] += estimated_internal
+            group["approved_estimated_contribution_cents"] += approved_price - estimated_internal
+
+            actuals = active_actual_summary(conn, tid, estimate["id"])
+            period_time = [
+                row for row in actuals["active_time"]
+                if start <= date.fromisoformat(row["work_date"]) <= end
+            ]
+            period_cost = [
+                row for row in actuals["active_cost"]
+                if start <= date.fromisoformat(row["incurred_at"][:10]) <= end
+            ]
+            time_minutes = sum(int(row["minutes"]) for row in period_time)
+            time_cost = sum(int(row["calculated_cost_cents"]) for row in period_time)
+            direct_actual = sum(int(row["recognized_actual_cost_cents"]) for row in period_cost)
+            provisional = sum(
+                int(row["amount_cents"]) for row in period_cost
+                if row["cost_basis"] in {"Authorized Estimate", "Planning Allowance"}
+            )
+            unavailable = sum(1 for row in period_cost if row["cost_basis"] == "Unavailable")
+            group["period_time_minutes"] += time_minutes
+            group["period_time_cost_cents"] += time_cost
+            group["period_direct_actual_cost_cents"] += direct_actual
+            group["period_recognized_actual_cost_cents"] += time_cost + direct_actual
+            group["period_provisional_cost_cents"] += provisional
+            group["period_unavailable_cost_record_count"] += unavailable
+
+            forecast_rows = [dict(r) for r in conn.execute(
+                """SELECT * FROM salcapa_commercial_forecasts
+                   WHERE tenant_id=? AND estimate_id=? AND status='Approved' AND as_of_date<=?
+                   ORDER BY version_no""",
+                (tid, estimate["id"], end.isoformat()),
+            )]
+            for forecast in forecast_rows:
+                verify_forecast(forecast)
+            superseded_forecasts = {
+                row["supersedes_forecast_id"] for row in forecast_rows
+                if row["supersedes_forecast_id"]
+            }
+            current_forecasts = [
+                row for row in forecast_rows if row["id"] not in superseded_forecasts
+            ]
+            current = current_forecasts[-1] if current_forecasts else None
+            if current:
+                group["current_approved_forecast_count"] += 1
+                group["current_forecast_at_completion_cents"] += int(
+                    current["forecast_at_completion_cents"]
+                )
+                group["current_projected_contribution_cents"] += int(
+                    current["projected_contribution_cents"]
+                )
+                if current["completeness_state"] == "Evidence Needed":
+                    group["support_state"] = "Evidence Needed"
+                elif (current["completeness_state"] == "Awaiting Validation"
+                      and group["support_state"] != "Evidence Needed"):
+                    group["support_state"] = "Awaiting Validation"
+            elif group["support_state"] == "Reasonably Supported":
+                group["support_state"] = "Awaiting Validation"
+            if unavailable:
+                group["support_state"] = "Evidence Needed"
+
+        ordered = [groups[key] for key in sorted(groups, key=lambda value: value.lower())]
+        numeric_fields = [
+            key for key in next(iter(groups.values()), {})
+            if key != "group" and key != "support_state"
+        ]
+        totals = {field: sum(int(row[field]) for row in ordered) for field in numeric_fields}
+        support_states = {row["support_state"] for row in ordered}
+        if "Evidence Needed" in support_states:
+            overall_support = "Evidence Needed"
+        elif "Awaiting Validation" in support_states or not ordered:
+            overall_support = "Awaiting Validation"
+        else:
+            overall_support = "Reasonably Supported"
+        totals["support_state"] = overall_support
+        return {
+            "scope": {
+                "protected_member_id": tid,
+                "start_date": start.isoformat(),
+                "end_date": end.isoformat(),
+                "group_by": group_by,
+            },
+            "record_state_basis": (
+                "Current Approved or Released estimate versions created on or before the period end; "
+                "dated work and cost figures include only active Approved records within the period."
+            ),
+            "forecast_basis": (
+                "Latest active Approved forecast with an as-of date on or before the period end. "
+                "A forecast remains a planning judgment and may require further evidence."
+            ),
+            "confidentiality": (
+                "Salus-only commercial management information for the active Protected Member scope. "
+                "It is not available in Protected Member views or across member boundaries."
+            ),
+            "interpretation": (
+                "This management view is not a financial statement, recognized revenue or margin, "
+                "customer charge, invoice, scope authorization, entitlement, or commitment."
+            ),
+            "support_state": overall_support,
+            "totals": totals,
+            "groups": ordered,
+            "creates_charge": False,
+            "creates_invoice": False,
+            "authorizes_scope": False,
+        }
+
+    def management_report_csv(report: dict[str, Any]) -> str:
+        def safe(value: Any) -> Any:
+            if isinstance(value, str) and value[:1] in {"=", "+", "-", "@", "\t", "\r"}:
+                return "'" + value
+            return value
+
+        fields = [
+            "group", "support_state", "active_estimate_count", "new_estimate_count",
+            "released_estimate_count", "approved_customer_price_cents",
+            "estimated_internal_cost_cents", "approved_estimated_contribution_cents",
+            "period_time_minutes", "period_time_cost_cents",
+            "period_direct_actual_cost_cents", "period_recognized_actual_cost_cents",
+            "period_provisional_cost_cents", "period_unavailable_cost_record_count",
+            "current_approved_forecast_count", "current_forecast_at_completion_cents",
+            "current_projected_contribution_cents",
+        ]
+        stream = io.StringIO(newline="")
+        writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
+        writer.writeheader()
+        for row in report["groups"]:
+            writer.writerow({key: safe(value) for key, value in row.items()})
+        return stream.getvalue()
+
     @app.get("/api/salcapa/commercial/catalog")
     def commercial_catalog(request: Request):
         salus_read(request)
@@ -993,6 +1191,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "complexities": list(COMPLEXITIES), "pricing_methods": list(PRICING_METHODS),
             "monitoring_services": list(MONITORING_SERVICES),
             "rate_override_precedence": list(RATE_OVERRIDE_LEVELS),
+            "management_report_groups": list(REPORT_GROUPS),
             "work_categories": list(WORK_CATEGORIES),
             "time_commercial_treatments": list(COMMERCIAL_TREATMENTS),
             "cost_categories": list(COST_CATEGORIES), "cost_bases": list(COST_BASES),
@@ -1010,8 +1209,39 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "forecast_uncertainty": "A forecast is a planning judgment, not a final cost. It shows its evidence state, assumptions, constraints, unavailable-cost handling, and source-record snapshot.",
                 "forecast_authority": "A different authorized Salus person must approve the forecast, and changed source records require a new forecast rather than a silent update.",
                 "forecast_consequence": "An approved forecast informs Salus planning only. It does not alter scope, customer price, margin recognition, charges, invoices, or commitments.",
+                "report_purpose": "Review current approved commercial positions and dated cost activity within one governed Protected Member scope.",
+                "report_uncertainty": "Management totals distinguish recognized actual cost, provisional amounts, unavailable cost records, and approved forecasts; they are not financial statements or final margin recognition.",
+                "report_confidentiality": "Commercial management reports are Salus-only and do not expose internal rates, costs, calculations, or margins to Protected Members.",
             },
         }
+
+    @app.get("/api/salcapa/commercial/management-report")
+    def commercial_management_report(request: Request, start_date: str, end_date: str,
+                                     group_by: Literal[
+                                         "Product Line", "Investigative Domain", "Tier",
+                                         "Engagement", "Pricing Method",
+                                     ] = "Product Line",
+                                     export: Literal["json", "csv"] = "json"):
+        salus_read(request)
+        start = report_date(start_date, "start_date")
+        end = report_date(end_date, "end_date")
+        if end < start:
+            raise HTTPException(422, "end_date cannot precede start_date")
+        if (end - start).days > 366:
+            raise HTTPException(422, "Commercial reporting periods are limited to 367 days")
+        conn = db()
+        try:
+            report = management_report(conn, tenant_id(request), start, end, group_by)
+        finally:
+            conn.close()
+        if export == "csv":
+            filename = f"salcapa-commercial-{start.isoformat()}-{end.isoformat()}.csv"
+            return Response(
+                content=management_report_csv(report),
+                media_type="text/csv",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+        return report
 
     @app.get("/api/salcapa/commercial/rate-cards")
     def list_rate_cards(request: Request):

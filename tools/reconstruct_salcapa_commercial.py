@@ -10,16 +10,16 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salcapa_commercial.py.gz",
         ROOT / "salcapa_commercial.py",
-        "15fa40818c3c0122358aacc3c323729a5bf95cc282cd8f29d6e6b4b22bf48fbf",
-        "73b19b78dd799a14420d3fb4fc8c2ff76eb464599de0490d5d556fbdf19da069",
-        98948,
+        "0a355175ec1f56313e18748f77c37d00a6684ad02ef56d236c7aa85f8c3cb610",
+        "367810f4d48150625f703165c547f8e49a8b68f6641374f927683737dc475430",
+        110836,
     ),
     (
         ROOT / "source_archives/development/ci_salcapa_commercial_smoke.py.gz",
         ROOT / "tools/ci_salcapa_commercial_smoke.py",
-        "4ff005519c8ddf9eaab0191d3b20a1dcc7bff3a41183f08c85b048b94b1d22f9",
-        "4381321eb40be403ba5f6d731a83df5e8dd129a0749ef3ef36e7a8fe8fa0d277",
-        30965,
+        "8d518cdb0894bb28e79724e42a2d23b4b5f2e1640295def3108de7a71bb78d53",
+        "e1f60d6c644b46d9eceba276fec58e5cfa86a343dcde9885809af5482ba47e90",
+        34468,
     ),
 )
 
