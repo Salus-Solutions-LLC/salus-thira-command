@@ -42,7 +42,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.81"
+    assert client.get("/api/system/mode").json()["version"] == "3.82"
     assert client.get("/api/salcapa/commercial/catalog", headers=member).status_code == 403
     catalog = client.get("/api/salcapa/commercial/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
@@ -57,7 +57,7 @@ def main() -> None:
     })
     assert forged.status_code == 422
     created = client.post("/api/salcapa/commercial/rate-cards", headers=director, json={
-        "name": "SYNTHETIC Salus planning defaults", "effective_from": "2026-09-08",
+        "name": "Fictional demonstration planning defaults", "effective_from": "2026-09-08",
         "rules": DEFAULT_RULES,
     })
     assert created.status_code == 200, created.text
@@ -89,8 +89,8 @@ def main() -> None:
         "investigation_tier": "Tier 1",
         "complexity": "Standard",
         "pricing_method": "Suggested Fixed Fee",
-        "customer_summary": "SYNTHETIC bounded Tier 1 personnel investigation.",
-        "internal_basis": "SYNTHETIC planning basis; actual labor and provider costs remain unrecorded.",
+        "customer_summary": "Fictional demonstration of a bounded Tier 1 personnel investigation.",
+        "internal_basis": "Demonstration planning basis; actual labor and provider costs remain unrecorded.",
     }
     assert client.post("/api/salcapa/commercial/estimates", headers=member, json=estimate_payload).status_code == 403
     estimate = client.post("/api/salcapa/commercial/estimates", headers=director, json=estimate_payload)
@@ -157,11 +157,165 @@ def main() -> None:
         json={"status": "Released", "reason": "Cross-tenant attempt."},
     ).status_code == 404
 
+    # Salus-only actual-cost records retain independent review and correction lineage.
+    time_payload = {
+        "estimate_id": estimate_id,
+        "person_name": "Demonstration Investigator",
+        "role_name": "Investigator",
+        "work_date": "2026-09-08",
+        "minutes": 90,
+        "work_category": "Research",
+        "commercial_treatment": "Billable",
+        "notes": "Fictional demonstration research work awaiting independent review.",
+    }
+    assert client.post("/api/salcapa/commercial/time-entries", headers=member, json=time_payload).status_code == 403
+    forged_time = dict(time_payload, status="Approved")
+    assert client.post("/api/salcapa/commercial/time-entries", headers=director, json=forged_time).status_code == 422
+    time_created = client.post("/api/salcapa/commercial/time-entries", headers=director, json=time_payload)
+    assert time_created.status_code == 200, time_created.text
+    time_entry = time_created.json()
+    time_id = time_entry["id"]
+    assert time_entry["calculated_cost_cents"] == 13500
+    assert time_entry["loaded_rate_cents_per_hour"] == 9000
+    assert time_entry["creates_charge"] is False and time_entry["creates_invoice"] is False
+    assert client.post(
+        f"/api/salcapa/commercial/time-entries/{time_id}/transition", headers=director,
+        json={"status": "Submitted", "reason": "Submit the work record for independent review."},
+    ).status_code == 200
+    assert client.post(
+        f"/api/salcapa/commercial/time-entries/{time_id}/transition", headers=director,
+        json={"status": "Approved", "reason": "Attempt self-approval."},
+    ).status_code == 409
+    assert client.post(
+        f"/api/salcapa/commercial/time-entries/{time_id}/transition", headers=administrator,
+        json={"status": "Approved", "reason": "Independent review confirms the work record."},
+    ).status_code == 200
+
+    actual_cost_payload = {
+        "estimate_id": estimate_id,
+        "cost_category": "Technology / Data",
+        "cost_basis": "Metered Actual",
+        "amount_cents": 925,
+        "provider_or_payee": "Demonstration research provider",
+        "source_reference": "usage-record-demo-001",
+        "usage_units": "Fictional metered usage",
+        "unit_rate_version": "Demonstration rate 1",
+        "incurred_at": "2026-09-08T14:30:00Z",
+        "commercial_treatment": "Included",
+        "notes": "Fictional metered cost used only for governed acceptance testing.",
+    }
+    cost_created = client.post("/api/salcapa/commercial/cost-entries", headers=director, json=actual_cost_payload)
+    assert cost_created.status_code == 200, cost_created.text
+    cost_id = cost_created.json()["id"]
+    assert cost_created.json()["recognized_actual_cost_cents"] == 925
+    assert client.post(
+        f"/api/salcapa/commercial/cost-entries/{cost_id}/transition", headers=director,
+        json={"status": "Submitted", "reason": "Submit metered cost for independent review."},
+    ).status_code == 200
+    assert client.post(
+        f"/api/salcapa/commercial/cost-entries/{cost_id}/transition", headers=administrator,
+        json={"status": "Approved", "reason": "Source record supports the metered cost."},
+    ).status_code == 200
+
+    allowance_payload = dict(
+        actual_cost_payload,
+        cost_basis="Planning Allowance",
+        amount_cents=500,
+        source_reference="allowance-demo-001",
+        usage_units="",
+        unit_rate_version="",
+        notes="Planning allowance retained separately from actual cost.",
+    )
+    allowance = client.post("/api/salcapa/commercial/cost-entries", headers=director, json=allowance_payload)
+    assert allowance.status_code == 200, allowance.text
+    allowance_id = allowance.json()["id"]
+    assert allowance.json()["recognized_actual_cost_cents"] == 0
+    assert client.post(
+        f"/api/salcapa/commercial/cost-entries/{allowance_id}/transition", headers=director,
+        json={"status": "Submitted", "reason": "Submit allowance classification for review."},
+    ).status_code == 200
+    assert client.post(
+        f"/api/salcapa/commercial/cost-entries/{allowance_id}/transition", headers=administrator,
+        json={"status": "Approved", "reason": "Confirm this remains a planning allowance, not actual cost."},
+    ).status_code == 200
+
+    unavailable_payload = dict(
+        actual_cost_payload,
+        cost_basis="Unavailable",
+        amount_cents=1,
+        source_reference="",
+        usage_units="",
+        unit_rate_version="",
+        notes="Actual provider cost is not available.",
+    )
+    assert client.post(
+        "/api/salcapa/commercial/cost-entries", headers=director, json=unavailable_payload
+    ).status_code == 422
+    unavailable_payload["amount_cents"] = 0
+    unavailable = client.post(
+        "/api/salcapa/commercial/cost-entries", headers=director, json=unavailable_payload
+    )
+    assert unavailable.status_code == 200, unavailable.text
+    unavailable_id = unavailable.json()["id"]
+    for status, headers, reason in (
+        ("Submitted", director, "Submit unavailable-cost classification for review."),
+        ("Approved", administrator, "Confirm that no actual amount is available or inferred."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/cost-entries/{unavailable_id}/transition", headers=headers,
+            json={"status": status, "reason": reason},
+        ).status_code == 200
+
+    assert client.get(
+        f"/api/salcapa/commercial/estimates/{estimate_id}/actuals", headers=member
+    ).status_code == 403
+    assert client.get(
+        f"/api/salcapa/commercial/estimates/{estimate_id}/actuals", headers=other
+    ).status_code == 404
+    actuals = client.get(
+        f"/api/salcapa/commercial/estimates/{estimate_id}/actuals", headers=administrator
+    )
+    assert actuals.status_code == 200, actuals.text
+    summary = actuals.json()
+    assert summary["actual_cost_status"] == "Partial Actuals"
+    assert summary["approved_time_cost_cents"] == 13500
+    assert summary["approved_direct_actual_cost_cents"] == 925
+    assert summary["recognized_actual_cost_to_date_cents"] == 14425
+    assert summary["approved_estimated_or_allowance_cost_cents"] == 500
+    assert summary["approved_unavailable_cost_record_count"] == 1
+    assert summary["variance_to_estimated_internal_cost_cents"] == 14425 - 18400
+    assert summary["creates_charge"] is False and summary["creates_invoice"] is False
+
+    correction_payload = dict(time_payload, supersedes_entry_id=time_id, minutes=120,
+                              notes="Corrected fictional work duration with retained lineage.")
+    correction = client.post("/api/salcapa/commercial/time-entries", headers=director, json=correction_payload)
+    assert correction.status_code == 200, correction.text
+    correction_id = correction.json()["id"]
+    assert client.post(
+        f"/api/salcapa/commercial/time-entries/{correction_id}/transition", headers=director,
+        json={"status": "Submitted", "reason": "Submit correction for independent review."},
+    ).status_code == 200
+    assert client.post(
+        f"/api/salcapa/commercial/time-entries/{correction_id}/transition", headers=administrator,
+        json={"status": "Approved", "reason": "Correction evidence supports 120 minutes."},
+    ).status_code == 200
+    duplicate_correction = client.post(
+        "/api/salcapa/commercial/time-entries", headers=director, json=correction_payload
+    )
+    assert duplicate_correction.status_code == 409
+    corrected_summary = client.get(
+        f"/api/salcapa/commercial/estimates/{estimate_id}/actuals", headers=administrator
+    ).json()
+    assert corrected_summary["approved_time_cost_cents"] == 18000
+    assert corrected_summary["recognized_actual_cost_to_date_cents"] == 18925
+    active_time = {row["id"]: row["active_approved_record"] for row in corrected_summary["time_entries"]}
+    assert active_time[time_id] is False and active_time[correction_id] is True
+
     # A later card cannot rewrite the immutable estimate snapshot.
     changed_rules = copy.deepcopy(DEFAULT_RULES)
     changed_rules["standard_bill_rate_cents_per_hour"] = 30000
     successor = client.post("/api/salcapa/commercial/rate-cards", headers=director, json={
-        "name": "SYNTHETIC future planning defaults", "effective_from": "2027-01-01",
+        "name": "Fictional future planning defaults", "effective_from": "2027-01-01",
         "supersedes_id": card_id, "rules": changed_rules,
     })
     assert successor.status_code == 200, successor.text
@@ -174,11 +328,16 @@ def main() -> None:
     conn.close()
     assert len(records["salcapa_rate_cards"]) == 2
     assert len(records["salcapa_commercial_estimates"]) == 1
+    assert len(records["salcapa_time_entries"]) == 2
+    assert len(records["salcapa_cost_entries"]) == 3
     assert salcapa_runtime.core.validate_records(records, 1) == []
     tampered = copy.deepcopy(records)
     tampered["salcapa_commercial_estimates"][0]["recommended_customer_price_cents"] = 1
     # The summary column is governed too: this must fail because it disagrees with the signed snapshot.
     assert salcapa_runtime.core.validate_records(tampered, 1) != []
+    tampered_actual = copy.deepcopy(records)
+    tampered_actual["salcapa_cost_entries"][0]["recognized_actual_cost_cents"] = 1
+    assert salcapa_runtime.core.validate_records(tampered_actual, 1) != []
 
     # Direct persisted tampering is rejected before any lifecycle action.
     conn = salcapa_runtime.core.db()

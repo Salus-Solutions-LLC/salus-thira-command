@@ -33,7 +33,7 @@ def require(value: str, source: str) -> None:
 
 
 for value in (
-    'SALCAPA_RELEASE_VERSION = "3.81"',
+    'SALCAPA_RELEASE_VERSION = "3.82"',
     '/static/salops-plan-assembly.js',
     '/static/salops-plan-assembly.css',
     'data-view="salops_plan_assembly" data-salus-only="true"',
@@ -221,6 +221,6 @@ assert "privacy" in catalog["communications_doctrine"]["truthful_disclosure"]
 assert catalog["communications_doctrine"]["human_trust"]["preliminary_signal_is_person_judgment"] is False
 assert catalog["communications_doctrine"]["human_trust"]["workflow_progress_is_readiness"] is False
 assert catalog["communications_doctrine"]["human_trust"]["salus_replaces_command_authority"] is False
-assert client.get("/api/system/mode").json()["version"] == "3.81"
+assert client.get("/api/system/mode").json()["version"] == "3.82"
 
 print("SALOPS_PLAN_ASSEMBLY_UI_PASS")

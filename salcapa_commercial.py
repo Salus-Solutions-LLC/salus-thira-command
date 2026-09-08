@@ -1,20 +1,23 @@
-"""Governed SalCAPA commercial planning, rate-card, and estimate foundation.
+"""Governed SalCAPA commercial planning, estimates, and actual-cost records.
 
 Issue #154 increment.  Salus personnel configure and approve versioned planning
-assumptions.  Estimates snapshot every assumption and calculation.  Nothing in
-this module creates a charge, invoice, entitlement, scope authorization, or
-customer commitment.
+assumptions.  Estimates snapshot every assumption and calculation.  Salus time
+and direct-cost records retain source, approval, and correction lineage while
+keeping unavailable or estimated amounts distinct from recognized actual cost.
+Nothing in this module creates a charge, invoice, entitlement, scope
+authorization, or customer commitment.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import uuid
+from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Literal, Optional
 
 from fastapi import HTTPException, Request
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 PRODUCT_LINES = (
@@ -28,9 +31,36 @@ PRICING_METHODS = (
     "Bundled", "Pass-Through", "Cost Plus", "Milestone", "Custom",
 )
 TIERS = ("Tier 1", "Tier 2", "Tier 3", "Not Applicable")
-BACKUP_TABLES = ("salcapa_rate_cards", "salcapa_commercial_estimates")
-DELETE_ORDER = ("salcapa_commercial_estimates", "salcapa_rate_cards")
-RESTORE_ORDER = ("salcapa_rate_cards", "salcapa_commercial_estimates")
+WORK_CATEGORIES = (
+    "Research", "Interview", "Field Work", "Review", "Analysis", "Reporting",
+    "Project Management", "Travel", "Administration", "Other",
+)
+COMMERCIAL_TREATMENTS = ("Billable", "Non-Billable", "Write-Off")
+COST_CATEGORIES = (
+    "Technology / Data", "Global Partner", "Travel", "Records / Database",
+    "Field Expense", "Subcontractor", "Other Direct Cost",
+)
+COST_BASES = (
+    "Metered Actual", "Supplier Invoice", "Receipt",
+    "Authorized Estimate", "Planning Allowance", "Unavailable",
+)
+PARTNER_TREATMENTS = (
+    "Included", "Pass-Through", "Cost Plus", "Absorbed",
+    "Separately Quoted", "Not Yet Decided",
+)
+ACTUAL_COST_BASES = {"Metered Actual", "Supplier Invoice", "Receipt"}
+BACKUP_TABLES = (
+    "salcapa_rate_cards", "salcapa_commercial_estimates",
+    "salcapa_time_entries", "salcapa_cost_entries",
+)
+DELETE_ORDER = (
+    "salcapa_time_entries", "salcapa_cost_entries",
+    "salcapa_commercial_estimates", "salcapa_rate_cards",
+)
+RESTORE_ORDER = (
+    "salcapa_rate_cards", "salcapa_commercial_estimates",
+    "salcapa_time_entries", "salcapa_cost_entries",
+)
 
 
 DEFAULT_RULES: dict[str, Any] = {
@@ -136,6 +166,78 @@ CREATE TABLE IF NOT EXISTS salcapa_commercial_estimates (
 );
 CREATE INDEX IF NOT EXISTS idx_salcapa_commercial_estimates_scope
   ON salcapa_commercial_estimates(tenant_id,status,product_line,domain_key,version_no);
+
+CREATE TABLE IF NOT EXISTS salcapa_time_entries (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  version_no INTEGER NOT NULL,
+  estimate_id TEXT NOT NULL,
+  supersedes_entry_id TEXT,
+  engagement_id INTEGER,
+  assessment_id INTEGER,
+  person_name TEXT NOT NULL,
+  role_name TEXT NOT NULL,
+  work_date TEXT NOT NULL,
+  minutes INTEGER NOT NULL,
+  work_category TEXT NOT NULL,
+  commercial_treatment TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  loaded_rate_cents_per_hour INTEGER NOT NULL,
+  calculated_cost_cents INTEGER NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Draft',
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  submitted_by TEXT NOT NULL DEFAULT '',
+  submitted_at TEXT NOT NULL DEFAULT '',
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT '',
+  decision_reason TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (estimate_id) REFERENCES salcapa_commercial_estimates(id),
+  UNIQUE(tenant_id, version_no)
+);
+CREATE INDEX IF NOT EXISTS idx_salcapa_time_entries_scope
+  ON salcapa_time_entries(tenant_id,estimate_id,status,work_date,version_no);
+
+CREATE TABLE IF NOT EXISTS salcapa_cost_entries (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  version_no INTEGER NOT NULL,
+  estimate_id TEXT NOT NULL,
+  supersedes_entry_id TEXT,
+  engagement_id INTEGER,
+  assessment_id INTEGER,
+  cost_category TEXT NOT NULL,
+  cost_basis TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  recognized_actual_cost_cents INTEGER NOT NULL,
+  provider_or_payee TEXT NOT NULL,
+  source_reference TEXT NOT NULL,
+  usage_units TEXT NOT NULL,
+  unit_rate_version TEXT NOT NULL,
+  incurred_at TEXT NOT NULL,
+  commercial_treatment TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Draft',
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  submitted_by TEXT NOT NULL DEFAULT '',
+  submitted_at TEXT NOT NULL DEFAULT '',
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT '',
+  decision_reason TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (estimate_id) REFERENCES salcapa_commercial_estimates(id),
+  UNIQUE(tenant_id, version_no)
+);
+CREATE INDEX IF NOT EXISTS idx_salcapa_cost_entries_scope
+  ON salcapa_cost_entries(tenant_id,estimate_id,status,cost_category,version_no);
 """
 
 
@@ -207,6 +309,89 @@ class EstimateTransition(StrictModel):
     status: Literal["Submitted", "Approved", "Rejected", "Released"]
     reason: str = Field(min_length=3, max_length=4000)
     approved_customer_price_cents: Optional[int] = Field(default=None, ge=0, le=2_000_000_000)
+
+
+class TimeEntryCreate(StrictModel):
+    estimate_id: str = Field(min_length=3, max_length=80)
+    supersedes_entry_id: Optional[str] = Field(default=None, max_length=80)
+    person_name: str = Field(min_length=2, max_length=160)
+    role_name: str = Field(min_length=2, max_length=160)
+    work_date: str = Field(min_length=10, max_length=10)
+    minutes: int = Field(gt=0, le=1440)
+    work_category: Literal[
+        "Research", "Interview", "Field Work", "Review", "Analysis", "Reporting",
+        "Project Management", "Travel", "Administration", "Other",
+    ]
+    commercial_treatment: Literal["Billable", "Non-Billable", "Write-Off"]
+    notes: str = Field(min_length=3, max_length=4000)
+
+    @field_validator("work_date")
+    @classmethod
+    def valid_work_date(cls, value: str) -> str:
+        try:
+            date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("work_date must be a valid ISO date") from exc
+        return value
+
+
+class CostEntryCreate(StrictModel):
+    estimate_id: str = Field(min_length=3, max_length=80)
+    supersedes_entry_id: Optional[str] = Field(default=None, max_length=80)
+    cost_category: Literal[
+        "Technology / Data", "Global Partner", "Travel", "Records / Database",
+        "Field Expense", "Subcontractor", "Other Direct Cost",
+    ]
+    cost_basis: Literal[
+        "Metered Actual", "Supplier Invoice", "Receipt",
+        "Authorized Estimate", "Planning Allowance", "Unavailable",
+    ]
+    amount_cents: int = Field(default=0, ge=0, le=1_000_000_000)
+    provider_or_payee: str = Field(default="", max_length=240)
+    source_reference: str = Field(default="", max_length=500)
+    usage_units: str = Field(default="", max_length=500)
+    unit_rate_version: str = Field(default="", max_length=240)
+    incurred_at: str = Field(min_length=3, max_length=40)
+    commercial_treatment: Literal[
+        "Included", "Pass-Through", "Cost Plus", "Absorbed",
+        "Separately Quoted", "Not Yet Decided",
+    ] = "Not Yet Decided"
+    notes: str = Field(min_length=3, max_length=4000)
+
+    @field_validator("amount_cents")
+    @classmethod
+    def valid_amount(cls, value: int, info) -> int:
+        basis = info.data.get("cost_basis")
+        if basis == "Unavailable" and value != 0:
+            raise ValueError("Unavailable cost must not fabricate an amount")
+        if basis and basis != "Unavailable" and value <= 0:
+            raise ValueError("Recorded cost amount must be positive")
+        return value
+
+    @field_validator("incurred_at")
+    @classmethod
+    def valid_incurred_at(cls, value: str) -> str:
+        try:
+            datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("incurred_at must be a valid ISO date or timestamp") from exc
+        return value
+
+    @model_validator(mode="after")
+    def actual_cost_requires_source(self):
+        if self.cost_basis in ACTUAL_COST_BASES:
+            if not self.provider_or_payee.strip() or not self.source_reference.strip():
+                raise ValueError("Recognized actual cost requires a provider/payee and source reference")
+            if self.cost_basis == "Metered Actual" and (
+                not self.usage_units.strip() or not self.unit_rate_version.strip()
+            ):
+                raise ValueError("Metered actual cost requires usage units and the applicable unit-rate version")
+        return self
+
+
+class ActualEntryTransition(StrictModel):
+    status: Literal["Submitted", "Approved", "Rejected"]
+    reason: str = Field(min_length=3, max_length=4000)
 
 
 def _validate_rules(rules: dict[str, Any]) -> dict[str, Any]:
@@ -385,6 +570,66 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             if row.get(column) != calculation.get(key):
                 raise HTTPException(409, "Commercial estimate summary failed integrity verification")
 
+    def time_content(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "tenant_id": int(row["tenant_id"]),
+            "version_no": int(row["version_no"]), "estimate_id": row["estimate_id"],
+            "supersedes_entry_id": row["supersedes_entry_id"],
+            "engagement_id": row["engagement_id"], "assessment_id": row["assessment_id"],
+            "person_name": row["person_name"], "role_name": row["role_name"],
+            "work_date": row["work_date"], "minutes": int(row["minutes"]),
+            "work_category": row["work_category"],
+            "commercial_treatment": row["commercial_treatment"], "notes": row["notes"],
+            "loaded_rate_cents_per_hour": int(row["loaded_rate_cents_per_hour"]),
+            "calculated_cost_cents": int(row["calculated_cost_cents"]),
+        }
+
+    def cost_content(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "tenant_id": int(row["tenant_id"]),
+            "version_no": int(row["version_no"]), "estimate_id": row["estimate_id"],
+            "supersedes_entry_id": row["supersedes_entry_id"],
+            "engagement_id": row["engagement_id"], "assessment_id": row["assessment_id"],
+            "cost_category": row["cost_category"], "cost_basis": row["cost_basis"],
+            "amount_cents": int(row["amount_cents"]),
+            "recognized_actual_cost_cents": int(row["recognized_actual_cost_cents"]),
+            "provider_or_payee": row["provider_or_payee"],
+            "source_reference": row["source_reference"], "usage_units": row["usage_units"],
+            "unit_rate_version": row["unit_rate_version"], "incurred_at": row["incurred_at"],
+            "commercial_treatment": row["commercial_treatment"], "notes": row["notes"],
+        }
+
+    def verify_actual_entry(row: dict[str, Any], kind: str) -> None:
+        content = time_content(row) if kind == "time" else cost_content(row)
+        if _digest(content) != row["content_sha256"]:
+            raise HTTPException(409, f"Commercial {kind} entry integrity verification failed")
+        if int(row["creates_charge"]) or int(row["creates_invoice"]):
+            raise HTTPException(409, f"Commercial {kind} entry contains a prohibited billing effect")
+        if kind == "cost":
+            expected = int(row["amount_cents"]) if row["cost_basis"] in ACTUAL_COST_BASES else 0
+            if int(row["recognized_actual_cost_cents"]) != expected:
+                raise HTTPException(409, "Cost basis and recognized actual cost do not agree")
+
+    def actual_view(row: dict[str, Any], kind: str) -> dict[str, Any]:
+        out = dict(row)
+        out["entry_type"] = kind
+        out["creates_charge"] = bool(out["creates_charge"])
+        out["creates_invoice"] = bool(out["creates_invoice"])
+        return out
+
+    def estimate_for_actuals(conn, request: Request, estimate_id: str) -> dict[str, Any]:
+        found = conn.execute(
+            "SELECT * FROM salcapa_commercial_estimates WHERE id=? AND tenant_id=?",
+            (estimate_id, tenant_id(request)),
+        ).fetchone()
+        if not found:
+            raise HTTPException(404, "Commercial estimate not found")
+        estimate = dict(found)
+        verify_estimate(estimate)
+        if estimate["status"] not in {"Approved", "Released"}:
+            raise HTTPException(409, "Actual cost may be recorded only against an Approved or Released estimate")
+        return estimate
+
     def member_view(row: dict[str, Any]) -> dict[str, Any]:
         return {
             "id": row["id"], "version_no": int(row["version_no"]),
@@ -412,6 +657,10 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         return {
             "product_lines": list(PRODUCT_LINES), "investigation_tiers": list(TIERS),
             "complexities": list(COMPLEXITIES), "pricing_methods": list(PRICING_METHODS),
+            "work_categories": list(WORK_CATEGORIES),
+            "time_commercial_treatments": list(COMMERCIAL_TREATMENTS),
+            "cost_categories": list(COST_CATEGORIES), "cost_bases": list(COST_BASES),
+            "cost_commercial_treatments": list(PARTNER_TREATMENTS),
             "initial_planning_defaults": json.loads(_canonical(DEFAULT_RULES)),
             "guidance": {
                 "purpose": "Prepare a transparent planning estimate for authorized Salus review.",
@@ -419,6 +668,8 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "consequence": "A recommendation is not a charge, invoice, entitlement, scope authorization, or customer commitment.",
                 "next_step": "Submit the immutable estimate for independent commercial review, then release approved customer-facing terms separately.",
                 "actual_cost_truth": "When actual provider or labor cost is unavailable, the planning allowance remains clearly identified rather than presented as metered actual cost.",
+                "actuals_authority": "Salus personnel record work and cost evidence; a different authorized person approves what becomes recognized actual cost.",
+                "actuals_consequence": "An approved actual-cost record updates internal cost visibility only. It does not charge a Protected Member or create an invoice.",
             },
         }
 
@@ -685,6 +936,240 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         verify_estimate(result)
         return full_view(result)
 
+    @app.post("/api/salcapa/commercial/time-entries")
+    def create_time_entry(payload: TimeEntryCreate, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            estimate = estimate_for_actuals(conn, request, payload.estimate_id)
+            if payload.supersedes_entry_id:
+                prior = conn.execute(
+                    "SELECT * FROM salcapa_time_entries WHERE id=? AND tenant_id=? AND estimate_id=? AND status='Approved'",
+                    (payload.supersedes_entry_id, tid, payload.estimate_id),
+                ).fetchone()
+                if not prior:
+                    raise HTTPException(422, "A corrected time entry must replace an Approved entry for this estimate")
+                verify_actual_entry(dict(prior), "time")
+                duplicate = conn.execute(
+                    "SELECT id FROM salcapa_time_entries WHERE supersedes_entry_id=? AND tenant_id=? AND status<>'Rejected'",
+                    (payload.supersedes_entry_id, tid),
+                ).fetchone()
+                if duplicate:
+                    raise HTTPException(409, "This time entry already has an active correction")
+            rate_snapshot = json.loads(estimate["rate_snapshot_json"])
+            loaded_rate = int(rate_snapshot["rules"]["loaded_labor_cost_cents_per_hour"])
+            calculated_cost = _money(Decimal(payload.minutes) * Decimal(loaded_rate) / Decimal(60))
+            version = int(conn.execute(
+                "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_time_entries WHERE tenant_id=?", (tid,)
+            ).fetchone()["v"])
+            entry_id = _key("time")
+            content = {
+                "id": entry_id, "tenant_id": tid, "version_no": version,
+                "estimate_id": payload.estimate_id, "supersedes_entry_id": payload.supersedes_entry_id,
+                "engagement_id": estimate["engagement_id"], "assessment_id": estimate["assessment_id"],
+                "person_name": payload.person_name.strip(), "role_name": payload.role_name.strip(),
+                "work_date": payload.work_date, "minutes": payload.minutes,
+                "work_category": payload.work_category,
+                "commercial_treatment": payload.commercial_treatment, "notes": payload.notes.strip(),
+                "loaded_rate_cents_per_hour": loaded_rate, "calculated_cost_cents": calculated_cost,
+            }
+            conn.execute(
+                """INSERT INTO salcapa_time_entries(
+                  id,tenant_id,version_no,estimate_id,supersedes_entry_id,engagement_id,assessment_id,
+                  person_name,role_name,work_date,minutes,work_category,commercial_treatment,notes,
+                  loaded_rate_cents_per_hour,calculated_cost_cents,content_sha256,status,
+                  creates_charge,creates_invoice,created_by,created_at,updated_at)
+                  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (entry_id, tid, version, payload.estimate_id, payload.supersedes_entry_id,
+                 estimate["engagement_id"], estimate["assessment_id"], content["person_name"],
+                 content["role_name"], payload.work_date, payload.minutes, payload.work_category,
+                 payload.commercial_treatment, content["notes"], loaded_rate, calculated_cost,
+                 _digest(content), "Draft", 0, 0, who, stamp, stamp),
+            )
+            audit(conn, "SALCAPA_TIME_ENTRY_CREATE", "salcapa_time_entry", estimate["assessment_id"],
+                  f"{entry_id} v{version}: Draft work record prepared for independent review; no price, charge, or invoice created.", who)
+            conn.commit()
+            row = dict(conn.execute("SELECT * FROM salcapa_time_entries WHERE id=?", (entry_id,)).fetchone())
+        finally:
+            conn.close()
+        verify_actual_entry(row, "time")
+        return actual_view(row, "time")
+
+    @app.post("/api/salcapa/commercial/cost-entries")
+    def create_cost_entry(payload: CostEntryCreate, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            estimate = estimate_for_actuals(conn, request, payload.estimate_id)
+            if payload.supersedes_entry_id:
+                prior = conn.execute(
+                    "SELECT * FROM salcapa_cost_entries WHERE id=? AND tenant_id=? AND estimate_id=? AND status='Approved'",
+                    (payload.supersedes_entry_id, tid, payload.estimate_id),
+                ).fetchone()
+                if not prior:
+                    raise HTTPException(422, "A corrected cost entry must replace an Approved entry for this estimate")
+                verify_actual_entry(dict(prior), "cost")
+                duplicate = conn.execute(
+                    "SELECT id FROM salcapa_cost_entries WHERE supersedes_entry_id=? AND tenant_id=? AND status<>'Rejected'",
+                    (payload.supersedes_entry_id, tid),
+                ).fetchone()
+                if duplicate:
+                    raise HTTPException(409, "This cost entry already has an active correction")
+            version = int(conn.execute(
+                "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_cost_entries WHERE tenant_id=?", (tid,)
+            ).fetchone()["v"])
+            entry_id = _key("cost")
+            recognized = payload.amount_cents if payload.cost_basis in ACTUAL_COST_BASES else 0
+            content = {
+                "id": entry_id, "tenant_id": tid, "version_no": version,
+                "estimate_id": payload.estimate_id, "supersedes_entry_id": payload.supersedes_entry_id,
+                "engagement_id": estimate["engagement_id"], "assessment_id": estimate["assessment_id"],
+                "cost_category": payload.cost_category, "cost_basis": payload.cost_basis,
+                "amount_cents": payload.amount_cents, "recognized_actual_cost_cents": recognized,
+                "provider_or_payee": payload.provider_or_payee.strip(),
+                "source_reference": payload.source_reference.strip(),
+                "usage_units": payload.usage_units.strip(),
+                "unit_rate_version": payload.unit_rate_version.strip(),
+                "incurred_at": payload.incurred_at.strip(),
+                "commercial_treatment": payload.commercial_treatment, "notes": payload.notes.strip(),
+            }
+            conn.execute(
+                """INSERT INTO salcapa_cost_entries(
+                  id,tenant_id,version_no,estimate_id,supersedes_entry_id,engagement_id,assessment_id,
+                  cost_category,cost_basis,amount_cents,recognized_actual_cost_cents,provider_or_payee,
+                  source_reference,usage_units,unit_rate_version,incurred_at,commercial_treatment,notes,
+                  content_sha256,status,creates_charge,creates_invoice,created_by,created_at,updated_at)
+                  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (entry_id, tid, version, payload.estimate_id, payload.supersedes_entry_id,
+                 estimate["engagement_id"], estimate["assessment_id"], payload.cost_category,
+                 payload.cost_basis, payload.amount_cents, recognized, content["provider_or_payee"],
+                 content["source_reference"], content["usage_units"], content["unit_rate_version"],
+                 content["incurred_at"], payload.commercial_treatment, content["notes"],
+                 _digest(content), "Draft", 0, 0, who, stamp, stamp),
+            )
+            audit(conn, "SALCAPA_COST_ENTRY_CREATE", "salcapa_cost_entry", estimate["assessment_id"],
+                  f"{entry_id} v{version}: Draft {payload.cost_basis} record prepared for independent review; no price, charge, or invoice created.", who)
+            conn.commit()
+            row = dict(conn.execute("SELECT * FROM salcapa_cost_entries WHERE id=?", (entry_id,)).fetchone())
+        finally:
+            conn.close()
+        verify_actual_entry(row, "cost")
+        return actual_view(row, "cost")
+
+    def transition_actual_entry(table: str, kind: str, entry_id: str,
+                                payload: ActualEntryTransition, request: Request) -> dict[str, Any]:
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            found = conn.execute(f"SELECT * FROM {table} WHERE id=? AND tenant_id=?", (entry_id, tid)).fetchone()
+            if not found:
+                raise HTTPException(404, f"Commercial {kind} entry not found")
+            row = dict(found)
+            verify_actual_entry(row, kind)
+            expected = {"Draft": {"Submitted"}, "Submitted": {"Approved", "Rejected"}}
+            if payload.status not in expected.get(row["status"], set()):
+                raise HTTPException(409, f"Commercial {kind} entry cannot transition from {row['status']} to {payload.status}")
+            submitted_by, submitted_at = row["submitted_by"], row["submitted_at"]
+            approved_by, approved_at = row["approved_by"], row["approved_at"]
+            decision_reason = row["decision_reason"]
+            if payload.status == "Submitted":
+                submitted_by, submitted_at = who, stamp
+            else:
+                commercial_authority(request)
+                if row["created_by"] == who:
+                    raise HTTPException(409, f"Commercial {kind} entry decision requires an actor other than the creator")
+                if payload.status == "Approved":
+                    approved_by, approved_at = who, stamp
+                decision_reason = payload.reason
+            conn.execute(
+                f"UPDATE {table} SET status=?,submitted_by=?,submitted_at=?,approved_by=?,approved_at=?,decision_reason=?,updated_at=? WHERE id=? AND tenant_id=?",
+                (payload.status, submitted_by, submitted_at, approved_by, approved_at,
+                 decision_reason, stamp, entry_id, tid),
+            )
+            audit(conn, f"SALCAPA_{kind.upper()}_ENTRY_TRANSITION", f"salcapa_{kind}_entry", row["assessment_id"],
+                  f"{entry_id}: {row['status']} -> {payload.status}; internal cost visibility only; no price, charge, or invoice created; {payload.reason}"[:1000], who)
+            conn.commit()
+            result = dict(conn.execute(f"SELECT * FROM {table} WHERE id=?", (entry_id,)).fetchone())
+        finally:
+            conn.close()
+        verify_actual_entry(result, kind)
+        return actual_view(result, kind)
+
+    @app.post("/api/salcapa/commercial/time-entries/{entry_id}/transition")
+    def transition_time_entry(entry_id: str, payload: ActualEntryTransition, request: Request):
+        return transition_actual_entry("salcapa_time_entries", "time", entry_id, payload, request)
+
+    @app.post("/api/salcapa/commercial/cost-entries/{entry_id}/transition")
+    def transition_cost_entry(entry_id: str, payload: ActualEntryTransition, request: Request):
+        return transition_actual_entry("salcapa_cost_entries", "cost", entry_id, payload, request)
+
+    @app.get("/api/salcapa/commercial/estimates/{estimate_id}/actuals")
+    def estimate_actuals(estimate_id: str, request: Request):
+        salus_read(request)
+        tid = tenant_id(request)
+        conn = db()
+        try:
+            estimate = estimate_for_actuals(conn, request, estimate_id)
+            time_rows = [dict(r) for r in conn.execute(
+                "SELECT * FROM salcapa_time_entries WHERE tenant_id=? AND estimate_id=? ORDER BY version_no",
+                (tid, estimate_id),
+            )]
+            cost_rows = [dict(r) for r in conn.execute(
+                "SELECT * FROM salcapa_cost_entries WHERE tenant_id=? AND estimate_id=? ORDER BY version_no",
+                (tid, estimate_id),
+            )]
+        finally:
+            conn.close()
+        for row in time_rows:
+            verify_actual_entry(row, "time")
+        for row in cost_rows:
+            verify_actual_entry(row, "cost")
+        approved_time = [row for row in time_rows if row["status"] == "Approved"]
+        approved_cost = [row for row in cost_rows if row["status"] == "Approved"]
+        superseded_time = {row["supersedes_entry_id"] for row in approved_time if row["supersedes_entry_id"]}
+        superseded_cost = {row["supersedes_entry_id"] for row in approved_cost if row["supersedes_entry_id"]}
+        active_time = [row for row in approved_time if row["id"] not in superseded_time]
+        active_cost = [row for row in approved_cost if row["id"] not in superseded_cost]
+        time_cost = sum(int(row["calculated_cost_cents"]) for row in active_time)
+        recognized_direct = sum(int(row["recognized_actual_cost_cents"]) for row in active_cost)
+        provisional = sum(
+            int(row["amount_cents"]) for row in active_cost
+            if row["cost_basis"] in {"Authorized Estimate", "Planning Allowance"}
+        )
+        unavailable_count = sum(1 for row in active_cost if row["cost_basis"] == "Unavailable")
+        recognized_total = time_cost + recognized_direct
+        estimated_internal = int(estimate["estimated_internal_cost_cents"])
+        if not active_time and not active_cost:
+            actual_status = "Not Recorded"
+        elif provisional or unavailable_count:
+            actual_status = "Partial Actuals"
+        else:
+            actual_status = "Actuals Recorded to Date"
+        time_views = [actual_view(row, "time") for row in time_rows]
+        cost_views = [actual_view(row, "cost") for row in cost_rows]
+        for item in time_views:
+            item["active_approved_record"] = item["status"] == "Approved" and item["id"] not in superseded_time
+        for item in cost_views:
+            item["active_approved_record"] = item["status"] == "Approved" and item["id"] not in superseded_cost
+        return {
+            "estimate_id": estimate_id, "estimate_version_no": int(estimate["version_no"]),
+            "currency": estimate["currency"], "actual_cost_status": actual_status,
+            "estimated_internal_cost_cents": estimated_internal,
+            "approved_time_cost_cents": time_cost,
+            "approved_direct_actual_cost_cents": recognized_direct,
+            "recognized_actual_cost_to_date_cents": recognized_total,
+            "approved_estimated_or_allowance_cost_cents": provisional,
+            "approved_unavailable_cost_record_count": unavailable_count,
+            "variance_to_estimated_internal_cost_cents": recognized_total - estimated_internal,
+            "variance_interpretation": "To-date comparison only; it is not a final savings, overrun, margin, price, charge, or invoice.",
+            "completeness": "Salus review is required to determine whether all work and costs have been recorded.",
+            "creates_charge": False, "creates_invoice": False,
+            "time_entries": time_views, "cost_entries": cost_views,
+        }
+
     original_collect = core.get("collect_tenant_records")
     original_validate = core.get("validate_records")
     original_replace = core.get("replace_tenant_records")
@@ -701,6 +1186,8 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             errors: list[str] = []
             cards = {str(r.get("id")): r for r in records.get("salcapa_rate_cards", [])}
             estimates = {str(r.get("id")): r for r in records.get("salcapa_commercial_estimates", [])}
+            time_entries = {str(r.get("id")): r for r in records.get("salcapa_time_entries", [])}
+            cost_entries = {str(r.get("id")): r for r in records.get("salcapa_cost_entries", [])}
             for row in cards.values():
                 if int(row.get("tenant_id", -1)) != int(tid):
                     errors.append(f"rate card {row.get('id')} crosses the tenant boundary")
@@ -725,6 +1212,26 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                     verify_estimate(dict(row))
                 except (HTTPException, ValueError, TypeError):
                     errors.append(f"commercial estimate {row.get('id')} failed integrity verification")
+            for kind, entries in (("time", time_entries), ("cost", cost_entries)):
+                for row in entries.values():
+                    if int(row.get("tenant_id", -1)) != int(tid):
+                        errors.append(f"commercial {kind} entry {row.get('id')} crosses the tenant boundary")
+                        continue
+                    estimate = estimates.get(str(row.get("estimate_id")))
+                    if not estimate:
+                        errors.append(f"commercial {kind} entry {row.get('id')} has invalid estimate_id")
+                    elif (row.get("engagement_id") != estimate.get("engagement_id") or
+                          row.get("assessment_id") != estimate.get("assessment_id")):
+                        errors.append(f"commercial {kind} entry {row.get('id')} crosses its estimate scope")
+                    prior_id = row.get("supersedes_entry_id")
+                    if prior_id:
+                        prior = entries.get(str(prior_id))
+                        if not prior or prior.get("estimate_id") != row.get("estimate_id"):
+                            errors.append(f"commercial {kind} entry {row.get('id')} has invalid correction lineage")
+                    try:
+                        verify_actual_entry(dict(row), kind)
+                    except (HTTPException, ValueError, TypeError, KeyError):
+                        errors.append(f"commercial {kind} entry {row.get('id')} failed integrity verification")
             return errors
 
         def extended_validate(records: dict, tid: Optional[int] = None):
