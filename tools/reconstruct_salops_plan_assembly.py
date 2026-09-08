@@ -10,23 +10,23 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salops_plan_assembly.py.gz",
         ROOT / "salops_plan_assembly.py",
-        "1482e71dea260d867426f4dcdd7c5b39e15858b4b9ea0ac75a4a216212b43ebc",
-        "b4f79db95d94ae7d81b073226c48b365d80320c314d991e73ff72abaafe9f43d",
-        173460,
+        "dd5a6b922f2491c9d07bd0d9ef5662c0396eef999cf1d1e1ab5801ce4561959c",
+        "984e662b061ac844e22ad52ea04420a4f4b1db100260178de33f3ecf15ea168d",
+        176439,
     ),
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "1ce0b214fd1b3458f58fa79515ca0632020406a94608d73d807e6b4fd80c121a",
-        "bc8af24f944ca56f311835f3ec5cfddf26745e32f9f6cb3742e06533e2717bf9",
-        45822,
+        "46f49e95aad18d027de9b2cc5457fe42fda4fc011943c4eda16237b26ddf4543",
+        "fccee7aa26886e181dac2b6891871877b54804cd19a9a787951a2fe491d8c934",
+        47839,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.js.gz",
         ROOT / "static/salops-plan-assembly.js",
-        "74bc326dc66fecdecf5a76ad585a2c53fb17144b912e98f3727a7c80a0089824",
-        "9a3e1964abf7fd8ad84a18677db3eb2af61455eac994b28e73574aa989b10d89",
-        47740,
+        "9a42980a59601565c7d4cad65d663d94ff2b911a101ce2b88e27ece38a98c1f0",
+        "e23a2eff161be95f4984b7b904d6511afb5d6bf51ba8d722eb25fcebb18b4f6e",
+        48243,
     ),
     (
         ROOT / "source_archives/development/salops-plan-assembly.css.gz",
@@ -38,9 +38,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "04fcea16e9d3cdae2f6ce46304484eeac42b16a816dbab32429b514c48e4d109",
-        "504900bfec3bce2bcfc73d3671bc4294f807cb902488e3ecbbb1960c187d134d",
-        6366,
+        "f559b03c6b89e1fdeefc969f79e3cd95502394ced83e3af59f56e7e6e8083726",
+        "8041d0f188bca13c7bac3a41c73da8bd997197e378d988e6c601af814ab4457a",
+        6502,
     ),
 )
 

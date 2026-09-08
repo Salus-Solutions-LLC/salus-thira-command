@@ -48,7 +48,7 @@ RESEARCH_COST_CATEGORIES = (
     "Chat / AI", "Salus Human Labor", "External Data", "Approved Partner", "Other Direct",
 )
 RESEARCH_COST_MEASUREMENTS = ("Actual Metered", "Provider Estimate", "Planning Allowance Applied")
-PREPAREDNESS_HANDOFF_TYPES = ("Training", "Exercise", "Validation")
+PREPAREDNESS_HANDOFF_TYPES = ("Training", "Exercise", "Validation", "SalTHIRA Reassessment")
 PREPAREDNESS_HANDOFF_STATES = ("Pending Human Review", "Accepted", "Rejected", "Materialized")
 PLAN_SECTION_FIELDS = {
     "authorities": "authorities_references", "authorities_references": "authorities_references",
@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS salops_plan_assembly_runs (
   proposed_training_actions_json TEXT NOT NULL DEFAULT '[]',
   proposed_exercise_actions_json TEXT NOT NULL DEFAULT '[]',
   proposed_validation_actions_json TEXT NOT NULL DEFAULT '[]',
+  proposed_reassessment_actions_json TEXT NOT NULL DEFAULT '[]',
   completion_statement TEXT NOT NULL DEFAULT '',
   change_rationale TEXT NOT NULL DEFAULT '',
   sensitivity TEXT NOT NULL DEFAULT 'Standard',
@@ -527,7 +528,7 @@ JSON_COLUMNS = {
         "known_unknowns", "assumptions_to_validate", "contradictions",
         "missing_authorities", "unresolved_dependencies", "affected_sections",
         "proposed_training_actions", "proposed_exercise_actions",
-        "proposed_validation_actions",
+        "proposed_validation_actions", "proposed_reassessment_actions",
     ),
     "salops_plan_assembly_sources": ("source_derived_statements",),
     "salops_plan_assembly_questions": ("related_section_keys",),
@@ -733,6 +734,7 @@ class RunSubmit(StrictModel):
     proposed_training_actions: list[str] = Field(default_factory=list, max_length=300)
     proposed_exercise_actions: list[str] = Field(default_factory=list, max_length=300)
     proposed_validation_actions: list[str] = Field(default_factory=list, max_length=300)
+    proposed_reassessment_actions: list[str] = Field(default_factory=list, max_length=300)
     change_rationale: str = Field(default="", max_length=12000)
 
 
@@ -885,6 +887,16 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
 
     conn = db()
     conn.executescript(SCHEMA)
+    try:
+        conn.execute("SELECT proposed_reassessment_actions_json FROM salops_plan_assembly_runs LIMIT 0")
+    except Exception:
+        # PostgreSQL requires the failed statement transaction to be cleared before migration;
+        # SQLite accepts the same rollback and portable ADD COLUMN definition.
+        conn.rollback()
+        conn.execute(
+            "ALTER TABLE salops_plan_assembly_runs ADD COLUMN "
+            "proposed_reassessment_actions_json TEXT NOT NULL DEFAULT '[]'"
+        )
     legacy_materializations = list(conn.execute(
         """SELECT materialization.* FROM salops_plan_materializations materialization
            LEFT JOIN salops_plan_successor_governance governance
@@ -1124,6 +1136,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
             ("Training", _loads(run["proposed_training_actions_json"], [])),
             ("Exercise", _loads(run["proposed_exercise_actions_json"], [])),
             ("Validation", _loads(run["proposed_validation_actions_json"], [])),
+            ("SalTHIRA Reassessment", _loads(run["proposed_reassessment_actions_json"], [])),
         )
         stamp, who = now(), actor(request)
         for handoff_type, recommendations in recommendation_sets:
@@ -1830,6 +1843,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "proposed_training_actions_json": _json(data["proposed_training_actions"]),
                 "proposed_exercise_actions_json": _json(data["proposed_exercise_actions"]),
                 "proposed_validation_actions_json": _json(data["proposed_validation_actions"]),
+                "proposed_reassessment_actions_json": _json(data["proposed_reassessment_actions"]),
                 "completion_statement": data["completion_statement"],
                 "change_rationale": data["change_rationale"],
                 "status": "Submitted for Human Review", "content_sha256": _digest(bundle_for_hash),
@@ -2053,6 +2067,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "training_recommendations": _loads(run["proposed_training_actions_json"], []),
                 "exercise_recommendations": _loads(run["proposed_exercise_actions_json"], []),
                 "validation_recommendations": _loads(run["proposed_validation_actions_json"], []),
+                "reassessment_recommendations": _loads(run["proposed_reassessment_actions_json"], []),
                 "authority_effect": {"creates_plan_version": False, "creates_release": False,
                                      "creates_authority": False, "creates_charge": False},
             }
@@ -2509,7 +2524,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                      who, stamp, who, stamp),
                 )
                 target = dict(conn.execute("SELECT * FROM salops_preparedness_exercises WHERE id=?", (target_id,)).fetchone())
-            else:
+            elif handoff["handoff_type"] == "Validation":
                 target_id, target_type = _key("action"), "Corrective Action"
                 conn.execute(
                     """INSERT INTO salops_preparedness_corrective_actions(
@@ -2522,21 +2537,50 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                      proposal["recommendation"], 1, "Open", "Internal", 1, who, stamp, who, stamp),
                 )
                 target = dict(conn.execute("SELECT * FROM salops_preparedness_corrective_actions WHERE id=?", (target_id,)).fetchone())
+            elif handoff["handoff_type"] == "SalTHIRA Reassessment":
+                if not plan.get("assessment_id"):
+                    raise HTTPException(409, "SalTHIRA reassessment materialization requires an assessment-linked released plan")
+                target_type = "Reassessment Trigger"
+                description = (
+                    f"Released preparedness plan {plan['title']} ({plan['id']}): "
+                    f"{proposal['recommendation']}"
+                )
+                cursor = conn.execute(
+                    """INSERT INTO reassessment_triggers(
+                    assessment_id,source,trigger_type,description,severity,affected_record_type,
+                    affected_record_id,status,assigned_to,due_date,resolution,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (int(plan["assessment_id"]), "SalOPS Preparedness",
+                     "Preparedness Plan Reassessment Recommendation", description, "Moderate",
+                     "assessment", int(plan["assessment_id"]), "Open", "", "", "", stamp, stamp),
+                )
+                target_id = int(cursor.lastrowid)
+                target = dict(conn.execute(
+                    "SELECT * FROM reassessment_triggers WHERE id=?", (target_id,)
+                ).fetchone())
+                audit(
+                    conn, "SALOPS_PREP_TO_SALTHIRA", "reassessment_trigger", target_id,
+                    f"Created from separately accepted immutable handoff {handoff_id}; assessment state unchanged.",
+                    who,
+                )
+            else:
+                raise HTTPException(409, "Unsupported preparedness handoff type")
             conn.execute(
                 """UPDATE salops_plan_preparedness_handoffs SET status='Materialized',target_record_type=?,
                 target_record_id=?,materialized_by=?,materialized_at=?,materialization_reason=?
                 WHERE id=? AND tenant_id=?""",
                 (target_type, target_id, who, stamp, payload.reason, handoff_id, tenant_id(request)),
             )
-            conn.execute(
-                """INSERT INTO salops_preparedness_events(
-                id,tenant_id,entity_type,entity_id,event_no,record_version,event_type,reason,
-                snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (_key("pevt"), tenant_id(request), target_type, target_id, 1, 1,
-                 "Materialize Released-Plan Handoff",
-                 f"Created from separately accepted immutable handoff {handoff_id}. No release, disclosure, execution authority, or charge was created.",
-                 _json(target), who, role(request), stamp),
-            )
+            if target_type != "Reassessment Trigger":
+                conn.execute(
+                    """INSERT INTO salops_preparedness_events(
+                    id,tenant_id,entity_type,entity_id,event_no,record_version,event_type,reason,
+                    snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (_key("pevt"), tenant_id(request), target_type, target_id, 1, 1,
+                     "Materialize Released-Plan Handoff",
+                     f"Created from separately accepted immutable handoff {handoff_id}. No release, disclosure, execution authority, or charge was created.",
+                     _json(target), who, role(request), stamp),
+                )
             updated = handoff_row(conn, handoff_id, request)
             handoff_event(
                 conn, updated, "Governed Activity Materialized",
@@ -2744,6 +2788,7 @@ def register_salops_plan_assembly(app, core: dict[str, Any]) -> None:
                 "Training": {str(row.get("id")) for row in records.get("salops_preparedness_training", []) if row.get("id")},
                 "Exercise": {str(row.get("id")) for row in records.get("salops_preparedness_exercises", []) if row.get("id")},
                 "Corrective Action": {str(row.get("id")) for row in records.get("salops_preparedness_corrective_actions", []) if row.get("id")},
+                "Reassessment Trigger": {str(row.get("id")) for row in records.get("reassessment_triggers", []) if row.get("id")},
             }
             envelope_ids = ids["salops_plan_research_cost_envelopes"]
             envelope_records = {str(row.get("id")): row for row in records.get("salops_plan_research_cost_envelopes", []) if row.get("id")}
