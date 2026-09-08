@@ -17,8 +17,8 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_smoke.py",
-        "b16f7a465ac533aaa884adc59181b739ac35c53dd0fd2240a00a0c3af8921440",
-        "5c5255ec96d7fc32bb025154c544dd64c18f94591f24f695e9f759aea0e1e578",
+        "9416728afdce3bda2fb261e222ae0e9bf775559dbbfb415b9d936d977394f9c2",
+        "a28357acdf404adaefb2e021532d2f45f99fdf3177e7016ca892551db6501025",
         69961,
     ),
     (
@@ -38,8 +38,8 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salops_plan_assembly_ui_smoke.py.gz",
         ROOT / "tools/ci_salops_plan_assembly_ui_smoke.py",
-        "be38ebfb141a8a68cc9bafe2fa3bf211f9cc0dace1e779bf3bddb7834d916fa3",
-        "43ffa4206d2ce8415abbc67b0b7dbe3356b7beb9f28a8774f85c676c2581944f",
+        "4f2716e5f3ab002761b6a36419913f65462b5e6f7c4fb694acaf8c600d0316a0",
+        "1189e23d133406419a636dbd5f81a6bebd32e4050356bc7c5ce7e42cc759685e",
         9889,
     ),
 )

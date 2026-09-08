@@ -30,6 +30,27 @@ PRICING_METHODS = (
     "Suggested Fixed Fee", "Hourly / Time and Materials", "Membership Included",
     "Bundled", "Pass-Through", "Cost Plus", "Milestone", "Custom",
 )
+MONITORING_SERVICES = (
+    "Not Applicable", "Per Cycle", "Monthly", "Quarterly", "Annual",
+    "Retainer / Included", "Custom",
+)
+RATE_OVERRIDE_LEVELS = (
+    "Product Line", "Investigative Domain", "Tier", "Monitoring Service",
+    "Protected Member", "Engagement",
+)
+RATE_OVERRIDE_SELECTORS = {
+    "Product Line": "product_line",
+    "Investigative Domain": "domain_key",
+    "Tier": "investigation_tier",
+    "Monitoring Service": "monitoring_service",
+    "Protected Member": "protected_member_id",
+    "Engagement": "engagement_id",
+}
+RATE_OVERRIDE_VALUE_FIELDS = {
+    "loaded_labor_cost_cents_per_hour", "standard_bill_rate_cents_per_hour",
+    "senior_bill_rate_cents_per_hour", "fixed_fee_contingency_basis_points",
+    "rounding_increment_cents", "technology_planning_allowance_cents", "human_hours",
+}
 TIERS = ("Tier 1", "Tier 2", "Tier 3", "Not Applicable")
 WORK_CATEGORIES = (
     "Research", "Interview", "Field Work", "Review", "Analysis", "Reporting",
@@ -94,6 +115,7 @@ DEFAULT_RULES: dict[str, Any] = {
         "adversarial-criminal-threat-actor": {"Tier 1": "2", "Tier 2": "7", "Tier 3": "18"},
         "emergency-capabilities-readiness": {"Tier 1": "2", "Tier 2": "6", "Tier 3": "14"},
     },
+    "rate_overrides": [],
 }
 
 
@@ -335,6 +357,10 @@ class EstimateCreate(StrictModel):
         "Suggested Fixed Fee", "Hourly / Time and Materials", "Membership Included",
         "Bundled", "Pass-Through", "Cost Plus", "Milestone", "Custom",
     ] = "Suggested Fixed Fee"
+    monitoring_service: Literal[
+        "Not Applicable", "Per Cycle", "Monthly", "Quarterly", "Annual",
+        "Retainer / Included", "Custom",
+    ] = "Not Applicable"
     monitoring_cycles: int = Field(default=0, ge=0, le=10000)
     senior_specialist: bool = False
     custom_human_hours: Optional[Decimal] = Field(default=None, ge=0, le=100000, decimal_places=3)
@@ -475,6 +501,7 @@ class ForecastTransition(StrictModel):
 def _validate_rules(rules: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(rules, dict) or rules.get("schema_version") != "1.0" or rules.get("currency") != "USD":
         raise HTTPException(422, "Rate-card rules must use the governed USD schema version 1.0")
+    rules = json.loads(_canonical(rules))
     integer_fields = (
         "loaded_labor_cost_cents_per_hour", "standard_bill_rate_cents_per_hour",
         "senior_bill_rate_cents_per_hour", "fixed_fee_contingency_basis_points",
@@ -511,16 +538,121 @@ def _validate_rules(rules: dict[str, Any]) -> dict[str, Any]:
         for tier, raw in profile.items():
             if tier not in TIERS[:3] or Decimal(str(raw)) < 0 or Decimal(str(raw)) > 100000:
                 raise HTTPException(422, f"Domain human-hour override for {domain} is invalid")
+    rate_overrides = rules.get("rate_overrides", [])
+    if not isinstance(rate_overrides, list) or len(rate_overrides) > 1000:
+        raise HTTPException(422, "Rate overrides must be a bounded list")
+    seen_scopes: set[str] = set()
+    cleaned_overrides: list[dict[str, Any]] = []
+    for override in rate_overrides:
+        if not isinstance(override, dict) or set(override) != {
+            "name", "scope_level", "selector", "values", "reason",
+        }:
+            raise HTTPException(422, "Each rate override must use the governed override schema")
+        name, level, selector, values, reason = (
+            override["name"], override["scope_level"], override["selector"],
+            override["values"], override["reason"],
+        )
+        if not isinstance(name, str) or not 3 <= len(name.strip()) <= 200:
+            raise HTTPException(422, "Rate override name is invalid")
+        if level not in RATE_OVERRIDE_LEVELS or not isinstance(selector, dict):
+            raise HTTPException(422, "Rate override scope is invalid")
+        selector_key = RATE_OVERRIDE_SELECTORS[level]
+        if set(selector) != {selector_key}:
+            raise HTTPException(422, f"{level} override must use only {selector_key}")
+        selector_value = selector[selector_key]
+        if selector_key in {"protected_member_id", "engagement_id"}:
+            if not isinstance(selector_value, int) or selector_value <= 0:
+                raise HTTPException(422, f"Rate override selector {selector_key} is invalid")
+        elif not isinstance(selector_value, str) or not selector_value.strip():
+            raise HTTPException(422, f"Rate override selector {selector_key} is invalid")
+        if selector_key == "product_line" and selector_value not in PRODUCT_LINES:
+            raise HTTPException(422, "Rate override product line is invalid")
+        if selector_key == "investigation_tier" and selector_value not in TIERS:
+            raise HTTPException(422, "Rate override tier is invalid")
+        if selector_key == "monitoring_service" and selector_value not in MONITORING_SERVICES:
+            raise HTTPException(422, "Rate override monitoring service is invalid")
+        if selector_key == "domain_key":
+            selector_value = selector_value.strip().lower()
+        elif isinstance(selector_value, str):
+            selector_value = selector_value.strip()
+        normalized_selector = {selector_key: selector_value}
+        scope_key = f"{level}:{_canonical(normalized_selector)}"
+        if scope_key in seen_scopes:
+            raise HTTPException(422, "Rate card contains competing overrides for the same scope")
+        seen_scopes.add(scope_key)
+        if not isinstance(values, dict) or not values or not set(values).issubset(RATE_OVERRIDE_VALUE_FIELDS):
+            raise HTTPException(422, "Rate override values contain an unsupported or empty field set")
+        cleaned_values: dict[str, Any] = {}
+        for field, value in values.items():
+            if field == "human_hours":
+                try:
+                    hours = Decimal(str(value))
+                except Exception as exc:
+                    raise HTTPException(422, "Rate override human hours are invalid") from exc
+                if hours < 0 or hours > 100000:
+                    raise HTTPException(422, "Rate override human hours are invalid")
+                cleaned_values[field] = format(hours, "f")
+            else:
+                if not isinstance(value, int) or value < 0 or value > 100_000_000:
+                    raise HTTPException(422, f"Rate override field {field} is invalid")
+                if field == "fixed_fee_contingency_basis_points" and value > 10000:
+                    raise HTTPException(422, "Rate override contingency cannot exceed 100 percent")
+                if field == "rounding_increment_cents" and value < 1:
+                    raise HTTPException(422, "Rate override rounding increment must be positive")
+                cleaned_values[field] = value
+        if not isinstance(reason, str) or not 3 <= len(reason.strip()) <= 2000:
+            raise HTTPException(422, "Rate override reason is invalid")
+        cleaned_overrides.append({
+            "name": name.strip(), "scope_level": level, "selector": normalized_selector,
+            "values": cleaned_values, "reason": reason.strip(),
+        })
+    rules["rate_overrides"] = cleaned_overrides
     return json.loads(_canonical(rules))
 
 
-def _calculate(payload: EstimateCreate, rules: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+def _resolve_rate_overrides(payload: EstimateCreate, rules: dict[str, Any], tid: int) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, str]]:
+    effective = {
+        "loaded_labor_cost_cents_per_hour": rules["loaded_labor_cost_cents_per_hour"],
+        "standard_bill_rate_cents_per_hour": rules["standard_bill_rate_cents_per_hour"],
+        "senior_bill_rate_cents_per_hour": rules["senior_bill_rate_cents_per_hour"],
+        "fixed_fee_contingency_basis_points": rules["fixed_fee_contingency_basis_points"],
+        "rounding_increment_cents": rules["rounding_increment_cents"],
+    }
+    actual_selectors = {
+        "product_line": payload.product_line, "domain_key": payload.domain_key,
+        "investigation_tier": payload.investigation_tier,
+        "monitoring_service": payload.monitoring_service,
+        "protected_member_id": tid, "engagement_id": payload.engagement_id,
+    }
+    applied: list[dict[str, Any]] = []
+    field_sources: dict[str, str] = {}
+    ranked = sorted(
+        rules.get("rate_overrides", []),
+        key=lambda item: RATE_OVERRIDE_LEVELS.index(item["scope_level"]),
+    )
+    for override in ranked:
+        selector_key = RATE_OVERRIDE_SELECTORS[override["scope_level"]]
+        selector_value = override["selector"][selector_key]
+        if actual_selectors.get(selector_key) != selector_value:
+            continue
+        effective.update(override["values"])
+        for field in override["values"]:
+            field_sources[field] = override["name"]
+        applied.append(json.loads(_canonical(override)))
+    return effective, applied, field_sources
+
+
+def _calculate(payload: EstimateCreate, rules: dict[str, Any], tid: int) -> tuple[dict[str, Any], dict[str, Any]]:
+    effective, applied_overrides, field_sources = _resolve_rate_overrides(payload, rules, tid)
     tier = payload.investigation_tier
     multiplier = Decimal(rules["complexity_basis_points"][payload.complexity]) / Decimal(10000)
     overrides = rules["domain_human_hour_overrides"].get(payload.domain_key, {})
     if payload.custom_human_hours is not None:
         base_hours = Decimal(payload.custom_human_hours)
         hour_basis = "Salus-authorized custom estimate"
+    elif "human_hours" in effective:
+        base_hours = Decimal(str(effective["human_hours"]))
+        hour_basis = f"Authorized rate-card override: {field_sources['human_hours']}"
     elif tier in overrides:
         base_hours = Decimal(str(overrides[tier]))
         hour_basis = "Authorized domain override"
@@ -532,13 +664,18 @@ def _calculate(payload: EstimateCreate, rules: dict[str, Any]) -> tuple[dict[str
         * multiplier * Decimal(payload.monitoring_cycles)
     )
     human_hours = (base_hours + monitoring_hours).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
-    technology = _money(
-        Decimal(rules["technology_planning_allowance_cents"][tier]) * multiplier
-        + Decimal(rules["technology_planning_allowance_cents"]["Monitoring Cycle"])
-        * multiplier * Decimal(payload.monitoring_cycles)
-    )
-    loaded_labor = _money(human_hours * Decimal(rules["loaded_labor_cost_cents_per_hour"]))
-    bill_rate = rules[
+    if "technology_planning_allowance_cents" in effective:
+        technology = int(effective["technology_planning_allowance_cents"])
+        technology_basis = f"Authorized rate-card override: {field_sources['technology_planning_allowance_cents']}"
+    else:
+        technology = _money(
+            Decimal(rules["technology_planning_allowance_cents"][tier]) * multiplier
+            + Decimal(rules["technology_planning_allowance_cents"]["Monitoring Cycle"])
+            * multiplier * Decimal(payload.monitoring_cycles)
+        )
+        technology_basis = "Tier, monitoring-cycle, and complexity planning rules"
+    loaded_labor = _money(human_hours * Decimal(effective["loaded_labor_cost_cents_per_hour"]))
+    bill_rate = effective[
         "senior_bill_rate_cents_per_hour" if payload.senior_specialist
         else "standard_bill_rate_cents_per_hour"
     ]
@@ -547,12 +684,12 @@ def _calculate(payload: EstimateCreate, rules: dict[str, Any]) -> tuple[dict[str
     base_price = customer_labor + technology + payload.partner_cost_cents + payload.other_direct_cost_cents
     contingency = 0
     if payload.pricing_method in {"Suggested Fixed Fee", "Bundled", "Milestone", "Custom"}:
-        contingency = _money(Decimal(base_price) * Decimal(rules["fixed_fee_contingency_basis_points"]) / Decimal(10000))
+        contingency = _money(Decimal(base_price) * Decimal(effective["fixed_fee_contingency_basis_points"]) / Decimal(10000))
     unrounded = max(0, base_price + contingency - payload.discount_cents)
     if payload.pricing_method == "Membership Included":
         recommended = 0
     else:
-        increment = int(rules["rounding_increment_cents"])
+        increment = int(effective["rounding_increment_cents"])
         recommended = _money(Decimal(unrounded) / Decimal(increment)) * increment
     margin = recommended - internal_cost
     margin_bps = None if recommended <= 0 else _money(Decimal(margin) * Decimal(10000) / Decimal(recommended))
@@ -560,18 +697,25 @@ def _calculate(payload: EstimateCreate, rules: dict[str, Any]) -> tuple[dict[str
     calculation = {
         "human_hours": format(human_hours, "f"), "human_hours_basis": hour_basis,
         "technology_planning_allowance_cents": technology,
+        "technology_planning_allowance_basis": technology_basis,
         "estimated_loaded_labor_cost_cents": loaded_labor,
         "customer_labor_equivalent_cents": customer_labor,
         "partner_cost_cents": payload.partner_cost_cents,
         "other_direct_cost_cents": payload.other_direct_cost_cents,
         "contingency_cents": contingency, "discount_cents": payload.discount_cents,
         "unrounded_recommendation_cents": unrounded,
-        "rounding_increment_cents": rules["rounding_increment_cents"],
+        "rounding_increment_cents": effective["rounding_increment_cents"],
         "recommended_customer_price_cents": recommended,
         "estimated_internal_cost_cents": internal_cost,
         "estimated_margin_cents": margin,
         "estimated_margin_basis_points": margin_bps,
         "actual_cost_status": "Not Recorded",
+        "rate_resolution": {
+            "precedence": list(RATE_OVERRIDE_LEVELS),
+            "applied_overrides": applied_overrides,
+            "effective_values": effective,
+            "human_authority_required": True,
+        },
         "creates_charge": False, "creates_invoice": False,
     }
     return inputs, calculation
@@ -847,6 +991,8 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         return {
             "product_lines": list(PRODUCT_LINES), "investigation_tiers": list(TIERS),
             "complexities": list(COMPLEXITIES), "pricing_methods": list(PRICING_METHODS),
+            "monitoring_services": list(MONITORING_SERVICES),
+            "rate_override_precedence": list(RATE_OVERRIDE_LEVELS),
             "work_categories": list(WORK_CATEGORIES),
             "time_commercial_treatments": list(COMMERCIAL_TREATMENTS),
             "cost_categories": list(COST_CATEGORIES), "cost_bases": list(COST_BASES),
@@ -886,6 +1032,21 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         rules = _validate_rules(payload.rules)
         tid, who, stamp = tenant_id(request), actor(request), now()
         conn = db()
+        for override in rules.get("rate_overrides", []):
+            selector = override["selector"]
+            if override["scope_level"] == "Protected Member" and int(
+                selector["protected_member_id"]
+            ) != tid:
+                conn.close()
+                raise HTTPException(422, "Protected Member override must remain within this tenant")
+            if override["scope_level"] == "Engagement":
+                engagement = conn.execute(
+                    "SELECT id FROM ops_engagements WHERE id=? AND tenant_id=?",
+                    (int(selector["engagement_id"]), tid),
+                ).fetchone()
+                if not engagement:
+                    conn.close()
+                    raise HTTPException(422, "Engagement override must reference this tenant's engagement")
         if payload.supersedes_id:
             prior = conn.execute(
                 "SELECT * FROM salcapa_rate_cards WHERE id=? AND tenant_id=? AND status='Approved'",
@@ -1024,7 +1185,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         card = dict(selected)
         verify_card(card)
         rules = json.loads(card["rules_json"])
-        inputs, calculation = _calculate(payload, rules)
+        inputs, calculation = _calculate(payload, rules, tid)
         version = int(conn.execute(
             "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_commercial_estimates WHERE tenant_id=?", (tid,)
         ).fetchone()["v"])

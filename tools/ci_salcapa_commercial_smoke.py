@@ -42,7 +42,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.83"
+    assert client.get("/api/system/mode").json()["version"] == "3.84"
     assert client.get("/api/salcapa/commercial/catalog", headers=member).status_code == 403
     catalog = client.get("/api/salcapa/commercial/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
@@ -51,6 +51,11 @@ def main() -> None:
     assert body["initial_planning_defaults"]["technology_planning_allowance_cents"]["Tier 1"] == 400
     assert body["guidance"]["consequence"].startswith("A recommendation is not a charge")
     assert body["guidance"]["actual_cost_truth"].startswith("When actual provider")
+    assert body["rate_override_precedence"] == [
+        "Product Line", "Investigative Domain", "Tier", "Monitoring Service",
+        "Protected Member", "Engagement",
+    ]
+    assert "Monthly" in body["monitoring_services"]
 
     forged = client.post("/api/salcapa/commercial/rate-cards", headers=director, json={
         "name": "Forged card", "status": "Approved", "rules": DEFAULT_RULES,
@@ -81,6 +86,36 @@ def main() -> None:
     assert approved.status_code == 200, approved.text
     assert approved.json()["status"] == "Approved"
     assert client.get("/api/salcapa/commercial/rate-cards", headers=member).status_code == 403
+
+    invalid_override_rules = copy.deepcopy(DEFAULT_RULES)
+    invalid_override_rules["rate_overrides"] = [{
+        "name": "Unsupported field", "scope_level": "Product Line",
+        "selector": {"product_line": "SalINTEL Investigation"},
+        "values": {"customer_price_cents": 1}, "reason": "Unsupported direct price control.",
+    }]
+    assert client.post("/api/salcapa/commercial/rate-cards", headers=director, json={
+        "name": "Invalid override field", "rules": invalid_override_rules,
+    }).status_code == 422
+    cross_member_rules = copy.deepcopy(DEFAULT_RULES)
+    cross_member_rules["rate_overrides"] = [{
+        "name": "Wrong member", "scope_level": "Protected Member",
+        "selector": {"protected_member_id": 2},
+        "values": {"rounding_increment_cents": 1000},
+        "reason": "Cross-member override must be rejected.",
+    }]
+    assert client.post("/api/salcapa/commercial/rate-cards", headers=director, json={
+        "name": "Cross-member override", "rules": cross_member_rules,
+    }).status_code == 422
+    invalid_engagement_rules = copy.deepcopy(DEFAULT_RULES)
+    invalid_engagement_rules["rate_overrides"] = [{
+        "name": "Unknown engagement", "scope_level": "Engagement",
+        "selector": {"engagement_id": 999999},
+        "values": {"standard_bill_rate_cents_per_hour": 27500},
+        "reason": "Unknown engagement must not receive an override.",
+    }]
+    assert client.post("/api/salcapa/commercial/rate-cards", headers=director, json={
+        "name": "Unknown engagement override", "rules": invalid_engagement_rules,
+    }).status_code == 422
 
     estimate_payload = {
         "rate_card_id": card_id,
@@ -445,6 +480,45 @@ def main() -> None:
     # A later card cannot rewrite the immutable estimate snapshot.
     changed_rules = copy.deepcopy(DEFAULT_RULES)
     changed_rules["standard_bill_rate_cents_per_hour"] = 30000
+    changed_rules["rate_overrides"] = [
+        {
+            "name": "Investigation product guidance", "scope_level": "Product Line",
+            "selector": {"product_line": "SalINTEL Investigation"},
+            "values": {
+                "standard_bill_rate_cents_per_hour": 26000,
+                "loaded_labor_cost_cents_per_hour": 9500,
+            },
+            "reason": "Fictional product-line planning guidance.",
+        },
+        {
+            "name": "Personnel domain guidance", "scope_level": "Investigative Domain",
+            "selector": {"domain_key": "Personnel-Assessment"},
+            "values": {
+                "standard_bill_rate_cents_per_hour": 27000,
+                "loaded_labor_cost_cents_per_hour": 10000,
+                "human_hours": "3",
+            },
+            "reason": "Fictional domain workload and rate basis.",
+        },
+        {
+            "name": "Tier 1 contingency", "scope_level": "Tier",
+            "selector": {"investigation_tier": "Tier 1"},
+            "values": {"fixed_fee_contingency_basis_points": 1000},
+            "reason": "Fictional tier-specific contingency guidance.",
+        },
+        {
+            "name": "Monthly research allowance", "scope_level": "Monitoring Service",
+            "selector": {"monitoring_service": "Monthly"},
+            "values": {"technology_planning_allowance_cents": 1200},
+            "reason": "Fictional monthly service allowance.",
+        },
+        {
+            "name": "Protected Member rounding", "scope_level": "Protected Member",
+            "selector": {"protected_member_id": 1},
+            "values": {"rounding_increment_cents": 1000},
+            "reason": "Fictional member-specific commercial convention.",
+        },
+    ]
     successor = client.post("/api/salcapa/commercial/rate-cards", headers=director, json={
         "name": "Fictional future planning defaults", "effective_from": "2027-01-01",
         "supersedes_id": card_id, "rules": changed_rules,
@@ -453,12 +527,50 @@ def main() -> None:
     internal_rows = client.get("/api/salcapa/commercial/estimates", headers=administrator).json()
     assert internal_rows[0]["rate_snapshot"]["version_no"] == 1
     assert internal_rows[0]["calculation"]["recommended_customer_price_cents"] == 60000
+    successor_id = successor.json()["id"]
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the governed hierarchy for independent review."),
+        ("Approved", administrator, "Independent review confirms the bounded hierarchy."),
+    ):
+        response = client.post(
+            f"/api/salcapa/commercial/rate-cards/{successor_id}/transition", headers=headers,
+            json={"status": status, "reason": reason},
+        )
+        assert response.status_code == 200, response.text
+    hierarchy_payload = dict(
+        estimate_payload,
+        rate_card_id=successor_id,
+        monitoring_service="Monthly",
+        customer_summary="Fictional demonstration of governed pricing precedence.",
+        internal_basis="Each matching scope is applied in the approved most-specific order.",
+    )
+    hierarchy_estimate = client.post(
+        "/api/salcapa/commercial/estimates", headers=director, json=hierarchy_payload
+    )
+    assert hierarchy_estimate.status_code == 200, hierarchy_estimate.text
+    hierarchy_calc = hierarchy_estimate.json()["calculation"]
+    assert hierarchy_calc["human_hours"] == "3.000"
+    assert hierarchy_calc["estimated_loaded_labor_cost_cents"] == 30000
+    assert hierarchy_calc["customer_labor_equivalent_cents"] == 81000
+    assert hierarchy_calc["technology_planning_allowance_cents"] == 1200
+    assert hierarchy_calc["contingency_cents"] == 8220
+    assert hierarchy_calc["rounding_increment_cents"] == 1000
+    assert hierarchy_calc["recommended_customer_price_cents"] == 90000
+    assert hierarchy_calc["estimated_internal_cost_cents"] == 31200
+    assert hierarchy_calc["estimated_margin_cents"] == 58800
+    resolution = hierarchy_calc["rate_resolution"]
+    assert resolution["effective_values"]["standard_bill_rate_cents_per_hour"] == 27000
+    assert resolution["effective_values"]["loaded_labor_cost_cents_per_hour"] == 10000
+    assert [item["scope_level"] for item in resolution["applied_overrides"]] == [
+        "Product Line", "Investigative Domain", "Tier", "Monitoring Service", "Protected Member",
+    ]
+    assert resolution["human_authority_required"] is True
 
     conn = salcapa_runtime.core.db()
     records = salcapa_runtime.core.collect_tenant_records(conn, 1)
     conn.close()
     assert len(records["salcapa_rate_cards"]) == 2
-    assert len(records["salcapa_commercial_estimates"]) == 1
+    assert len(records["salcapa_commercial_estimates"]) == 2
     assert len(records["salcapa_time_entries"]) == 2
     assert len(records["salcapa_cost_entries"]) == 4
     assert len(records["salcapa_commercial_forecasts"]) == 3
