@@ -1,4 +1,3 @@
-SalCAPA build continuity acceptance checks passed.
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
