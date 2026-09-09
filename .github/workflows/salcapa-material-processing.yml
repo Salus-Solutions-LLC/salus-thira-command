@@ -55,7 +55,7 @@ jobs:
           --health-retries 5
     env:
       SALUS_DB_BACKEND: postgres
-      SALUS_DATABASE_URL: postgresql://salus:salus@127.0.0.1:5432/salcapa
+      SALUS_DATABASE_URL: postgresql://salus:salus@127.0.0.1:5432/salcapa # repo-hygiene: allow; disposable CI service credential
       SALUS_AUTH_MODE: prototype
       SALUS_SEED_DEMO: '1'
     steps:
