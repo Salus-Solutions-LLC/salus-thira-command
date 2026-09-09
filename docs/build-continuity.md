@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 09:59 CDT
+last_verified_at: 09 September 2026 10:22 CDT
 current_frozen_release: v3.97
 current_frozen_commit: 93a59ddb3e850a93c22ee3faf78d16cc5a01f57d
 active_development_branch: development/salcapa-platform
@@ -9,8 +9,8 @@ active_roadmap_issue: 154
 active_increment: commercial_management_reporting_completion
 last_completed_release: v3.97
 candidate_release: v3.98
-validation_pr: pending
-validation_gate_state: local_verified_github_pending
+validation_pr: 228
+validation_gate_state: github_validation_running
 genuine_blockers: none
 next_authorized_increment: commercial_issue_154_acceptance_review
 ---
@@ -37,7 +37,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active roadmap: [Issue #154](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/154), governed estimating, cost, pricing, and margin management. Its next incomplete authorized increment is completion of the remaining Salus-only commercial management-reporting requirements. [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128) controls the reusable information-intake architecture; [Issue #159](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/159) remains linked for Protected Membership economics.
 - Last completed increment: reusable, tenant-scoped SharePoint/OneDrive and other authorized-repository source identities; immutable exact-version and access-state provenance; byte/hash/access-time evidence only when bytes were accessed; independently approved commercial source links; retained historical basis; explicit newer-version and material-change review cues; tenant isolation; and backup/restore integrity. Registration or access never implies human review or approval, and no source event creates a charge, invoice, recognized revenue, scope/price or membership change, or external transmission.
 - Last controlled validation: [PR #227](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/227), closed without merge after all 15 workflow families passed on the exact frozen commit.
-- Current candidate: **v3.98**, with its controlled validation pull request pending creation. The candidate adds Salus-only recurring commercial position reporting, evidence-qualified comparative contribution views, current-source checks for approved forecasts, period controls, and export-compatible management output. It does not recognize revenue, margin, or profit or create a charge, invoice, scope authorization, or external transmission.
+- Current candidate: **v3.98** on [controlled validation PR #228](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/228), which will be closed without merge. The candidate adds Salus-only recurring commercial position reporting, evidence-qualified comparative contribution views, current-source checks for approved forecasts, period controls, and export-compatible management output. It does not recognize revenue, margin, or profit or create a charge, invoice, scope authorization, or external transmission.
 - Genuine blockers: none.
 - Active product increment: validate the remaining Salus-only management-reporting views for recurring value/cost and evidence-qualified highest/lowest planning contribution by domain, tier, and product line without presenting planning contribution as recognized revenue, margin, or profit.
 - Next authorized product increment: conduct the governed Issue #154 acceptance review after the management-reporting increment passes every required release gate.
