@@ -144,7 +144,7 @@ class ProcessingFailure(Exception):
         self.public_detail = public_detail
 
 
-def _decode_inert_text(data: bytes, original_name: str, content_type: str) -> tuple[str, str, bool]:
+def _decode_inert_text(data: bytes, original_name: str, content_type: str) -> tuple[str, str, bool, str, str]:
     extension = original_name.rsplit(".", 1)[-1].lower() if "." in original_name else ""
     normalized_type = content_type.split(";", 1)[0].strip().lower()
     if not (
@@ -198,7 +198,7 @@ def _decode_inert_text(data: bytes, original_name: str, content_type: str) -> tu
     truncated = len(text) > MAX_DERIVED_CHARACTERS
     if truncated:
         text = text[:MAX_DERIVED_CHARACTERS]
-    return text, method, truncated
+    return text, method, truncated, PROCESSOR, PROCESSOR_VERSION
 
 
 def register_salcapa_material_processing(fastapi_app, core: dict) -> None:
@@ -387,7 +387,9 @@ def register_salcapa_material_processing(fastapi_app, core: dict) -> None:
                 failure_status = 409
                 security_event(request, "MATERIAL_PROCESSING_HASH_MISMATCH", "Critical", f"material_id={material_id}")
                 raise ProcessingFailure("SOURCE_HASH_MISMATCH", "Source integrity verification failed. Processing stopped without creating derived content.")
-            text, method, truncated = _decode_inert_text(data, source["original_name"], source["content_type"])
+            text, method, truncated, processor_name, processor_version = _decode_inert_text(
+                data, source["original_name"], source["content_type"]
+            )
             digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
             completed = now()
             derivative_key = "MDR-" + uuid.uuid4().hex
@@ -396,22 +398,22 @@ def register_salcapa_material_processing(fastapi_app, core: dict) -> None:
                 "INSERT INTO material_derivatives(tenant_id,derivative_key,source_material_id,processing_job_id,derivative_type,content_text,content_sha256,source_sha256,processor,processor_version,extraction_method,confidence_status,uncertainty_note,truncated,review_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     tenant_id(request), derivative_key, material_id, int(job["id"]),
-                    "Extracted Text", text, digest, source["sha256"], PROCESSOR,
-                    PROCESSOR_VERSION, method, "Derived — Unverified",
+                    "Extracted Text", text, digest, source["sha256"], processor_name,
+                    processor_version, method, "Derived — Unverified",
                     "Text extraction does not establish source truth, relevance, or a qualified conclusion.",
                     1 if truncated else 0, "Awaiting Human Review", completed, completed,
                 ),
             )
             derivative = conn.execute("SELECT * FROM material_derivatives WHERE derivative_key=?", (derivative_key,)).fetchone()
             conn.execute(
-                "UPDATE material_processing_jobs SET status='Completed',completed_at=?,updated_at=? WHERE id=?",
-                (completed, completed, int(job["id"])),
+                "UPDATE material_processing_jobs SET status='Completed',processor=?,processor_version=?,completed_at=?,updated_at=? WHERE id=?",
+                (processor_name, processor_version, completed, completed, int(job["id"])),
             )
             current = conn.execute("SELECT * FROM materials WHERE id=?", (material_id,)).fetchone()
             conn.execute("UPDATE materials SET processing_status='Ready for Human Review',updated_at=? WHERE id=?", (completed, material_id))
             material_event(
                 conn, request, current, "DERIVED_PROCESSING_COMPLETED",
-                f"Separate unverified derivative {derivative_key} created by {PROCESSOR} {PROCESSOR_VERSION}.",
+                f"Separate unverified derivative {derivative_key} created by {processor_name} {processor_version}.",
                 "Processing", "Ready for Human Review",
             )
             conn.execute(

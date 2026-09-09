@@ -10,9 +10,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salcapa_material_processing.py.gz",
         ROOT / "salcapa_material_processing.py",
-        "f81e2079e09b2bf9d3197f8ad6ed1ba2b2161925754ccf233e724e092f6e8515",
-        "333a3870fedbbbdd527fe07ceb7b3d4de2dd27662e53f795019786633ea45f2f",
-        29150,
+        "3db71f989850c69a5a157474eee6562b2fdc9556228f41626ff9342253c8366f",
+        "257fe0196b7f4661b2e7df75829394cc278aeae1decd0f0ca677a2e900afa653",
+        29332,
     ),
     (
         ROOT / "source_archives/development/salcapa-material-review.js.gz",
