@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 11:57 CDT
-current_frozen_release: v3.99
-current_frozen_commit: e916a71e57d0ad77d40826cea27bc0916967db26
+last_verified_at: 09 September 2026 12:08 CDT
+current_frozen_release: v3.100
+current_frozen_commit: b7f54281d254511c5440897d74c427031d24cabe
 active_development_branch: development/salcapa-platform
-active_roadmap_issue: 133
-active_increment: governed_contextual_material_intake_validation
-last_completed_release: v3.99
-candidate_release: v3.100
-validation_pr: 230
-validation_gate_state: github_validation_running
+active_roadmap_issue: 131
+active_increment: derived_material_processing_acceptance_review
+last_completed_release: v3.100
+candidate_release: none
+validation_pr: none
+validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: contextual_intake_acceptance_or_repair
+next_authorized_increment: derived_processing_gap_closure
 ---
 
 # SalCAPA build continuity
@@ -32,15 +32,15 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
-- Current frozen release: **v3.99** at `e916a71e57d0ad77d40826cea27bc0916967db26`.
+- Current frozen release: **v3.100** at `b7f54281d254511c5440897d74c427031d24cabe`.
 - Active development line: `development/salcapa-platform`.
-- Active roadmap: [Issue #133](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/133), contextual Add Material actions under parent [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128). The candidate reuses the existing governed material store and records the authorized workspace as a server-validated proposal awaiting human review; it does not create an authoritative link automatically. [Issues #154](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/154) and [#159](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/159) are completed and closed.
-- Last completed increment: explicit Protected Membership renewal treatment and decision authority, cancellation-notice period and terms, repricing terms, period-aware service-credit grants and expiration, bounded rollover, versioned conversion tables, server-verified conversions, and independently approved manual consumption corrections. Released member views explain the applicable lifecycle and capacity without exposing Salus-only economics. Nothing renews, reprices, cancels, charges, invoices, changes scope/tier, authorizes partner work, or establishes a customer commitment automatically.
-- Last controlled validation: [PR #229](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/229), closed without merge after all 15 workflow families passed on the exact frozen commit.
-- Current candidate: **v3.100** on `candidate/v3.100-contextual-intake`; controlled validation [PR #230](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/230) is open in draft and must be closed without merge.
+- Active roadmap: [Issue #131](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/131), safe derived extraction, transcription, search, and analyst triage under parent [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128). The next review must preserve immutable originals, exact source-to-derived lineage, tenant/sensitivity boundaries, explicit processing state and uncertainty, and human qualification before authoritative use. [Issue #133](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/133) is completed and closed.
+- Last completed increment: role-aware contextual Add Information actions reuse the existing generic-material store, prepopulate the current authorized assessment or SalINTEL investigation as a server-validated proposal, preserve an append-only audit event, and remain Awaiting Human Review until a qualified person performs governed linking. A context proposal cannot create a finding, decision, authority, disclosure, scope change, charge, or other authoritative state.
+- Last controlled validation: [PR #230](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/230), closed without merge after all 16 workflow families passed on the exact frozen commit.
+- Current candidate: none.
 - Genuine blockers: none.
-- Active product increment: validate role-aware contextual intake across current assessment and SalINTEL investigation workspaces, direct generic-material preservation, append-only proposed context, tenant and sensitivity boundaries, deterministic reconstruction, and explicit human review before governed linking.
-- Next authorized product increment: accept or safely repair v3.100 after every required gate completes; after acceptance, continue to safe extraction, transcription, search, and analyst triage under Issue #131.
+- Active product increment: review the existing processing states, generic materials, research-source use, and authorization controls against Issue #131 before adding any extraction, transcription, search, or triage implementation.
+- Next authorized product increment: close the first verified derived-processing gap without altering original bytes or silently treating extracted or inferred content as verified evidence, qualified intelligence, an assessment finding, a decision, or operational authority.
 
 ## Recovery procedure
 
