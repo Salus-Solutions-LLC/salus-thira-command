@@ -18,6 +18,7 @@ from salintel_research import register_salintel_research
 from salintel_handoffs import register_salintel_handoffs
 from facility_assessment import register_facility_assessment
 from salcapa_commercial import register_salcapa_commercial
+from salcapa_contextual_intake import register_salcapa_contextual_intake
 from mission_map import register_mission_map
 try:
     from salops_plan_assembly import register_salops_plan_assembly
@@ -45,9 +46,10 @@ if register_salcapa_assurance is not None:
 if register_salops_plan_assembly is not None:
     register_salops_plan_assembly(core.app, core.__dict__)
 register_salcapa_commercial(core.app, core.__dict__)
+register_salcapa_contextual_intake(core.app, core.__dict__)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.99"
+SALCAPA_RELEASE_VERSION = "3.100"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 
@@ -141,6 +143,9 @@ def _preparedness_index() -> str:
         ('<link rel="stylesheet" href="/static/salops-plan-assembly.css" />',
          '<link rel="stylesheet" href="/static/salops-plan-assembly.css" />\n<link rel="stylesheet" href="/static/mission-map.css" />',
          '/static/mission-map.css'),
+        ('<link rel="stylesheet" href="/static/mission-map.css" />',
+         '<link rel="stylesheet" href="/static/mission-map.css" />\n<link rel="stylesheet" href="/static/salcapa-contextual-intake.css" />',
+         '/static/salcapa-contextual-intake.css'),
         ('<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="reports">Reports</button>',
          '<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="mission_map">Mission Map</button><button data-view="prove">PROVE — Assurance & Results</button><button data-view="reports">Reports</button>',
          'data-view="mission_map"'),
@@ -180,6 +185,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salops-plan-assembly.js"></script>',
          '<script src="/static/salops-plan-assembly.js"></script>\n<script src="/static/mission-map.js"></script>',
          '/static/mission-map.js'),
+        ('<script src="/static/mission-map.js"></script>',
+         '<script src="/static/mission-map.js"></script>\n<script src="/static/salcapa-contextual-intake.js"></script>',
+         '/static/salcapa-contextual-intake.js'),
         ('<script src="/static/guidance.js"></script>',
          '<script src="/static/guidance.js"></script>\n<script src="/static/salcapa-contextual-guidance.js"></script>',
          '/static/salcapa-contextual-guidance.js'),

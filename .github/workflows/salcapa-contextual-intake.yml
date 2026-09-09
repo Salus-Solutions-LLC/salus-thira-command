@@ -1,0 +1,107 @@
+name: SalCAPA Contextual Intake
+
+on:
+  push:
+    branches: [development/**, release/**]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sqlite-and-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - name: Install application and security tools
+        run: python -m pip install -r requirements.txt -r requirements-ci.txt
+      - name: Reconstruct governed contextual-intake sources
+        run: python tools/reconstruct_salcapa_contextual_intake.py
+      - name: Compile and validate interface source
+        run: |
+          python -m py_compile salcapa_contextual_intake.py tools/ci_salcapa_contextual_intake_smoke.py
+          node --check static/salcapa-contextual-intake.js
+      - name: Fresh SQLite contextual-intake acceptance
+        env:
+          SALUS_DB_BACKEND: sqlite
+          SALUS_DB_PATH: /tmp/salcapa-contextual-intake.db
+          SALUS_LOCAL_STORAGE_DIR: /tmp/salcapa-contextual-intake-files
+          SALUS_BACKUP_DIR: /tmp/salcapa-contextual-intake-backups
+          SALUS_AUTH_MODE: prototype
+          SALUS_SEED_DEMO: '1'
+        run: python tools/ci_salcapa_contextual_intake_smoke.py
+      - name: Static security scan
+        run: bandit -q -r salcapa_contextual_intake.py tools/ci_salcapa_contextual_intake_smoke.py -ll -s B608
+      - name: Dependency audit
+        run: pip-audit -r requirements.txt --progress-spinner off
+
+  postgres16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: salcapa_contextual_intake_ci
+          POSTGRES_USER: salus
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U salus -d salcapa_contextual_intake_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install application
+        run: python -m pip install -r requirements.txt
+      - name: Reconstruct governed contextual-intake sources
+        run: python tools/reconstruct_salcapa_contextual_intake.py
+      - name: PostgreSQL 16 contextual-intake acceptance
+        env:
+          SALUS_DB_BACKEND: postgres
+          SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salcapa_contextual_intake_ci
+          SALUS_LOCAL_STORAGE_DIR: /tmp/salcapa-contextual-intake-pg-files
+          SALUS_BACKUP_DIR: /tmp/salcapa-contextual-intake-pg-backups
+          SALUS_AUTH_MODE: prototype
+          SALUS_SEED_DEMO: '1'
+        run: python tools/ci_salcapa_contextual_intake_smoke.py
+
+  production-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build production container
+        run: docker build --tag salcapa-contextual-intake:ci .
+      - name: Contextual-intake acceptance in production container
+        run: docker run --rm salcapa-contextual-intake:ci python tools/ci_salcapa_contextual_intake_smoke.py
+
