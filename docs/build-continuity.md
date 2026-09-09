@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 03:59 CDT
-current_frozen_release: v3.95
-current_frozen_commit: d315ee95057b337a5bffcf7547d9c0e15042e14d
+last_verified_at: 09 September 2026 04:18 CDT
+current_frozen_release: v3.96
+current_frozen_commit: 3daab4d5683101092298c2625b8cc0a4e0541950
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 154
-active_increment: commercial_unbilled_wip_treatment
-last_completed_release: v3.95
-candidate_release: v3.96
-validation_pr: 225
-validation_gate_state: github_validation_running
+active_increment: commercial_governed_integration_pathways
+last_completed_release: v3.96
+candidate_release: none
+validation_pr: none
+validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: commercial_governed_integration_pathways
+next_authorized_increment: commercial_management_reporting_completion
 ---
 
 # SalCAPA build continuity
@@ -32,15 +32,15 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
-- Current frozen release: **v3.95** at `d315ee95057b337a5bffcf7547d9c0e15042e14d`.
+- Current frozen release: **v3.96** at `3daab4d5683101092298c2625b8cc0a4e0541950`.
 - Active development line: `development/salcapa-platform`.
-- Active roadmap: [Issue #154](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/154), governed estimating, cost, pricing, and margin management. Its next incomplete authorized increment is unbilled/work-in-progress treatment, with governed integration pathways to follow. [Issue #159](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/159) remains linked for Protected Membership economics.
-- Last completed increment: governed, versioned Protected Membership plans and exact portfolio terms; independently reviewed consumption; member-safe released capacity views; and Salus-only recurring-value, cost-to-serve, forecast, and planning-contribution views. Membership remains distinct from investigation Tier 1/2/3, and no automatic charge, invoice, renewal, scope, tier, entitlement-overage, partner, or customer-commitment effect is permitted.
-- Last controlled validation: [PR #224](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/224), closed without merge after all 15 workflow families passed on the exact frozen commit. Closed PR #223 was superseded after a narrow Mission Map release-expectation correction and was also not merged.
-- Current candidate: **v3.96**, governed unbilled/work-in-progress treatment. Local deterministic reconstruction and acceptance are verified; [controlled validation PR #225](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/225) is running and will be closed without merge.
+- Active roadmap: [Issue #154](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/154), governed estimating, cost, pricing, and margin management. Its next incomplete authorized increment is governed commercial integration pathways, followed by completion of the remaining management-reporting requirements. [Issue #159](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/159) remains linked for Protected Membership economics.
+- Last completed increment: governed, versioned unbilled/work-in-progress review with immutable Approved/Released-estimate, time, cost, and linked membership-consumption snapshots; explicit commercial disposition and evidence state; independent approval; stale-source rejection; supersession; tenant isolation; and backup/restore integrity. Authorized for Billing permits only a separate human-controlled billing process and does not create a charge or invoice, recognize revenue, change scope or price, or transmit information.
+- Last controlled validation: [PR #225](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/225), closed without merge after all 15 workflow families passed on the exact frozen commit.
+- Current candidate: none.
 - Genuine blockers: none.
-- Active product increment: governed unbilled/work-in-progress treatment.
-- Next authorized product increment: governed commercial integration pathways after the unbilled/work-in-progress increment passes every required release gate.
+- Active product increment: governed commercial integration pathways.
+- Next authorized product increment: complete the remaining Salus-only commercial management-reporting requirements after the integration-pathway increment passes every required release gate.
 
 ## Recovery procedure
 
