@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 15:28 CDT
+last_verified_at: 09 September 2026 16:13 CDT
 current_frozen_release: v3.102
 current_frozen_commit: ab74673425de0b2c6a412382ad708220863879bb
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 131
-active_increment: pdf_extraction_design_review
+active_increment: bounded_pdf_extraction_implementation
 last_completed_release: v3.102
 candidate_release: none
 validation_pr: none
 validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: bounded_pdf_extraction_design_review
+next_authorized_increment: pdf_text_structure_candidate
 ---
 
 # SalCAPA build continuity
@@ -37,11 +37,11 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active roadmap: [Issue #131](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/131), safe derived extraction, transcription, search, and analyst triage under parent [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128). The next review must preserve immutable originals, exact source-to-derived lineage, tenant/sensitivity boundaries, explicit processing state and uncertainty, and human qualification before authoritative use. [Issue #133](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/133) is completed and closed.
 - Last completed increment: the second bounded Issue #131 slice adds local, non-executing text and limited-metadata extraction for `.docx`, `.xlsx`, and `.pptx` materials. It preserves immutable source hashes and exact processor lineage; enforces package-entry, path, encryption, active-content, expanded-size, part-size, and compression-ratio controls; and rejects macros, embedded objects, legacy binaries, malformed packages, and type mismatches. Formulas are never calculated, cached values and source-stored metadata are explicitly qualified, revision markup remains unresolved, and presentation reading order is identified as approximate. Derived records remain **Derived — Unverified** and **Awaiting Human Review**; review confirms representation only and cannot establish source truth, evidence, intelligence, findings, decisions, disclosure, cost, or operational authority.
 - Last controlled validation: [PR #232](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/232), closed without merge after all 17 controlled-pull-request workflow families and the separate candidate-push validation passed on the exact frozen commit.
-- Last completed design review: [Safe document extraction design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-safe-document-extraction.md), validated by CI, CodeQL, and contextual-intake checks at `244515af7a808d6ae43cf8a4f6fc9a755327f35e`. The approved first document slice is local, non-executing Office Open XML extraction for `.docx`, `.xlsx`, and `.pptx`; macro-enabled, encrypted, legacy binary, PDF, OCR, image, map, audio, video, embedded-object, external-link, and formula-execution paths remain deferred or rejected.
+- Last completed design review: [Safe PDF extraction design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-safe-pdf-extraction.md), validated by CI, CodeQL, and contextual-intake checks at `4feb3aa56def7e5699c684338334e44679a6187b`. The approved slice is local, request-driven embedded-text and bounded page-structure extraction in an isolated child process. Encrypted, repair-dependent, oversized, active-content, embedded-file, and external-action PDFs fail closed. OCR, rendering, images, maps, forms, signatures, attachments, audio, video, entity suggestions, and semantic layout reconstruction remain deferred.
 - Current candidate: none. Controlled [PR #232](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/232) is closed without merge.
 - Genuine blockers: none.
-- Active product increment: review a separately bounded PDF text and structure worker while preserving the v3.102 immutable-source, derived-record, uncertainty, tenant, sensitivity, review, search, and recovery controls.
-- Next authorized product increment: establish and validate the bounded PDF extraction design before implementation. OCR, photo/map, audio, video, entity-suggestion, duplicate-analysis, and transcription workers remain separately gated.
+- Active product increment: implement the approved bounded PDF embedded-text and page-structure worker while preserving the v3.102 immutable-source, derived-record, uncertainty, tenant, sensitivity, review, search, recovery, human-authority, and low-cost Azure controls.
+- Next authorized product increment: prepare the PDF text-and-structure implementation candidate with deterministic reconstruction and the complete release-validation matrix. OCR, photo/map, audio, video, entity-suggestion, duplicate-analysis, and transcription workers remain separately gated.
 
 ## Recovery procedure
 
