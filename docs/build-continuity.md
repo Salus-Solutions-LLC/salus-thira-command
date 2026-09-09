@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 13:25 CDT
-current_frozen_release: v3.100
-current_frozen_commit: b7f54281d254511c5440897d74c427031d24cabe
+last_verified_at: 09 September 2026 13:41 CDT
+current_frozen_release: v3.101
+current_frozen_commit: 8d8c4e029a6612050fa697a6e1ee251761b8f61b
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 131
-active_increment: safe_text_processing_candidate_validation
-last_completed_release: v3.100
-candidate_release: v3.101
-validation_pr: 231
-validation_gate_state: github_validation_running
+active_increment: inert_document_extraction_gap_review
+last_completed_release: v3.101
+candidate_release: none
+validation_pr: none
+validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: inert_document_extraction_gap_review
+next_authorized_increment: bounded_document_extraction_design_review
 ---
 
 # SalCAPA build continuity
@@ -32,15 +32,15 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
-- Current frozen release: **v3.100** at `b7f54281d254511c5440897d74c427031d24cabe`.
+- Current frozen release: **v3.101** at `8d8c4e029a6612050fa697a6e1ee251761b8f61b`.
 - Active development line: `development/salcapa-platform`.
 - Active roadmap: [Issue #131](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/131), safe derived extraction, transcription, search, and analyst triage under parent [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128). The next review must preserve immutable originals, exact source-to-derived lineage, tenant/sensitivity boundaries, explicit processing state and uncertainty, and human qualification before authoritative use. [Issue #133](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/133) is completed and closed.
-- Last completed increment: role-aware contextual Add Information actions reuse the existing generic-material store, prepopulate the current authorized assessment or SalINTEL investigation as a server-validated proposal, preserve an append-only audit event, and remain Awaiting Human Review until a qualified person performs governed linking. A context proposal cannot create a finding, decision, authority, disclosure, scope change, charge, or other authoritative state.
-- Last controlled validation: [PR #230](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/230), closed without merge after all 16 workflow families passed on the exact frozen commit.
-- Current candidate: **v3.101** in controlled [PR #231](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/231); GitHub validation is running and the pull request must be closed without merge.
+- Last completed increment: the first bounded Issue #131 slice provides non-executing text extraction for inert text, CSV, TSV, JSON, XML, log, and EML materials; exact source and derivative hashes; separate derived records; server-selected processor/version; failure-safe handling; tenant- and sensitivity-scoped search; independent human review; and portable backup/recovery coverage. Derived text remains **Derived — Unverified** and **Awaiting Human Review** until a different authorized person records review. Review confirms representation only and cannot establish source truth, evidence, intelligence, findings, decisions, disclosure, cost, or operational authority.
+- Last controlled validation: [PR #231](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/231), closed without merge after all 17 controlled-pull-request workflow families and the separate candidate-push validation passed on the exact frozen commit.
+- Current candidate: none.
 - Genuine blockers: none.
-- Active product increment: validate the first bounded Issue #131 slice: inert-text extraction with exact source hashes, separate derived records, server-selected processor/version, failure-safe source handling, tenant/sensitivity-scoped search, independent human review, and portable backup/recovery inclusion. Derived text remains **Derived — Unverified** and **Awaiting Human Review** until a different authorized person records review; review confirms representation only and cannot establish source truth, evidence, intelligence, findings, decisions, disclosure, cost, or operational authority.
-- Next authorized product increment: after v3.101 validation, review safe non-executing document extraction and metadata needs before adding broader document, photo/map, audio, video, entity-suggestion, duplicate-analysis, or transcription workers.
+- Active product increment: review safe non-executing document extraction and metadata needs while preserving the v3.101 source/derivative, uncertainty, access, review, and recovery controls.
+- Next authorized product increment: define the next bounded document-extraction slice before adding broader document, photo/map, audio, video, entity-suggestion, duplicate-analysis, or transcription workers.
 
 ## Recovery procedure
 
