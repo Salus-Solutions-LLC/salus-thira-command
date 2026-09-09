@@ -52,25 +52,29 @@ def main():
     }
 
     mode = client.get("/api/system/mode").json()
-    assert mode["version"] == "3.91", mode
+    assert mode["version"] == "3.92", mode
     adapter_fixture = Path(WORKSPACE.name) / "release-adapter-fixture.py"
     adapter_fixture.write_text(
         'xml = b\'<?xml version="1.0"?>\'\n'
-        'assert mode["version"] == "3.90"\n'
-        'marker = \'SALCAPA_RELEASE_VERSION = "3.90"\'\n',
+        'assert mode["version"] == "3.91"\n'
+        'marker = \'SALCAPA_RELEASE_VERSION = "3.91"\'\n',
         encoding="utf-8",
     )
-    adapted, changes = normalized_source(adapter_fixture, "3.91")
+    adapted, changes = normalized_source(adapter_fixture, "3.92")
     assert 'version="1.0"' in adapted
-    assert 'mode["version"] == "3.91"' in adapted
-    assert 'SALCAPA_RELEASE_VERSION = "3.91"' in adapted
-    assert [old for _, old, _ in changes] == ["3.90", "3.90"]
+    assert 'mode["version"] == "3.92"' in adapted
+    assert 'SALCAPA_RELEASE_VERSION = "3.92"' in adapted
+    # The archived-regression runner may already have normalized this embedded
+    # fixture before this smoke exercises the same narrow adapter.
+    assert [old for _, old, _ in changes] in ([], ["3.91", "3.91"])
     catalog = client.get("/api/salcapa/mission-map/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
     catalog = catalog.json()
     assert catalog["name"] == "Mission Map"
     assert catalog["principle"] == "People lead. Methods guide. Technology supports. Evidence proves."
     assert catalog["mission_structure"].startswith("Mission → Priorities → Objectives")
+    assert "arrow keys, Home, or End" in catalog["keyboard_guidance"]
+    assert "without relying on color" in catalog["accessibility_guidance"]
     labels = {route["label"] for route in catalog["routes"]}
     assert "SEE — SalINTEL™" in labels
     assert "DECIDE — SalTHIRA™ and authorized people" in labels
@@ -355,7 +359,7 @@ def main():
     assert member_sources.status_code == 200, member_sources.text
     member_overlays = [item for item in member_sources.json()["items"] if item.get("read_only")]
     member_report = member_sources.json()["report"]
-    assert member_report["release_version"] == "3.91"
+    assert member_report["release_version"] == "3.92"
     assert member_report["audience"] == "Protected Member authorized view"
     assert member_report["included_item_count"] == len(member_sources.json()["items"])
     assert member_report["prepared_at_display"].endswith(" UTC")
@@ -521,11 +525,20 @@ def main():
     assert "Prepare printable view" in js and "missionMapPrintableReport" in js
     assert "window.print()" in js and "afterprint" in js
     assert "Printing preserves this authorized view" in js
+    assert "missionMapMarkerKey" in js and "ArrowRight" in js and "Home" in js and "End" in js
+    assert "prefers-reduced-motion: reduce" in js and "behavior:missionMapReducedMotion()?'auto':'smooth'" in js
+    assert 'role="status"' in js and 'aria-live="polite"' in js and 'aria-controls="mission-map-detail"' in js
+    assert 'aria-labelledby="mission-map-heading"' in js and 'aria-describedby="mission-print-guidance"' in js
+    assert "missionMapAnnounce" in js and "missionMapRestoreFocus" in js
+    assert "missionMapOpenFallback" in js and "fallback.open=true" in js
     assert "Authoritative source" in js and "!item.read_only" in js
     assert "Waiting / input needed" in js and "not scores or judgments about people" not in js
     assert "SalCAPA makes" not in js and "SalTHIRA coordinates" not in js
     css = (ROOT / "static" / "mission-map.css").read_text(encoding="utf-8")
     assert "prefers-reduced-motion" in css
+    assert "forced-colors:active" in css and ".mission-skip-link:focus" in css
+    assert ".mission-marker:focus-visible" in css and "min-height:2.75rem" in css
+    assert "animation-duration:.01ms!important" in css and "scroll-behavior:auto!important" in css
     assert ".mission-filter-grid" in css and ".mission-portfolio-grid" in css
     assert "@media print" in css and ".mission-print-version" in css
     assert "word-break:normal" in css and "body.mission-map-printing" in css

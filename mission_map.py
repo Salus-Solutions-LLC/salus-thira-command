@@ -861,6 +861,8 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             "filter_guidance": "Filters narrow the records already authorized for your view. They do not change scope, priority, ownership, or workflow state.",
             "overlay_guidance": "Plans, training, exercises, and ongoing monitoring appear as read-only projections of their authoritative records. Update the source record to change state, scope, cadence, dates, ownership, review, or disclosure.",
             "report_guidance": "Prepare a printable summary of this authorized view. Printing does not approve, release, validate, assign, or change the underlying work.",
+            "keyboard_guidance": "Use Tab to reach a route, then use the arrow keys, Home, or End to move among its work markers. Select a marker to review its governed details.",
+            "accessibility_guidance": "Route names, station labels, marker shapes, text states, and the conventional list provide equivalent meaning without relying on color, pointer use, or animation.",
         }
 
     @app.get("/api/salcapa/mission-map")
