@@ -52,7 +52,7 @@ def main():
     }
 
     mode = client.get("/api/system/mode").json()
-    assert mode["version"] == "3.93", mode
+    assert mode["version"] == "3.94", mode
     adapter_fixture = Path(WORKSPACE.name) / "release-adapter-fixture.py"
     adapter_fixture.write_text(
         'xml = b\'<?xml version="1.0"?>\'\n'
@@ -60,10 +60,10 @@ def main():
         'marker = \'SALCAPA_RELEASE_VERSION = "3.92"\'\n',
         encoding="utf-8",
     )
-    adapted, changes = normalized_source(adapter_fixture, "3.93")
+    adapted, changes = normalized_source(adapter_fixture, "3.94")
     assert 'version="1.0"' in adapted
-    assert 'mode["version"] == "3.93"' in adapted
-    assert 'SALCAPA_RELEASE_VERSION = "3.93"' in adapted
+    assert 'mode["version"] == "3.94"' in adapted
+    assert 'SALCAPA_RELEASE_VERSION = "3.94"' in adapted
     # The archived-regression runner may already have normalized this embedded
     # fixture before this smoke exercises the same narrow adapter.
     assert [old for _, old, _ in changes] in ([], ["3.92", "3.92"])
@@ -76,6 +76,7 @@ def main():
     assert "arrow keys, Home, or End" in catalog["keyboard_guidance"]
     assert "without relying on color" in catalog["accessibility_guidance"]
     assert "separate fifth product" in catalog["prove_guidance"]
+    assert "do not assign a percentage" in catalog["objective_effectiveness_guidance"]
     labels = {route["label"] for route in catalog["routes"]}
     assert "SEE — SalINTEL™" in labels
     assert "DECIDE — SalTHIRA™ and authorized people" in labels
@@ -256,6 +257,17 @@ def main():
         {"id": mission_id, "node_type": "Mission", "title": "Maintain essential operations"},
         {"id": objective["id"], "node_type": "Objective", "title": "Demonstrate emergency power capability"},
     ]
+    member_objectives = member_map["objective_effectiveness"]
+    assert member_objectives["objective_count"] == 1
+    assert member_objectives["by_state"] == {"Partially Demonstrated": 1}
+    assert member_objectives["view_policy"]["percentage_or_score"] is False
+    assert member_objectives["view_policy"]["automatic_validation"] is False
+    assert "Only released records" in member_objectives["audience_note"]
+    member_objective = member_objectives["objectives"][0]
+    assert member_objective["objective_id"] == objective["id"]
+    assert member_objective["evidence_item_count"] == 2
+    assert member_objective["explicit_relationship_count"] == 1
+    assert "not a percentage, score" in member_objective["interpretation"]
 
     # Other tenant cannot enumerate or fetch tenant-one Mission Map history.
     other = client.get("/api/salcapa/mission-map", headers=other_tenant)
@@ -278,6 +290,10 @@ def main():
     assert all(item["age_days"] >= 0 for item in salus_map["items"])
     assert all(item["age_band"] in {"0–7 days", "8–30 days", "31+ days"} for item in salus_map["items"])
     assert "not scores or judgments about people" in salus_map["portfolio"]["interpretation"]
+    salus_objective = salus_map["objective_effectiveness"]["objectives"][0]
+    assert salus_objective["state"] == "Partially Demonstrated"
+    assert salus_objective["supporting_item_count"] == 2
+    assert salus_objective["evidence_states"]["Demonstrated"] == 1
 
     filtered = client.get(
         "/api/salcapa/mission-map?assessment_id=1&functional_area=SalOPS&workflow_status=In%20Progress&owner=Salus%20Operations",
@@ -289,6 +305,7 @@ def main():
     assert filtered["portfolio"]["total_items"] == 1
     assert filtered["active_filters"]["functional_area"] == "SalOPS"
     assert filtered["active_filters"]["workflow_status"] == "In Progress"
+    assert filtered["objective_effectiveness"]["objective_count"] == 0
 
     waiting = client.get(
         "/api/salcapa/mission-map?assessment_id=1&functional_area=PROVE&attention=Waiting%20%2F%20input%20needed",
@@ -363,7 +380,7 @@ def main():
     assert member_sources.status_code == 200, member_sources.text
     member_overlays = [item for item in member_sources.json()["items"] if item.get("read_only")]
     member_report = member_sources.json()["report"]
-    assert member_report["release_version"] == "3.93"
+    assert member_report["release_version"] == "3.94"
     assert member_report["audience"] == "Protected Member authorized view"
     assert member_report["included_item_count"] == len(member_sources.json()["items"])
     assert member_report["prepared_at_display"].endswith(" UTC")
@@ -557,6 +574,8 @@ def main():
     assert "missionMapAnnounce" in js and "missionMapRestoreFocus" in js
     assert "missionMapOpenFallback" in js and "fallback.open=true" in js
     assert "missionMapTraceSummary" in js and "missionMapProveTrace" in js
+    assert "missionMapObjectiveEffectiveness" in js and "missionMapObjectiveDetail" in js
+    assert "What the available records demonstrate" in js and "Objective evidence view" in js
     assert "Evidence and result traceability" in js and "Explicit source relationships" in js
     assert "Authoritative source" in js and "!item.read_only" in js
     assert "Waiting / input needed" in js and "not scores or judgments about people" not in js
@@ -568,6 +587,7 @@ def main():
     assert "animation-duration:.01ms!important" in css and "scroll-behavior:auto!important" in css
     assert ".mission-filter-grid" in css and ".mission-portfolio-grid" in css
     assert ".mission-trace-summary-grid" in css and ".mission-prove-trace" in css
+    assert ".mission-objective-grid" in css and ".mission-objective-detail" in css
     assert "@media print" in css and ".mission-print-version" in css
     assert "word-break:normal" in css and "body.mission-map-printing" in css
     print("SalCAPA Mission Map acceptance checks passed.")

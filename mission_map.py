@@ -993,6 +993,93 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             current = parent
         return list(reversed(path))
 
+    def objective_effectiveness_view(
+        visible: list[dict[str, Any]], links: list[dict[str, Any]], is_member: bool,
+    ) -> dict[str, Any]:
+        """Summarize visible objective support without inventing a score or conclusion."""
+        visible_by_id = {item["id"]: item for item in visible}
+        results: list[dict[str, Any]] = []
+        for objective in visible:
+            if objective.get("node_type") != "Objective":
+                continue
+            related_ids = {
+                item["id"] for item in visible
+                if any(part.get("id") == objective["id"] for part in item.get("mission_path", []))
+            }
+            explicit_links = []
+            for link in links:
+                if objective["id"] not in {link["source_node_id"], link["target_node_id"]}:
+                    continue
+                related_id = (
+                    link["target_node_id"] if link["source_node_id"] == objective["id"]
+                    else link["source_node_id"]
+                )
+                if related_id not in visible_by_id:
+                    continue
+                related_ids.add(related_id)
+                explicit_links.append({
+                    "relationship": link["relationship"],
+                    "related_item_id": related_id,
+                    "related_item_title": visible_by_id[related_id]["title"],
+                    "basis": link["basis"],
+                })
+            supporting = [visible_by_id[item_id] for item_id in sorted(related_ids)]
+            evidence_items = [
+                item for item in supporting if item.get("evidence_state") not in {None, "Not Applicable"}
+            ]
+            evidence_counts = {state: 0 for state in EVIDENCE_STATES if state != "Not Applicable"}
+            for item in evidence_items:
+                evidence_counts[item["evidence_state"]] += 1
+            improvement_underway = any(
+                item.get("node_type") == "Reassessment / Improvement"
+                and item.get("status") not in {"Closed", "Validated"}
+                for item in supporting
+            )
+            if objective.get("evidence_state") == "Demonstrated":
+                state = "Demonstrated"
+            elif improvement_underway:
+                state = "Improvement Underway"
+            elif objective.get("evidence_state") == "Awaiting Validation" or evidence_counts["Awaiting Validation"]:
+                state = "Awaiting Validation"
+            elif objective.get("evidence_state") == "Partially Demonstrated" or evidence_counts["Demonstrated"] or evidence_counts["Partially Demonstrated"]:
+                state = "Partially Demonstrated"
+            else:
+                state = "Evidence Needed"
+            results.append({
+                "objective_id": objective["id"], "title": objective["title"],
+                "assessment_id": objective.get("assessment_id"), "state": state,
+                "supporting_item_count": len(supporting),
+                "evidence_item_count": len(evidence_items),
+                "explicit_relationship_count": len(explicit_links),
+                "evidence_states": evidence_counts,
+                "explicit_relationships": explicit_links,
+                "next_step": objective.get("next_step") or objective.get("next_station") or "Review the governed objective.",
+                "owner": objective.get("owner") or "Owner not yet identified",
+                "interpretation": (
+                    "This state summarizes only governed records and explicit relationships available to this authorized view. "
+                    "It is not a percentage, score, readiness rating, performance judgment, or approval decision."
+                ),
+            })
+        by_state: dict[str, int] = {}
+        for result in results:
+            by_state[result["state"]] = by_state.get(result["state"], 0) + 1
+        return {
+            "objectives": results, "objective_count": len(results), "by_state": by_state,
+            "view_policy": {
+                "server_derived": True, "authorized_visible_records_only": True,
+                "explicit_relationships_only": True, "automatic_validation": False,
+                "automatic_approval": False, "percentage_or_score": False,
+            },
+            "interpretation": (
+                "Objective evidence states help authorized people see what the available records demonstrate, what remains incomplete, "
+                "and where validation or improvement may be needed. Authorized people retain judgment and decision authority."
+            ),
+            "audience_note": (
+                "Only released records and relationships in this Protected Member scope are represented."
+                if is_member else "Only records permitted by the current tenant, assessment, sensitivity, and role scope are represented."
+            ),
+        }
+
     @app.get("/api/salcapa/mission-map/catalog")
     def mission_map_catalog(request: Request):
         require(request, "read")
@@ -1014,6 +1101,7 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             "keyboard_guidance": "Use Tab to reach a route, then use the arrow keys, Home, or End to move among its work markers. Select a marker to review its governed details.",
             "accessibility_guidance": "Route names, station labels, marker shapes, text states, and the conventional list provide equivalent meaning without relying on color, pointer use, or animation.",
             "prove_guidance": "PROVE is the cross-cutting Assurance & Results layer. It shows qualifying evidence, explicit persisted relationships, validation needs, results, and learning without creating facts, authority, or a separate fifth product.",
+            "objective_effectiveness_guidance": "Objective evidence views summarize governed support visible in the current scope. They do not assign a percentage, score, readiness rating, approval, or performance judgment.",
         }
 
     @app.get("/api/salcapa/mission-map")
@@ -1145,6 +1233,13 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
                     "target_node_id": link["target_node_id"], "relationship": link["relationship"],
                     "basis": "Released governed relationship" if protected_member(request) else link["basis"],
                 })
+        objective_effectiveness = objective_effectiveness_view(visible, links, is_member)
+        effectiveness_by_id = {
+            item["objective_id"]: item for item in objective_effectiveness["objectives"]
+        }
+        for item in visible:
+            if item["id"] in effectiveness_by_id:
+                item["objective_effectiveness"] = effectiveness_by_id[item["id"]]
         conn.close()
         active_filters = {
             "functional_area": functional_area, "workflow_status": workflow_status,
@@ -1186,6 +1281,7 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             "items": visible, "links": links,
             "active_filters": active_filters,
             "prove_traceability": prove_traceability,
+            "objective_effectiveness": objective_effectiveness,
             "portfolio": {
                 "total_items": len(visible), "by_route": by_route,
                 "by_status": by_status, "by_evidence_state": by_evidence,

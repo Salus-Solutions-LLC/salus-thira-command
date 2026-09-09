@@ -1,16 +1,16 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 08 September 2026 23:27 CDT
+last_verified_at: 09 September 2026 00:04 CDT
 current_frozen_release: v3.93
 current_frozen_commit: f2b316f827f645d3bbe67ac76d24585634c8625a
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 213
 active_increment: mission_map_objective_effectiveness_views
 last_completed_release: v3.93
-candidate_release: none
-validation_pr: none
-validation_gate_state: all_required_gates_green
+candidate_release: v3.94
+validation_pr: pending
+validation_gate_state: local_verified_github_pending
 genuine_blockers: none
 next_authorized_increment: roadmap_reconciliation_after_mission_map
 ---
@@ -37,7 +37,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active roadmap: [Issue #213](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/213), Mission Map and Mission Structure.
 - Last completed increment: deeper Mission Map PROVE traceability using the existing governed assurance model, explicit source relationships, and Salus-only information-gap review markers.
 - Last controlled validation: [PR #221](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/221), closed without merge after all 15 workflow families passed.
-- Current candidate: none.
+- Current candidate: v3.94 Mission Map objective-effectiveness views; controlled validation pull request pending.
 - Genuine blockers: none.
 - Active product increment: Mission Map objective-effectiveness views.
 - Next authorized product increment: reconcile the authoritative roadmap after the Mission Map increment.
