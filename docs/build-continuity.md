@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 11:20 CDT
-current_frozen_release: v3.98
-current_frozen_commit: 8522ee86dd34508ef62e154a045e845c23065977
+last_verified_at: 09 September 2026 11:25 CDT
+current_frozen_release: v3.99
+current_frozen_commit: e916a71e57d0ad77d40826cea27bc0916967db26
 active_development_branch: development/salcapa-platform
-active_roadmap_issue: 159
-active_increment: protected_membership_lifecycle_and_credit_controls
-last_completed_release: v3.98
-candidate_release: v3.99
-validation_pr: 229
-validation_gate_state: github_validation_running
+active_roadmap_issue: 128
+active_increment: universal_information_intake_acceptance_review
+last_completed_release: v3.99
+candidate_release: none
+validation_pr: none
+validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: protected_membership_issue_159_acceptance_review
+next_authorized_increment: unified_capture_gap_closure
 ---
 
 # SalCAPA build continuity
@@ -32,15 +32,15 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
-- Current frozen release: **v3.98** at `8522ee86dd34508ef62e154a045e845c23065977`.
+- Current frozen release: **v3.99** at `e916a71e57d0ad77d40826cea27bc0916967db26`.
 - Active development line: `development/salcapa-platform`.
-- Active roadmap: [Issue #159](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/159), Protected Membership subscription, entitlement, and hybrid commercial architecture. Acceptance review identified remaining structured lifecycle and service-credit controls, now addressed by the v3.99 candidate. [Issue #154](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/154) is completed and closed; [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128) continues to control the reusable information-intake architecture.
-- Last completed increment: Salus-only recurring commercial-position reporting for released Protected Membership terms and governed ongoing-monitoring scopes; evidence-qualified highest/lowest planning-contribution views by product line, investigative domain, and tier; current-source checks for approved forecasts; period filters; and export-compatible management output. Unsupported groups remain visible as not ranked. Reports do not recognize revenue, margin, or profit and cannot create a charge, invoice, renewal, scope/tier change, external transmission, or customer commitment.
-- Last controlled validation: [PR #228](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/228), closed without merge after all 15 workflow families passed on the exact frozen commit.
-- Current candidate: **v3.99** at `da360c21f606cd342e7890a4e4b23fa9d0cc092c` on [controlled validation PR #229](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/229), which will be closed without merge. It adds explicit renewal, decision-authority, notice, cancellation, and repricing terms; period-aware service-credit grant, expiration, rollover, and capacity views; versioned credit conversions; and governed manual consumption corrections. No term or consumption record renews, reprices, charges, invoices, changes scope/tier, authorizes partner work, or establishes a customer commitment automatically.
+- Active roadmap: [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128), governed universal information intake and cross-SalCAPA ingestion. The active increment is an acceptance review of the existing governed text, evidence-file, Microsoft 365 source/provenance, linkage, retention, and recovery foundations against the unified-capture criteria. [Issues #154](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/154) and [#159](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/159) are completed and closed.
+- Last completed increment: explicit Protected Membership renewal treatment and decision authority, cancellation-notice period and terms, repricing terms, period-aware service-credit grants and expiration, bounded rollover, versioned conversion tables, server-verified conversions, and independently approved manual consumption corrections. Released member views explain the applicable lifecycle and capacity without exposing Salus-only economics. Nothing renews, reprices, cancels, charges, invoices, changes scope/tier, authorizes partner work, or establishes a customer commitment automatically.
+- Last controlled validation: [PR #229](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/229), closed without merge after all 15 workflow families passed on the exact frozen commit.
+- Current candidate: none.
 - Genuine blockers: none.
-- Active product increment: validate the remaining Issue #159 lifecycle and service-credit controls across fresh SQLite, PostgreSQL 16, production-container, deterministic-reconstruction, security, infrastructure, and regression gates.
-- Next authorized product increment: conduct the final governed Issue #159 acceptance review after v3.99 passes every required release gate.
+- Active product increment: conduct the governed Issue #128 acceptance review without duplicating existing intake, evidence, storage, Microsoft 365 provenance, or cross-product relationship capabilities.
+- Next authorized product increment: close the first verified unified-capture gap while preserving immutable originals, distinct derived material, tenant and sensitivity boundaries, retention/legal hold, and human qualification.
 
 ## Recovery procedure
 
