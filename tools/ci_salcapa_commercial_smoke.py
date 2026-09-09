@@ -42,7 +42,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.98"
+    assert client.get("/api/system/mode").json()["version"] == "3.99"
     assert client.get("/api/salcapa/commercial/catalog", headers=member).status_code == 403
     catalog = client.get("/api/salcapa/commercial/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
@@ -641,6 +641,11 @@ def main() -> None:
     assert catalog_body["membership_arrangements"] == [
         "Transactional", "Subscription Membership", "Hybrid",
     ]
+    assert catalog_body["membership_grant_cadences"] == [
+        "Term", "Monthly", "Quarterly", "Annual", "Custom",
+    ]
+    assert "Mutual Written Agreement" in catalog_body["membership_renewal_treatments"]
+    assert "Nothing renews or reprices automatically" in catalog_body["guidance"]["membership_lifecycle"]
     assert "investigative depth only" in catalog_body["guidance"]["membership_distinction"]
     assert catalog_body["guidance"]["membership_consequence"].startswith(
         "Recording use or reaching a capacity limit does not create a charge"
@@ -683,6 +688,15 @@ def main() -> None:
                 "treatment": "Credit Eligible", "capacity_type": "Service Credits",
                 "included_quantity": 5, "unit": "credits", "rollover": True,
                 "rollover_limit": 2,
+                "grant_cadence": "Monthly", "expiration_rule": "Grant Period End",
+                "conversion_table_version": "fictional-credit-table-v1",
+                "credit_conversions": [{
+                    "key": "preparedness-review-hour", "label": "Preparedness review hour",
+                    "product_line": "SalOPS Preparedness",
+                    "service_scope": "One separately authorized preparedness review hour.",
+                    "service_unit": "hours", "credits_per_unit": 2,
+                    "investigation_tier": "Not Applicable",
+                }],
                 "member_description": "Five governed service credits with bounded rollover.",
             },
             {
@@ -736,6 +750,11 @@ def main() -> None:
         "plan_id": plan_id, "contract_reference": "fictional-sow-membership-001",
         "start_date": "2026-09-01", "end_date": "2027-08-31",
         "renewal_review_date": "2027-07-31", "billing_cadence": "Monthly",
+        "renewal_treatment": "Mutual Written Agreement",
+        "renewal_authority": "The Protected Member and an authorized Salus commercial approver must agree in writing.",
+        "cancellation_notice_days": 30,
+        "cancellation_terms": "Either party may provide written notice under the approved agreement.",
+        "repricing_terms": "Any repricing requires a documented review and a newly approved term version.",
         "recurring_fee_cents": 100000, "approved_term_value_cents": 1200000,
         "portfolio_coverage": [
             {
@@ -763,6 +782,8 @@ def main() -> None:
     assert term["economics"]["annualized_recurring_value_cents"] == 1200000
     assert term["economics"]["evidence_state"] == "Awaiting Validation"
     assert term["creates_charge"] is False and term["auto_renews"] is False
+    assert term["renewal_treatment"] == "Mutual Written Agreement"
+    assert term["cancellation_notice_days"] == 30
     for status, headers, reason in (
         ("Submitted", director, "Submit the exact term for independent commercial review."),
         ("Approved", administrator, "Independent review confirms the exact term and portfolio scope."),
@@ -783,6 +804,8 @@ def main() -> None:
     assert member_term["arrangement"] == "Hybrid"
     assert member_term["portfolio_coverage"][0]["covered_quantity"] == "3"
     assert member_term["creates_charge"] is False
+    assert member_term["renewal_authority"].startswith("The Protected Member")
+    assert member_term["repricing_terms"].endswith("term version.")
     for forbidden in (
         "tenant_id", "plan_snapshot", "internal_basis", "negotiated_terms",
         "economics", "content_sha256", "approved_by",
@@ -815,6 +838,40 @@ def main() -> None:
             headers=headers, json={"status": status, "reason": reason},
         )
         assert response.status_code == 200, response.text
+
+    credit_use = {
+        "term_id": term_id, "entitlement_key": "service-credits",
+        "record_kind": "Consumption", "quantity": 2,
+        "conversion_key": "preparedness-review-hour", "service_units": 1,
+        "occurred_on": "2026-09-08", "source_type": "Preparedness",
+        "source_record_id": "fictional-preparedness-review-001",
+        "source_reference": "Reviewed fictional preparedness service record.",
+        "notes": "Apply the versioned two-credit conversion for one approved review hour.",
+    }
+    assert client.post(
+        "/api/salcapa/commercial/membership/consumption", headers=director,
+        json={key: value for key, value in credit_use.items() if key != "conversion_key"},
+    ).status_code == 422
+    assert client.post(
+        "/api/salcapa/commercial/membership/consumption", headers=director,
+        json=dict(credit_use, quantity=1),
+    ).status_code == 422
+    credit_created = client.post(
+        "/api/salcapa/commercial/membership/consumption", headers=director, json=credit_use
+    )
+    assert credit_created.status_code == 200, credit_created.text
+    credit_id = credit_created.json()["id"]
+    assert credit_created.json()["conversion_rule_snapshot"]["credits_per_unit"] == "2"
+    assert credit_created.json()["credit_expiration_date"] == "2026-09-30"
+    assert credit_created.json()["capacity_analysis"]["remaining_quantity"] == "3"
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the converted service-credit use."),
+        ("Approved", administrator, "Confirm the service and versioned conversion evidence."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/membership/consumption/{credit_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        ).status_code == 200
     overage_use = dict(
         monitoring_use, quantity=2, source_record_id="fictional-monitoring-cycle-002-003",
         source_reference="Two additional reviewed fictional cycle records.",
@@ -879,6 +936,34 @@ def main() -> None:
     assert economics["planning_contribution_cents"] == 1174975
     assert economics["evidence_state"] == "Evidence Needed"
     assert "not financial statements" in economics["interpretation"]
+
+    manual_adjustment = dict(
+        overage_use, record_kind="Manual Adjustment", quantity=1,
+        supersedes_consumption_id=overage_id, source_type="Manual Governed Record",
+        source_record_id="fictional-approved-adjustment-001",
+        source_reference="Authorized correction to the reviewed monitoring-use quantity.",
+        notes="Correct the earlier quantity after review; retain both immutable records.",
+    )
+    assert client.post(
+        "/api/salcapa/commercial/membership/consumption", headers=director,
+        json=dict(manual_adjustment, source_type="Other"),
+    ).status_code == 422
+    adjustment = client.post(
+        "/api/salcapa/commercial/membership/consumption", headers=director,
+        json=manual_adjustment,
+    )
+    assert adjustment.status_code == 200, adjustment.text
+    adjustment_id = adjustment.json()["id"]
+    assert adjustment.json()["record_kind"] == "Manual Adjustment"
+    assert adjustment.json()["capacity_analysis"]["authorization_state"] == "Within Approved Entitlement"
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the governed membership-use correction."),
+        ("Approved", administrator, "Independently approve the corrected quantity and reason."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/membership/consumption/{adjustment_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        ).status_code == 200
     assert client.post(
         "/api/salcapa/commercial/membership/consumption", headers=other, json=monitoring_use
     ).status_code == 422
@@ -1310,7 +1395,7 @@ def main() -> None:
     assert len(records["salcapa_commercial_forecasts"]) == 5
     assert len(records["salcapa_membership_plans"]) == 2
     assert len(records["salcapa_membership_terms"]) == 2
-    assert len(records["salcapa_membership_consumption"]) == 3
+    assert len(records["salcapa_membership_consumption"]) == 5
     assert len(records["salcapa_wip_reviews"]) == 3
     assert len(records["salcapa_source_records"]) == 1
     assert len(records["salcapa_source_versions"]) == 2

@@ -1,12 +1,16 @@
 """Governed SalCAPA commercial planning, reporting, membership, WIP, and sources.
 
-Issue #154 increment.  Salus personnel configure and approve versioned planning
+Issues #154 and #159. Salus personnel configure and approve versioned planning
 assumptions.  Estimates snapshot every assumption and calculation.  Salus time
 and direct-cost records retain source, approval, and correction lineage while
 keeping unavailable or estimated amounts distinct from recognized actual cost.
 Protected Membership terms retain explicit human approval and release gates;
 consumption never creates a charge, invoice, scope expansion, tier change,
 renewal, partner action, or customer commitment automatically.
+Terms make renewal, notice, cancellation, and repricing authority explicit.
+Service credits retain grant cadence, expiration, rollover, and exact conversion
+table versions; manual corrections preserve the replaced record and independent
+approval rather than silently changing historical consumption.
 Unbilled/work-in-progress reviews preserve dated source snapshots and human
 commercial dispositions without becoming accounting entries or creating bills.
 Cross-cutting source records preserve exact SharePoint, OneDrive, or other
@@ -26,7 +30,8 @@ import hashlib
 import io
 import json
 import uuid
-from datetime import date, datetime
+from calendar import monthrange
+from datetime import date, datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Literal, Optional
 
@@ -95,6 +100,12 @@ MEMBERSHIP_TREATMENTS = (
     "Separately Quoted", "Pass-Through", "Not Included", "Custom",
 )
 MEMBERSHIP_CAPACITY_TYPES = ("Direct Quantity", "Service Credits", "Commercial Treatment Only")
+MEMBERSHIP_GRANT_CADENCES = ("Term", "Monthly", "Quarterly", "Annual", "Custom")
+MEMBERSHIP_EXPIRATION_RULES = ("Term End", "Grant Period End", "Fixed Days After Grant")
+MEMBERSHIP_RENEWAL_TREATMENTS = (
+    "Renewal Review Required", "Customer Option", "Salus Option",
+    "Mutual Written Agreement", "No Renewal", "Custom",
+)
 MEMBERSHIP_SOURCE_TYPES = (
     "Estimate", "Investigation", "Monitoring Cycle", "Assessment", "Preparedness",
     "Plan", "Training", "Exercise", "Manual Governed Record", "Other",
@@ -415,6 +426,11 @@ CREATE TABLE IF NOT EXISTS salcapa_membership_terms (
   start_date TEXT NOT NULL,
   end_date TEXT NOT NULL,
   renewal_review_date TEXT NOT NULL,
+  renewal_treatment TEXT NOT NULL,
+  renewal_authority TEXT NOT NULL,
+  cancellation_notice_days INTEGER NOT NULL,
+  cancellation_terms TEXT NOT NULL,
+  repricing_terms TEXT NOT NULL,
   billing_cadence TEXT NOT NULL,
   recurring_fee_cents INTEGER NOT NULL,
   approved_term_value_cents INTEGER NOT NULL,
@@ -453,6 +469,11 @@ CREATE TABLE IF NOT EXISTS salcapa_membership_consumption (
   supersedes_consumption_id TEXT,
   entitlement_key TEXT NOT NULL,
   entitlement_snapshot_json TEXT NOT NULL,
+  record_kind TEXT NOT NULL,
+  conversion_key TEXT NOT NULL,
+  conversion_rule_snapshot_json TEXT NOT NULL,
+  service_units TEXT NOT NULL,
+  credit_expiration_date TEXT NOT NULL,
   quantity TEXT NOT NULL,
   occurred_on TEXT NOT NULL,
   source_type TEXT NOT NULL,
@@ -812,6 +833,23 @@ class ForecastTransition(StrictModel):
     reason: str = Field(min_length=3, max_length=4000)
 
 
+class MembershipCreditConversion(StrictModel):
+    key: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{1,79}$")
+    label: str = Field(min_length=2, max_length=160)
+    product_line: str = Field(min_length=2, max_length=160)
+    service_scope: str = Field(min_length=3, max_length=1000)
+    service_unit: str = Field(min_length=2, max_length=80)
+    credits_per_unit: Decimal = Field(gt=0, le=1_000_000, decimal_places=3)
+    investigation_tier: Literal["Not Applicable", "Tier 1", "Tier 2", "Tier 3"] = "Not Applicable"
+
+    @field_validator("product_line")
+    @classmethod
+    def valid_product_line(cls, value: str) -> str:
+        if value not in PRODUCT_LINES:
+            raise ValueError("Credit conversion product line is invalid")
+        return value
+
+
 class MembershipEntitlement(StrictModel):
     key: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{1,79}$")
     label: str = Field(min_length=2, max_length=160)
@@ -824,8 +862,14 @@ class MembershipEntitlement(StrictModel):
     capacity_type: Literal["Direct Quantity", "Service Credits", "Commercial Treatment Only"]
     included_quantity: Optional[Decimal] = Field(default=None, gt=0, le=1_000_000, decimal_places=3)
     unit: str = Field(min_length=2, max_length=80)
+    grant_cadence: Literal["Term", "Monthly", "Quarterly", "Annual", "Custom"] = "Term"
+    custom_grant_period_days: Optional[int] = Field(default=None, ge=1, le=3660)
+    expiration_rule: Literal["Term End", "Grant Period End", "Fixed Days After Grant"] = "Term End"
+    expiration_days: Optional[int] = Field(default=None, ge=1, le=3660)
     rollover: bool = False
     rollover_limit: Optional[Decimal] = Field(default=None, ge=0, le=1_000_000, decimal_places=3)
+    conversion_table_version: Optional[str] = Field(default=None, max_length=120)
+    credit_conversions: list[MembershipCreditConversion] = Field(default_factory=list, max_length=100)
     member_description: str = Field(min_length=3, max_length=1000)
 
     @model_validator(mode="after")
@@ -841,6 +885,22 @@ class MembershipEntitlement(StrictModel):
             raise ValueError("Rollover applies only to service credits")
         if self.rollover_limit is not None and not self.rollover:
             raise ValueError("A rollover limit requires rollover to be enabled")
+        if self.grant_cadence == "Custom" and self.custom_grant_period_days is None:
+            raise ValueError("Custom grant cadence requires custom_grant_period_days")
+        if self.grant_cadence != "Custom" and self.custom_grant_period_days is not None:
+            raise ValueError("custom_grant_period_days applies only to Custom grant cadence")
+        if self.expiration_rule == "Fixed Days After Grant" and self.expiration_days is None:
+            raise ValueError("Fixed-days expiration requires expiration_days")
+        if self.expiration_rule != "Fixed Days After Grant" and self.expiration_days is not None:
+            raise ValueError("expiration_days applies only to fixed-days expiration")
+        if self.capacity_type == "Service Credits":
+            if not self.conversion_table_version or not self.credit_conversions:
+                raise ValueError("Service credits require a versioned conversion table")
+            keys = [item.key for item in self.credit_conversions]
+            if len(keys) != len(set(keys)):
+                raise ValueError("Credit conversion keys must be unique")
+        elif self.conversion_table_version is not None or self.credit_conversions:
+            raise ValueError("Credit conversion rules apply only to service credits")
         return self
 
 
@@ -919,6 +979,14 @@ class MembershipTermCreate(StrictModel):
     start_date: str = Field(min_length=10, max_length=10)
     end_date: str = Field(min_length=10, max_length=10)
     renewal_review_date: str = Field(min_length=10, max_length=10)
+    renewal_treatment: Literal[
+        "Renewal Review Required", "Customer Option", "Salus Option",
+        "Mutual Written Agreement", "No Renewal", "Custom",
+    ]
+    renewal_authority: str = Field(min_length=3, max_length=1000)
+    cancellation_notice_days: int = Field(ge=0, le=3660)
+    cancellation_terms: str = Field(min_length=3, max_length=4000)
+    repricing_terms: str = Field(min_length=3, max_length=4000)
     billing_cadence: Literal["Monthly", "Quarterly", "Annual", "Custom"]
     recurring_fee_cents: int = Field(ge=0, le=2_000_000_000)
     approved_term_value_cents: int = Field(ge=0, le=2_000_000_000)
@@ -953,7 +1021,10 @@ class MembershipConsumptionCreate(StrictModel):
     term_id: str = Field(min_length=3, max_length=80)
     supersedes_consumption_id: Optional[str] = Field(default=None, max_length=80)
     entitlement_key: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{1,79}$")
+    record_kind: Literal["Consumption", "Manual Adjustment"] = "Consumption"
     quantity: Decimal = Field(gt=0, le=1_000_000, decimal_places=3)
+    conversion_key: Optional[str] = Field(default=None, pattern=r"^[a-z0-9][a-z0-9-]{1,79}$")
+    service_units: Optional[Decimal] = Field(default=None, gt=0, le=1_000_000, decimal_places=3)
     occurred_on: str = Field(min_length=10, max_length=10)
     source_type: Literal[
         "Estimate", "Investigation", "Monitoring Cycle", "Assessment", "Preparedness",
@@ -977,6 +1048,9 @@ class MembershipConsumptionCreate(StrictModel):
     def valid_source(self):
         if self.source_type == "Estimate" and not self.estimate_id:
             raise ValueError("Estimate consumption requires estimate_id")
+        if self.record_kind == "Manual Adjustment":
+            if not self.supersedes_consumption_id or self.source_type != "Manual Governed Record":
+                raise ValueError("A manual adjustment must replace an Approved record and use a governed manual source")
         return self
 
 
@@ -1658,6 +1732,11 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "contract_reference": row["contract_reference"],
             "start_date": row["start_date"], "end_date": row["end_date"],
             "renewal_review_date": row["renewal_review_date"],
+            "renewal_treatment": row["renewal_treatment"],
+            "renewal_authority": row["renewal_authority"],
+            "cancellation_notice_days": int(row["cancellation_notice_days"]),
+            "cancellation_terms": row["cancellation_terms"],
+            "repricing_terms": row["repricing_terms"],
             "billing_cadence": row["billing_cadence"],
             "recurring_fee_cents": int(row["recurring_fee_cents"]),
             "approved_term_value_cents": int(row["approved_term_value_cents"]),
@@ -1682,6 +1761,11 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "supersedes_consumption_id": row["supersedes_consumption_id"],
             "entitlement_key": row["entitlement_key"],
             "entitlement_snapshot": json.loads(row["entitlement_snapshot_json"]),
+            "record_kind": row["record_kind"],
+            "conversion_key": row["conversion_key"],
+            "conversion_rule_snapshot": json.loads(row["conversion_rule_snapshot_json"]),
+            "service_units": row["service_units"],
+            "credit_expiration_date": row["credit_expiration_date"],
             "quantity": row["quantity"], "occurred_on": row["occurred_on"],
             "source_type": row["source_type"], "source_record_id": row["source_record_id"],
             "source_reference": row["source_reference"], "estimate_id": row["estimate_id"],
@@ -1709,23 +1793,74 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         }
         return [row for row in approved if row["id"] not in superseded]
 
+    def entitlement_period(row: dict[str, Any], entitlement: dict[str, Any],
+                           as_of: date) -> tuple[date, date]:
+        term_start, term_end = date.fromisoformat(row["start_date"]), date.fromisoformat(row["end_date"])
+        point = min(max(as_of, term_start), term_end)
+        cadence = entitlement.get("grant_cadence", "Term")
+        if cadence == "Term":
+            return term_start, term_end
+        if cadence == "Monthly":
+            start = date(point.year, point.month, 1)
+            end = date(point.year, point.month, monthrange(point.year, point.month)[1])
+        elif cadence == "Quarterly":
+            first_month = ((point.month - 1) // 3) * 3 + 1
+            start = date(point.year, first_month, 1)
+            last_month = first_month + 2
+            end = date(point.year, last_month, monthrange(point.year, last_month)[1])
+        elif cadence == "Annual":
+            start, end = date(point.year, 1, 1), date(point.year, 12, 31)
+        else:
+            period_days = int(entitlement["custom_grant_period_days"])
+            offset = (point - term_start).days // period_days
+            start = term_start + timedelta(days=offset * period_days)
+            end = start + timedelta(days=period_days - 1)
+        return max(start, term_start), min(end, term_end)
+
+    def entitlement_expiration(row: dict[str, Any], entitlement: dict[str, Any],
+                               period_start: date, period_end: date) -> date:
+        rule = entitlement.get("expiration_rule", "Term End")
+        term_end = date.fromisoformat(row["end_date"])
+        if rule == "Grant Period End":
+            return period_end
+        if rule == "Fixed Days After Grant":
+            return min(term_end, period_start + timedelta(days=int(entitlement["expiration_days"])))
+        return term_end
+
     def membership_capacity(conn, row: dict[str, Any],
-                            proposed: Optional[tuple[str, Decimal]] = None) -> list[dict[str, Any]]:
+                            proposed: Optional[tuple[str, Decimal, date, Optional[str]]] = None) -> list[dict[str, Any]]:
         entitlements = json.loads(row["plan_snapshot_json"])["entitlements"]
         consumption = active_membership_consumption(conn, int(row["tenant_id"]), row["id"])
-        used: dict[str, Decimal] = {}
-        for item in consumption:
-            used[item["entitlement_key"]] = used.get(item["entitlement_key"], Decimal("0")) + Decimal(
-                item["quantity"]
-            )
-        if proposed:
-            key, quantity = proposed
-            used[key] = used.get(key, Decimal("0")) + quantity
+        as_of = proposed[2] if proposed else date.today()
         capacity: list[dict[str, Any]] = []
         for entitlement in entitlements:
-            quantity = used.get(entitlement["key"], Decimal("0"))
+            period_start, period_end = entitlement_period(row, entitlement, as_of)
+            expiration = entitlement_expiration(row, entitlement, period_start, period_end)
+            applicable = [
+                item for item in consumption
+                if item["entitlement_key"] == entitlement["key"]
+                and (not proposed or item["id"] != proposed[3])
+                and period_start <= date.fromisoformat(item["occurred_on"]) <= min(period_end, expiration)
+            ]
+            quantity = sum((Decimal(item["quantity"]) for item in applicable), Decimal("0"))
+            if proposed and proposed[0] == entitlement["key"]:
+                quantity += proposed[1]
             limit_value = entitlement.get("included_quantity")
             limit = Decimal(str(limit_value)) if limit_value is not None else None
+            rollover_available = Decimal("0")
+            if limit is not None and entitlement.get("rollover") and period_start > date.fromisoformat(row["start_date"]):
+                previous_start, previous_end = entitlement_period(
+                    row, entitlement, period_start - timedelta(days=1)
+                )
+                previous_used = sum((
+                    Decimal(item["quantity"]) for item in consumption
+                    if item["entitlement_key"] == entitlement["key"]
+                    and previous_start <= date.fromisoformat(item["occurred_on"]) <= previous_end
+                ), Decimal("0"))
+                unused = max(limit - previous_used, Decimal("0"))
+                rollover_limit = entitlement.get("rollover_limit")
+                rollover_available = min(unused, Decimal(str(rollover_limit))) if rollover_limit is not None else unused
+                limit += rollover_available
             remaining = max(limit - quantity, Decimal("0")) if limit is not None else None
             excess = max(quantity - limit, Decimal("0")) if limit is not None else Decimal("0")
             requires_separate = (
@@ -1738,7 +1873,15 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "service_scope": entitlement["service_scope"],
                 "commercial_treatment": entitlement["treatment"],
                 "capacity_type": entitlement["capacity_type"], "unit": entitlement["unit"],
+                "grant_cadence": entitlement.get("grant_cadence", "Term"),
+                "current_grant_period_start": period_start.isoformat(),
+                "current_grant_period_end": period_end.isoformat(),
+                "expiration_rule": entitlement.get("expiration_rule", "Term End"),
+                "current_credit_expiration_date": expiration.isoformat(),
+                "conversion_table_version": entitlement.get("conversion_table_version"),
+                "credit_conversions": entitlement.get("credit_conversions", []),
                 "included_quantity": None if limit is None else format(limit, "f"),
+                "rollover_available": format(rollover_available, "f"),
                 "approved_consumption": format(quantity, "f"),
                 "remaining_quantity": None if remaining is None else format(remaining, "f"),
                 "quantity_requiring_separate_authorization": format(excess, "f"),
@@ -1835,6 +1978,11 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "arrangement": plan["arrangement"], "contract_reference": row["contract_reference"],
             "start_date": row["start_date"], "end_date": row["end_date"],
             "renewal_review_date": row["renewal_review_date"],
+            "renewal_treatment": row["renewal_treatment"],
+            "renewal_authority": row["renewal_authority"],
+            "cancellation_notice_days": int(row["cancellation_notice_days"]),
+            "cancellation_terms": row["cancellation_terms"],
+            "repricing_terms": row["repricing_terms"],
             "billing_cadence": row["billing_cadence"],
             "recurring_fee_cents": int(row["recurring_fee_cents"]),
             "approved_term_value_cents": int(row["approved_term_value_cents"]),
@@ -1876,12 +2024,16 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             raise HTTPException(409, "Protected Membership consumption term is missing")
         out = dict(row)
         out["entitlement_snapshot"] = json.loads(out.pop("entitlement_snapshot_json"))
+        out["conversion_rule_snapshot"] = json.loads(out.pop("conversion_rule_snapshot_json"))
         out["creates_charge"] = False
         out["creates_invoice"] = False
         out["creates_scope_authorization"] = False
         projected = membership_capacity(
             conn, dict(term),
-            None if row["status"] == "Approved" else (row["entitlement_key"], Decimal(row["quantity"])),
+            None if row["status"] == "Approved" else (
+                row["entitlement_key"], Decimal(row["quantity"]),
+                date.fromisoformat(row["occurred_on"]), row["supersedes_consumption_id"],
+            ),
         )
         out["capacity_analysis"] = next(
             item for item in projected if item["entitlement_key"] == row["entitlement_key"]
@@ -2675,6 +2827,9 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "membership_billing_cadences": list(MEMBERSHIP_BILLING_CADENCES),
             "membership_commercial_treatments": list(MEMBERSHIP_TREATMENTS),
             "membership_capacity_types": list(MEMBERSHIP_CAPACITY_TYPES),
+            "membership_grant_cadences": list(MEMBERSHIP_GRANT_CADENCES),
+            "membership_expiration_rules": list(MEMBERSHIP_EXPIRATION_RULES),
+            "membership_renewal_treatments": list(MEMBERSHIP_RENEWAL_TREATMENTS),
             "membership_source_types": list(MEMBERSHIP_SOURCE_TYPES),
             "wip_dispositions": list(WIP_DISPOSITIONS),
             "source_providers": list(SOURCE_PROVIDERS),
@@ -2706,6 +2861,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "membership_authority": "Authorized Salus personnel independently approve plan versions, member terms, consumption records, and any add-on or amendment.",
                 "membership_consequence": "Recording use or reaching a capacity limit does not create a charge, invoice, scope expansion, tier change, partner action, renewal, or customer commitment.",
                 "membership_next_step": "When a released entitlement does not cover requested work, prepare a governed add-on, estimate, or membership amendment for human review.",
+                "membership_lifecycle": "Released terms state renewal treatment, decision authority, notice, cancellation, repricing, credit cadence, expiration, and conversion rules before use. Nothing renews or reprices automatically.",
                 "membership_confidentiality": "Protected Members see only their released term, covered scope, approved consumption, and remaining capacity. Salus rates, costs, partner economics, calculations, margin, and profitability remain Salus-only.",
                 "wip_purpose": "Prepare a dated Salus review of supported work value and its current commercial treatment.",
                 "wip_authority": "Authorized Salus personnel independently approve each disposition. Authorized for Billing permits a separate billing process to begin; it does not create a charge or invoice.",
@@ -4346,6 +4502,11 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "plan_snapshot": plan_snapshot, "contract_reference": payload.contract_reference.strip(),
                 "start_date": payload.start_date, "end_date": payload.end_date,
                 "renewal_review_date": payload.renewal_review_date,
+                "renewal_treatment": payload.renewal_treatment,
+                "renewal_authority": payload.renewal_authority.strip(),
+                "cancellation_notice_days": payload.cancellation_notice_days,
+                "cancellation_terms": payload.cancellation_terms.strip(),
+                "repricing_terms": payload.repricing_terms.strip(),
                 "billing_cadence": payload.billing_cadence,
                 "recurring_fee_cents": payload.recurring_fee_cents,
                 "approved_term_value_cents": payload.approved_term_value_cents,
@@ -4357,14 +4518,19 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 """INSERT INTO salcapa_membership_terms(
                    id,tenant_id,version_no,supersedes_term_id,plan_id,plan_version,plan_snapshot_json,
                    contract_reference,start_date,end_date,renewal_review_date,billing_cadence,
+                   renewal_treatment,renewal_authority,cancellation_notice_days,cancellation_terms,
+                   repricing_terms,
                    recurring_fee_cents,approved_term_value_cents,portfolio_coverage_json,
                    negotiated_terms,internal_basis,content_sha256,status,creates_charge,creates_invoice,
                    creates_entitlement_automatically,authorizes_scope_automatically,auto_renews,
                    created_by,created_at,updated_at)
-                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (term_id, tid, version, payload.supersedes_term_id, plan["id"], plan["version_no"],
                  _canonical(plan_snapshot), content["contract_reference"], payload.start_date,
                  payload.end_date, payload.renewal_review_date, payload.billing_cadence,
+                 payload.renewal_treatment, content["renewal_authority"],
+                 payload.cancellation_notice_days, content["cancellation_terms"],
+                 content["repricing_terms"],
                  payload.recurring_fee_cents, payload.approved_term_value_cents, _canonical(coverage),
                  content["negotiated_terms"], content["internal_basis"], _digest(content), "Draft",
                  0, 0, 0, 0, 0, who, stamp, stamp),
@@ -4489,6 +4655,29 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 raise HTTPException(422, "Consumption must reference an entitlement in the term snapshot")
             if entitlement["capacity_type"] == "Commercial Treatment Only":
                 raise HTTPException(422, "Commercial-treatment-only services require a separate governed estimate or add-on")
+            conversion: dict[str, Any] = {}
+            service_units = ""
+            credit_expiration_date = ""
+            if entitlement["capacity_type"] == "Service Credits":
+                if not payload.conversion_key or payload.service_units is None:
+                    raise HTTPException(422, "Service-credit use requires a governed conversion rule and service quantity")
+                conversion = next((
+                    item for item in entitlement["credit_conversions"]
+                    if item["key"] == payload.conversion_key
+                ), None)
+                if not conversion:
+                    raise HTTPException(422, "Service-credit use must reference the term's conversion-table version")
+                expected_credits = Decimal(str(conversion["credits_per_unit"])) * payload.service_units
+                if payload.quantity != expected_credits:
+                    raise HTTPException(422, "Credit quantity must equal the governed conversion rule")
+                service_units = format(payload.service_units, "f")
+                period_start, period_end = entitlement_period(term, entitlement, occurred)
+                credit_expiration = entitlement_expiration(term, entitlement, period_start, period_end)
+                if occurred > credit_expiration:
+                    raise HTTPException(422, "Service credits are expired for the recorded service date")
+                credit_expiration_date = credit_expiration.isoformat()
+            elif payload.conversion_key is not None or payload.service_units is not None:
+                raise HTTPException(422, "Credit conversion fields apply only to service-credit entitlements")
             if payload.estimate_id:
                 estimate = conn.execute(
                     "SELECT * FROM salcapa_commercial_estimates WHERE id=? AND tenant_id=? AND status IN ('Approved','Released')",
@@ -4525,7 +4714,13 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "term_id": payload.term_id,
                 "supersedes_consumption_id": payload.supersedes_consumption_id,
                 "entitlement_key": payload.entitlement_key,
-                "entitlement_snapshot": entitlement, "quantity": quantity,
+                "entitlement_snapshot": entitlement,
+                "record_kind": payload.record_kind,
+                "conversion_key": payload.conversion_key or "",
+                "conversion_rule_snapshot": conversion,
+                "service_units": service_units,
+                "credit_expiration_date": credit_expiration_date,
+                "quantity": quantity,
                 "occurred_on": payload.occurred_on, "source_type": payload.source_type,
                 "source_record_id": payload.source_record_id.strip(),
                 "source_reference": payload.source_reference.strip(),
@@ -4534,12 +4729,15 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             conn.execute(
                 """INSERT INTO salcapa_membership_consumption(
                    id,tenant_id,version_no,term_id,supersedes_consumption_id,entitlement_key,
-                   entitlement_snapshot_json,quantity,occurred_on,source_type,source_record_id,
+                   entitlement_snapshot_json,record_kind,conversion_key,conversion_rule_snapshot_json,
+                   service_units,credit_expiration_date,quantity,occurred_on,source_type,source_record_id,
                    source_reference,estimate_id,notes,content_sha256,status,creates_charge,
                    creates_invoice,creates_scope_authorization,created_by,created_at,updated_at)
-                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (consumption_id, tid, version, payload.term_id, payload.supersedes_consumption_id,
-                 payload.entitlement_key, _canonical(entitlement), quantity, payload.occurred_on,
+                 payload.entitlement_key, _canonical(entitlement), payload.record_kind,
+                 payload.conversion_key or "", _canonical(conversion), service_units,
+                 credit_expiration_date, quantity, payload.occurred_on,
                  payload.source_type, content["source_record_id"], content["source_reference"],
                  payload.estimate_id, content["notes"], _digest(content), "Draft", 0, 0, 0,
                  who, stamp, stamp),
