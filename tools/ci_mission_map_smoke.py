@@ -60,7 +60,7 @@ def main():
         'marker = \'SALCAPA_RELEASE_VERSION = "3.92"\'\n',
         encoding="utf-8",
     )
-    adapted, changes = normalized_source(adapter_fixture, "3.94")
+    adapted, changes = normalized_source(adapter_fixture, mode["version"])
     assert 'version="1.0"' in adapted
     assert 'mode["version"] == "3.94"' in adapted
     assert 'SALCAPA_RELEASE_VERSION = "3.94"' in adapted
@@ -380,7 +380,7 @@ def main():
     assert member_sources.status_code == 200, member_sources.text
     member_overlays = [item for item in member_sources.json()["items"] if item.get("read_only")]
     member_report = member_sources.json()["report"]
-    assert member_report["release_version"] == "3.94"
+    assert member_report["release_version"] == mode["version"]
     assert member_report["audience"] == "Protected Member authorized view"
     assert member_report["included_item_count"] == len(member_sources.json()["items"])
     assert member_report["prepared_at_display"].endswith(" UTC")

@@ -42,7 +42,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.85"
+    assert client.get("/api/system/mode").json()["version"] == "3.95"
     assert client.get("/api/salcapa/commercial/catalog", headers=member).status_code == 403
     catalog = client.get("/api/salcapa/commercial/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
@@ -631,6 +631,291 @@ def main() -> None:
     assert csv_report.text.startswith("group,support_state,active_estimate_count")
     assert "SalINTEL Investigation,Evidence Needed,1,1,1,62500,18400,44100" in csv_report.text
 
+    # Protected Membership preserves the commercial relationship / investigation-depth distinction.
+    catalog_body = client.get("/api/salcapa/commercial/catalog", headers=director).json()
+    assert catalog_body["membership_arrangements"] == [
+        "Transactional", "Subscription Membership", "Hybrid",
+    ]
+    assert "investigative depth only" in catalog_body["guidance"]["membership_distinction"]
+    assert catalog_body["guidance"]["membership_consequence"].startswith(
+        "Recording use or reaching a capacity limit does not create a charge"
+    )
+    assert client.get(
+        "/api/salcapa/commercial/membership/plans", headers=member
+    ).status_code == 403
+    invalid_tier_name = client.post(
+        "/api/salcapa/commercial/membership/plans", headers=director, json={
+            "name": "Tier 1 Membership", "arrangement": "Hybrid",
+            "effective_from": "2026-09-01", "entitlements": [{
+                "key": "monitoring-cycles", "label": "Monitoring cycles",
+                "product_line": "SalINTEL Ongoing Monitoring",
+                "service_scope": "Governed monitoring cycles within an approved profile.",
+                "treatment": "Included", "capacity_type": "Direct Quantity",
+                "included_quantity": 2, "unit": "cycles", "rollover": False,
+                "member_description": "Two approved monitoring cycles during the term.",
+            }],
+            "member_summary": "Invalid investigation-tier membership name.",
+            "internal_basis": "Must fail because membership level is not investigation depth.",
+        },
+    )
+    assert invalid_tier_name.status_code == 422
+    plan_payload = {
+        "name": "Fictional Protected Membership", "arrangement": "Hybrid",
+        "effective_from": "2026-09-01",
+        "entitlements": [
+            {
+                "key": "monitoring-cycles", "label": "Ongoing Monitoring cycles",
+                "product_line": "SalINTEL Ongoing Monitoring",
+                "service_scope": "Governed monitoring cycles within separately approved profiles.",
+                "treatment": "Included", "capacity_type": "Direct Quantity",
+                "included_quantity": 2, "unit": "cycles", "rollover": False,
+                "member_description": "Two reviewed monitoring cycles during the term.",
+            },
+            {
+                "key": "service-credits", "label": "Salus service credits",
+                "product_line": "Special Project",
+                "service_scope": "Optional credits applied only after authorized service selection.",
+                "treatment": "Credit Eligible", "capacity_type": "Service Credits",
+                "included_quantity": 5, "unit": "credits", "rollover": True,
+                "rollover_limit": 2,
+                "member_description": "Five governed service credits with bounded rollover.",
+            },
+            {
+                "key": "tier-one-investigations", "label": "Tier 1 investigations",
+                "product_line": "SalINTEL Investigation",
+                "service_scope": "Tier 1 defines investigation depth; it is not a membership level.",
+                "treatment": "Included", "capacity_type": "Direct Quantity",
+                "included_quantity": 2, "unit": "investigations", "rollover": False,
+                "member_description": "Two separately authorized Tier 1 investigations.",
+            },
+            {
+                "key": "tier-two-work", "label": "Tier 2 investigation work",
+                "product_line": "SalINTEL Investigation",
+                "service_scope": "Preferred-rate treatment subject to separate scope and price approval.",
+                "treatment": "Preferred Rate", "capacity_type": "Commercial Treatment Only",
+                "unit": "engagements", "rollover": False,
+                "member_description": "Preferred-rate consideration; work remains separately authorized.",
+            },
+        ],
+        "portfolio_pricing": [{
+            "driver_key": "covered-facilities", "label": "Covered facilities", "unit": "facilities",
+            "included_quantity": 3, "adjustment_method": "Negotiated",
+            "planning_amount_cents": 0,
+            "efficiency_basis": "Portfolio efficiency is reviewed as a whole rather than multiplying a single-site fee.",
+        }],
+        "member_summary": "Fictional hybrid membership with explicit services and capacity.",
+        "internal_basis": "Demonstration plan for governed entitlement, portfolio, and economics acceptance.",
+    }
+    assert client.post(
+        "/api/salcapa/commercial/membership/plans", headers=member, json=plan_payload
+    ).status_code == 403
+    created_plan = client.post(
+        "/api/salcapa/commercial/membership/plans", headers=director, json=plan_payload
+    )
+    assert created_plan.status_code == 200, created_plan.text
+    plan = created_plan.json()
+    plan_id = plan["id"]
+    assert plan["status"] == "Draft" and plan["arrangement"] == "Hybrid"
+    assert len(plan["entitlements"]) == 4 and len(plan["content_sha256"]) == 64
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the membership plan for independent review."),
+        ("Approved", administrator, "Independent review confirms explicit, bounded entitlements."),
+    ):
+        response = client.post(
+            f"/api/salcapa/commercial/membership/plans/{plan_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        )
+        assert response.status_code == 200, response.text
+
+    term_payload = {
+        "plan_id": plan_id, "contract_reference": "fictional-sow-membership-001",
+        "start_date": "2026-09-01", "end_date": "2027-08-31",
+        "renewal_review_date": "2027-07-31", "billing_cadence": "Monthly",
+        "recurring_fee_cents": 100000, "approved_term_value_cents": 1200000,
+        "portfolio_coverage": [
+            {
+                "entity_type": "Facilities", "covered_quantity": 3,
+                "scope_reference": "fictional-facility-register-v1",
+                "member_description": "Three facilities listed in the released scope register.",
+            },
+            {
+                "entity_type": "Personnel", "covered_quantity": 50,
+                "scope_reference": "fictional-personnel-register-v1",
+                "member_description": "Fifty personnel positions within the released scope.",
+            },
+        ],
+        "negotiated_terms": "Fictional monthly arrangement; add-ons require separate written approval.",
+        "internal_basis": "Approved term value is a commercial planning record, not recognized revenue.",
+    }
+    term_created = client.post(
+        "/api/salcapa/commercial/membership/terms", headers=director, json=term_payload
+    )
+    assert term_created.status_code == 200, term_created.text
+    term = term_created.json()
+    term_id = term["id"]
+    assert term["status"] == "Draft" and term["plan_snapshot"]["id"] == plan_id
+    assert term["economics"]["monthly_recurring_value_cents"] == 100000
+    assert term["economics"]["annualized_recurring_value_cents"] == 1200000
+    assert term["economics"]["evidence_state"] == "Awaiting Validation"
+    assert term["creates_charge"] is False and term["auto_renews"] is False
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the exact term for independent commercial review."),
+        ("Approved", administrator, "Independent review confirms the exact term and portfolio scope."),
+        ("Released", administrator, "Release approved membership information to this Protected Member."),
+    ):
+        response = client.post(
+            f"/api/salcapa/commercial/membership/terms/{term_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        )
+        assert response.status_code == 200, response.text
+
+    member_terms = client.get(
+        "/api/salcapa/commercial/membership/terms", headers=member
+    )
+    assert member_terms.status_code == 200, member_terms.text
+    member_term = member_terms.json()[0]
+    assert member_term["plan_name"] == "Fictional Protected Membership"
+    assert member_term["arrangement"] == "Hybrid"
+    assert member_term["portfolio_coverage"][0]["covered_quantity"] == "3"
+    assert member_term["creates_charge"] is False
+    for forbidden in (
+        "tenant_id", "plan_snapshot", "internal_basis", "negotiated_terms",
+        "economics", "content_sha256", "approved_by",
+    ):
+        assert forbidden not in member_term
+    assert client.get(
+        "/api/salcapa/commercial/membership/consumption", headers=member
+    ).status_code == 403
+
+    monitoring_use = {
+        "term_id": term_id, "entitlement_key": "monitoring-cycles", "quantity": 1,
+        "occurred_on": "2026-09-08", "source_type": "Monitoring Cycle",
+        "source_record_id": "fictional-monitoring-cycle-001",
+        "source_reference": "Reviewed fictional cycle record.",
+        "notes": "One monitoring cycle submitted as supported membership consumption.",
+    }
+    use_created = client.post(
+        "/api/salcapa/commercial/membership/consumption", headers=director, json=monitoring_use
+    )
+    assert use_created.status_code == 200, use_created.text
+    use_id = use_created.json()["id"]
+    assert use_created.json()["capacity_analysis"]["approved_consumption"] == "1"
+    assert use_created.json()["capacity_analysis"]["authorization_state"] == "Within Approved Entitlement"
+    for status, headers, reason in (
+        ("Submitted", director, "Submit supported use for independent review."),
+        ("Approved", administrator, "Independent review confirms one monitoring cycle."),
+    ):
+        response = client.post(
+            f"/api/salcapa/commercial/membership/consumption/{use_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        )
+        assert response.status_code == 200, response.text
+    overage_use = dict(
+        monitoring_use, quantity=2, source_record_id="fictional-monitoring-cycle-002-003",
+        source_reference="Two additional reviewed fictional cycle records.",
+        notes="The quantity exceeds released capacity and requires a separate decision.",
+    )
+    overage = client.post(
+        "/api/salcapa/commercial/membership/consumption", headers=director, json=overage_use
+    )
+    assert overage.status_code == 200, overage.text
+    overage_id = overage.json()["id"]
+    assert overage.json()["capacity_analysis"]["authorization_state"] == "Separate Authorization Required"
+    assert overage.json()["creates_charge"] is False
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the supported excess-use record for review."),
+        ("Approved", administrator, "Confirm use evidence; separate commercial authorization remains required."),
+    ):
+        response = client.post(
+            f"/api/salcapa/commercial/membership/consumption/{overage_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        )
+        assert response.status_code == 200, response.text
+
+    investigation_use = {
+        "term_id": term_id, "entitlement_key": "tier-one-investigations", "quantity": 1,
+        "occurred_on": "2026-09-08", "source_type": "Estimate",
+        "source_record_id": estimate_id, "source_reference": "Released governed estimate.",
+        "estimate_id": estimate_id,
+        "notes": "Link one separately authorized Tier 1 investigation for cost-to-serve evidence.",
+    }
+    linked = client.post(
+        "/api/salcapa/commercial/membership/consumption", headers=director, json=investigation_use
+    )
+    assert linked.status_code == 200, linked.text
+    linked_id = linked.json()["id"]
+    for status, headers, reason in (
+        ("Submitted", director, "Submit linked investigation use for review."),
+        ("Approved", administrator, "Confirm the linked estimate and membership use."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/membership/consumption/{linked_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        ).status_code == 200
+
+    refreshed_member = client.get(
+        "/api/salcapa/commercial/membership/terms", headers=member
+    ).json()[0]
+    monitoring_capacity = next(
+        item for item in refreshed_member["capacity"] if item["entitlement_key"] == "monitoring-cycles"
+    )
+    assert monitoring_capacity["approved_consumption"] == "3"
+    assert monitoring_capacity["remaining_quantity"] == "0"
+    assert monitoring_capacity["quantity_requiring_separate_authorization"] == "1"
+    assert monitoring_capacity["authorization_state"] == "Separate Authorization Required"
+    internal_term = client.get(
+        "/api/salcapa/commercial/membership/terms", headers=administrator
+    ).json()[0]
+    economics = internal_term["economics"]
+    assert economics["monthly_recurring_value_cents"] == 100000
+    assert economics["annualized_recurring_value_cents"] == 1200000
+    assert economics["recognized_cost_to_serve_cents"] == 19025
+    assert economics["forecast_cost_to_serve_cents"] == 25025
+    assert economics["planning_contribution_cents"] == 1174975
+    assert economics["evidence_state"] == "Evidence Needed"
+    assert "not financial statements" in economics["interpretation"]
+    assert client.post(
+        "/api/salcapa/commercial/membership/consumption", headers=other, json=monitoring_use
+    ).status_code == 422
+
+    # A successor plan and term preserve the released historical snapshots.
+    successor_plan_payload = copy.deepcopy(plan_payload)
+    successor_plan_payload["supersedes_plan_id"] = plan_id
+    successor_plan_payload["name"] = "Fictional Protected Membership — revised"
+    successor_plan_payload["effective_from"] = "2027-09-01"
+    successor_plan_payload["entitlements"][0]["included_quantity"] = 4
+    successor_plan = client.post(
+        "/api/salcapa/commercial/membership/plans", headers=director, json=successor_plan_payload
+    )
+    assert successor_plan.status_code == 200, successor_plan.text
+    successor_plan_id = successor_plan.json()["id"]
+    for status, headers, reason in (
+        ("Submitted", director, "Submit revised plan for independent review."),
+        ("Approved", administrator, "Approve the future plan without rewriting history."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/membership/plans/{successor_plan_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        ).status_code == 200
+    successor_term_payload = dict(
+        term_payload, plan_id=successor_plan_id, supersedes_term_id=term_id,
+        contract_reference="fictional-sow-membership-002", start_date="2027-09-01",
+        end_date="2028-08-31", renewal_review_date="2028-07-31",
+    )
+    successor_term = client.post(
+        "/api/salcapa/commercial/membership/terms", headers=director, json=successor_term_payload
+    )
+    assert successor_term.status_code == 200, successor_term.text
+    assert successor_term.json()["plan_snapshot"]["entitlements"][0]["included_quantity"] == "4"
+    assert client.post(
+        "/api/salcapa/commercial/membership/terms", headers=director, json=successor_term_payload
+    ).status_code == 409
+    member_history = client.get(
+        "/api/salcapa/commercial/membership/terms", headers=member
+    ).json()
+    assert len(member_history) == 1
+    assert member_history[0]["capacity"][0]["included_quantity"] == "2"
+
     conn = salcapa_runtime.core.db()
     records = salcapa_runtime.core.collect_tenant_records(conn, 1)
     conn.close()
@@ -639,6 +924,9 @@ def main() -> None:
     assert len(records["salcapa_time_entries"]) == 2
     assert len(records["salcapa_cost_entries"]) == 4
     assert len(records["salcapa_commercial_forecasts"]) == 3
+    assert len(records["salcapa_membership_plans"]) == 2
+    assert len(records["salcapa_membership_terms"]) == 2
+    assert len(records["salcapa_membership_consumption"]) == 3
     assert salcapa_runtime.core.validate_records(records, 1) == []
     tampered = copy.deepcopy(records)
     tampered["salcapa_commercial_estimates"][0]["recommended_customer_price_cents"] = 1
@@ -650,6 +938,12 @@ def main() -> None:
     tampered_forecast = copy.deepcopy(records)
     tampered_forecast["salcapa_commercial_forecasts"][0]["forecast_at_completion_cents"] = 1
     assert salcapa_runtime.core.validate_records(tampered_forecast, 1) != []
+    tampered_membership = copy.deepcopy(records)
+    tampered_membership["salcapa_membership_terms"][0]["approved_term_value_cents"] = 1
+    assert salcapa_runtime.core.validate_records(tampered_membership, 1) != []
+    tampered_entitlement = copy.deepcopy(records)
+    tampered_entitlement["salcapa_membership_consumption"][0]["entitlement_snapshot_json"] = "{}"
+    assert salcapa_runtime.core.validate_records(tampered_entitlement, 1) != []
 
     # Direct persisted tampering is rejected before any lifecycle action.
     conn = salcapa_runtime.core.db()

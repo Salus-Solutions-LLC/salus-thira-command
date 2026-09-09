@@ -1,11 +1,12 @@
-"""Governed SalCAPA commercial planning, estimates, and actual-cost records.
+"""Governed SalCAPA commercial planning, membership, and actual-cost records.
 
 Issue #154 increment.  Salus personnel configure and approve versioned planning
 assumptions.  Estimates snapshot every assumption and calculation.  Salus time
 and direct-cost records retain source, approval, and correction lineage while
 keeping unavailable or estimated amounts distinct from recognized actual cost.
-Nothing in this module creates a charge, invoice, entitlement, scope
-authorization, or customer commitment.
+Protected Membership terms retain explicit human approval and release gates;
+consumption never creates a charge, invoice, scope expansion, tier change,
+renewal, partner action, or customer commitment automatically.
 """
 from __future__ import annotations
 
@@ -75,17 +76,31 @@ ACTUAL_COST_BASES = {"Metered Actual", "Supplier Invoice", "Receipt"}
 REPORT_GROUPS = (
     "Product Line", "Investigative Domain", "Tier", "Engagement", "Pricing Method",
 )
+MEMBERSHIP_ARRANGEMENTS = ("Transactional", "Subscription Membership", "Hybrid")
+MEMBERSHIP_BILLING_CADENCES = ("Monthly", "Quarterly", "Annual", "Custom")
+MEMBERSHIP_TREATMENTS = (
+    "Included", "Discounted", "Preferred Rate", "Credit Eligible",
+    "Separately Quoted", "Pass-Through", "Not Included", "Custom",
+)
+MEMBERSHIP_CAPACITY_TYPES = ("Direct Quantity", "Service Credits", "Commercial Treatment Only")
+MEMBERSHIP_SOURCE_TYPES = (
+    "Estimate", "Investigation", "Monitoring Cycle", "Assessment", "Preparedness",
+    "Plan", "Training", "Exercise", "Manual Governed Record", "Other",
+)
 BACKUP_TABLES = (
     "salcapa_rate_cards", "salcapa_commercial_estimates",
     "salcapa_time_entries", "salcapa_cost_entries", "salcapa_commercial_forecasts",
+    "salcapa_membership_plans", "salcapa_membership_terms", "salcapa_membership_consumption",
 )
 DELETE_ORDER = (
+    "salcapa_membership_consumption", "salcapa_membership_terms", "salcapa_membership_plans",
     "salcapa_commercial_forecasts", "salcapa_time_entries", "salcapa_cost_entries",
     "salcapa_commercial_estimates", "salcapa_rate_cards",
 )
 RESTORE_ORDER = (
     "salcapa_rate_cards", "salcapa_commercial_estimates",
     "salcapa_time_entries", "salcapa_cost_entries", "salcapa_commercial_forecasts",
+    "salcapa_membership_plans", "salcapa_membership_terms", "salcapa_membership_consumption",
 )
 
 
@@ -310,6 +325,113 @@ CREATE TABLE IF NOT EXISTS salcapa_commercial_forecasts (
 );
 CREATE INDEX IF NOT EXISTS idx_salcapa_commercial_forecasts_scope
   ON salcapa_commercial_forecasts(tenant_id,estimate_id,status,as_of_date,version_no);
+
+CREATE TABLE IF NOT EXISTS salcapa_membership_plans (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  version_no INTEGER NOT NULL,
+  supersedes_plan_id TEXT,
+  name TEXT NOT NULL,
+  arrangement TEXT NOT NULL,
+  effective_from TEXT NOT NULL,
+  entitlements_json TEXT NOT NULL,
+  portfolio_pricing_json TEXT NOT NULL,
+  member_summary TEXT NOT NULL,
+  internal_basis TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Draft',
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  submitted_by TEXT NOT NULL DEFAULT '',
+  submitted_at TEXT NOT NULL DEFAULT '',
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT '',
+  decision_reason TEXT NOT NULL DEFAULT '',
+  retired_by TEXT NOT NULL DEFAULT '',
+  retired_at TEXT NOT NULL DEFAULT '',
+  retirement_reason TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  UNIQUE(tenant_id,version_no)
+);
+CREATE INDEX IF NOT EXISTS idx_salcapa_membership_plans_scope
+  ON salcapa_membership_plans(tenant_id,status,effective_from,version_no);
+
+CREATE TABLE IF NOT EXISTS salcapa_membership_terms (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  version_no INTEGER NOT NULL,
+  supersedes_term_id TEXT,
+  plan_id TEXT NOT NULL,
+  plan_version INTEGER NOT NULL,
+  plan_snapshot_json TEXT NOT NULL,
+  contract_reference TEXT NOT NULL,
+  start_date TEXT NOT NULL,
+  end_date TEXT NOT NULL,
+  renewal_review_date TEXT NOT NULL,
+  billing_cadence TEXT NOT NULL,
+  recurring_fee_cents INTEGER NOT NULL,
+  approved_term_value_cents INTEGER NOT NULL,
+  portfolio_coverage_json TEXT NOT NULL,
+  negotiated_terms TEXT NOT NULL,
+  internal_basis TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Draft',
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  creates_entitlement_automatically INTEGER NOT NULL DEFAULT 0,
+  authorizes_scope_automatically INTEGER NOT NULL DEFAULT 0,
+  auto_renews INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  submitted_by TEXT NOT NULL DEFAULT '',
+  submitted_at TEXT NOT NULL DEFAULT '',
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT '',
+  released_by TEXT NOT NULL DEFAULT '',
+  released_at TEXT NOT NULL DEFAULT '',
+  decision_reason TEXT NOT NULL DEFAULT '',
+  release_reason TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (plan_id) REFERENCES salcapa_membership_plans(id),
+  UNIQUE(tenant_id,version_no)
+);
+CREATE INDEX IF NOT EXISTS idx_salcapa_membership_terms_scope
+  ON salcapa_membership_terms(tenant_id,status,start_date,end_date,version_no);
+
+CREATE TABLE IF NOT EXISTS salcapa_membership_consumption (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  version_no INTEGER NOT NULL,
+  term_id TEXT NOT NULL,
+  supersedes_consumption_id TEXT,
+  entitlement_key TEXT NOT NULL,
+  entitlement_snapshot_json TEXT NOT NULL,
+  quantity TEXT NOT NULL,
+  occurred_on TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  source_record_id TEXT NOT NULL,
+  source_reference TEXT NOT NULL,
+  estimate_id TEXT,
+  notes TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Draft',
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  creates_scope_authorization INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  submitted_by TEXT NOT NULL DEFAULT '',
+  submitted_at TEXT NOT NULL DEFAULT '',
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT '',
+  decision_reason TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (term_id) REFERENCES salcapa_membership_terms(id),
+  FOREIGN KEY (estimate_id) REFERENCES salcapa_commercial_estimates(id),
+  UNIQUE(tenant_id,version_no)
+);
+CREATE INDEX IF NOT EXISTS idx_salcapa_membership_consumption_scope
+  ON salcapa_membership_consumption(tenant_id,term_id,status,entitlement_key,occurred_on,version_no);
 """
 
 
@@ -499,6 +621,179 @@ class ForecastCreate(StrictModel):
 
 
 class ForecastTransition(StrictModel):
+    status: Literal["Submitted", "Approved", "Rejected"]
+    reason: str = Field(min_length=3, max_length=4000)
+
+
+class MembershipEntitlement(StrictModel):
+    key: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{1,79}$")
+    label: str = Field(min_length=2, max_length=160)
+    product_line: str = Field(min_length=2, max_length=160)
+    service_scope: str = Field(min_length=3, max_length=1000)
+    treatment: Literal[
+        "Included", "Discounted", "Preferred Rate", "Credit Eligible",
+        "Separately Quoted", "Pass-Through", "Not Included", "Custom",
+    ]
+    capacity_type: Literal["Direct Quantity", "Service Credits", "Commercial Treatment Only"]
+    included_quantity: Optional[Decimal] = Field(default=None, gt=0, le=1_000_000, decimal_places=3)
+    unit: str = Field(min_length=2, max_length=80)
+    rollover: bool = False
+    rollover_limit: Optional[Decimal] = Field(default=None, ge=0, le=1_000_000, decimal_places=3)
+    member_description: str = Field(min_length=3, max_length=1000)
+
+    @model_validator(mode="after")
+    def valid_entitlement(self):
+        if self.product_line not in PRODUCT_LINES:
+            raise ValueError("Membership entitlement product line is invalid")
+        if self.capacity_type in {"Direct Quantity", "Service Credits"}:
+            if self.included_quantity is None:
+                raise ValueError("A quantity or credit capacity must have an explicit limit")
+        elif self.included_quantity is not None or self.rollover or self.rollover_limit is not None:
+            raise ValueError("Commercial-treatment-only entitlements cannot imply quantity capacity")
+        if self.capacity_type != "Service Credits" and (self.rollover or self.rollover_limit is not None):
+            raise ValueError("Rollover applies only to service credits")
+        if self.rollover_limit is not None and not self.rollover:
+            raise ValueError("A rollover limit requires rollover to be enabled")
+        return self
+
+
+class MembershipPortfolioPricingRule(StrictModel):
+    driver_key: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{1,79}$")
+    label: str = Field(min_length=2, max_length=160)
+    unit: str = Field(min_length=2, max_length=80)
+    included_quantity: Decimal = Field(ge=0, le=1_000_000, decimal_places=3)
+    adjustment_method: Literal["Negotiated", "Per Additional Unit", "Separate Quote"]
+    planning_amount_cents: int = Field(default=0, ge=0, le=1_000_000_000)
+    efficiency_basis: str = Field(min_length=3, max_length=1000)
+
+    @model_validator(mode="after")
+    def valid_portfolio_rule(self):
+        if self.adjustment_method == "Per Additional Unit" and self.planning_amount_cents <= 0:
+            raise ValueError("A per-unit planning rule requires a positive planning amount")
+        if self.adjustment_method != "Per Additional Unit" and self.planning_amount_cents != 0:
+            raise ValueError("Negotiated or separately quoted drivers cannot imply a unit charge")
+        return self
+
+
+class MembershipPlanCreate(StrictModel):
+    supersedes_plan_id: Optional[str] = Field(default=None, max_length=80)
+    name: str = Field(min_length=3, max_length=200)
+    arrangement: Literal["Transactional", "Subscription Membership", "Hybrid"]
+    effective_from: str = Field(min_length=10, max_length=10)
+    entitlements: list[MembershipEntitlement] = Field(min_length=1, max_length=200)
+    portfolio_pricing: list[MembershipPortfolioPricingRule] = Field(default_factory=list, max_length=100)
+    member_summary: str = Field(min_length=3, max_length=3000)
+    internal_basis: str = Field(min_length=3, max_length=8000)
+
+    @field_validator("name")
+    @classmethod
+    def membership_name_is_not_investigation_tier(cls, value: str) -> str:
+        folded = " ".join(value.casefold().replace("-", " ").split())
+        if any(f"tier {number}" in folded for number in (1, 2, 3)):
+            raise ValueError("Membership plan names must not be represented as investigation tiers")
+        return value.strip()
+
+    @field_validator("effective_from")
+    @classmethod
+    def valid_effective_from(cls, value: str) -> str:
+        try:
+            date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("effective_from must be a valid ISO date") from exc
+        return value
+
+    @model_validator(mode="after")
+    def unique_membership_keys(self):
+        entitlement_keys = [item.key for item in self.entitlements]
+        if len(entitlement_keys) != len(set(entitlement_keys)):
+            raise ValueError("Membership entitlement keys must be unique")
+        driver_keys = [item.driver_key for item in self.portfolio_pricing]
+        if len(driver_keys) != len(set(driver_keys)):
+            raise ValueError("Portfolio pricing driver keys must be unique")
+        return self
+
+
+class MembershipPlanTransition(StrictModel):
+    status: Literal["Submitted", "Approved", "Rejected", "Retired"]
+    reason: str = Field(min_length=3, max_length=4000)
+
+
+class MembershipPortfolioCoverage(StrictModel):
+    entity_type: str = Field(min_length=2, max_length=120)
+    covered_quantity: Decimal = Field(ge=0, le=1_000_000, decimal_places=3)
+    scope_reference: str = Field(min_length=3, max_length=500)
+    member_description: str = Field(min_length=3, max_length=1000)
+
+
+class MembershipTermCreate(StrictModel):
+    supersedes_term_id: Optional[str] = Field(default=None, max_length=80)
+    plan_id: str = Field(min_length=3, max_length=80)
+    contract_reference: str = Field(min_length=3, max_length=500)
+    start_date: str = Field(min_length=10, max_length=10)
+    end_date: str = Field(min_length=10, max_length=10)
+    renewal_review_date: str = Field(min_length=10, max_length=10)
+    billing_cadence: Literal["Monthly", "Quarterly", "Annual", "Custom"]
+    recurring_fee_cents: int = Field(ge=0, le=2_000_000_000)
+    approved_term_value_cents: int = Field(ge=0, le=2_000_000_000)
+    portfolio_coverage: list[MembershipPortfolioCoverage] = Field(default_factory=list, max_length=200)
+    negotiated_terms: str = Field(min_length=3, max_length=8000)
+    internal_basis: str = Field(min_length=3, max_length=8000)
+
+    @model_validator(mode="after")
+    def valid_term(self):
+        try:
+            start = date.fromisoformat(self.start_date)
+            end = date.fromisoformat(self.end_date)
+            review = date.fromisoformat(self.renewal_review_date)
+        except ValueError as exc:
+            raise ValueError("Membership term dates must be valid ISO dates") from exc
+        if end < start:
+            raise ValueError("Membership end_date cannot precede start_date")
+        if review > end:
+            raise ValueError("renewal_review_date cannot follow end_date")
+        coverage_types = [item.entity_type.casefold() for item in self.portfolio_coverage]
+        if len(coverage_types) != len(set(coverage_types)):
+            raise ValueError("Portfolio coverage entity types must be unique within a term")
+        return self
+
+
+class MembershipTermTransition(StrictModel):
+    status: Literal["Submitted", "Approved", "Rejected", "Released"]
+    reason: str = Field(min_length=3, max_length=4000)
+
+
+class MembershipConsumptionCreate(StrictModel):
+    term_id: str = Field(min_length=3, max_length=80)
+    supersedes_consumption_id: Optional[str] = Field(default=None, max_length=80)
+    entitlement_key: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{1,79}$")
+    quantity: Decimal = Field(gt=0, le=1_000_000, decimal_places=3)
+    occurred_on: str = Field(min_length=10, max_length=10)
+    source_type: Literal[
+        "Estimate", "Investigation", "Monitoring Cycle", "Assessment", "Preparedness",
+        "Plan", "Training", "Exercise", "Manual Governed Record", "Other",
+    ]
+    source_record_id: str = Field(min_length=1, max_length=160)
+    source_reference: str = Field(min_length=3, max_length=1000)
+    estimate_id: Optional[str] = Field(default=None, max_length=80)
+    notes: str = Field(min_length=3, max_length=4000)
+
+    @field_validator("occurred_on")
+    @classmethod
+    def valid_occurred_on(cls, value: str) -> str:
+        try:
+            date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("occurred_on must be a valid ISO date") from exc
+        return value
+
+    @model_validator(mode="after")
+    def valid_source(self):
+        if self.source_type == "Estimate" and not self.estimate_id:
+            raise ValueError("Estimate consumption requires estimate_id")
+        return self
+
+
+class MembershipConsumptionTransition(StrictModel):
     status: Literal["Submitted", "Approved", "Rejected"]
     reason: str = Field(min_length=3, max_length=4000)
 
@@ -990,6 +1285,264 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         out["creates_invoice"] = bool(out["creates_invoice"])
         return out
 
+    def plan_content(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "tenant_id": int(row["tenant_id"]),
+            "version_no": int(row["version_no"]),
+            "supersedes_plan_id": row["supersedes_plan_id"],
+            "name": row["name"], "arrangement": row["arrangement"],
+            "effective_from": row["effective_from"],
+            "entitlements": json.loads(row["entitlements_json"]),
+            "portfolio_pricing": json.loads(row["portfolio_pricing_json"]),
+            "member_summary": row["member_summary"], "internal_basis": row["internal_basis"],
+        }
+
+    def verify_membership_plan(row: dict[str, Any]) -> None:
+        if _digest(plan_content(row)) != row["content_sha256"]:
+            raise HTTPException(409, "Protected Membership plan integrity verification failed")
+
+    def membership_plan_view(row: dict[str, Any]) -> dict[str, Any]:
+        out = dict(row)
+        out["entitlements"] = json.loads(out.pop("entitlements_json"))
+        out["portfolio_pricing"] = json.loads(out.pop("portfolio_pricing_json"))
+        return out
+
+    def term_content(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "tenant_id": int(row["tenant_id"]),
+            "version_no": int(row["version_no"]),
+            "supersedes_term_id": row["supersedes_term_id"],
+            "plan_id": row["plan_id"], "plan_version": int(row["plan_version"]),
+            "plan_snapshot": json.loads(row["plan_snapshot_json"]),
+            "contract_reference": row["contract_reference"],
+            "start_date": row["start_date"], "end_date": row["end_date"],
+            "renewal_review_date": row["renewal_review_date"],
+            "billing_cadence": row["billing_cadence"],
+            "recurring_fee_cents": int(row["recurring_fee_cents"]),
+            "approved_term_value_cents": int(row["approved_term_value_cents"]),
+            "portfolio_coverage": json.loads(row["portfolio_coverage_json"]),
+            "negotiated_terms": row["negotiated_terms"], "internal_basis": row["internal_basis"],
+        }
+
+    def verify_membership_term(row: dict[str, Any]) -> None:
+        if _digest(term_content(row)) != row["content_sha256"]:
+            raise HTTPException(409, "Protected Membership term integrity verification failed")
+        prohibited = (
+            "creates_charge", "creates_invoice", "creates_entitlement_automatically",
+            "authorizes_scope_automatically", "auto_renews",
+        )
+        if any(int(row[field]) for field in prohibited):
+            raise HTTPException(409, "Protected Membership term contains a prohibited automatic effect")
+
+    def consumption_content(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "tenant_id": int(row["tenant_id"]),
+            "version_no": int(row["version_no"]), "term_id": row["term_id"],
+            "supersedes_consumption_id": row["supersedes_consumption_id"],
+            "entitlement_key": row["entitlement_key"],
+            "entitlement_snapshot": json.loads(row["entitlement_snapshot_json"]),
+            "quantity": row["quantity"], "occurred_on": row["occurred_on"],
+            "source_type": row["source_type"], "source_record_id": row["source_record_id"],
+            "source_reference": row["source_reference"], "estimate_id": row["estimate_id"],
+            "notes": row["notes"],
+        }
+
+    def verify_membership_consumption(row: dict[str, Any]) -> None:
+        if _digest(consumption_content(row)) != row["content_sha256"]:
+            raise HTTPException(409, "Protected Membership consumption integrity verification failed")
+        if any(int(row[field]) for field in (
+            "creates_charge", "creates_invoice", "creates_scope_authorization",
+        )):
+            raise HTTPException(409, "Protected Membership consumption contains a prohibited automatic effect")
+
+    def active_membership_consumption(conn, tid: int, term_id: str) -> list[dict[str, Any]]:
+        rows = [dict(row) for row in conn.execute(
+            "SELECT * FROM salcapa_membership_consumption WHERE tenant_id=? AND term_id=? ORDER BY version_no",
+            (tid, term_id),
+        )]
+        for row in rows:
+            verify_membership_consumption(row)
+        approved = [row for row in rows if row["status"] == "Approved"]
+        superseded = {
+            row["supersedes_consumption_id"] for row in approved if row["supersedes_consumption_id"]
+        }
+        return [row for row in approved if row["id"] not in superseded]
+
+    def membership_capacity(conn, row: dict[str, Any],
+                            proposed: Optional[tuple[str, Decimal]] = None) -> list[dict[str, Any]]:
+        entitlements = json.loads(row["plan_snapshot_json"])["entitlements"]
+        consumption = active_membership_consumption(conn, int(row["tenant_id"]), row["id"])
+        used: dict[str, Decimal] = {}
+        for item in consumption:
+            used[item["entitlement_key"]] = used.get(item["entitlement_key"], Decimal("0")) + Decimal(
+                item["quantity"]
+            )
+        if proposed:
+            key, quantity = proposed
+            used[key] = used.get(key, Decimal("0")) + quantity
+        capacity: list[dict[str, Any]] = []
+        for entitlement in entitlements:
+            quantity = used.get(entitlement["key"], Decimal("0"))
+            limit_value = entitlement.get("included_quantity")
+            limit = Decimal(str(limit_value)) if limit_value is not None else None
+            remaining = max(limit - quantity, Decimal("0")) if limit is not None else None
+            excess = max(quantity - limit, Decimal("0")) if limit is not None else Decimal("0")
+            requires_separate = (
+                excess > 0
+                or entitlement["treatment"] in {"Separately Quoted", "Pass-Through", "Not Included"}
+            )
+            capacity.append({
+                "entitlement_key": entitlement["key"], "label": entitlement["label"],
+                "product_line": entitlement["product_line"],
+                "service_scope": entitlement["service_scope"],
+                "commercial_treatment": entitlement["treatment"],
+                "capacity_type": entitlement["capacity_type"], "unit": entitlement["unit"],
+                "included_quantity": None if limit is None else format(limit, "f"),
+                "approved_consumption": format(quantity, "f"),
+                "remaining_quantity": None if remaining is None else format(remaining, "f"),
+                "quantity_requiring_separate_authorization": format(excess, "f"),
+                "authorization_state": (
+                    "Separate Authorization Required" if requires_separate
+                    else "Within Approved Entitlement"
+                ),
+                "next_step": (
+                    "Prepare a governed add-on, estimate, or membership amendment for authorized review."
+                    if requires_separate else
+                    "Continue within the released term and record supported consumption for review."
+                ),
+                "member_description": entitlement["member_description"],
+            })
+        return capacity
+
+    def recurring_values(row: dict[str, Any]) -> tuple[Optional[int], Optional[int]]:
+        fee = int(row["recurring_fee_cents"])
+        cadence = row["billing_cadence"]
+        if cadence == "Monthly":
+            return fee, fee * 12
+        if cadence == "Quarterly":
+            return _money(Decimal(fee) / Decimal(3)), fee * 4
+        if cadence == "Annual":
+            return _money(Decimal(fee) / Decimal(12)), fee
+        return None, None
+
+    def membership_economics(conn, row: dict[str, Any]) -> dict[str, Any]:
+        consumption = active_membership_consumption(conn, int(row["tenant_id"]), row["id"])
+        estimate_ids = sorted({item["estimate_id"] for item in consumption if item["estimate_id"]})
+        recognized_cost = 0
+        forecast_cost = 0
+        unavailable_count = 0
+        forecasts_used = 0
+        for estimate_id in estimate_ids:
+            found = conn.execute(
+                "SELECT * FROM salcapa_commercial_estimates WHERE id=? AND tenant_id=?",
+                (estimate_id, row["tenant_id"]),
+            ).fetchone()
+            if not found:
+                raise HTTPException(409, "Membership consumption references a missing estimate")
+            estimate = dict(found)
+            verify_estimate(estimate)
+            actuals = active_actual_summary(conn, int(row["tenant_id"]), estimate_id)
+            actual_cost = int(actuals["recognized_actual_cost_to_date_cents"])
+            recognized_cost += actual_cost
+            unavailable_count += int(actuals["approved_unavailable_cost_record_count"])
+            forecast = active_approved_forecast(conn, int(row["tenant_id"]), estimate_id)
+            if forecast:
+                verify_forecast(forecast)
+                forecast_cost += int(forecast["forecast_at_completion_cents"])
+                forecasts_used += 1
+            else:
+                forecast_cost += actual_cost
+        monthly, annual = recurring_values(row)
+        term_value = int(row["approved_term_value_cents"])
+        planning_contribution = term_value - forecast_cost
+        contribution_bps = None if term_value <= 0 else _money(
+            Decimal(planning_contribution) * Decimal(10000) / Decimal(term_value)
+        )
+        if not estimate_ids:
+            evidence_state = "Awaiting Validation"
+        elif unavailable_count or forecasts_used < len(estimate_ids):
+            evidence_state = "Evidence Needed"
+        else:
+            evidence_state = "Reasonably Supported"
+        return {
+            "monthly_recurring_value_cents": monthly,
+            "annualized_recurring_value_cents": annual,
+            "approved_term_value_cents": term_value,
+            "linked_estimate_count": len(estimate_ids),
+            "recognized_cost_to_serve_cents": recognized_cost,
+            "forecast_cost_to_serve_cents": forecast_cost,
+            "planning_contribution_cents": planning_contribution,
+            "planning_contribution_basis_points": contribution_bps,
+            "evidence_state": evidence_state,
+            "unavailable_cost_record_count": unavailable_count,
+            "interpretation": (
+                "Salus-only planning economics based on approved term values and governed cost records. "
+                "They are not financial statements, recognized revenue or margin, a customer charge, or an invoice."
+            ),
+        }
+
+    def membership_term_view(conn, row: dict[str, Any], member: bool) -> dict[str, Any]:
+        capacity = membership_capacity(conn, row)
+        plan = json.loads(row["plan_snapshot_json"])
+        common = {
+            "id": row["id"], "version_no": int(row["version_no"]),
+            "plan_name": plan["name"], "plan_version": int(row["plan_version"]),
+            "arrangement": plan["arrangement"], "contract_reference": row["contract_reference"],
+            "start_date": row["start_date"], "end_date": row["end_date"],
+            "renewal_review_date": row["renewal_review_date"],
+            "billing_cadence": row["billing_cadence"],
+            "recurring_fee_cents": int(row["recurring_fee_cents"]),
+            "approved_term_value_cents": int(row["approved_term_value_cents"]),
+            "portfolio_coverage": json.loads(row["portfolio_coverage_json"]),
+            "member_summary": plan["member_summary"], "status": row["status"],
+            "released_at": row["released_at"], "capacity": capacity,
+            "creates_charge": False, "creates_invoice": False,
+            "creates_entitlement_automatically": False,
+            "authorizes_scope_automatically": False, "auto_renews": False,
+            "next_step": (
+                "Review remaining capacity and ask Salus to prepare an authorized change when needs exceed the released term."
+            ),
+        }
+        if member:
+            common["visibility"] = (
+                "Released information for this Protected Member only. Internal rates, costs, calculations, "
+                "partner economics, margin, and profitability are withheld."
+            )
+            return common
+        common.update({
+            "tenant_id": int(row["tenant_id"]), "supersedes_term_id": row["supersedes_term_id"],
+            "plan_id": row["plan_id"], "plan_snapshot": plan,
+            "negotiated_terms": row["negotiated_terms"], "internal_basis": row["internal_basis"],
+            "content_sha256": row["content_sha256"], "created_by": row["created_by"],
+            "created_at": row["created_at"], "submitted_by": row["submitted_by"],
+            "submitted_at": row["submitted_at"], "approved_by": row["approved_by"],
+            "approved_at": row["approved_at"], "released_by": row["released_by"],
+            "decision_reason": row["decision_reason"], "release_reason": row["release_reason"],
+            "updated_at": row["updated_at"], "economics": membership_economics(conn, row),
+        })
+        return common
+
+    def membership_consumption_view(conn, row: dict[str, Any]) -> dict[str, Any]:
+        term = conn.execute(
+            "SELECT * FROM salcapa_membership_terms WHERE id=? AND tenant_id=?",
+            (row["term_id"], row["tenant_id"]),
+        ).fetchone()
+        if not term:
+            raise HTTPException(409, "Protected Membership consumption term is missing")
+        out = dict(row)
+        out["entitlement_snapshot"] = json.loads(out.pop("entitlement_snapshot_json"))
+        out["creates_charge"] = False
+        out["creates_invoice"] = False
+        out["creates_scope_authorization"] = False
+        projected = membership_capacity(
+            conn, dict(term),
+            None if row["status"] == "Approved" else (row["entitlement_key"], Decimal(row["quantity"])),
+        )
+        out["capacity_analysis"] = next(
+            item for item in projected if item["entitlement_key"] == row["entitlement_key"]
+        )
+        return out
+
     def report_date(value: str, field_name: str) -> date:
         try:
             return date.fromisoformat(value)
@@ -1196,6 +1749,11 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "time_commercial_treatments": list(COMMERCIAL_TREATMENTS),
             "cost_categories": list(COST_CATEGORIES), "cost_bases": list(COST_BASES),
             "cost_commercial_treatments": list(PARTNER_TREATMENTS),
+            "membership_arrangements": list(MEMBERSHIP_ARRANGEMENTS),
+            "membership_billing_cadences": list(MEMBERSHIP_BILLING_CADENCES),
+            "membership_commercial_treatments": list(MEMBERSHIP_TREATMENTS),
+            "membership_capacity_types": list(MEMBERSHIP_CAPACITY_TYPES),
+            "membership_source_types": list(MEMBERSHIP_SOURCE_TYPES),
             "initial_planning_defaults": json.loads(_canonical(DEFAULT_RULES)),
             "guidance": {
                 "purpose": "Prepare a transparent planning estimate for authorized Salus review.",
@@ -1212,6 +1770,11 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "report_purpose": "Review current approved commercial positions and dated cost activity within one governed Protected Member scope.",
                 "report_uncertainty": "Management totals distinguish recognized actual cost, provisional amounts, unavailable cost records, and approved forecasts; they are not financial statements or final margin recognition.",
                 "report_confidentiality": "Commercial management reports are Salus-only and do not expose internal rates, costs, calculations, or margins to Protected Members.",
+                "membership_distinction": "Protected Membership defines a recurring commercial relationship and explicit capacity. Investigation Tier 1, Tier 2, and Tier 3 define authorized investigative depth only.",
+                "membership_authority": "Authorized Salus personnel independently approve plan versions, member terms, consumption records, and any add-on or amendment.",
+                "membership_consequence": "Recording use or reaching a capacity limit does not create a charge, invoice, scope expansion, tier change, partner action, renewal, or customer commitment.",
+                "membership_next_step": "When a released entitlement does not cover requested work, prepare a governed add-on, estimate, or membership amendment for human review.",
+                "membership_confidentiality": "Protected Members see only their released term, covered scope, approved consumption, and remaining capacity. Salus rates, costs, partner economics, calculations, margin, and profitability remain Salus-only.",
             },
         }
 
@@ -1936,6 +2499,468 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         verify_forecast(result)
         return forecast_view(result)
 
+    @app.get("/api/salcapa/commercial/membership/plans")
+    def list_membership_plans(request: Request):
+        salus_read(request)
+        conn = db()
+        try:
+            rows = [dict(row) for row in conn.execute(
+                "SELECT * FROM salcapa_membership_plans WHERE tenant_id=? ORDER BY version_no DESC",
+                (tenant_id(request),),
+            )]
+        finally:
+            conn.close()
+        for row in rows:
+            verify_membership_plan(row)
+        return [membership_plan_view(row) for row in rows]
+
+    @app.post("/api/salcapa/commercial/membership/plans")
+    def create_membership_plan(payload: MembershipPlanCreate, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        entitlements = [item.model_dump(mode="json") for item in payload.entitlements]
+        portfolio_pricing = [item.model_dump(mode="json") for item in payload.portfolio_pricing]
+        conn = db()
+        try:
+            if payload.supersedes_plan_id:
+                prior = conn.execute(
+                    "SELECT * FROM salcapa_membership_plans WHERE id=? AND tenant_id=? AND status IN ('Approved','Retired')",
+                    (payload.supersedes_plan_id, tid),
+                ).fetchone()
+                if not prior:
+                    raise HTTPException(422, "A successor must reference an Approved or Retired plan in this tenant")
+                verify_membership_plan(dict(prior))
+                duplicate = conn.execute(
+                    "SELECT id FROM salcapa_membership_plans WHERE supersedes_plan_id=? AND tenant_id=? AND status<>'Rejected'",
+                    (payload.supersedes_plan_id, tid),
+                ).fetchone()
+                if duplicate:
+                    raise HTTPException(409, "This membership plan already has an active successor")
+            version = int(conn.execute(
+                "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_membership_plans WHERE tenant_id=?",
+                (tid,),
+            ).fetchone()["v"])
+            plan_id = _key("membership-plan")
+            content = {
+                "id": plan_id, "tenant_id": tid, "version_no": version,
+                "supersedes_plan_id": payload.supersedes_plan_id,
+                "name": payload.name.strip(), "arrangement": payload.arrangement,
+                "effective_from": payload.effective_from, "entitlements": entitlements,
+                "portfolio_pricing": portfolio_pricing,
+                "member_summary": payload.member_summary.strip(),
+                "internal_basis": payload.internal_basis.strip(),
+            }
+            conn.execute(
+                """INSERT INTO salcapa_membership_plans(
+                   id,tenant_id,version_no,supersedes_plan_id,name,arrangement,effective_from,
+                   entitlements_json,portfolio_pricing_json,member_summary,internal_basis,
+                   content_sha256,status,created_by,created_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (plan_id, tid, version, payload.supersedes_plan_id, content["name"],
+                 payload.arrangement, payload.effective_from, _canonical(entitlements),
+                 _canonical(portfolio_pricing), content["member_summary"], content["internal_basis"],
+                 _digest(content), "Draft", who, stamp, stamp),
+            )
+            audit(
+                conn, "SALCAPA_MEMBERSHIP_PLAN_CREATE", "salcapa_membership_plan", None,
+                f"{plan_id} v{version}: Draft Protected Membership plan prepared; no customer entitlement, scope, charge, invoice, or commitment created.",
+                who,
+            )
+            conn.commit()
+            row = dict(conn.execute(
+                "SELECT * FROM salcapa_membership_plans WHERE id=?", (plan_id,)
+            ).fetchone())
+        finally:
+            conn.close()
+        verify_membership_plan(row)
+        return membership_plan_view(row)
+
+    @app.post("/api/salcapa/commercial/membership/plans/{plan_id}/transition")
+    def transition_membership_plan(plan_id: str, payload: MembershipPlanTransition, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            found = conn.execute(
+                "SELECT * FROM salcapa_membership_plans WHERE id=? AND tenant_id=?", (plan_id, tid)
+            ).fetchone()
+            if not found:
+                raise HTTPException(404, "Protected Membership plan not found")
+            row = dict(found)
+            verify_membership_plan(row)
+            expected = {
+                "Draft": {"Submitted"}, "Submitted": {"Approved", "Rejected"},
+                "Approved": {"Retired"},
+            }
+            if payload.status not in expected.get(row["status"], set()):
+                raise HTTPException(
+                    409, f"Protected Membership plan cannot transition from {row['status']} to {payload.status}"
+                )
+            submitted_by, submitted_at = row["submitted_by"], row["submitted_at"]
+            approved_by, approved_at = row["approved_by"], row["approved_at"]
+            decision_reason = row["decision_reason"]
+            retired_by, retired_at, retirement_reason = (
+                row["retired_by"], row["retired_at"], row["retirement_reason"]
+            )
+            if payload.status == "Submitted":
+                submitted_by, submitted_at = who, stamp
+            elif payload.status in {"Approved", "Rejected"}:
+                commercial_authority(request)
+                if row["created_by"] == who:
+                    raise HTTPException(409, "Membership plan decision requires an actor other than the creator")
+                if payload.status == "Approved":
+                    approved_by, approved_at = who, stamp
+                decision_reason = payload.reason
+            else:
+                commercial_authority(request)
+                retired_by, retired_at, retirement_reason = who, stamp, payload.reason
+            conn.execute(
+                """UPDATE salcapa_membership_plans SET status=?,submitted_by=?,submitted_at=?,
+                   approved_by=?,approved_at=?,decision_reason=?,retired_by=?,retired_at=?,
+                   retirement_reason=?,updated_at=? WHERE id=? AND tenant_id=?""",
+                (payload.status, submitted_by, submitted_at, approved_by, approved_at,
+                 decision_reason, retired_by, retired_at, retirement_reason, stamp, plan_id, tid),
+            )
+            audit(
+                conn, "SALCAPA_MEMBERSHIP_PLAN_TRANSITION", "salcapa_membership_plan", None,
+                f"{plan_id}: {row['status']} -> {payload.status}; no automatic customer entitlement, scope, charge, invoice, renewal, or commitment; {payload.reason}"[:1000],
+                who,
+            )
+            conn.commit()
+            result = dict(conn.execute(
+                "SELECT * FROM salcapa_membership_plans WHERE id=?", (plan_id,)
+            ).fetchone())
+        finally:
+            conn.close()
+        verify_membership_plan(result)
+        return membership_plan_view(result)
+
+    @app.get("/api/salcapa/commercial/membership/terms")
+    def list_membership_terms(request: Request):
+        require(request, "read")
+        tid = tenant_id(request)
+        member = protected_member(request)
+        if not member:
+            require_salus(request, "SalCAPA Protected Membership")
+        conn = db()
+        try:
+            sql = "SELECT * FROM salcapa_membership_terms WHERE tenant_id=?"
+            if member:
+                sql += " AND status='Released'"
+            sql += " ORDER BY version_no DESC"
+            rows = [dict(row) for row in conn.execute(sql, (tid,))]
+            for row in rows:
+                verify_membership_term(row)
+            return [membership_term_view(conn, row, member) for row in rows]
+        finally:
+            conn.close()
+
+    @app.post("/api/salcapa/commercial/membership/terms")
+    def create_membership_term(payload: MembershipTermCreate, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        coverage = [item.model_dump(mode="json") for item in payload.portfolio_coverage]
+        conn = db()
+        try:
+            found_plan = conn.execute(
+                "SELECT * FROM salcapa_membership_plans WHERE id=? AND tenant_id=? AND status='Approved'",
+                (payload.plan_id, tid),
+            ).fetchone()
+            if not found_plan:
+                raise HTTPException(422, "A term requires an Approved, active membership plan in this tenant")
+            plan = dict(found_plan)
+            verify_membership_plan(plan)
+            if payload.supersedes_term_id:
+                prior = conn.execute(
+                    "SELECT * FROM salcapa_membership_terms WHERE id=? AND tenant_id=? AND status IN ('Approved','Released')",
+                    (payload.supersedes_term_id, tid),
+                ).fetchone()
+                if not prior:
+                    raise HTTPException(422, "A successor term must reference an Approved or Released term in this tenant")
+                verify_membership_term(dict(prior))
+                duplicate = conn.execute(
+                    "SELECT id FROM salcapa_membership_terms WHERE supersedes_term_id=? AND tenant_id=? AND status<>'Rejected'",
+                    (payload.supersedes_term_id, tid),
+                ).fetchone()
+                if duplicate:
+                    raise HTTPException(409, "This membership term already has an active successor")
+            version = int(conn.execute(
+                "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_membership_terms WHERE tenant_id=?",
+                (tid,),
+            ).fetchone()["v"])
+            term_id = _key("membership-term")
+            plan_snapshot = plan_content(plan)
+            content = {
+                "id": term_id, "tenant_id": tid, "version_no": version,
+                "supersedes_term_id": payload.supersedes_term_id,
+                "plan_id": plan["id"], "plan_version": int(plan["version_no"]),
+                "plan_snapshot": plan_snapshot, "contract_reference": payload.contract_reference.strip(),
+                "start_date": payload.start_date, "end_date": payload.end_date,
+                "renewal_review_date": payload.renewal_review_date,
+                "billing_cadence": payload.billing_cadence,
+                "recurring_fee_cents": payload.recurring_fee_cents,
+                "approved_term_value_cents": payload.approved_term_value_cents,
+                "portfolio_coverage": coverage,
+                "negotiated_terms": payload.negotiated_terms.strip(),
+                "internal_basis": payload.internal_basis.strip(),
+            }
+            conn.execute(
+                """INSERT INTO salcapa_membership_terms(
+                   id,tenant_id,version_no,supersedes_term_id,plan_id,plan_version,plan_snapshot_json,
+                   contract_reference,start_date,end_date,renewal_review_date,billing_cadence,
+                   recurring_fee_cents,approved_term_value_cents,portfolio_coverage_json,
+                   negotiated_terms,internal_basis,content_sha256,status,creates_charge,creates_invoice,
+                   creates_entitlement_automatically,authorizes_scope_automatically,auto_renews,
+                   created_by,created_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (term_id, tid, version, payload.supersedes_term_id, plan["id"], plan["version_no"],
+                 _canonical(plan_snapshot), content["contract_reference"], payload.start_date,
+                 payload.end_date, payload.renewal_review_date, payload.billing_cadence,
+                 payload.recurring_fee_cents, payload.approved_term_value_cents, _canonical(coverage),
+                 content["negotiated_terms"], content["internal_basis"], _digest(content), "Draft",
+                 0, 0, 0, 0, 0, who, stamp, stamp),
+            )
+            audit(
+                conn, "SALCAPA_MEMBERSHIP_TERM_CREATE", "salcapa_membership_term", None,
+                f"{term_id} v{version}: Draft term snapshots plan v{plan['version_no']}; no entitlement, scope, charge, invoice, renewal, or commitment is active.",
+                who,
+            )
+            conn.commit()
+            row = dict(conn.execute(
+                "SELECT * FROM salcapa_membership_terms WHERE id=?", (term_id,)
+            ).fetchone())
+            verify_membership_term(row)
+            return membership_term_view(conn, row, False)
+        finally:
+            conn.close()
+
+    @app.post("/api/salcapa/commercial/membership/terms/{term_id}/transition")
+    def transition_membership_term(term_id: str, payload: MembershipTermTransition, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            found = conn.execute(
+                "SELECT * FROM salcapa_membership_terms WHERE id=? AND tenant_id=?", (term_id, tid)
+            ).fetchone()
+            if not found:
+                raise HTTPException(404, "Protected Membership term not found")
+            row = dict(found)
+            verify_membership_term(row)
+            expected = {"Draft": {"Submitted"}, "Submitted": {"Approved", "Rejected"}, "Approved": {"Released"}}
+            if payload.status not in expected.get(row["status"], set()):
+                raise HTTPException(
+                    409, f"Protected Membership term cannot transition from {row['status']} to {payload.status}"
+                )
+            submitted_by, submitted_at = row["submitted_by"], row["submitted_at"]
+            approved_by, approved_at = row["approved_by"], row["approved_at"]
+            released_by, released_at = row["released_by"], row["released_at"]
+            decision_reason, release_reason = row["decision_reason"], row["release_reason"]
+            if payload.status == "Submitted":
+                submitted_by, submitted_at = who, stamp
+            elif payload.status in {"Approved", "Rejected"}:
+                commercial_authority(request)
+                if row["created_by"] == who:
+                    raise HTTPException(409, "Membership term decision requires an actor other than the creator")
+                if payload.status == "Approved":
+                    approved_by, approved_at = who, stamp
+                decision_reason = payload.reason
+            else:
+                commercial_authority(request)
+                if who != row["approved_by"]:
+                    raise HTTPException(409, "The recorded term approver must authorize member release")
+                released_by, released_at, release_reason = who, stamp, payload.reason
+            conn.execute(
+                """UPDATE salcapa_membership_terms SET status=?,submitted_by=?,submitted_at=?,
+                   approved_by=?,approved_at=?,released_by=?,released_at=?,decision_reason=?,
+                   release_reason=?,updated_at=? WHERE id=? AND tenant_id=?""",
+                (payload.status, submitted_by, submitted_at, approved_by, approved_at,
+                 released_by, released_at, decision_reason, release_reason, stamp, term_id, tid),
+            )
+            audit(
+                conn, "SALCAPA_MEMBERSHIP_TERM_TRANSITION", "salcapa_membership_term", None,
+                f"{term_id}: {row['status']} -> {payload.status}; human authority retained; no automatic charge, invoice, renewal, tier change, partner action, or scope expansion; {payload.reason}"[:1000],
+                who,
+            )
+            conn.commit()
+            result = dict(conn.execute(
+                "SELECT * FROM salcapa_membership_terms WHERE id=?", (term_id,)
+            ).fetchone())
+            verify_membership_term(result)
+            return membership_term_view(conn, result, False)
+        finally:
+            conn.close()
+
+    @app.get("/api/salcapa/commercial/membership/consumption")
+    def list_membership_consumption(request: Request, term_id: Optional[str] = None):
+        salus_read(request)
+        tid = tenant_id(request)
+        conn = db()
+        try:
+            if term_id:
+                term = conn.execute(
+                    "SELECT id FROM salcapa_membership_terms WHERE id=? AND tenant_id=?", (term_id, tid)
+                ).fetchone()
+                if not term:
+                    raise HTTPException(404, "Protected Membership term not found")
+                rows = [dict(row) for row in conn.execute(
+                    "SELECT * FROM salcapa_membership_consumption WHERE tenant_id=? AND term_id=? ORDER BY version_no",
+                    (tid, term_id),
+                )]
+            else:
+                rows = [dict(row) for row in conn.execute(
+                    "SELECT * FROM salcapa_membership_consumption WHERE tenant_id=? ORDER BY version_no", (tid,)
+                )]
+            for row in rows:
+                verify_membership_consumption(row)
+            return [membership_consumption_view(conn, row) for row in rows]
+        finally:
+            conn.close()
+
+    @app.post("/api/salcapa/commercial/membership/consumption")
+    def create_membership_consumption(payload: MembershipConsumptionCreate, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            found_term = conn.execute(
+                "SELECT * FROM salcapa_membership_terms WHERE id=? AND tenant_id=? AND status IN ('Approved','Released')",
+                (payload.term_id, tid),
+            ).fetchone()
+            if not found_term:
+                raise HTTPException(422, "Consumption requires an Approved or Released term in this tenant")
+            term = dict(found_term)
+            verify_membership_term(term)
+            occurred = date.fromisoformat(payload.occurred_on)
+            if not date.fromisoformat(term["start_date"]) <= occurred <= date.fromisoformat(term["end_date"]):
+                raise HTTPException(422, "Consumption date must fall within the governed membership term")
+            entitlements = json.loads(term["plan_snapshot_json"])["entitlements"]
+            entitlement = next((item for item in entitlements if item["key"] == payload.entitlement_key), None)
+            if not entitlement:
+                raise HTTPException(422, "Consumption must reference an entitlement in the term snapshot")
+            if entitlement["capacity_type"] == "Commercial Treatment Only":
+                raise HTTPException(422, "Commercial-treatment-only services require a separate governed estimate or add-on")
+            if payload.estimate_id:
+                estimate = conn.execute(
+                    "SELECT * FROM salcapa_commercial_estimates WHERE id=? AND tenant_id=? AND status IN ('Approved','Released')",
+                    (payload.estimate_id, tid),
+                ).fetchone()
+                if not estimate:
+                    raise HTTPException(422, "Linked estimate must be Approved or Released within this tenant")
+                verify_estimate(dict(estimate))
+                if payload.source_type == "Estimate" and payload.source_record_id != payload.estimate_id:
+                    raise HTTPException(422, "Estimate source_record_id must match estimate_id")
+            if payload.supersedes_consumption_id:
+                prior = conn.execute(
+                    """SELECT * FROM salcapa_membership_consumption
+                       WHERE id=? AND tenant_id=? AND term_id=? AND entitlement_key=? AND status='Approved'""",
+                    (payload.supersedes_consumption_id, tid, payload.term_id, payload.entitlement_key),
+                ).fetchone()
+                if not prior:
+                    raise HTTPException(422, "A correction must replace an Approved record in the same entitlement")
+                verify_membership_consumption(dict(prior))
+                duplicate = conn.execute(
+                    "SELECT id FROM salcapa_membership_consumption WHERE supersedes_consumption_id=? AND tenant_id=? AND status<>'Rejected'",
+                    (payload.supersedes_consumption_id, tid),
+                ).fetchone()
+                if duplicate:
+                    raise HTTPException(409, "This consumption record already has an active correction")
+            version = int(conn.execute(
+                "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_membership_consumption WHERE tenant_id=?",
+                (tid,),
+            ).fetchone()["v"])
+            consumption_id = _key("membership-use")
+            quantity = format(payload.quantity, "f")
+            content = {
+                "id": consumption_id, "tenant_id": tid, "version_no": version,
+                "term_id": payload.term_id,
+                "supersedes_consumption_id": payload.supersedes_consumption_id,
+                "entitlement_key": payload.entitlement_key,
+                "entitlement_snapshot": entitlement, "quantity": quantity,
+                "occurred_on": payload.occurred_on, "source_type": payload.source_type,
+                "source_record_id": payload.source_record_id.strip(),
+                "source_reference": payload.source_reference.strip(),
+                "estimate_id": payload.estimate_id, "notes": payload.notes.strip(),
+            }
+            conn.execute(
+                """INSERT INTO salcapa_membership_consumption(
+                   id,tenant_id,version_no,term_id,supersedes_consumption_id,entitlement_key,
+                   entitlement_snapshot_json,quantity,occurred_on,source_type,source_record_id,
+                   source_reference,estimate_id,notes,content_sha256,status,creates_charge,
+                   creates_invoice,creates_scope_authorization,created_by,created_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (consumption_id, tid, version, payload.term_id, payload.supersedes_consumption_id,
+                 payload.entitlement_key, _canonical(entitlement), quantity, payload.occurred_on,
+                 payload.source_type, content["source_record_id"], content["source_reference"],
+                 payload.estimate_id, content["notes"], _digest(content), "Draft", 0, 0, 0,
+                 who, stamp, stamp),
+            )
+            audit(
+                conn, "SALCAPA_MEMBERSHIP_CONSUMPTION_CREATE", "salcapa_membership_consumption", None,
+                f"{consumption_id} v{version}: Draft supported consumption prepared for independent review; excess capacity requires a separate decision and never creates a charge or scope change automatically.",
+                who,
+            )
+            conn.commit()
+            row = dict(conn.execute(
+                "SELECT * FROM salcapa_membership_consumption WHERE id=?", (consumption_id,)
+            ).fetchone())
+            verify_membership_consumption(row)
+            return membership_consumption_view(conn, row)
+        finally:
+            conn.close()
+
+    @app.post("/api/salcapa/commercial/membership/consumption/{consumption_id}/transition")
+    def transition_membership_consumption(consumption_id: str, payload: MembershipConsumptionTransition,
+                                          request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            found = conn.execute(
+                "SELECT * FROM salcapa_membership_consumption WHERE id=? AND tenant_id=?",
+                (consumption_id, tid),
+            ).fetchone()
+            if not found:
+                raise HTTPException(404, "Protected Membership consumption record not found")
+            row = dict(found)
+            verify_membership_consumption(row)
+            expected = {"Draft": {"Submitted"}, "Submitted": {"Approved", "Rejected"}}
+            if payload.status not in expected.get(row["status"], set()):
+                raise HTTPException(
+                    409, f"Protected Membership consumption cannot transition from {row['status']} to {payload.status}"
+                )
+            submitted_by, submitted_at = row["submitted_by"], row["submitted_at"]
+            approved_by, approved_at = row["approved_by"], row["approved_at"]
+            decision_reason = row["decision_reason"]
+            if payload.status == "Submitted":
+                submitted_by, submitted_at = who, stamp
+            else:
+                commercial_authority(request)
+                if row["created_by"] == who:
+                    raise HTTPException(409, "Consumption decision requires an actor other than the creator")
+                if payload.status == "Approved":
+                    approved_by, approved_at = who, stamp
+                decision_reason = payload.reason
+            conn.execute(
+                """UPDATE salcapa_membership_consumption SET status=?,submitted_by=?,submitted_at=?,
+                   approved_by=?,approved_at=?,decision_reason=?,updated_at=? WHERE id=? AND tenant_id=?""",
+                (payload.status, submitted_by, submitted_at, approved_by, approved_at,
+                 decision_reason, stamp, consumption_id, tid),
+            )
+            audit(
+                conn, "SALCAPA_MEMBERSHIP_CONSUMPTION_TRANSITION", "salcapa_membership_consumption", None,
+                f"{consumption_id}: {row['status']} -> {payload.status}; consumption evidence only; no automatic charge, invoice, add-on, tier change, partner action, or scope expansion; {payload.reason}"[:1000],
+                who,
+            )
+            conn.commit()
+            result = dict(conn.execute(
+                "SELECT * FROM salcapa_membership_consumption WHERE id=?", (consumption_id,)
+            ).fetchone())
+            verify_membership_consumption(result)
+            return membership_consumption_view(conn, result)
+        finally:
+            conn.close()
+
     original_collect = core.get("collect_tenant_records")
     original_validate = core.get("validate_records")
     original_replace = core.get("replace_tenant_records")
@@ -1955,6 +2980,15 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             time_entries = {str(r.get("id")): r for r in records.get("salcapa_time_entries", [])}
             cost_entries = {str(r.get("id")): r for r in records.get("salcapa_cost_entries", [])}
             forecasts = {str(r.get("id")): r for r in records.get("salcapa_commercial_forecasts", [])}
+            membership_plans = {
+                str(r.get("id")): r for r in records.get("salcapa_membership_plans", [])
+            }
+            membership_terms = {
+                str(r.get("id")): r for r in records.get("salcapa_membership_terms", [])
+            }
+            membership_consumption = {
+                str(r.get("id")): r for r in records.get("salcapa_membership_consumption", [])
+            }
             for row in cards.values():
                 if int(row.get("tenant_id", -1)) != int(tid):
                     errors.append(f"rate card {row.get('id')} crosses the tenant boundary")
@@ -2018,6 +3052,80 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                     verify_forecast(dict(row))
                 except (HTTPException, ValueError, TypeError, KeyError):
                     errors.append(f"commercial forecast {row.get('id')} failed integrity verification")
+            for row in membership_plans.values():
+                if int(row.get("tenant_id", -1)) != int(tid):
+                    errors.append(f"membership plan {row.get('id')} crosses the tenant boundary")
+                    continue
+                prior_id = row.get("supersedes_plan_id")
+                if prior_id and str(prior_id) not in membership_plans:
+                    errors.append(f"membership plan {row.get('id')} has invalid revision lineage")
+                try:
+                    verify_membership_plan(dict(row))
+                except (HTTPException, ValueError, TypeError, KeyError):
+                    errors.append(f"membership plan {row.get('id')} failed integrity verification")
+            for row in membership_terms.values():
+                if int(row.get("tenant_id", -1)) != int(tid):
+                    errors.append(f"membership term {row.get('id')} crosses the tenant boundary")
+                    continue
+                plan = membership_plans.get(str(row.get("plan_id")))
+                if not plan:
+                    errors.append(f"membership term {row.get('id')} has invalid plan_id")
+                else:
+                    try:
+                        if int(row.get("plan_version", -1)) != int(plan.get("version_no", -2)):
+                            errors.append(f"membership term {row.get('id')} has invalid plan version")
+                        if _canonical(json.loads(row.get("plan_snapshot_json", "{}"))) != _canonical(
+                            plan_content(dict(plan))
+                        ):
+                            errors.append(f"membership term {row.get('id')} plan snapshot does not match")
+                    except (ValueError, TypeError, KeyError):
+                        errors.append(f"membership term {row.get('id')} plan snapshot is invalid")
+                prior_id = row.get("supersedes_term_id")
+                if prior_id and str(prior_id) not in membership_terms:
+                    errors.append(f"membership term {row.get('id')} has invalid revision lineage")
+                try:
+                    verify_membership_term(dict(row))
+                except (HTTPException, ValueError, TypeError, KeyError):
+                    errors.append(f"membership term {row.get('id')} failed integrity verification")
+            for row in membership_consumption.values():
+                if int(row.get("tenant_id", -1)) != int(tid):
+                    errors.append(f"membership consumption {row.get('id')} crosses the tenant boundary")
+                    continue
+                term = membership_terms.get(str(row.get("term_id")))
+                if not term:
+                    errors.append(f"membership consumption {row.get('id')} has invalid term_id")
+                else:
+                    try:
+                        entitlements = json.loads(term.get("plan_snapshot_json", "{}"))["entitlements"]
+                        expected_entitlement = next(
+                            item for item in entitlements if item["key"] == row.get("entitlement_key")
+                        )
+                        if _canonical(json.loads(row.get("entitlement_snapshot_json", "{}"))) != _canonical(
+                            expected_entitlement
+                        ):
+                            errors.append(
+                                f"membership consumption {row.get('id')} entitlement snapshot does not match"
+                            )
+                    except (ValueError, TypeError, KeyError, StopIteration):
+                        errors.append(f"membership consumption {row.get('id')} entitlement is invalid")
+                estimate_id = row.get("estimate_id")
+                if estimate_id and str(estimate_id) not in estimates:
+                    errors.append(f"membership consumption {row.get('id')} has invalid estimate_id")
+                if row.get("source_type") == "Estimate" and row.get("source_record_id") != estimate_id:
+                    errors.append(f"membership consumption {row.get('id')} has inconsistent estimate source")
+                prior_id = row.get("supersedes_consumption_id")
+                if prior_id:
+                    prior = membership_consumption.get(str(prior_id))
+                    if not prior or prior.get("term_id") != row.get("term_id") or prior.get(
+                        "entitlement_key"
+                    ) != row.get("entitlement_key"):
+                        errors.append(f"membership consumption {row.get('id')} has invalid correction lineage")
+                try:
+                    verify_membership_consumption(dict(row))
+                    if Decimal(str(row.get("quantity", "0"))) <= 0:
+                        errors.append(f"membership consumption {row.get('id')} quantity is invalid")
+                except (HTTPException, ValueError, TypeError, KeyError):
+                    errors.append(f"membership consumption {row.get('id')} failed integrity verification")
             return errors
 
         def extended_validate(records: dict, tid: Optional[int] = None):
