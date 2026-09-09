@@ -59,10 +59,24 @@ def process(client, headers, material_id: int):
 
 def main() -> None:
     register_salcapa_office_processing(core.app, core.__dict__)
+    conn = core.db()
+    if not conn.execute("SELECT id FROM tenants WHERE id=2").fetchone():
+        conn.execute(
+            "INSERT INTO tenants(id,name,slug,status,created_at) VALUES(?,?,?,?,?)",
+            (2, "Office Processing Test Tenant", "office-processing-test", "Active", core.now()),
+        )
+    if not conn.execute("SELECT id FROM assessments WHERE tenant_id=2 LIMIT 1").fetchone():
+        conn.execute(
+            "INSERT INTO assessments(tenant_id,name,organization,assessment_type,status,purpose,mission,scope,exclusions,executive_sponsor,assessment_director,lead_assessor,target_completion,reassessment_date,classification,scope_locked,version,created_at,updated_at) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (2, "Office processing recovery fixture", "Fictional Organization", "Enterprise", "Draft", "Recovery validation", "Recovery validation", "Office processing records", "", "", "", "", "", "", "Standard", 0, 1, core.now(), core.now()),
+        )
+    conn.commit()
+    conn.close()
     client = TestClient(core.app)
-    processor = {"X-Salus-Tenant": "1", "X-Salus-Role": "Assessment Director", "X-Salus-User": "Document Processing Lead"}
+    processor = {"X-Salus-Tenant": "2", "X-Salus-Role": "Assessment Director", "X-Salus-User": "Document Processing Lead"}
     reviewer = {**processor, "X-Salus-User": "Independent Document Reviewer"}
-    member = {"X-Salus-Tenant": "1", "X-Salus-Role": "Contributor", "X-Salus-User": "Member Contributor"}
+    member = {"X-Salus-Tenant": "2", "X-Salus-Role": "Contributor", "X-Salus-User": "Member Contributor"}
 
     docx = package({
         "word/document.xml": '<w:document xmlns:w="urn:w"><w:body><w:p><w:r><w:t>Emergency communications annex</w:t></w:r></w:p><w:ins><w:r><w:t>Revision pending authority review</w:t></w:r></w:ins></w:body></w:document>',
