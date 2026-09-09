@@ -2292,7 +2292,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         estimates = [
             row for row in active_governed_estimates(conn, tid, end)
             if row["product_line"] == "SalINTEL Ongoing Monitoring"
-            or row["monitoring_service"] != "Not Applicable"
+            or json.loads(row["inputs_json"])["monitoring_service"] != "Not Applicable"
         ]
         monitoring = {
             "active_scope_count": 0,
@@ -2312,7 +2312,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             estimated_cost = int(estimate["estimated_internal_cost_cents"])
             monitoring["approved_price_basis_cents"] += price
             monitoring["estimated_internal_cost_basis_cents"] += estimated_cost
-            basis_label = estimate["monitoring_service"]
+            basis_label = json.loads(estimate["inputs_json"])["monitoring_service"]
             if basis_label == "Not Applicable":
                 basis_label = "Ongoing Monitoring — custom approved basis"
             basis = basis_groups.setdefault(basis_label, {
