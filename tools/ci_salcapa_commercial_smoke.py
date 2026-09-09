@@ -42,7 +42,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.97"
+    assert client.get("/api/system/mode").json()["version"] == "3.98"
     assert client.get("/api/salcapa/commercial/catalog", headers=member).status_code == 403
     catalog = client.get("/api/salcapa/commercial/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
@@ -61,6 +61,8 @@ def main() -> None:
     ]
     assert body["guidance"]["report_purpose"].startswith("Review current approved")
     assert "not financial statements" in body["guidance"]["report_uncertainty"]
+    assert "without claiming recognized revenue" in body["guidance"]["report_recurring"]
+    assert "only from evidence-qualified groups" in body["guidance"]["report_comparison"]
 
     forged = client.post("/api/salcapa/commercial/rate-cards", headers=director, json={
         "name": "Forged card", "status": "Approved", "rules": DEFAULT_RULES,
@@ -602,6 +604,9 @@ def main() -> None:
     assert "not a financial statement" in report["interpretation"]
     assert report["creates_charge"] is False and report["creates_invoice"] is False
     assert report["authorizes_scope"] is False
+    assert report["recognizes_revenue"] is False and report["recognizes_margin"] is False
+    assert report["recurring_commercial_position"]["recognizes_revenue"] is False
+    assert report["comparative_contribution_positions"][0]["comparison_state"] == "Evidence Needed"
     assert len(report["groups"]) == 1
     management = report["groups"][0]
     assert management["group"] == "SalINTEL Investigation"
@@ -1055,6 +1060,112 @@ def main() -> None:
     assert wip_summary.json()["totals"]["recognized_actual_cost_cents"] == 19225
     assert wip_summary.json()["groups"][0]["commercial_disposition"] == "Authorized for Billing"
     assert wip_summary.json()["creates_invoice"] is False
+
+    # Current governed sources unlock recurring and comparative views without claiming accounting results.
+    refreshed_forecast_payload = dict(
+        forecast_payload,
+        supersedes_forecast_id=revision_id,
+        as_of_date="2026-09-09",
+        remaining_labor_minutes=15,
+        additional_remaining_direct_cost_cents=500,
+        unavailable_cost_handling="Included in remaining estimate",
+        assumptions="Fifteen minutes of final review and one supported bounded direct cost remain.",
+        known_constraints="Current approved actual-cost evidence is reflected in this dated forecast.",
+    )
+    refreshed_forecast = client.post(
+        "/api/salcapa/commercial/forecasts", headers=director,
+        json=refreshed_forecast_payload,
+    )
+    assert refreshed_forecast.status_code == 200, refreshed_forecast.text
+    refreshed_forecast_id = refreshed_forecast.json()["id"]
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the refreshed source-grounded forecast."),
+        ("Approved", administrator, "Independently confirm the current approved sources."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/forecasts/{refreshed_forecast_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        ).status_code == 200
+
+    monitoring_estimate_payload = {
+        "rate_card_id": card_id,
+        "product_line": "SalINTEL Ongoing Monitoring",
+        "domain_key": "protective-intelligence",
+        "investigation_tier": "Not Applicable",
+        "complexity": "Standard",
+        "pricing_method": "Suggested Fixed Fee",
+        "monitoring_service": "Monthly",
+        "monitoring_cycles": 1,
+        "customer_summary": "Fictional monthly ongoing-monitoring scope for reporting validation.",
+        "internal_basis": "One bounded monitoring cycle; commercial records remain planning evidence.",
+    }
+    monitoring_estimate = client.post(
+        "/api/salcapa/commercial/estimates", headers=director,
+        json=monitoring_estimate_payload,
+    )
+    assert monitoring_estimate.status_code == 200, monitoring_estimate.text
+    monitoring_estimate_id = monitoring_estimate.json()["id"]
+    monitoring_price = monitoring_estimate.json()["recommended_customer_price_cents"]
+    for status, headers, reason, price in (
+        ("Submitted", director, "Submit the bounded monitoring estimate.", None),
+        ("Approved", administrator, "Independently approve the monitoring price basis.", monitoring_price),
+        ("Released", administrator, "Release the approved monitoring scope and price.", None),
+    ):
+        transition = {"status": status, "reason": reason}
+        if price is not None:
+            transition["approved_customer_price_cents"] = price
+        assert client.post(
+            f"/api/salcapa/commercial/estimates/{monitoring_estimate_id}/transition",
+            headers=headers, json=transition,
+        ).status_code == 200
+    monitoring_forecast_payload = {
+        "estimate_id": monitoring_estimate_id,
+        "as_of_date": "2026-09-09",
+        "forecast_through_date": "2026-09-30",
+        "confidence_state": "Reasonably Supported",
+        "unavailable_cost_handling": "Included in remaining estimate",
+        "remaining_labor_minutes": 30,
+        "additional_remaining_direct_cost_cents": 300,
+        "assumptions": "One scheduled review cycle remains within the released scope.",
+        "known_constraints": "No actual activity has yet been recorded for this future cycle.",
+    }
+    monitoring_forecast = client.post(
+        "/api/salcapa/commercial/forecasts", headers=director,
+        json=monitoring_forecast_payload,
+    )
+    assert monitoring_forecast.status_code == 200, monitoring_forecast.text
+    monitoring_forecast_id = monitoring_forecast.json()["id"]
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the dated monitoring forecast."),
+        ("Approved", administrator, "Independently approve the monitoring planning judgment."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/forecasts/{monitoring_forecast_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        ).status_code == 200
+
+    completed_report = client.get(
+        "/api/salcapa/commercial/management-report"
+        "?start_date=2026-09-08&end_date=2026-09-10&group_by=Product%20Line",
+        headers=administrator,
+    )
+    assert completed_report.status_code == 200, completed_report.text
+    completed = completed_report.json()
+    recurring = completed["recurring_commercial_position"]
+    assert recurring["ongoing_monitoring"]["active_scope_count"] == 1
+    assert recurring["ongoing_monitoring"]["approved_price_basis_cents"] == monitoring_price
+    assert recurring["protected_membership"]["active_released_term_count"] == 1
+    assert recurring["protected_membership"]["approved_monthly_recurring_value_cents"] == 100000
+    assert recurring["protected_membership"]["approved_annualized_recurring_value_cents"] == 1200000
+    assert recurring["recognizes_revenue"] is False and recurring["recognizes_margin"] is False
+    product_comparison = next(
+        item for item in completed["comparative_contribution_positions"]
+        if item["dimension"] == "Product Line"
+    )
+    assert product_comparison["comparison_state"] == "Demonstrated"
+    assert product_comparison["highest_supported_planning_contribution"] is not None
+    assert product_comparison["lowest_supported_planning_contribution"] is not None
+    assert "not recognized margin or profit" in product_comparison["interpretation"]
 
     # Cross-cutting Microsoft 365 provenance keeps exact document versions without a document silo.
     assert "Microsoft SharePoint" in body["source_providers"]

@@ -1,4 +1,4 @@
-"""Governed SalCAPA commercial planning, membership, actual-cost, WIP, and sources.
+"""Governed SalCAPA commercial planning, reporting, membership, WIP, and sources.
 
 Issue #154 increment.  Salus personnel configure and approve versioned planning
 assumptions.  Estimates snapshot every assumption and calculation.  Salus time
@@ -14,6 +14,10 @@ authorized-repository identities and versions.  Commercial links snapshot a
 specific source version without copying mutable documents or implying that
 registration, access, review, approval, release, billing, or transmission are
 the same event.
+Salus-only management reporting distinguishes approved recurring commercial
+value, recorded cost, forecast cost, and planning contribution. Comparative
+positions are shown only when their evidence state supports comparison and are
+never represented as recognized revenue, margin, profit, or financial statements.
 """
 from __future__ import annotations
 
@@ -83,6 +87,7 @@ ACTUAL_COST_BASES = {"Metered Actual", "Supplier Invoice", "Receipt"}
 REPORT_GROUPS = (
     "Product Line", "Investigative Domain", "Tier", "Engagement", "Pricing Method",
 )
+COMPARATIVE_REPORT_GROUPS = ("Product Line", "Investigative Domain", "Tier")
 MEMBERSHIP_ARRANGEMENTS = ("Transactional", "Subscription Membership", "Hybrid")
 MEMBERSHIP_BILLING_CADENCES = ("Monthly", "Quarterly", "Annual", "Custom")
 MEMBERSHIP_TREATMENTS = (
@@ -1768,6 +1773,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         forecast_cost = 0
         unavailable_count = 0
         forecasts_used = 0
+        stale_forecast_count = 0
         for estimate_id in estimate_ids:
             found = conn.execute(
                 "SELECT * FROM salcapa_commercial_estimates WHERE id=? AND tenant_id=?",
@@ -1786,6 +1792,8 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 verify_forecast(forecast)
                 forecast_cost += int(forecast["forecast_at_completion_cents"])
                 forecasts_used += 1
+                if _canonical(actual_snapshot(actuals)) != forecast["actual_snapshot_json"]:
+                    stale_forecast_count += 1
             else:
                 forecast_cost += actual_cost
         monthly, annual = recurring_values(row)
@@ -1796,7 +1804,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         )
         if not estimate_ids:
             evidence_state = "Awaiting Validation"
-        elif unavailable_count or forecasts_used < len(estimate_ids):
+        elif unavailable_count or stale_forecast_count or forecasts_used < len(estimate_ids):
             evidence_state = "Evidence Needed"
         else:
             evidence_state = "Reasonably Supported"
@@ -1811,6 +1819,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "planning_contribution_basis_points": contribution_bps,
             "evidence_state": evidence_state,
             "unavailable_cost_record_count": unavailable_count,
+            "stale_forecast_count": stale_forecast_count,
             "interpretation": (
                 "Salus-only planning economics based on approved term values and governed cost records. "
                 "They are not financial statements, recognized revenue or margin, a customer charge, or an invoice."
@@ -2237,8 +2246,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             return f"Engagement {row['engagement_id']}" if row["engagement_id"] else "Not Assigned"
         return row["pricing_method"]
 
-    def management_report(conn, tid: int, start: date, end: date,
-                          group_by: str) -> dict[str, Any]:
+    def active_governed_estimates(conn, tid: int, end: date) -> list[dict[str, Any]]:
         rows = [dict(r) for r in conn.execute(
             "SELECT * FROM salcapa_commercial_estimates WHERE tenant_id=? ORDER BY version_no",
             (tid,),
@@ -2249,10 +2257,183 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         superseded = {
             row["supersedes_estimate_id"] for row in governed if row["supersedes_estimate_id"]
         }
-        active = [
+        return [
             row for row in governed
             if row["id"] not in superseded and date.fromisoformat(row["created_at"][:10]) <= end
         ]
+
+    def approved_forecast_as_of(conn, tid: int, estimate_id: str,
+                                end: date) -> Optional[dict[str, Any]]:
+        rows = [dict(r) for r in conn.execute(
+            """SELECT * FROM salcapa_commercial_forecasts
+               WHERE tenant_id=? AND estimate_id=? AND status='Approved' AND as_of_date<=?
+               ORDER BY version_no""",
+            (tid, estimate_id, end.isoformat()),
+        )]
+        for row in rows:
+            verify_forecast(row)
+        superseded = {
+            row["supersedes_forecast_id"] for row in rows if row["supersedes_forecast_id"]
+        }
+        current = [row for row in rows if row["id"] not in superseded]
+        return current[-1] if current else None
+
+    def support_rollup(states: list[str], empty: str = "Awaiting Validation") -> str:
+        if not states:
+            return empty
+        if "Evidence Needed" in states:
+            return "Evidence Needed"
+        if "Awaiting Validation" in states:
+            return "Awaiting Validation"
+        return "Reasonably Supported"
+
+    def recurring_commercial_position(conn, tid: int, start: date,
+                                      end: date) -> dict[str, Any]:
+        estimates = [
+            row for row in active_governed_estimates(conn, tid, end)
+            if row["product_line"] == "SalINTEL Ongoing Monitoring"
+            or row["monitoring_service"] != "Not Applicable"
+        ]
+        monitoring = {
+            "active_scope_count": 0,
+            "approved_price_basis_cents": 0,
+            "estimated_internal_cost_basis_cents": 0,
+            "period_recognized_actual_cost_cents": 0,
+            "current_forecast_cost_basis_cents": 0,
+            "current_planning_contribution_cents": 0,
+            "pricing_basis_breakdown": [],
+            "support_state": "Awaiting Validation",
+        }
+        basis_groups: dict[str, dict[str, Any]] = {}
+        monitoring_states: list[str] = []
+        for estimate in estimates:
+            monitoring["active_scope_count"] += 1
+            price = int(estimate["approved_customer_price_cents"] or 0)
+            estimated_cost = int(estimate["estimated_internal_cost_cents"])
+            monitoring["approved_price_basis_cents"] += price
+            monitoring["estimated_internal_cost_basis_cents"] += estimated_cost
+            basis_label = estimate["monitoring_service"]
+            if basis_label == "Not Applicable":
+                basis_label = "Ongoing Monitoring — custom approved basis"
+            basis = basis_groups.setdefault(basis_label, {
+                "monitoring_service": basis_label,
+                "active_scope_count": 0,
+                "approved_price_basis_cents": 0,
+            })
+            basis["active_scope_count"] += 1
+            basis["approved_price_basis_cents"] += price
+
+            actuals = active_actual_summary(conn, tid, estimate["id"])
+            period_time = [
+                row for row in actuals["active_time"]
+                if start <= date.fromisoformat(row["work_date"]) <= end
+            ]
+            period_cost = [
+                row for row in actuals["active_cost"]
+                if start <= date.fromisoformat(row["incurred_at"][:10]) <= end
+            ]
+            period_recognized = (
+                sum(int(row["calculated_cost_cents"]) for row in period_time)
+                + sum(int(row["recognized_actual_cost_cents"]) for row in period_cost)
+            )
+            monitoring["period_recognized_actual_cost_cents"] += period_recognized
+            unavailable = any(row["cost_basis"] == "Unavailable" for row in period_cost)
+            forecast = approved_forecast_as_of(conn, tid, estimate["id"], end)
+            if forecast:
+                forecast_cost = int(forecast["forecast_at_completion_cents"])
+                monitoring["current_forecast_cost_basis_cents"] += forecast_cost
+                monitoring["current_planning_contribution_cents"] += price - forecast_cost
+                stale = _canonical(actual_snapshot(actuals)) != forecast["actual_snapshot_json"]
+                if stale or unavailable or forecast["completeness_state"] == "Evidence Needed":
+                    monitoring_states.append("Evidence Needed")
+                elif forecast["completeness_state"] == "Awaiting Validation":
+                    monitoring_states.append("Awaiting Validation")
+                else:
+                    monitoring_states.append("Reasonably Supported")
+            else:
+                monitoring["current_forecast_cost_basis_cents"] += estimated_cost
+                monitoring["current_planning_contribution_cents"] += price - estimated_cost
+                monitoring_states.append("Evidence Needed" if unavailable else "Awaiting Validation")
+        monitoring["pricing_basis_breakdown"] = [
+            basis_groups[key] for key in sorted(basis_groups, key=str.casefold)
+        ]
+        monitoring["support_state"] = support_rollup(monitoring_states)
+
+        term_rows = [dict(row) for row in conn.execute(
+            """SELECT * FROM salcapa_membership_terms
+               WHERE tenant_id=? AND status='Released' AND start_date<=?
+               ORDER BY version_no""",
+            (tid, end.isoformat()),
+        )]
+        for row in term_rows:
+            verify_membership_term(row)
+        superseded_terms = {
+            row["supersedes_term_id"] for row in term_rows if row["supersedes_term_id"]
+        }
+        active_terms = [
+            row for row in term_rows
+            if row["id"] not in superseded_terms and date.fromisoformat(row["end_date"]) >= start
+        ]
+        membership = {
+            "active_released_term_count": len(active_terms),
+            "approved_monthly_recurring_value_cents": 0,
+            "approved_annualized_recurring_value_cents": 0,
+            "approved_term_value_cents": 0,
+            "linked_recognized_cost_to_date_cents": 0,
+            "linked_forecast_cost_to_serve_cents": 0,
+            "planning_contribution_cents": 0,
+            "custom_cadence_term_count": 0,
+            "support_state": "Awaiting Validation",
+        }
+        membership_states: list[str] = []
+        for term in active_terms:
+            economics = membership_economics(conn, term)
+            monthly = economics["monthly_recurring_value_cents"]
+            annual = economics["annualized_recurring_value_cents"]
+            if monthly is None or annual is None:
+                membership["custom_cadence_term_count"] += 1
+            else:
+                membership["approved_monthly_recurring_value_cents"] += int(monthly)
+                membership["approved_annualized_recurring_value_cents"] += int(annual)
+            membership["approved_term_value_cents"] += int(
+                economics["approved_term_value_cents"]
+            )
+            membership["linked_recognized_cost_to_date_cents"] += int(
+                economics["recognized_cost_to_serve_cents"]
+            )
+            membership["linked_forecast_cost_to_serve_cents"] += int(
+                economics["forecast_cost_to_serve_cents"]
+            )
+            membership["planning_contribution_cents"] += int(
+                economics["planning_contribution_cents"]
+            )
+            membership_states.append(economics["evidence_state"])
+        membership["support_state"] = support_rollup(membership_states)
+
+        overall_states = []
+        if estimates:
+            overall_states.append(monitoring["support_state"])
+        if active_terms:
+            overall_states.append(membership["support_state"])
+        overall = support_rollup(overall_states)
+        return {
+            "support_state": overall,
+            "ongoing_monitoring": monitoring,
+            "protected_membership": membership,
+            "interpretation": (
+                "Approved recurring values and monitoring price bases are commercial planning records. "
+                "Different fee cadences are not silently normalized, and these figures are not recognized "
+                "revenue, margin, profit, charges, invoices, or financial statements."
+            ),
+            "recognizes_revenue": False,
+            "recognizes_margin": False,
+            "creates_charge": False,
+            "creates_invoice": False,
+        }
+
+    def management_report(conn, tid: int, start: date, end: date,
+                          group_by: str, include_extensions: bool = True) -> dict[str, Any]:
+        active = active_governed_estimates(conn, tid, end)
         groups: dict[str, dict[str, Any]] = {}
         for estimate in active:
             label = report_group_label(estimate, group_by)
@@ -2311,22 +2492,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             group["period_provisional_cost_cents"] += provisional
             group["period_unavailable_cost_record_count"] += unavailable
 
-            forecast_rows = [dict(r) for r in conn.execute(
-                """SELECT * FROM salcapa_commercial_forecasts
-                   WHERE tenant_id=? AND estimate_id=? AND status='Approved' AND as_of_date<=?
-                   ORDER BY version_no""",
-                (tid, estimate["id"], end.isoformat()),
-            )]
-            for forecast in forecast_rows:
-                verify_forecast(forecast)
-            superseded_forecasts = {
-                row["supersedes_forecast_id"] for row in forecast_rows
-                if row["supersedes_forecast_id"]
-            }
-            current_forecasts = [
-                row for row in forecast_rows if row["id"] not in superseded_forecasts
-            ]
-            current = current_forecasts[-1] if current_forecasts else None
+            current = approved_forecast_as_of(conn, tid, estimate["id"], end)
             if current:
                 group["current_approved_forecast_count"] += 1
                 group["current_forecast_at_completion_cents"] += int(
@@ -2340,6 +2506,8 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 elif (current["completeness_state"] == "Awaiting Validation"
                       and group["support_state"] != "Evidence Needed"):
                     group["support_state"] = "Awaiting Validation"
+                if _canonical(actual_snapshot(actuals)) != current["actual_snapshot_json"]:
+                    group["support_state"] = "Evidence Needed"
             elif group["support_state"] == "Reasonably Supported":
                 group["support_state"] = "Awaiting Validation"
             if unavailable:
@@ -2359,7 +2527,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         else:
             overall_support = "Reasonably Supported"
         totals["support_state"] = overall_support
-        return {
+        report = {
             "scope": {
                 "protected_member_id": tid,
                 "start_date": start.isoformat(),
@@ -2388,7 +2556,84 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "creates_charge": False,
             "creates_invoice": False,
             "authorizes_scope": False,
+            "recognizes_revenue": False,
+            "recognizes_margin": False,
         }
+        if include_extensions:
+            report["recurring_commercial_position"] = recurring_commercial_position(
+                conn, tid, start, end
+            )
+            report["comparative_contribution_positions"] = (
+                comparative_contribution_positions(conn, tid, start, end)
+            )
+        return report
+
+    def comparative_contribution_positions(conn, tid: int, start: date,
+                                           end: date) -> list[dict[str, Any]]:
+        comparisons: list[dict[str, Any]] = []
+        for dimension in COMPARATIVE_REPORT_GROUPS:
+            grouped = management_report(
+                conn, tid, start, end, dimension, include_extensions=False
+            )["groups"]
+            positions = []
+            for row in grouped:
+                forecast_complete = (
+                    int(row["active_estimate_count"]) > 0
+                    and int(row["current_approved_forecast_count"])
+                    == int(row["active_estimate_count"])
+                )
+                contribution = int(
+                    row["current_projected_contribution_cents"]
+                    if forecast_complete else row["approved_estimated_contribution_cents"]
+                )
+                basis = (
+                    "Current Approved forecast planning contribution"
+                    if forecast_complete else "Approved estimate planning contribution"
+                )
+                price = int(row["approved_customer_price_cents"])
+                basis_points = None if price <= 0 else _money(
+                    Decimal(contribution) * Decimal(10000) / Decimal(price)
+                )
+                supported = row["support_state"] == "Reasonably Supported"
+                positions.append({
+                    "group": row["group"],
+                    "planning_contribution_cents": contribution,
+                    "planning_contribution_basis_points": basis_points,
+                    "basis": basis,
+                    "support_state": row["support_state"],
+                    "eligible_for_comparison": supported,
+                })
+            supported_positions = sorted(
+                (item for item in positions if item["eligible_for_comparison"]),
+                key=lambda item: (item["planning_contribution_cents"], item["group"].casefold()),
+            )
+            if len(supported_positions) >= 2:
+                state = "Demonstrated"
+                lowest = supported_positions[0]
+                highest = supported_positions[-1]
+            elif len(supported_positions) == 1:
+                state = "Partially Demonstrated"
+                lowest = highest = supported_positions[0]
+            elif positions:
+                state = "Evidence Needed"
+                lowest = highest = None
+            else:
+                state = "Awaiting Validation"
+                lowest = highest = None
+            comparisons.append({
+                "dimension": dimension,
+                "comparison_state": state,
+                "highest_supported_planning_contribution": highest,
+                "lowest_supported_planning_contribution": lowest,
+                "not_ranked": [
+                    item for item in positions if not item["eligible_for_comparison"]
+                ],
+                "interpretation": (
+                    "Comparison uses evidence-qualified planning contribution, not recognized margin or "
+                    "profit. A single supported group is shown as partial evidence, not a meaningful portfolio ranking."
+                ),
+            })
+        return comparisons
 
     def management_report_csv(report: dict[str, Any]) -> str:
         def safe(value: Any) -> Any:
@@ -2455,6 +2700,8 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "report_purpose": "Review current approved commercial positions and dated cost activity within one governed Protected Member scope.",
                 "report_uncertainty": "Management totals distinguish recognized actual cost, provisional amounts, unavailable cost records, and approved forecasts; they are not financial statements or final margin recognition.",
                 "report_confidentiality": "Commercial management reports are Salus-only and do not expose internal rates, costs, calculations, or margins to Protected Members.",
+                "report_recurring": "Recurring views distinguish released membership value, monitoring price basis, recorded cost, forecast cost, cadence, evidence gaps, and planning contribution without claiming recognized revenue or profit.",
+                "report_comparison": "Highest and lowest contribution positions are shown only from evidence-qualified groups. Unsupported groups remain visible as not ranked, without opaque scores or false precision.",
                 "membership_distinction": "Protected Membership defines a recurring commercial relationship and explicit capacity. Investigation Tier 1, Tier 2, and Tier 3 define authorized investigative depth only.",
                 "membership_authority": "Authorized Salus personnel independently approve plan versions, member terms, consumption records, and any add-on or amendment.",
                 "membership_consequence": "Recording use or reaching a capacity limit does not create a charge, invoice, scope expansion, tier change, partner action, renewal, or customer commitment.",
