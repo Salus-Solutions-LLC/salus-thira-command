@@ -51,19 +51,19 @@ def main():
     }
 
     mode = client.get("/api/system/mode").json()
-    assert mode["version"] == "3.89", mode
+    assert mode["version"] == "3.90", mode
     adapter_fixture = Path(WORKSPACE.name) / "release-adapter-fixture.py"
     adapter_fixture.write_text(
         'xml = b\'<?xml version="1.0"?>\'\n'
-        'assert mode["version"] == "3.88"\n'
-        'marker = \'SALCAPA_RELEASE_VERSION = "3.88"\'\n',
+        'assert mode["version"] == "3.89"\n'
+        'marker = \'SALCAPA_RELEASE_VERSION = "3.89"\'\n',
         encoding="utf-8",
     )
-    adapted, changes = normalized_source(adapter_fixture, "3.89")
+    adapted, changes = normalized_source(adapter_fixture, "3.90")
     assert 'version="1.0"' in adapted
-    assert 'mode["version"] == "3.89"' in adapted
-    assert 'SALCAPA_RELEASE_VERSION = "3.89"' in adapted
-    assert [old for _, old, _ in changes] == ["3.88", "3.88"]
+    assert 'mode["version"] == "3.90"' in adapted
+    assert 'SALCAPA_RELEASE_VERSION = "3.90"' in adapted
+    assert [old for _, old, _ in changes] == ["3.89", "3.89"]
     catalog = client.get("/api/salcapa/mission-map/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
     catalog = catalog.json()

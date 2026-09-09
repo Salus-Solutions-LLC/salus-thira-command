@@ -47,7 +47,7 @@ if register_salops_plan_assembly is not None:
 register_salcapa_commercial(core.app, core.__dict__)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.89"
+SALCAPA_RELEASE_VERSION = "3.90"
 
 
 _base_protective_readiness_summary = core._protective_readiness_summary

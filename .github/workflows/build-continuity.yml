@@ -1,0 +1,38 @@
+name: SalCAPA Build Continuity
+
+on:
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'docs/build-continuity.md'
+      - 'salcapa_runtime.py'
+      - 'tools/ci_build_continuity_smoke.py'
+      - '.github/workflows/build-continuity.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  continuity-record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Compile continuity validation
+        run: python -m py_compile tools/ci_build_continuity_smoke.py
+      - name: Verify governed continuity record
+        run: python tools/ci_build_continuity_smoke.py
+      - name: Repository hygiene
+        run: |
+          git diff --check
+          test ! -e .env
+          test ! -e id_rsa
+
