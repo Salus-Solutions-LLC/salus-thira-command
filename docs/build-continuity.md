@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 10:45 CDT
+last_verified_at: 09 September 2026 11:20 CDT
 current_frozen_release: v3.98
 current_frozen_commit: 8522ee86dd34508ef62e154a045e845c23065977
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 159
-active_increment: protected_membership_acceptance_review
+active_increment: protected_membership_lifecycle_and_credit_controls
 last_completed_release: v3.98
-candidate_release: none
-validation_pr: none
-validation_gate_state: all_required_gates_green
+candidate_release: v3.99
+validation_pr: 229
+validation_gate_state: github_validation_running
 genuine_blockers: none
-next_authorized_increment: protected_membership_gap_closure_or_issue_completion
+next_authorized_increment: protected_membership_issue_159_acceptance_review
 ---
 
 # SalCAPA build continuity
@@ -34,13 +34,13 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 - Current frozen release: **v3.98** at `8522ee86dd34508ef62e154a045e845c23065977`.
 - Active development line: `development/salcapa-platform`.
-- Active roadmap: [Issue #159](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/159), Protected Membership subscription, entitlement, and hybrid commercial architecture. The active increment is an acceptance review against the v3.95-v3.98 frozen implementation. [Issue #154](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/154) is completed and closed; [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128) continues to control the reusable information-intake architecture.
+- Active roadmap: [Issue #159](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/159), Protected Membership subscription, entitlement, and hybrid commercial architecture. Acceptance review identified remaining structured lifecycle and service-credit controls, now addressed by the v3.99 candidate. [Issue #154](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/154) is completed and closed; [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128) continues to control the reusable information-intake architecture.
 - Last completed increment: Salus-only recurring commercial-position reporting for released Protected Membership terms and governed ongoing-monitoring scopes; evidence-qualified highest/lowest planning-contribution views by product line, investigative domain, and tier; current-source checks for approved forecasts; period filters; and export-compatible management output. Unsupported groups remain visible as not ranked. Reports do not recognize revenue, margin, or profit and cannot create a charge, invoice, renewal, scope/tier change, external transmission, or customer commitment.
 - Last controlled validation: [PR #228](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/228), closed without merge after all 15 workflow families passed on the exact frozen commit.
-- Current candidate: none.
+- Current candidate: **v3.99** at `da360c21f606cd342e7890a4e4b23fa9d0cc092c` on [controlled validation PR #229](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/229), which will be closed without merge. It adds explicit renewal, decision-authority, notice, cancellation, and repricing terms; period-aware service-credit grant, expiration, rollover, and capacity views; versioned credit conversions; and governed manual consumption corrections. No term or consumption record renews, reprices, charges, invoices, changes scope/tier, authorizes partner work, or establishes a customer commitment automatically.
 - Genuine blockers: none.
-- Active product increment: conduct the governed Issue #159 acceptance review against the frozen membership, consumption, member-safe capacity, portfolio-term, recurring-value, cost-to-serve, and planning-contribution implementation.
-- Next authorized product increment: close any verified Issue #159 acceptance gap, or complete the issue if every criterion is already evidenced by frozen releases and tests.
+- Active product increment: validate the remaining Issue #159 lifecycle and service-credit controls across fresh SQLite, PostgreSQL 16, production-container, deterministic-reconstruction, security, infrastructure, and regression gates.
+- Next authorized product increment: conduct the final governed Issue #159 acceptance review after v3.99 passes every required release gate.
 
 ## Recovery procedure
 
