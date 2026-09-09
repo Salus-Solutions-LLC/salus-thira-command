@@ -8,6 +8,7 @@ released member-facing content within the active tenant and sensitivity boundary
 """
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal, Optional
@@ -133,6 +134,19 @@ PREPAREDNESS_NEXT_STEPS = {
         "Closed": "Maintain the record and feed validated learning into reassessment and improvement.",
         "Cancelled": "Review whether a replacement exercise or alternate validation method is needed.",
     },
+}
+
+MONITORING_PROFILE_STATES = {
+    "Awaiting Salus Approval": "Awaiting Approval",
+    "Active": "In Progress", "Paused": "Waiting",
+    "Completed": "Closed", "Cancelled": "Closed",
+}
+MONITORING_PROFILE_NEXT_STEPS = {
+    "Awaiting Salus Approval": "Authorized Salus personnel review the requested scope, cadence, sources, boundaries, and commercial treatment.",
+    "Active": "Continue research at the approved cadence and preserve source-grounded cycle outcomes for Salus review.",
+    "Paused": "An authorized person decides whether to resume or end this monitoring profile.",
+    "Completed": "Maintain the historical record; future monitoring requires a new governed request and approval.",
+    "Cancelled": "Maintain the cancellation record; future monitoring requires a new governed request and approval.",
 }
 
 SCHEMA = r"""
@@ -353,6 +367,8 @@ def _record_age(updated_at: str, reference: datetime) -> tuple[int, str]:
 
 
 def _attention_state(item: dict[str, Any]) -> str:
+    if item.get("attention_override"):
+        return item["attention_override"]
     if item["status"] == "Needs Reassessment":
         return "Reassessment needed"
     if item["status"] in {"Waiting", "Awaiting Input"} or item.get("waiting_on"):
@@ -618,6 +634,194 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
                 projected.append(item)
         return projected
 
+    def monitoring_records(conn, investigation_id: int) -> list[dict[str, Any]]:
+        result: list[dict[str, Any]] = []
+        for stored in conn.execute(
+            "SELECT id,detail,created_at,updated_at FROM salintel_investigation_items "
+            "WHERE investigation_id=? ORDER BY id", (investigation_id,),
+        ):
+            try:
+                value = json.loads(stored["detail"])
+            except (TypeError, ValueError, json.JSONDecodeError):
+                continue
+            if not isinstance(value, dict) or not str(value.get("record_type", "")).startswith("salintel_monitoring_"):
+                continue
+            value["_record_id"] = int(stored["id"])
+            value["_created_at"] = stored["created_at"]
+            value["_updated_at"] = stored["updated_at"]
+            result.append(value)
+        return result
+
+    def monitoring_common(
+        request: Request, investigation: dict[str, Any], *, marker_id: str,
+        title: str, node_type: str, status: str, purpose: str, owner: str,
+        waiting_on: str, next_step: str, evidence_state: str, updated_at: str,
+        source_type: str, source_id: str, source_status: str,
+    ) -> dict[str, Any]:
+        item = {
+            "id": marker_id, "assessment_id": None, "node_type": node_type,
+            "title": title, "functional_area": "SalINTEL", "status": status,
+            "marker_shape": "loop" if source_type == "Monitoring Profile" else "circle",
+            "evidence_state": evidence_state, "updated_at": updated_at,
+            "released_at": investigation.get("disclosed_at", ""),
+            "purpose": purpose, "owner": owner, "waiting_on": waiting_on,
+            "next_step": next_step, "result_summary": "", "read_only": True,
+            "projection_kind": "Ongoing monitoring overlay", "source_type": source_type,
+            "source_id": source_id, "source_status": source_status,
+            "projection_basis": (
+                "Read-only projection of the authoritative SalINTEL monitoring record. "
+                "Change scope, cadence, lifecycle, review, or disclosure only through that governed source record."
+            ),
+            "guidance": (
+                "Ongoing Monitoring remains separate from investigation depth. A marker does not activate monitoring, "
+                "change a tier, reopen an investigation, create a charge, release information, or authorize external action."
+            ),
+            "mission_path": [],
+        }
+        route_key, station = _route_station(item)
+        item["route_key"], item["station"] = route_key, station
+        item["next_station"] = _next_station(route_key, station, status)
+        if not protected_member(request):
+            item.update({
+                "authority": "Monitoring authority, human qualification, disclosure, tier changes, and action decisions remain with authorized people.",
+                "visibility": "Released" if investigation["disclosure_status"] == "Approved for Tenant" else "Salus Only",
+                "sensitivity": investigation["sensitivity"],
+                "scope_note": "Tenant-level SalINTEL record; no governed assessment relationship is recorded.",
+            })
+        return item
+
+    def monitoring_overlays(
+        conn, request: Request, assessment_id: Optional[int], workflow_status: Optional[str],
+    ) -> list[dict[str, Any]]:
+        """Project current monitoring profiles and Salus-only latest cycle review state."""
+        if assessment_id is not None:
+            return []
+        is_member = protected_member(request)
+        if is_member:
+            investigations = conn.execute(
+                "SELECT * FROM salintel_investigations WHERE tenant_id=? AND disclosure_status='Approved for Tenant' "
+                "ORDER BY updated_at,id", (tenant_id(request),),
+            )
+        else:
+            investigations = conn.execute(
+                "SELECT * FROM salintel_investigations WHERE tenant_id=? ORDER BY updated_at,id",
+                (tenant_id(request),),
+            )
+        projected: list[dict[str, Any]] = []
+        for found in investigations:
+            investigation = dict(found)
+            try:
+                require_sensitivity(request, investigation["sensitivity"])
+            except HTTPException:
+                continue
+            records = monitoring_records(conn, int(investigation["id"]))
+            profiles: dict[str, dict[str, Any]] = {}
+            for value in records:
+                if value.get("record_type") != "salintel_monitoring_profile":
+                    continue
+                profile_key = str(value.get("profile_key", ""))
+                if not profile_key:
+                    continue
+                if profile_key not in profiles or int(value.get("version_no", 0)) > int(profiles[profile_key].get("version_no", 0)):
+                    profiles[profile_key] = value
+            for profile_key, profile in profiles.items():
+                source_status = str(profile.get("status", ""))
+                if profile.get("explicit_selection") != "Yes" or source_status not in MONITORING_PROFILE_STATES:
+                    continue
+                if is_member and profile.get("requested_by") != actor(request):
+                    continue
+                status = MONITORING_PROFILE_STATES[source_status]
+                if workflow_status is not None and status != workflow_status:
+                    pass
+                else:
+                    owner = "Authorized Salus reviewer" if source_status == "Awaiting Salus Approval" else (
+                        "Authorized Salus decision-maker" if source_status == "Paused" else ""
+                    )
+                    waiting_on = "Salus approval" if source_status == "Awaiting Salus Approval" else (
+                        ("Recorded lifecycle decision" if is_member else str(profile.get("lifecycle_reason", "") or "Recorded lifecycle decision"))
+                        if source_status == "Paused" else ""
+                    )
+                    purpose = str(
+                        profile.get("approved_scope") or profile.get("requested_scope")
+                        or profile.get("purpose") or investigation["purpose"]
+                    )
+                    item = monitoring_common(
+                        request, investigation,
+                        marker_id=f"salintel-monitoring:{investigation['id']}:{profile_key}",
+                        title=f"Ongoing Monitoring — {investigation['title']}",
+                        node_type="Ongoing Monitoring", status=status, purpose=purpose,
+                        owner=owner, waiting_on=waiting_on,
+                        next_step=MONITORING_PROFILE_NEXT_STEPS[source_status],
+                        evidence_state="Not Applicable", updated_at=profile["_updated_at"],
+                        source_type="Monitoring Profile", source_id=profile_key,
+                        source_status=source_status,
+                    )
+                    item["cadence"] = profile.get("cadence") or profile.get("requested_cadence") or ""
+                    projected.append(item)
+                if is_member:
+                    continue
+                executions = [value for value in records if value.get("record_type") == "salintel_monitoring_cycle_execution" and value.get("profile_key") == profile_key]
+                if not executions:
+                    continue
+                execution = max(executions, key=lambda value: int(value.get("cycle_number", 0)))
+                outcomes = [value for value in records if value.get("record_type") == "salintel_monitoring_cycle_outcome" and int(value.get("execution_id", 0)) == execution["_record_id"]]
+                if not outcomes:
+                    status = "Awaiting Input"
+                    if workflow_status is None or workflow_status == status:
+                        projected.append(monitoring_common(
+                            request, investigation,
+                            marker_id=f"salintel-monitoring-cycle:{investigation['id']}:{execution['_record_id']}",
+                            title=f"Monitoring cycle {execution.get('cycle_number', '')} — {investigation['title']}",
+                            node_type="Monitoring Cycle", status=status,
+                            purpose="Complete the governed cycle by recording its source-grounded outcome.",
+                            owner="Authorized Salus analyst", waiting_on="Source-grounded monitoring outcome",
+                            next_step="Record the monitoring outcome, evidence basis, uncertainty, and implications for Salus review.",
+                            evidence_state="Evidence Needed", updated_at=execution["_updated_at"],
+                            source_type="Monitoring Cycle", source_id=str(execution["_record_id"]),
+                            source_status=str(execution.get("status", "Outcome required")),
+                        ))
+                    continue
+                outcome = max(outcomes, key=lambda value: int(value["_record_id"]))
+                reviews = [value for value in records if value.get("record_type") == "salintel_monitoring_outcome_review" and int(value.get("outcome_id", 0)) == outcome["_record_id"]]
+                review = max(reviews, key=lambda value: int(value["_record_id"])) if reviews else None
+                decision = str(review.get("decision")) if review else "Awaiting Salus Review"
+                if decision == "Qualified":
+                    status, owner, waiting_on = "Completed", "Authorized decision-maker", ""
+                    next_step = "Determine whether a governed reassessment, coordination step, protective action, or continued watch is appropriate."
+                    result = "Salus human review qualified the monitoring outcome; this does not itself authorize disclosure, reassessment, a tier change, investigation reopening, charges, or external action."
+                elif decision == "Return for Supplement":
+                    status, owner, waiting_on = "Awaiting Input", "Authorized Salus analyst", "Additional source-grounded information"
+                    next_step = "Supplement the outcome within the approved scope and return it for Salus review."
+                    result = "The outcome was returned for additional support and is not a qualified finding."
+                elif decision == "Rejected":
+                    status, owner, waiting_on = "Closed", "", ""
+                    next_step = "Maintain the preserved outcome and separate rejection record; no action follows from the rejected outcome."
+                    result = "Salus human review rejected the outcome; it must not be treated as a qualified finding."
+                else:
+                    status, owner, waiting_on = "Awaiting Review", "Authorized Salus reviewer", "Salus human qualification"
+                    next_step = "Review the source basis, distinctions, contradictions, uncertainty, and implications before any further decision."
+                    result = "Reported monitoring outcome awaiting Salus human qualification; it is not a final finding or decision."
+                if workflow_status is not None and status != workflow_status:
+                    continue
+                item = monitoring_common(
+                    request, investigation,
+                    marker_id=f"salintel-monitoring-outcome:{investigation['id']}:{outcome['_record_id']}",
+                    title=f"Monitoring outcome — {outcome.get('outcome', 'Review required')} — {investigation['title']}",
+                    node_type="Monitoring Outcome", status=status,
+                    purpose="Review the source-grounded monitoring outcome and determine the authorized next step.",
+                    owner=owner, waiting_on=waiting_on, next_step=next_step,
+                    evidence_state="Not Applicable" if decision in {"Qualified", "Rejected"} else "Awaiting Validation",
+                    updated_at=(review or outcome)["_updated_at"],
+                    source_type="Monitoring Outcome", source_id=str(outcome["_record_id"]),
+                    source_status=decision,
+                )
+                item["result_summary"] = result
+                item["reported_outcome"] = outcome.get("outcome", "")
+                if decision == "Qualified" and outcome.get("outcome") in {"Material Change", "Escalation / Immediate Attention"}:
+                    item["attention_override"] = "Decision / coordination needed"
+                projected.append(item)
+        return projected
+
     def parent_path(conn, request: Request, node: dict[str, Any]) -> list[dict[str, Any]]:
         path: list[dict[str, Any]] = []
         seen: set[str] = set()
@@ -643,14 +847,14 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             "evidence_states": list(EVIDENCE_STATES), "link_types": list(LINK_TYPES),
             "attention_states": [
                 "Waiting / input needed", "Review / validation needed", "Reassessment needed",
-                "Ownership / next step needed", "No recorded hold",
+                "Decision / coordination needed", "Ownership / next step needed", "No recorded hold",
             ],
             "routes": list(ROUTES), "marker_shapes": MARKER_SHAPES,
             "preparedness_overlay_types": list(PREPAREDNESS_OVERLAY_TYPES),
             "mission_structure": "Mission → Priorities → Objectives → Strategies → Tactics → Tasks / Assignments → Evidence & Results → Reassessment / Improvement",
             "principle": "People lead. Methods guide. Technology supports. Evidence proves.",
             "filter_guidance": "Filters narrow the records already authorized for your view. They do not change scope, priority, ownership, or workflow state.",
-            "overlay_guidance": "Plans, training, and exercises appear as read-only projections of their authoritative SalOPS records. Update the source record to change their state, scope, dates, ownership, or disclosure.",
+            "overlay_guidance": "Plans, training, exercises, and ongoing monitoring appear as read-only projections of their authoritative records. Update the source record to change state, scope, cadence, dates, ownership, review, or disclosure.",
         }
 
     @app.get("/api/salcapa/mission-map")
@@ -667,7 +871,7 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
         ]] = None,
         attention: Optional[Literal[
             "Waiting / input needed", "Review / validation needed", "Reassessment needed",
-            "Ownership / next step needed", "No recorded hold",
+            "Decision / coordination needed", "Ownership / next step needed", "No recorded hold",
         ]] = None,
         owner: Optional[str] = Query(default=None, max_length=120),
     ):
@@ -723,6 +927,16 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             for projected in preparedness_overlays(conn, request, assessment_id, workflow_status):
                 projected["age_days"], projected["age_band"] = _record_age(projected["updated_at"], reference)
                 projected["attention"] = _attention_state(projected)
+                if owner and owner.strip().casefold() not in projected.get("owner", "").casefold():
+                    continue
+                if attention and projected["attention"] != attention:
+                    continue
+                visible.append(projected)
+        if functional_area in (None, "SalINTEL"):
+            for projected in monitoring_overlays(conn, request, assessment_id, workflow_status):
+                projected["age_days"], projected["age_band"] = _record_age(projected["updated_at"], reference)
+                projected["attention"] = _attention_state(projected)
+                projected.pop("attention_override", None)
                 if owner and owner.strip().casefold() not in projected.get("owner", "").casefold():
                     continue
                 if attention and projected["attention"] != attention:

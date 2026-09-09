@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Acceptance checks for SalCAPA Mission Map and Mission Structure (issue #213)."""
+import json
 import os
 import sys
 import tempfile
@@ -40,25 +41,29 @@ def main():
         "X-Salus-Tenant": "1", "X-Salus-Role": "Contributor",
         "X-Salus-User": "Protected Member User", "X-Salus-Clearance": "Standard",
     }
+    other_member = {
+        "X-Salus-Tenant": "1", "X-Salus-Role": "Contributor",
+        "X-Salus-User": "Different Protected Member User", "X-Salus-Clearance": "Standard",
+    }
     other_tenant = {
         "X-Salus-Tenant": "2", "X-Salus-Role": "Assessment Director",
         "X-Salus-User": "Other Tenant Director", "X-Salus-Clearance": "Highly Sensitive",
     }
 
     mode = client.get("/api/system/mode").json()
-    assert mode["version"] == "3.88", mode
+    assert mode["version"] == "3.89", mode
     adapter_fixture = Path(WORKSPACE.name) / "release-adapter-fixture.py"
     adapter_fixture.write_text(
         'xml = b\'<?xml version="1.0"?>\'\n'
-        'assert mode["version"] == "3.87"\n'
-        'marker = \'SALCAPA_RELEASE_VERSION = "3.87"\'\n',
+        'assert mode["version"] == "3.88"\n'
+        'marker = \'SALCAPA_RELEASE_VERSION = "3.88"\'\n',
         encoding="utf-8",
     )
-    adapted, changes = normalized_source(adapter_fixture, "3.88")
+    adapted, changes = normalized_source(adapter_fixture, "3.89")
     assert 'version="1.0"' in adapted
-    assert 'mode["version"] == "3.88"' in adapted
-    assert 'SALCAPA_RELEASE_VERSION = "3.88"' in adapted
-    assert [old for _, old, _ in changes] == ["3.87", "3.87"]
+    assert 'mode["version"] == "3.89"' in adapted
+    assert 'SALCAPA_RELEASE_VERSION = "3.89"' in adapted
+    assert [old for _, old, _ in changes] == ["3.88", "3.88"]
     catalog = client.get("/api/salcapa/mission-map/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
     catalog = catalog.json()
@@ -73,6 +78,7 @@ def main():
     assert "PROVE — cross-cutting Assurance & Results" in labels
     assert not any(state in {"Red", "Orange", "Amber", "Green"} for state in catalog["workflow_states"])
     assert "Waiting / input needed" in catalog["attention_states"]
+    assert "Decision / coordination needed" in catalog["attention_states"]
     assert "do not change scope" in catalog["filter_guidance"]
     assert catalog["preparedness_overlay_types"] == ["Plan", "Training", "Exercise"]
     assert "read-only projections" in catalog["overlay_guidance"]
@@ -375,6 +381,116 @@ def main():
         headers=director,
     )
     assert [item["id"] for item in filtered_overlay.json()["items"]] == [overlay_id]
+
+    # Ongoing Monitoring is a tenant-level SalINTEL overlay; profile and outcome authority remain in source records.
+    investigation = post(client, "/api/salintel/investigations", director, {
+        "domain_key": "organizations", "title": "Essential supplier review",
+        "subject_reference": "SUPPLIER-WATCH-001",
+        "purpose": "Understand material changes affecting an essential supplier.",
+        "requested_tier": 1, "sensitivity": "Standard",
+    }).json()
+    conn = salcapa_runtime.core.db()
+    conn.execute(
+        "UPDATE salintel_investigations SET status='Tier Complete',qualification_status='Qualified',"
+        "authorized_tier=1,completed_tier=1,disclosure_status='Approved for Tenant' WHERE id=?",
+        (investigation["id"],),
+    )
+    conn.commit(); conn.close()
+    requested = post(
+        client, f"/api/salintel/investigations/{investigation['id']}/monitoring-selection", member,
+        {"recurring_monitoring": "Yes", "purpose": "Maintain an authorized review of relevant supplier changes.",
+         "requested_scope": "Documented supplier ownership, service, and continuity changes.",
+         "requested_cadence": "Monthly", "requested_start_date": "2026-09-08"},
+    ).json()
+    profile_key = requested["profile_key"]
+    profile_id = f"salintel-monitoring:{investigation['id']}:{profile_key}"
+    pending_profile = client.get("/api/salcapa/mission-map?functional_area=SalINTEL", headers=member).json()
+    pending_profile = next(item for item in pending_profile["items"] if item["id"] == profile_id)
+    assert pending_profile["status"] == "Awaiting Approval"
+    assert pending_profile["owner"] == "Authorized Salus reviewer"
+    assert "approved_by" not in pending_profile and "lifecycle_reason" not in pending_profile
+    assert not any(
+        item.get("projection_kind") == "Ongoing monitoring overlay"
+        for item in client.get("/api/salcapa/mission-map?functional_area=SalINTEL", headers=other_member).json()["items"]
+    )
+    assert not any(
+        item.get("projection_kind") == "Ongoing monitoring overlay"
+        for item in client.get("/api/salcapa/mission-map?assessment_id=1&functional_area=SalINTEL", headers=director).json()["items"]
+    )
+
+    approval = {
+        "approved_scope": "Bounded review of documented supplier ownership, service, and continuity changes.",
+        "cadence": "Monthly", "start_date": "2020-09-08",
+        "approved_sources": ["lawful public sources"],
+        "change_thresholds": "Verified change affecting ownership, service, or continuity.",
+        "escalation_criteria": "Credible material effect on a Protected Member dependency.",
+        "review_requirements": "Authorized Salus human review of every recorded cycle outcome.",
+        "member_notification_policy": "Separate Salus release decision before any member notice.",
+        "member_release_permitted": False, "global_partner_eligible": False,
+        "commercial_treatment": "Included",
+        "approval_reason": "Approve the bounded monitoring scope and monthly cadence.",
+    }
+    post(client, f"/api/salintel/investigations/{investigation['id']}/monitoring/{profile_key}/approve",
+         director, approval)
+    active_profile = client.get("/api/salcapa/mission-map?functional_area=SalINTEL", headers=member).json()
+    active_profile = next(item for item in active_profile["items"] if item["id"] == profile_id)
+    assert (active_profile["source_status"], active_profile["status"]) == ("Active", "In Progress")
+    assert active_profile["cadence"] == "Monthly"
+    assert active_profile["attention"] == "Ownership / next step needed"
+
+    material = client.post("/api/materials/upload", headers=director, data={
+        "title": "Essential supplier continuity source", "material_kind": "Document",
+        "source_origin": "Authorized demonstration public record", "sensitivity": "Standard",
+        "purpose_tags": json.dumps(["SalINTEL", "Recurring Monitoring", "lawful public sources"]),
+    }, files={"file": ("supplier-source.txt", b"ESSENTIAL SUPPLIER CONTINUITY SOURCE\n", "text/plain")})
+    assert material.status_code == 200, material.text
+    material_id = material.json()["id"]
+    for state, reason in (("Processing", "Begin governed processing."),
+                          ("Ready for Human Review", "Source prepared for human review.")):
+        response = client.post(f"/api/materials/{material_id}/transition", headers=director,
+                               json={"status": state, "reason": reason})
+        assert response.status_code == 200, response.text
+    linked = client.post(f"/api/materials/{material_id}/links", headers=director, json={
+        "target_type": "salintel_investigation", "target_id": investigation["id"],
+        "purpose": "Governed monitoring source reuse by reference.",
+    })
+    assert linked.status_code == 200, linked.text
+    cycle_path = f"/api/salintel/investigations/{investigation['id']}/monitoring/{profile_key}/cycles"
+    cycle = post(client, cycle_path, director, {"reason": "Conduct the approved monitoring review."}).json()
+    outcome = post(client, f"{cycle_path}/{cycle['id']}/outcome", director, {
+        "outcome": "Material Change", "narrative": "A source-grounded change requires Salus qualification.",
+        "findings": [{"statement": "The reported supplier change requires human review.",
+                      "epistemic_state": "Reported Information", "material_ids": [material_id]}],
+        "evidence_material_ids": [material_id],
+    }).json()
+    outcome_id = f"salintel-monitoring-outcome:{investigation['id']}:{outcome['id']}"
+    internal_pending = client.get("/api/salcapa/mission-map?functional_area=SalINTEL", headers=director).json()
+    internal_pending = next(item for item in internal_pending["items"] if item["id"] == outcome_id)
+    assert internal_pending["status"] == "Awaiting Review"
+    assert internal_pending["evidence_state"] == "Awaiting Validation"
+    assert "not a final finding or decision" in internal_pending["result_summary"]
+    assert not any(
+        item["id"] == outcome_id
+        for item in client.get("/api/salcapa/mission-map?functional_area=SalINTEL", headers=member).json()["items"]
+    )
+    post(client,
+         f"/api/salintel/investigations/{investigation['id']}/monitoring/{profile_key}/outcomes/{outcome['id']}/review",
+         director, {"decision": "Qualified", "reason": "Salus reviewer qualified the source basis and distinctions."})
+    decision_view = client.get(
+        "/api/salcapa/mission-map?functional_area=SalINTEL&attention=Decision%20%2F%20coordination%20needed",
+        headers=director,
+    ).json()
+    qualified = next(item for item in decision_view["items"] if item["id"] == outcome_id)
+    assert qualified["status"] == "Completed" and qualified["source_status"] == "Qualified"
+    assert qualified["reported_outcome"] == "Material Change"
+    assert qualified["attention"] == "Decision / coordination needed"
+    assert "does not itself authorize disclosure" in qualified["result_summary"]
+    assert client.post(
+        f"/api/salcapa/mission-map/nodes/{outcome_id}/transition", headers=director,
+        json={"status": "Closed", "reason": "Attempt to change an overlay.",
+              "internal_next_step": None, "internal_waiting_on": None,
+              "member_next_step": None, "member_waiting_on": None},
+    ).status_code == 404
     assert client.get(
         "/api/salcapa/mission-map?workflow_status=Red", headers=director
     ).status_code == 422
