@@ -1304,10 +1304,10 @@ def main() -> None:
     records = salcapa_runtime.core.collect_tenant_records(conn, 1)
     conn.close()
     assert len(records["salcapa_rate_cards"]) == 2
-    assert len(records["salcapa_commercial_estimates"]) == 2
+    assert len(records["salcapa_commercial_estimates"]) == 3
     assert len(records["salcapa_time_entries"]) == 2
     assert len(records["salcapa_cost_entries"]) == 5
-    assert len(records["salcapa_commercial_forecasts"]) == 3
+    assert len(records["salcapa_commercial_forecasts"]) == 5
     assert len(records["salcapa_membership_plans"]) == 2
     assert len(records["salcapa_membership_terms"]) == 2
     assert len(records["salcapa_membership_consumption"]) == 3
