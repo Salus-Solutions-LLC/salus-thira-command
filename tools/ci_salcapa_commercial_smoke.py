@@ -42,7 +42,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.96"
+    assert client.get("/api/system/mode").json()["version"] == "3.97"
     assert client.get("/api/salcapa/commercial/catalog", headers=member).status_code == 403
     catalog = client.get("/api/salcapa/commercial/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
@@ -1056,6 +1056,139 @@ def main() -> None:
     assert wip_summary.json()["groups"][0]["commercial_disposition"] == "Authorized for Billing"
     assert wip_summary.json()["creates_invoice"] is False
 
+    # Cross-cutting Microsoft 365 provenance keeps exact document versions without a document silo.
+    assert "Microsoft SharePoint" in body["source_providers"]
+    assert "does not imply that a person reviewed" in body["guidance"]["source_truth"]
+    assert client.get("/api/salcapa/sources", headers=member).status_code == 403
+    invalid_source = {
+        "provider": "Microsoft SharePoint", "external_tenant_id": "",
+        "site_id": "salus-commercial-site", "drive_id": "documents-drive",
+        "item_id": "estimate-workbook-item", "display_name": "Historical estimates.xlsx",
+        "source_owner": "Salus Commercial", "record_type": "Estimate workbook",
+        "sensitivity": "Salus Internal", "disclosure_boundary": "Salus Only",
+        "business_purpose": "Preserve the exact source workbook identity for governed commercial work.",
+        "retention_reference": "Salus commercial records schedule.",
+    }
+    assert client.post(
+        "/api/salcapa/sources", headers=director, json=invalid_source
+    ).status_code == 422
+    source_payload = dict(invalid_source, external_tenant_id="m365-tenant-demo")
+    source = client.post(
+        "/api/salcapa/sources", headers=director, json=source_payload
+    )
+    assert source.status_code == 200, source.text
+    source_id = source.json()["id"]
+    assert source.json()["stores_credentials"] is False
+    assert client.post(
+        "/api/salcapa/sources", headers=director, json=source_payload
+    ).status_code == 409
+    registered_version_payload = {
+        "source_record_id": source_id, "external_version_id": "1.0",
+        "etag": '"demo-etag-v1"',
+        "web_url": "https://salus.example.sharepoint.com/sites/commercial/documents/estimate.xlsx",
+        "source_last_modified_at": "2026-09-08T16:30:00Z",
+        "access_status": "Registered Without Access", "content_bytes": 0,
+        "file_sha256": "", "accessed_at": "", "unavailable_reason": "",
+        "provenance_note": "Exact Microsoft 365 identity and version supplied by the authorized collection process.",
+    }
+    registered_version = client.post(
+        "/api/salcapa/source-versions", headers=director, json=registered_version_payload
+    )
+    assert registered_version.status_code == 200, registered_version.text
+    registered_version_id = registered_version.json()["id"]
+    assert registered_version.json()["review_state"] == "Not Established"
+    assert client.post(
+        "/api/salcapa/source-versions", headers=director,
+        json=dict(registered_version_payload, external_version_id="bad-access",
+                  access_status="Accessed", content_bytes=100, accessed_at="2026-09-09T08:00:00Z",
+                  file_sha256="not-a-digest"),
+    ).status_code == 422
+    supporting_link_payload = {
+        "commercial_record_type": "WIP Review", "commercial_record_id": authorized_id,
+        "source_record_id": source_id, "source_version_id": registered_version_id,
+        "relationship_type": "Supporting Reference",
+        "business_purpose": "Retain the registered workbook version while access evidence is pending.",
+        "material_change_action": "Evidence Needed",
+        "material_change_basis": "The exact version is known, but source bytes have not been accessed.",
+    }
+    supporting_link = client.post(
+        "/api/salcapa/commercial/source-links", headers=director, json=supporting_link_payload
+    )
+    assert supporting_link.status_code == 200, supporting_link.text
+    supporting_link_id = supporting_link.json()["id"]
+    assert supporting_link.json()["source_snapshot"]["source_version"]["access_status"] == "Registered Without Access"
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the exact registered-version relationship."),
+        ("Approved", administrator, "Confirm the evidence-needed source relationship."),
+    ):
+        response = client.post(
+            f"/api/salcapa/commercial/source-links/{supporting_link_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        )
+        assert response.status_code == 200, response.text
+
+    accessed_version_payload = dict(
+        registered_version_payload, external_version_id="2.0", etag='"demo-etag-v2"',
+        source_last_modified_at="2026-09-09T07:45:00Z", access_status="Accessed",
+        content_bytes=48127, file_sha256="a" * 64,
+        accessed_at="2026-09-09T08:00:00Z",
+        provenance_note="Authorized collection process accessed the exact workbook bytes and recorded integrity evidence.",
+    )
+    accessed_version = client.post(
+        "/api/salcapa/source-versions", headers=director, json=accessed_version_payload
+    )
+    assert accessed_version.status_code == 200, accessed_version.text
+    accessed_version_id = accessed_version.json()["id"]
+    assert accessed_version.json()["review_state"] == "Not Established"
+    old_link = client.get(
+        f"/api/salcapa/commercial/source-links?commercial_record_type=WIP%20Review&commercial_record_id={authorized_id}",
+        headers=administrator,
+    ).json()[0]
+    assert old_link["newer_source_version_available"] is True
+    revision_payload = dict(
+        supporting_link_payload, supersedes_link_id=supporting_link_id,
+        source_version_id=accessed_version_id, relationship_type="Approval Artifact",
+        business_purpose="Retain the byte-verified workbook version supporting the approved WIP review.",
+        material_change_action="Change Estimate Required",
+        material_change_basis="The workbook changed after the original version; authorized staff must assess the commercial effect separately.",
+    )
+    revision = client.post(
+        "/api/salcapa/commercial/source-links", headers=director, json=revision_payload
+    )
+    assert revision.status_code == 200, revision.text
+    revision_id = revision.json()["id"]
+    assert revision.json()["creates_charge"] is False
+    assert revision.json()["changes_scope_or_price"] is False
+    assert revision.json()["transmits_externally"] is False
+    assert client.post(
+        f"/api/salcapa/commercial/source-links/{revision_id}/transition", headers=director,
+        json={"status": "Submitted", "reason": "Submit the exact version and material-change recommendation."},
+    ).status_code == 200
+    assert client.post(
+        f"/api/salcapa/commercial/source-links/{revision_id}/transition", headers=director,
+        json={"status": "Approved", "reason": "Attempt self-approval."},
+    ).status_code == 409
+    approved_revision = client.post(
+        f"/api/salcapa/commercial/source-links/{revision_id}/transition", headers=administrator,
+        json={"status": "Approved", "reason": "Approve the source relationship; a separate change estimate remains required."},
+    )
+    assert approved_revision.status_code == 200, approved_revision.text
+    assert approved_revision.json()["current_approved_link"] is True
+    history = client.get(
+        f"/api/salcapa/commercial/source-links?commercial_record_type=WIP%20Review&commercial_record_id={authorized_id}",
+        headers=administrator,
+    ).json()
+    assert len(history) == 2
+    assert history[0]["current_approved_link"] is False
+    assert history[1]["source_snapshot"]["source_version"]["file_sha256"] == "a" * 64
+    assert client.get("/api/salcapa/sources", headers=other).json() == []
+    assert client.get(
+        f"/api/salcapa/source-versions?source_record_id={source_id}", headers=other
+    ).status_code == 404
+    assert client.post(
+        "/api/salcapa/commercial/source-links", headers=other, json=revision_payload
+    ).status_code == 404
+
     conn = salcapa_runtime.core.db()
     records = salcapa_runtime.core.collect_tenant_records(conn, 1)
     conn.close()
@@ -1068,6 +1201,9 @@ def main() -> None:
     assert len(records["salcapa_membership_terms"]) == 2
     assert len(records["salcapa_membership_consumption"]) == 3
     assert len(records["salcapa_wip_reviews"]) == 3
+    assert len(records["salcapa_source_records"]) == 1
+    assert len(records["salcapa_source_versions"]) == 2
+    assert len(records["salcapa_commercial_source_links"]) == 2
     assert salcapa_runtime.core.validate_records(records, 1) == []
     tampered = copy.deepcopy(records)
     tampered["salcapa_commercial_estimates"][0]["recommended_customer_price_cents"] = 1
@@ -1088,6 +1224,12 @@ def main() -> None:
     tampered_entitlement = copy.deepcopy(records)
     tampered_entitlement["salcapa_membership_consumption"][0]["entitlement_snapshot_json"] = "{}"
     assert salcapa_runtime.core.validate_records(tampered_entitlement, 1) != []
+    tampered_source = copy.deepcopy(records)
+    tampered_source["salcapa_source_versions"][1]["file_sha256"] = "b" * 64
+    assert salcapa_runtime.core.validate_records(tampered_source, 1) != []
+    tampered_source_link = copy.deepcopy(records)
+    tampered_source_link["salcapa_commercial_source_links"][1]["source_snapshot_json"] = "{}"
+    assert salcapa_runtime.core.validate_records(tampered_source_link, 1) != []
 
     # Direct persisted tampering is rejected before any lifecycle action.
     conn = salcapa_runtime.core.db()

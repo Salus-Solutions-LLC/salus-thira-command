@@ -1,4 +1,4 @@
-"""Governed SalCAPA commercial planning, membership, actual-cost, and WIP records.
+"""Governed SalCAPA commercial planning, membership, actual-cost, WIP, and sources.
 
 Issue #154 increment.  Salus personnel configure and approve versioned planning
 assumptions.  Estimates snapshot every assumption and calculation.  Salus time
@@ -9,6 +9,11 @@ consumption never creates a charge, invoice, scope expansion, tier change,
 renewal, partner action, or customer commitment automatically.
 Unbilled/work-in-progress reviews preserve dated source snapshots and human
 commercial dispositions without becoming accounting entries or creating bills.
+Cross-cutting source records preserve exact SharePoint, OneDrive, or other
+authorized-repository identities and versions.  Commercial links snapshot a
+specific source version without copying mutable documents or implying that
+registration, access, review, approval, release, billing, or transmission are
+the same event.
 """
 from __future__ import annotations
 
@@ -94,13 +99,40 @@ WIP_DISPOSITIONS = (
     "Ready for Billing Authorization", "Authorized for Billing", "Deferred",
     "Non-Billable", "Write-Off", "Externally Billed",
 )
+SOURCE_PROVIDERS = (
+    "Microsoft SharePoint", "Microsoft OneDrive", "Other Authorized Repository",
+)
+SOURCE_ACCESS_STATES = (
+    "Registered Without Access", "Accessed", "Unavailable", "Access Revoked",
+)
+SOURCE_SENSITIVITIES = (
+    "Salus Internal", "Protected Member Confidential", "Restricted", "Public",
+)
+SOURCE_DISCLOSURE_BOUNDARIES = (
+    "Salus Only", "Single Protected Member", "Approved External Recipient", "Public",
+)
+COMMERCIAL_SOURCE_RECORD_TYPES = (
+    "Rate Card", "Commercial Estimate", "Time Entry", "Cost Entry", "Forecast",
+    "Protected Membership Plan", "Protected Membership Term",
+    "Protected Membership Consumption", "WIP Review",
+)
+COMMERCIAL_SOURCE_RELATIONSHIPS = (
+    "Supporting Reference", "Governing Terms", "Cost Evidence",
+    "Approval Artifact", "Released Customer Document",
+)
+COMMERCIAL_SOURCE_CHANGE_ACTIONS = (
+    "Not Evaluated", "No Action Required", "Review Required",
+    "Change Estimate Required", "Evidence Needed",
+)
 BACKUP_TABLES = (
     "salcapa_rate_cards", "salcapa_commercial_estimates",
     "salcapa_time_entries", "salcapa_cost_entries", "salcapa_commercial_forecasts",
     "salcapa_membership_plans", "salcapa_membership_terms", "salcapa_membership_consumption",
-    "salcapa_wip_reviews",
+    "salcapa_wip_reviews", "salcapa_source_records", "salcapa_source_versions",
+    "salcapa_commercial_source_links",
 )
 DELETE_ORDER = (
+    "salcapa_commercial_source_links", "salcapa_source_versions", "salcapa_source_records",
     "salcapa_wip_reviews", "salcapa_membership_consumption", "salcapa_membership_terms", "salcapa_membership_plans",
     "salcapa_commercial_forecasts", "salcapa_time_entries", "salcapa_cost_entries",
     "salcapa_commercial_estimates", "salcapa_rate_cards",
@@ -109,7 +141,8 @@ RESTORE_ORDER = (
     "salcapa_rate_cards", "salcapa_commercial_estimates",
     "salcapa_time_entries", "salcapa_cost_entries", "salcapa_commercial_forecasts",
     "salcapa_membership_plans", "salcapa_membership_terms", "salcapa_membership_consumption",
-    "salcapa_wip_reviews",
+    "salcapa_wip_reviews", "salcapa_source_records", "salcapa_source_versions",
+    "salcapa_commercial_source_links",
 )
 
 
@@ -480,6 +513,107 @@ CREATE TABLE IF NOT EXISTS salcapa_wip_reviews (
 );
 CREATE INDEX IF NOT EXISTS idx_salcapa_wip_reviews_scope
   ON salcapa_wip_reviews(tenant_id,estimate_id,status,work_through_date,version_no);
+
+CREATE TABLE IF NOT EXISTS salcapa_source_records (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  version_no INTEGER NOT NULL,
+  provider TEXT NOT NULL,
+  external_tenant_id TEXT NOT NULL DEFAULT '',
+  site_id TEXT NOT NULL DEFAULT '',
+  drive_id TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  source_owner TEXT NOT NULL,
+  record_type TEXT NOT NULL,
+  sensitivity TEXT NOT NULL,
+  disclosure_boundary TEXT NOT NULL,
+  business_purpose TEXT NOT NULL,
+  retention_reference TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Active',
+  stores_credentials INTEGER NOT NULL DEFAULT 0,
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  changes_scope_or_price INTEGER NOT NULL DEFAULT 0,
+  transmits_externally INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  retired_by TEXT NOT NULL DEFAULT '',
+  retired_at TEXT NOT NULL DEFAULT '',
+  retirement_reason TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  UNIQUE(tenant_id,version_no),
+  UNIQUE(tenant_id,provider,drive_id,item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_salcapa_source_records_scope
+  ON salcapa_source_records(tenant_id,status,provider,version_no);
+
+CREATE TABLE IF NOT EXISTS salcapa_source_versions (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  version_no INTEGER NOT NULL,
+  source_record_id TEXT NOT NULL,
+  external_version_id TEXT NOT NULL,
+  etag TEXT NOT NULL DEFAULT '',
+  web_url TEXT NOT NULL DEFAULT '',
+  source_last_modified_at TEXT NOT NULL,
+  access_status TEXT NOT NULL,
+  content_bytes INTEGER NOT NULL DEFAULT 0,
+  file_sha256 TEXT NOT NULL DEFAULT '',
+  accessed_at TEXT NOT NULL DEFAULT '',
+  unavailable_reason TEXT NOT NULL DEFAULT '',
+  provenance_note TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  changes_scope_or_price INTEGER NOT NULL DEFAULT 0,
+  transmits_externally INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(tenant_id,version_no),
+  UNIQUE(tenant_id,source_record_id,external_version_id),
+  FOREIGN KEY (source_record_id) REFERENCES salcapa_source_records(id)
+);
+CREATE INDEX IF NOT EXISTS idx_salcapa_source_versions_scope
+  ON salcapa_source_versions(tenant_id,source_record_id,version_no);
+
+CREATE TABLE IF NOT EXISTS salcapa_commercial_source_links (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  version_no INTEGER NOT NULL,
+  supersedes_link_id TEXT,
+  commercial_record_type TEXT NOT NULL,
+  commercial_record_id TEXT NOT NULL,
+  source_record_id TEXT NOT NULL,
+  source_version_id TEXT NOT NULL,
+  source_snapshot_json TEXT NOT NULL,
+  relationship_type TEXT NOT NULL,
+  business_purpose TEXT NOT NULL,
+  material_change_action TEXT NOT NULL,
+  material_change_basis TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Draft',
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  recognizes_revenue INTEGER NOT NULL DEFAULT 0,
+  changes_scope_or_price INTEGER NOT NULL DEFAULT 0,
+  changes_membership INTEGER NOT NULL DEFAULT 0,
+  transmits_externally INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  submitted_by TEXT NOT NULL DEFAULT '',
+  submitted_at TEXT NOT NULL DEFAULT '',
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT '',
+  decision_reason TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  UNIQUE(tenant_id,version_no),
+  FOREIGN KEY (source_record_id) REFERENCES salcapa_source_records(id),
+  FOREIGN KEY (source_version_id) REFERENCES salcapa_source_versions(id)
+);
+CREATE INDEX IF NOT EXISTS idx_salcapa_commercial_source_links_scope
+  ON salcapa_commercial_source_links(tenant_id,commercial_record_type,commercial_record_id,status,version_no);
 """
 
 
@@ -890,6 +1024,112 @@ class WipReviewCreate(StrictModel):
 
 
 class WipReviewTransition(StrictModel):
+    status: Literal["Submitted", "Approved", "Rejected"]
+    reason: str = Field(min_length=3, max_length=4000)
+
+
+class SourceRecordCreate(StrictModel):
+    provider: Literal[
+        "Microsoft SharePoint", "Microsoft OneDrive", "Other Authorized Repository",
+    ]
+    external_tenant_id: str = Field(default="", max_length=240)
+    site_id: str = Field(default="", max_length=500)
+    drive_id: str = Field(min_length=2, max_length=500)
+    item_id: str = Field(min_length=2, max_length=500)
+    display_name: str = Field(min_length=2, max_length=500)
+    source_owner: str = Field(min_length=2, max_length=240)
+    record_type: str = Field(min_length=2, max_length=160)
+    sensitivity: Literal[
+        "Salus Internal", "Protected Member Confidential", "Restricted", "Public",
+    ]
+    disclosure_boundary: Literal[
+        "Salus Only", "Single Protected Member", "Approved External Recipient", "Public",
+    ]
+    business_purpose: str = Field(min_length=3, max_length=4000)
+    retention_reference: str = Field(min_length=3, max_length=1000)
+
+    @model_validator(mode="after")
+    def valid_source_identity(self):
+        if self.provider.startswith("Microsoft ") and not self.external_tenant_id.strip():
+            raise ValueError("Microsoft 365 source identity requires the external tenant identifier")
+        if self.provider == "Microsoft SharePoint" and not self.site_id.strip():
+            raise ValueError("SharePoint source identity requires the site identifier")
+        if self.disclosure_boundary == "Public" and self.sensitivity != "Public":
+            raise ValueError("Only Public source records may use the Public disclosure boundary")
+        return self
+
+
+class SourceRecordTransition(StrictModel):
+    status: Literal["Retired"]
+    reason: str = Field(min_length=3, max_length=4000)
+
+
+class SourceVersionCreate(StrictModel):
+    source_record_id: str = Field(min_length=3, max_length=80)
+    external_version_id: str = Field(min_length=1, max_length=500)
+    etag: str = Field(default="", max_length=500)
+    web_url: str = Field(default="", max_length=2000)
+    source_last_modified_at: str = Field(min_length=3, max_length=60)
+    access_status: Literal[
+        "Registered Without Access", "Accessed", "Unavailable", "Access Revoked",
+    ]
+    content_bytes: int = Field(default=0, ge=0, le=10_000_000_000)
+    file_sha256: str = Field(default="", max_length=64)
+    accessed_at: str = Field(default="", max_length=60)
+    unavailable_reason: str = Field(default="", max_length=4000)
+    provenance_note: str = Field(min_length=3, max_length=4000)
+
+    @model_validator(mode="after")
+    def valid_source_version(self):
+        try:
+            datetime.fromisoformat(self.source_last_modified_at.replace("Z", "+00:00"))
+            if self.accessed_at:
+                datetime.fromisoformat(self.accessed_at.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("Source-version timestamps must be valid ISO timestamps") from exc
+        if self.web_url and not self.web_url.startswith("https://"):
+            raise ValueError("Source web_url must use HTTPS")
+        if self.access_status == "Accessed":
+            if self.content_bytes <= 0 or len(self.file_sha256) != 64 or not self.accessed_at:
+                raise ValueError("Accessed source bytes require size, SHA-256, and access time")
+            try:
+                int(self.file_sha256, 16)
+            except ValueError as exc:
+                raise ValueError("file_sha256 must contain 64 hexadecimal characters") from exc
+            if self.unavailable_reason.strip():
+                raise ValueError("An Accessed version cannot carry an unavailable reason")
+        else:
+            if self.content_bytes or self.file_sha256 or self.accessed_at:
+                raise ValueError("Unaccessed versions cannot claim bytes, hash, or access time")
+            needs_reason = self.access_status in {"Unavailable", "Access Revoked"}
+            if needs_reason != bool(self.unavailable_reason.strip()):
+                raise ValueError("Unavailable or revoked sources require a reason; other states must omit it")
+        return self
+
+
+class CommercialSourceLinkCreate(StrictModel):
+    supersedes_link_id: Optional[str] = Field(default=None, max_length=80)
+    commercial_record_type: Literal[
+        "Rate Card", "Commercial Estimate", "Time Entry", "Cost Entry", "Forecast",
+        "Protected Membership Plan", "Protected Membership Term",
+        "Protected Membership Consumption", "WIP Review",
+    ]
+    commercial_record_id: str = Field(min_length=3, max_length=80)
+    source_record_id: str = Field(min_length=3, max_length=80)
+    source_version_id: str = Field(min_length=3, max_length=80)
+    relationship_type: Literal[
+        "Supporting Reference", "Governing Terms", "Cost Evidence",
+        "Approval Artifact", "Released Customer Document",
+    ]
+    business_purpose: str = Field(min_length=3, max_length=4000)
+    material_change_action: Literal[
+        "Not Evaluated", "No Action Required", "Review Required",
+        "Change Estimate Required", "Evidence Needed",
+    ] = "Not Evaluated"
+    material_change_basis: str = Field(min_length=3, max_length=4000)
+
+
+class CommercialSourceLinkTransition(StrictModel):
     status: Literal["Submitted", "Approved", "Rejected"]
     reason: str = Field(min_length=3, max_length=4000)
 
@@ -1773,6 +2013,158 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         ).fetchone()
         return dict(found) if found else None
 
+    def source_record_content(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "tenant_id": int(row["tenant_id"]),
+            "version_no": int(row["version_no"]), "provider": row["provider"],
+            "external_tenant_id": row["external_tenant_id"], "site_id": row["site_id"],
+            "drive_id": row["drive_id"], "item_id": row["item_id"],
+            "display_name": row["display_name"], "source_owner": row["source_owner"],
+            "record_type": row["record_type"], "sensitivity": row["sensitivity"],
+            "disclosure_boundary": row["disclosure_boundary"],
+            "business_purpose": row["business_purpose"],
+            "retention_reference": row["retention_reference"],
+        }
+
+    def verify_source_record(row: dict[str, Any]) -> None:
+        if _digest(source_record_content(row)) != row["content_sha256"]:
+            raise HTTPException(409, "Governed source record integrity verification failed")
+        if any(int(row[field]) for field in (
+            "stores_credentials", "creates_charge", "creates_invoice",
+            "changes_scope_or_price", "transmits_externally",
+        )):
+            raise HTTPException(409, "Governed source record contains a prohibited effect")
+
+    def source_version_content(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "tenant_id": int(row["tenant_id"]),
+            "version_no": int(row["version_no"]),
+            "source_record_id": row["source_record_id"],
+            "external_version_id": row["external_version_id"], "etag": row["etag"],
+            "web_url": row["web_url"],
+            "source_last_modified_at": row["source_last_modified_at"],
+            "access_status": row["access_status"], "content_bytes": int(row["content_bytes"]),
+            "file_sha256": row["file_sha256"], "accessed_at": row["accessed_at"],
+            "unavailable_reason": row["unavailable_reason"],
+            "provenance_note": row["provenance_note"],
+        }
+
+    def verify_source_version(row: dict[str, Any]) -> None:
+        if _digest(source_version_content(row)) != row["content_sha256"]:
+            raise HTTPException(409, "Governed source version integrity verification failed")
+        if any(int(row[field]) for field in (
+            "creates_charge", "creates_invoice", "changes_scope_or_price", "transmits_externally",
+        )):
+            raise HTTPException(409, "Governed source version contains a prohibited effect")
+        accessed = row["access_status"] == "Accessed"
+        has_access_evidence = bool(
+            int(row["content_bytes"]) > 0 and row["file_sha256"] and row["accessed_at"]
+        )
+        if accessed != has_access_evidence:
+            raise HTTPException(409, "Governed source access state is inconsistent with its evidence")
+
+    commercial_record_specs = {
+        "Rate Card": ("salcapa_rate_cards", verify_card),
+        "Commercial Estimate": ("salcapa_commercial_estimates", verify_estimate),
+        "Time Entry": ("salcapa_time_entries", lambda row: verify_actual_entry(row, "time")),
+        "Cost Entry": ("salcapa_cost_entries", lambda row: verify_actual_entry(row, "cost")),
+        "Forecast": ("salcapa_commercial_forecasts", verify_forecast),
+        "Protected Membership Plan": ("salcapa_membership_plans", verify_membership_plan),
+        "Protected Membership Term": ("salcapa_membership_terms", verify_membership_term),
+        "Protected Membership Consumption": (
+            "salcapa_membership_consumption", verify_membership_consumption,
+        ),
+        "WIP Review": ("salcapa_wip_reviews", verify_wip_review),
+    }
+
+    def commercial_record_for_source(conn, tid: int, record_type: str,
+                                     record_id: str) -> dict[str, Any]:
+        table, verifier = commercial_record_specs[record_type]
+        found = conn.execute(
+            f"SELECT * FROM {table} WHERE id=? AND tenant_id=?", (record_id, tid)
+        ).fetchone()
+        if not found:
+            raise HTTPException(404, "Commercial record not found within this governed scope")
+        row = dict(found)
+        verifier(row)
+        return row
+
+    def source_snapshot(source: dict[str, Any], version: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "source_record": source_record_content(source),
+            "source_record_sha256": source["content_sha256"],
+            "source_version": source_version_content(version),
+            "source_version_sha256": version["content_sha256"],
+            "interpretation": (
+                "Registration preserves source identity and exact version provenance. Accessed means bytes "
+                "were available to the authorized collection process; it does not mean a person reviewed, "
+                "verified, approved, or released the document."
+            ),
+        }
+
+    def source_link_content(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "tenant_id": int(row["tenant_id"]),
+            "version_no": int(row["version_no"]),
+            "supersedes_link_id": row["supersedes_link_id"],
+            "commercial_record_type": row["commercial_record_type"],
+            "commercial_record_id": row["commercial_record_id"],
+            "source_record_id": row["source_record_id"],
+            "source_version_id": row["source_version_id"],
+            "source_snapshot": json.loads(row["source_snapshot_json"]),
+            "relationship_type": row["relationship_type"],
+            "business_purpose": row["business_purpose"],
+            "material_change_action": row["material_change_action"],
+            "material_change_basis": row["material_change_basis"],
+        }
+
+    def verify_source_link(row: dict[str, Any]) -> None:
+        if _digest(source_link_content(row)) != row["content_sha256"]:
+            raise HTTPException(409, "Commercial source link integrity verification failed")
+        if any(int(row[field]) for field in (
+            "creates_charge", "creates_invoice", "recognizes_revenue",
+            "changes_scope_or_price", "changes_membership", "transmits_externally",
+        )):
+            raise HTTPException(409, "Commercial source link contains a prohibited effect")
+
+    def source_version_view(row: dict[str, Any]) -> dict[str, Any]:
+        out = dict(row)
+        for field in ("creates_charge", "creates_invoice", "changes_scope_or_price", "transmits_externally"):
+            out[field] = False
+        out["review_state"] = "Not Established"
+        out["review_note"] = (
+            "This record states source availability and provenance only. It does not claim document review, "
+            "verification, approval, release, billing, or transmission."
+        )
+        return out
+
+    def source_link_view(conn, row: dict[str, Any]) -> dict[str, Any]:
+        out = dict(row)
+        out["source_snapshot"] = json.loads(out.pop("source_snapshot_json"))
+        latest = conn.execute(
+            "SELECT MAX(version_no) latest FROM salcapa_source_versions WHERE tenant_id=? AND source_record_id=?",
+            (row["tenant_id"], row["source_record_id"]),
+        ).fetchone()
+        linked_version = int(out["source_snapshot"]["source_version"]["version_no"])
+        out["newer_source_version_available"] = int(latest["latest"] or 0) > linked_version
+        successor = conn.execute(
+            "SELECT id FROM salcapa_commercial_source_links WHERE tenant_id=? AND supersedes_link_id=? AND status='Approved' LIMIT 1",
+            (row["tenant_id"], row["id"]),
+        ).fetchone()
+        out["current_approved_link"] = row["status"] == "Approved" and successor is None
+        for field in (
+            "creates_charge", "creates_invoice", "recognizes_revenue",
+            "changes_scope_or_price", "changes_membership", "transmits_externally",
+        ):
+            out[field] = False
+        out["next_step"] = (
+            "Review the newer source version and prepare a governed source-link revision; use a change "
+            "estimate when the approved commercial basis may be materially affected."
+            if out["newer_source_version_available"] else
+            "Use this exact governed version for the stated purpose; create a revision if the source or purpose changes."
+        )
+        return out
+
     def wip_management_summary(conn, tid: int, as_of: date) -> dict[str, Any]:
         rows = [dict(row) for row in conn.execute(
             """SELECT * FROM salcapa_wip_reviews
@@ -2040,6 +2432,13 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "membership_capacity_types": list(MEMBERSHIP_CAPACITY_TYPES),
             "membership_source_types": list(MEMBERSHIP_SOURCE_TYPES),
             "wip_dispositions": list(WIP_DISPOSITIONS),
+            "source_providers": list(SOURCE_PROVIDERS),
+            "source_access_states": list(SOURCE_ACCESS_STATES),
+            "source_sensitivities": list(SOURCE_SENSITIVITIES),
+            "source_disclosure_boundaries": list(SOURCE_DISCLOSURE_BOUNDARIES),
+            "commercial_source_record_types": list(COMMERCIAL_SOURCE_RECORD_TYPES),
+            "commercial_source_relationships": list(COMMERCIAL_SOURCE_RELATIONSHIPS),
+            "commercial_source_change_actions": list(COMMERCIAL_SOURCE_CHANGE_ACTIONS),
             "initial_planning_defaults": json.loads(_canonical(DEFAULT_RULES)),
             "guidance": {
                 "purpose": "Prepare a transparent planning estimate for authorized Salus review.",
@@ -2067,6 +2466,12 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "wip_uncertainty": "The review identifies its source snapshot, assumptions, known gaps, and evidence state. Changed work or cost records require a new governed revision.",
                 "wip_confidentiality": "Unbilled/work-in-progress reviews and summaries are Salus-only commercial management information within one Protected Member scope.",
                 "wip_next_step": "Resolve evidence gaps or complete the separately authorized billing process, then record later billing evidence by governed reference without rewriting this review.",
+                "source_purpose": "Link governed work to an exact SharePoint, OneDrive, or other authorized-repository item and version without creating an unnecessary document copy.",
+                "source_authority": "Microsoft 365 may remain the document system of record. SalCAPA retains the commercial state, source-version snapshot, relationship, review decision, and audit history.",
+                "source_truth": "Registered Without Access, Unavailable, and Access Revoked do not imply document access. Accessed records byte-level provenance but does not imply that a person reviewed, verified, approved, or released the document.",
+                "source_confidentiality": "Source identifiers, URLs, versions, links, and change reviews remain Salus-only and tenant-scoped; knowing a URL or item identifier never grants access.",
+                "source_change": "A newer source version never rewrites an approved historical basis. Review it through a governed link revision and prepare a change estimate when the commercial effect may be material.",
+                "source_consequence": "Registering, accessing, linking, or revising a source cannot create a charge, invoice, recognized revenue, scope or price change, membership change, or external transmission.",
             },
         }
 
@@ -3015,6 +3420,487 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         verify_wip_review(result)
         return wip_view(result)
 
+    @app.get("/api/salcapa/sources")
+    def list_source_records(request: Request):
+        salus_read(request)
+        tid = tenant_id(request)
+        conn = db()
+        try:
+            rows = [dict(row) for row in conn.execute(
+                "SELECT * FROM salcapa_source_records WHERE tenant_id=? ORDER BY version_no DESC",
+                (tid,),
+            )]
+            result = []
+            for row in rows:
+                verify_source_record(row)
+                latest = conn.execute(
+                    "SELECT * FROM salcapa_source_versions WHERE tenant_id=? AND source_record_id=? ORDER BY version_no DESC LIMIT 1",
+                    (tid, row["id"]),
+                ).fetchone()
+                item = dict(row)
+                for field in (
+                    "stores_credentials", "creates_charge", "creates_invoice",
+                    "changes_scope_or_price", "transmits_externally",
+                ):
+                    item[field] = False
+                item["latest_version"] = None
+                if latest:
+                    latest_row = dict(latest)
+                    verify_source_version(latest_row)
+                    item["latest_version"] = source_version_view(latest_row)
+                result.append(item)
+            return result
+        finally:
+            conn.close()
+
+    @app.post("/api/salcapa/sources")
+    def create_source_record(payload: SourceRecordCreate, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            duplicate = conn.execute(
+                "SELECT id FROM salcapa_source_records WHERE tenant_id=? AND provider=? AND drive_id=? AND item_id=?",
+                (tid, payload.provider, payload.drive_id.strip(), payload.item_id.strip()),
+            ).fetchone()
+            if duplicate:
+                raise HTTPException(409, "This governed source item is already registered")
+            version = int(conn.execute(
+                "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_source_records WHERE tenant_id=?",
+                (tid,),
+            ).fetchone()["v"])
+            source_id = _key("source")
+            content = {
+                "id": source_id, "tenant_id": tid, "version_no": version,
+                "provider": payload.provider,
+                "external_tenant_id": payload.external_tenant_id.strip(),
+                "site_id": payload.site_id.strip(), "drive_id": payload.drive_id.strip(),
+                "item_id": payload.item_id.strip(), "display_name": payload.display_name.strip(),
+                "source_owner": payload.source_owner.strip(), "record_type": payload.record_type.strip(),
+                "sensitivity": payload.sensitivity,
+                "disclosure_boundary": payload.disclosure_boundary,
+                "business_purpose": payload.business_purpose.strip(),
+                "retention_reference": payload.retention_reference.strip(),
+            }
+            conn.execute(
+                """INSERT INTO salcapa_source_records(
+                   id,tenant_id,version_no,provider,external_tenant_id,site_id,drive_id,item_id,
+                   display_name,source_owner,record_type,sensitivity,disclosure_boundary,
+                   business_purpose,retention_reference,content_sha256,status,stores_credentials,
+                   creates_charge,creates_invoice,changes_scope_or_price,transmits_externally,
+                   created_by,created_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (source_id, tid, version, content["provider"], content["external_tenant_id"],
+                 content["site_id"], content["drive_id"], content["item_id"],
+                 content["display_name"], content["source_owner"], content["record_type"],
+                 content["sensitivity"], content["disclosure_boundary"],
+                 content["business_purpose"], content["retention_reference"], _digest(content),
+                 "Active", 0, 0, 0, 0, 0, who, stamp, stamp),
+            )
+            audit(
+                conn, "SALCAPA_SOURCE_REGISTER", "salcapa_source_record", None,
+                f"{source_id} v{version}: durable {payload.provider} source identity registered; no document access, review, approval, billing, scope change, or transmission implied.",
+                who,
+            )
+            conn.commit()
+            result = dict(conn.execute(
+                "SELECT * FROM salcapa_source_records WHERE id=?", (source_id,)
+            ).fetchone())
+        finally:
+            conn.close()
+        verify_source_record(result)
+        for field in (
+            "stores_credentials", "creates_charge", "creates_invoice",
+            "changes_scope_or_price", "transmits_externally",
+        ):
+            result[field] = False
+        return result
+
+    @app.post("/api/salcapa/sources/{source_id}/transition")
+    def transition_source_record(source_id: str, payload: SourceRecordTransition,
+                                 request: Request):
+        salus_write(request)
+        commercial_authority(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            found = conn.execute(
+                "SELECT * FROM salcapa_source_records WHERE id=? AND tenant_id=?",
+                (source_id, tid),
+            ).fetchone()
+            if not found:
+                raise HTTPException(404, "Governed source record not found")
+            row = dict(found)
+            verify_source_record(row)
+            if row["status"] != "Active":
+                raise HTTPException(409, "Only an Active source record may be retired")
+            conn.execute(
+                """UPDATE salcapa_source_records SET status='Retired',retired_by=?,retired_at=?,
+                   retirement_reason=?,updated_at=? WHERE id=? AND tenant_id=?""",
+                (who, stamp, payload.reason, stamp, source_id, tid),
+            )
+            audit(
+                conn, "SALCAPA_SOURCE_RETIRE", "salcapa_source_record", None,
+                f"{source_id}: source identity retired without deleting retained versions or historical links; {payload.reason}"[:1000],
+                who,
+            )
+            conn.commit()
+            result = dict(conn.execute(
+                "SELECT * FROM salcapa_source_records WHERE id=?", (source_id,)
+            ).fetchone())
+        finally:
+            conn.close()
+        verify_source_record(result)
+        return result
+
+    @app.get("/api/salcapa/source-versions")
+    def list_source_versions(request: Request, source_record_id: Optional[str] = None):
+        salus_read(request)
+        tid = tenant_id(request)
+        conn = db()
+        try:
+            if source_record_id:
+                source = conn.execute(
+                    "SELECT * FROM salcapa_source_records WHERE id=? AND tenant_id=?",
+                    (source_record_id, tid),
+                ).fetchone()
+                if not source:
+                    raise HTTPException(404, "Governed source record not found")
+                verify_source_record(dict(source))
+                rows = [dict(row) for row in conn.execute(
+                    "SELECT * FROM salcapa_source_versions WHERE tenant_id=? AND source_record_id=? ORDER BY version_no",
+                    (tid, source_record_id),
+                )]
+            else:
+                rows = [dict(row) for row in conn.execute(
+                    "SELECT * FROM salcapa_source_versions WHERE tenant_id=? ORDER BY version_no",
+                    (tid,),
+                )]
+        finally:
+            conn.close()
+        for row in rows:
+            verify_source_version(row)
+        return [source_version_view(row) for row in rows]
+
+    @app.post("/api/salcapa/source-versions")
+    def create_source_version(payload: SourceVersionCreate, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            found = conn.execute(
+                "SELECT * FROM salcapa_source_records WHERE id=? AND tenant_id=?",
+                (payload.source_record_id, tid),
+            ).fetchone()
+            if not found:
+                raise HTTPException(404, "Governed source record not found")
+            source = dict(found)
+            verify_source_record(source)
+            if source["status"] != "Active":
+                raise HTTPException(409, "A version cannot be added to a retired source record")
+            duplicate = conn.execute(
+                "SELECT id FROM salcapa_source_versions WHERE tenant_id=? AND source_record_id=? AND external_version_id=?",
+                (tid, payload.source_record_id, payload.external_version_id.strip()),
+            ).fetchone()
+            if duplicate:
+                raise HTTPException(409, "This exact external source version is already registered")
+            version = int(conn.execute(
+                "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_source_versions WHERE tenant_id=?",
+                (tid,),
+            ).fetchone()["v"])
+            version_id = _key("source-version")
+            content = {
+                "id": version_id, "tenant_id": tid, "version_no": version,
+                "source_record_id": payload.source_record_id,
+                "external_version_id": payload.external_version_id.strip(),
+                "etag": payload.etag.strip(), "web_url": payload.web_url.strip(),
+                "source_last_modified_at": payload.source_last_modified_at,
+                "access_status": payload.access_status, "content_bytes": payload.content_bytes,
+                "file_sha256": payload.file_sha256.lower(), "accessed_at": payload.accessed_at,
+                "unavailable_reason": payload.unavailable_reason.strip(),
+                "provenance_note": payload.provenance_note.strip(),
+            }
+            conn.execute(
+                """INSERT INTO salcapa_source_versions(
+                   id,tenant_id,version_no,source_record_id,external_version_id,etag,web_url,
+                   source_last_modified_at,access_status,content_bytes,file_sha256,accessed_at,
+                   unavailable_reason,provenance_note,content_sha256,creates_charge,creates_invoice,
+                   changes_scope_or_price,transmits_externally,created_by,created_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (version_id, tid, version, payload.source_record_id,
+                 content["external_version_id"], content["etag"], content["web_url"],
+                 content["source_last_modified_at"], content["access_status"],
+                 content["content_bytes"], content["file_sha256"], content["accessed_at"],
+                 content["unavailable_reason"], content["provenance_note"], _digest(content),
+                 0, 0, 0, 0, who, stamp),
+            )
+            audit(
+                conn, "SALCAPA_SOURCE_VERSION_REGISTER", "salcapa_source_version", None,
+                f"{version_id} v{version}: exact external version registered as {payload.access_status}; this is provenance, not a claim of human review or approval.",
+                who,
+            )
+            conn.commit()
+            result = dict(conn.execute(
+                "SELECT * FROM salcapa_source_versions WHERE id=?", (version_id,)
+            ).fetchone())
+        finally:
+            conn.close()
+        verify_source_version(result)
+        return source_version_view(result)
+
+    @app.get("/api/salcapa/commercial/source-links")
+    def list_commercial_source_links(request: Request,
+                                     commercial_record_type: Optional[str] = None,
+                                     commercial_record_id: Optional[str] = None):
+        salus_read(request)
+        if commercial_record_type and commercial_record_type not in COMMERCIAL_SOURCE_RECORD_TYPES:
+            raise HTTPException(422, "commercial_record_type is invalid")
+        tid = tenant_id(request)
+        conn = db()
+        try:
+            clauses, values = ["tenant_id=?"], [tid]
+            if commercial_record_type:
+                clauses.append("commercial_record_type=?")
+                values.append(commercial_record_type)
+            if commercial_record_id:
+                clauses.append("commercial_record_id=?")
+                values.append(commercial_record_id)
+            rows = [dict(row) for row in conn.execute(
+                f"SELECT * FROM salcapa_commercial_source_links WHERE {' AND '.join(clauses)} ORDER BY version_no",
+                tuple(values),
+            )]
+            for row in rows:
+                verify_source_link(row)
+            return [source_link_view(conn, row) for row in rows]
+        finally:
+            conn.close()
+
+    def validate_source_link_relationship(record_type: str, record: dict[str, Any], source: dict[str, Any],
+                                          version: dict[str, Any], relationship: str,
+                                          change_action: str) -> None:
+        if source["status"] != "Active":
+            raise HTTPException(409, "Commercial work cannot establish a new link to a retired source")
+        if relationship != "Supporting Reference" and version["access_status"] != "Accessed":
+            raise HTTPException(409, "This relationship requires source bytes with recorded integrity evidence")
+        if version["access_status"] != "Accessed" and change_action != "Evidence Needed":
+            raise HTTPException(409, "An unavailable or unaccessed source must remain Evidence Needed")
+        status = record.get("status", "")
+        if relationship == "Released Customer Document" and status != "Released":
+            raise HTTPException(409, "A released customer document must link to a Released commercial record")
+        if relationship in {"Governing Terms", "Approval Artifact"} and status not in {"Approved", "Released"}:
+            raise HTTPException(409, "This relationship requires an Approved or Released commercial record")
+        if relationship == "Cost Evidence" and (
+            record_type not in {"Time Entry", "Cost Entry", "WIP Review"}
+            or record.get("status") != "Approved"
+        ):
+            raise HTTPException(409, "Cost evidence must link to an Approved governed commercial record")
+
+    @app.post("/api/salcapa/commercial/source-links")
+    def create_commercial_source_link(payload: CommercialSourceLinkCreate,
+                                      request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            record = commercial_record_for_source(
+                conn, tid, payload.commercial_record_type, payload.commercial_record_id
+            )
+            source_found = conn.execute(
+                "SELECT * FROM salcapa_source_records WHERE id=? AND tenant_id=?",
+                (payload.source_record_id, tid),
+            ).fetchone()
+            version_found = conn.execute(
+                "SELECT * FROM salcapa_source_versions WHERE id=? AND tenant_id=? AND source_record_id=?",
+                (payload.source_version_id, tid, payload.source_record_id),
+            ).fetchone()
+            if not source_found or not version_found:
+                raise HTTPException(404, "Governed source or exact source version not found")
+            source, source_version = dict(source_found), dict(version_found)
+            verify_source_record(source)
+            verify_source_version(source_version)
+            validate_source_link_relationship(
+                payload.commercial_record_type, record, source, source_version, payload.relationship_type,
+                payload.material_change_action,
+            )
+            active_prior = conn.execute(
+                """SELECT l.* FROM salcapa_commercial_source_links l
+                   WHERE l.tenant_id=? AND l.commercial_record_type=? AND l.commercial_record_id=?
+                     AND l.source_record_id=? AND l.status='Approved'
+                     AND NOT EXISTS (
+                       SELECT 1 FROM salcapa_commercial_source_links successor
+                       WHERE successor.tenant_id=l.tenant_id AND successor.supersedes_link_id=l.id
+                         AND successor.status='Approved')
+                   ORDER BY l.version_no DESC LIMIT 1""",
+                (tid, payload.commercial_record_type, payload.commercial_record_id,
+                 payload.source_record_id),
+            ).fetchone()
+            if active_prior and payload.supersedes_link_id != active_prior["id"]:
+                raise HTTPException(409, "A changed source relationship must explicitly revise its current Approved link")
+            if payload.supersedes_link_id:
+                prior = conn.execute(
+                    """SELECT * FROM salcapa_commercial_source_links
+                       WHERE id=? AND tenant_id=? AND commercial_record_type=?
+                         AND commercial_record_id=? AND source_record_id=? AND status='Approved'""",
+                    (payload.supersedes_link_id, tid, payload.commercial_record_type,
+                     payload.commercial_record_id, payload.source_record_id),
+                ).fetchone()
+                if not prior:
+                    raise HTTPException(422, "A link revision must reference the Approved relationship it replaces")
+                verify_source_link(dict(prior))
+                duplicate = conn.execute(
+                    """SELECT id FROM salcapa_commercial_source_links
+                       WHERE supersedes_link_id=? AND tenant_id=? AND status<>'Rejected'""",
+                    (payload.supersedes_link_id, tid),
+                ).fetchone()
+                if duplicate:
+                    raise HTTPException(409, "This source link already has an active revision")
+            version_no = int(conn.execute(
+                "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_commercial_source_links WHERE tenant_id=?",
+                (tid,),
+            ).fetchone()["v"])
+            link_id = _key("commercial-source-link")
+            snapshot = source_snapshot(source, source_version)
+            content = {
+                "id": link_id, "tenant_id": tid, "version_no": version_no,
+                "supersedes_link_id": payload.supersedes_link_id,
+                "commercial_record_type": payload.commercial_record_type,
+                "commercial_record_id": payload.commercial_record_id,
+                "source_record_id": payload.source_record_id,
+                "source_version_id": payload.source_version_id,
+                "source_snapshot": snapshot, "relationship_type": payload.relationship_type,
+                "business_purpose": payload.business_purpose.strip(),
+                "material_change_action": payload.material_change_action,
+                "material_change_basis": payload.material_change_basis.strip(),
+            }
+            conn.execute(
+                """INSERT INTO salcapa_commercial_source_links(
+                   id,tenant_id,version_no,supersedes_link_id,commercial_record_type,
+                   commercial_record_id,source_record_id,source_version_id,source_snapshot_json,
+                   relationship_type,business_purpose,material_change_action,material_change_basis,
+                   content_sha256,status,creates_charge,creates_invoice,recognizes_revenue,
+                   changes_scope_or_price,changes_membership,transmits_externally,
+                   created_by,created_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (link_id, tid, version_no, payload.supersedes_link_id,
+                 payload.commercial_record_type, payload.commercial_record_id,
+                 payload.source_record_id, payload.source_version_id, _canonical(snapshot),
+                 payload.relationship_type, content["business_purpose"],
+                 payload.material_change_action, content["material_change_basis"], _digest(content),
+                 "Draft", 0, 0, 0, 0, 0, 0, who, stamp, stamp),
+            )
+            audit(
+                conn, "SALCAPA_COMMERCIAL_SOURCE_LINK_CREATE", "salcapa_commercial_source_link", None,
+                f"{link_id} v{version_no}: exact source version linked as {payload.relationship_type}; no review, commercial change, billing, membership change, or transmission occurred.",
+                who,
+            )
+            conn.commit()
+            row = dict(conn.execute(
+                "SELECT * FROM salcapa_commercial_source_links WHERE id=?", (link_id,)
+            ).fetchone())
+            verify_source_link(row)
+            return source_link_view(conn, row)
+        finally:
+            conn.close()
+
+    @app.post("/api/salcapa/commercial/source-links/{link_id}/transition")
+    def transition_commercial_source_link(link_id: str,
+                                          payload: CommercialSourceLinkTransition,
+                                          request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            found = conn.execute(
+                "SELECT * FROM salcapa_commercial_source_links WHERE id=? AND tenant_id=?",
+                (link_id, tid),
+            ).fetchone()
+            if not found:
+                raise HTTPException(404, "Commercial source link not found")
+            row = dict(found)
+            verify_source_link(row)
+            expected = {"Draft": {"Submitted"}, "Submitted": {"Approved", "Rejected"}}
+            if payload.status not in expected.get(row["status"], set()):
+                raise HTTPException(409, f"Commercial source link cannot transition from {row['status']} to {payload.status}")
+            submitted_by, submitted_at = row["submitted_by"], row["submitted_at"]
+            approved_by, approved_at = row["approved_by"], row["approved_at"]
+            decision_reason = row["decision_reason"]
+            if payload.status == "Submitted":
+                submitted_by, submitted_at = who, stamp
+            else:
+                commercial_authority(request)
+                if row["created_by"] == who:
+                    raise HTTPException(409, "Source-link decision requires an actor other than the creator")
+                if payload.status == "Approved":
+                    record = commercial_record_for_source(
+                        conn, tid, row["commercial_record_type"], row["commercial_record_id"]
+                    )
+                    source_found = conn.execute(
+                        "SELECT * FROM salcapa_source_records WHERE id=? AND tenant_id=?",
+                        (row["source_record_id"], tid),
+                    ).fetchone()
+                    version_found = conn.execute(
+                        "SELECT * FROM salcapa_source_versions WHERE id=? AND tenant_id=? AND source_record_id=?",
+                        (row["source_version_id"], tid, row["source_record_id"]),
+                    ).fetchone()
+                    if not source_found or not version_found:
+                        raise HTTPException(409, "Linked source records are no longer available")
+                    source, source_version = dict(source_found), dict(version_found)
+                    verify_source_record(source)
+                    verify_source_version(source_version)
+                    if _canonical(source_snapshot(source, source_version)) != _canonical(
+                        json.loads(row["source_snapshot_json"])
+                    ):
+                        raise HTTPException(409, "Source metadata changed; prepare a current governed link")
+                    validate_source_link_relationship(
+                        row["commercial_record_type"], record, source, source_version, row["relationship_type"],
+                        row["material_change_action"],
+                    )
+                    latest = conn.execute(
+                        "SELECT MAX(version_no) latest FROM salcapa_source_versions WHERE tenant_id=? AND source_record_id=?",
+                        (tid, row["source_record_id"]),
+                    ).fetchone()
+                    linked_version = int(json.loads(row["source_snapshot_json"])["source_version"]["version_no"])
+                    if int(latest["latest"] or 0) > linked_version and row["material_change_action"] == "Not Evaluated":
+                        raise HTTPException(409, "A newer source version requires an explicit material-change review before approval")
+                    active_prior = conn.execute(
+                        """SELECT id FROM salcapa_commercial_source_links current
+                           WHERE current.tenant_id=? AND current.commercial_record_type=?
+                             AND current.commercial_record_id=? AND current.source_record_id=?
+                             AND current.status='Approved' AND current.id<>?
+                             AND NOT EXISTS (
+                               SELECT 1 FROM salcapa_commercial_source_links successor
+                               WHERE successor.tenant_id=current.tenant_id
+                                 AND successor.supersedes_link_id=current.id
+                                 AND successor.status='Approved')
+                           LIMIT 1""",
+                        (tid, row["commercial_record_type"], row["commercial_record_id"],
+                         row["source_record_id"], link_id),
+                    ).fetchone()
+                    if active_prior and row["supersedes_link_id"] != active_prior["id"]:
+                        raise HTTPException(409, "Another Approved source link is current; prepare an explicit revision")
+                    approved_by, approved_at = who, stamp
+                decision_reason = payload.reason
+            conn.execute(
+                """UPDATE salcapa_commercial_source_links SET status=?,submitted_by=?,submitted_at=?,
+                   approved_by=?,approved_at=?,decision_reason=?,updated_at=?
+                   WHERE id=? AND tenant_id=?""",
+                (payload.status, submitted_by, submitted_at, approved_by, approved_at,
+                 decision_reason, stamp, link_id, tid),
+            )
+            audit(
+                conn, "SALCAPA_COMMERCIAL_SOURCE_LINK_TRANSITION", "salcapa_commercial_source_link", None,
+                f"{link_id}: {row['status']} -> {payload.status}; source relationship review only; no charge, invoice, recognized revenue, scope/price or membership change, or transmission; {payload.reason}"[:1000],
+                who,
+            )
+            conn.commit()
+            result = dict(conn.execute(
+                "SELECT * FROM salcapa_commercial_source_links WHERE id=?", (link_id,)
+            ).fetchone())
+            verify_source_link(result)
+            return source_link_view(conn, result)
+        finally:
+            conn.close()
+
     @app.get("/api/salcapa/commercial/membership/plans")
     def list_membership_plans(request: Request):
         salus_read(request)
@@ -3508,6 +4394,15 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             membership_consumption = {
                 str(r.get("id")): r for r in records.get("salcapa_membership_consumption", [])
             }
+            source_records = {
+                str(r.get("id")): r for r in records.get("salcapa_source_records", [])
+            }
+            source_versions = {
+                str(r.get("id")): r for r in records.get("salcapa_source_versions", [])
+            }
+            source_links = {
+                str(r.get("id")): r for r in records.get("salcapa_commercial_source_links", [])
+            }
             for row in cards.values():
                 if int(row.get("tenant_id", -1)) != int(tid):
                     errors.append(f"rate card {row.get('id')} crosses the tenant boundary")
@@ -3674,6 +4569,61 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                         errors.append(f"membership consumption {row.get('id')} quantity is invalid")
                 except (HTTPException, ValueError, TypeError, KeyError):
                     errors.append(f"membership consumption {row.get('id')} failed integrity verification")
+            for row in source_records.values():
+                if int(row.get("tenant_id", -1)) != int(tid):
+                    errors.append(f"source record {row.get('id')} crosses the tenant boundary")
+                    continue
+                try:
+                    verify_source_record(dict(row))
+                except (HTTPException, ValueError, TypeError, KeyError):
+                    errors.append(f"source record {row.get('id')} failed integrity verification")
+            for row in source_versions.values():
+                if int(row.get("tenant_id", -1)) != int(tid):
+                    errors.append(f"source version {row.get('id')} crosses the tenant boundary")
+                    continue
+                source = source_records.get(str(row.get("source_record_id")))
+                if not source:
+                    errors.append(f"source version {row.get('id')} has invalid source_record_id")
+                try:
+                    verify_source_version(dict(row))
+                except (HTTPException, ValueError, TypeError, KeyError):
+                    errors.append(f"source version {row.get('id')} failed integrity verification")
+            commercial_record_sets = {
+                "Rate Card": cards, "Commercial Estimate": estimates,
+                "Time Entry": time_entries, "Cost Entry": cost_entries,
+                "Forecast": forecasts, "Protected Membership Plan": membership_plans,
+                "Protected Membership Term": membership_terms,
+                "Protected Membership Consumption": membership_consumption,
+                "WIP Review": wip_reviews,
+            }
+            for row in source_links.values():
+                if int(row.get("tenant_id", -1)) != int(tid):
+                    errors.append(f"commercial source link {row.get('id')} crosses the tenant boundary")
+                    continue
+                source = source_records.get(str(row.get("source_record_id")))
+                version = source_versions.get(str(row.get("source_version_id")))
+                target_set = commercial_record_sets.get(str(row.get("commercial_record_type")), {})
+                target = target_set.get(str(row.get("commercial_record_id")))
+                if not source or not version or str(version.get("source_record_id")) != str(row.get("source_record_id")):
+                    errors.append(f"commercial source link {row.get('id')} has invalid source lineage")
+                if not target:
+                    errors.append(f"commercial source link {row.get('id')} has invalid commercial record")
+                prior_id = row.get("supersedes_link_id")
+                if prior_id:
+                    prior = source_links.get(str(prior_id))
+                    if (not prior
+                            or prior.get("commercial_record_type") != row.get("commercial_record_type")
+                            or prior.get("commercial_record_id") != row.get("commercial_record_id")
+                            or prior.get("source_record_id") != row.get("source_record_id")):
+                        errors.append(f"commercial source link {row.get('id')} has invalid revision lineage")
+                try:
+                    if source and version and _canonical(
+                        json.loads(row.get("source_snapshot_json", "{}"))
+                    ) != _canonical(source_snapshot(dict(source), dict(version))):
+                        errors.append(f"commercial source link {row.get('id')} snapshot does not match")
+                    verify_source_link(dict(row))
+                except (HTTPException, ValueError, TypeError, KeyError):
+                    errors.append(f"commercial source link {row.get('id')} failed integrity verification")
             return errors
 
         def extended_validate(records: dict, tid: Optional[int] = None):
