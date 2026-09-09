@@ -2,6 +2,7 @@
 """Acceptance checks for SalCAPA Mission Map and Mission Structure (issue #213)."""
 import json
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -51,19 +52,19 @@ def main():
     }
 
     mode = client.get("/api/system/mode").json()
-    assert mode["version"] == "3.90", mode
+    assert mode["version"] == "3.91", mode
     adapter_fixture = Path(WORKSPACE.name) / "release-adapter-fixture.py"
     adapter_fixture.write_text(
         'xml = b\'<?xml version="1.0"?>\'\n'
-        'assert mode["version"] == "3.89"\n'
-        'marker = \'SALCAPA_RELEASE_VERSION = "3.89"\'\n',
+        'assert mode["version"] == "3.90"\n'
+        'marker = \'SALCAPA_RELEASE_VERSION = "3.90"\'\n',
         encoding="utf-8",
     )
-    adapted, changes = normalized_source(adapter_fixture, "3.90")
+    adapted, changes = normalized_source(adapter_fixture, "3.91")
     assert 'version="1.0"' in adapted
-    assert 'mode["version"] == "3.90"' in adapted
-    assert 'SALCAPA_RELEASE_VERSION = "3.90"' in adapted
-    assert [old for _, old, _ in changes] == ["3.89", "3.89"]
+    assert 'mode["version"] == "3.91"' in adapted
+    assert 'SALCAPA_RELEASE_VERSION = "3.91"' in adapted
+    assert [old for _, old, _ in changes] == ["3.90", "3.90"]
     catalog = client.get("/api/salcapa/mission-map/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
     catalog = catalog.json()
@@ -82,6 +83,7 @@ def main():
     assert "do not change scope" in catalog["filter_guidance"]
     assert catalog["preparedness_overlay_types"] == ["Plan", "Training", "Exercise"]
     assert "read-only projections" in catalog["overlay_guidance"]
+    assert "Printing does not approve" in catalog["report_guidance"]
 
     # No browser-provided map coordinate or arbitrary state can enter the governed model.
     forged_position = dict(
@@ -352,6 +354,16 @@ def main():
     member_sources = client.get("/api/salcapa/mission-map?assessment_id=1", headers=member)
     assert member_sources.status_code == 200, member_sources.text
     member_overlays = [item for item in member_sources.json()["items"] if item.get("read_only")]
+    member_report = member_sources.json()["report"]
+    assert member_report["release_version"] == "3.91"
+    assert member_report["audience"] == "Protected Member authorized view"
+    assert member_report["included_item_count"] == len(member_sources.json()["items"])
+    assert member_report["prepared_at_display"].endswith(" UTC")
+    assert re.fullmatch(r"\d{2} [A-Z][a-z]+ \d{4} \d{2}:\d{2} UTC", member_report["prepared_at_display"])
+    assert "Only released records" in member_report["authorization_basis"]
+    assert "does not approve, release, validate" in member_report["governance"]
+    assert "Return to SalCAPA" in member_report["correction_and_lifecycle"]
+    assert "tenant" not in member_report["scope"].lower()
     assert {item["source_type"] for item in member_overlays} == {"Plan", "Training", "Exercise"}
     member_plan_overlay = next(item for item in member_overlays if item["source_type"] == "Plan")
     member_training = next(item for item in member_overlays if item["source_type"] == "Training")
@@ -481,6 +493,9 @@ def main():
         headers=director,
     ).json()
     qualified = next(item for item in decision_view["items"] if item["id"] == outcome_id)
+    assert decision_view["report"]["audience"] == "Salus internal authorized view"
+    assert decision_view["report"]["active_filters"]["attention"] == "Decision / coordination needed"
+    assert decision_view["report"]["included_item_count"] == len(decision_view["items"])
     assert qualified["status"] == "Completed" and qualified["source_status"] == "Qualified"
     assert qualified["reported_outcome"] == "Material Change"
     assert qualified["attention"] == "Decision / coordination needed"
@@ -503,12 +518,17 @@ def main():
     js = (ROOT / "static" / "mission-map.js").read_text(encoding="utf-8")
     assert "Mission Map" in js and "Conventional list view" in js
     assert "Authorized portfolio view" in js and "Apply filters" in js
+    assert "Prepare printable view" in js and "missionMapPrintableReport" in js
+    assert "window.print()" in js and "afterprint" in js
+    assert "Printing preserves this authorized view" in js
     assert "Authoritative source" in js and "!item.read_only" in js
     assert "Waiting / input needed" in js and "not scores or judgments about people" not in js
     assert "SalCAPA makes" not in js and "SalTHIRA coordinates" not in js
     css = (ROOT / "static" / "mission-map.css").read_text(encoding="utf-8")
     assert "prefers-reduced-motion" in css
     assert ".mission-filter-grid" in css and ".mission-portfolio-grid" in css
+    assert "@media print" in css and ".mission-print-version" in css
+    assert "word-break:normal" in css and "body.mission-map-printing" in css
     print("SalCAPA Mission Map acceptance checks passed.")
 
 

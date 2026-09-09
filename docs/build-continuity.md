@@ -1,16 +1,16 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 08 September 2026 20:13 CDT
+last_verified_at: 08 September 2026 21:04 CDT
 current_frozen_release: v3.90
 current_frozen_commit: 0f1049ff6e7e1913489cbe681d20a671dd48b194
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 213
 active_increment: mission_map_print_report_representation
 last_completed_release: v3.90
-candidate_release: none
-validation_pr: none
-validation_gate_state: all_required_gates_green
+candidate_release: v3.91
+validation_pr: pending
+validation_gate_state: local_verified_github_pending
 genuine_blockers: none
 next_authorized_increment: mission_map_accessibility_reduced_motion
 ---
@@ -37,7 +37,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active roadmap: [Issue #213](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/213), Mission Map and Mission Structure.
 - Last completed increment: governed Build Continuity and anti-split recovery control.
 - Last controlled validation: [PR #218](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/218), closed without merge after all 15 workflow families passed.
-- Current candidate: none.
+- Current candidate: v3.91 Mission Map print/report representation; validation PR will be recorded when opened.
 - Genuine blockers: none.
 - Active product increment: Mission Map print/report representation.
 - Next authorized product increment: Mission Map accessibility and reduced-motion support.

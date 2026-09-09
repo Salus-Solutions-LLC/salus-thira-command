@@ -18,7 +18,7 @@ function missionMapPortfolio(data){
 }
 
 function missionMapFilterPanel(catalog){
-  return `<section class="card mission-filters" aria-label="Mission Map filters"><div class="mission-filter-grid"><label>Functional area<select id="mission-filter-area">${missionMapOptions(catalog.functional_areas||[],salcapaMissionMapFilters.functional_area,'All functional areas')}</select></label><label>Workflow state<select id="mission-filter-status">${missionMapOptions(catalog.workflow_states||[],salcapaMissionMapFilters.workflow_status,'All workflow states')}</select></label><label>Attention needed<select id="mission-filter-attention">${missionMapOptions(catalog.attention_states||[],salcapaMissionMapFilters.attention,'All attention states')}</select></label><label>Owner or responsible role<input id="mission-filter-owner" maxlength="120" value="${esc(salcapaMissionMapFilters.owner)}" placeholder="All authorized owners" /></label></div><div class="mission-filter-actions"><button class="btn secondary" type="button" onclick="missionMapApplyFilters()">Apply filters</button><button class="btn secondary" type="button" onclick="missionMapClearFilters()">Clear</button></div><p class="subtle">${esc(catalog.filter_guidance||'Filters narrow this authorized view without changing the underlying work.')}</p></section>`;
+  return `<section class="card mission-filters" aria-label="Mission Map filters"><div class="mission-filter-grid"><label>Functional area<select id="mission-filter-area">${missionMapOptions(catalog.functional_areas||[],salcapaMissionMapFilters.functional_area,'All functional areas')}</select></label><label>Workflow state<select id="mission-filter-status">${missionMapOptions(catalog.workflow_states||[],salcapaMissionMapFilters.workflow_status,'All workflow states')}</select></label><label>Attention needed<select id="mission-filter-attention">${missionMapOptions(catalog.attention_states||[],salcapaMissionMapFilters.attention,'All attention states')}</select></label><label>Owner or responsible role<input id="mission-filter-owner" maxlength="120" value="${esc(salcapaMissionMapFilters.owner)}" placeholder="All authorized owners" /></label></div><div class="mission-filter-actions"><button class="btn secondary" type="button" onclick="missionMapApplyFilters()">Apply filters</button><button class="btn secondary" type="button" onclick="missionMapClearFilters()">Clear</button><button class="btn secondary" type="button" onclick="missionMapPreparePrint()">Prepare printable view</button></div><p class="subtle">${esc(catalog.filter_guidance||'Filters narrow this authorized view without changing the underlying work.')}</p><p class="subtle">${esc(catalog.report_guidance||'Printing preserves this authorized view without changing the underlying work.')}</p></section>`;
 }
 
 async function missionMapApplyFilters(){
@@ -71,6 +71,31 @@ function missionMapFallback(data){
   return `<details class="card mission-fallback"><summary>Conventional list view</summary><p class="subtle">${esc(data.fallback.description)}</p>${table(['Work item','Area','Current location','State','Next owner','Expected next step','Evidence state'],rows)}</details>`;
 }
 
+function missionMapReportFilterSummary(report){
+  const labels={functional_area:'Functional area',workflow_status:'Workflow state',attention:'Attention',owner:'Owner or responsible role'};
+  const filters=Object.entries(report.active_filters||{}).filter(([,value])=>value);
+  return filters.length?filters.map(([key,value])=>`<span><strong>${esc(labels[key]||key)}:</strong> ${esc(value)}</span>`).join(''):'<span>No additional filters applied</span>';
+}
+
+function missionMapPrintableReport(data){
+  const report=data.report||{};
+  const rows=(data.items||[]).map(item=>{
+    const path=[...(item.mission_path||[]),{node_type:item.node_type,title:item.title}]
+      .map(part=>`${part.node_type}: ${part.title}`).join(' → ');
+    const evidence=item.result_summary?`${item.evidence_state} — ${item.result_summary}`:item.evidence_state;
+    const source=item.read_only?`${item.source_type||'Governed source'} — ${item.source_status||'Current recorded state'}`:'Mission Structure record';
+    return `<tr><td><strong>${esc(item.title)}</strong><br><small>${esc(path)}</small></td><td>${esc(item.purpose||'Purpose is not recorded or released for this view.')}</td><td>${esc(item.functional_area)} · ${esc(item.station)}<br><small>${esc(item.status)}</small></td><td>${esc(item.owner||'Not yet identified')}<br><small>${esc(item.waiting_on||'No waiting requirement is recorded.')}</small></td><td>${esc(item.next_step||item.next_station||'Review the governed record.')}</td><td>${esc(evidence||'Not Applicable')}<br><small>${esc(source)}</small></td></tr>`;
+  }).join('');
+  return `<section class="mission-print-report" aria-label="Printable Mission Map authorized work summary"><div class="mission-print-version">SalCAPA™ v${esc(report.release_version||'')}</div><header><span>Salus Solutions · SalCAPA™</span><h1>${esc(report.title||'Mission Map — Authorized Work Summary')}</h1><p>${esc(report.status||'Prepared view of governed records')}</p></header><dl class="mission-print-meta"><div><dt>Prepared</dt><dd>${esc(report.prepared_at_display||report.prepared_at||'')}</dd></div><div><dt>Audience</dt><dd>${esc(report.audience||'Authorized view')}</dd></div><div><dt>Scope</dt><dd>${esc(report.scope||'Current authorized view')}</dd></div><div><dt>Items included</dt><dd>${Number(report.included_item_count||0)}</dd></div></dl><div class="mission-print-filters">${missionMapReportFilterSummary(report)}</div><section class="mission-print-governance"><h2>Purpose, authority, and lifecycle</h2><p>${esc(report.authorization_basis||'')}</p><p>${esc(report.governance||'')}</p><p>${esc(report.correction_and_lifecycle||'')}</p></section><section><h2>Current authorized work</h2>${rows?`<table><thead><tr><th>Work and mission path</th><th>Why it exists</th><th>Location and state</th><th>Next owner / requirement</th><th>Expected next step</th><th>Evidence, result, and source</th></tr></thead><tbody>${rows}</tbody></table>`:'<p>No Mission Map items match the current authorized view and filters.</p>'}</section></section>`;
+}
+
+function missionMapPreparePrint(){
+  if(!salcapaMissionMapData)return;
+  document.body.classList.add('mission-map-printing');
+  window.addEventListener('afterprint',()=>document.body.classList.remove('mission-map-printing'),{once:true});
+  window.print();
+}
+
 async function salcapaMissionMap(){
   const params=new URLSearchParams();
   if(activeAssessmentId)params.set('assessment_id',Number(activeAssessmentId));
@@ -79,7 +104,7 @@ async function salcapaMissionMap(){
   const [data,catalog]=await Promise.all([api('/api/salcapa/mission-map'+query),api('/api/salcapa/mission-map/catalog')]);
   salcapaMissionMapData=data;salcapaMissionMapCatalog=catalog;
   const add=!isProtectedMember()?'<button class="btn" onclick="missionMapCreate()">Add Mission Structure item</button>':'';
-  $('#content').innerHTML=`<div class="card mission-hero"><div class="section-title"><div><span>SalCAPA™ way-finding</span><h2>Mission Map</h2><p>${esc(data.interpretation)}</p></div>${add}</div><div class="mission-structure-summary"><strong>Mission Structure</strong><span>${esc(catalog.mission_structure)}</span></div><p class="subtle">${esc(catalog.principle)} Select any marker to see why it is here, its current location, what is needed, who owns the next step, and what happens next.</p><p class="subtle">${esc(catalog.overlay_guidance||'')}</p></div>${missionMapFilterPanel(catalog)}${missionMapPortfolio(data)}${data.items.length?data.routes.map(route=>missionMapRoute(route,data.items)).join(''):'<div class="notice">No Mission Map items match the current authorized view and filters.</div>'}<div id="mission-map-detail"></div>${missionMapFallback(data)}`;
+  $('#content').innerHTML=`<div class="card mission-hero"><div class="section-title"><div><span>SalCAPA™ way-finding</span><h2>Mission Map</h2><p>${esc(data.interpretation)}</p></div>${add}</div><div class="mission-structure-summary"><strong>Mission Structure</strong><span>${esc(catalog.mission_structure)}</span></div><p class="subtle">${esc(catalog.principle)} Select any marker to see why it is here, its current location, what is needed, who owns the next step, and what happens next.</p><p class="subtle">${esc(catalog.overlay_guidance||'')}</p></div>${missionMapFilterPanel(catalog)}${missionMapPortfolio(data)}${data.items.length?data.routes.map(route=>missionMapRoute(route,data.items)).join(''):'<div class="notice">No Mission Map items match the current authorized view and filters.</div>'}<div id="mission-map-detail"></div>${missionMapFallback(data)}${missionMapPrintableReport(data)}`;
 }
 
 async function missionMapCreate(){

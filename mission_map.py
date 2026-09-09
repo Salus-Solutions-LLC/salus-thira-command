@@ -366,6 +366,11 @@ def _record_age(updated_at: str, reference: datetime) -> tuple[int, str]:
     return age_days, "31+ days"
 
 
+def _report_time(value: datetime) -> str:
+    """Render report preparation time using the approved day-month-year and 24-hour doctrine."""
+    return value.astimezone(timezone.utc).strftime("%d %B %Y %H:%M UTC")
+
+
 def _attention_state(item: dict[str, Any]) -> str:
     if item.get("attention_override"):
         return item["attention_override"]
@@ -855,6 +860,7 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             "principle": "People lead. Methods guide. Technology supports. Evidence proves.",
             "filter_guidance": "Filters narrow the records already authorized for your view. They do not change scope, priority, ownership, or workflow state.",
             "overlay_guidance": "Plans, training, exercises, and ongoing monitoring appear as read-only projections of their authoritative records. Update the source record to change state, scope, cadence, dates, ownership, review, or disclosure.",
+            "report_guidance": "Prepare a printable summary of this authorized view. Printing does not approve, release, validate, assign, or change the underlying work.",
         }
 
     @app.get("/api/salcapa/mission-map")
@@ -966,13 +972,15 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
                     "basis": "Released governed relationship" if protected_member(request) else link["basis"],
                 })
         conn.close()
+        active_filters = {
+            "functional_area": functional_area, "workflow_status": workflow_status,
+            "attention": attention, "owner": owner.strip() if owner else None,
+        }
+        is_member = protected_member(request)
         return {
             "name": "Mission Map", "assessment_id": assessment_id, "routes": list(ROUTES),
             "items": visible, "links": links,
-            "active_filters": {
-                "functional_area": functional_area, "workflow_status": workflow_status,
-                "attention": attention, "owner": owner.strip() if owner else None,
-            },
+            "active_filters": active_filters,
             "portfolio": {
                 "total_items": len(visible), "by_route": by_route,
                 "by_status": by_status, "by_evidence_state": by_evidence,
@@ -985,6 +993,33 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             "fallback": {
                 "available": True,
                 "description": "The same governed items remain available as a conventional list when the visual map is not useful or unavailable.",
+            },
+            "report": {
+                "title": "Mission Map — Authorized Work Summary",
+                "release_version": str(getattr(request.app.state, "salcapa_release_version", "")),
+                "prepared_at": reference.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                "prepared_at_display": _report_time(reference),
+                "audience": "Protected Member authorized view" if is_member else "Salus internal authorized view",
+                "scope": (
+                    f"Authorized records for assessment {assessment_id}"
+                    if assessment_id is not None else "All records authorized for this current view"
+                ),
+                "status": "Prepared view of governed records — not a separate approval or release",
+                "included_item_count": len(visible),
+                "active_filters": active_filters,
+                "authorization_basis": (
+                    "Only released records within the Protected Member's authorized scope, role, and sensitivity boundary are included."
+                    if is_member else
+                    "Only records allowed by the current tenant, role, assessment, sensitivity, and disclosure controls are included."
+                ),
+                "governance": (
+                    "This printable view reflects authorized records at the preparation time. It does not approve, release, validate, "
+                    "assign, prioritize, or change work. Authoritative source records, human judgment, and recorded authority control."
+                ),
+                "correction_and_lifecycle": (
+                    "Later corrections, reviews, releases, superseding records, or lifecycle changes may make this prepared view outdated. "
+                    "Return to SalCAPA for the current governed record."
+                ),
             },
             "interpretation": "Mission Map shows where governed work is, why it exists, what is expected next, and how evidence and results feed reassessment. Visual position does not create authority or prove completion.",
         }
