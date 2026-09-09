@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 00:07 CDT
-current_frozen_release: v3.93
-current_frozen_commit: f2b316f827f645d3bbe67ac76d24585634c8625a
+last_verified_at: 09 September 2026 00:17 CDT
+current_frozen_release: v3.94
+current_frozen_commit: 70b11b10164badfe0a1b3b258c82771b0a57ae11
 active_development_branch: development/salcapa-platform
-active_roadmap_issue: 213
-active_increment: mission_map_objective_effectiveness_views
-last_completed_release: v3.93
-candidate_release: v3.94
-validation_pr: 222
-validation_gate_state: github_validation_running
+active_roadmap_issue: 154
+active_increment: commercial_membership_portfolio_economics
+last_completed_release: v3.94
+candidate_release: none
+validation_pr: none
+validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: roadmap_reconciliation_after_mission_map
+next_authorized_increment: commercial_membership_portfolio_economics
 ---
 
 # SalCAPA build continuity
@@ -32,15 +32,15 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
-- Current frozen release: **v3.93** at `f2b316f827f645d3bbe67ac76d24585634c8625a`.
+- Current frozen release: **v3.94** at `70b11b10164badfe0a1b3b258c82771b0a57ae11`.
 - Active development line: `development/salcapa-platform`.
-- Active roadmap: [Issue #213](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/213), Mission Map and Mission Structure.
-- Last completed increment: deeper Mission Map PROVE traceability using the existing governed assurance model, explicit source relationships, and Salus-only information-gap review markers.
-- Last controlled validation: [PR #221](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/221), closed without merge after all 15 workflow families passed.
-- Current candidate: v3.94 Mission Map objective-effectiveness views in [validation PR #222](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/222); GitHub validation is running.
+- Active roadmap: [Issue #154](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/154), governed estimating, cost, pricing, and margin management. Its next incomplete authorized increment is membership and portfolio economics, integrated with [Issue #159](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/159).
+- Last completed increment: Mission Map objective-evidence and effectiveness views derived from authorized visible records and explicit governed relationships, using evidence-grounded states without creating scores, readiness ratings, approvals, or other decisions. [Issue #213](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/213) is completed and closed.
+- Last controlled validation: [PR #222](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/222), closed without merge after all 15 workflow families passed on the exact frozen commit.
+- Current candidate: none.
 - Genuine blockers: none.
-- Active product increment: Mission Map objective-effectiveness views.
-- Next authorized product increment: reconcile the authoritative roadmap after the Mission Map increment.
+- Active product increment: governed commercial membership and portfolio economics.
+- Next authorized product increment: implement membership and authorized portfolio economics without creating charges, invoices, entitlements, scope changes, or cross-member disclosure automatically.
 
 ## Recovery procedure
 
