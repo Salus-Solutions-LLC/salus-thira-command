@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 08 September 2026 20:01 CDT
+last_verified_at: 08 September 2026 20:08 CDT
 current_frozen_release: v3.89
 current_frozen_commit: 3884cef6447f47beb941ced94f798787d4884d94
 active_development_branch: development/salcapa-platform
@@ -9,8 +9,8 @@ active_roadmap_issue: 213
 active_increment: build_continuity_anti_split_control
 last_completed_release: v3.89
 candidate_release: v3.90
-validation_pr: pending
-validation_gate_state: local_verified_github_pending
+validation_pr: 218
+validation_gate_state: github_validation_running
 genuine_blockers: none
 next_authorized_increment: mission_map_print_report_representation
 ---
@@ -37,7 +37,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active roadmap: [Issue #213](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/213), Mission Map and Mission Structure.
 - Last completed increment: role-safe Ongoing Monitoring and material-change review routes in Mission Map.
 - Last controlled validation: [PR #217](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/217), closed without merge after all 14 required workflow families passed.
-- Current candidate: v3.90 continuity and anti-split control; validation PR will be recorded when opened.
+- Current candidate: v3.90 continuity and anti-split control in [validation PR #218](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/218); GitHub validation is running.
 - Genuine blockers: none.
 - Next authorized product increment: Mission Map print/report representation.
 
@@ -60,4 +60,3 @@ Before starting an increment:
 - Preserve canonical SalINTEL, SalTHIRA, SalCAPA, SalOPS, and cross-cutting PROVE distinctions.
 - Preserve tenant, sensitivity, disclosure, provenance, human-authority, frozen-history, Azure cost/identity/deployment, visual, reporting, date/time, and release-version controls.
 - Never place credentials, confidential Protected Member information, personal information, investigation content, or secrets in this file.
-
