@@ -19,7 +19,7 @@ from salintel_handoffs import register_salintel_handoffs
 from facility_assessment import register_facility_assessment
 from salcapa_commercial import register_salcapa_commercial
 from salcapa_contextual_intake import register_salcapa_contextual_intake
-from salcapa_office_processing import register_salcapa_office_processing
+from salcapa_pdf_processing import register_salcapa_pdf_processing
 from mission_map import register_mission_map
 try:
     from salops_plan_assembly import register_salops_plan_assembly
@@ -48,10 +48,10 @@ if register_salops_plan_assembly is not None:
     register_salops_plan_assembly(core.app, core.__dict__)
 register_salcapa_commercial(core.app, core.__dict__)
 register_salcapa_contextual_intake(core.app, core.__dict__)
-register_salcapa_office_processing(core.app, core.__dict__)
+register_salcapa_pdf_processing(core.app, core.__dict__)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.102"
+SALCAPA_RELEASE_VERSION = "3.103"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 
