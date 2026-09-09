@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 13:18 CDT
+last_verified_at: 09 September 2026 13:25 CDT
 current_frozen_release: v3.100
 current_frozen_commit: b7f54281d254511c5440897d74c427031d24cabe
 active_development_branch: development/salcapa-platform
@@ -9,8 +9,8 @@ active_roadmap_issue: 131
 active_increment: safe_text_processing_candidate_validation
 last_completed_release: v3.100
 candidate_release: v3.101
-validation_pr: pending
-validation_gate_state: local_verified_github_pending
+validation_pr: 231
+validation_gate_state: github_validation_running
 genuine_blockers: none
 next_authorized_increment: inert_document_extraction_gap_review
 ---
@@ -37,7 +37,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active roadmap: [Issue #131](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/131), safe derived extraction, transcription, search, and analyst triage under parent [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128). The next review must preserve immutable originals, exact source-to-derived lineage, tenant/sensitivity boundaries, explicit processing state and uncertainty, and human qualification before authoritative use. [Issue #133](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/133) is completed and closed.
 - Last completed increment: role-aware contextual Add Information actions reuse the existing generic-material store, prepopulate the current authorized assessment or SalINTEL investigation as a server-validated proposal, preserve an append-only audit event, and remain Awaiting Human Review until a qualified person performs governed linking. A context proposal cannot create a finding, decision, authority, disclosure, scope change, charge, or other authoritative state.
 - Last controlled validation: [PR #230](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/230), closed without merge after all 16 workflow families passed on the exact frozen commit.
-- Current candidate: **v3.101**, locally verified and awaiting controlled GitHub validation.
+- Current candidate: **v3.101** in controlled [PR #231](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/231); GitHub validation is running and the pull request must be closed without merge.
 - Genuine blockers: none.
 - Active product increment: validate the first bounded Issue #131 slice: inert-text extraction with exact source hashes, separate derived records, server-selected processor/version, failure-safe source handling, tenant/sensitivity-scoped search, independent human review, and portable backup/recovery inclusion. Derived text remains **Derived — Unverified** and **Awaiting Human Review** until a different authorized person records review; review confirms representation only and cannot establish source truth, evidence, intelligence, findings, decisions, disclosure, cost, or operational authority.
 - Next authorized product increment: after v3.101 validation, review safe non-executing document extraction and metadata needs before adding broader document, photo/map, audio, video, entity-suggestion, duplicate-analysis, or transcription workers.
