@@ -52,7 +52,7 @@ def main():
     }
 
     mode = client.get("/api/system/mode").json()
-    assert mode["version"] == "3.94", mode
+    assert mode["version"] == "3.95", mode
     adapter_fixture = Path(WORKSPACE.name) / "release-adapter-fixture.py"
     adapter_fixture.write_text(
         'xml = b\'<?xml version="1.0"?>\'\n'
@@ -62,8 +62,8 @@ def main():
     )
     adapted, changes = normalized_source(adapter_fixture, mode["version"])
     assert 'version="1.0"' in adapted
-    assert 'mode["version"] == "3.94"' in adapted
-    assert 'SALCAPA_RELEASE_VERSION = "3.94"' in adapted
+    assert 'mode["version"] == "3.95"' in adapted
+    assert 'SALCAPA_RELEASE_VERSION = "3.95"' in adapted
     # The archived-regression runner may already have normalized this embedded
     # fixture before this smoke exercises the same narrow adapter.
     assert [old for _, old, _ in changes] in ([], ["3.92", "3.92"])
