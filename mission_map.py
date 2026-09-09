@@ -96,6 +96,16 @@ MARKER_SHAPES = {
 }
 
 PREPAREDNESS_OVERLAY_TYPES = ("Plan", "Training", "Exercise")
+PROVE_RECORD_KEYS = {
+    "Plan": "preparedness_plan",
+    "Training": "preparedness_training",
+    "Exercise": "preparedness_exercise",
+    "Evidence": "evidence",
+    "Improvement": "improvement",
+    "Reassessment Trigger": "reassessment_trigger",
+    "Operations Request": "ops_request",
+    "Operations Task": "ops_task",
+}
 PLAN_OVERLAY_STATES = {
     "Draft": "Draft", "Reviewed": "Awaiting Approval",
     "Approved": "Authorized", "Retired": "Closed",
@@ -827,6 +837,146 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
                 projected.append(item)
         return projected
 
+    def assurance_views(
+        conn, request: Request, selected_assessment_id: Optional[int],
+    ) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+        """Reuse PROVE's role-aware assurance projection; never duplicate its lifecycle."""
+        builder = getattr(request.app.state, "salcapa_assurance_builder", None)
+        if not callable(builder):
+            return []
+        allowed = set(accessible_assessment_ids(request))
+        params: list[Any] = [tenant_id(request)]
+        sql = "SELECT * FROM assessments WHERE tenant_id=?"
+        if selected_assessment_id is not None:
+            sql += " AND id=?"
+            params.append(selected_assessment_id)
+        sql += " ORDER BY id"
+        result: list[tuple[dict[str, Any], dict[str, Any]]] = []
+        for found in conn.execute(sql, tuple(params)):
+            assessment = dict(found)
+            if int(assessment["id"]) not in allowed:
+                continue
+            try:
+                require_sensitivity(request, assessment["classification"])
+            except HTTPException:
+                continue
+            result.append((assessment, builder(conn, request, assessment)))
+        return result
+
+    def prove_record_key(item: dict[str, Any]) -> Optional[str]:
+        prefix = PROVE_RECORD_KEYS.get(str(item.get("source_type", "")))
+        source_id = item.get("source_id")
+        if prefix and source_id not in (None, ""):
+            return f"{prefix}:{source_id}"
+        return None
+
+    def apply_prove_trace(
+        item: dict[str, Any], assurance_by_assessment: dict[int, dict[str, Any]], is_member: bool,
+    ) -> None:
+        """Attach only explicit PROVE relationships already permitted for this request."""
+        aid = item.get("assessment_id")
+        record_key = prove_record_key(item)
+        assurance = assurance_by_assessment.get(int(aid)) if aid is not None else None
+        if not record_key or not assurance:
+            return
+        nodes = {node["key"]: node for node in assurance["nodes"]}
+        if record_key not in nodes:
+            return
+        relationships: list[dict[str, Any]] = []
+        for edge in assurance["explicit_edges"]:
+            if edge["source"] == record_key:
+                linked_key, direction = edge["target"], "supports"
+            elif edge["target"] == record_key:
+                linked_key, direction = edge["source"], "supported by"
+            else:
+                continue
+            linked = nodes.get(linked_key)
+            if not linked:
+                continue
+            relationships.append({
+                "direction": direction,
+                "relationship": edge["relationship"],
+                "linked_record_key": linked_key,
+                "linked_record_type": linked["record_type"],
+                "linked_label": linked["label"],
+                "linked_status": linked["status"],
+                "basis": "Explicit relationship in authoritative source records",
+            })
+        gaps = [] if is_member else [
+            {"stage": gap["stage"], "reason": gap["reason"]}
+            for gap in assurance["assurance_gaps"] if gap.get("record_key") == record_key
+        ]
+        if gaps:
+            state = "Trace gap identified"
+        elif relationships:
+            state = "Explicit trace recorded"
+        else:
+            state = "No released explicit trace available" if is_member else "No explicit trace recorded"
+        item["prove_trace"] = {
+            "record_key": record_key,
+            "state": state,
+            "explicit_relationships": relationships,
+            "relationship_count": len(relationships),
+            "gaps": gaps,
+            "guidance": (
+                "PROVE shows explicit persisted relationships and qualifying evidence available to this authorized view. "
+                "Absence of a link is an information gap, not proof that work, evidence, or a result does not exist."
+            ),
+        }
+
+    def prove_gap_overlay(
+        request: Request, assessment: dict[str, Any], gap: dict[str, Any], reference: datetime,
+    ) -> dict[str, Any]:
+        """Present an internal trace gap without converting it into a finding or decision."""
+        stage = str(gap["stage"])
+        lowered = stage.casefold()
+        status = "Needs Reassessment" if "reassessment" in lowered else (
+            "Awaiting Validation" if "validation" in lowered or "evidence" in lowered else "Awaiting Review"
+        )
+        evidence_state = "Awaiting Validation" if "validation" in lowered else "Evidence Needed"
+        item = {
+            "id": f"prove-gap:{assessment['id']}:{gap['gap_key']}",
+            "assessment_id": int(assessment["id"]),
+            "node_type": "Evidence & Result",
+            "title": f"Trace review — {stage}",
+            "functional_area": "PROVE", "status": status,
+            "marker_shape": "circle", "evidence_state": evidence_state,
+            "updated_at": reference.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            "released_at": "", "purpose": str(gap["reason"]),
+            "owner": "Authorized Salus reviewer",
+            "waiting_on": "Qualifying persisted evidence or an explicit governed relationship",
+            "next_step": (
+                "Review the cited source records and preserve any missing evidence or explicit relationship in the authoritative source. "
+                "An authorized reviewer determines what follows."
+            ),
+            "result_summary": (
+                "No conclusion is established by this gap. It identifies missing qualifying persisted support or a missing explicit link."
+            ),
+            "read_only": True, "projection_kind": "PROVE assurance gap overlay",
+            "source_type": "PROVE Assurance Gap", "source_id": gap["gap_key"],
+            "source_status": "Evidence or trace review needed",
+            "projection_basis": (
+                "Read-only projection from the existing PROVE assurance model. Resolve it through the authoritative source record; "
+                "Mission Map cannot create evidence, validate a result, or close this gap."
+            ),
+            "guidance": (
+                "A trace gap is not a score, fault determination, adverse judgment, or proof that the underlying work did not occur."
+            ),
+            "authority": "Evidence qualification, validation, disclosure, and resulting decisions remain with authorized people.",
+            "visibility": "Salus Only", "sensitivity": assessment["classification"],
+            "mission_path": [], "attention_override": "Review / validation needed",
+            "prove_trace": {
+                "record_key": gap.get("record_key") or "",
+                "state": "Trace gap identified", "explicit_relationships": [],
+                "relationship_count": 0,
+                "gaps": [{"stage": stage, "reason": str(gap["reason"])}],
+                "guidance": "Review authoritative records and preserve explicit evidence or trace relationships when available.",
+            },
+        }
+        item["route_key"], item["station"] = _route_station(item)
+        item["next_station"] = _next_station(item["route_key"], item["station"], status)
+        return item
+
     def parent_path(conn, request: Request, node: dict[str, Any]) -> list[dict[str, Any]]:
         path: list[dict[str, Any]] = []
         seen: set[str] = set()
@@ -863,6 +1013,7 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             "report_guidance": "Prepare a printable summary of this authorized view. Printing does not approve, release, validate, assign, or change the underlying work.",
             "keyboard_guidance": "Use Tab to reach a route, then use the arrow keys, Home, or End to move among its work markers. Select a marker to review its governed details.",
             "accessibility_guidance": "Route names, station labels, marker shapes, text states, and the conventional list provide equivalent meaning without relying on color, pointer use, or animation.",
+            "prove_guidance": "PROVE is the cross-cutting Assurance & Results layer. It shows qualifying evidence, explicit persisted relationships, validation needs, results, and learning without creating facts, authority, or a separate fifth product.",
         }
 
     @app.get("/api/salcapa/mission-map")
@@ -908,6 +1059,11 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
                 reference = reference.replace(tzinfo=timezone.utc)
         except (TypeError, ValueError):
             reference = datetime.now(timezone.utc)
+        is_member = protected_member(request)
+        assurance_pairs = assurance_views(conn, request, assessment_id)
+        assurance_by_assessment = {
+            int(assessment["id"]): assurance for assessment, assurance in assurance_pairs
+        }
         for item in conn.execute(sql, tuple(params)):
             node = dict(item)
             if node["assessment_id"] is not None and node["assessment_id"] not in set(accessible_assessment_ids(request)):
@@ -940,6 +1096,22 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
                 if attention and projected["attention"] != attention:
                     continue
                 visible.append(projected)
+        for projected in visible:
+            apply_prove_trace(projected, assurance_by_assessment, is_member)
+        if functional_area == "PROVE" and not is_member:
+            for assessment, assurance in assurance_pairs:
+                for gap in assurance["assurance_gaps"]:
+                    projected = prove_gap_overlay(request, assessment, gap, reference)
+                    if workflow_status is not None and projected["status"] != workflow_status:
+                        continue
+                    projected["age_days"], projected["age_band"] = 0, "0–7 days"
+                    projected["attention"] = _attention_state(projected)
+                    projected.pop("attention_override", None)
+                    if owner and owner.strip().casefold() not in projected["owner"].casefold():
+                        continue
+                    if attention and projected["attention"] != attention:
+                        continue
+                    visible.append(projected)
         if functional_area in (None, "SalINTEL"):
             for projected in monitoring_overlays(conn, request, assessment_id, workflow_status):
                 projected["age_days"], projected["age_band"] = _record_age(projected["updated_at"], reference)
@@ -978,11 +1150,42 @@ def register_mission_map(app, core: dict[str, Any]) -> None:
             "functional_area": functional_area, "workflow_status": workflow_status,
             "attention": attention, "owner": owner.strip() if owner else None,
         }
-        is_member = protected_member(request)
+        if is_member:
+            member_relationships = {
+                (item["prove_trace"]["record_key"], relation["linked_record_key"], relation["relationship"])
+                for item in visible if item.get("prove_trace")
+                for relation in item["prove_trace"]["explicit_relationships"]
+            }
+            explicit_relationship_count = len(member_relationships)
+        else:
+            explicit_relationship_count = sum(
+                len(assurance["explicit_edges"]) for _, assurance in assurance_pairs
+            )
+        prove_traceability = {
+            "available_assessment_count": len(assurance_pairs),
+            "items_with_trace_context": len([item for item in visible if item.get("prove_trace")]),
+            "explicit_relationship_count": explicit_relationship_count,
+            "trace_policy": {
+                "server_derived": True, "explicit_links_only": True,
+                "missing_links_are_information_gaps": True,
+                "automatic_completion": False, "automatic_validation": False,
+                "automatic_disclosure": False, "automatic_authority": False,
+            },
+            "interpretation": (
+                "PROVE is the cross-cutting Assurance & Results layer, not a separate product. Counts describe qualifying governed "
+                "records and explicit persisted relationships available to this view; they are not capability, readiness, performance, "
+                "or personnel scores. Missing trace does not prove that work or evidence does not exist."
+            ),
+        }
+        if not is_member:
+            prove_traceability["assurance_gaps_identified"] = sum(
+                len(assurance["assurance_gaps"]) for _, assurance in assurance_pairs
+            )
         return {
             "name": "Mission Map", "assessment_id": assessment_id, "routes": list(ROUTES),
             "items": visible, "links": links,
             "active_filters": active_filters,
+            "prove_traceability": prove_traceability,
             "portfolio": {
                 "total_items": len(visible), "by_route": by_route,
                 "by_status": by_status, "by_evidence_state": by_evidence,

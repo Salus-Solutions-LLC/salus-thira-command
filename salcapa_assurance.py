@@ -496,6 +496,11 @@ def register_salcapa_assurance(app, core: dict) -> None:
                              "training_completion_is_readiness_proof": False},
         }
 
+    # Mission Map consumes this same role- and sensitivity-aware projection for
+    # read-only traceability. This avoids a second assurance model or copied
+    # evidence lifecycle while leaving every source record authoritative.
+    app.state.salcapa_assurance_builder = build_assurance
+
     def package_classification(conn, assessment: dict, assurance: dict) -> str:
         """Classify the immutable snapshot at the highest included evidence level."""
         candidates = [assessment.get("classification") or "Standard"]

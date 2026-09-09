@@ -52,21 +52,21 @@ def main():
     }
 
     mode = client.get("/api/system/mode").json()
-    assert mode["version"] == "3.92", mode
+    assert mode["version"] == "3.93", mode
     adapter_fixture = Path(WORKSPACE.name) / "release-adapter-fixture.py"
     adapter_fixture.write_text(
         'xml = b\'<?xml version="1.0"?>\'\n'
-        'assert mode["version"] == "3.91"\n'
-        'marker = \'SALCAPA_RELEASE_VERSION = "3.91"\'\n',
+        'assert mode["version"] == "3.92"\n'
+        'marker = \'SALCAPA_RELEASE_VERSION = "3.92"\'\n',
         encoding="utf-8",
     )
-    adapted, changes = normalized_source(adapter_fixture, "3.92")
+    adapted, changes = normalized_source(adapter_fixture, "3.93")
     assert 'version="1.0"' in adapted
-    assert 'mode["version"] == "3.92"' in adapted
-    assert 'SALCAPA_RELEASE_VERSION = "3.92"' in adapted
+    assert 'mode["version"] == "3.93"' in adapted
+    assert 'SALCAPA_RELEASE_VERSION = "3.93"' in adapted
     # The archived-regression runner may already have normalized this embedded
     # fixture before this smoke exercises the same narrow adapter.
-    assert [old for _, old, _ in changes] in ([], ["3.91", "3.91"])
+    assert [old for _, old, _ in changes] in ([], ["3.92", "3.92"])
     catalog = client.get("/api/salcapa/mission-map/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
     catalog = catalog.json()
@@ -75,6 +75,7 @@ def main():
     assert catalog["mission_structure"].startswith("Mission → Priorities → Objectives")
     assert "arrow keys, Home, or End" in catalog["keyboard_guidance"]
     assert "without relying on color" in catalog["accessibility_guidance"]
+    assert "separate fifth product" in catalog["prove_guidance"]
     labels = {route["label"] for route in catalog["routes"]}
     assert "SEE — SalINTEL™" in labels
     assert "DECIDE — SalTHIRA™ and authorized people" in labels
@@ -336,6 +337,9 @@ def main():
     assert {item["source_type"] for item in internal_overlays} == {"Plan", "Training", "Exercise"}
     assert all(item["projection_kind"] == "Preparedness overlay" for item in internal_overlays)
     assert all(item["functional_area"] == "SalOPS" for item in internal_overlays)
+    assert all(item["prove_trace"]["state"] == "Explicit trace recorded" for item in internal_overlays)
+    assert all(item["prove_trace"]["relationship_count"] >= 1 for item in internal_overlays)
+    assert all("record_key" in item["prove_trace"] for item in internal_overlays)
     assert all("Change status" in item["projection_basis"] for item in internal_overlays)
     assert next(item for item in internal_overlays if item["source_type"] == "Plan")["owner"] == "Salus Planning Lead"
     assert next(item for item in internal_overlays if item["source_type"] == "Training")["owner"] == "Salus Training Lead"
@@ -359,7 +363,7 @@ def main():
     assert member_sources.status_code == 200, member_sources.text
     member_overlays = [item for item in member_sources.json()["items"] if item.get("read_only")]
     member_report = member_sources.json()["report"]
-    assert member_report["release_version"] == "3.92"
+    assert member_report["release_version"] == "3.93"
     assert member_report["audience"] == "Protected Member authorized view"
     assert member_report["included_item_count"] == len(member_sources.json()["items"])
     assert member_report["prepared_at_display"].endswith(" UTC")
@@ -382,6 +386,27 @@ def main():
     assert member_training["mission_path"] == [
         {"id": f"salops-plan:{plan['id']}", "node_type": "Plan", "title": "Continuity plan"}
     ]
+    member_trace = member_sources.json()["prove_traceability"]
+    assert member_trace["available_assessment_count"] == 1
+    assert member_trace["explicit_relationship_count"] >= 1
+    assert "assurance_gaps_identified" not in member_trace
+    assert not any(item.get("projection_kind") == "PROVE assurance gap overlay" for item in member_overlays)
+
+    internal_prove = client.get(
+        "/api/salcapa/mission-map?assessment_id=1&functional_area=PROVE", headers=director
+    )
+    assert internal_prove.status_code == 200, internal_prove.text
+    internal_prove = internal_prove.json()
+    assert internal_prove["prove_traceability"]["available_assessment_count"] == 1
+    assert internal_prove["prove_traceability"]["assurance_gaps_identified"] >= 1
+    prove_gaps = [
+        item for item in internal_prove["items"]
+        if item.get("projection_kind") == "PROVE assurance gap overlay"
+    ]
+    assert prove_gaps
+    assert all(item["read_only"] and item["visibility"] == "Salus Only" for item in prove_gaps)
+    assert all(item["prove_trace"]["state"] == "Trace gap identified" for item in prove_gaps)
+    assert all("not a score" in item["guidance"] for item in prove_gaps)
 
     # Overlay identifiers cannot enter Mission Structure write or transition routes.
     overlay_id = f"salops-plan:{plan['id']}"
@@ -531,6 +556,8 @@ def main():
     assert 'aria-labelledby="mission-map-heading"' in js and 'aria-describedby="mission-print-guidance"' in js
     assert "missionMapAnnounce" in js and "missionMapRestoreFocus" in js
     assert "missionMapOpenFallback" in js and "fallback.open=true" in js
+    assert "missionMapTraceSummary" in js and "missionMapProveTrace" in js
+    assert "Evidence and result traceability" in js and "Explicit source relationships" in js
     assert "Authoritative source" in js and "!item.read_only" in js
     assert "Waiting / input needed" in js and "not scores or judgments about people" not in js
     assert "SalCAPA makes" not in js and "SalTHIRA coordinates" not in js
@@ -540,6 +567,7 @@ def main():
     assert ".mission-marker:focus-visible" in css and "min-height:2.75rem" in css
     assert "animation-duration:.01ms!important" in css and "scroll-behavior:auto!important" in css
     assert ".mission-filter-grid" in css and ".mission-portfolio-grid" in css
+    assert ".mission-trace-summary-grid" in css and ".mission-prove-trace" in css
     assert "@media print" in css and ".mission-print-version" in css
     assert "word-break:normal" in css and "body.mission-map-printing" in css
     print("SalCAPA Mission Map acceptance checks passed.")
