@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 08 September 2026 22:05 CDT
+last_verified_at: 08 September 2026 22:11 CDT
 current_frozen_release: v3.91
 current_frozen_commit: dcf016a153ac7df0085381ca298f37ee2405fa78
 active_development_branch: development/salcapa-platform
@@ -9,8 +9,8 @@ active_roadmap_issue: 213
 active_increment: mission_map_accessibility_reduced_motion
 last_completed_release: v3.91
 candidate_release: v3.92
-validation_pr: pending
-validation_gate_state: local_verified_github_pending
+validation_pr: 220
+validation_gate_state: github_validation_running
 genuine_blockers: none
 next_authorized_increment: mission_map_deeper_prove_traceability
 ---
@@ -37,7 +37,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active roadmap: [Issue #213](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/213), Mission Map and Mission Structure.
 - Last completed increment: role-safe Mission Map print/report representation derived exclusively from the authorized server projection.
 - Last controlled validation: [PR #219](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/219), closed without merge after all 15 workflow families passed.
-- Current candidate: v3.92 Mission Map accessibility and reduced-motion support; controlled validation pull request pending.
+- Current candidate: v3.92 Mission Map accessibility and reduced-motion support in [validation PR #220](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/220); GitHub validation is running.
 - Genuine blockers: none.
 - Active product increment: Mission Map accessibility and reduced-motion support.
 - Next authorized product increment: deeper Mission Map PROVE traceability.
