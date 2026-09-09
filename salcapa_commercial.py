@@ -1,4 +1,4 @@
-"""Governed SalCAPA commercial planning, membership, and actual-cost records.
+"""Governed SalCAPA commercial planning, membership, actual-cost, and WIP records.
 
 Issue #154 increment.  Salus personnel configure and approve versioned planning
 assumptions.  Estimates snapshot every assumption and calculation.  Salus time
@@ -7,6 +7,8 @@ keeping unavailable or estimated amounts distinct from recognized actual cost.
 Protected Membership terms retain explicit human approval and release gates;
 consumption never creates a charge, invoice, scope expansion, tier change,
 renewal, partner action, or customer commitment automatically.
+Unbilled/work-in-progress reviews preserve dated source snapshots and human
+commercial dispositions without becoming accounting entries or creating bills.
 """
 from __future__ import annotations
 
@@ -87,13 +89,19 @@ MEMBERSHIP_SOURCE_TYPES = (
     "Estimate", "Investigation", "Monitoring Cycle", "Assessment", "Preparedness",
     "Plan", "Training", "Exercise", "Manual Governed Record", "Other",
 )
+WIP_DISPOSITIONS = (
+    "Evidence Needed", "Included in Approved Price", "Membership Included",
+    "Ready for Billing Authorization", "Authorized for Billing", "Deferred",
+    "Non-Billable", "Write-Off", "Externally Billed",
+)
 BACKUP_TABLES = (
     "salcapa_rate_cards", "salcapa_commercial_estimates",
     "salcapa_time_entries", "salcapa_cost_entries", "salcapa_commercial_forecasts",
     "salcapa_membership_plans", "salcapa_membership_terms", "salcapa_membership_consumption",
+    "salcapa_wip_reviews",
 )
 DELETE_ORDER = (
-    "salcapa_membership_consumption", "salcapa_membership_terms", "salcapa_membership_plans",
+    "salcapa_wip_reviews", "salcapa_membership_consumption", "salcapa_membership_terms", "salcapa_membership_plans",
     "salcapa_commercial_forecasts", "salcapa_time_entries", "salcapa_cost_entries",
     "salcapa_commercial_estimates", "salcapa_rate_cards",
 )
@@ -101,6 +109,7 @@ RESTORE_ORDER = (
     "salcapa_rate_cards", "salcapa_commercial_estimates",
     "salcapa_time_entries", "salcapa_cost_entries", "salcapa_commercial_forecasts",
     "salcapa_membership_plans", "salcapa_membership_terms", "salcapa_membership_consumption",
+    "salcapa_wip_reviews",
 )
 
 
@@ -432,6 +441,45 @@ CREATE TABLE IF NOT EXISTS salcapa_membership_consumption (
 );
 CREATE INDEX IF NOT EXISTS idx_salcapa_membership_consumption_scope
   ON salcapa_membership_consumption(tenant_id,term_id,status,entitlement_key,occurred_on,version_no);
+
+CREATE TABLE IF NOT EXISTS salcapa_wip_reviews (
+  id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL,
+  version_no INTEGER NOT NULL,
+  estimate_id TEXT NOT NULL,
+  supersedes_wip_review_id TEXT,
+  engagement_id INTEGER,
+  assessment_id INTEGER,
+  as_of_date TEXT NOT NULL,
+  work_through_date TEXT NOT NULL,
+  commercial_disposition TEXT NOT NULL,
+  work_value_cents INTEGER NOT NULL,
+  billing_authorized_amount_cents INTEGER NOT NULL DEFAULT 0,
+  external_billing_reference TEXT NOT NULL DEFAULT '',
+  source_snapshot_json TEXT NOT NULL,
+  review_basis TEXT NOT NULL,
+  assumptions TEXT NOT NULL,
+  known_gaps TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  evidence_state TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Draft',
+  creates_charge INTEGER NOT NULL DEFAULT 0,
+  creates_invoice INTEGER NOT NULL DEFAULT 0,
+  recognizes_revenue INTEGER NOT NULL DEFAULT 0,
+  transmits_externally INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  submitted_by TEXT NOT NULL DEFAULT '',
+  submitted_at TEXT NOT NULL DEFAULT '',
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT '',
+  decision_reason TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (estimate_id) REFERENCES salcapa_commercial_estimates(id),
+  UNIQUE(tenant_id,version_no)
+);
+CREATE INDEX IF NOT EXISTS idx_salcapa_wip_reviews_scope
+  ON salcapa_wip_reviews(tenant_id,estimate_id,status,work_through_date,version_no);
 """
 
 
@@ -794,6 +842,54 @@ class MembershipConsumptionCreate(StrictModel):
 
 
 class MembershipConsumptionTransition(StrictModel):
+    status: Literal["Submitted", "Approved", "Rejected"]
+    reason: str = Field(min_length=3, max_length=4000)
+
+
+class WipReviewCreate(StrictModel):
+    estimate_id: str = Field(min_length=3, max_length=80)
+    supersedes_wip_review_id: Optional[str] = Field(default=None, max_length=80)
+    as_of_date: str = Field(min_length=10, max_length=10)
+    work_through_date: str = Field(min_length=10, max_length=10)
+    commercial_disposition: Literal[
+        "Evidence Needed", "Included in Approved Price", "Membership Included",
+        "Ready for Billing Authorization", "Authorized for Billing", "Deferred",
+        "Non-Billable", "Write-Off", "Externally Billed",
+    ]
+    work_value_cents: int = Field(ge=0, le=2_000_000_000)
+    billing_authorized_amount_cents: int = Field(default=0, ge=0, le=2_000_000_000)
+    external_billing_reference: str = Field(default="", max_length=500)
+    review_basis: str = Field(min_length=3, max_length=8000)
+    assumptions: str = Field(min_length=3, max_length=8000)
+    known_gaps: str = Field(min_length=3, max_length=8000)
+
+    @model_validator(mode="after")
+    def valid_wip_review(self):
+        try:
+            as_of = date.fromisoformat(self.as_of_date)
+            through = date.fromisoformat(self.work_through_date)
+        except ValueError as exc:
+            raise ValueError("WIP review dates must be valid ISO dates") from exc
+        if through > as_of:
+            raise ValueError("work_through_date cannot follow as_of_date")
+        if self.commercial_disposition == "Authorized for Billing":
+            if self.billing_authorized_amount_cents <= 0:
+                raise ValueError("Authorized-for-billing treatment requires a positive reviewed amount")
+            if self.billing_authorized_amount_cents > self.work_value_cents:
+                raise ValueError("Billing-authorized amount cannot exceed reviewed work value")
+        elif self.billing_authorized_amount_cents:
+            raise ValueError("Only Authorized for Billing may carry a billing-authorized amount")
+        if self.commercial_disposition == "Externally Billed":
+            if not self.external_billing_reference.strip():
+                raise ValueError("Externally billed treatment requires an evidence reference")
+        elif self.external_billing_reference.strip():
+            raise ValueError("External billing reference applies only to Externally Billed evidence")
+        if self.commercial_disposition not in {"Evidence Needed", "Non-Billable"} and self.work_value_cents <= 0:
+            raise ValueError("This WIP treatment requires a positive reviewed work value")
+        return self
+
+
+class WipReviewTransition(StrictModel):
     status: Literal["Submitted", "Approved", "Rejected"]
     reason: str = Field(min_length=3, max_length=4000)
 
@@ -1543,6 +1639,195 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         )
         return out
 
+    def wip_source_snapshot(conn, tid: int, estimate_id: str,
+                            through: str) -> dict[str, Any]:
+        found = conn.execute(
+            "SELECT * FROM salcapa_commercial_estimates WHERE id=? AND tenant_id=?",
+            (estimate_id, tid),
+        ).fetchone()
+        if not found:
+            raise HTTPException(404, "Commercial estimate not found")
+        estimate = dict(found)
+        verify_estimate(estimate)
+        if estimate["status"] not in {"Approved", "Released"}:
+            raise HTTPException(409, "WIP review requires an Approved or Released estimate")
+        actuals = active_actual_summary(conn, tid, estimate_id)
+        time_rows = [row for row in actuals["active_time"] if row["work_date"] <= through]
+        cost_rows = [row for row in actuals["active_cost"] if row["incurred_at"][:10] <= through]
+        membership_rows = [dict(row) for row in conn.execute(
+            """SELECT * FROM salcapa_membership_consumption
+               WHERE tenant_id=? AND estimate_id=? AND status='Approved' AND occurred_on<=?
+               ORDER BY version_no""",
+            (tid, estimate_id, through),
+        )]
+        for row in membership_rows:
+            verify_membership_consumption(row)
+        superseded_membership = {
+            row["supersedes_consumption_id"] for row in membership_rows
+            if row["supersedes_consumption_id"]
+        }
+        membership_rows = [row for row in membership_rows if row["id"] not in superseded_membership]
+        time_cost = sum(int(row["calculated_cost_cents"]) for row in time_rows)
+        direct_actual = sum(int(row["recognized_actual_cost_cents"]) for row in cost_rows)
+        provisional = sum(
+            int(row["amount_cents"]) for row in cost_rows
+            if row["cost_basis"] in {"Authorized Estimate", "Planning Allowance"}
+        )
+        unavailable = sum(1 for row in cost_rows if row["cost_basis"] == "Unavailable")
+        return {
+            "estimate": {
+                "id": estimate["id"], "version_no": int(estimate["version_no"]),
+                "content_sha256": estimate["content_sha256"], "status": estimate["status"],
+                "approved_customer_price_cents": int(estimate["approved_customer_price_cents"] or 0),
+                "currency": estimate["currency"],
+            },
+            "work_through_date": through,
+            "active_time_entries": [
+                {"id": row["id"], "content_sha256": row["content_sha256"],
+                 "work_date": row["work_date"], "minutes": int(row["minutes"]),
+                 "commercial_treatment": row["commercial_treatment"]}
+                for row in time_rows
+            ],
+            "active_cost_entries": [
+                {"id": row["id"], "content_sha256": row["content_sha256"],
+                 "incurred_at": row["incurred_at"], "cost_basis": row["cost_basis"],
+                 "commercial_treatment": row["commercial_treatment"]}
+                for row in cost_rows
+            ],
+            "active_membership_consumption": [
+                {"id": row["id"], "content_sha256": row["content_sha256"],
+                 "term_id": row["term_id"], "entitlement_key": row["entitlement_key"],
+                 "quantity": row["quantity"], "occurred_on": row["occurred_on"]}
+                for row in membership_rows
+            ],
+            "approved_time_minutes": sum(int(row["minutes"]) for row in time_rows),
+            "recognized_time_cost_cents": time_cost,
+            "recognized_direct_actual_cost_cents": direct_actual,
+            "recognized_actual_cost_cents": time_cost + direct_actual,
+            "approved_provisional_cost_cents": provisional,
+            "unavailable_cost_record_count": unavailable,
+            "work_evidence_record_count": len(time_rows) + len(cost_rows) + len(membership_rows),
+        }
+
+    def wip_content(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "tenant_id": int(row["tenant_id"]),
+            "version_no": int(row["version_no"]), "estimate_id": row["estimate_id"],
+            "supersedes_wip_review_id": row["supersedes_wip_review_id"],
+            "engagement_id": row["engagement_id"], "assessment_id": row["assessment_id"],
+            "as_of_date": row["as_of_date"], "work_through_date": row["work_through_date"],
+            "commercial_disposition": row["commercial_disposition"],
+            "work_value_cents": int(row["work_value_cents"]),
+            "billing_authorized_amount_cents": int(row["billing_authorized_amount_cents"]),
+            "external_billing_reference": row["external_billing_reference"],
+            "source_snapshot": json.loads(row["source_snapshot_json"]),
+            "review_basis": row["review_basis"], "assumptions": row["assumptions"],
+            "known_gaps": row["known_gaps"], "evidence_state": row["evidence_state"],
+        }
+
+    def verify_wip_review(row: dict[str, Any]) -> None:
+        if _digest(wip_content(row)) != row["content_sha256"]:
+            raise HTTPException(409, "Unbilled/work-in-progress review integrity verification failed")
+        if any(int(row[field]) for field in (
+            "creates_charge", "creates_invoice", "recognizes_revenue", "transmits_externally",
+        )):
+            raise HTTPException(409, "Unbilled/work-in-progress review contains a prohibited effect")
+        snapshot = json.loads(row["source_snapshot_json"])
+        if int(snapshot["work_evidence_record_count"]) <= 0:
+            raise HTTPException(409, "Unbilled/work-in-progress review lacks governed work evidence")
+
+    def wip_view(row: dict[str, Any]) -> dict[str, Any]:
+        out = dict(row)
+        out["source_snapshot"] = json.loads(out.pop("source_snapshot_json"))
+        out["creates_charge"] = False
+        out["creates_invoice"] = False
+        out["recognizes_revenue"] = False
+        out["transmits_externally"] = False
+        out["authority_note"] = (
+            "The approved disposition is a Salus commercial review record. Authorized-for-billing means "
+            "the recorded amount may proceed to a separate billing process; this record does not create a charge or invoice."
+        )
+        out["accounting_note"] = (
+            "Work value and WIP status are management information, not recognized revenue, a financial statement, "
+            "a customer balance, or evidence that an invoice was sent or paid."
+        )
+        out["next_step"] = (
+            "Complete the separate authorized billing process and record its evidence by governed reference."
+            if row["status"] == "Approved" and row["commercial_disposition"] == "Authorized for Billing"
+            else "Review source completeness and revise the dated disposition when work or commercial facts change."
+        )
+        return out
+
+    def active_wip_review(conn, tid: int, estimate_id: str) -> Optional[dict[str, Any]]:
+        found = conn.execute(
+            """SELECT w.* FROM salcapa_wip_reviews w
+               WHERE w.tenant_id=? AND w.estimate_id=? AND w.status='Approved'
+                 AND NOT EXISTS (
+                   SELECT 1 FROM salcapa_wip_reviews successor
+                   WHERE successor.tenant_id=w.tenant_id
+                     AND successor.supersedes_wip_review_id=w.id
+                     AND successor.status='Approved'
+                 )
+               ORDER BY w.version_no DESC LIMIT 1""",
+            (tid, estimate_id),
+        ).fetchone()
+        return dict(found) if found else None
+
+    def wip_management_summary(conn, tid: int, as_of: date) -> dict[str, Any]:
+        rows = [dict(row) for row in conn.execute(
+            """SELECT * FROM salcapa_wip_reviews
+               WHERE tenant_id=? AND status='Approved' AND as_of_date<=?
+               ORDER BY version_no""",
+            (tid, as_of.isoformat()),
+        )]
+        for row in rows:
+            verify_wip_review(row)
+        superseded = {
+            row["supersedes_wip_review_id"] for row in rows if row["supersedes_wip_review_id"]
+        }
+        active = [row for row in rows if row["id"] not in superseded]
+        groups: dict[str, dict[str, Any]] = {}
+        for row in active:
+            group = groups.setdefault(row["commercial_disposition"], {
+                "commercial_disposition": row["commercial_disposition"],
+                "current_review_count": 0, "work_value_cents": 0,
+                "billing_authorized_amount_cents": 0,
+                "recognized_actual_cost_cents": 0,
+                "evidence_needed_count": 0,
+            })
+            snapshot = json.loads(row["source_snapshot_json"])
+            group["current_review_count"] += 1
+            group["work_value_cents"] += int(row["work_value_cents"])
+            group["billing_authorized_amount_cents"] += int(row["billing_authorized_amount_cents"])
+            group["recognized_actual_cost_cents"] += int(snapshot["recognized_actual_cost_cents"])
+            if row["evidence_state"] != "Reasonably Supported":
+                group["evidence_needed_count"] += 1
+        ordered = [groups[key] for key in sorted(groups, key=str.casefold)]
+        totals = {
+            "current_review_count": len(active),
+            "work_value_cents": sum(int(row["work_value_cents"]) for row in active),
+            "billing_authorized_amount_cents": sum(
+                int(row["billing_authorized_amount_cents"]) for row in active
+            ),
+            "recognized_actual_cost_cents": sum(
+                int(json.loads(row["source_snapshot_json"])["recognized_actual_cost_cents"])
+                for row in active
+            ),
+            "evidence_needed_count": sum(
+                1 for row in active if row["evidence_state"] != "Reasonably Supported"
+            ),
+        }
+        return {
+            "scope": {"protected_member_id": tid, "as_of_date": as_of.isoformat()},
+            "purpose": "Review current approved unbilled/work-in-progress dispositions within one governed Protected Member scope.",
+            "basis": "Each current record is a dated human-approved snapshot of governed work evidence and commercial treatment.",
+            "confidentiality": "Salus-only commercial management information; no cross-member aggregation or Protected Member disclosure is permitted.",
+            "interpretation": "These values are not recognized revenue, financial statements, customer balances, charges, invoices, or proof of payment.",
+            "totals": totals, "groups": ordered,
+            "creates_charge": False, "creates_invoice": False,
+            "recognizes_revenue": False, "transmits_externally": False,
+        }
+
     def report_date(value: str, field_name: str) -> date:
         try:
             return date.fromisoformat(value)
@@ -1754,6 +2039,7 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             "membership_commercial_treatments": list(MEMBERSHIP_TREATMENTS),
             "membership_capacity_types": list(MEMBERSHIP_CAPACITY_TYPES),
             "membership_source_types": list(MEMBERSHIP_SOURCE_TYPES),
+            "wip_dispositions": list(WIP_DISPOSITIONS),
             "initial_planning_defaults": json.loads(_canonical(DEFAULT_RULES)),
             "guidance": {
                 "purpose": "Prepare a transparent planning estimate for authorized Salus review.",
@@ -1775,6 +2061,12 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                 "membership_consequence": "Recording use or reaching a capacity limit does not create a charge, invoice, scope expansion, tier change, partner action, renewal, or customer commitment.",
                 "membership_next_step": "When a released entitlement does not cover requested work, prepare a governed add-on, estimate, or membership amendment for human review.",
                 "membership_confidentiality": "Protected Members see only their released term, covered scope, approved consumption, and remaining capacity. Salus rates, costs, partner economics, calculations, margin, and profitability remain Salus-only.",
+                "wip_purpose": "Prepare a dated Salus review of supported work value and its current commercial treatment.",
+                "wip_authority": "Authorized Salus personnel independently approve each disposition. Authorized for Billing permits a separate billing process to begin; it does not create a charge or invoice.",
+                "wip_consequence": "A WIP review does not recognize revenue, change scope or price, transmit information, charge a Protected Member, or create an invoice.",
+                "wip_uncertainty": "The review identifies its source snapshot, assumptions, known gaps, and evidence state. Changed work or cost records require a new governed revision.",
+                "wip_confidentiality": "Unbilled/work-in-progress reviews and summaries are Salus-only commercial management information within one Protected Member scope.",
+                "wip_next_step": "Resolve evidence gaps or complete the separately authorized billing process, then record later billing evidence by governed reference without rewriting this review.",
             },
         }
 
@@ -2499,6 +2791,230 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
         verify_forecast(result)
         return forecast_view(result)
 
+    @app.get("/api/salcapa/commercial/wip-reviews")
+    def list_wip_reviews(request: Request, estimate_id: Optional[str] = None):
+        salus_read(request)
+        tid = tenant_id(request)
+        conn = db()
+        try:
+            if estimate_id:
+                estimate_for_actuals(conn, request, estimate_id)
+                rows = [dict(row) for row in conn.execute(
+                    """SELECT * FROM salcapa_wip_reviews
+                       WHERE tenant_id=? AND estimate_id=? ORDER BY version_no""",
+                    (tid, estimate_id),
+                )]
+            else:
+                rows = [dict(row) for row in conn.execute(
+                    "SELECT * FROM salcapa_wip_reviews WHERE tenant_id=? ORDER BY version_no",
+                    (tid,),
+                )]
+        finally:
+            conn.close()
+        for row in rows:
+            verify_wip_review(row)
+        approved = [row for row in rows if row["status"] == "Approved"]
+        superseded = {
+            row["supersedes_wip_review_id"] for row in approved
+            if row["supersedes_wip_review_id"]
+        }
+        views = [wip_view(row) for row in rows]
+        for item in views:
+            item["current_approved_review"] = (
+                item["status"] == "Approved" and item["id"] not in superseded
+            )
+        return views
+
+    @app.get("/api/salcapa/commercial/wip-summary")
+    def get_wip_summary(request: Request, as_of_date: str):
+        salus_read(request)
+        as_of = report_date(as_of_date, "as_of_date")
+        conn = db()
+        try:
+            return wip_management_summary(conn, tenant_id(request), as_of)
+        finally:
+            conn.close()
+
+    @app.post("/api/salcapa/commercial/wip-reviews")
+    def create_wip_review(payload: WipReviewCreate, request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            estimate = estimate_for_actuals(conn, request, payload.estimate_id)
+            if payload.supersedes_wip_review_id:
+                prior = conn.execute(
+                    """SELECT * FROM salcapa_wip_reviews
+                       WHERE id=? AND tenant_id=? AND estimate_id=? AND status='Approved'""",
+                    (payload.supersedes_wip_review_id, tid, payload.estimate_id),
+                ).fetchone()
+                if not prior:
+                    raise HTTPException(
+                        422, "A revised WIP review must replace an Approved review for this estimate"
+                    )
+                verify_wip_review(dict(prior))
+                duplicate = conn.execute(
+                    """SELECT id FROM salcapa_wip_reviews
+                       WHERE supersedes_wip_review_id=? AND tenant_id=? AND status<>'Rejected'""",
+                    (payload.supersedes_wip_review_id, tid),
+                ).fetchone()
+                if duplicate:
+                    raise HTTPException(409, "This WIP review already has an active revision")
+            active_prior = active_wip_review(conn, tid, payload.estimate_id)
+            if active_prior and payload.supersedes_wip_review_id != active_prior["id"]:
+                raise HTTPException(
+                    409, "A new WIP review must explicitly revise the current Approved review"
+                )
+            snapshot = wip_source_snapshot(
+                conn, tid, payload.estimate_id, payload.work_through_date
+            )
+            if int(snapshot["work_evidence_record_count"]) <= 0:
+                raise HTTPException(
+                    409, "WIP review requires approved time, cost, or membership-consumption evidence"
+                )
+            if (payload.commercial_disposition == "Membership Included"
+                    and not snapshot["active_membership_consumption"]):
+                raise HTTPException(
+                    409, "Membership Included requires approved linked membership consumption"
+                )
+            evidence_state = (
+                "Evidence Needed" if int(snapshot["unavailable_cost_record_count"]) > 0
+                else "Reasonably Supported"
+            )
+            if (payload.commercial_disposition == "Authorized for Billing"
+                    and evidence_state != "Reasonably Supported"):
+                raise HTTPException(
+                    409, "Billing authorization requires supported cost evidence; resolve unavailable cost records first"
+                )
+            version = int(conn.execute(
+                "SELECT COALESCE(MAX(version_no),0)+1 v FROM salcapa_wip_reviews WHERE tenant_id=?",
+                (tid,),
+            ).fetchone()["v"])
+            review_id = _key("wip-review")
+            content = {
+                "id": review_id, "tenant_id": tid, "version_no": version,
+                "estimate_id": payload.estimate_id,
+                "supersedes_wip_review_id": payload.supersedes_wip_review_id,
+                "engagement_id": estimate["engagement_id"],
+                "assessment_id": estimate["assessment_id"],
+                "as_of_date": payload.as_of_date,
+                "work_through_date": payload.work_through_date,
+                "commercial_disposition": payload.commercial_disposition,
+                "work_value_cents": payload.work_value_cents,
+                "billing_authorized_amount_cents": payload.billing_authorized_amount_cents,
+                "external_billing_reference": payload.external_billing_reference.strip(),
+                "source_snapshot": snapshot,
+                "review_basis": payload.review_basis.strip(),
+                "assumptions": payload.assumptions.strip(),
+                "known_gaps": payload.known_gaps.strip(),
+                "evidence_state": evidence_state,
+            }
+            conn.execute(
+                """INSERT INTO salcapa_wip_reviews(
+                   id,tenant_id,version_no,estimate_id,supersedes_wip_review_id,
+                   engagement_id,assessment_id,as_of_date,work_through_date,
+                   commercial_disposition,work_value_cents,billing_authorized_amount_cents,
+                   external_billing_reference,source_snapshot_json,review_basis,assumptions,
+                   known_gaps,content_sha256,evidence_state,status,creates_charge,creates_invoice,
+                   recognizes_revenue,transmits_externally,created_by,created_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (review_id, tid, version, payload.estimate_id,
+                 payload.supersedes_wip_review_id, estimate["engagement_id"],
+                 estimate["assessment_id"], payload.as_of_date, payload.work_through_date,
+                 payload.commercial_disposition, payload.work_value_cents,
+                 payload.billing_authorized_amount_cents,
+                 content["external_billing_reference"], _canonical(snapshot),
+                 content["review_basis"], content["assumptions"], content["known_gaps"],
+                 _digest(content), evidence_state, "Draft", 0, 0, 0, 0, who, stamp, stamp),
+            )
+            audit(
+                conn, "SALCAPA_COMMERCIAL_WIP_CREATE", "salcapa_wip_review",
+                estimate["assessment_id"],
+                f"{review_id} v{version}: dated Salus WIP disposition prepared from governed work evidence; no revenue, charge, invoice, scope change, or external transmission occurred.",
+                who,
+            )
+            conn.commit()
+            row = dict(conn.execute(
+                "SELECT * FROM salcapa_wip_reviews WHERE id=?", (review_id,)
+            ).fetchone())
+        finally:
+            conn.close()
+        verify_wip_review(row)
+        return wip_view(row)
+
+    @app.post("/api/salcapa/commercial/wip-reviews/{review_id}/transition")
+    def transition_wip_review(review_id: str, payload: WipReviewTransition,
+                              request: Request):
+        salus_write(request)
+        tid, who, stamp = tenant_id(request), actor(request), now()
+        conn = db()
+        try:
+            found = conn.execute(
+                "SELECT * FROM salcapa_wip_reviews WHERE id=? AND tenant_id=?",
+                (review_id, tid),
+            ).fetchone()
+            if not found:
+                raise HTTPException(404, "Unbilled/work-in-progress review not found")
+            row = dict(found)
+            verify_wip_review(row)
+            expected = {"Draft": {"Submitted"}, "Submitted": {"Approved", "Rejected"}}
+            if payload.status not in expected.get(row["status"], set()):
+                raise HTTPException(
+                    409, f"WIP review cannot transition from {row['status']} to {payload.status}"
+                )
+            submitted_by, submitted_at = row["submitted_by"], row["submitted_at"]
+            approved_by, approved_at = row["approved_by"], row["approved_at"]
+            decision_reason = row["decision_reason"]
+            if payload.status == "Submitted":
+                submitted_by, submitted_at = who, stamp
+            else:
+                commercial_authority(request)
+                if row["created_by"] == who:
+                    raise HTTPException(
+                        409, "WIP review decision requires an actor other than the creator"
+                    )
+                if payload.status == "Approved":
+                    active_prior = active_wip_review(conn, tid, row["estimate_id"])
+                    if active_prior and row["supersedes_wip_review_id"] != active_prior["id"]:
+                        raise HTTPException(
+                            409, "Another Approved WIP review is current; prepare an explicit revision"
+                        )
+                    current = wip_source_snapshot(
+                        conn, tid, row["estimate_id"], row["work_through_date"]
+                    )
+                    if _canonical(current) != _canonical(json.loads(row["source_snapshot_json"])):
+                        raise HTTPException(
+                            409, "Approved source records changed; prepare a current WIP review rather than approving a stale snapshot"
+                        )
+                    if (row["commercial_disposition"] == "Authorized for Billing"
+                            and row["evidence_state"] != "Reasonably Supported"):
+                        raise HTTPException(
+                            409, "Billing authorization requires reasonably supported evidence"
+                        )
+                    approved_by, approved_at = who, stamp
+                decision_reason = payload.reason
+            conn.execute(
+                """UPDATE salcapa_wip_reviews SET status=?,submitted_by=?,submitted_at=?,
+                   approved_by=?,approved_at=?,decision_reason=?,updated_at=?
+                   WHERE id=? AND tenant_id=?""",
+                (payload.status, submitted_by, submitted_at, approved_by, approved_at,
+                 decision_reason, stamp, review_id, tid),
+            )
+            audit(
+                conn, "SALCAPA_COMMERCIAL_WIP_TRANSITION", "salcapa_wip_review",
+                row["assessment_id"],
+                f"{review_id}: {row['status']} -> {payload.status}; separate human commercial review only; no revenue, charge, invoice, scope change, or external transmission occurred; {payload.reason}"[:1000],
+                who,
+            )
+            conn.commit()
+            result = dict(conn.execute(
+                "SELECT * FROM salcapa_wip_reviews WHERE id=?", (review_id,)
+            ).fetchone())
+        finally:
+            conn.close()
+        verify_wip_review(result)
+        return wip_view(result)
+
     @app.get("/api/salcapa/commercial/membership/plans")
     def list_membership_plans(request: Request):
         salus_read(request)
@@ -2980,6 +3496,9 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
             time_entries = {str(r.get("id")): r for r in records.get("salcapa_time_entries", [])}
             cost_entries = {str(r.get("id")): r for r in records.get("salcapa_cost_entries", [])}
             forecasts = {str(r.get("id")): r for r in records.get("salcapa_commercial_forecasts", [])}
+            wip_reviews = {
+                str(r.get("id")): r for r in records.get("salcapa_wip_reviews", [])
+            }
             membership_plans = {
                 str(r.get("id")): r for r in records.get("salcapa_membership_plans", [])
             }
@@ -3052,6 +3571,35 @@ def register_salcapa_commercial(app, core: dict[str, Any]) -> None:
                     verify_forecast(dict(row))
                 except (HTTPException, ValueError, TypeError, KeyError):
                     errors.append(f"commercial forecast {row.get('id')} failed integrity verification")
+            for row in wip_reviews.values():
+                if int(row.get("tenant_id", -1)) != int(tid):
+                    errors.append(f"WIP review {row.get('id')} crosses the tenant boundary")
+                    continue
+                estimate = estimates.get(str(row.get("estimate_id")))
+                if not estimate:
+                    errors.append(f"WIP review {row.get('id')} has invalid estimate_id")
+                elif (row.get("engagement_id") != estimate.get("engagement_id") or
+                      row.get("assessment_id") != estimate.get("assessment_id")):
+                    errors.append(f"WIP review {row.get('id')} crosses its estimate scope")
+                prior_id = row.get("supersedes_wip_review_id")
+                if prior_id:
+                    prior = wip_reviews.get(str(prior_id))
+                    if not prior or prior.get("estimate_id") != row.get("estimate_id"):
+                        errors.append(f"WIP review {row.get('id')} has invalid revision lineage")
+                try:
+                    snapshot = json.loads(row.get("source_snapshot_json", "{}"))
+                    estimate_snapshot = snapshot.get("estimate", {})
+                    if estimate and (
+                        estimate_snapshot.get("id") != estimate.get("id")
+                        or int(estimate_snapshot.get("version_no", -1))
+                        != int(estimate.get("version_no", -2))
+                        or estimate_snapshot.get("content_sha256")
+                        != estimate.get("content_sha256")
+                    ):
+                        errors.append(f"WIP review {row.get('id')} estimate snapshot does not match")
+                    verify_wip_review(dict(row))
+                except (HTTPException, ValueError, TypeError, KeyError):
+                    errors.append(f"WIP review {row.get('id')} failed integrity verification")
             for row in membership_plans.values():
                 if int(row.get("tenant_id", -1)) != int(tid):
                     errors.append(f"membership plan {row.get('id')} crosses the tenant boundary")

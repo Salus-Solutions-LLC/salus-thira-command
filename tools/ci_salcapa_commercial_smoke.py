@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Acceptance checks for Issue #154 estimates, actuals, forecasts, and reporting."""
+"""Acceptance checks for Issue #154 commercial governance, including WIP review."""
 import copy
 import json
 import os
@@ -42,7 +42,7 @@ def main() -> None:
         "X-Salus-User": "Other Tenant", "X-Salus-Clearance": "Highly Sensitive",
     }
 
-    assert client.get("/api/system/mode").json()["version"] == "3.95"
+    assert client.get("/api/system/mode").json()["version"] == "3.96"
     assert client.get("/api/salcapa/commercial/catalog", headers=member).status_code == 403
     catalog = client.get("/api/salcapa/commercial/catalog", headers=director)
     assert catalog.status_code == 200, catalog.text
@@ -916,17 +916,158 @@ def main() -> None:
     assert len(member_history) == 1
     assert member_history[0]["capacity"][0]["included_quantity"] == "2"
 
+    # WIP is a dated, Salus-only commercial disposition—not accounting or billing automation.
+    assert "Authorized for Billing" in body["wip_dispositions"]
+    assert "does not create a charge or invoice" in body["guidance"]["wip_authority"]
+    assert client.get(
+        "/api/salcapa/commercial/wip-reviews", headers=member
+    ).status_code == 403
+    assert client.get(
+        "/api/salcapa/commercial/wip-summary?as_of_date=2026-09-08", headers=member
+    ).status_code == 403
+    wip_payload = {
+        "estimate_id": estimate_id,
+        "as_of_date": "2026-09-08",
+        "work_through_date": "2026-09-08",
+        "commercial_disposition": "Evidence Needed",
+        "work_value_cents": 40000,
+        "billing_authorized_amount_cents": 0,
+        "external_billing_reference": "",
+        "review_basis": "Reviewed approved work, direct cost, and membership-use evidence.",
+        "assumptions": "Work value is a dated management estimate pending the unavailable provider cost.",
+        "known_gaps": "One provider cost remains unavailable.",
+    }
+    assert client.post(
+        "/api/salcapa/commercial/wip-reviews", headers=member, json=wip_payload
+    ).status_code == 403
+    invalid_billing = dict(
+        wip_payload, commercial_disposition="Authorized for Billing",
+        billing_authorized_amount_cents=30000,
+    )
+    assert client.post(
+        "/api/salcapa/commercial/wip-reviews", headers=director, json=invalid_billing
+    ).status_code == 409
+    wip = client.post(
+        "/api/salcapa/commercial/wip-reviews", headers=director, json=wip_payload
+    )
+    assert wip.status_code == 200, wip.text
+    wip_id = wip.json()["id"]
+    assert wip.json()["evidence_state"] == "Evidence Needed"
+    assert wip.json()["source_snapshot"]["recognized_actual_cost_cents"] == 19025
+    assert wip.json()["source_snapshot"]["unavailable_cost_record_count"] == 1
+    assert len(wip.json()["source_snapshot"]["active_membership_consumption"]) == 1
+    for prohibited in (
+        "creates_charge", "creates_invoice", "recognizes_revenue", "transmits_externally",
+    ):
+        assert wip.json()[prohibited] is False
+    assert client.post(
+        f"/api/salcapa/commercial/wip-reviews/{wip_id}/transition", headers=director,
+        json={"status": "Submitted", "reason": "Submit the dated WIP evidence review."},
+    ).status_code == 200
+    assert client.post(
+        f"/api/salcapa/commercial/wip-reviews/{wip_id}/transition", headers=director,
+        json={"status": "Approved", "reason": "Attempt self-approval."},
+    ).status_code == 409
+    assert client.post(
+        f"/api/salcapa/commercial/wip-reviews/{wip_id}/transition", headers=administrator,
+        json={"status": "Approved", "reason": "Independently confirm the evidence-needed disposition."},
+    ).status_code == 200
+
+    stale_payload = dict(
+        wip_payload, supersedes_wip_review_id=wip_id,
+        commercial_disposition="Ready for Billing Authorization",
+        known_gaps="Source evidence will be rechecked before approval.",
+    )
+    stale = client.post(
+        "/api/salcapa/commercial/wip-reviews", headers=director, json=stale_payload
+    )
+    assert stale.status_code == 200, stale.text
+    stale_id = stale.json()["id"]
+    assert client.post(
+        f"/api/salcapa/commercial/wip-reviews/{stale_id}/transition", headers=director,
+        json={"status": "Submitted", "reason": "Submit the proposed revision."},
+    ).status_code == 200
+
+    unavailable_correction = dict(
+        actual_cost_payload,
+        supersedes_entry_id=unavailable_id,
+        amount_cents=200,
+        source_reference="usage-record-demo-002",
+        notes="Supported correction replaces the unavailable-cost classification.",
+    )
+    corrected_cost = client.post(
+        "/api/salcapa/commercial/cost-entries", headers=director, json=unavailable_correction
+    )
+    assert corrected_cost.status_code == 200, corrected_cost.text
+    corrected_cost_id = corrected_cost.json()["id"]
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the supported cost correction."),
+        ("Approved", administrator, "Confirm the corrected provider cost evidence."),
+    ):
+        assert client.post(
+            f"/api/salcapa/commercial/cost-entries/{corrected_cost_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        ).status_code == 200
+    assert client.post(
+        f"/api/salcapa/commercial/wip-reviews/{stale_id}/transition", headers=administrator,
+        json={"status": "Approved", "reason": "Attempt to approve a stale work snapshot."},
+    ).status_code == 409
+    assert client.post(
+        f"/api/salcapa/commercial/wip-reviews/{stale_id}/transition", headers=administrator,
+        json={"status": "Rejected", "reason": "Reject because source evidence changed."},
+    ).status_code == 200
+
+    authorized_payload = dict(
+        invalid_billing, supersedes_wip_review_id=wip_id,
+        known_gaps="No unresolved cost evidence within the reviewed period.",
+        assumptions="Separate billing personnel must complete all later billing controls.",
+    )
+    authorized = client.post(
+        "/api/salcapa/commercial/wip-reviews", headers=director, json=authorized_payload
+    )
+    assert authorized.status_code == 200, authorized.text
+    authorized_id = authorized.json()["id"]
+    assert authorized.json()["evidence_state"] == "Reasonably Supported"
+    assert authorized.json()["source_snapshot"]["recognized_actual_cost_cents"] == 19225
+    for status, headers, reason in (
+        ("Submitted", director, "Submit the supported billing-authorization disposition."),
+        ("Approved", administrator, "Authorize a separate billing process for the reviewed amount."),
+    ):
+        response = client.post(
+            f"/api/salcapa/commercial/wip-reviews/{authorized_id}/transition",
+            headers=headers, json={"status": status, "reason": reason},
+        )
+        assert response.status_code == 200, response.text
+    assert client.post(
+        "/api/salcapa/commercial/wip-reviews", headers=director,
+        json=dict(wip_payload, commercial_disposition="Externally Billed"),
+    ).status_code == 422
+    assert client.get(
+        f"/api/salcapa/commercial/wip-reviews?estimate_id={estimate_id}", headers=other
+    ).status_code == 404
+    wip_summary = client.get(
+        "/api/salcapa/commercial/wip-summary?as_of_date=2026-09-08", headers=administrator
+    )
+    assert wip_summary.status_code == 200, wip_summary.text
+    assert wip_summary.json()["totals"]["current_review_count"] == 1
+    assert wip_summary.json()["totals"]["work_value_cents"] == 40000
+    assert wip_summary.json()["totals"]["billing_authorized_amount_cents"] == 30000
+    assert wip_summary.json()["totals"]["recognized_actual_cost_cents"] == 19225
+    assert wip_summary.json()["groups"][0]["commercial_disposition"] == "Authorized for Billing"
+    assert wip_summary.json()["creates_invoice"] is False
+
     conn = salcapa_runtime.core.db()
     records = salcapa_runtime.core.collect_tenant_records(conn, 1)
     conn.close()
     assert len(records["salcapa_rate_cards"]) == 2
     assert len(records["salcapa_commercial_estimates"]) == 2
     assert len(records["salcapa_time_entries"]) == 2
-    assert len(records["salcapa_cost_entries"]) == 4
+    assert len(records["salcapa_cost_entries"]) == 5
     assert len(records["salcapa_commercial_forecasts"]) == 3
     assert len(records["salcapa_membership_plans"]) == 2
     assert len(records["salcapa_membership_terms"]) == 2
     assert len(records["salcapa_membership_consumption"]) == 3
+    assert len(records["salcapa_wip_reviews"]) == 3
     assert salcapa_runtime.core.validate_records(records, 1) == []
     tampered = copy.deepcopy(records)
     tampered["salcapa_commercial_estimates"][0]["recommended_customer_price_cents"] = 1
@@ -938,6 +1079,9 @@ def main() -> None:
     tampered_forecast = copy.deepcopy(records)
     tampered_forecast["salcapa_commercial_forecasts"][0]["forecast_at_completion_cents"] = 1
     assert salcapa_runtime.core.validate_records(tampered_forecast, 1) != []
+    tampered_wip = copy.deepcopy(records)
+    tampered_wip["salcapa_wip_reviews"][0]["commercial_disposition"] = "Write-Off"
+    assert salcapa_runtime.core.validate_records(tampered_wip, 1) != []
     tampered_membership = copy.deepcopy(records)
     tampered_membership["salcapa_membership_terms"][0]["approved_term_value_cents"] = 1
     assert salcapa_runtime.core.validate_records(tampered_membership, 1) != []
