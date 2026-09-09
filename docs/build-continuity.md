@@ -10,7 +10,7 @@ active_increment: governed_contextual_material_intake_validation
 last_completed_release: v3.99
 candidate_release: v3.100
 validation_pr: 230
-validation_gate_state: required_gates_running
+validation_gate_state: github_validation_running
 genuine_blockers: none
 next_authorized_increment: contextual_intake_acceptance_or_repair
 ---
