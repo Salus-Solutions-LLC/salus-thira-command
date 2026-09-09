@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 08 September 2026 21:07 CDT
-current_frozen_release: v3.90
-current_frozen_commit: 0f1049ff6e7e1913489cbe681d20a671dd48b194
+last_verified_at: 08 September 2026 21:11 CDT
+current_frozen_release: v3.91
+current_frozen_commit: dcf016a153ac7df0085381ca298f37ee2405fa78
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 213
-active_increment: mission_map_print_report_representation
-last_completed_release: v3.90
-candidate_release: v3.91
-validation_pr: 219
-validation_gate_state: github_validation_running
+active_increment: mission_map_accessibility_reduced_motion
+last_completed_release: v3.91
+candidate_release: none
+validation_pr: none
+validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: mission_map_accessibility_reduced_motion
+next_authorized_increment: mission_map_deeper_prove_traceability
 ---
 
 # SalCAPA build continuity
@@ -32,15 +32,15 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
-- Current frozen release: **v3.90** at `0f1049ff6e7e1913489cbe681d20a671dd48b194`.
+- Current frozen release: **v3.91** at `dcf016a153ac7df0085381ca298f37ee2405fa78`.
 - Active development line: `development/salcapa-platform`.
 - Active roadmap: [Issue #213](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/213), Mission Map and Mission Structure.
-- Last completed increment: governed Build Continuity and anti-split recovery control.
-- Last controlled validation: [PR #218](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/218), closed without merge after all 15 workflow families passed.
-- Current candidate: v3.91 Mission Map print/report representation in [validation PR #219](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/219); GitHub validation is running.
+- Last completed increment: role-safe Mission Map print/report representation derived exclusively from the authorized server projection.
+- Last controlled validation: [PR #219](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/219), closed without merge after all 15 workflow families passed.
+- Current candidate: none.
 - Genuine blockers: none.
-- Active product increment: Mission Map print/report representation.
-- Next authorized product increment: Mission Map accessibility and reduced-motion support.
+- Active product increment: Mission Map accessibility and reduced-motion support.
+- Next authorized product increment: deeper Mission Map PROVE traceability.
 
 ## Recovery procedure
 
