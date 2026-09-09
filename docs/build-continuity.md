@@ -40,8 +40,8 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Last completed design review: [Safe document extraction design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-safe-document-extraction.md), validated by CI, CodeQL, and contextual-intake checks at `244515af7a808d6ae43cf8a4f6fc9a755327f35e`. The approved first document slice is local, non-executing Office Open XML extraction for `.docx`, `.xlsx`, and `.pptx`; macro-enabled, encrypted, legacy binary, PDF, OCR, image, map, audio, video, embedded-object, external-link, and formula-execution paths remain deferred or rejected.
 - Current candidate: **v3.102** in controlled [PR #232](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/232); GitHub validation is running and the pull request must be closed without merge.
 - Genuine blockers: none.
-- Active product increment: review safe non-executing document extraction and metadata needs while preserving the v3.101 source/derivative, uncertainty, access, review, and recovery controls.
-- Next authorized product increment: define the next bounded document-extraction slice before adding broader document, photo/map, audio, video, entity-suggestion, duplicate-analysis, or transcription workers.
+- Active product increment: validate bounded, non-executing `.docx`, `.xlsx`, and `.pptx` text and limited-metadata extraction with immutable source hashing, package safety limits, explicit formula-cache and revision uncertainty, server-controlled processing, independent human review, scoped search, and portable recovery.
+- Next authorized product increment: after v3.102 validation, review a separately bounded PDF text and structure worker. OCR, photo/map, audio, video, entity-suggestion, duplicate-analysis, and transcription workers remain separately gated.
 
 ## Recovery procedure
 
