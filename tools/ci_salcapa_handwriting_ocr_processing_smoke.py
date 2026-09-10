@@ -59,7 +59,11 @@ def checkpoint(name: str) -> None:
 
 
 def image_bytes() -> bytes:
-    image = Image.new("RGB", (320, 240), "white"); output = io.BytesIO(); image.save(output, "PNG"); return output.getvalue()
+    # Each isolated PostgreSQL phase receives its own governed object. Reusing an
+    # identical digest would legitimately deduplicate to a prior phase's record
+    # after that phase's temporary object store has been removed.
+    color_seed = hashlib.sha256(WORKSPACE.name.encode("utf-8")).digest()
+    image = Image.new("RGB", (320, 240), tuple(color_seed[:3])); output = io.BytesIO(); image.save(output, "PNG"); return output.getvalue()
 
 
 with TestClient(core.app) as client:
