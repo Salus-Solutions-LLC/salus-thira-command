@@ -51,7 +51,9 @@ def component_diagnostic(wav_data: bytes) -> str:
             timeout=120, check=False,
         )
         detail = (result.stderr + result.stdout).decode("utf-8", errors="replace")[-2000:]
-        return f"exit={result.returncode}; output={detail}"
+        srt = prefix.with_suffix(".srt")
+        subtitle = srt.read_text(encoding="utf-8", errors="replace")[:1000] if srt.is_file() else "[missing]"
+        return f"exit={result.returncode}; output={detail}; srt={subtitle!r}"
 
 
 def fixtures(directory: Path) -> dict[str, bytes]:
