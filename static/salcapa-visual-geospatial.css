@@ -1,0 +1,7 @@
+.visual-review-aids{margin-top:1rem}
+.visual-review-aids details{max-width:42rem}
+.restricted-location-detail{border-left:4px solid #566b79}
+.restricted-location-detail dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.75rem}
+.restricted-location-detail dl div{padding:.7rem;border:1px solid var(--border,#d6dde2);border-radius:.35rem}
+.restricted-location-detail dt{font-size:.78rem;color:var(--muted,#59646d);text-transform:uppercase;letter-spacing:.04em}
+.restricted-location-detail dd{margin:.2rem 0 0;font-weight:650;overflow-wrap:anywhere}

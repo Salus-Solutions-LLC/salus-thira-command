@@ -18,8 +18,8 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/ci_salcapa_material_suggestions_smoke.py.gz",
         ROOT / "tools/ci_salcapa_material_suggestions_smoke.py",
-        "ea7e3c18d060cc9fd830b360edb17fb42215d0958971ab0274748f98ec52abc2",
-        "64e98f95f2107ebe7de28752ae087cae35910527e939c6fea13e032f121e4eaa",
+        "5b34dfa0d93c5d90df643a1e90459d2920cc48462c0eefedf00154e716253cd2",
+        "6896768eb56b199ba61ae90cbca20c65ffe54e54361372e3b11982195c0fcca6",
         14381,
     ),
     (
