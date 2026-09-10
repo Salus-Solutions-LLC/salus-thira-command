@@ -296,7 +296,7 @@ jobs:
               '.activation_key | test("^salcapa-v3\\\\.[0-9]+-image-[0-9a-f]{8}$")',
               '.source_commit | test("^[0-9a-f]{40}$")',
               'EXPECTED_ACTIVATION_KEY="salcapa-${SOURCE_RELEASE#release/}-image-${SOURCE_COMMIT:0:8}"',
-              'ref: ${{ steps.activation.outputs.source_release }}',
+              'ref: $' + '{{ steps.activation.outputs.source_release }}',
               'path: frozen-release',
               'git -C frozen-release rev-parse HEAD',
               'git merge-base --is-ancestor',
