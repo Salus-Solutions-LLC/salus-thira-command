@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 23:31 CDT
-current_frozen_release: v3.105
-current_frozen_commit: 9b2e03144b1a68b64c4ce64b70536f63b47949ef
+last_verified_at: 09 September 2026 23:46 CDT
+current_frozen_release: v3.106
+current_frozen_commit: 0bdc7bc8ea3233794ef3ef3ced1c3293ab63bf01
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 131
-active_increment: v3.106_controlled_validation
-last_completed_release: v3.105
-candidate_release: v3.106
-validation_pr: 238
-validation_gate_state: github_validation_running
+active_increment: issue_131_final_acceptance_review
+last_completed_release: v3.106
+candidate_release: none
+validation_pr: none
+validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: complete_v3.106_controlled_validation
+next_authorized_increment: issue_131_acceptance_and_integrated_demonstration_review
 ---
 
 # SalCAPA build continuity
@@ -32,17 +32,17 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
-- Current frozen release: **v3.105** at [`9b2e03144b1a68b64c4ce64b70536f63b47949ef`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/9b2e03144b1a68b64c4ce64b70536f63b47949ef) on `release/v3.105`.
+- Current frozen release: **v3.106** at [`0bdc7bc8ea3233794ef3ef3ced1c3293ab63bf01`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/0bdc7bc8ea3233794ef3ef3ced1c3293ab63bf01) on `release/v3.106`.
 - Active development line: `development/salcapa-platform`.
 - Active roadmap: [Issue #131](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/131), safe derived extraction, transcription, search, and analyst triage under parent [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128). [Issue #133](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/133) is completed and closed.
-- Last completed increment: the fifth bounded Issue #131 slice adds local, request-driven transcription for PCM WAV, single-stream MP3, and MP4 materials with one AAC audio stream. Fixed server-controlled FFprobe/FFmpeg processing extracts and normalizes audio without analyzing video frames. Pinned, hash-verified local whisper.cpp components prepare English spoken-word review aids inside an isolated, resource-limited process. Original materials remain immutable, source-to-normalized-audio-to-transcript lineage is explicit, and tenant and sensitivity controls are preserved. Results remain **Derived — Unverified** and **Awaiting Human Review**; they cannot establish source truth, speaker identity, biometric identity, emotion, credibility, evidence, intelligence, findings, decisions, disclosure, cost, or authority. Manual source review remains available when processing is unavailable. The increment adds no paid Azure speech service, standing worker, queue, GPU, or automatic scale-out.
-- Last controlled validation: [PR #237](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/237), closed without merge on 09 September 2026 after all 17 controlled-pull-request workflow families passed on the exact frozen commit. The candidate also passed fresh SQLite, PostgreSQL 16, production-container, dependency-audit, Bandit, repository-hygiene, Azure infrastructure, CodeQL, deterministic reconstruction, recovery, contextual-intake, and existing capability regression checks.
-- Current candidate: **v3.106** at [`3260693bd6b8ff8d90f4124233072070766afffe`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/3260693bd6b8ff8d90f4124233072070766afffe). [Controlled validation PR #238](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/238) is open for validation only and must close without merge.
+- Last completed increment: v3.106 adds tenant-scoped references and ambiguity-preserving date, 24-hour time, and location review aids; exact source and derived-content comparison; bounded near-duplicate text review; immutable initial proposals; append-only human correction history; and proposal-only governed links. The integrated Salus-only Information Review interface shows source context, limits, uncertainty, review state, human authority, and what happens next. Suggestions remain **Derived — Unverified** and **Awaiting Human Review** until independently reviewed and cannot establish identity, intelligence, findings, relationships, monitoring, disclosure, scope, cost, or authority.
+- Last controlled validation: [PR #238](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/238), closed without merge on 09 September 2026 after all 17 controlled-pull-request workflow families passed on the exact frozen commit. The candidate passed fresh SQLite, PostgreSQL 16, production-container, dependency-audit, Bandit, repository-hygiene, Azure infrastructure, CodeQL, deterministic reconstruction, recovery, contextual-intake, and existing capability regression checks.
+- Current candidate: none.
 - Genuine blockers: none.
 - Issue #131 acceptance status: the material-processing foundation is accepted, but Issue #131 remains open. The governed [acceptance and gap review](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-material-processing-acceptance-review.md) identifies entity/date/location suggestions, duplicate/relationship review, and the integrated fictional analyst journey as the remaining work.
-- Candidate under validation: v3.106 implements local tenant-reference matching; ambiguity-preserving date and 24-hour time suggestions; exact-source, exact-derived, and bounded near-duplicate text comparison; immutable initial proposals and append-only correction history; and proposal-only governed links. The integrated Information Review interface explains the source basis, uncertainty, reviewer authority, and next step. Suggestions remain **Derived — Unverified** and **Awaiting Human Review** until a different authorized person reviews them. They cannot establish identity, intelligence, findings, relationships, monitoring, disclosure, scope, cost, or authority.
-- Active product increment: complete every required gate on the exact v3.106 candidate, close PR #238 without merge, and freeze only if all gates are green.
-- Next authorized product increment: complete controlled v3.106 validation. [Issue #236](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/236) preserves the approved advanced visual-intelligence requirements—including authorized exact GPS/geospatial handling, image interpretation, object and condition classification, handwriting recognition, broader or approved external OCR, maps and floor plans, and separately governed facial/biometric capability. The bounded v3.104-v3.105 exclusions are first-slice controls, not permanent product exclusions.
+- Last accepted implementation: the governed [suggestions and duplicate-review design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-governed-suggestions-and-duplicate-review.md) is implemented in v3.106 with local tenant-reference matching, ambiguity-preserving date/time suggestions, exact-hash and bounded near-duplicate review, immutable proposals, append-only correction history, and destination-specific governed-link proposals.
+- Active product increment: complete the Issue #131 final acceptance and integrated fictional analyst-journey review without changing frozen v3.106.
+- Next authorized product increment: Issue #131 acceptance and integrated demonstration review. [Issue #236](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/236) continues to preserve the approved native advanced visual-intelligence requirements—including authorized exact GPS/geospatial handling, image interpretation, object and condition classification, handwriting recognition, broader or approved external OCR, maps and floor plans, and separately governed facial/biometric capability.
 
 ## Recovery procedure
 
