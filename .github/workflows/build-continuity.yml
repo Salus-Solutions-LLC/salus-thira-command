@@ -7,11 +7,14 @@ on:
       - 'docs/build-continuity.md'
       - 'docs/demo-deployment-continuity.md'
       - 'docs/salcapa-fictional-demonstration-fixtures.md'
+      - 'docs/salcapa-demo-candidate-image-preflight.md'
+      - 'deploy/azure/candidates/v3.109-reference-image-preflight.json'
       - 'salcapa_runtime.py'
       - 'salcapa_demo_fixtures.py'
       - 'tools/ci_build_continuity_smoke.py'
       - 'tools/ci_demo_deployment_continuity_smoke.py'
       - 'tools/ci_salcapa_demo_fixtures_smoke.py'
+      - 'tools/ci_salcapa_v3109_candidate_image_preflight.py'
       - '.github/workflows/build-continuity.yml'
   pull_request:
     branches: [main]

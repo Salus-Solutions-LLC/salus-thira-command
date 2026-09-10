@@ -1,0 +1,80 @@
+name: SalCAPA Demonstration Candidate Image Preflight
+
+on:
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'deploy/azure/candidates/v3.109-reference-image-preflight.json'
+      - 'deploy/azure/activations/image-dev.json'
+      - 'deploy/azure/activations/application-dev.json'
+      - 'docs/demo-deployment-continuity.md'
+      - 'tools/ci_salcapa_v3109_candidate_image_preflight.py'
+      - '.github/workflows/salcapa-demo-candidate-image.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FROZEN_V3109_COMMIT: 361a38300faddd7e9a93153c0629739acef870a0
+
+jobs:
+  exact-frozen-reference-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 361a38300faddd7e9a93153c0629739acef870a0
+          path: frozen-v3109
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Verify the exact frozen source and fail-closed reference contract
+        env:
+          SALCAPA_FROZEN_V3109_ROOT: ${{ github.workspace }}/frozen-v3109
+        run: |
+          test "$(git -C frozen-v3109 rev-parse HEAD)" = "$FROZEN_V3109_COMMIT"
+          python tools/ci_salcapa_v3109_candidate_image_preflight.py
+      - name: Build the exact frozen reference image locally
+        run: >-
+          docker build --pull=false
+          --label org.opencontainers.image.revision=$FROZEN_V3109_COMMIT
+          --label org.opencontainers.image.version=3.109
+          --label io.salus.purpose=demonstration-reference-preflight
+          -t salcapa-v3109-reference:preflight
+          frozen-v3109
+      - name: Verify immutable image identity and runtime packaging
+        run: |
+          set -euo pipefail
+          IMAGE_ID="$(docker image inspect salcapa-v3109-reference:preflight --format '{{.Id}}')"
+          [[ "$IMAGE_ID" == sha256:* ]]
+          test "$(docker image inspect salcapa-v3109-reference:preflight --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$FROZEN_V3109_COMMIT"
+          test "$(docker image inspect salcapa-v3109-reference:preflight --format '{{index .Config.Labels "org.opencontainers.image.version"}}')" = "3.109"
+          test "$(docker image inspect salcapa-v3109-reference:preflight --format '{{.Config.User}}')" = "salus"
+          docker run --rm \
+            -e SALUS_ENV=development \
+            -e SALUS_AUTH_MODE=local \
+            -e SALUS_DB_BACKEND=sqlite \
+            -e SALUS_SEED_DEMO=0 \
+            salcapa-v3109-reference:preflight \
+            python -c 'import salcapa_runtime as r; assert r.SALCAPA_RELEASE_VERSION == "3.109"; assert r.app.state.salcapa_release_version == "3.109"'
+          printf '{"source_commit":"%s","image_id":"%s","publish_authorized":false,"deploy_authorized":false}\n' \
+            "$FROZEN_V3109_COMMIT" "$IMAGE_ID" > candidate-image-preflight.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: salcapa-v3109-reference-image-preflight
+          path: candidate-image-preflight.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Repository hygiene
+        run: |
+          git diff --check
+          test ! -e .env
+          test ! -e id_rsa

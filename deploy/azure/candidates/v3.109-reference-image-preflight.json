@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "operation": "preflight_reference_image",
+  "target_environment": "dev",
+  "source_release": "release/v3.109",
+  "source_commit": "361a38300faddd7e9a93153c0629739acef870a0",
+  "dockerfile_blob": "15468459038f2ba6786d4e7693a76fda758c3c7d",
+  "runtime_blob": "9f568d750613adaeebdfa22575c533586c8e3b53",
+  "requirements_blob": "f5c385199b1d15e86bbdfde866a2f5d9816bc887",
+  "accepted_deployed_release": "v3.36",
+  "accepted_deployed_commit": "63d513605f908d3308bb5dd1bbdbf1061878452b",
+  "accepted_image_digest": "sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46",
+  "fixture_capability_included": false,
+  "publish_authorized": false,
+  "deploy_authorized": false,
+  "traffic_change_authorized": false,
+  "cost_change_authorized": false,
+  "purpose": "Verify exact frozen v3.109 image lineage and runtime packaging without contacting or changing Azure.",
+  "next_gate": "Freeze a successor release containing the verified Issue #124 fixture and preflight capabilities before publication or deployment."
+}
