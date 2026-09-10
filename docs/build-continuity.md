@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 September 2026 05:18 CDT
+last_verified_at: 10 September 2026 05:23 CDT
 current_frozen_release: v3.107
 current_frozen_commit: 488b060df4f732307bb1d17a94ed1481e75330c0
 active_development_branch: development/salcapa-platform
@@ -9,8 +9,8 @@ active_roadmap_issue: 236
 active_increment: issue_236_object_and_condition_analysis_v3_108_candidate
 last_completed_release: v3.107
 candidate_release: v3.108
-validation_pr: pending
-validation_gate_state: local_verified_github_pending
+validation_pr: 246
+validation_gate_state: github_validation_running
 genuine_blockers: none
 next_authorized_increment: issue_236_object_and_condition_analysis_validation
 ---
@@ -37,7 +37,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active roadmap: [Issue #236](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/236), native advanced governed visual intelligence, geospatial metadata, handwriting, expanded OCR, mapping, and separately governed facial/biometric capability. [Issue #131](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/131) and [Issue #133](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/133) are completed and closed under parent [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128).
 - Last completed increment: v3.107 preserves authorized exact EXIF GPS as restricted source metadata, adds purpose-recorded exact access, manual source-region observations, independent review, immutable correction history, stable processor-lineage snapshots, proposal-only governed links, portable backup/recovery, and a native Information Review interface. It enables no visual model or external provider.
 - Last controlled validation: [PR #245](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/245), on which all 17 controlled-pull-request workflow families passed on exact object and visible-condition design commit [`038bdcd5a205c6b713fa4e40e72279c6d46ddeb6`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/038bdcd5a205c6b713fa4e40e72279c6d46ddeb6).
-- Current candidate: **v3.108**, locally verified and awaiting controlled GitHub validation.
+- Current candidate: **v3.108** at [`0b4c3a446121608f3a4de38c79c971519a74b214`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/0b4c3a446121608f3a4de38c79c971519a74b214), under controlled validation on [PR #246](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/246). This pull request will be closed without merge.
 - Genuine blockers: none.
 - Last accepted architecture: the [object and visible-condition analysis design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-object-condition-analysis-design.md) defines local request-driven processing, exact source-region and transform lineage, server-controlled model and vocabulary profiles, neutral operational categories, strict person-related boundaries, independent review, proposal-only downstream references, manual operating capability, and low-cost CPU-first deployment.
 - Active product increment: validate the v3.108 bounded native object and visible-condition analysis candidate under Issue #236. The candidate adds a hash-pinned deployment-supplied local processor boundary, immutable job and suggestion lineage, exact source regions, uncertainty and alternate-category handling, independent human review, tenant and sensitivity enforcement, native review guidance, manual fallback, and portable backup/recovery.
