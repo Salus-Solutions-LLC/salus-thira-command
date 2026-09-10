@@ -164,7 +164,23 @@ jobs:
       - run: python tools/run_current_release_smoke.py tools/ci_salcapa_material_suggestions_smoke.py
       - run: python tools/ci_salcapa_visual_geospatial_smoke.py
       - run: python tools/ci_salcapa_visual_object_processing_smoke.py
-      - run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - name: PostgreSQL handwriting status boundary
+        env: {SALUS_HANDWRITING_OCR_STOP_AFTER: status}
+        run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - name: PostgreSQL handwriting preparation boundary
+        env: {SALUS_HANDWRITING_OCR_STOP_AFTER: prepared}
+        run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - name: PostgreSQL handwriting review boundary
+        env: {SALUS_HANDWRITING_OCR_STOP_AFTER: reviewed}
+        run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - name: PostgreSQL handwriting persistence boundary
+        env: {SALUS_HANDWRITING_OCR_STOP_AFTER: persistence}
+        run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - name: PostgreSQL handwriting manual-fallback boundary
+        env: {SALUS_HANDWRITING_OCR_STOP_AFTER: manual}
+        run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - name: PostgreSQL handwriting complete acceptance
+        run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
 
   production-container:
     runs-on: ubuntu-latest
