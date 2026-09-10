@@ -67,14 +67,23 @@ finally:
 
 # Reapplying additive schema and fixture operations must preserve record identity.
 conn = core.db()
-before = {
-    table: conn.execute(f"SELECT COUNT(*) c FROM {table}").fetchone()["c"]
-    for table in (
-        "tenants", "users", "assessments", "intel_findings", "threats", "scenarios",
-        "capabilities", "evidence", "gaps", "improvements", "cop_coordination_threads",
-        "cop_coordination_messages", "cop_decision_requests", "ops_requests",
-    )
+count_queries = {
+    "tenants": "SELECT COUNT(*) c FROM tenants",
+    "users": "SELECT COUNT(*) c FROM users",
+    "assessments": "SELECT COUNT(*) c FROM assessments",
+    "intel_findings": "SELECT COUNT(*) c FROM intel_findings",
+    "threats": "SELECT COUNT(*) c FROM threats",
+    "scenarios": "SELECT COUNT(*) c FROM scenarios",
+    "capabilities": "SELECT COUNT(*) c FROM capabilities",
+    "evidence": "SELECT COUNT(*) c FROM evidence",
+    "gaps": "SELECT COUNT(*) c FROM gaps",
+    "improvements": "SELECT COUNT(*) c FROM improvements",
+    "cop_coordination_threads": "SELECT COUNT(*) c FROM cop_coordination_threads",
+    "cop_coordination_messages": "SELECT COUNT(*) c FROM cop_coordination_messages",
+    "cop_decision_requests": "SELECT COUNT(*) c FROM cop_decision_requests",
+    "ops_requests": "SELECT COUNT(*) c FROM ops_requests",
 }
+before = {table: conn.execute(query).fetchone()["c"] for table, query in count_queries.items()}
 conn.close()
 register_demo_fixture_contract(core)
 conn = core.db()
@@ -90,7 +99,7 @@ try:
 finally:
     conn.close()
 conn = core.db()
-after = {table: conn.execute(f"SELECT COUNT(*) c FROM {table}").fetchone()["c"] for table in before}
+after = {table: conn.execute(query).fetchone()["c"] for table, query in count_queries.items()}
 assert after == before
 assert conn.execute(
     "SELECT COUNT(*) c FROM schema_migrations WHERE version='3.110-demo-fixture-role-preflight-v3'"
