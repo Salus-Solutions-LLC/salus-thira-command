@@ -10,7 +10,7 @@ active_increment: issue_236_scanned_pdf_page_rendering_design
 last_completed_release: v3.109
 candidate_release: none
 validation_pr: none
-validation_gate_state: all_17_required_families_green_on_v3_109_frozen_commit
+validation_gate_state: all_required_gates_green
 genuine_blockers: none
 next_authorized_increment: issue_236_bounded_scanned_pdf_page_rendering
 ---
