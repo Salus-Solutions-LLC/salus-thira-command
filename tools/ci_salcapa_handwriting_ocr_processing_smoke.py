@@ -92,7 +92,10 @@ with TestClient(core.app) as client:
     assert client.post(f"/api/handwriting-ocr/segments/{segment['id']}/review", headers=OTHER, json={"status": "Confirm Representation", "reason": "Cross-tenant review must fail."}).status_code == 403
     reviewed = client.post(f"/api/handwriting-ocr/segments/{segment['id']}/review", headers=REVIEWER, json={"status": "Correct", "reason": "Compared each visible mark with the fictional source.", "corrected_text": "Meet at 0830", "limitations": "The source does not establish the date."})
     assert reviewed.status_code == 200 and reviewed.json()["review_status"] == "Correct" and reviewed.json()["original_text"] == "Meet at 0?30"
-    triage = client.get("/api/handwriting-ocr/triage", headers=REVIEWER); assert triage.status_code == 200 and triage.json()["items"][0]["review_status"] == "Correct"
+    triage = client.get("/api/handwriting-ocr/triage", headers=REVIEWER)
+    assert triage.status_code == 200
+    reviewed_item = next((item for item in triage.json()["items"] if int(item["id"]) == int(segment["id"])), None)
+    assert reviewed_item is not None and reviewed_item["review_status"] == "Correct"
     checkpoint("reviewed")
     if os.environ.get("SALUS_DB_BACKEND", "sqlite") == "sqlite":
         records = core.collect_tenant_records(core.db(), 1)
