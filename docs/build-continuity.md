@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 19:20 CDT
+last_verified_at: 09 September 2026 19:25 CDT
 current_frozen_release: v3.103
 current_frozen_commit: 459d7532d5eaa6e27c6facd6d39de55a7171837a
 active_development_branch: development/salcapa-platform
@@ -38,7 +38,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Last completed increment: the third bounded Issue #131 slice adds local, request-driven embedded-text and page-structure extraction for PDF materials in an isolated, resource-limited child process. It preserves immutable originals, exact source hashes, processor lineage, page boundaries, limited source-stored metadata, tenant and sensitivity boundaries, search, recovery, and independent representation review. Encrypted, malformed, repair-dependent, oversized, active-content, embedded-file, and type-mismatched PDFs fail closed. The worker does not perform OCR, rendering, forms, signatures, attachments, remote access, script execution, external actions, or semantic layout reconstruction. Derived records remain **Derived — Unverified** and **Awaiting Human Review**; review confirms representation only and cannot establish source truth, evidence, intelligence, findings, decisions, disclosure, cost, or operational authority.
 - Last controlled validation: [PR #233](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/233), closed without merge after all 17 controlled-pull-request workflow families and the separate candidate-push validation passed on the exact frozen commit.
 - Last completed design review: [Safe image metadata and OCR design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-safe-image-ocr-extraction.md), validated by CI, CodeQL, and contextual-intake checks at `23243af9b1be71f060a44fdd1c05d72fbd3e42e5`. The approved first slice is local, request-driven metadata review and English printed-text OCR for single-frame JPEG and PNG sources. Exact GPS coordinates, broader formats and languages, image interpretation, facial or biometric work, object classification, map analysis, image enhancement, scanned-PDF rendering, and external services remain deferred.
-- Current candidate: **v3.104** at `1bb2faf0f0e05e49d350a6d0543386dbf26b5358`. Controlled [PR #234](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/234) is open for validation only and must be closed without merge.
+- Current candidate: **v3.104** at `61854ce4bf0071faa2a3fe4e9a50d7d2546285ff`. Controlled [PR #234](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/234) is open for validation only and must be closed without merge.
 - Genuine blockers: none.
 - Active product increment: validate the v3.104 bounded JPEG/PNG metadata and English printed-text OCR candidate while preserving immutable originals, exact source-to-derived lineage, restricted hidden metadata, explicit recognition uncertainty, tenant and sensitivity boundaries, independent human review, process isolation, and low-cost Azure controls.
 - Next authorized product increment: complete the full v3.104 validation matrix, close PR #234 without merge, and freeze only if every required gate is green. Scanned-PDF rendering, broader image formats and languages, photo/map interpretation, audio, video, entity-suggestion, duplicate-analysis, and transcription workers remain separately gated.
