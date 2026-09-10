@@ -35,6 +35,25 @@ def command(arguments: list[str]) -> None:
     subprocess.run(arguments, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
 
+def component_diagnostic(wav_data: bytes) -> str:
+    """Return bounded technical detail for this fictional CI fixture only."""
+    with tempfile.TemporaryDirectory() as directory:
+        source = Path(directory) / "diagnostic.wav"
+        prefix = Path(directory) / "diagnostic"
+        source.write_bytes(wav_data)
+        result = subprocess.run(
+            [
+                "/opt/whisper/bin/whisper-cli", "-m", "/opt/whisper/models/ggml-tiny.en.bin",
+                "-f", str(source), "-l", "en", "-t", "1", "-bs", "1", "-bo", "1",
+                "-np", "-nt", "-osrt", "-of", str(prefix), "--no-gpu",
+            ],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            timeout=120, check=False,
+        )
+        detail = (result.stderr + result.stdout).decode("utf-8", errors="replace")[-2000:]
+        return f"exit={result.returncode}; output={detail}"
+
+
 def fixtures(directory: Path) -> dict[str, bytes]:
     wav = directory / "briefing.wav"
     mp3 = directory / "briefing.mp3"
@@ -86,7 +105,8 @@ with tempfile.TemporaryDirectory() as fixture_dir, TestClient(core.app) as clien
     for extension, content_type in (("wav", "audio/wav"), ("mp3", "audio/mpeg"), ("mp4", "video/mp4")):
         original = material[extension]
         response = process(client, upload(client, f"briefing.{extension}", content_type, original))
-        assert response.status_code == 200, response.text
+        if response.status_code != 200:
+            raise AssertionError(f"{response.text}; {component_diagnostic(material['wav'])}")
         record = response.json()["derivative"]
         assert record["review_status"] == "Awaiting Human Review"
         assert record["confidence_status"] == "Derived — Unverified"
