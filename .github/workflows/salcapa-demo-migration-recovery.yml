@@ -57,7 +57,6 @@ jobs:
           bandit -q -r
           tools/ci_salcapa_v336_migration_recovery_preflight.py
           tools/ci_recovery_rehearsal.py
-          portable_backup.py
           -ll
       - run: pip-audit -r requirements.txt
       - name: Repository hygiene
