@@ -12,7 +12,8 @@ param restoredPostgresHost string
 var stem = 'salcapa-${environmentName}-${uniqueSuffix}'
 var registryName = replace('${stem}acr', '-', '')
 var runtimeIdentityName = '${stem}-identity'
-var jobName = '${stem}-v310-copy-check'
+// Azure Container Apps Job names are limited to 32 characters.
+var jobName = '${stem}-v310-job'
 
 resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
   name: registryName
@@ -110,4 +111,3 @@ resource acceptanceJob 'Microsoft.App/jobs@2025-01-01' = {
 output acceptanceJobName string = acceptanceJob.name
 output runtimeIdentityName string = runtimeIdentity.name
 output runtimeIdentityObjectId string = runtimeIdentity.properties.principalId
-

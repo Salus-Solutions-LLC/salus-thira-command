@@ -32,6 +32,7 @@ for value in (
     "sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46",
     "accept_live_copy_migration",
     "salcapa-dev-b48224-v310-copy",
+    'JOB_NAME="salcapa-dev-b48224-v310-job"',
     "restore_lag_minutes == 15",
     "trap cleanup EXIT",
     "az postgres flexible-server restore",
@@ -44,6 +45,7 @@ for value in (
 
 for value in (
     "temporary-live-copy-migration-acceptance",
+    "var jobName = '${stem}-v310-job'",
     "image: imageDigest",
     "runtimeIdentity.id",
     "SALUS_POSTGRES_HOST",
@@ -89,8 +91,8 @@ if ACTIVATION.exists():
         "source_server": "salcapa-dev-b48224-pg",
         "temporary_restore_server": "salcapa-dev-b48224-v310-copy",
         "restore_lag_minutes": 15,
-        "acceptance_revision": 1,
-        "activation_key": "salcapa-v3.110-live-copy-20260910-r1",
+        "acceptance_revision": 2,
+        "activation_key": "salcapa-v3.110-live-copy-20260910-r2",
     }
     if record != expected:
         raise SystemExit("Live-copy migration activation does not match the exact governed record")

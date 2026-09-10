@@ -126,7 +126,7 @@ jobs:
           SOURCE_SERVER="$(jq -r '.source_server' "$ACTIVATION_FILE")"
           RESTORE_SERVER="$(jq -r '.temporary_restore_server' "$ACTIVATION_FILE")"
           RESTORE_LAG_MINUTES="$(jq -r '.restore_lag_minutes' "$ACTIVATION_FILE")"
-          JOB_NAME="salcapa-dev-b48224-v310-copy-check"
+          JOB_NAME="salcapa-dev-b48224-v310-job"
           CLEANUP_REQUIRED=0
 
           cleanup() {
