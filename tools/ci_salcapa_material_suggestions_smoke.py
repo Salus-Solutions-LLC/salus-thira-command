@@ -26,17 +26,17 @@ from salcapa_material_suggestions import register_salcapa_material_suggestions
 
 
 PROCESSOR = {
-    "X-Salus-Tenant": "1", "X-Salus-Role": "Assessment Director",
+    "X-Salus-Tenant": "6", "X-Salus-Role": "Assessment Director",
     "X-Salus-User": "Processing Lead",
 }
 REPRESENTATION_REVIEWER = {**PROCESSOR, "X-Salus-User": "Representation Reviewer"}
 SUGGESTION_REQUESTER = {**PROCESSOR, "X-Salus-User": "Suggestion Requester"}
 SUGGESTION_REVIEWER = {**PROCESSOR, "X-Salus-User": "Suggestion Reviewer"}
 MEMBER = {
-    "X-Salus-Tenant": "1", "X-Salus-Role": "Contributor",
+    "X-Salus-Tenant": "6", "X-Salus-Role": "Contributor",
     "X-Salus-User": "Protected Member Contributor",
 }
-OTHER_TENANT = {**PROCESSOR, "X-Salus-Tenant": "2", "X-Salus-User": "Other Tenant Lead"}
+OTHER_TENANT = {**PROCESSOR, "X-Salus-Tenant": "7", "X-Salus-User": "Other Tenant Lead"}
 
 
 def upload_process_review(client: TestClient, name: str, content: bytes) -> tuple[int, int]:
@@ -84,6 +84,22 @@ def main() -> None:
     register_salcapa_material_processing(core.app, core.__dict__)
     register_salcapa_material_suggestions(core.app, core.__dict__)
     client = TestClient(core.app)
+    conn = core.db()
+    conn.execute(
+        "INSERT INTO tenants(id,name,slug,status,created_at) VALUES(?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
+        (6, "Source Review Test Tenant", "source-review-test", "Active", core.now()),
+    )
+    conn.execute(
+        "INSERT INTO tenants(id,name,slug,status,created_at) VALUES(?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
+        (7, "Other Source Review Test Tenant", "source-review-other", "Active", core.now()),
+    )
+    if not conn.execute("SELECT id FROM assessments WHERE tenant_id=? LIMIT 1", (6,)).fetchone():
+        conn.execute(
+            "INSERT INTO assessments(name,organization,tenant_id,created_at,updated_at) VALUES(?,?,?,?,?)",
+            ("Fictional source review assessment", "Demonstration organization", 6, core.now(), core.now()),
+        )
+    conn.commit()
+    conn.close()
 
     person = client.post(
         "/api/material-suggestions/references", headers=PROCESSOR,
@@ -221,16 +237,17 @@ def main() -> None:
         "SELECT COUNT(*) c FROM material_suggestion_events WHERE record_type='Suggestion' AND record_id=?",
         (suggestion_id,),
     ).fetchone()["c"] == 1
-    portable = core.collect_tenant_records(conn, 1)
+    portable = core.collect_tenant_records(conn, 6)
     for table in (
         "material_reference_terms", "material_suggestion_jobs", "material_suggestions",
         "material_duplicate_suggestions", "material_suggestion_events", "proposed_governed_links",
     ):
         assert table in portable and portable[table], table
-    assert core.validate_records(portable, 1) == []
+    validation_errors = core.validate_records(portable, 6)
+    assert validation_errors == [], validation_errors
     tampered = json.loads(json.dumps(portable))
-    tampered["material_suggestions"][0]["tenant_id"] = 2
-    assert any("crosses the tenant boundary" in item for item in core.validate_records(tampered, 1))
+    tampered["material_suggestions"][0]["tenant_id"] = 7
+    assert any("crosses the tenant boundary" in item for item in core.validate_records(tampered, 6))
     conn.close()
 
     administrator = {**PROCESSOR, "X-Salus-Role": "System Administrator", "X-Salus-User": "Recovery Custodian"}
