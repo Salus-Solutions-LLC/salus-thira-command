@@ -1,5 +1,6 @@
 /* Restricted location metadata and source-region visual review. */
 let salcapaVisualReviewData={location_metadata:[],observations:[]};
+let salcapaVisualObjectData={items:[],guidance:''};
 
 function visualLocationRows(items){
   return table(['Source','Location metadata','Review state','Action'],items.map(item=>[
@@ -24,12 +25,58 @@ function visualObservationRows(items){
 }
 
 async function loadVisualGeospatialReview(){
-  salcapaVisualReviewData=await api('/api/visual-geospatial/triage');
+  [salcapaVisualReviewData,salcapaVisualObjectData]=await Promise.all([api('/api/visual-geospatial/triage'),api('/api/visual-object-analysis/triage')]);
+  const processorStatus=await api('/api/visual-object-analysis/status');
   const anchor=$('#material-review-detail');
   if(!anchor)return;
   const locationPending=salcapaVisualReviewData.location_metadata.filter(item=>item.review_status==='Awaiting Human Review').length;
   const observationPending=salcapaVisualReviewData.observations.filter(item=>item.review_status==='Awaiting Human Review').length;
-  anchor.insertAdjacentHTML('beforebegin',`<section class="card visual-review-aids"><div class="section-title"><div><span>Restricted source metadata</span><h2>Location Metadata Review</h2><p>Review source-stored location facts without treating them as proof of where a depicted person, incident, or event occurred.</p></div><strong>${locationPending} awaiting review</strong></div><div class="notice"><strong>Exact location remains restricted.</strong> Coordinates appear only after a purpose is recorded and authorization is checked. They are not placed in this queue, ordinary search, notifications, or logs.</div>${visualLocationRows(salcapaVisualReviewData.location_metadata)}</section><section class="card visual-review-aids"><div class="section-title"><div><span>Source-grounded review</span><h2>Visible Conditions</h2><p>${esc(salcapaVisualReviewData.guidance)}</p></div><strong>${observationPending} awaiting review</strong></div>${visualObservationRows(salcapaVisualReviewData.observations)}</section><div id="visual-restricted-detail" aria-live="polite"></div>`);
+  const objectPending=salcapaVisualObjectData.items.filter(item=>item.review_status==='Awaiting Human Review').length;
+  anchor.insertAdjacentHTML('beforebegin',`<section class="card visual-review-aids"><div class="section-title"><div><span>Restricted source metadata</span><h2>Location Metadata Review</h2><p>Review source-stored location facts without treating them as proof of where a depicted person, incident, or event occurred.</p></div><strong>${locationPending} awaiting review</strong></div><div class="notice"><strong>Exact location remains restricted.</strong> Coordinates appear only after a purpose is recorded and authorization is checked. They are not placed in this queue, ordinary search, notifications, or logs.</div>${visualLocationRows(salcapaVisualReviewData.location_metadata)}</section><section class="card visual-review-aids"><div class="section-title"><div><span>Source-grounded review</span><h2>Visible Conditions</h2><p>${esc(salcapaVisualReviewData.guidance)}</p></div><strong>${observationPending} awaiting review</strong></div>${visualObservationRows(salcapaVisualReviewData.observations)}</section><section class="card visual-review-aids"><div class="section-title"><div><span>Technology-supported review aid</span><h2>Processing Suggestions</h2><p>${esc(salcapaVisualObjectData.guidance)}</p></div><strong>${objectPending} awaiting review</strong></div><div class="notice"><strong>${processorStatus.available?'Local processor available':'Manual review remains available'}.</strong> ${esc(processorStatus.guidance)}</div>${visualObjectRows(salcapaVisualObjectData.items)}</section><div id="visual-restricted-detail" aria-live="polite"></div>`);
+}
+
+function visualObjectRows(items){
+  return table(['Source region','Processing suggestion','Review state','Action'],items.map(item=>[
+    `<strong>${esc(item.source_title)}</strong><br><span class="subtle">x ${Number(item.region_x)}, y ${Number(item.region_y)}, ${Number(item.region_width)} × ${Number(item.region_height)} pixels</span>`,
+    `<strong>${esc(item.display_label)}</strong><details><summary>Purpose, alternatives, and limits</summary><p>${esc(item.purpose)}</p><p>Alternatives: ${esc((item.alternatives||[]).join(', ')||'None returned')}</p><p>${esc(item.limitations||'No processor-specific limitation was returned; source and context review remain necessary.')}</p><p>${esc(item.authority_note)}</p></details>`,
+    `<strong>${esc(item.review_status)}</strong><br><span class="subtle">${esc(item.record_type)}</span>`,
+    item.review_status==='Awaiting Human Review'&&(accessState?.permissions||[]).includes('decide')?`<button class="btn secondary" type="button" onclick="reviewVisualObjectSuggestion(${Number(item.id)})">Compare with original</button>`:esc(item.review_status)
+  ]));
+}
+
+async function prepareVisibleConditionSuggestions(materialId){
+  const purpose=prompt('Operational or investigative purpose for identifying visible conditions:');
+  if(!purpose)return;
+  const region=prompt('Optional source region as x,y,width,height in original pixels. Leave blank for the full image:','');
+  const body={purpose};
+  if(region&&region.trim()){
+    const values=region.split(',').map(value=>Number(value.trim()));
+    if(values.length!==4||values.some(value=>!Number.isInteger(value)||value<0)||values[2]<1||values[3]<1){alert('Enter x,y,width,height as four whole numbers.');return;}
+    [body.region_x,body.region_y,body.region_width,body.region_height]=values;
+  }
+  await api(`/api/materials/${Number(materialId)}/visual-object-analysis-jobs`,{method:'POST',body:JSON.stringify(body)});
+  await salcapaMaterialReview();
+}
+
+async function reviewVisualObjectSuggestion(id){
+  const status=prompt('Review outcome: Confirm Representation, Correct, Reject, or Needs More Information','Confirm Representation');
+  if(!status)return;
+  const reason=prompt('Review basis. Record what you compared with the original and what remains uncertain:');
+  if(!reason)return;
+  const body={status,reason};
+  if(status==='Correct'){
+    body.corrected_label=prompt('Corrected visible label, or leave blank if only the region changes:','')||'';
+    const region=prompt('Corrected source region as x,y,width,height, or leave blank if only the label changes:','');
+    if(region&&region.trim()){
+      const values=region.split(',').map(value=>Number(value.trim()));
+      if(values.length!==4||values.some(value=>!Number.isInteger(value)||value<0)||values[2]<1||values[3]<1){alert('Enter x,y,width,height as four whole numbers.');return;}
+      [body.corrected_region_x,body.corrected_region_y,body.corrected_region_width,body.corrected_region_height]=values;
+    }
+    if(!body.corrected_label&&body.corrected_region_x===undefined){alert('A correction needs a corrected label or source region.');return;}
+  }
+  body.limitations=prompt('Additional limitations or context that should remain with this review:','')||'';
+  await api(`/api/visual-object-analysis/suggestions/${Number(id)}/review`,{method:'POST',body:JSON.stringify(body)});
+  await salcapaMaterialReview();
 }
 
 async function viewRestrictedLocation(id){
@@ -126,5 +173,5 @@ openMaterialDerivative=async function(id){
   if(isProtectedMember())return;
   const item=await api(`/api/material-processing/derivatives/${Number(id)}`);
   if(!/\.(?:jpe?g|png)$/i.test(item.original_name||''))return;
-  $('.material-review-detail').insertAdjacentHTML('beforeend',`<div class="form-actions"><button class="btn secondary" type="button" onclick="prepareLocationMetadata(${Number(item.source_material_id)})">Review location metadata</button><button class="btn secondary" type="button" onclick="recordVisibleObservation(${Number(item.source_material_id)})">Identify visible condition</button></div><p class="subtle">These actions prepare governed review aids. They do not establish a location, finding, assessment, decision, disclosure, or operational authority.</p>`);
+  $('.material-review-detail').insertAdjacentHTML('beforeend',`<div class="form-actions"><button class="btn secondary" type="button" onclick="prepareLocationMetadata(${Number(item.source_material_id)})">Review location metadata</button><button class="btn secondary" type="button" onclick="recordVisibleObservation(${Number(item.source_material_id)})">Record visible condition</button><button class="btn secondary" type="button" onclick="prepareVisibleConditionSuggestions(${Number(item.source_material_id)})">Identify visible conditions</button></div><p class="subtle">These actions prepare governed review aids. Processing suggestions remain derived and unverified until a different authorized person compares them with the original. No action establishes a location, finding, assessment, decision, disclosure, or operational authority.</p>`);
 };

@@ -22,6 +22,7 @@ from salcapa_contextual_intake import register_salcapa_contextual_intake
 from salcapa_audio_video_processing import register_salcapa_audio_video_processing
 from salcapa_material_suggestions import register_salcapa_material_suggestions
 from salcapa_visual_geospatial import register_salcapa_visual_geospatial
+from salcapa_visual_object_processing import register_salcapa_visual_object_processing
 from mission_map import register_mission_map
 try:
     from salops_plan_assembly import register_salops_plan_assembly
@@ -53,9 +54,10 @@ register_salcapa_contextual_intake(core.app, core.__dict__)
 register_salcapa_audio_video_processing(core.app, core.__dict__)
 register_salcapa_material_suggestions(core.app, core.__dict__)
 register_salcapa_visual_geospatial(core.app, core.__dict__)
+register_salcapa_visual_object_processing(core.app, core.__dict__)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.107"
+SALCAPA_RELEASE_VERSION = "3.108"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 
