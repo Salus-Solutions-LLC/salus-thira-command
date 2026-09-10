@@ -6,9 +6,12 @@ on:
     paths:
       - 'docs/build-continuity.md'
       - 'docs/demo-deployment-continuity.md'
+      - 'docs/salcapa-fictional-demonstration-fixtures.md'
       - 'salcapa_runtime.py'
+      - 'salcapa_demo_fixtures.py'
       - 'tools/ci_build_continuity_smoke.py'
       - 'tools/ci_demo_deployment_continuity_smoke.py'
+      - 'tools/ci_salcapa_demo_fixtures_smoke.py'
       - '.github/workflows/build-continuity.yml'
   pull_request:
     branches: [main]
@@ -29,11 +32,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile continuity validation
-        run: python -m py_compile tools/ci_build_continuity_smoke.py tools/ci_demo_deployment_continuity_smoke.py
+        run: python -m py_compile salcapa_demo_fixtures.py tools/ci_build_continuity_smoke.py tools/ci_demo_deployment_continuity_smoke.py tools/ci_salcapa_demo_fixtures_smoke.py
       - name: Verify governed continuity record
         run: |
           python tools/ci_build_continuity_smoke.py
           python tools/ci_demo_deployment_continuity_smoke.py
+          python tools/ci_salcapa_demo_fixtures_smoke.py
       - name: Repository hygiene
         run: |
           git diff --check
