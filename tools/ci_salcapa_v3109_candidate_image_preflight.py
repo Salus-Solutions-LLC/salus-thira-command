@@ -20,6 +20,7 @@ CONTINUITY = ROOT / "docs" / "demo-deployment-continuity.md"
 V3109_COMMIT = "361a38300faddd7e9a93153c0629739acef870a0"
 V336_COMMIT = "63d513605f908d3308bb5dd1bbdbf1061878452b"
 V336_DIGEST = "sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46"
+V3110_COMMIT = "935f0b7bea72375adc936f7904f4f74c2eb99643"
 PINNED_BLOBS = {
     "Dockerfile": "15468459038f2ba6786d4e7693a76fda758c3c7d",
     "salcapa_runtime.py": "9f568d750613adaeebdfa22575c533586c8e3b53",
@@ -97,8 +98,8 @@ continuity = front_matter(CONTINUITY)
 assert continuity["deployed_release"] == "v3.36"
 assert continuity["deployed_commit"] == V336_COMMIT
 assert continuity["image_digest"] == V336_DIGEST
-assert continuity["current_stable_release"] == "v3.109"
-assert continuity["current_stable_commit"] == V3109_COMMIT
+assert continuity["current_stable_release"] == "v3.110"
+assert continuity["current_stable_commit"] == V3110_COMMIT
 assert continuity["promotion_readiness"] == "not_ready"
 assert continuity["genuine_blocker"] != "none"
 

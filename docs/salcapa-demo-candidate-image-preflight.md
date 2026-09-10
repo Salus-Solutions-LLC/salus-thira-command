@@ -31,3 +31,5 @@ Prepare and validate the successor demonstration release candidate containing th
 ## Validation result
 
 [Controlled validation PR #262](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/262) passed all 20 required workflow families on exact head `c886134cce96eb84f6e4c6896dd9ea5d6c46ab6a` and was closed without merge. The accepted Azure v3.36 activation records remained unchanged.
+
+The successor development candidate then passed all 20 required workflow families on [controlled checkpoint PR #263](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/263) at exact commit `935f0b7bea72375adc936f7904f4f74c2eb99643`. That pull request was closed without merge, the same exact commit passed all 20 development-branch workflow families, and it was frozen as `release/v3.110`. No Azure resource or activation record was changed by the freeze.

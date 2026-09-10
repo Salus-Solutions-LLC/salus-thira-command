@@ -218,7 +218,8 @@ assert cross_tenant.status_code == 403 and first_tenant != other_tenant
 # Repository evidence records outstanding environment-bound gates; promotion stays closed.
 deployment = front_matter(ROOT / "docs" / "demo-deployment-continuity.md")
 assert deployment["deployed_release"] == "v3.36"
-assert deployment["current_stable_release"] == "v3.109"
+assert deployment["current_stable_release"] == "v3.110"
+assert deployment["current_stable_commit"] == "935f0b7bea72375adc936f7904f4f74c2eb99643"
 assert deployment["promotion_readiness"] == "not_ready"
 assert deployment["critical_journey_acceptance"] == "not_verified"
 assert deployment["genuine_blocker"] != "none"

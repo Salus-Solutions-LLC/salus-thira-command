@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 10 September 2026 14:46 CDT
+last_verified_at: 10 September 2026 15:01 CDT
 environment: azure_development_demonstration
 deployed_release: v3.36
 deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
@@ -9,14 +9,14 @@ image_digest: sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a
 deployed_at: 06 September 2026 13:18 CDT
 deployment_workflow_run: 34051066468
 deployment_acceptance: live_runtime_readiness_accepted
-current_stable_release: v3.109
-current_stable_commit: 361a38300faddd7e9a93153c0629739acef870a0
+current_stable_release: v3.110
+current_stable_commit: 935f0b7bea72375adc936f7904f4f74c2eb99643
 promotion_candidate: v3.110
 promotion_readiness: not_ready
 fictional_member_seed_state: candidate_image_boundary_verified_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: live_v336_database_successor_image_entra_reporting_recovery_and_rollback_acceptance_missing
+genuine_blocker: live_v336_database_v310_image_entra_reporting_recovery_and_rollback_acceptance_missing
 ---
 
 # SalCAPA development demonstration continuity
@@ -32,11 +32,11 @@ This non-sensitive engineering record identifies the last verifiable Azure devel
 
 ## Stable-release comparison
 
-The current stable product is **v3.109** at [`361a38300faddd7e9a93153c0629739acef870a0`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/361a38300faddd7e9a93153c0629739acef870a0). The demonstration materially lags the stable product and cannot yet represent its current user-visible capabilities.
+The current stable product is **v3.110** at [`935f0b7bea72375adc936f7904f4f74c2eb99643`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/935f0b7bea72375adc936f7904f4f74c2eb99643). The demonstration materially lags the stable product and cannot yet represent its current user-visible capabilities.
 
 The deterministic fixture foundation, bounded cross-functional records, and repository role/tenant preflight are verified. An exact-source rehearsal now also checks out frozen v3.36, preserves its governed baseline through current additive migrations, verifies an immutable report snapshot, adds all three fictional environments, and restores and rolls back one tenant without changing the others. The rehearsal passed on SQLite, PostgreSQL 16, and the production container. It did not contact Azure and does not represent human review, authorization, approval, release, or live deployment. The fixtures have not been applied to Azure.
 
-The exact v3.109 source and image-packaging boundary is also verified. Frozen v3.109 does not contain the deterministic fixture capability, so that image is a stable packaging reference rather than the complete Issue #124 promotion candidate. The next candidate is the v3.110 successor development line containing the verified fixture and preflight work. It is not frozen, published, deployed, or accepted. Migration of an independently restored copy of the live accepted-v3.36 database, Microsoft Entra identity and tenant isolation, an immutable successor image, live reporting, Azure recovery, and Azure rollback acceptance remain required. The current deployment workflows remain bound to the v3.36 activation contract. The last accepted v3.36 deployment remains unchanged while those gaps are closed.
+The exact v3.109 source and image-packaging boundary is also verified. Frozen v3.109 does not contain the deterministic fixture capability, so that image remains a stable packaging reference rather than the complete Issue #124 promotion candidate. The successor work is now frozen as v3.110 after all 20 required workflow families passed on the exact release commit. No v3.110 image has been published or deployed. Migration of an independently restored copy of the live accepted-v3.36 database, Microsoft Entra identity and tenant isolation, an immutable v3.110 image, live reporting, Azure recovery, and Azure rollback acceptance remain required. The current deployment workflows remain bound to the v3.36 activation contract. The last accepted v3.36 deployment remains unchanged while those gaps are closed.
 
 ## Promotion gates
 
@@ -60,4 +60,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Prepare and validate the v3.110 successor release candidate under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124). Freeze it only after every required gate is green, then validate an independently restored copy of the accepted v3.36 database and the immutable successor image without weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.
+Prepare immutable-image publication from exact frozen v3.110 under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), then validate an independently restored copy of the accepted v3.36 database without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.
