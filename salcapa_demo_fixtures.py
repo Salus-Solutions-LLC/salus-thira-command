@@ -18,7 +18,7 @@ from typing import Any, Callable
 from database import reset_identity_sequences, table_columns
 
 
-FIXTURE_VERSION = "issue-124-foundation-v1"
+FIXTURE_VERSION = "issue-124-cross-functional-v2"
 FIXTURE_AUTHORITY = "ISSUE-124"
 DEMONSTRATION_ACKNOWLEDGEMENT = "FICTIONAL DEMONSTRATION DATA ONLY"
 RESEED_CONFIRMATION = "DELETE AND REBUILD FICTIONAL DEMONSTRATION ENVIRONMENTS"
@@ -40,6 +40,24 @@ class Environment:
     name: str
     sector: str
     mission: str
+
+
+@dataclass(frozen=True)
+class Journey:
+    indicator: str
+    source_locator: str
+    threat: str
+    threat_category: str
+    scenario: str
+    initiating_event: str
+    capability: str
+    required_outcome: str
+    required_standard: float
+    current_performance: float
+    gap: str
+    improvement: str
+    coordination_subject: str
+    operations_request: str
 
 
 PERSONAS = (
@@ -77,6 +95,57 @@ ENVIRONMENTS = (
     ),
 )
 
+JOURNEYS = {
+    "aster-ridge-airport": Journey(
+        "Regional weather and utility advisory — fictional demonstration",
+        "demo://aster-ridge/regional-advisory",
+        "Severe weather and extended utility disruption — fictional demonstration",
+        "Natural and infrastructure",
+        "Terminal operations during a 72-hour regional outage — fictional demonstration",
+        "A severe storm disrupts commercial power, telecommunications, road access, and fuel resupply.",
+        "Airport continuity coordination — fictional demonstration",
+        "Maintain life-safety communications and prioritized airport operations throughout the disruption.",
+        95,
+        68,
+        "Evidence is needed to demonstrate alternate communications coverage and fuel-resupply endurance.",
+        "Validate alternate communications and fuel-resupply coordination",
+        "Review airport continuity priorities and information needs — fictional demonstration",
+        "Prepare an airport continuity coordination exercise draft",
+    ),
+    "cedar-vale-energy": Journey(
+        "Grid reliability and field-access notice — fictional demonstration",
+        "demo://cedar-vale/grid-field-notice",
+        "Concurrent grid instability and field-access constraints — fictional demonstration",
+        "Infrastructure and operational",
+        "Control-center and field coordination during regional disruption — fictional demonstration",
+        "Severe weather produces grid instability while road closures delay access to critical field assets.",
+        "Control-center and field-team continuity — fictional demonstration",
+        "Sustain safe control-center operations and coordinate priority field access under degraded conditions.",
+        90,
+        61,
+        "Evidence is needed for alternate communications, field-access priorities, and restoration dependencies.",
+        "Validate alternate field coordination and restoration priorities",
+        "Review energy continuity dependencies and decision needs — fictional demonstration",
+        "Prepare a control-center and field coordination exercise draft",
+    ),
+    "northstar-applied-technologies": Journey(
+        "Supplier and telecommunications disruption notice — fictional demonstration",
+        "demo://northstar/supplier-telecom-notice",
+        "Critical supplier and telecommunications interruption — fictional demonstration",
+        "Supply chain and infrastructure",
+        "Protected operations during a supplier and communications interruption — fictional demonstration",
+        "A regional telecommunications failure coincides with delayed delivery of a critical production input.",
+        "Protected production continuity — fictional demonstration",
+        "Protect people and sensitive operations while sustaining the highest-priority production capabilities.",
+        92,
+        64,
+        "Evidence is needed for alternate supplier, communications, and production-priority arrangements.",
+        "Validate alternate supplier and communications arrangements",
+        "Review production continuity assumptions and decisions — fictional demonstration",
+        "Prepare a protected production continuity exercise draft",
+    ),
+}
+
 PILLARS = (
     ("readiness", "Readiness and Preparedness", "Risk, preparedness, planning, training, exercise, and readiness services.", 10),
     ("protective", "Protective Operations", "Protective intelligence, executive protection, security, and investigation services.", 20),
@@ -92,6 +161,7 @@ def fixture_manifest() -> dict[str, Any]:
         "label": DEMONSTRATION_ACKNOWLEDGEMENT,
         "environments": [environment.__dict__ for environment in ENVIRONMENTS],
         "personas": [persona.__dict__ for persona in PERSONAS],
+        "journeys": {key: journey.__dict__ for key, journey in JOURNEYS.items()},
         "baseline_record_state": "Draft",
         "approval_state": "No approval, release, or decision is represented by these fixtures.",
     }
@@ -131,7 +201,7 @@ def ensure_demo_fixture_schema(conn: Any, timestamp: str) -> None:
     )
     conn.execute(
         "INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING",
-        ("3.110-demo-fixture-foundation", timestamp),
+        ("3.110-demo-fixture-cross-functional-v2", timestamp),
     )
 
 
@@ -249,6 +319,122 @@ def _user(conn: Any, tenant_id: int, environment: Environment, persona: Persona,
     return int(cur.lastrowid)
 
 
+def _upsert_named(conn: Any, select_sql: str, select_params: tuple[Any, ...], insert_sql: str, insert_params: tuple[Any, ...]) -> int:
+    existing = conn.execute(select_sql, select_params).fetchone()
+    if existing:
+        return int(existing["id"])
+    return int(conn.execute(insert_sql, insert_params).lastrowid)
+
+
+def _journey_records(conn: Any, tenant_id: int, assessment_id: int, environment: Environment, timestamp: str) -> dict[str, int]:
+    journey = JOURNEYS[environment.key]
+    created_by = "Fictional demonstration fixture — no human review represented"
+    finding_id = _upsert_named(
+        conn,
+        "SELECT id FROM intel_findings WHERE tenant_id=? AND assessment_id=? AND title=?",
+        (tenant_id, assessment_id, journey.indicator),
+        """INSERT INTO intel_findings(tenant_id,assessment_id,title,details,source,source_locator,relevance,credibility,validation_status,operational_significance,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (tenant_id, assessment_id, journey.indicator, journey.initiating_event, "Fictional demonstration source", journey.source_locator, "Pending", "Unrated", "Unvalidated", "Awaiting analyst review and qualification.", "Collected", created_by, timestamp, timestamp),
+    )
+    threat_id = _upsert_named(
+        conn,
+        "SELECT id FROM threats WHERE assessment_id=? AND name=?",
+        (assessment_id, journey.threat),
+        """INSERT INTO threats(assessment_id,name,category,subcategory,description,likelihood,vulnerability,consequence,confidence,trend,inclusion_status,basis,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (assessment_id, journey.threat, journey.threat_category, "Fictional demonstration", journey.initiating_event, 3, 3, 4, "Low", "Unknown", "Included - Scenario Required", "Fictional scenario basis; awaiting human review and supporting evidence.", "Active", timestamp, timestamp),
+    )
+    scenario_id = _upsert_named(
+        conn,
+        "SELECT id FROM scenarios WHERE assessment_id=? AND title=?",
+        (assessment_id, journey.scenario),
+        """INSERT INTO scenarios(assessment_id,threat_id,title,narrative,initiating_event,location,duration,operating_conditions,dependencies,decision_points,assumptions,uncertainties,life_safety,mission,operations,financial,legal_regulatory,reputation,recovery,evidence_confidence,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (assessment_id, threat_id, journey.scenario, journey.initiating_event, journey.initiating_event, "Fictional Protected Member operating area", "72 hours", "Degraded power, communications, transportation, and supplier conditions.", "People; communications; power; transportation; suppliers; public-safety availability.", "Authorized people determine priorities, operating changes, resource commitments, and public communications.", "Fictional planning assumptions only; none are established as policy or authority.", "Duration, geographic extent, resource availability, restoration sequence, and cascading effects remain unknown.", 4, 4, 4, 3, 3, 3, 4, "Low", timestamp, timestamp),
+    )
+    capability_id = _upsert_named(
+        conn,
+        "SELECT id FROM capabilities WHERE assessment_id=? AND name=?",
+        (assessment_id, journey.capability),
+        """INSERT INTO capabilities(assessment_id,scenario_id,name,mission_area,capability_family,required_outcome,operating_conditions,performance_metric,measurement_type,measurement_unit,comparator,required_standard,current_performance,responsible_function,owner,dependencies,evidence_required,confidence,last_validated,next_validation,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (assessment_id, scenario_id, journey.capability, "Protection, response, and recovery", "Continuity and coordination", journey.required_outcome, "Regional disruption with constrained access and communications.", "Percent of priority functions supported within the agreed operating period", "Percentage", "%", ">=", journey.required_standard, journey.current_performance, "Protected Member leadership with Salus support", "Awaiting assignment", "Current authorities, trained personnel, alternate communications, power, transport, and suppliers.", "Plans, rosters, exercise observations, operating records, and source documentation.", "Low", "", "", timestamp, timestamp),
+    )
+    evidence_title = f"{journey.capability} evidence collection — fictional demonstration"
+    evidence_id = _upsert_named(
+        conn,
+        "SELECT id FROM evidence WHERE assessment_id=? AND title=?",
+        (assessment_id, evidence_title),
+        """INSERT INTO evidence(assessment_id,capability_id,scenario_id,title,evidence_type,source,owner,evidence_date,reliability,verification_status,sensitivity,valid_until,lifecycle_status,stale_reason,stale_at,last_lifecycle_review_at,last_lifecycle_review_by,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (assessment_id, capability_id, scenario_id, evidence_title, "Demonstration reference", "Fictional demonstration fixture", "Awaiting assignment", "", "Unrated", "Pending", "Standard", "", "Current", "", "", "", "", "Evidence Needed. No source has been reviewed or verified.", timestamp, timestamp),
+    )
+    gap_id = _upsert_named(
+        conn,
+        "SELECT id FROM gaps WHERE assessment_id=? AND description=?",
+        (assessment_id, journey.gap),
+        """INSERT INTO gaps(assessment_id,capability_id,gap_type,description,severity,root_cause,owner,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+        (assessment_id, capability_id, "Evidence and validation", journey.gap, "Moderate", "The fictional demonstration has not yet supplied records or field validation.", "Awaiting assignment", "Open", timestamp, timestamp),
+    )
+    improvement_id = _upsert_named(
+        conn,
+        "SELECT id FROM improvements WHERE assessment_id=? AND title=?",
+        (assessment_id, journey.improvement),
+        """INSERT INTO improvements(assessment_id,gap_id,title,description,initial_cost,recurring_cost,implementation_days,feasibility,consequence_reduction,mission_benefit,sustainability,dependencies,owner,status,validation_status,validation_evidence_id,validation_outcome,validated_effectiveness_percent,validated_by,validated_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (assessment_id, gap_id, journey.improvement, "Proposed demonstration improvement. Authorized people must review scope, priority, resources, and authority before action.", 0, 0, 0, 3, 3, 4, 3, "Protected Member input, source records, Salus review, and exercise design.", "Awaiting assignment", "Proposed", "Pending", None, "Awaiting validation", 0, "", "", timestamp, timestamp),
+    )
+    thread_id = _upsert_named(
+        conn,
+        "SELECT id FROM cop_coordination_threads WHERE tenant_id=? AND assessment_id=? AND subject=?",
+        (tenant_id, assessment_id, journey.coordination_subject),
+        """INSERT INTO cop_coordination_threads(tenant_id,assessment_id,subject,status,assigned_contact,assigned_contact_summary,created_by,created_by_role,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+        (tenant_id, assessment_id, journey.coordination_subject, "Open", "Salus Operations Coordinator", "Fictional demonstration contact", created_by, "Program Owner", timestamp, timestamp),
+    )
+    message_body = "This fictional coordination thread collects source records, contradictions, information gaps, authority questions, and recommended next steps. No decision or operational authorization has been recorded."
+    message_id = _upsert_named(
+        conn,
+        "SELECT id FROM cop_coordination_messages WHERE tenant_id=? AND thread_id=? AND body=?",
+        (tenant_id, thread_id, message_body),
+        """INSERT INTO cop_coordination_messages(tenant_id,thread_id,audience,body,author,author_role,created_at) VALUES(?,?,?,?,?,?,?)""",
+        (tenant_id, thread_id, "Shared", message_body, created_by, "Program Owner", timestamp),
+    )
+    decision_title = f"Review proposed priority: {journey.improvement} — fictional demonstration"
+    decision_id = _upsert_named(
+        conn,
+        "SELECT id FROM cop_decision_requests WHERE tenant_id=? AND source_type='improvement' AND source_id=? AND action_type='Approve Recommendation'",
+        (tenant_id, improvement_id),
+        """INSERT INTO cop_decision_requests(tenant_id,assessment_id,source_type,source_id,action_type,title,member_summary,allowed_choices_json,due_at,status,requested_by,requested_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (tenant_id, assessment_id, "improvement", improvement_id, "Approve Recommendation", decision_title, "Review the evidence basis, assumptions, dependencies, uncertainty, proposed scope, and next validation step.", json.dumps(["Approve", "Approve with Conditions", "Decline", "Defer"]), "", "Awaiting Decision", created_by, timestamp, timestamp),
+    )
+    operations_id = _upsert_named(
+        conn,
+        "SELECT id FROM ops_requests WHERE tenant_id=? AND source_type='Fictional Demonstration' AND source_id=?",
+        (tenant_id, assessment_id),
+        """INSERT INTO ops_requests(tenant_id,assessment_id,source_type,source_id,title,description,priority,status,requested_by,requested_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+        (tenant_id, assessment_id, "Fictional Demonstration", assessment_id, journey.operations_request, "Requested planning support only. Scope, legal and policy authority, resources, scheduling, and release remain subject to authorized human review.", "Routine", "Requested", created_by, timestamp, timestamp),
+    )
+    for record_type, record_id, summary in (
+        ("coordination_thread", thread_id, "Fictional demonstration coordination thread prepared; no decision represented."),
+        ("decision_request", decision_id, "Fictional demonstration decision request prepared; awaiting authorized review."),
+    ):
+        if not conn.execute("SELECT id FROM cop_events WHERE tenant_id=? AND record_type=? AND record_id=? AND version_no=1", (tenant_id, record_type, record_id)).fetchone():
+            table = "cop_coordination_threads" if record_type == "coordination_thread" else "cop_decision_requests"
+            snapshot = dict(conn.execute(f"SELECT * FROM {table} WHERE id=?", (record_id,)).fetchone())
+            conn.execute(
+                """INSERT INTO cop_events(tenant_id,record_type,record_id,version_no,event_type,summary,snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                (tenant_id, record_type, record_id, 1, "Fixture Prepared", summary, json.dumps(snapshot, sort_keys=True, default=str), created_by, "System Administrator", timestamp),
+            )
+    return {
+        "finding": finding_id,
+        "threat": threat_id,
+        "scenario": scenario_id,
+        "capability": capability_id,
+        "evidence": evidence_id,
+        "gap": gap_id,
+        "improvement": improvement_id,
+        "coordination_thread": thread_id,
+        "coordination_message": message_id,
+        "decision_request": decision_id,
+        "operations_request": operations_id,
+    }
+
+
 def seed_demo_environments(
     conn: Any,
     *,
@@ -267,11 +453,13 @@ def seed_demo_environments(
         if operation == "reseed":
             _delete_fixture_environments(conn)
             reset_identity_sequences(conn, {"tenants", "users", "assessments", "assessment_access", "ops_service_pillars"})
-        assessment_count = user_count = access_count = pillar_count = 0
+        assessment_count = user_count = access_count = pillar_count = journey_count = 0
         for environment_record in ENVIRONMENTS:
             tenant_id = _tenant(conn, environment_record, timestamp)
             assessment_id = _assessment(conn, tenant_id, environment_record, timestamp)
             assessment_count += 1
+            _journey_records(conn, tenant_id, assessment_id, environment_record, timestamp)
+            journey_count += 1
             for code, name, description, sort_order in PILLARS:
                 conn.execute(
                     """INSERT INTO ops_service_pillars(tenant_id,pillar_code,name,description,sort_order,status,created_by,created_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,pillar_code) DO NOTHING""",
@@ -304,6 +492,7 @@ def seed_demo_environments(
         "assessment_count": assessment_count,
         "assessment_access_count": access_count,
         "service_pillar_count": pillar_count,
+        "journey_count": journey_count,
         "record_state": "Draft",
         "display_label": DEMONSTRATION_ACKNOWLEDGEMENT,
         "executed_at": timestamp,
