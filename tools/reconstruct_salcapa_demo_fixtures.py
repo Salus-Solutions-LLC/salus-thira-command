@@ -9,9 +9,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE = ROOT / "source_archives" / "development" / "salcapa_demo_fixtures.py.gz"
 TARGET = ROOT / "salcapa_demo_fixtures.py"
-ARCHIVE_SHA256 = "f16ce9b42dddf091c662413fa9cf8794175b3844b457cc595d7d3e708ecd6a60"
-TARGET_SHA256 = "aa5ff54313bf81b49e43d7b18696cc944aa3b60eed20a2d188f1ff90645dc5fb"
-TARGET_SIZE = 31240
+ARCHIVE_SHA256 = "c62724c4057b4d23ef168d3ee033088193394718c4da6724ff505d0fd6b6bfb1"
+TARGET_SHA256 = "9e15f63ada7d0c974dfce3247a7cdf65fc2e77512a5f03712b7bffea4e5301b3"
+TARGET_SIZE = 31992
 
 compressed = ARCHIVE.read_bytes()
 if hashlib.sha256(compressed).hexdigest() != ARCHIVE_SHA256:

@@ -18,7 +18,7 @@ from typing import Any, Callable
 from database import reset_identity_sequences, table_columns
 
 
-FIXTURE_VERSION = "issue-124-cross-functional-v2"
+FIXTURE_VERSION = "issue-124-role-preflight-v3"
 FIXTURE_AUTHORITY = "ISSUE-124"
 DEMONSTRATION_ACKNOWLEDGEMENT = "FICTIONAL DEMONSTRATION DATA ONLY"
 RESEED_CONFIRMATION = "DELETE AND REBUILD FICTIONAL DEMONSTRATION ENVIRONMENTS"
@@ -201,7 +201,7 @@ def ensure_demo_fixture_schema(conn: Any, timestamp: str) -> None:
     )
     conn.execute(
         "INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING",
-        ("3.110-demo-fixture-cross-functional-v2", timestamp),
+        ("3.110-demo-fixture-role-preflight-v3", timestamp),
     )
 
 
@@ -394,6 +394,14 @@ def _journey_records(conn: Any, tenant_id: int, assessment_id: int, environment:
         """INSERT INTO cop_coordination_messages(tenant_id,thread_id,audience,body,author,author_role,created_at) VALUES(?,?,?,?,?,?,?)""",
         (tenant_id, thread_id, "Shared", message_body, created_by, "Program Owner", timestamp),
     )
+    internal_message_body = "Salus personnel must reconcile source limitations, contradictions, assumptions, and authority questions before presenting a recommendation. This fictional note is not available in Protected Member views."
+    internal_message_id = _upsert_named(
+        conn,
+        "SELECT id FROM cop_coordination_messages WHERE tenant_id=? AND thread_id=? AND body=?",
+        (tenant_id, thread_id, internal_message_body),
+        """INSERT INTO cop_coordination_messages(tenant_id,thread_id,audience,body,author,author_role,created_at) VALUES(?,?,?,?,?,?,?)""",
+        (tenant_id, thread_id, "Internal", internal_message_body, created_by, "Program Owner", timestamp),
+    )
     decision_title = f"Review proposed priority: {journey.improvement} — fictional demonstration"
     decision_id = _upsert_named(
         conn,
@@ -433,6 +441,7 @@ def _journey_records(conn: Any, tenant_id: int, assessment_id: int, environment:
         "improvement": improvement_id,
         "coordination_thread": thread_id,
         "coordination_message": message_id,
+        "internal_coordination_message": internal_message_id,
         "decision_request": decision_id,
         "operations_request": operations_id,
     }

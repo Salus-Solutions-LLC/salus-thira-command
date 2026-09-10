@@ -74,3 +74,15 @@ The deployment workflow must run this interface only after backup/recovery and
 migration compatibility are verified. The next increment will exercise the
 journeys through role-specific interfaces, cross-tenant denial, reports,
 recovery, and rollback before Azure promotion.
+
+## Role and promotion preflight
+
+The role-specific preflight verifies that Salus personnel can review the
+collected source basis while Protected Member views exclude unqualified
+intelligence and Salus-internal coordination notes. It also verifies the
+read-only member role, member contribution limits, cross-tenant decision
+denial, tenant-package referential integrity, and idempotent additive schema
+application. These are repository checks, not proof of Microsoft Entra,
+accepted-v3.36 database migration, immutable candidate-image, live reporting,
+or rollback acceptance. Promotion therefore remains **not ready** until those
+separate environment-bound gates are completed and recorded.

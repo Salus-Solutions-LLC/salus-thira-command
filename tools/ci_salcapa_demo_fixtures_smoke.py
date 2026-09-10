@@ -89,6 +89,7 @@ assert conn.execute("SELECT COUNT(*) c FROM gaps g JOIN assessments a ON a.id=g.
 assert conn.execute("SELECT COUNT(*) c FROM improvements i JOIN assessments a ON a.id=i.assessment_id JOIN tenants t ON t.id=a.tenant_id WHERE t.fixture_key<>'' AND i.status='Proposed' AND i.validation_status='Pending'").fetchone()["c"] == 3
 assert conn.execute("SELECT COUNT(*) c FROM cop_coordination_threads c JOIN tenants t ON t.id=c.tenant_id WHERE t.fixture_key<>'' AND c.status='Open'").fetchone()["c"] == 3
 assert conn.execute("SELECT COUNT(*) c FROM cop_coordination_messages m JOIN tenants t ON t.id=m.tenant_id WHERE t.fixture_key<>'' AND m.audience='Shared'").fetchone()["c"] == 3
+assert conn.execute("SELECT COUNT(*) c FROM cop_coordination_messages m JOIN tenants t ON t.id=m.tenant_id WHERE t.fixture_key<>'' AND m.audience='Internal'").fetchone()["c"] == 3
 assert conn.execute("SELECT COUNT(*) c FROM cop_decision_requests d JOIN tenants t ON t.id=d.tenant_id WHERE t.fixture_key<>'' AND d.status='Awaiting Decision' AND d.decision=''").fetchone()["c"] == 3
 assert conn.execute("SELECT COUNT(*) c FROM ops_requests o JOIN tenants t ON t.id=o.tenant_id WHERE t.fixture_key<>'' AND o.status='Requested' AND o.authorized_by=''").fetchone()["c"] == 3
 assert conn.execute("SELECT COUNT(*) c FROM cop_events e JOIN tenants t ON t.id=e.tenant_id WHERE t.fixture_key<>'' AND e.event_type='Fixture Prepared'").fetchone()["c"] == 6
