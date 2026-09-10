@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 September 2026 05:45 CDT
+last_verified_at: 10 September 2026 06:13 CDT
 current_frozen_release: v3.108
 current_frozen_commit: ac50c7b26bc322eb784894de9e8533c1da74649a
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 236
-active_increment: issue_236_handwriting_and_expanded_ocr_design
+active_increment: issue_236_handwriting_and_expanded_ocr_design_approved
 last_completed_release: v3.108
-candidate_release: none
-validation_pr: none
-validation_gate_state: all_required_gates_green
+candidate_release: issue_236_handwriting_and_expanded_ocr_design
+validation_pr: pending
+validation_gate_state: validation_pending
 genuine_blockers: none
-next_authorized_increment: issue_236_handwriting_and_expanded_ocr_design
+next_authorized_increment: issue_236_handwriting_and_expanded_ocr_implementation
 ---
 
 # SalCAPA build continuity
@@ -40,8 +40,8 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Current candidate: none.
 - Genuine blockers: none.
 - Last accepted architecture: the [object and visible-condition analysis design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-object-condition-analysis-design.md) defines local request-driven processing, exact source-region and transform lineage, server-controlled model and vocabulary profiles, neutral operational categories, strict person-related boundaries, independent review, proposal-only downstream references, manual operating capability, and low-cost CPU-first deployment.
-- Active product increment: prepare the bounded handwriting and expanded-OCR design under Issue #236, reusing the v3.101-v3.108 immutable-source, processor-lineage, uncertainty, review, correction, tenant, sensitivity, disclosure, audit, recovery, cost, and server-controlled profile contracts.
-- Next authorized product increment: approve a bounded design for handwriting recognition and difficult-document OCR before implementation. Maps/plans and separately governed facial/biometric functions remain authorized native follow-on increments under Issue #236.
+- Active product increment: the [handwriting recognition and expanded OCR design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/candidate/issue-236-handwriting-ocr-design/docs/salcapa-handwriting-expanded-ocr-design.md) is approved for controlled validation. It defines native local printed, handwritten, mixed, targeted-region, and scanned-PDF recognition; explicit uncertainty and append-only correction; server-controlled language and processor profiles; and a separately enabled external-provider route with data-region, retention, identity, transmission, and spend controls.
+- Next authorized product increment: after this design checkpoint passes, implement the bounded handwriting and expanded-OCR record, worker, review, correction, recovery, and interface contracts. Maps/plans and separately governed facial/biometric functions remain authorized native follow-on increments under Issue #236.
 
 ## Recovery procedure
 
