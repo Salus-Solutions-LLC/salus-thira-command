@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 September 2026 03:28 CDT
+last_verified_at: 10 September 2026 03:38 CDT
 current_frozen_release: v3.106
 current_frozen_commit: 0bdc7bc8ea3233794ef3ef3ced1c3293ab63bf01
 active_development_branch: development/salcapa-platform
@@ -9,8 +9,8 @@ active_roadmap_issue: 236
 active_increment: issue_236_geospatial_and_visual_analysis_candidate
 last_completed_release: v3.106
 candidate_release: v3.107
-validation_pr: pending
-validation_gate_state: local_verified_github_pending
+validation_pr: 243
+validation_gate_state: github_validation_running
 genuine_blockers: none
 next_authorized_increment: issue_236_object_and_condition_analysis_design
 ---
@@ -37,7 +37,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active roadmap: [Issue #236](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/236), native advanced governed visual intelligence, geospatial metadata, handwriting, expanded OCR, mapping, and separately governed facial/biometric capability. [Issue #131](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/131) and [Issue #133](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/133) are completed and closed under parent [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128).
 - Last completed increment: v3.106 adds tenant-scoped suggestions and bounded duplicate review with immutable proposals, independent review, append-only correction history, and proposal-only governed links.
 - Last controlled validation: [PR #241](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/241), closed without merge on 10 September 2026 after all 17 controlled-pull-request workflow families passed on exact design commit [`acc3894e6735addc00ce3b06f0ed11d657bb8108`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/acc3894e6735addc00ce3b06f0ed11d657bb8108).
-- Current candidate: v3.107 implementation locally verified; controlled GitHub validation is pending.
+- Current candidate: v3.107 at [`918fd428b6be846c1c1f9ced95244bb87f20e3d5`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/918fd428b6be846c1c1f9ced95244bb87f20e3d5) in controlled [validation PR #243](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/243); GitHub validation is running.
 - Genuine blockers: none.
 - Last accepted architecture: the [advanced geospatial and source-grounded visual-analysis design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-advanced-visual-geospatial-design.md) defines restricted exact GPS source metadata, source-region-grounded observations, explicit source/suggestion/judgment/finding/disclosure boundaries, proposal-only downstream references, server-controlled processor profiles, and manual operating capability.
 - Active product increment: the v3.107 candidate preserves authorized exact EXIF GPS as restricted source metadata, adds purpose-recorded exact access, manual source-region observations, independent review, immutable correction history, processor-lineage snapshots, proposal-only governed links, portable backup/recovery, and a native Information Review interface. No visual model or external provider is enabled.
