@@ -134,4 +134,4 @@ jobs:
       - name: Build production container
         run: docker build --tag salcapa-mission-map:ci .
       - name: Run Mission Map acceptance in container
-        run: docker run --rm salcapa-mission-map:ci python tools/ci_mission_map_smoke.py
+        run: docker run --rm salcapa-mission-map:ci python tools/run_current_release_smoke.py tools/ci_mission_map_smoke.py

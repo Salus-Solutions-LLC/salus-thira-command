@@ -47,10 +47,11 @@ def fixtures(directory: Path) -> dict[str, bytes]:
 
 
 def upload(client: TestClient, name: str, content_type: str, data: bytes):
+    material_kind = "Video" if name.lower().endswith(".mp4") else "Audio"
     response = client.post(
         "/api/materials/upload", headers=HEADERS,
         files={"file": (name, data, content_type)},
-        data={"title": f"Fictional {name}", "material_kind": "Recording", "source_origin": "Authorized fictional demonstration", "sensitivity": "Restricted"},
+        data={"title": f"Fictional {name}", "material_kind": material_kind, "source_origin": "Authorized fictional demonstration", "sensitivity": "Restricted"},
     )
     assert response.status_code == 200, response.text
     return response.json()
