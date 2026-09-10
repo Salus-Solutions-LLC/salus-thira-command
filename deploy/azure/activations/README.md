@@ -39,3 +39,10 @@ The protected workflow creates an in-network one-time Container Apps Job. Its te
 The protected workflow authenticates through GitHub workload identity federation, confirms the exact subscription, tenant, resource group, private PostgreSQL configuration, disabled registry administrator, and immutable image before running Azure what-if and deployment. It then verifies the live image, user-assigned identity, HTTPS-only ingress, zero-to-one replica cost boundary, absence of application secrets, readiness endpoint, and Microsoft Entra authorization redirect.
 
 The first deployment uses the Azure-generated development address. It does not add custom DNS, create a client secret, or perform public production cutover. Creating or editing this README never activates Azure.
+
+## Live-copy migration acceptance record
+
+`live-copy-migration-dev.json` is reserved for the separately governed v3.110 acceptance operation. The workflow and infrastructure contract may exist without this file and remain inert. When an exact activation record is later added or changed on `development/salcapa-platform`, the protected workflow must bind the accepted v3.36 release, commit and image digest to the frozen v3.110 release, commit and published immutable image digest.
+
+The operation restores a fixed, temporary PostgreSQL server from the accepted database, points one non-ingress Container Apps Job only to that restored copy, applies normal additive migrations, prepares the three governed fictional demonstration environments, verifies bounded results and source/application no-change evidence, and deletes the temporary job and server. It does not deploy the application, change traffic or DNS, point the running application to the restored copy, or alter the accepted database. Live reporting, recovery, rollback, Entra user mapping, tenant isolation, and critical-journey acceptance remain separate promotion gates.
+

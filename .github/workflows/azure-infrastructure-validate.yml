@@ -24,11 +24,14 @@ on:
       - '.github/workflows/azure-database-bootstrap.yml'
       - '.github/workflows/azure-application-deploy.yml'
       - '.github/workflows/azure-recovery-readiness.yml'
+      - '.github/workflows/azure-live-copy-migration-acceptance.yml'
+      - 'tools/ci_azure_live_copy_migration_contract_smoke.py'
       - 'deploy/azure/activations/foundation-dev.json'
       - 'deploy/azure/activations/image-dev.json'
       - 'deploy/azure/activations/database-dev.json'
       - 'deploy/azure/activations/application-dev.json'
       - 'deploy/azure/activations/recovery-readiness-dev.json'
+      - 'deploy/azure/activations/live-copy-migration-dev.json'
   push:
     branches:
       - 'development/**'
@@ -56,11 +59,14 @@ on:
       - '.github/workflows/azure-database-bootstrap.yml'
       - '.github/workflows/azure-application-deploy.yml'
       - '.github/workflows/azure-recovery-readiness.yml'
+      - '.github/workflows/azure-live-copy-migration-acceptance.yml'
+      - 'tools/ci_azure_live_copy_migration_contract_smoke.py'
       - 'deploy/azure/activations/foundation-dev.json'
       - 'deploy/azure/activations/image-dev.json'
       - 'deploy/azure/activations/database-dev.json'
       - 'deploy/azure/activations/application-dev.json'
       - 'deploy/azure/activations/recovery-readiness-dev.json'
+      - 'deploy/azure/activations/live-copy-migration-dev.json'
   workflow_dispatch:
 
 permissions:
@@ -82,6 +88,7 @@ jobs:
         run: |
           az bicep build --file infra/azure/main.bicep --stdout > /tmp/salcapa-arm.json
           az bicep build --file infra/azure/database-bootstrap.bicep --stdout > /tmp/salcapa-database-bootstrap-arm.json
+          az bicep build --file infra/azure/live-copy-migration-acceptance.bicep --stdout > /tmp/salcapa-live-copy-migration-acceptance-arm.json
       - name: Enforce infrastructure and deployment policy
         run: |
           python - <<'PY'
@@ -647,6 +654,73 @@ jobs:
               'az deployment group create',
           )):
               raise SystemExit('Point-in-time recovery exercise crosses a credential, DNS, application, or deployment boundary')
+
+          live_copy_acceptance = Path('.github/workflows/azure-live-copy-migration-acceptance.yml').read_text()
+          live_copy_required = [
+              'deploy/azure/activations/live-copy-migration-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.110',
+              '935f0b7bea72375adc936f7904f4f74c2eb99643',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:c5f7b097a12589d3799205fa60e275afd020c4c41ec975eb175d54d04d4d7b44',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_copy_migration"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v310-copy"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_COPY_MIGRATION_ACCEPTED',
+          ]
+          missing_live_copy = [
+              value for value in live_copy_required if value not in live_copy_acceptance
+          ]
+          if missing_live_copy:
+              raise SystemExit(
+                  'Azure live-copy migration acceptance governance is incomplete: '
+                  + ', '.join(missing_live_copy)
+              )
+          live_copy_trigger = live_copy_acceptance.split('permissions:', 1)[0]
+          if any(value in live_copy_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-copy migration acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_copy_acceptance)) < 2:
+              raise SystemExit('Both live-copy acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_copy_acceptance):
+              raise SystemExit('Live-copy acceptance Azure login action must be pinned to a commit SHA')
+          if any(value in live_copy_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-copy acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_copy_bicep = Path('infra/azure/live-copy-migration-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-copy-migration-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "'salcapa_demo_fixtures'",
+              "'FICTIONAL DEMONSTRATION DATA ONLY'",
+          ):
+              if value not in live_copy_bicep:
+                  raise SystemExit('Live-copy migration job contract is incomplete: ' + value)
+
+          import subprocess
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_copy_migration_contract_smoke.py'],
+              check=True,
+          )
 
           connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
           connection_required = [
