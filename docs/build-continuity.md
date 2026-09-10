@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 September 2026 03:45 CDT
+last_verified_at: 10 September 2026 04:13 CDT
 current_frozen_release: v3.107
 current_frozen_commit: 488b060df4f732307bb1d17a94ed1481e75330c0
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 236
-active_increment: issue_236_object_and_condition_analysis_design
+active_increment: issue_236_object_and_condition_analysis_implementation
 last_completed_release: v3.107
 candidate_release: none
 validation_pr: none
 validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: issue_236_object_and_condition_analysis_design
+next_authorized_increment: issue_236_object_and_condition_analysis_implementation
 ---
 
 # SalCAPA build continuity
@@ -36,12 +36,12 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active development line: `development/salcapa-platform`.
 - Active roadmap: [Issue #236](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/236), native advanced governed visual intelligence, geospatial metadata, handwriting, expanded OCR, mapping, and separately governed facial/biometric capability. [Issue #131](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/131) and [Issue #133](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/133) are completed and closed under parent [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128).
 - Last completed increment: v3.107 preserves authorized exact EXIF GPS as restricted source metadata, adds purpose-recorded exact access, manual source-region observations, independent review, immutable correction history, stable processor-lineage snapshots, proposal-only governed links, portable backup/recovery, and a native Information Review interface. It enables no visual model or external provider.
-- Last controlled validation: [PR #243](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/243), closed without merge on 10 September 2026 after all 17 controlled-pull-request workflow families passed on exact frozen commit [`488b060df4f732307bb1d17a94ed1481e75330c0`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/488b060df4f732307bb1d17a94ed1481e75330c0).
+- Last controlled validation: [PR #245](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/245), on which all 17 controlled-pull-request workflow families passed on exact object and visible-condition design commit [`038bdcd5a205c6b713fa4e40e72279c6d46ddeb6`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/038bdcd5a205c6b713fa4e40e72279c6d46ddeb6).
 - Current candidate: none.
 - Genuine blockers: none.
-- Last accepted architecture: the [advanced geospatial and source-grounded visual-analysis design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-advanced-visual-geospatial-design.md) defines restricted exact GPS source metadata, source-region-grounded observations, explicit source/suggestion/judgment/finding/disclosure boundaries, proposal-only downstream references, server-controlled processor profiles, and manual operating capability.
-- Active product increment: design the bounded native object and visible-condition analysis contract under Issue #236, reusing the v3.107 source-region, provenance, review, tenant, sensitivity, disclosure, audit, recovery, and server-controlled profile structures.
-- Next authorized product increment: design bounded object and visible-condition analysis. Handwriting, expanded OCR, maps/plans, and separately governed facial/biometric functions remain authorized follow-on increments under Issue #236.
+- Last accepted architecture: the [object and visible-condition analysis design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-object-condition-analysis-design.md) defines local request-driven processing, exact source-region and transform lineage, server-controlled model and vocabulary profiles, neutral operational categories, strict person-related boundaries, independent review, proposal-only downstream references, manual operating capability, and low-cost CPU-first deployment.
+- Active product increment: implement the bounded native object and visible-condition analysis contract under Issue #236, reusing the v3.107 source-region, provenance, review, tenant, sensitivity, disclosure, audit, recovery, and server-controlled profile structures.
+- Next authorized product increment: implement local source-grounded object and visible-condition suggestions. Handwriting, expanded OCR, maps/plans, and separately governed facial/biometric functions remain authorized follow-on increments under Issue #236.
 
 ## Recovery procedure
 
