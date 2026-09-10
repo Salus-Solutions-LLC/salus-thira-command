@@ -233,7 +233,7 @@ def _transcribe(normalized: Path, duration: float) -> tuple[str, dict, bool]:
     prefix = normalized.parent / "transcript"
     result = _run([
         str(WHISPER), "-m", str(MODEL), "-f", str(normalized), "-l", "en",
-        "-t", "1", "-bs", "1", "-bo", "1", "-np", "-nt", "-osrt", "-of", str(prefix), "--no-gpu",
+        "-t", "1", "-bs", "1", "-bo", "1", "-np", "-osrt", "-of", str(prefix), "--no-gpu",
     ], TRANSCRIPTION_TIMEOUT_SECONDS, "TRANSCRIPTION_FAILED", "English spoken words could not be prepared safely. The original remains unchanged.", cwd=normalized.parent)
     if len(result.stdout) + len(result.stderr) > MAX_TRANSCRIPT_BYTES:
         raise WorkerFailure("MEDIA_RESOURCE_LIMIT", "The transcription process exceeded the bounded output limit.")

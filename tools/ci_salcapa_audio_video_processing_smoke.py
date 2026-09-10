@@ -45,7 +45,7 @@ def component_diagnostic(wav_data: bytes) -> str:
             [
                 "/opt/whisper/bin/whisper-cli", "-m", "/opt/whisper/models/ggml-tiny.en.bin",
                 "-f", str(source), "-l", "en", "-t", "1", "-bs", "1", "-bo", "1",
-                "-np", "-nt", "-osrt", "-of", str(prefix), "--no-gpu",
+                "-np", "-osrt", "-of", str(prefix), "--no-gpu",
             ],
             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             timeout=120, check=False,
