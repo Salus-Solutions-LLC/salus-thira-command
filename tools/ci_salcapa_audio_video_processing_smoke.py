@@ -112,7 +112,10 @@ with tempfile.TemporaryDirectory() as fixture_dir, TestClient(core.app) as clien
         record = response.json()["derivative"]
         assert record["review_status"] == "Awaiting Human Review"
         assert record["confidence_status"] == "Derived — Unverified"
-        assert "ASSEMBLY" in record["content_preview"].upper()
+        preview = record["content_preview"].upper()
+        assert "ENGLISH SPOKEN-WORD TRANSCRIPT" in preview
+        assert "SECONDS]" in preview
+        assert "SPOKEN WORDS NOT RELIABLY RECOGNIZED" not in preview
         assert "normalized-sha256=" in record["extraction_method"]
         assert "model-sha256=" in record["extraction_method"]
         assert "no video-frame analysis" in record["extraction_method"]
