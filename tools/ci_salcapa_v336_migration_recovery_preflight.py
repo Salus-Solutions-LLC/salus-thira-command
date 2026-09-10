@@ -134,7 +134,7 @@ def tenant_package_digest(collect_tenant_records: Any, conn: Any, tenant_id: int
 def current_migrate(manifest_path: Path) -> None:
     sys.path.insert(0, str(ROOT))
     os.chdir(ROOT)
-    import salcapa_runtime as runtime  # noqa: E402
+    import app as core  # noqa: E402
     from fastapi.testclient import TestClient  # noqa: E402
     from portable_backup import (  # noqa: E402
         collect_tenant_records,
@@ -144,10 +144,11 @@ def current_migrate(manifest_path: Path) -> None:
     from salcapa_demo_fixtures import (  # noqa: E402
         DEMONSTRATION_ACKNOWLEDGEMENT,
         FIXTURE_AUTHORITY,
+        register_demo_fixture_contract,
         seed_demo_environments,
     )
 
-    core = runtime.core
+    register_demo_fixture_contract(core)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     tenant_id = int(manifest["tenant"]["id"])
     assessment_id = int(manifest["assessment"]["id"])
@@ -292,7 +293,11 @@ def run_parent() -> None:
         subprocess.run(
             [sys.executable, str(Path(__file__).resolve()), "accepted-seed", str(manifest_path)],
             cwd=accepted_root,
-            env={**environment, "SALCAPA_ACCEPTED_V336_ROOT": str(accepted_root)},
+            env={
+                **environment,
+                "SALCAPA_ACCEPTED_V336_ROOT": str(accepted_root),
+                "SALUS_SEED_DEMO": "1",
+            },
             check=True,
         )
         subprocess.run(
