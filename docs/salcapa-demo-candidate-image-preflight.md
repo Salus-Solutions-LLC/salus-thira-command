@@ -27,3 +27,7 @@ The next deployable demonstration candidate must be a separately frozen successo
 ## What happens next
 
 Prepare and validate the successor demonstration release candidate containing the governed Issue #124 capabilities. Only after it is frozen and every environment-bound migration, Microsoft Entra, tenant-isolation, reporting, recovery, rollback, and live acceptance gate passes may the demonstration move beyond accepted v3.36.
+
+## Validation result
+
+[Controlled validation PR #262](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/262) passed all 20 required workflow families on exact head `c886134cce96eb84f6e4c6896dd9ea5d6c46ab6a` and was closed without merge. The accepted Azure v3.36 activation records remained unchanged.

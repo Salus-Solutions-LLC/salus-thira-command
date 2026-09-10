@@ -61,7 +61,7 @@ register_salcapa_handwriting_ocr_processing(core.app, core.__dict__)
 register_demo_fixture_contract(core)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.109"
+SALCAPA_RELEASE_VERSION = "3.110"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 

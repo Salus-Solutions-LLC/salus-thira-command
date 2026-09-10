@@ -82,6 +82,7 @@ def main() -> None:
         "cross_functional_records_verified_not_deployed",
         "role_preflight_verified_not_deployed",
         "migration_recovery_rehearsal_verified_not_deployed",
+        "candidate_image_boundary_verified_not_deployed",
         "verified",
     }
     assert values["critical_journey_acceptance"] in {"not_verified", "verified"}
