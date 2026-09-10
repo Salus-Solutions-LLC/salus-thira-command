@@ -6,7 +6,7 @@ RUN mkdir -p /opt/whisper/bin /opt/whisper/lib /opt/whisper/models /tmp/whisper 
     tar --extract --gzip --file /tmp/whisper.tar.gz --directory /tmp/whisper && \
     find /tmp/whisper -type f -name whisper-cli -exec install -m 0555 '{}' /opt/whisper/bin/whisper-cli \; && \
     test -x /opt/whisper/bin/whisper-cli && \
-    find /tmp/whisper -type f -name '*.so*' -exec cp -P '{}' /opt/whisper/lib/ \; && \
+    find /tmp/whisper -name '*.so*' -exec cp -L '{}' /opt/whisper/lib/ \; && \
     curl --fail --location --retry 3 --output /opt/whisper/models/ggml-tiny.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-tiny.en.bin && \
     echo "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f  /opt/whisper/models/ggml-tiny.en.bin" | sha256sum --check --strict && \
     BINARY_SHA="$(sha256sum /opt/whisper/bin/whisper-cli | cut -d ' ' -f 1)" && \
