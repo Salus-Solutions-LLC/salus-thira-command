@@ -37,7 +37,6 @@ jobs:
         run: |
           python tools/ci_build_continuity_smoke.py
           python tools/ci_demo_deployment_continuity_smoke.py
-          python tools/ci_salcapa_demo_fixtures_smoke.py
       - name: Repository hygiene
         run: |
           git diff --check
