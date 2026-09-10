@@ -1,7 +1,8 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY requirements.txt ./
+RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr=5.3.0-2 tesseract-ocr-eng=1:4.1.0-2 && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir -r requirements.txt
 RUN useradd --create-home --uid 10001 salus
 COPY . .
@@ -22,7 +23,8 @@ RUN python tools/reconstruct_salcapa_contextual_intake.py
 RUN python tools/reconstruct_salcapa_material_processing.py
 RUN python tools/reconstruct_salcapa_office_processing.py
 RUN python tools/reconstruct_salcapa_pdf_processing.py
-RUN python -m py_compile salcapa_runtime.py salcapa_commercial.py salcapa_contextual_intake.py salcapa_material_processing.py salcapa_office_processing.py salcapa_pdf_processing.py tools/salcapa_pdf_worker.py salops_preparedness.py salops_plan_assembly.py personnel_assessment.py facility_assessment.py salintel_relationships.py salintel_research.py salintel_handoffs.py salintel_monitoring.py salcapa_assurance.py tools/ci_salcapa_commercial_smoke.py tools/ci_salcapa_contextual_intake_smoke.py tools/ci_salcapa_material_processing_smoke.py tools/ci_salcapa_office_processing_smoke.py tools/ci_salcapa_pdf_processing_smoke.py tools/ci_salops_preparedness_smoke.py tools/ci_salops_plan_assembly_smoke.py tools/ci_salops_plan_assembly_ui_smoke.py tools/ci_personnel_assessment_smoke.py tools/ci_facility_assessment_smoke.py tools/ci_facility_assessment_ui_smoke.py tools/ci_salintel_relationships_smoke.py tools/ci_salintel_research_smoke.py tools/ci_salintel_handoffs_smoke.py tools/ci_salintel_monitoring_smoke.py tools/ci_salcapa_assurance_smoke.py tools/ci_salcapa_assurance_ui_smoke.py tools/ci_salcapa_contextual_guidance_smoke.py tools/ci_salcapa_human_first_communications_smoke.py
+RUN python tools/reconstruct_salcapa_image_ocr_processing.py
+RUN python -m py_compile salcapa_runtime.py salcapa_commercial.py salcapa_contextual_intake.py salcapa_material_processing.py salcapa_office_processing.py salcapa_pdf_processing.py salcapa_image_ocr_processing.py tools/salcapa_pdf_worker.py tools/salcapa_image_ocr_worker.py salops_preparedness.py salops_plan_assembly.py personnel_assessment.py facility_assessment.py salintel_relationships.py salintel_research.py salintel_handoffs.py salintel_monitoring.py salcapa_assurance.py tools/ci_salcapa_commercial_smoke.py tools/ci_salcapa_contextual_intake_smoke.py tools/ci_salcapa_material_processing_smoke.py tools/ci_salcapa_office_processing_smoke.py tools/ci_salcapa_pdf_processing_smoke.py tools/ci_salcapa_image_ocr_processing_smoke.py tools/ci_salops_preparedness_smoke.py tools/ci_salops_plan_assembly_smoke.py tools/ci_salops_plan_assembly_ui_smoke.py tools/ci_personnel_assessment_smoke.py tools/ci_facility_assessment_smoke.py tools/ci_facility_assessment_ui_smoke.py tools/ci_salintel_relationships_smoke.py tools/ci_salintel_research_smoke.py tools/ci_salintel_handoffs_smoke.py tools/ci_salintel_monitoring_smoke.py tools/ci_salcapa_assurance_smoke.py tools/ci_salcapa_assurance_ui_smoke.py tools/ci_salcapa_contextual_guidance_smoke.py tools/ci_salcapa_human_first_communications_smoke.py
 RUN mkdir -p /app/attachments /app/backups /app/data && chown -R salus:salus /app
 USER salus
 EXPOSE 8000
