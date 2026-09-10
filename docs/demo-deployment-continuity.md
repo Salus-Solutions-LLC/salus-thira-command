@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 10 September 2026 16:19 CDT
+last_verified_at: 10 September 2026 17:14 CDT
 environment: azure_development_demonstration
 deployed_release: v3.36
 deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
@@ -12,11 +12,17 @@ deployment_acceptance: live_runtime_readiness_accepted
 current_stable_release: v3.110
 current_stable_commit: 935f0b7bea72375adc936f7904f4f74c2eb99643
 promotion_candidate: v3.110
+promotion_candidate_image_commit: 935f0b7bea72375adc936f7904f4f74c2eb99643
+promotion_candidate_image_digest: sha256:c5f7b097a12589d3799205fa60e275afd020c4c41ec975eb175d54d04d4d7b44
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:c5f7b097a12589d3799205fa60e275afd020c4c41ec975eb175d54d04d4d7b44
+promotion_candidate_image_published_at: 10 September 2026 17:14 CDT
+promotion_candidate_image_workflow_run: 34536243545
+promotion_candidate_image_acceptance: immutable_image_published_not_deployed
 promotion_readiness: not_ready
-fictional_member_seed_state: v310_publication_contract_verified_not_deployed
+fictional_member_seed_state: v310_image_published_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: v310_image_publication_live_v336_database_entra_reporting_recovery_and_rollback_acceptance_missing
+genuine_blocker: live_v336_database_entra_reporting_recovery_and_rollback_acceptance_missing
 ---
 
 # SalCAPA development demonstration continuity
@@ -38,7 +44,9 @@ The deterministic fixture foundation, bounded cross-functional records, and repo
 
 The exact v3.109 source and image-packaging boundary is also verified. Frozen v3.109 does not contain the deterministic fixture capability, so that image remains a stable packaging reference rather than the complete Issue #124 promotion candidate. The successor work is now frozen as v3.110 after all 20 required workflow families passed on the exact release commit.
 
-The immutable-image publication workflow is now release-driven and fail-closed. It requires a separately governed activation whose release branch, exact commit, derived activation key, runtime release identity, immutable labels and non-root runtime agree before a push is permitted. [Validation PR #265](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/265) passed all 20 required workflow families and was closed without merge. The activation record remains bound to accepted v3.36, so the workflow change could not publish v3.110 or deploy an application. Migration of an independently restored copy of the live accepted-v3.36 database, Microsoft Entra identity and tenant isolation, an immutable v3.110 image, live reporting, Azure recovery, and Azure rollback acceptance remain required. The last accepted v3.36 deployment remains unchanged while those gaps are closed.
+The immutable-image publication workflow is release-driven and fail-closed. It requires a separately governed activation whose release branch, exact commit, derived activation key, runtime release identity, immutable labels and non-root runtime agree before a push is permitted. [Validation PR #267](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/267) passed all 20 required workflow families on the exact v3.110 activation and was closed without merge.
+
+[Publication workflow run 34536243545](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34536243545) then published exact frozen v3.110 as `salcapadevb48224acr.azurecr.io/salcapa@sha256:c5f7b097a12589d3799205fa60e275afd020c4c41ec975eb175d54d04d4d7b44` on 10 September 2026 at 17:14 CDT. It used workload identity and verified scoped registry authority. It created no mutable tag and performed no Container App deployment. Migration of an independently restored copy of the live accepted-v3.36 database, Microsoft Entra identity and tenant isolation, live reporting, Azure recovery, and Azure rollback acceptance remain required. The last accepted v3.36 deployment remains unchanged while those gaps are closed.
 
 ## Promotion gates
 
@@ -62,4 +70,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Validate and apply a separately governed image-publication activation for exact frozen v3.110 under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), record the resulting immutable digest, then validate an independently restored copy of the accepted v3.36 database without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.
+Validate migration of an independently restored copy of the accepted v3.36 database with exact frozen v3.110 and the published immutable candidate image under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.

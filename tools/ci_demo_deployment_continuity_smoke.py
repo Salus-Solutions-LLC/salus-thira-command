@@ -25,6 +25,12 @@ REQUIRED_KEYS = {
     "current_stable_release",
     "current_stable_commit",
     "promotion_candidate",
+    "promotion_candidate_image_commit",
+    "promotion_candidate_image_digest",
+    "promotion_candidate_image_reference",
+    "promotion_candidate_image_published_at",
+    "promotion_candidate_image_workflow_run",
+    "promotion_candidate_image_acceptance",
     "promotion_readiness",
     "fictional_member_seed_state",
     "critical_journey_acceptance",
@@ -69,8 +75,16 @@ def main() -> None:
     assert DATE_TIME.fullmatch(values["deployed_at"])
     assert re.fullmatch(r"[0-9a-f]{40}", values["deployed_commit"])
     assert re.fullmatch(r"[0-9a-f]{40}", values["current_stable_commit"])
+    assert re.fullmatch(r"[0-9a-f]{40}", values["promotion_candidate_image_commit"])
     assert re.fullmatch(r"sha256:[0-9a-f]{64}", values["image_digest"])
+    assert re.fullmatch(r"sha256:[0-9a-f]{64}", values["promotion_candidate_image_digest"])
+    assert values["promotion_candidate_image_reference"].endswith(
+        "@" + values["promotion_candidate_image_digest"]
+    )
     assert values["deployment_workflow_run"].isdigit()
+    assert values["promotion_candidate_image_workflow_run"].isdigit()
+    assert DATE_TIME.fullmatch(values["promotion_candidate_image_published_at"])
+    assert values["promotion_candidate_image_acceptance"] == "immutable_image_published_not_deployed"
     assert values["deployment_acceptance"] in {
         "live_runtime_readiness_accepted",
         "full_demonstration_acceptance",
@@ -84,12 +98,14 @@ def main() -> None:
         "migration_recovery_rehearsal_verified_not_deployed",
         "candidate_image_boundary_verified_not_deployed",
         "v310_publication_contract_verified_not_deployed",
+        "v310_image_published_not_deployed",
         "verified",
     }
     assert values["critical_journey_acceptance"] in {"not_verified", "verified"}
 
     assert values["current_stable_release"] == build["current_frozen_release"]
     assert values["current_stable_commit"] == build["current_frozen_commit"]
+    assert values["promotion_candidate_image_commit"] == values["current_stable_commit"]
     assert version(values["current_stable_release"]) >= version(values["deployed_release"])
     assert values["rollback_baseline"] == values["deployed_release"]
 
