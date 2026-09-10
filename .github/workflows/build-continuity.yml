@@ -2,12 +2,13 @@ name: SalCAPA Build Continuity
 
 on:
   push:
-    branches: [development/salcapa-platform, candidate/**]
+    branches: [development/salcapa-platform]
     paths:
-      - 'docs/salcapa-handwriting-expanded-ocr-design.md'
       - 'docs/build-continuity.md'
+      - 'docs/demo-deployment-continuity.md'
       - 'salcapa_runtime.py'
       - 'tools/ci_build_continuity_smoke.py'
+      - 'tools/ci_demo_deployment_continuity_smoke.py'
       - '.github/workflows/build-continuity.yml'
   pull_request:
     branches: [main]
@@ -28,12 +29,13 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile continuity validation
-        run: python -m py_compile tools/ci_build_continuity_smoke.py
+        run: python -m py_compile tools/ci_build_continuity_smoke.py tools/ci_demo_deployment_continuity_smoke.py
       - name: Verify governed continuity record
-        run: python tools/ci_build_continuity_smoke.py
+        run: |
+          python tools/ci_build_continuity_smoke.py
+          python tools/ci_demo_deployment_continuity_smoke.py
       - name: Repository hygiene
         run: |
           git diff --check
           test ! -e .env
           test ! -e id_rsa
-
