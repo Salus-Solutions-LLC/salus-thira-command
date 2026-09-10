@@ -59,7 +59,7 @@ jobs:
       - name: Validate Mission Map JavaScript
         run: node --check static/mission-map.js
       - name: Mission Map acceptance
-        run: python tools/ci_mission_map_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_mission_map_smoke.py
       - name: Human-first and functional-distinction guardrails
         run: |
           grep -Fq 'People lead. Methods guide. Technology supports. Evidence proves.' mission_map.py
@@ -122,7 +122,7 @@ jobs:
           SALUS_SEED_DEMO: '1'
           SALUS_LOCAL_STORAGE_DIR: /tmp/mission-map-pg-attachments
           SALUS_BACKUP_DIR: /tmp/mission-map-pg-backups
-        run: python tools/ci_mission_map_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_mission_map_smoke.py
 
   production-container:
     runs-on: ubuntu-latest

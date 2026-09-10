@@ -60,7 +60,7 @@ jobs:
       - name: Static security scan
         run: bandit -q -r salcapa_runtime.py salops_preparedness.py -ll -s B608
       - name: SQLite preparedness acceptance
-        run: python tools/ci_salops_preparedness_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salops_preparedness_smoke.py
 
   postgres16:
     runs-on: ubuntu-latest
@@ -107,5 +107,5 @@ jobs:
           SALUS_SEED_DEMO: '1'
           SALUS_LOCAL_STORAGE_DIR: /tmp/salops-preparedness-pg-attachments
           SALUS_BACKUP_DIR: /tmp/salops-preparedness-pg-backups
-        run: python tools/ci_salops_preparedness_smoke.py
+        run: python tools/run_current_release_smoke.py tools/ci_salops_preparedness_smoke.py
 

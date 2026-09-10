@@ -134,8 +134,11 @@ jobs:
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_pdf_processing_smoke.py
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_image_ocr_processing_smoke.py
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_audio_video_processing_smoke.py
-      - run: >-
+      - name: PostgreSQL 16 transcription acceptance
+        env:
+          SALUS_MEDIA_TEST_DATABASE_URL: postgresql://salus:salus@127.0.0.1:5432/salcapa # repo-hygiene: allow; disposable CI service credential
+        run: >-
           docker run --rm --network host --entrypoint python
           -e SALUS_DB_BACKEND=postgres
-          -e SALUS_DATABASE_URL=postgresql://salus:salus@127.0.0.1:5432/salcapa
+          -e SALUS_DATABASE_URL=${SALUS_MEDIA_TEST_DATABASE_URL}
           salcapa-material-processing tools/ci_salcapa_audio_video_processing_smoke.py
