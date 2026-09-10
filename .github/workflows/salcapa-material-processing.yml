@@ -72,6 +72,7 @@ on:
       - requirements.txt
       - requirements-ci.txt
       - .github/workflows/salcapa-material-processing.yml
+      - docs/salcapa-handwriting-expanded-ocr-design.md
   pull_request:
     branches: [main]
 
