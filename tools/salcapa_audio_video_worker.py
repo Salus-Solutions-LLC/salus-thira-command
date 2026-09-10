@@ -72,7 +72,7 @@ def _version(binary: Path, label: str) -> str:
         result = subprocess.run(
             [str(binary), "-version" if label == "FFmpeg" else "--version"],
             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            timeout=5, check=False, env={"LC_ALL": "C.UTF-8", "LD_LIBRARY_PATH": str(ASSET_ROOT / "lib")},
+            timeout=5, check=False, env={"LC_ALL": "C.UTF-8", "LD_LIBRARY_PATH": str(ASSET_ROOT / "bin")},
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise WorkerFailure("TRANSCRIPTION_UNAVAILABLE", f"The approved {label} component is unavailable. Manual review remains available.") from exc
@@ -107,7 +107,7 @@ def _run(command: list[str], timeout: int, code: str, detail: str, *, cwd: Path)
         result = subprocess.run(
             command, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, timeout=timeout, check=False,
-            env={"HOME": str(cwd), "TMPDIR": str(cwd), "LC_ALL": "C.UTF-8", "LD_LIBRARY_PATH": str(ASSET_ROOT / "lib")},
+            env={"HOME": str(cwd), "TMPDIR": str(cwd), "LC_ALL": "C.UTF-8", "LD_LIBRARY_PATH": str(ASSET_ROOT / "bin")},
         )
     except subprocess.TimeoutExpired as exc:
         raise WorkerFailure("MEDIA_RESOURCE_LIMIT", "The recording exceeded a bounded processing time. The original remains unchanged.") from exc

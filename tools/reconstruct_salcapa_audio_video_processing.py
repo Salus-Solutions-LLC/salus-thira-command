@@ -18,8 +18,8 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salcapa_audio_video_worker.py.gz",
         ROOT / "tools/salcapa_audio_video_worker.py",
-        "145148129cad690a8af68b08152d65ddc2a1bfe317903e94dc855bb175c42d78",
-        "1b7c177df99d86ad333849692ded98befff5992c7c8f0d1dfd6128a92dd84cd9",
+        "26ae648fd3db9825fd1b9fa08e634f31e6cc372ffc1a6070eb0e8d7adde73a60",
+        "b457d29d48ec3fe60b312239523cc427038d0088bae7bf5cca6e44ad613c8b54",
         15976,
     ),
     (
