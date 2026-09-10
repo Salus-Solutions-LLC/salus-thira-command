@@ -76,7 +76,11 @@ def main() -> None:
         "full_demonstration_acceptance",
     }
     assert values["promotion_readiness"] in {"not_ready", "preflight_ready", "accepted"}
-    assert values["fictional_member_seed_state"] in {"not_verified", "verified"}
+    assert values["fictional_member_seed_state"] in {
+        "not_verified",
+        "foundation_verified_not_deployed",
+        "verified",
+    }
     assert values["critical_journey_acceptance"] in {"not_verified", "verified"}
 
     assert values["current_stable_release"] == build["current_frozen_release"]
