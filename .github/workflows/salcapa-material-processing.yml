@@ -12,18 +12,23 @@ on:
       - tools/salcapa_image_ocr_worker.py
       - salcapa_audio_video_processing.py
       - tools/salcapa_audio_video_worker.py
+      - salcapa_material_suggestions.py
       - static/salcapa-material-review.js
       - static/salcapa-material-review.css
+      - static/salcapa-material-suggestions.js
+      - static/salcapa-material-suggestions.css
       - tools/ci_salcapa_material_processing_smoke.py
       - tools/ci_salcapa_office_processing_smoke.py
       - tools/ci_salcapa_pdf_processing_smoke.py
       - tools/ci_salcapa_image_ocr_processing_smoke.py
       - tools/ci_salcapa_audio_video_processing_smoke.py
+      - tools/ci_salcapa_material_suggestions_smoke.py
       - tools/reconstruct_salcapa_material_processing.py
       - tools/reconstruct_salcapa_office_processing.py
       - tools/reconstruct_salcapa_pdf_processing.py
       - tools/reconstruct_salcapa_image_ocr_processing.py
       - tools/reconstruct_salcapa_audio_video_processing.py
+      - tools/reconstruct_salcapa_material_suggestions.py
       - source_archives/development/salcapa_material_processing.py.gz
       - source_archives/development/salcapa-material-review.js.gz
       - source_archives/development/salcapa-material-review.css.gz
@@ -39,6 +44,10 @@ on:
       - source_archives/development/salcapa_audio_video_processing.py.gz
       - source_archives/development/salcapa_audio_video_worker.py.gz
       - source_archives/development/ci_salcapa_audio_video_processing_smoke.py.gz
+      - source_archives/development/salcapa_material_suggestions.py.gz
+      - source_archives/development/ci_salcapa_material_suggestions_smoke.py.gz
+      - source_archives/development/salcapa-material-suggestions.js.gz
+      - source_archives/development/salcapa-material-suggestions.css.gz
       - salcapa_runtime.py
       - Dockerfile
       - requirements.txt
@@ -65,12 +74,14 @@ jobs:
       - run: python tools/reconstruct_salcapa_pdf_processing.py
       - run: python tools/reconstruct_salcapa_image_ocr_processing.py
       - run: python tools/reconstruct_salcapa_audio_video_processing.py
+      - run: python tools/reconstruct_salcapa_material_suggestions.py
       - run: python tools/ci_salcapa_material_processing_smoke.py
       - run: python tools/ci_salcapa_office_processing_smoke.py
       - run: python tools/ci_salcapa_pdf_processing_smoke.py
       - run: python tools/ci_salcapa_image_ocr_processing_smoke.py
       - run: python -m py_compile salcapa_audio_video_processing.py tools/salcapa_audio_video_worker.py tools/ci_salcapa_audio_video_processing_smoke.py
-      - run: python -m bandit -q -r salcapa_material_processing.py salcapa_office_processing.py salcapa_pdf_processing.py salcapa_image_ocr_processing.py salcapa_audio_video_processing.py tools/salcapa_pdf_worker.py tools/salcapa_image_ocr_worker.py tools/salcapa_audio_video_worker.py tools/ci_salcapa_material_processing_smoke.py tools/ci_salcapa_office_processing_smoke.py tools/ci_salcapa_pdf_processing_smoke.py tools/ci_salcapa_image_ocr_processing_smoke.py tools/ci_salcapa_audio_video_processing_smoke.py -ll -s B608
+      - run: python tools/ci_salcapa_material_suggestions_smoke.py
+      - run: python -m bandit -q -r salcapa_material_processing.py salcapa_office_processing.py salcapa_pdf_processing.py salcapa_image_ocr_processing.py salcapa_audio_video_processing.py salcapa_material_suggestions.py tools/salcapa_pdf_worker.py tools/salcapa_image_ocr_worker.py tools/salcapa_audio_video_worker.py tools/ci_salcapa_material_processing_smoke.py tools/ci_salcapa_office_processing_smoke.py tools/ci_salcapa_pdf_processing_smoke.py tools/ci_salcapa_image_ocr_processing_smoke.py tools/ci_salcapa_audio_video_processing_smoke.py tools/ci_salcapa_material_suggestions_smoke.py -ll -s B608
       - run: pip-audit -r requirements.txt
 
   postgres-16:
@@ -105,11 +116,13 @@ jobs:
       - run: python tools/reconstruct_salcapa_pdf_processing.py
       - run: python tools/reconstruct_salcapa_image_ocr_processing.py
       - run: python tools/reconstruct_salcapa_audio_video_processing.py
+      - run: python tools/reconstruct_salcapa_material_suggestions.py
       - run: python tools/ci_salcapa_material_processing_smoke.py
       - run: python tools/ci_salcapa_office_processing_smoke.py
       - run: python tools/ci_salcapa_pdf_processing_smoke.py
       - run: python tools/ci_salcapa_image_ocr_processing_smoke.py
       - run: python -m py_compile salcapa_audio_video_processing.py tools/salcapa_audio_video_worker.py tools/ci_salcapa_audio_video_processing_smoke.py
+      - run: python tools/ci_salcapa_material_suggestions_smoke.py
 
   production-container:
     runs-on: ubuntu-latest
@@ -134,6 +147,7 @@ jobs:
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_pdf_processing_smoke.py
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_image_ocr_processing_smoke.py
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_audio_video_processing_smoke.py
+      - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_material_suggestions_smoke.py
       - name: PostgreSQL 16 transcription acceptance
         env:
           SALUS_MEDIA_TEST_DATABASE_URL: postgresql://salus:salus@127.0.0.1:5432/salcapa # repo-hygiene: allow; disposable CI service credential
@@ -142,3 +156,11 @@ jobs:
           -e SALUS_DB_BACKEND=postgres
           -e SALUS_DATABASE_URL=${SALUS_MEDIA_TEST_DATABASE_URL}
           salcapa-material-processing tools/ci_salcapa_audio_video_processing_smoke.py
+      - name: PostgreSQL 16 source suggestion acceptance
+        env:
+          SALUS_SUGGESTION_TEST_DATABASE_URL: postgresql://salus:salus@127.0.0.1:5432/salcapa # repo-hygiene: allow; disposable CI service credential
+        run: >-
+          docker run --rm --network host --entrypoint python
+          -e SALUS_DB_BACKEND=postgres
+          -e SALUS_DATABASE_URL=${SALUS_SUGGESTION_TEST_DATABASE_URL}
+          salcapa-material-processing tools/ci_salcapa_material_suggestions_smoke.py

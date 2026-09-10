@@ -1,0 +1,11 @@
+.source-review-aids{margin-top:1rem}
+.source-review-aids details{margin-top:.45rem}
+.source-review-aids summary{cursor:pointer;font-weight:700;color:var(--ink)}
+.source-review-aids details p{max-width:72ch;margin:.5rem 0;color:var(--muted)}
+.source-review-aids td:last-child{min-width:12rem}
+.source-review-aids .btn{margin:.15rem}
+@media print{
+  .source-review-aids button{display:none!important}
+  .source-review-aids details{display:block}
+  .source-review-aids details>*{display:block}
+}

@@ -20,6 +20,7 @@ from facility_assessment import register_facility_assessment
 from salcapa_commercial import register_salcapa_commercial
 from salcapa_contextual_intake import register_salcapa_contextual_intake
 from salcapa_audio_video_processing import register_salcapa_audio_video_processing
+from salcapa_material_suggestions import register_salcapa_material_suggestions
 from mission_map import register_mission_map
 try:
     from salops_plan_assembly import register_salops_plan_assembly
@@ -49,9 +50,10 @@ if register_salops_plan_assembly is not None:
 register_salcapa_commercial(core.app, core.__dict__)
 register_salcapa_contextual_intake(core.app, core.__dict__)
 register_salcapa_audio_video_processing(core.app, core.__dict__)
+register_salcapa_material_suggestions(core.app, core.__dict__)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.105"
+SALCAPA_RELEASE_VERSION = "3.106"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 
@@ -151,6 +153,9 @@ def _preparedness_index() -> str:
         ('<link rel="stylesheet" href="/static/salcapa-contextual-intake.css" />',
          '<link rel="stylesheet" href="/static/salcapa-contextual-intake.css" />\n<link rel="stylesheet" href="/static/salcapa-material-review.css" />',
          '/static/salcapa-material-review.css'),
+        ('<link rel="stylesheet" href="/static/salcapa-material-review.css" />',
+         '<link rel="stylesheet" href="/static/salcapa-material-review.css" />\n<link rel="stylesheet" href="/static/salcapa-material-suggestions.css" />',
+         '/static/salcapa-material-suggestions.css'),
         ('<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="reports">Reports</button>',
          '<button class="active" data-view="dashboard">Command Center</button><button data-view="common_operating_picture">Common Operating Picture</button><button data-view="material_review" data-salus-only="true">Information Review</button><button data-view="mission_map">Mission Map</button><button data-view="prove">PROVE — Assurance & Results</button><button data-view="reports">Reports</button>',
          'data-view="mission_map"'),
@@ -196,6 +201,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salcapa-contextual-intake.js"></script>',
          '<script src="/static/salcapa-contextual-intake.js"></script>\n<script src="/static/salcapa-material-review.js"></script>',
          '/static/salcapa-material-review.js'),
+        ('<script src="/static/salcapa-material-review.js"></script>',
+         '<script src="/static/salcapa-material-review.js"></script>\n<script src="/static/salcapa-material-suggestions.js"></script>',
+         '/static/salcapa-material-suggestions.js'),
         ('<script src="/static/guidance.js"></script>',
          '<script src="/static/guidance.js"></script>\n<script src="/static/salcapa-contextual-guidance.js"></script>',
          '/static/salcapa-contextual-guidance.js'),
