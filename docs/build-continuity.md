@@ -1,12 +1,12 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 September 2026 08:40 CDT
+last_verified_at: 10 September 2026 09:14 CDT
 current_frozen_release: v3.109
 current_frozen_commit: 361a38300faddd7e9a93153c0629739acef870a0
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 236
-active_increment: issue_236_scanned_pdf_page_rendering_design
+active_increment: issue_236_scanned_pdf_page_rendering_implementation
 last_completed_release: v3.109
 candidate_release: none
 validation_pr: none
@@ -39,9 +39,9 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Last controlled validation: [PR #249](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/249), on which all 17 required workflow families passed on exact frozen v3.109 commit [`361a38300faddd7e9a93153c0629739acef870a0`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/361a38300faddd7e9a93153c0629739acef870a0). The pull request was closed without merge.
 - Current candidate: none. Frozen v3.109 and every earlier frozen release remain immutable.
 - Genuine blockers: none.
-- Last accepted architecture: the [handwriting recognition and expanded OCR design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-handwriting-expanded-ocr-design.md) defines source-grounded printed, handwritten, mixed, targeted-region, and scanned-PDF recognition; explicit uncertainty and illegible passages; append-only correction; server-controlled language and local processor profiles; manual transcription; and a separately enabled external-provider route with data-region, retention, identity, transmission, validation, and spend controls.
-- Active product increment: design bounded scanned-PDF page rendering after embedded-text inspection, preserving exact page/region lineage and the approved local recognition controls.
-- Next authorized product increment: implement bounded scanned-PDF page rendering after the design checkpoint. The separately enabled external-provider route, maps/plans, and separately governed facial/biometric functions remain authorized follow-on increments under Issue #236.
+- Last accepted architecture: the [scanned-PDF page-rendering design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-scanned-pdf-page-rendering-design.md) extends the approved handwriting and expanded-OCR design with embedded-text-first inspection, page-specific authority and purpose, local hash-pinned rendering, exact PDF-point and rendered-pixel transforms, ephemeral page bytes, independent source comparison, and low-cost graceful degradation. Exact page coordinates and authorized geographic coordinates remain preserved and usable; only unintended disclosure paths are restricted.
+- Active product increment: implement bounded scanned-PDF page rendering after embedded-text inspection, preserving exact page/region lineage and the approved v3.109 local recognition controls.
+- Next authorized product increment: complete and validate the bounded local scanned-PDF path. Additional approved local language/layout profiles, the separately enabled external-provider route, maps/plans, and separately governed facial/biometric functions remain authorized follow-on increments under Issue #236.
 
 ## Recovery procedure
 
