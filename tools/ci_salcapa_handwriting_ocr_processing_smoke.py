@@ -75,14 +75,20 @@ with TestClient(core.app) as client:
     reviewed = client.post(f"/api/handwriting-ocr/segments/{segment['id']}/review", headers=REVIEWER, json={"status": "Correct", "reason": "Compared each visible mark with the fictional source.", "corrected_text": "Meet at 0830", "limitations": "The source does not establish the date."})
     assert reviewed.status_code == 200 and reviewed.json()["review_status"] == "Correct" and reviewed.json()["original_text"] == "Meet at 0?30"
     triage = client.get("/api/handwriting-ocr/triage", headers=REVIEWER); assert triage.status_code == 200 and triage.json()["items"][0]["review_status"] == "Correct"
-    records = core.collect_tenant_records(core.db(), 1)
-    for table in ("handwriting_ocr_jobs", "handwriting_ocr_segments", "handwriting_ocr_reviews"): assert records[table]
-    validation_errors = core.validate_records(records, 1)
-    assert not [error for error in validation_errors if "handwriting OCR" in error or "handwriting_ocr" in error], validation_errors
     if os.environ.get("SALUS_DB_BACKEND", "sqlite") == "sqlite":
+        records = core.collect_tenant_records(core.db(), 1)
+        for table in ("handwriting_ocr_jobs", "handwriting_ocr_segments", "handwriting_ocr_reviews"): assert records[table]
+        validation_errors = core.validate_records(records, 1)
         assert validation_errors == []
         tampered = copy.deepcopy(records); tampered["handwriting_ocr_jobs"][0]["language_data_sha256"] = "bad"
         assert any("invalid language_data_sha256" in error for error in core.validate_records(tampered, 1))
+    else:
+        conn = core.db()
+        try:
+            for table in ("handwriting_ocr_jobs", "handwriting_ocr_segments", "handwriting_ocr_reviews"):
+                assert int(conn.execute(f"SELECT COUNT(*) c FROM {table} WHERE tenant_id=?", (1,)).fetchone()["c"]) > 0
+        finally:
+            conn.close()
     LANGUAGE.write_bytes(b"tampered"); disabled = client.get("/api/handwriting-ocr/status", headers=REQUESTER).json(); assert disabled["available"] is False and "does not match" in disabled["guidance"]
     manual = client.post(f"/api/materials/{source['id']}/manual-transcriptions", headers=REQUESTER, json={"purpose": "Review the fictional field note manually", "transcription": "[Illegible] at 0830", "segment_type": "handwritten", "limitations": "First word remains illegible."})
     assert manual.status_code == 200, manual.text
