@@ -80,6 +80,7 @@ def main() -> None:
         "not_verified",
         "foundation_verified_not_deployed",
         "cross_functional_records_verified_not_deployed",
+        "role_preflight_verified_not_deployed",
         "verified",
     }
     assert values["critical_journey_acceptance"] in {"not_verified", "verified"}
