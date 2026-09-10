@@ -37,15 +37,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Checkout frozen image source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: release/v3.36
-          path: frozen-release
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Validate immutable image activation record and frozen source
+      - name: Parse immutable image activation record
         id: activation
         env:
           ACTIVATION_FILE: deploy/azure/activations/image-dev.json
@@ -54,15 +46,15 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.36-image-63d51360") and
             (.operation == "publish_image") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.repository == "salcapa") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.36") and
+            (.source_release | test("^release/v3\\.[0-9]+$")) and
             (.source_commit | test("^[0-9a-f]{40}$")) and
+            (.activation_key | test("^salcapa-v3\\.[0-9]+-image-[0-9a-f]{8}$")) and
             ((keys - [
               "activation_key",
               "approval_record",
@@ -79,16 +71,51 @@ jobs:
 
           SOURCE_RELEASE="$(jq -r '.source_release' "$ACTIVATION_FILE")"
           SOURCE_COMMIT="$(jq -r '.source_commit' "$ACTIVATION_FILE")"
-          test "$SOURCE_RELEASE" = "release/v3.36"
-          test "$(git -C frozen-release rev-parse HEAD)" = "$SOURCE_COMMIT"
-          git cat-file -e "$SOURCE_COMMIT^{commit}"
-          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
+          RELEASE_VERSION="${SOURCE_RELEASE#release/v}"
+          EXPECTED_ACTIVATION_KEY="salcapa-${SOURCE_RELEASE#release/}-image-${SOURCE_COMMIT:0:8}"
+          test "$(jq -r '.activation_key' "$ACTIVATION_FILE")" = "$EXPECTED_ACTIVATION_KEY"
 
           {
+            echo "source_release=$SOURCE_RELEASE"
             echo "source_commit=$SOURCE_COMMIT"
+            echo "release_version=$RELEASE_VERSION"
             echo "unique_suffix=$(jq -r '.unique_suffix' "$ACTIVATION_FILE")"
             echo "location=$(jq -r '.location' "$ACTIVATION_FILE")"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact frozen image source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.activation.outputs.source_release }}
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate exact frozen source identity
+        env:
+          SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
+          RELEASE_VERSION: ${{ steps.activation.outputs.release_version }}
+        run: |
+          set -euo pipefail
+          test "$(git -C frozen-release rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git cat-file -e "$SOURCE_COMMIT^{commit}"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
+          test -z "$(git -C frozen-release status --short)"
+          python - "$RELEASE_VERSION" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          expected = sys.argv[1]
+          runtime = Path("frozen-release/salcapa_runtime.py").read_text(encoding="utf-8")
+          match = re.search(
+              r'^SALCAPA_RELEASE_VERSION\s*=\s*["\'](?P<version>\d+\.\d+)["\']',
+              runtime,
+              re.MULTILINE,
+          )
+          if match is None or match.group("version") != expected:
+              raise SystemExit("Frozen runtime release identity does not match activation")
+          PY
 
       - name: Validate required non-secret repository variables
         env:
@@ -141,7 +168,11 @@ jobs:
           test "$(printf '%s' "$REGISTRY_ID" | tr '[:upper:]' '[:lower:]')" = "$(printf '%s/providers/microsoft.containerregistry/registries/%s' "$EXPECTED_SCOPE" "$REGISTRY_NAME" | tr '[:upper:]' '[:lower:]')"
           test "$REGISTRY_LOGIN_SERVER" = "${REGISTRY_NAME}.azurecr.io"
 
-          az role assignment list             --assignee-object-id "$DEPLOYMENT_PRINCIPAL_OBJECT_ID"             --all             --query "[].{role:roleDefinitionName,scope:scope}"             --output json > /tmp/salcapa-image-role-assignments.json
+          az role assignment list \
+            --assignee-object-id "$DEPLOYMENT_PRINCIPAL_OBJECT_ID" \
+            --all \
+            --query "[].{role:roleDefinitionName,scope:scope}" \
+            --output json > /tmp/salcapa-image-role-assignments.json
           jq -e --arg scope "$EXPECTED_SCOPE" '
             length > 0 and
             all(.[];
@@ -162,33 +193,55 @@ jobs:
           } >> "$GITHUB_OUTPUT"
         id: registry
 
-      - name: Build, verify, and publish frozen SalCAPA image
+      - name: Build, verify, and publish exact frozen SalCAPA image
         env:
           REGISTRY_NAME: ${{ steps.registry.outputs.registry_name }}
           REGISTRY_LOGIN_SERVER: ${{ steps.registry.outputs.registry_login_server }}
           SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
+          RELEASE_VERSION: ${{ steps.activation.outputs.release_version }}
         run: |
           set -euo pipefail
           IMAGE_TAG="source-$SOURCE_COMMIT"
           IMAGE_REFERENCE="$REGISTRY_LOGIN_SERVER/salcapa:$IMAGE_TAG"
 
-          EXISTING_DIGEST="$(az acr manifest show-metadata             --registry "$REGISTRY_NAME"             --name "salcapa:$IMAGE_TAG"             --query digest --output tsv 2>/dev/null || true)"
+          EXISTING_DIGEST="$(az acr manifest show-metadata \
+            --registry "$REGISTRY_NAME" \
+            --name "salcapa:$IMAGE_TAG" \
+            --query digest --output tsv 2>/dev/null || true)"
 
           if [ -z "$EXISTING_DIGEST" ]; then
-            docker build               --label "org.opencontainers.image.revision=$SOURCE_COMMIT"               --label "org.opencontainers.image.source=https://github.com/Salus-Solutions-LLC/salus-thira-command"               --tag "$IMAGE_REFERENCE"               frozen-release
+            docker build \
+              --label "org.opencontainers.image.revision=$SOURCE_COMMIT" \
+              --label "org.opencontainers.image.version=$RELEASE_VERSION" \
+              --label "org.opencontainers.image.source=https://github.com/Salus-Solutions-LLC/salus-thira-command" \
+              --tag "$IMAGE_REFERENCE" \
+              frozen-release
+            test "$(docker image inspect "$IMAGE_REFERENCE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$SOURCE_COMMIT"
+            test "$(docker image inspect "$IMAGE_REFERENCE" --format '{{index .Config.Labels "org.opencontainers.image.version"}}')" = "$RELEASE_VERSION"
             test "$(docker run --rm "$IMAGE_REFERENCE" id -u)" = "10001"
-            docker run --rm "$IMAGE_REFERENCE" python tools/verify_v333_source.py
+            docker run --rm \
+              -e SALUS_ENV=development \
+              -e SALUS_AUTH_MODE=local \
+              -e SALUS_DB_BACKEND=sqlite \
+              -e SALUS_SEED_DEMO=0 \
+              -e "EXPECTED_RELEASE_VERSION=$RELEASE_VERSION" \
+              "$IMAGE_REFERENCE" \
+              python -c 'import os; import salcapa_runtime as r; expected = os.environ["EXPECTED_RELEASE_VERSION"]; assert r.SALCAPA_RELEASE_VERSION == expected; assert r.app.state.salcapa_release_version == expected'
             az acr login --name "$REGISTRY_NAME"
             docker push "$IMAGE_REFERENCE"
           fi
 
-          IMAGE_DIGEST="$(az acr manifest show-metadata             --registry "$REGISTRY_NAME"             --name "salcapa:$IMAGE_TAG"             --query digest --output tsv)"
+          IMAGE_DIGEST="$(az acr manifest show-metadata \
+            --registry "$REGISTRY_NAME" \
+            --name "salcapa:$IMAGE_TAG" \
+            --query digest --output tsv)"
           [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           IMMUTABLE_REFERENCE="$REGISTRY_LOGIN_SERVER/salcapa@$IMAGE_DIGEST"
           echo "SALCAPA_IMAGE_DIGEST=$IMMUTABLE_REFERENCE"
           {
             echo "### SalCAPA immutable development image"
             echo ""
+            echo "- Frozen release: $RELEASE_VERSION"
             echo "- Frozen source: $SOURCE_COMMIT"
             echo "- Repository: salcapa"
             echo "- Immutable reference: $IMMUTABLE_REFERENCE"
