@@ -167,6 +167,18 @@ jobs:
       - name: PostgreSQL handwriting status boundary
         env: {SALUS_HANDWRITING_OCR_STOP_AFTER: status}
         run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - name: PostgreSQL handwriting purpose boundary
+        env: {SALUS_HANDWRITING_OCR_STOP_AFTER: purpose}
+        run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - name: PostgreSQL handwriting region boundary
+        env: {SALUS_HANDWRITING_OCR_STOP_AFTER: region}
+        run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - name: PostgreSQL handwriting response boundary
+        env: {SALUS_HANDWRITING_OCR_STOP_AFTER: response}
+        run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - name: PostgreSQL handwriting job boundary
+        env: {SALUS_HANDWRITING_OCR_STOP_AFTER: job}
+        run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
       - name: PostgreSQL handwriting preparation boundary
         env: {SALUS_HANDWRITING_OCR_STOP_AFTER: prepared}
         run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py

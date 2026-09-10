@@ -70,11 +70,16 @@ with TestClient(core.app) as client:
     assert client.get("/api/handwriting-ocr/status", headers=MEMBER).status_code == 403
     checkpoint("status")
     assert client.post(f"/api/materials/{source['id']}/handwriting-ocr-jobs", headers=REQUESTER, json={"purpose": "Unapproved general processing", "mode": "Handwritten text"}).status_code == 403
+    checkpoint("purpose")
     assert client.post(f"/api/materials/{source['id']}/handwriting-ocr-jobs", headers=REQUESTER, json={"purpose": "Review a field note", "mode": "Targeted region review"}).status_code == 422
+    checkpoint("region")
     prepared = client.post(f"/api/materials/{source['id']}/handwriting-ocr-jobs", headers=REQUESTER, json={"purpose": "Review the fictional field note", "mode": "Handwritten text", "region_x": 20, "region_y": 10, "region_width": 250, "region_height": 100})
-    assert prepared.status_code == 200, prepared.text; body = prepared.json(); job, segment = body["job"], body["segments"][0]
+    assert prepared.status_code == 200, prepared.text
+    checkpoint("response")
+    body = prepared.json(); job, segment = body["job"], body["segments"][0]
     assert job["external_processing"] == 0 and job["route"] == "Approved local profile" and job["segment_count"] == 1
     assert all(len(job[field]) == 64 for field in ("profile_snapshot_sha256", "model_sha256", "language_data_sha256", "configuration_sha256"))
+    checkpoint("job")
     assert segment["record_type"] == "Prepared Text — Derived and Unverified" and segment["review_status"] == "Awaiting Human Review"
     assert segment["original_text"] == "Meet at 0?30" and segment["region_x"] == 32 and segment["region_y"] == 28
     assert segment["alternatives"] == ["Meet at 0830", "Meet at 0930"] and segment["uncertain_spans"][0]["reason"] == "Ambiguous visible mark"
