@@ -414,8 +414,11 @@ def _journey_records(conn: Any, tenant_id: int, assessment_id: int, environment:
         ("decision_request", decision_id, "Fictional demonstration decision request prepared; awaiting authorized review."),
     ):
         if not conn.execute("SELECT id FROM cop_events WHERE tenant_id=? AND record_type=? AND record_id=? AND version_no=1", (tenant_id, record_type, record_id)).fetchone():
-            table = "cop_coordination_threads" if record_type == "coordination_thread" else "cop_decision_requests"
-            snapshot = dict(conn.execute(f"SELECT * FROM {table} WHERE id=?", (record_id,)).fetchone())
+            if record_type == "coordination_thread":
+                row = conn.execute("SELECT * FROM cop_coordination_threads WHERE id=?", (record_id,)).fetchone()
+            else:
+                row = conn.execute("SELECT * FROM cop_decision_requests WHERE id=?", (record_id,)).fetchone()
+            snapshot = dict(row)
             conn.execute(
                 """INSERT INTO cop_events(tenant_id,record_type,record_id,version_no,event_type,summary,snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
                 (tenant_id, record_type, record_id, 1, "Fixture Prepared", summary, json.dumps(snapshot, sort_keys=True, default=str), created_by, "System Administrator", timestamp),
