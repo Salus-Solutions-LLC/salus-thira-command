@@ -208,7 +208,7 @@ jobs:
           docker run --rm --network host --entrypoint python
           -e SALUS_DB_BACKEND=postgres
           -e SALUS_DATABASE_URL=${SALUS_SUGGESTION_TEST_DATABASE_URL}
-          salcapa-material-processing tools/ci_salcapa_material_suggestions_smoke.py
+          salcapa-material-processing tools/run_current_release_smoke.py tools/ci_salcapa_material_suggestions_smoke.py
       - name: PostgreSQL 16 visual and geospatial acceptance
         env:
           SALUS_VISUAL_TEST_DATABASE_URL: postgresql://salus:${{ github.run_id }}@127.0.0.1:5432/salcapa
