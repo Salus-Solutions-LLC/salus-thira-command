@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 10 September 2026 10:05 CDT
+last_verified_at: 10 September 2026 11:25 CDT
 environment: azure_development_demonstration
 deployed_release: v3.36
 deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
@@ -13,10 +13,10 @@ current_stable_release: v3.109
 current_stable_commit: 361a38300faddd7e9a93153c0629739acef870a0
 promotion_candidate: v3.109
 promotion_readiness: not_ready
-fictional_member_seed_state: not_verified
+fictional_member_seed_state: foundation_verified_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: deterministic_fictional_seed_and_upgrade_acceptance_missing
+genuine_blocker: fictional_cross_function_journey_and_upgrade_acceptance_missing
 ---
 
 # SalCAPA development demonstration continuity
@@ -34,7 +34,7 @@ This non-sensitive engineering record identifies the last verifiable Azure devel
 
 The current stable product is **v3.109** at [`361a38300faddd7e9a93153c0629739acef870a0`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/361a38300faddd7e9a93153c0629739acef870a0). The demonstration materially lags the stable product and cannot yet represent its current user-visible capabilities.
 
-Promotion is not ready because the repository does not yet contain an accepted deterministic seed/reseed implementation for the three fictional Protected Members, and the current deployment workflows remain bound to the v3.36 activation contract. The last accepted v3.36 deployment remains unchanged while those gaps are closed.
+The deterministic fixture foundation is verified in the repository: it prepares the three fictional Protected Member environments, eight bounded personas per environment, Draft baseline assessments, service pillars, manifest lineage, idempotent seed, and controlled reseed. It has not been applied to Azure and does not yet provide the substantial cross-functional records or critical journey acceptance required for promotion. The current deployment workflows also remain bound to the v3.36 activation contract. The last accepted v3.36 deployment remains unchanged while those gaps are closed.
 
 ## Promotion gates
 
@@ -58,4 +58,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Implement and validate the deterministic fictional-environment seed/reseed path under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), then generalize the promotion activation contract without weakening its frozen-source, immutable-digest, protected-environment, cost, identity, recovery, and rollback controls.
+Add and validate substantial fictional SalINTEL, SalTHIRA, SalCAPA, SalOPS, and PROVE records and their critical cross-functional journeys under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), then generalize the promotion activation contract without weakening its frozen-source, immutable-digest, protected-environment, cost, identity, recovery, and rollback controls.
