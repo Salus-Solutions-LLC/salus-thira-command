@@ -50,7 +50,6 @@ def _limits() -> None:
     resource.setrlimit(resource.RLIMIT_AS, (MAX_ADDRESS_SPACE, MAX_ADDRESS_SPACE))
     resource.setrlimit(resource.RLIMIT_FSIZE, (MAX_FILE_BYTES, MAX_FILE_BYTES))
     resource.setrlimit(resource.RLIMIT_NOFILE, (MAX_OPEN_FILES, MAX_OPEN_FILES))
-    resource.setrlimit(resource.RLIMIT_NPROC, (12, 12))
     os.umask(0o077)
 
 

@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = (
     ("salcapa_visual_object_processing.py.gz", "salcapa_visual_object_processing.py", "f03af6d9db10a70a90ef44aadb91d4b46ece67f0a58f0c691d3814881f0bde72", "819503a5bd73d5eed9ba8370a7a00fe3dc3b26bcc331c110fc3919ebf7dfec5b", 26988),
-    ("salcapa_visual_object_worker.py.gz", "tools/salcapa_visual_object_worker.py", "e868b842967bfad380e392b7c892ed82ae3cf8bc95d589e80a072c2454e3fe39", "93c746ccb839b7c10a53d59d84b999b2cd3fe0a5d517d3b3e09c3ad2713ba943", 7282),
+    ("salcapa_visual_object_worker.py.gz", "tools/salcapa_visual_object_worker.py", "b3ee4fbd2afeaba429b233187176b851a8237b0f73a2092cb604b9828404fc15", "0e242cffa7aad9bfb8aef6b14ad42f90af3e159453291aec77fc845a584896b3", 7226),
     ("ci_salcapa_visual_object_processing_smoke.py.gz", "tools/ci_salcapa_visual_object_processing_smoke.py", "9f61fafe7ee45d548e3be4708d60d33f44306ee5e29277d7ba47b5e5c870bc02", "46232f35e5858b8aa5e04761713705de5749f89544f24d8014a9c78d97e0bdb1", 7962),
     ("salcapa-visual-object-ui.js.gz", "static/salcapa-visual-geospatial.js", "451ca84d65963aaeb12ade8f256f554b7058e1a423a424cf355b0c483eac9bee", "1f63fc2cd0eee4668165e1c9ceb7070835efd00a77018763b9f5af0f5e7688ad", 14932),
 )
