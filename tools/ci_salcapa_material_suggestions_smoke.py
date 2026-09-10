@@ -277,7 +277,7 @@ def main() -> None:
     ):
         assert required in interface, required
     assert "@media print" in stylesheet
-    assert 'SALCAPA_RELEASE_VERSION = "3.107"' in runtime
+    assert 'SALCAPA_RELEASE_VERSION = "3.108"' in runtime
     assert "salcapa-material-suggestions.js" in runtime and "salcapa-material-suggestions.css" in runtime
     print("SALCAPA_MATERIAL_SUGGESTIONS_PASS", core.DB_BACKEND)
 
