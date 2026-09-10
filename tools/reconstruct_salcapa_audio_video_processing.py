@@ -18,9 +18,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salcapa_audio_video_worker.py.gz",
         ROOT / "tools/salcapa_audio_video_worker.py",
-        "104cef025da77b8fe033d4c4d36d311474730f8b5936cd399e81f446ce46c078",
-        "89c10371a66fe75b81cac01a328db0ef3ae7af83410949d6d1d2545793b888f3",
-        15822,
+        "145148129cad690a8af68b08152d65ddc2a1bfe317903e94dc855bb175c42d78",
+        "1b7c177df99d86ad333849692ded98befff5992c7c8f0d1dfd6128a92dd84cd9",
+        15976,
     ),
     (
         ROOT / "source_archives/development/ci_salcapa_audio_video_processing_smoke.py.gz",

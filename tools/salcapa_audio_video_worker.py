@@ -227,7 +227,9 @@ def _parse_srt(path: Path, duration: float) -> tuple[str, int, bool]:
 
 def _transcribe(normalized: Path, duration: float) -> tuple[str, dict, bool]:
     lineage = _verify_assets()
-    whisper_version = _version(WHISPER, "whisper.cpp")
+    # The exact executable hash in the signed build manifest is the identity
+    # control. The release binary does not expose a stable version CLI flag.
+    whisper_version = f"whisper.cpp {WHISPER_RELEASE}"
     prefix = normalized.parent / "transcript"
     result = _run([
         str(WHISPER), "-m", str(MODEL), "-f", str(normalized), "-l", "en",
