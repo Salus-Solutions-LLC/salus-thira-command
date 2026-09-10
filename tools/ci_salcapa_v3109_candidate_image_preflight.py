@@ -13,7 +13,7 @@ import subprocess
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FROZEN_ROOT = pathlib.Path(os.environ.get("SALCAPA_FROZEN_V3109_ROOT", ROOT / "frozen-v3109"))
 CONTRACT = ROOT / "deploy" / "azure" / "candidates" / "v3.109-reference-image-preflight.json"
-ACCEPTED_IMAGE = ROOT / "deploy" / "azure" / "activations" / "image-dev.json"
+IMAGE_PUBLICATION = ROOT / "deploy" / "azure" / "activations" / "image-dev.json"
 ACCEPTED_APPLICATION = ROOT / "deploy" / "azure" / "activations" / "application-dev.json"
 CONTINUITY = ROOT / "docs" / "demo-deployment-continuity.md"
 
@@ -86,10 +86,11 @@ assert 'SALCAPA_RELEASE_VERSION = "3.109"' in runtime
 assert not (FROZEN_ROOT / "salcapa_demo_fixtures.py").exists()
 assert not (FROZEN_ROOT / "tools" / "reconstruct_salcapa_demo_fixtures.py").exists()
 
-accepted_image = load_json(ACCEPTED_IMAGE)
+image_publication = load_json(IMAGE_PUBLICATION)
 accepted_application = load_json(ACCEPTED_APPLICATION)
-assert accepted_image["source_release"] == "release/v3.36"
-assert accepted_image["source_commit"] == V336_COMMIT
+assert image_publication["source_release"] == "release/v3.110"
+assert image_publication["source_commit"] == V3110_COMMIT
+assert image_publication["activation_key"] == "salcapa-v3.110-image-935f0b7b"
 assert accepted_application["source_release"] == "release/v3.36"
 assert accepted_application["source_commit"] == V336_COMMIT
 assert accepted_application["image_digest"].endswith(V336_DIGEST)
