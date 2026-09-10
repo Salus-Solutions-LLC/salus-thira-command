@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 19:32 CDT
+last_verified_at: 09 September 2026 20:13 CDT
 current_frozen_release: v3.104
 current_frozen_commit: a2e47f735a0267429f471455690cb22375f19ee9
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 131
-active_increment: audio_video_transcription_design_review
+active_increment: bounded_audio_video_transcription_implementation
 last_completed_release: v3.104
 candidate_release: none
 validation_pr: none
 validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: bounded_audio_video_transcription_design_review
+next_authorized_increment: audio_video_transcription_candidate
 ---
 
 # SalCAPA build continuity
@@ -37,12 +37,9 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Active roadmap: [Issue #131](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/131), safe derived extraction, transcription, search, and analyst triage under parent [Issue #128](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/128). The next review must preserve immutable originals, exact source-to-derived lineage, tenant/sensitivity boundaries, explicit processing state and uncertainty, and human qualification before authoritative use. [Issue #133](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/133) is completed and closed.
 - Last completed increment: the fourth bounded Issue #131 slice adds local, request-driven selected metadata review and English printed-text OCR for single-frame JPEG and PNG materials in an isolated, resource-limited process. It preserves immutable originals, exact source hashes, processor and English-language-data identity, tenant and sensitivity boundaries, search, recovery, and independent representation review. Type-mismatched, malformed, oversized, decompression-risk, and multi-frame images fail closed. Exact GPS coordinates, image interpretation, facial or biometric work, object classification, handwriting recognition, scanned-PDF rendering, external services, and network access remain excluded. Derived records remain **Derived — Unverified** and **Awaiting Human Review**; review confirms representation only and cannot establish source truth, evidence, intelligence, findings, decisions, disclosure, cost, or operational authority.
 - Last controlled validation: [PR #234](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/234), closed without merge after all 17 controlled-pull-request workflow families and the separate candidate-push validation passed on the exact frozen commit.
-- Last completed design review: [Safe image metadata and OCR design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-safe-image-ocr-extraction.md), validated by CI, CodeQL, and contextual-intake checks at `23243af9b1be71f060a44fdd1c05d72fbd3e42e5`. The approved first slice is local, request-driven metadata review and English printed-text OCR for single-frame JPEG and PNG sources. Exact GPS coordinates, broader formats and languages, image interpretation, facial or biometric work, object classification, map analysis, image enhancement, scanned-PDF rendering, and external services remain deferred.
-- Current candidate: none. Controlled [PR #234](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/234) is closed without merge.
+- Last completed design review: [Safe audio and video transcription design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-safe-audio-video-transcription.md), validated by CI, CodeQL, and contextual-intake checks at `62388d7a4a42009b56beeb82af0aa9b5b3000243`. The approved first slice accepts bounded PCM WAV, MP3, and MP4-with-one-AAC-stream sources; extracts only audio; normalizes it locally; and prepares English spoken-word review aids with a pinned, hash-verified offline model. Video analysis, speaker identity or diarization, biometrics, emotion or credibility inference, sound-event classification, language detection, translation, live monitoring, request-time downloads, external services, and cross-tenant learning remain excluded.\n- Current candidate: none. Controlled [PR #234](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/234) is closed without merge.
 - Genuine blockers: none.
-- Active product increment: conduct the separately governed audio/video transcription design review while preserving immutable originals, exact source-to-derived lineage, explicit recognition uncertainty, tenant and sensitivity boundaries, independent human review, safe resource limits, and low-cost Azure controls.
-- Next authorized product increment: establish and validate a bounded local audio/video transcription design before implementation. Scanned-PDF rendering, broader image formats and languages, photo/map interpretation, entity-suggestion, and duplicate-analysis workers remain separately gated.
-
+- Active product increment: implement the approved bounded local audio/video transcription worker under Issue #131, preserving immutable originals, source-to-normalized-audio-to-transcript lineage, explicit recognition uncertainty, tenant and sensitivity boundaries, independent human review, resource isolation, graceful manual fallback, and low-cost Azure controls.\n- Next authorized product increment: prepare and validate the v3.105 audio/video transcription candidate. Scanned-PDF rendering, broader image and media formats and languages, geospatial work, speaker-separated transcripts, entity suggestions, and duplicate analysis remain separately gated.\n
 ## Recovery procedure
 
 Before starting an increment:
