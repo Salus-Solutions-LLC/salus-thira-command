@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 September 2026 06:13 CDT
+last_verified_at: 10 September 2026 06:16 CDT
 current_frozen_release: v3.108
 current_frozen_commit: ac50c7b26bc322eb784894de9e8533c1da74649a
 active_development_branch: development/salcapa-platform
@@ -9,7 +9,7 @@ active_roadmap_issue: 236
 active_increment: issue_236_handwriting_and_expanded_ocr_design_approved
 last_completed_release: v3.108
 candidate_release: issue_236_handwriting_and_expanded_ocr_design
-validation_pr: pending
+validation_pr: 248
 validation_gate_state: validation_pending
 genuine_blockers: none
 next_authorized_increment: issue_236_handwriting_and_expanded_ocr_implementation
