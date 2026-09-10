@@ -9,7 +9,7 @@ active_roadmap_issue: 131
 active_increment: issue_131_acceptance_gap_review
 last_completed_release: v3.105
 candidate_release: none
-validation_pr: 237_closed_without_merge
+validation_pr: none
 validation_gate_state: all_required_gates_green
 genuine_blockers: none
 next_authorized_increment: issue_131_acceptance_gap_review
