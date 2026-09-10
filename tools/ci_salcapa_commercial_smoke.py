@@ -576,7 +576,7 @@ def main() -> None:
     # Management reporting is Salus-only, period-bounded, revision-safe, and explicit about uncertainty.
     report_path = (
         "/api/salcapa/commercial/management-report"
-        "?start_date=2026-09-08&end_date=2026-09-09&group_by=Product%20Line"
+        "?start_date=2026-09-08&end_date=2026-09-10&group_by=Product%20Line"
     )
     assert client.get(report_path, headers=member).status_code == 403
     other_report = client.get(report_path, headers=other)
@@ -585,11 +585,11 @@ def main() -> None:
     assert other_report.json()["totals"]["support_state"] == "Awaiting Validation"
     assert client.get(
         "/api/salcapa/commercial/management-report"
-        "?start_date=2026-09-10&end_date=2026-09-09", headers=administrator,
+        "?start_date=2026-09-11&end_date=2026-09-10", headers=administrator,
     ).status_code == 422
     assert client.get(
         "/api/salcapa/commercial/management-report"
-        "?start_date=2025-09-01&end_date=2026-09-09", headers=administrator,
+        "?start_date=2025-09-01&end_date=2026-09-10", headers=administrator,
     ).status_code == 422
     report_response = client.get(report_path, headers=administrator)
     assert report_response.status_code == 200, report_response.text
@@ -597,7 +597,7 @@ def main() -> None:
     assert report["scope"] == {
         "protected_member_id": 1,
         "start_date": "2026-09-08",
-        "end_date": "2026-09-09",
+        "end_date": "2026-09-10",
         "group_by": "Product Line",
     }
     assert report["support_state"] == "Evidence Needed"
@@ -631,7 +631,7 @@ def main() -> None:
     csv_report = client.get(report_path + "&export=csv", headers=administrator)
     assert csv_report.status_code == 200, csv_report.text
     assert csv_report.headers["content-disposition"].endswith(
-        'filename="salcapa-commercial-2026-09-08-2026-09-09.csv"'
+        'filename="salcapa-commercial-2026-09-08-2026-09-10.csv"'
     )
     assert csv_report.text.startswith("group,support_state,active_estimate_count")
     assert "SalINTEL Investigation,Evidence Needed,1,1,1,62500,18400,44100" in csv_report.text
