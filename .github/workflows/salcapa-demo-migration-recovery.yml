@@ -1,0 +1,127 @@
+name: SalCAPA Demonstration Migration and Recovery Preflight
+
+on:
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'tools/ci_salcapa_v336_migration_recovery_preflight.py'
+      - 'tools/ci_recovery_rehearsal.py'
+      - 'portable_backup.py'
+      - 'salcapa_demo_fixtures.py'
+      - 'salcapa_runtime.py'
+      - 'deploy/azure/activations/application-dev.json'
+      - 'docs/demo-deployment-continuity.md'
+      - '.github/workflows/salcapa-demo-migration-recovery.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ACCEPTED_V336_COMMIT: 63d513605f908d3308bb5dd1bbdbf1061878452b
+
+jobs:
+  sqlite-security-and-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 63d513605f908d3308bb5dd1bbdbf1061878452b
+          path: accepted-v336
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt bandit pip-audit
+      - name: Verify exact accepted source and rehearse forward migration
+        env:
+          SALCAPA_ACCEPTED_V336_ROOT: ${{ github.workspace }}/accepted-v336
+          SALUS_DB_BACKEND: sqlite
+        run: |
+          test "$(git -C accepted-v336 rev-parse HEAD)" = "$ACCEPTED_V336_COMMIT"
+          python tools/ci_salcapa_v336_migration_recovery_preflight.py
+      - name: Rehearse governed clean-room recovery and rollback authority
+        run: python tools/ci_recovery_rehearsal.py
+      - run: >-
+          bandit -q -r
+          tools/ci_salcapa_v336_migration_recovery_preflight.py
+          tools/ci_recovery_rehearsal.py
+          portable_backup.py
+          -ll
+      - run: pip-audit -r requirements.txt
+      - name: Repository hygiene
+        run: |
+          git diff --check
+          test ! -e .env
+          test ! -e id_rsa
+
+  postgres-16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: salus
+          POSTGRES_PASSWORD: salus-${{ github.run_id }}-${{ github.run_attempt }}
+          POSTGRES_DB: salcapa
+        options: >-
+          --health-cmd "pg_isready -U salus -d salcapa"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      SALCAPA_ACCEPTED_V336_ROOT: ${{ github.workspace }}/accepted-v336
+      SALUS_DB_BACKEND: postgres
+      SALUS_DATABASE_URL: postgresql://salus:salus-${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/salcapa
+      SALUS_SEED_DEMO: '0'
+      SALUS_ENV: development
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 63d513605f908d3308bb5dd1bbdbf1061878452b
+          path: accepted-v336
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: |
+          test "$(git -C accepted-v336 rev-parse HEAD)" = "$ACCEPTED_V336_COMMIT"
+          python tools/ci_salcapa_v336_migration_recovery_preflight.py
+
+  production-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 63d513605f908d3308bb5dd1bbdbf1061878452b
+          path: accepted-v336
+          persist-credentials: false
+      - run: docker build --pull=false -t salcapa-v336-migration-candidate .
+      - name: Rehearse from the exact frozen source inside the candidate container
+        run: >-
+          docker run --rm
+          -v "${{ github.workspace }}/accepted-v336:/accepted-v336:ro"
+          -e SALCAPA_ACCEPTED_V336_ROOT=/accepted-v336
+          -e SALUS_DB_BACKEND=sqlite
+          -e SALUS_ENV=development
+          -e SALUS_AUTH_MODE=local
+          -e SALUS_SEED_DEMO=0
+          salcapa-v336-migration-candidate
+          python tools/ci_salcapa_v336_migration_recovery_preflight.py
