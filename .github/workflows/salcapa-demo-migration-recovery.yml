@@ -39,6 +39,11 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt bandit pip-audit
+      - name: Reconstruct archived development capabilities
+        run: |
+          python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
+          python tools/reconstruct_salintel_monitoring.py
       - name: Verify exact accepted source and rehearse forward migration
         env:
           SALCAPA_ACCEPTED_V336_ROOT: ${{ github.workspace }}/accepted-v336
@@ -97,6 +102,11 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
+      - name: Reconstruct archived development capabilities
+        run: |
+          python tools/reconstruct_salintel_relationships.py
+          python tools/reconstruct_salintel_research.py
+          python tools/reconstruct_salintel_monitoring.py
       - run: |
           test "$(git -C accepted-v336 rev-parse HEAD)" = "$ACCEPTED_V336_COMMIT"
           python tools/ci_salcapa_v336_migration_recovery_preflight.py
