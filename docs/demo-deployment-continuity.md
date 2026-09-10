@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 10 September 2026 13:17 CDT
+last_verified_at: 10 September 2026 14:21 CDT
 environment: azure_development_demonstration
 deployed_release: v3.36
 deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
@@ -13,10 +13,10 @@ current_stable_release: v3.109
 current_stable_commit: 361a38300faddd7e9a93153c0629739acef870a0
 promotion_candidate: v3.109
 promotion_readiness: not_ready
-fictional_member_seed_state: role_preflight_verified_not_deployed
+fictional_member_seed_state: migration_recovery_rehearsal_verified_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: accepted_v336_migration_image_reporting_recovery_and_rollback_acceptance_missing
+genuine_blocker: live_v336_database_migration_candidate_image_entra_reporting_recovery_and_rollback_acceptance_missing
 ---
 
 # SalCAPA development demonstration continuity
@@ -34,7 +34,7 @@ This non-sensitive engineering record identifies the last verifiable Azure devel
 
 The current stable product is **v3.109** at [`361a38300faddd7e9a93153c0629739acef870a0`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/361a38300faddd7e9a93153c0629739acef870a0). The demonstration materially lags the stable product and cannot yet represent its current user-visible capabilities.
 
-The deterministic fixture foundation, bounded cross-functional records, and repository role/tenant preflight are verified. Salus-personnel views retain collected source context and internal coordination notes; Protected Member views exclude unqualified intelligence and internal notes. Read-only and contribution boundaries, cross-tenant decision denial, tenant-package integrity, and idempotent additive-schema application are also verified. No human review, decision, authorization, approval, release, or live deployment is represented. The fixtures have not been applied to Azure, and accepted-v3.36 database migration, Microsoft Entra identity/tenant isolation, immutable candidate-image, live reporting, recovery, and rollback acceptance remain required. The current deployment workflows also remain bound to the v3.36 activation contract. The last accepted v3.36 deployment remains unchanged while those gaps are closed.
+The deterministic fixture foundation, bounded cross-functional records, and repository role/tenant preflight are verified. An exact-source rehearsal now also checks out frozen v3.36, preserves its governed baseline through current additive migrations, verifies an immutable report snapshot, adds all three fictional environments, and restores and rolls back one tenant without changing the others. The rehearsal passed on SQLite, PostgreSQL 16, and the production container. It did not contact Azure and does not represent human review, authorization, approval, release, or live deployment. The fixtures have not been applied to Azure. Migration of an independently restored copy of the live accepted-v3.36 database, Microsoft Entra identity and tenant isolation, an immutable candidate image, live reporting, Azure recovery, and Azure rollback acceptance remain required. The current deployment workflows also remain bound to the v3.36 activation contract. The last accepted v3.36 deployment remains unchanged while those gaps are closed.
 
 ## Promotion gates
 
@@ -58,4 +58,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Prepare and validate accepted-v3.36 database migration and recovery preflight under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), then generalize the promotion activation contract without weakening its frozen-source, immutable-digest, protected-environment, cost, identity, recovery, and rollback controls.
+Prepare the immutable v3.109 candidate-image and live-acceptance preflight under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), then validate an independently restored copy of the accepted v3.36 database without weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.

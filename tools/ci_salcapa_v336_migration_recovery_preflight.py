@@ -81,7 +81,8 @@ def digest(value: Any) -> str:
 
 def git_blob_sha(path: Path) -> str:
     body = path.read_bytes()
-    return hashlib.sha1(  # nosec B324 - Git object identity is not a security digest.
+    # SHA-1 is required by the Git blob identity format, not used as a security digest.
+    return hashlib.sha1(
         f"blob {len(body)}\0".encode("ascii") + body,
         usedforsecurity=False,
     ).hexdigest()
