@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - development/**
+      - candidate/**
       - governance/**
       - release/**
   pull_request:

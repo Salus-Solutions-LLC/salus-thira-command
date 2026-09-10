@@ -2,8 +2,10 @@ name: SalCAPA PROVE Assurance
 
 on:
   push:
-    branches: [development/salcapa-platform]
+    branches: [development/salcapa-platform, candidate/**]
     paths:
+      - 'docs/build-continuity.md'
+      - 'docs/salcapa-handwriting-expanded-ocr-design.md'
       - 'salcapa_runtime.py'
       - 'tools/run_current_release_smoke.py'
       - 'source_archives/development/salcapa_assurance.py.gz'

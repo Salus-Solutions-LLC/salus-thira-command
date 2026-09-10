@@ -2,8 +2,10 @@ name: SalOPS Autonomous Plan Assembly
 
 on:
   push:
-    branches: [development/salcapa-platform]
+    branches: [development/salcapa-platform, candidate/**]
     paths:
+      - 'docs/build-continuity.md'
+      - 'docs/salcapa-handwriting-expanded-ocr-design.md'
       - 'salops_plan_assembly.py'
       - 'salcapa_runtime.py'
       - 'source_archives/development/salops_plan_assembly.py.gz'

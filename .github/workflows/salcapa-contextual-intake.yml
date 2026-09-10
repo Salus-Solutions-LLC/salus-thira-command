@@ -2,7 +2,7 @@ name: SalCAPA Contextual Intake
 
 on:
   push:
-    branches: [development/**, release/**]
+    branches: [development/**, release/**, candidate/**]
   pull_request:
     branches: [main]
   workflow_dispatch:

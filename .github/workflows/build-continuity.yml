@@ -2,8 +2,9 @@ name: SalCAPA Build Continuity
 
 on:
   push:
-    branches: [development/salcapa-platform]
+    branches: [development/salcapa-platform, candidate/**]
     paths:
+      - 'docs/salcapa-handwriting-expanded-ocr-design.md'
       - 'docs/build-continuity.md'
       - 'salcapa_runtime.py'
       - 'tools/ci_build_continuity_smoke.py'

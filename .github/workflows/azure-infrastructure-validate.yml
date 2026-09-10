@@ -32,7 +32,10 @@ on:
   push:
     branches:
       - 'development/**'
+      - 'candidate/**'
     paths:
+      - 'docs/build-continuity.md'
+      - 'docs/salcapa-handwriting-expanded-ocr-design.md'
       - 'infra/azure/**'
       - 'docs/AZURE_*.md'
       - 'docs/RELEASE_NOTES_v3.*.md'

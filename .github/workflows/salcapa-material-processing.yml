@@ -4,6 +4,7 @@ on:
   push:
     branches: [development/salcapa-platform, candidate/**]
     paths:
+      - 'docs/build-continuity.md'
       - salcapa_material_processing.py
       - salcapa_office_processing.py
       - salcapa_pdf_processing.py
