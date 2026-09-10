@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import hashlib
 import json
 import re
@@ -13,6 +14,8 @@ from zipfile import BadZipFile, ZipFile
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 REL = "http://schemas.openxmlformats.org/package/2006/relationships"
+WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+WP14 = "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
 
 
 def qn(namespace: str, tag: str) -> str:
@@ -21,6 +24,22 @@ def qn(namespace: str, tag: str) -> str:
 
 def text(root: ET.Element) -> str:
     return "".join(node.text or "" for node in root.iter(qn(W, "t")))
+
+
+def hyperlink_own_text(root: ET.Element) -> str:
+    """Return text owned by one hyperlink, excluding nested fallback hyperlinks."""
+    parts: list[str] = []
+
+    def visit(node: ET.Element) -> None:
+        for child in node:
+            if child.tag == qn(W, "hyperlink"):
+                continue
+            if child.tag == qn(W, "t"):
+                parts.append(child.text or "")
+            visit(child)
+
+    visit(root)
+    return "".join(parts)
 
 
 def main() -> None:
@@ -61,6 +80,10 @@ def main() -> None:
     internal_targets: list[str] = []
     hyperlink_rel_ids: list[str] = []
     master_toc_links = 0
+    malformed_master_toc_links = 0
+    drawing_ids: list[str] = []
+    drawing_anchor_ids: list[str] = []
+    drawing_edit_ids: list[str] = []
     if document is not None:
         for node in document.iter(qn(W, "bookmarkStart")):
             bookmark_names.append(node.get(qn(W, "name"), ""))
@@ -72,8 +95,33 @@ def main() -> None:
                 internal_targets.append(anchor)
             if rel_id:
                 hyperlink_rel_ids.append(rel_id)
-            if "MASTER TOC" in text(node).upper():
+            if "MASTER TOC" in hyperlink_own_text(node).upper():
                 master_toc_links += 1
+                if anchor != "Master_Table_of_Contents":
+                    malformed_master_toc_links += 1
+        drawing_ids = [node.get("id", "") for node in document.iter(qn(WP, "docPr"))]
+        for node in document.iter():
+            anchor_id = node.get(qn(WP14, "anchorId"))
+            edit_id = node.get(qn(WP14, "editId"))
+            if anchor_id:
+                drawing_anchor_ids.append(anchor_id)
+            if edit_id:
+                drawing_edit_ids.append(edit_id)
+
+    def duplicates(values: list[str]) -> list[str]:
+        return sorted(value for value, count in Counter(values).items() if value and count > 1)
+
+    duplicate_drawing_ids = duplicates(drawing_ids)
+    duplicate_drawing_anchor_ids = duplicates(drawing_anchor_ids)
+    duplicate_drawing_edit_ids = duplicates(drawing_edit_ids)
+    if malformed_master_toc_links:
+        problems.append(f"MASTER TOC links with incorrect internal target: {malformed_master_toc_links}")
+    if duplicate_drawing_ids:
+        problems.append("duplicate drawing IDs: " + ", ".join(duplicate_drawing_ids))
+    if duplicate_drawing_anchor_ids:
+        problems.append("duplicate drawing anchor IDs: " + ", ".join(duplicate_drawing_anchor_ids))
+    if duplicate_drawing_edit_ids:
+        problems.append("duplicate drawing edit IDs: " + ", ".join(duplicate_drawing_edit_ids))
 
     duplicate_bookmark_names = sorted({name for name in bookmark_names if name and bookmark_names.count(name) > 1})
     duplicate_bookmark_ids = sorted({value for value in bookmark_ids if value and bookmark_ids.count(value) > 1})
@@ -134,7 +182,12 @@ def main() -> None:
         "missing_hyperlink_relationships": missing_hyperlink_rels,
         "external_relationships": external_rels,
         "master_toc_body_hyperlinks": master_toc_links,
+        "malformed_master_toc_body_hyperlinks": malformed_master_toc_links,
         "master_toc_header_footer_instances": header_footer_toc,
+        "drawing_ids": len(drawing_ids),
+        "duplicate_drawing_ids": duplicate_drawing_ids,
+        "duplicate_drawing_anchor_ids": duplicate_drawing_anchor_ids,
+        "duplicate_drawing_edit_ids": duplicate_drawing_edit_ids,
         "footer_revision_hits": revision_hits,
         "status": "passed" if not problems else "failed",
         "problems": problems,
