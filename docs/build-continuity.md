@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 September 2026 22:34 CDT
+last_verified_at: 09 September 2026 22:42 CDT
 current_frozen_release: v3.105
 current_frozen_commit: 9b2e03144b1a68b64c4ce64b70536f63b47949ef
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 131
-active_increment: governed_suggestions_duplicate_design_review
+active_increment: governed_suggestions_duplicate_candidate
 last_completed_release: v3.105
 candidate_release: none
 validation_pr: none
 validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: governed_suggestions_duplicate_design_review
+next_authorized_increment: v3.106_implementation_candidate
 ---
 
 # SalCAPA build continuity
@@ -40,7 +40,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Current candidate: none.
 - Genuine blockers: none.
 - Issue #131 acceptance status: the material-processing foundation is accepted, but Issue #131 remains open. The governed [acceptance and gap review](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-material-processing-acceptance-review.md) identifies entity/date/location suggestions, duplicate/relationship review, and the integrated fictional analyst journey as the remaining work.
-- Active product increment: prepare the bounded design for governed entity/date/location suggestions and exact/near-duplicate review under Issue #131.\n- Next authorized product increment: the governed suggestions and duplicate-review design. [Issue #236](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/236) preserves the approved advanced visual-intelligence requirements—including authorized exact GPS/geospatial handling, image interpretation, object and condition classification, handwriting recognition, broader or approved external OCR, maps and floor plans, and separately governed facial/biometric capability. The bounded v3.104-v3.105 exclusions are first-slice controls, not permanent product exclusions.
+- Last completed design review: the [governed suggestions and duplicate-review design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-governed-suggestions-and-duplicate-review.md) defines local tenant-reference matching, ambiguity-preserving date/time suggestions, exact-hash duplicate review, bounded text near-duplicate comparison, immutable initial proposals, append-only correction history, and destination-specific governed-link review.\n- Active product increment: implement and validate the bounded v3.106 governed suggestions and duplicate-review candidate under Issue #131.\n- Next authorized product increment: the bounded v3.106 implementation candidate. [Issue #236](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/236) preserves the approved advanced visual-intelligence requirements—including authorized exact GPS/geospatial handling, image interpretation, object and condition classification, handwriting recognition, broader or approved external OCR, maps and floor plans, and separately governed facial/biometric capability. The bounded v3.104-v3.105 exclusions are first-slice controls, not permanent product exclusions.
 
 ## Recovery procedure
 
