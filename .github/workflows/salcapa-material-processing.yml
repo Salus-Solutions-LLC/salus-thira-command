@@ -16,12 +16,14 @@ on:
       - salcapa_material_suggestions.py
       - salcapa_visual_geospatial.py
       - salcapa_visual_object_processing.py
+      - salcapa_handwriting_ocr_processing.py
       - static/salcapa-material-review.js
       - static/salcapa-material-review.css
       - static/salcapa-material-suggestions.js
       - static/salcapa-material-suggestions.css
       - static/salcapa-visual-geospatial.js
       - static/salcapa-visual-geospatial.css
+      - static/salcapa-handwriting-ocr.js
       - tools/ci_salcapa_material_processing_smoke.py
       - tools/ci_salcapa_office_processing_smoke.py
       - tools/ci_salcapa_pdf_processing_smoke.py
@@ -32,6 +34,8 @@ on:
       - tools/salcapa_visual_geospatial_worker.py
       - tools/salcapa_visual_object_worker.py
       - tools/ci_salcapa_visual_object_processing_smoke.py
+      - tools/salcapa_handwriting_ocr_worker.py
+      - tools/ci_salcapa_handwriting_ocr_processing_smoke.py
       - tools/reconstruct_salcapa_material_processing.py
       - tools/reconstruct_salcapa_office_processing.py
       - tools/reconstruct_salcapa_pdf_processing.py
@@ -40,6 +44,7 @@ on:
       - tools/reconstruct_salcapa_material_suggestions.py
       - tools/reconstruct_salcapa_visual_geospatial.py
       - tools/reconstruct_salcapa_visual_object_processing.py
+      - tools/reconstruct_salcapa_handwriting_ocr_processing.py
       - source_archives/development/salcapa_material_processing.py.gz
       - source_archives/development/salcapa-material-review.js.gz
       - source_archives/development/salcapa-material-review.css.gz
@@ -68,6 +73,10 @@ on:
       - source_archives/development/salcapa_visual_object_worker.py.gz
       - source_archives/development/ci_salcapa_visual_object_processing_smoke.py.gz
       - source_archives/development/salcapa-visual-object-ui.js.gz
+      - source_archives/development/salcapa_handwriting_ocr_processing.py.gz
+      - source_archives/development/salcapa_handwriting_ocr_worker.py.gz
+      - source_archives/development/ci_salcapa_handwriting_ocr_processing_smoke.py.gz
+      - source_archives/development/salcapa-handwriting-ocr.js.gz
       - salcapa_runtime.py
       - Dockerfile
       - requirements.txt
@@ -98,6 +107,7 @@ jobs:
       - run: python tools/reconstruct_salcapa_material_suggestions.py
       - run: python tools/reconstruct_salcapa_visual_geospatial.py
       - run: python tools/reconstruct_salcapa_visual_object_processing.py
+      - run: python tools/reconstruct_salcapa_handwriting_ocr_processing.py
       - run: python tools/ci_salcapa_material_processing_smoke.py
       - run: python tools/ci_salcapa_office_processing_smoke.py
       - run: python tools/ci_salcapa_pdf_processing_smoke.py
@@ -106,7 +116,8 @@ jobs:
       - run: python tools/ci_salcapa_material_suggestions_smoke.py
       - run: python tools/ci_salcapa_visual_geospatial_smoke.py
       - run: python tools/ci_salcapa_visual_object_processing_smoke.py
-      - run: python -m bandit -q -r salcapa_material_processing.py salcapa_office_processing.py salcapa_pdf_processing.py salcapa_image_ocr_processing.py salcapa_audio_video_processing.py salcapa_material_suggestions.py salcapa_visual_geospatial.py salcapa_visual_object_processing.py tools/salcapa_pdf_worker.py tools/salcapa_image_ocr_worker.py tools/salcapa_audio_video_worker.py tools/salcapa_visual_geospatial_worker.py tools/salcapa_visual_object_worker.py tools/ci_salcapa_material_processing_smoke.py tools/ci_salcapa_office_processing_smoke.py tools/ci_salcapa_pdf_processing_smoke.py tools/ci_salcapa_image_ocr_processing_smoke.py tools/ci_salcapa_audio_video_processing_smoke.py tools/ci_salcapa_material_suggestions_smoke.py tools/ci_salcapa_visual_geospatial_smoke.py tools/ci_salcapa_visual_object_processing_smoke.py -ll -s B608
+      - run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
+      - run: python -m bandit -q -r salcapa_material_processing.py salcapa_office_processing.py salcapa_pdf_processing.py salcapa_image_ocr_processing.py salcapa_audio_video_processing.py salcapa_material_suggestions.py salcapa_visual_geospatial.py salcapa_visual_object_processing.py salcapa_handwriting_ocr_processing.py tools/salcapa_pdf_worker.py tools/salcapa_image_ocr_worker.py tools/salcapa_audio_video_worker.py tools/salcapa_visual_geospatial_worker.py tools/salcapa_visual_object_worker.py tools/salcapa_handwriting_ocr_worker.py tools/ci_salcapa_material_processing_smoke.py tools/ci_salcapa_office_processing_smoke.py tools/ci_salcapa_pdf_processing_smoke.py tools/ci_salcapa_image_ocr_processing_smoke.py tools/ci_salcapa_audio_video_processing_smoke.py tools/ci_salcapa_material_suggestions_smoke.py tools/ci_salcapa_visual_geospatial_smoke.py tools/ci_salcapa_visual_object_processing_smoke.py tools/ci_salcapa_handwriting_ocr_processing_smoke.py -ll -s B608
       - run: pip-audit -r requirements.txt
 
   postgres-16:
@@ -144,6 +155,7 @@ jobs:
       - run: python tools/reconstruct_salcapa_material_suggestions.py
       - run: python tools/reconstruct_salcapa_visual_geospatial.py
       - run: python tools/reconstruct_salcapa_visual_object_processing.py
+      - run: python tools/reconstruct_salcapa_handwriting_ocr_processing.py
       - run: python tools/ci_salcapa_material_processing_smoke.py
       - run: python tools/ci_salcapa_office_processing_smoke.py
       - run: python tools/ci_salcapa_pdf_processing_smoke.py
@@ -152,6 +164,7 @@ jobs:
       - run: python tools/ci_salcapa_material_suggestions_smoke.py
       - run: python tools/ci_salcapa_visual_geospatial_smoke.py
       - run: python tools/ci_salcapa_visual_object_processing_smoke.py
+      - run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
 
   production-container:
     runs-on: ubuntu-latest
@@ -179,6 +192,7 @@ jobs:
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_material_suggestions_smoke.py
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_visual_geospatial_smoke.py
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_visual_object_processing_smoke.py
+      - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_handwriting_ocr_processing_smoke.py
       - name: PostgreSQL 16 transcription acceptance
         env:
           SALUS_MEDIA_TEST_DATABASE_URL: postgresql://salus:${{ github.run_id }}@127.0.0.1:5432/salcapa
@@ -211,3 +225,11 @@ jobs:
           -e SALUS_DB_BACKEND=postgres
           -e SALUS_DATABASE_URL=${SALUS_VISUAL_OBJECT_TEST_DATABASE_URL}
           salcapa-material-processing tools/ci_salcapa_visual_object_processing_smoke.py
+      - name: PostgreSQL 16 handwriting and difficult-text acceptance
+        env:
+          SALUS_HANDWRITING_OCR_TEST_DATABASE_URL: postgresql://salus:${{ github.run_id }}@127.0.0.1:5432/salcapa
+        run: >-
+          docker run --rm --network host --entrypoint python
+          -e SALUS_DB_BACKEND=postgres
+          -e SALUS_DATABASE_URL=${SALUS_HANDWRITING_OCR_TEST_DATABASE_URL}
+          salcapa-material-processing tools/ci_salcapa_handwriting_ocr_processing_smoke.py

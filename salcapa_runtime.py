@@ -23,6 +23,7 @@ from salcapa_audio_video_processing import register_salcapa_audio_video_processi
 from salcapa_material_suggestions import register_salcapa_material_suggestions
 from salcapa_visual_geospatial import register_salcapa_visual_geospatial
 from salcapa_visual_object_processing import register_salcapa_visual_object_processing
+from salcapa_handwriting_ocr_processing import register_salcapa_handwriting_ocr_processing
 from mission_map import register_mission_map
 try:
     from salops_plan_assembly import register_salops_plan_assembly
@@ -55,9 +56,10 @@ register_salcapa_audio_video_processing(core.app, core.__dict__)
 register_salcapa_material_suggestions(core.app, core.__dict__)
 register_salcapa_visual_geospatial(core.app, core.__dict__)
 register_salcapa_visual_object_processing(core.app, core.__dict__)
+register_salcapa_handwriting_ocr_processing(core.app, core.__dict__)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.108"
+SALCAPA_RELEASE_VERSION = "3.109"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 
@@ -214,6 +216,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salcapa-material-suggestions.js"></script>',
          '<script src="/static/salcapa-material-suggestions.js"></script>\n<script src="/static/salcapa-visual-geospatial.js"></script>',
          '/static/salcapa-visual-geospatial.js'),
+        ('<script src="/static/salcapa-visual-geospatial.js"></script>',
+         '<script src="/static/salcapa-visual-geospatial.js"></script>\n<script src="/static/salcapa-handwriting-ocr.js"></script>',
+         '/static/salcapa-handwriting-ocr.js'),
         ('<script src="/static/guidance.js"></script>',
          '<script src="/static/guidance.js"></script>\n<script src="/static/salcapa-contextual-guidance.js"></script>',
          '/static/salcapa-contextual-guidance.js'),
