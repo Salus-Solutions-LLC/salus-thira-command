@@ -4,7 +4,7 @@
 **Roadmap issue:** [Issue #131](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/131)  
 **Accepted release sequence:** v3.101 through v3.106  
 **Current frozen release:** [v3.106 at `0bdc7bc8ea3233794ef3ef3ced1c3293ab63bf01`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/0bdc7bc8ea3233794ef3ef3ced1c3293ab63bf01)  
-**Decision:** Acceptance proposed; this record must pass controlled validation before Issue #131 closes.
+**Decision:** Accepted. [Controlled validation PR #239](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/239) passed all 17 required workflow families and closed without merge on 10 September 2026.
 
 ## Scope accepted
 
@@ -76,4 +76,4 @@ Issue #131 completion does not reject or cancel advanced capabilities. [Issue #2
 
 ## Final gate
 
-Issue #131 may close after this acceptance record and the Build Continuity update pass the controlled pull-request workflow set. The validation pull request must close without merge. Frozen v3.106 and every earlier release remain unchanged.
+Issue #131 is accepted for completion. Controlled PR #239 passed every required workflow family and closed without merge. Frozen v3.106 and every earlier release remain unchanged.
