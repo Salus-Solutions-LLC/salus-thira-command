@@ -101,6 +101,8 @@ for prohibited in (
     "az containerapp update",
     "az network dns",
     "customDomains:",
+    ".systemData.lastModifiedAt",
+    ".systemData.lastModifiedByType",
 ):
     if prohibited in workflow or prohibited in bicep:
         raise SystemExit(f"Live-reporting acceptance crosses a prohibited boundary: {prohibited}")
@@ -123,8 +125,8 @@ expected = {
     "source_server": "salcapa-dev-b48224-pg",
     "temporary_restore_server": "salcapa-dev-b48224-v311-report",
     "restore_lag_minutes": 15,
-    "acceptance_revision": 2,
-    "activation_key": "salcapa-v3.111-live-reporting-20260910-r2",
+    "acceptance_revision": 3,
+    "activation_key": "salcapa-v3.111-live-reporting-20260911-r3",
 }
 if record != expected:
     raise SystemExit("Live-reporting activation does not match the exact governed record")
