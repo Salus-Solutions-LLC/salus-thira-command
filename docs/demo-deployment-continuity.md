@@ -18,7 +18,7 @@ promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha2
 promotion_candidate_image_published_at: 10 September 2026 21:10 CDT
 promotion_candidate_image_workflow_run: 34553461921
 promotion_candidate_image_acceptance: immutable_image_published_not_deployed
-promotion_readiness: ready_for_governed_promotion
+promotion_readiness: preflight_ready
 fictional_member_seed_state: v311_live_copy_migration_accepted_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
