@@ -7,6 +7,7 @@ on:
       - 'salcapa_demo_fixtures.py'
       - 'salcapa_runtime.py'
       - 'tools/ci_salcapa_demo_fixtures_smoke.py'
+      - 'tools/ci_salcapa_demo_full_lifecycle_smoke.py'
       - 'tools/ci_salcapa_demo_promotion_preflight.py'
       - 'tools/reconstruct_salcapa_demo_fixtures.py'
       - 'source_archives/development/salcapa_demo_fixtures.py.gz'
@@ -32,10 +33,11 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt bandit pip-audit
       - run: python tools/reconstruct_salcapa_demo_fixtures.py
-      - run: python -m py_compile salcapa_demo_fixtures.py salcapa_runtime.py tools/ci_salcapa_demo_fixtures_smoke.py tools/ci_salcapa_demo_promotion_preflight.py
+      - run: python -m py_compile salcapa_demo_fixtures.py salcapa_runtime.py tools/ci_salcapa_demo_fixtures_smoke.py tools/ci_salcapa_demo_full_lifecycle_smoke.py tools/ci_salcapa_demo_promotion_preflight.py
       - run: python tools/ci_salcapa_demo_fixtures_smoke.py
+      - run: python tools/ci_salcapa_demo_full_lifecycle_smoke.py
       - run: python tools/ci_salcapa_demo_promotion_preflight.py
-      - run: bandit -q -r salcapa_demo_fixtures.py tools/ci_salcapa_demo_fixtures_smoke.py tools/ci_salcapa_demo_promotion_preflight.py -ll
+      - run: bandit -q -r salcapa_demo_fixtures.py tools/ci_salcapa_demo_fixtures_smoke.py tools/ci_salcapa_demo_full_lifecycle_smoke.py tools/ci_salcapa_demo_promotion_preflight.py -ll
       - run: pip-audit -r requirements.txt
       - name: Repository hygiene
         run: |
@@ -75,6 +77,7 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python tools/reconstruct_salcapa_demo_fixtures.py
       - run: python tools/ci_salcapa_demo_fixtures_smoke.py
+      - run: python tools/ci_salcapa_demo_full_lifecycle_smoke.py
       - run: python tools/ci_salcapa_demo_promotion_preflight.py
 
   production-container:
@@ -88,14 +91,21 @@ jobs:
       - run: >-
           docker run --rm
           -e SALUS_ENV=development
-          -e SALUS_AUTH_MODE=local
+          -e SALUS_AUTH_MODE=prototype
           -e SALUS_SEED_DEMO=0
           salcapa-demo-fixture-candidate
           python tools/ci_salcapa_demo_fixtures_smoke.py
       - run: >-
           docker run --rm
           -e SALUS_ENV=development
-          -e SALUS_AUTH_MODE=local
+          -e SALUS_AUTH_MODE=prototype
+          -e SALUS_SEED_DEMO=0
+          salcapa-demo-fixture-candidate
+          python tools/ci_salcapa_demo_full_lifecycle_smoke.py
+      - run: >-
+          docker run --rm
+          -e SALUS_ENV=development
+          -e SALUS_AUTH_MODE=prototype
           -e SALUS_SEED_DEMO=0
           salcapa-demo-fixture-candidate
           python tools/ci_salcapa_demo_promotion_preflight.py
