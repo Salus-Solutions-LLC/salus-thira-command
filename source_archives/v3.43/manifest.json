@@ -1,12 +1,12 @@
 {
   "format": "salcapa-source-manifest-v1",
   "version": "3.43.0",
-  "snapshot_sha256": "5746ad517305d9df803ee8496ef98549aff515d4f35b6e0274ee728dc375b858",
-  "snapshot_size_bytes": 877672,
+  "snapshot_sha256": "eeaaa6fd4e387f31fadea5a726ae7484e8d74dd5d91f18686cb43deb9c3848b2",
+  "snapshot_size_bytes": 879670,
   "files": {
     "app.py": {
-      "target_sha256": "acc432739944e65a443eea341472b230152fb76e646fd3ccd87f70e58717edc7",
-      "target_size_bytes": 439333
+      "target_sha256": "3481b5c28430766aeab643bb2716a64026983f85a3041cfc843d2f8bfa4bcc83",
+      "target_size_bytes": 441282
     },
     "material_capability.py": {
       "target_sha256": "5ca2dde6db6e104e3901dc2707dc88290010284ae331e60b61b323d072c77b82",
