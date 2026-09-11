@@ -11,10 +11,10 @@
   "candidate_release": "release/v3.111",
   "candidate_commit": "8bf4614ec79a27641c40dc1a21e1790746a08604",
   "candidate_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311",
-  "acceptance_script_sha256": "01ed44ae0fe283e123115a9192e96a4ce75bb8345529b9d7e688be874d2b8586",
+  "acceptance_script_sha256": "7f87d6ad75c98a496676af934b32253f29bc8224976b9b87f4bb782088e42929",
   "source_server": "salcapa-dev-b48224-pg",
   "temporary_restore_server": "salcapa-dev-b48224-v311-report",
   "restore_lag_minutes": 15,
-  "acceptance_revision": 1,
-  "activation_key": "salcapa-v3.111-live-reporting-20260910-r1"
+  "acceptance_revision": 2,
+  "activation_key": "salcapa-v3.111-live-reporting-20260910-r2"
 }

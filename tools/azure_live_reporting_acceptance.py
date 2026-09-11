@@ -59,9 +59,9 @@ def main() -> None:
         ]
         assert len(fixture_tenants) == 3
         baseline = conn.execute(
-            "SELECT a.id,a.tenant_id,a.mission FROM assessments a "
-            "JOIN tenants t ON t.id=a.tenant_id "
-            "WHERE COALESCE(t.fixture_key,'')='' ORDER BY a.id LIMIT 1"
+            "SELECT id,tenant_id,mission FROM assessments "
+            "WHERE tenant_id=? ORDER BY id LIMIT 1",
+            (fixture_tenants[0],),
         ).fetchone()
         assert baseline is not None
         assessment_id = int(baseline["id"])
@@ -73,7 +73,7 @@ def main() -> None:
     salus = headers(tenant_id, "SME Assessor", "isolated-report-preparer")
     member = headers(tenant_id, "Client Executive", "isolated-member-authority")
     viewer = headers(tenant_id, "Protected Member Viewer", "isolated-member-viewer")
-    other = headers(fixture_tenants[0], "Client Executive", "isolated-other-member")
+    other = headers(fixture_tenants[1], "Client Executive", "isolated-other-member")
     client = TestClient(core.app)
 
     created = client.post(f"/api/reports/{assessment_id}", headers=salus, json={})
@@ -190,6 +190,7 @@ def main() -> None:
                 "runtime_application_version": core.APP_VERSION,
                 "fictional_environment_count": len(fixture_tenants),
                 "protected_member_roles_verified": 2,
+                "fictional_records_only": True,
                 "delivery_formats_verified": 3,
                 "draft_hidden": True,
                 "cross_member_denied": True,

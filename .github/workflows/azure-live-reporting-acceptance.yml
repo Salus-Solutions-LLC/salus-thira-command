@@ -65,12 +65,12 @@ jobs:
             (.candidate_release == "release/v3.111") and
             (.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604") and
             (.candidate_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311") and
-            (.acceptance_script_sha256 == "01ed44ae0fe283e123115a9192e96a4ce75bb8345529b9d7e688be874d2b8586") and
+            (.acceptance_script_sha256 == "7f87d6ad75c98a496676af934b32253f29bc8224976b9b87f4bb782088e42929") and
             (.source_server == "salcapa-dev-b48224-pg") and
             (.temporary_restore_server == "salcapa-dev-b48224-v311-report") and
             (.restore_lag_minutes == 15) and
-            (.acceptance_revision == 1) and
-            (.activation_key == "salcapa-v3.111-live-reporting-20260910-r1") and
+            (.acceptance_revision == 2) and
+            (.activation_key == "salcapa-v3.111-live-reporting-20260910-r2") and
             ((keys - [
               "acceptance_revision", "acceptance_script_sha256", "accepted_commit",
               "accepted_image_digest", "accepted_release", "activation_key",
@@ -218,13 +218,18 @@ jobs:
             STATE="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --query properties.status --output tsv 2>/dev/null || true)"
             case "$STATE" in
               Succeeded) break ;;
-              Failed|Degraded|Stopped) echo "Live-reporting acceptance failed closed: $STATE" >&2; exit 1 ;;
+              Failed|Degraded|Stopped) break ;;
             esac
             sleep 10
           done
-          test "$STATE" = "Succeeded"
           az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container reporting-acceptance --tail 100 --format text --only-show-errors \
-            | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED]/Ig' > /tmp/acceptance.log
+            | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED]/Ig' > /tmp/acceptance.log || true
+          echo "Sanitized isolated acceptance output:"
+          cat /tmp/acceptance.log
+          if [ "$STATE" != "Succeeded" ]; then
+            echo "Live-reporting acceptance failed closed: $STATE" >&2
+            exit 1
+          fi
           grep -F '"acceptance": "LIVE_REPORTING_ACCEPTED"' /tmp/acceptance.log >/dev/null
           grep -F '"delivery_formats_verified": 3' /tmp/acceptance.log >/dev/null
           grep -F '"draft_hidden": true' /tmp/acceptance.log >/dev/null

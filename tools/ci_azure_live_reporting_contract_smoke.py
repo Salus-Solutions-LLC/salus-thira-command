@@ -11,7 +11,7 @@ WORKFLOW = ROOT / ".github" / "workflows" / "azure-live-reporting-acceptance.yml
 BICEP = ROOT / "infra" / "azure" / "live-reporting-acceptance.bicep"
 SCRIPT = ROOT / "tools" / "azure_live_reporting_acceptance.py"
 ACTIVATION = ROOT / "deploy" / "azure" / "activations" / "live-reporting-dev.json"
-SCRIPT_SHA256 = "01ed44ae0fe283e123115a9192e96a4ce75bb8345529b9d7e688be874d2b8586"
+SCRIPT_SHA256 = "7f87d6ad75c98a496676af934b32253f29bc8224976b9b87f4bb782088e42929"
 
 
 def require(value: str, content: str) -> None:
@@ -81,6 +81,8 @@ for value in (
     "industry_defaults_snapshot_json",
     "Isolated unreleased change marker",
     "status_code == 409",
+    "fixture_tenants[1]",
+    "\"fictional_records_only\": True",
     '"LIVE_REPORTING_ACCEPTED"',
     '"cross_member_denied": True',
     '"released_snapshot_immutable": True',
@@ -121,8 +123,8 @@ expected = {
     "source_server": "salcapa-dev-b48224-pg",
     "temporary_restore_server": "salcapa-dev-b48224-v311-report",
     "restore_lag_minutes": 15,
-    "acceptance_revision": 1,
-    "activation_key": "salcapa-v3.111-live-reporting-20260910-r1",
+    "acceptance_revision": 2,
+    "activation_key": "salcapa-v3.111-live-reporting-20260910-r2",
 }
 if record != expected:
     raise SystemExit("Live-reporting activation does not match the exact governed record")
