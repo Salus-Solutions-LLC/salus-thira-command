@@ -119,7 +119,7 @@ def main() -> None:
         assert values["critical_journey_acceptance"] == "verified"
         assert values["genuine_blocker"] == "none"
     elif values["promotion_readiness"] == "preflight_ready":
-        assert values["genuine_blocker"] == "none"
+        assert values["genuine_blocker"] != "none"
         assert values["deployed_release"] != values["promotion_candidate"]
     else:
         assert values["genuine_blocker"] != "none"
