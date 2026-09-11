@@ -1,14 +1,14 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 11 September 2026 10:48 CDT
+last_verified_at: 11 September 2026 17:32 CDT
 environment: azure_development_demonstration
-deployed_release: v3.36
-deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
-image_digest: sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46
-deployed_at: 06 September 2026 13:18 CDT
-deployment_workflow_run: 34051066468
-deployment_acceptance: live_runtime_readiness_accepted
+deployed_release: v3.111
+deployed_commit: 8bf4614ec79a27641c40dc1a21e1790746a08604
+image_digest: sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311
+deployed_at: 11 September 2026 11:31 CDT
+deployment_workflow_run: 34621973343
+deployment_acceptance: full_demonstration_acceptance
 current_stable_release: v3.111
 current_stable_commit: 8bf4614ec79a27641c40dc1a21e1790746a08604
 promotion_candidate: v3.111
@@ -17,12 +17,12 @@ promotion_candidate_image_digest: sha256:6df0d41dd93fa929af33793d619630f41822a41
 promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311
 promotion_candidate_image_published_at: 10 September 2026 21:10 CDT
 promotion_candidate_image_workflow_run: 34553461921
-promotion_candidate_image_acceptance: immutable_image_published_not_deployed
-promotion_readiness: preflight_ready
-fictional_member_seed_state: v311_live_copy_migration_accepted_not_deployed
-critical_journey_acceptance: not_verified
+promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
+promotion_readiness: accepted
+fictional_member_seed_state: verified
+critical_journey_acceptance: verified
 rollback_baseline: v3.36
-genuine_blocker: v311_deployment_and_three_member_acceptance_pending
+genuine_blocker: none
 ---
 
 # SalCAPA development demonstration continuity
@@ -31,16 +31,16 @@ This non-sensitive engineering record identifies the last verifiable Azure devel
 
 ## Last verifiable deployment
 
-- The most recent successful governed application deployment is [workflow run 34051066468](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34051066468), completed on **06 September 2026 at 13:18 CDT**.
-- The accepted runtime used frozen **v3.36** commit [`63d513605f908d3308bb5dd1bbdbf1061878452b`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/63d513605f908d3308bb5dd1bbdbf1061878452b) and immutable image digest `sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46`.
-- The deployment workflow verified the immutable image, managed identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, readiness endpoint, required Azure dependencies, and Entra sign-in redirect. That acceptance did **not** establish the three fictional Protected Member environments or the full Issue #124 journey acceptance.
-- No later governed application-deployment workflow run is recorded. The currently deployed version must therefore be treated as v3.36 unless a later Azure observation or deployment record proves otherwise.
+- The most recent successful governed application deployment is [workflow run 34621973343](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34621973343), completed on **11 September 2026 at 11:31 CDT**.
+- The accepted runtime uses frozen **v3.111** commit [`8bf4614ec79a27641c40dc1a21e1790746a08604`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/8bf4614ec79a27641c40dc1a21e1790746a08604) and immutable image digest `sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311`.
+- The deployment workflow verified the immutable image, managed identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, readiness endpoint, required Azure dependencies, and Entra sign-in redirect. Its fail-closed path retained exact accepted v3.36 as the rollback baseline.
+- [Live demonstration acceptance workflow 34654142382](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34654142382) completed on **11 September 2026 at 17:32 CDT** and established the three governed fictional Protected Member environments and bounded cross-functional journeys on the live development database.
 
 ## Stable-release comparison
 
-The current stable product is **v3.111** at [`8bf4614`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/8bf4614ec79a27641c40dc1a21e1790746a08604). The demonstration materially lags the stable product and cannot yet represent its current user-visible capabilities. The exact stable image is published but remains non-deployed pending the remaining acceptance gates. The earlier v3.110 image is retained as immutable evidence and must not be promoted.
+The current stable product and the maintained Azure development demonstration are aligned on **v3.111** at [`8bf4614`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/8bf4614ec79a27641c40dc1a21e1790746a08604). The exact immutable image is deployed and accepted. Frozen v3.110 and every earlier release remain unchanged.
 
-The deterministic fixture foundation, bounded cross-functional records, and repository role/tenant preflight are verified. An exact-source rehearsal now also checks out frozen v3.36, preserves its governed baseline through current additive migrations, verifies an immutable report snapshot, adds all three fictional environments, and restores and rolls back one tenant without changing the others. The rehearsal passed on SQLite, PostgreSQL 16, and the production container. It did not contact Azure and does not represent human review, authorization, approval, release, or live deployment. The fixtures have not been applied to Azure.
+The deterministic fixture foundation, bounded cross-functional records, repository role/tenant preflight, live-copy migration, reporting, Entra and tenant isolation, recovery, rollback, deployment, and live three-member acceptance are verified. The live acceptance prepared only clearly labeled fictional demonstration records through the governed fixture interface. It did not represent human review, authorization, approval, release, or a production cutover.
 
 The exact v3.109 source and image-packaging boundary is also verified. Frozen v3.109 does not contain the deterministic fixture capability, so that image remains a stable packaging reference rather than the complete Issue #124 promotion candidate. The successor work is now frozen as v3.110 after all 20 required workflow families passed on the exact release commit.
 
@@ -66,6 +66,10 @@ All 20 required workflow families passed for the repair on exact candidate commi
 
 [Azure rollback workflow run 34617040315](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34617040315) completed successfully on 11 September 2026 at 10:48 CDT. Exact frozen v3.111 and its immutable image migrated an isolated 15-minute restore and established all three fictional environments. The temporary job was then replaced with exact frozen v3.36 and the accepted immutable image; that runtime successfully read the candidate-migrated database. Source-database and accepted-application state hashes remained unchanged, and the temporary job and restored database were removed. [Controlled validation PR #291](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/291) passed all 20 required workflow families on exact head [`a90c445`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/a90c445c594cb7ff68a66c4ebb11f6107af01ed0) and was closed without merge before that exact commit advanced to development. Every pre-promotion gate is accepted.
 
+[Governed application-deployment workflow 34621973343](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34621973343) promoted exact frozen v3.111 on 11 September 2026 at 11:31 CDT after [controlled validation PR #293](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/293) passed all 20 required workflow families and closed without merge. Its post-deployment checks verified runtime readiness, identity, ingress, dependencies, immutable image, and fail-closed v3.36 rollback authority.
+
+[Live demonstration acceptance workflow 34654142382](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34654142382) passed on 11 September 2026 at 17:32 CDT. Exact frozen v3.111 prepared Aster Ridge, Cedar Vale, and Northstar on the live PostgreSQL database; verified 24 non-authenticating fictional personas, tenant-scoped portable records, role-aware SalINTEL/SalTHIRA/SalCAPA/SalOPS/PROVE journeys, internal-versus-member disclosure, viewer and contributor write denial, and cross-tenant decision denial; preserved the deployed application configuration; and removed the temporary consumption job. The first attempt had already completed the substantive walkthrough but timed out during one scale-to-zero readiness request. [Controlled validation PR #295](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/295) passed all 20 required families and closed without merge before the bounded readiness retry succeeded. No real data or human approval, decision, validation, or release is represented by the fixture states.
+
 ## Promotion gates
 
 Before any newer milestone is promoted, all of the following must be verified on the exact frozen candidate and immutable image digest:
@@ -88,4 +92,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Promote exact frozen v3.111 and its immutable image through the governed Azure application deployment under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), then perform end-to-end acceptance of the three fictional Protected Member environments. A failed promotion must preserve or restore the accepted v3.36 state.
+Preserve the accepted v3.111 operational baseline while completing the broader Issue #124 demonstration-depth follow-up for completed reports, action closure, lessons learned, and reassessment without fabricating human authority. Resume deferred roadmap work only through priority and budget control; no further Azure promotion is required until a later coherent stable milestone passes the same gates.
