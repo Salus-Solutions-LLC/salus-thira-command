@@ -628,9 +628,9 @@ jobs:
           rollback_trigger = rollback_acceptance.split('permissions:', 1)[0]
           if any(value in rollback_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
               raise SystemExit('Rollback acceptance may run only from the exact governed record push')
-          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\\b', rollback_acceptance)) < 3:
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', rollback_acceptance)) < 3:
               raise SystemExit('Development, candidate, and accepted rollback checkouts must be pinned')
-          if not re.search(r'uses: azure/login@[0-9a-f]{40}\\b', rollback_acceptance):
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', rollback_acceptance):
               raise SystemExit('Rollback acceptance Azure login action must be pinned')
           if any(value in rollback_acceptance for value in (
               'AZURE_CLIENT_SECRET',
