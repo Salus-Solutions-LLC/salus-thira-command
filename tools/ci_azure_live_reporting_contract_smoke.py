@@ -43,6 +43,9 @@ for value in (
     "trap cleanup EXIT",
     "az postgres flexible-server restore",
     "az deployment group create",
+    "ACTIONS_ID_TOKEN_REQUEST_URL",
+    '--federated-token "$FRESH_OIDC_TOKEN"',
+    "unset FRESH_OIDC_TOKEN",
     "LIVE_REPORTING_ACCEPTED",
     "Source database and running application configuration: unchanged",
     "Human authority: simulated only for this isolated acceptance",
@@ -125,8 +128,8 @@ expected = {
     "source_server": "salcapa-dev-b48224-pg",
     "temporary_restore_server": "salcapa-dev-b48224-v311-report",
     "restore_lag_minutes": 15,
-    "acceptance_revision": 3,
-    "activation_key": "salcapa-v3.111-live-reporting-20260911-r3",
+    "acceptance_revision": 4,
+    "activation_key": "salcapa-v3.111-live-reporting-20260911-r4",
 }
 if record != expected:
     raise SystemExit("Live-reporting activation does not match the exact governed record")
