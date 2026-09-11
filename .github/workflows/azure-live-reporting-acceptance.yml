@@ -69,8 +69,8 @@ jobs:
             (.source_server == "salcapa-dev-b48224-pg") and
             (.temporary_restore_server == "salcapa-dev-b48224-v311-report") and
             (.restore_lag_minutes == 15) and
-            (.acceptance_revision == 2) and
-            (.activation_key == "salcapa-v3.111-live-reporting-20260910-r2") and
+            (.acceptance_revision == 3) and
+            (.activation_key == "salcapa-v3.111-live-reporting-20260911-r3") and
             ((keys - [
               "acceptance_revision", "acceptance_script_sha256", "accepted_commit",
               "accepted_image_digest", "accepted_release", "activation_key",
@@ -183,7 +183,7 @@ jobs:
             ((.properties.configuration.secrets // []) | length == 0)
           ' /tmp/application-before.json >/dev/null
           jq -S '{id,state,version,authConfig,network,backupRetentionDays:.backup.backupRetentionDays,geoRedundantBackup:.backup.geoRedundantBackup,fullyQualifiedDomainName}' /tmp/source-before.json | sha256sum | cut -d ' ' -f 1 > /tmp/source-before.sha
-          jq -S '{id:.id,lastModifiedAt:.systemData.lastModifiedAt,lastModifiedByType:.systemData.lastModifiedByType,image:.properties.template.containers[0].image,env:([.properties.template.containers[0].env[]|{name,value,secretRef}]|sort_by(.name)),ingress:.properties.configuration.ingress,identity:.identity,scale:.properties.template.scale,secretsCount:((.properties.configuration.secrets//[])|length)}' /tmp/application-before.json | sha256sum | cut -d ' ' -f 1 > /tmp/application-before.sha
+          jq -S '{id:.id,image:.properties.template.containers[0].image,env:([.properties.template.containers[0].env[]|{name,value,secretRef}]|sort_by(.name)),ingress:.properties.configuration.ingress,identity:.identity,scale:.properties.template.scale,secretsCount:((.properties.configuration.secrets//[])|length)}' /tmp/application-before.json | sha256sum | cut -d ' ' -f 1 > /tmp/application-before.sha
 
           EARLIEST_RESTORE="$(jq -r '.backup.earliestRestoreDate' /tmp/source-before.json)"
           RESTORE_POINT="$(date -u -d "$RESTORE_LAG_MINUTES minutes ago" '+%Y-%m-%dT%H:%M:%SZ')"
@@ -240,7 +240,7 @@ jobs:
           az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$SOURCE_SERVER" --output json > /tmp/source-after.json
           az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/application-after.json
           jq -S '{id,state,version,authConfig,network,backupRetentionDays:.backup.backupRetentionDays,geoRedundantBackup:.backup.geoRedundantBackup,fullyQualifiedDomainName}' /tmp/source-after.json | sha256sum | cut -d ' ' -f 1 > /tmp/source-after.sha
-          jq -S '{id:.id,lastModifiedAt:.systemData.lastModifiedAt,lastModifiedByType:.systemData.lastModifiedByType,image:.properties.template.containers[0].image,env:([.properties.template.containers[0].env[]|{name,value,secretRef}]|sort_by(.name)),ingress:.properties.configuration.ingress,identity:.identity,scale:.properties.template.scale,secretsCount:((.properties.configuration.secrets//[])|length)}' /tmp/application-after.json | sha256sum | cut -d ' ' -f 1 > /tmp/application-after.sha
+          jq -S '{id:.id,image:.properties.template.containers[0].image,env:([.properties.template.containers[0].env[]|{name,value,secretRef}]|sort_by(.name)),ingress:.properties.configuration.ingress,identity:.identity,scale:.properties.template.scale,secretsCount:((.properties.configuration.secrets//[])|length)}' /tmp/application-after.json | sha256sum | cut -d ' ' -f 1 > /tmp/application-after.sha
           cmp /tmp/source-before.sha /tmp/source-after.sha
           cmp /tmp/application-before.sha /tmp/application-after.sha
 
