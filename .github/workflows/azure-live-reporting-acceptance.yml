@@ -69,8 +69,8 @@ jobs:
             (.source_server == "salcapa-dev-b48224-pg") and
             (.temporary_restore_server == "salcapa-dev-b48224-v311-report") and
             (.restore_lag_minutes == 15) and
-            (.acceptance_revision == 3) and
-            (.activation_key == "salcapa-v3.111-live-reporting-20260911-r3") and
+            (.acceptance_revision == 4) and
+            (.activation_key == "salcapa-v3.111-live-reporting-20260911-r4") and
             ((keys - [
               "acceptance_revision", "acceptance_script_sha256", "accepted_commit",
               "accepted_image_digest", "accepted_release", "activation_key",
@@ -117,6 +117,7 @@ jobs:
 
       - name: Restore, verify report delivery, and remove the isolated copy
         env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
           EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
@@ -194,6 +195,21 @@ jobs:
           RESTORE_FQDN="$(jq -r '.fullyQualifiedDomainName' /tmp/restored.json)"
           jq -e '.version == "16" and .state == "Ready" and .authConfig.activeDirectoryAuth == "Enabled" and .authConfig.passwordAuth == "Disabled" and .network.publicNetworkAccess == "Disabled"' /tmp/restored.json >/dev/null
           test "$RESTORE_FQDN" != "$SOURCE_FQDN"
+
+          # The database restore can outlive the five-minute GitHub OIDC assertion
+          # used by the initial Azure login. Obtain a fresh short-lived assertion
+          # without introducing a client secret or standing credential.
+          FRESH_OIDC_TOKEN="$(curl --silent --show-error --fail \
+            --header "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api://AzureADTokenExchange" | jq -er '.value')"
+          test -n "$FRESH_OIDC_TOKEN"
+          az login --service-principal --username "$AZURE_CLIENT_ID" \
+            --tenant "$EXPECTED_TENANT_ID" --federated-token "$FRESH_OIDC_TOKEN" \
+            --output none
+          unset FRESH_OIDC_TOKEN
+          az account set --subscription "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
 
           DIGEST="${CANDIDATE_IMAGE##*@}"
           test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@$DIGEST" --query digest --output tsv)" = "$DIGEST"
