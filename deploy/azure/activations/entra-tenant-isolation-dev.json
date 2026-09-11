@@ -12,6 +12,6 @@
   "candidate_commit": "8bf4614ec79a27641c40dc1a21e1790746a08604",
   "candidate_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311",
   "acceptance_script_sha256": "6ac4c05fab53f71f3dd08eb4af90852f1b7e1cc910e3617ac73d330e898746ae",
-  "acceptance_revision": 4,
-  "activation_key": "salcapa-v3.111-entra-tenant-isolation-20260911-r4"
+  "acceptance_revision": 5,
+  "activation_key": "salcapa-v3.111-entra-tenant-isolation-20260911-r5"
 }
