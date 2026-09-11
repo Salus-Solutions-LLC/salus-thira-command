@@ -206,7 +206,7 @@ def main():
             assert response.status_code == 200
             records = response.json()
             assert len(records) == 1
-            assert all(record["tenant_id"] == session["tenant_id"] for record in records)
+            assert all(record["user_id"] == session["user_id"] for record in records)
         else:
             assert response.status_code == 403
 
