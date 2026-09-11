@@ -70,8 +70,8 @@ jobs:
             (.expected_persona_count == 24) and
             (.fixture_authority == "ISSUE-124") and
             (.demonstration_acknowledgement == "FICTIONAL DEMONSTRATION DATA ONLY") and
-            (.acceptance_revision == 1) and
-            (.activation_key == "salcapa-v3.111-live-demo-20260911-r1") and
+            (.acceptance_revision == 2) and
+            (.activation_key == "salcapa-v3.111-live-demo-20260911-r2") and
             ((keys - [
               "acceptance_revision", "activation_key", "approval_record",
               "demonstration_acknowledgement", "deployment_workflow_run",
@@ -261,8 +261,17 @@ jobs:
           cmp /tmp/application-before.sha /tmp/application-after.sha
           FQDN="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/application-after.json)"
           [[ "$FQDN" == salcapa-dev-b48224.*.southcentralus.azurecontainerapps.io ]]
-          STATUS="$(curl --connect-timeout 5 --max-time 15 --silent --show-error --output /tmp/salcapa-ready.json --write-out '%{http_code}' "https://$FQDN/health/ready")"
-          test "$STATUS" = "200"
+          READY=false
+          STATUS=000
+          for attempt in $(seq 1 30); do
+            STATUS="$(curl --connect-timeout 5 --max-time 15 --silent --show-error --output /tmp/salcapa-ready.json --write-out '%{http_code}' "https://$FQDN/health/ready" || true)"
+            if [ "$STATUS" = "200" ] && python frozen-release/tools/validate_live_readiness.py /tmp/salcapa-ready.json --environment dev >/dev/null 2>&1; then
+              READY=true
+              break
+            fi
+            sleep 10
+          done
+          test "$READY" = "true"
           python frozen-release/tools/validate_live_readiness.py /tmp/salcapa-ready.json --environment dev
           curl --connect-timeout 5 --max-time 15 --silent --show-error --dump-header /tmp/salcapa-oidc.headers --output /dev/null "https://$FQDN/api/auth/oidc/start"
           OIDC_LOCATION="$(awk 'BEGIN{IGNORECASE=1} /^location:/{sub(/^[^:]+:[[:space:]]*/,""); sub(/\r$/,""); print; exit}' /tmp/salcapa-oidc.headers)"
