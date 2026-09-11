@@ -37,10 +37,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Checkout exact frozen v3.110 source
+      - name: Checkout exact frozen v3.111 source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.110
+          ref: release/v3.111
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -62,14 +62,14 @@ jobs:
             (.accepted_release == "release/v3.36") and
             (.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b") and
             (.accepted_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46") and
-            (.candidate_release == "release/v3.110") and
-            (.candidate_commit == "935f0b7bea72375adc936f7904f4f74c2eb99643") and
-            (.candidate_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:c5f7b097a12589d3799205fa60e275afd020c4c41ec975eb175d54d04d4d7b44") and
+            (.candidate_release == "release/v3.111") and
+            (.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604") and
+            (.candidate_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311") and
             (.source_server == "salcapa-dev-b48224-pg") and
-            (.temporary_restore_server == "salcapa-dev-b48224-v310-copy") and
+            (.temporary_restore_server == "salcapa-dev-b48224-v311-copy") and
             (.restore_lag_minutes == 15) and
             (.acceptance_revision | type == "number" and . >= 1) and
-            (.activation_key | test("^salcapa-v3[.]110-live-copy-[0-9]{8}-r[0-9]+$")) and
+            (.activation_key | test("^salcapa-v3[.]111-live-copy-[0-9]{8}-r[0-9]+$")) and
             ((keys - [
               "acceptance_revision", "accepted_commit", "accepted_image_digest",
               "accepted_release", "activation_key", "approval_record",
@@ -79,8 +79,8 @@ jobs:
               "unique_suffix"
             ]) | length == 0)
           ' "$ACTIVATION_FILE" >/dev/null
-          test "$(git -C frozen-release rev-parse HEAD)" = "935f0b7bea72375adc936f7904f4f74c2eb99643"
-          git merge-base --is-ancestor "935f0b7bea72375adc936f7904f4f74c2eb99643" "$GITHUB_SHA"
+          test "$(git -C frozen-release rev-parse HEAD)" = "8bf4614ec79a27641c40dc1a21e1790746a08604"
+          git merge-base --is-ancestor "8bf4614ec79a27641c40dc1a21e1790746a08604" "$GITHUB_SHA"
           jq -e '
             .source_release == "release/v3.36" and
             .source_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b" and
@@ -126,7 +126,7 @@ jobs:
           SOURCE_SERVER="$(jq -r '.source_server' "$ACTIVATION_FILE")"
           RESTORE_SERVER="$(jq -r '.temporary_restore_server' "$ACTIVATION_FILE")"
           RESTORE_LAG_MINUTES="$(jq -r '.restore_lag_minutes' "$ACTIVATION_FILE")"
-          JOB_NAME="salcapa-dev-b48224-v310-job"
+          JOB_NAME="salcapa-dev-b48224-v311-job"
           CLEANUP_REQUIRED=0
 
           cleanup() {
@@ -228,14 +228,14 @@ jobs:
           DIGEST="${CANDIDATE_IMAGE##*@}"
           test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@$DIGEST" --query digest --output tsv)" = "$DIGEST"
           az bicep build --file infra/azure/live-copy-migration-acceptance.bicep --stdout >/tmp/live-copy-migration-acceptance-arm.json
-          DEPLOYMENT_NAME="salcapa-v310-copy-acceptance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          DEPLOYMENT_NAME="salcapa-v311-copy-acceptance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           az deployment group create \
             --name "$DEPLOYMENT_NAME" \
             --resource-group "$RESOURCE_GROUP" \
             --template-file infra/azure/live-copy-migration-acceptance.bicep \
             --parameters location=southcentralus environmentName=dev uniqueSuffix=b48224 \
               imageDigest="$CANDIDATE_IMAGE" \
-              sourceCommit=935f0b7bea72375adc936f7904f4f74c2eb99643 \
+              sourceCommit=8bf4614ec79a27641c40dc1a21e1790746a08604 \
               acceptedCommit=63d513605f908d3308bb5dd1bbdbf1061878452b \
               approvalRecord=MD-APPROVAL-AZURE-LEAN-20260904 \
               restoredPostgresHost="$RESTORE_FQDN" \
@@ -311,10 +311,10 @@ jobs:
           trap - EXIT
 
           {
-            echo "### SalCAPA v3.110 live-copy migration acceptance"
+            echo "### SalCAPA v3.111 live-copy migration acceptance"
             echo ""
             echo "- Accepted source: frozen v3.36 database at a 15-minute restore point"
-            echo "- Candidate runtime: exact frozen v3.110 immutable image digest"
+            echo "- Candidate runtime: exact frozen v3.111 immutable image digest"
             echo "- Migration target: isolated temporary PostgreSQL 16 restore"
             echo "- Fictional environments: 3; visibly marked FICTIONAL DEMONSTRATION DATA ONLY"
             echo "- Demonstration personas: 24; non-authenticating fixture identities"

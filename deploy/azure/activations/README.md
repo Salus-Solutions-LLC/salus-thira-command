@@ -42,7 +42,6 @@ The first deployment uses the Azure-generated development address. It does not a
 
 ## Live-copy migration acceptance record
 
-`live-copy-migration-dev.json` is reserved for the separately governed v3.110 acceptance operation. The workflow and infrastructure contract may exist without this file and remain inert. When an exact activation record is later added or changed on `development/salcapa-platform`, the protected workflow must bind the accepted v3.36 release, commit and image digest to the frozen v3.110 release, commit and published immutable image digest.
+`live-copy-migration-dev.json` is reserved for the separately governed v3.111 acceptance operation. The workflow and infrastructure contract may exist without this file and remain inert. When an exact activation record is later added or changed on `development/salcapa-platform`, the protected workflow must bind the accepted v3.36 release, commit and image digest to the frozen v3.111 release, commit and published immutable image digest.
 
 The operation restores a fixed, temporary PostgreSQL server from the accepted database, points one non-ingress Container Apps Job only to that restored copy, applies normal additive migrations, prepares the three governed fictional demonstration environments, verifies bounded results and source/application no-change evidence, and deletes the temporary job and server. It does not deploy the application, change traffic or DNS, point the running application to the restored copy, or alter the accepted database. Live reporting, recovery, rollback, Entra user mapping, tenant isolation, and critical-journey acceptance remain separate promotion gates.
-

@@ -13,7 +13,7 @@ var stem = 'salcapa-${environmentName}-${uniqueSuffix}'
 var registryName = replace('${stem}acr', '-', '')
 var runtimeIdentityName = '${stem}-identity'
 // Azure Container Apps Job names are limited to 32 characters.
-var jobName = '${stem}-v310-job'
+var jobName = '${stem}-v311-job'
 
 resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
   name: registryName
