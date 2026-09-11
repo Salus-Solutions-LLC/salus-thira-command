@@ -28,7 +28,7 @@ assert "azure-image-publish.yml" not in trigger_prefix
 assert "pull_request:" not in trigger_prefix
 assert "workflow_dispatch:" not in trigger_prefix
 
-# This candidate activation binds publication to exact frozen v3.110. A pull
+# This candidate activation binds publication to exact frozen v3.111. A pull
 # request cannot execute the push-only publication workflow; only the validated
 # commit later advancing to the governed development branch can request it.
 assert activation == {
@@ -39,9 +39,9 @@ assert activation == {
     "location": "southcentralus",
     "unique_suffix": "b48224",
     "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-    "source_release": "release/v3.110",
-    "source_commit": "935f0b7bea72375adc936f7904f4f74c2eb99643",
-    "activation_key": "salcapa-v3.110-image-935f0b7b",
+    "source_release": "release/v3.111",
+    "source_commit": "8bf4614ec79a27641c40dc1a21e1790746a08604",
+    "activation_key": "salcapa-v3.111-image-8bf4614e",
 }
 
 # Publication is release-driven and must bind a release branch, exact commit,
