@@ -22,7 +22,7 @@ promotion_readiness: preflight_ready
 fictional_member_seed_state: v311_live_copy_migration_accepted_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: none
+genuine_blocker: v311_deployment_and_three_member_acceptance_pending
 ---
 
 # SalCAPA development demonstration continuity
