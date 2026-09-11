@@ -282,7 +282,7 @@ jobs:
           ' /tmp/application-after.json > /tmp/application-after.normalized.json
           sha256sum /tmp/application-after.normalized.json | cut -d ' ' -f 1 > /tmp/application-after.sha
           cmp /tmp/source-before.sha /tmp/source-after.sha
-          if ! cmp -s /tmp/application-before.sha /tmp/application-after.sha; then
+          if ! cmp /tmp/application-before.sha /tmp/application-after.sha; then
             echo "Accepted application preservation check detected a governed configuration change." >&2
             jq -nr \
               --slurpfile before /tmp/application-before.normalized.json \
