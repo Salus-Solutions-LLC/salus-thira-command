@@ -64,7 +64,10 @@ def main() -> None:
     assert values["validation_pr"] == "pending" or values["validation_pr"] == "none" \
         or values["validation_pr"].isdigit()
     assert values["validation_gate_state"] in {
-        "local_verified_github_pending", "github_validation_running", "all_required_gates_green"
+        "local_verified_github_pending",
+        "github_validation_running",
+        "controlled_validation_in_progress",
+        "all_required_gates_green",
     }
 
     runtime_text = RUNTIME.read_text(encoding="utf-8")
@@ -82,8 +85,14 @@ def main() -> None:
             assert values["validation_pr"] == "pending" or values["validation_pr"].isdigit()
     else:
         assert candidate_version == runtime_version
-        assert candidate_version[0] == frozen_version[0]
-        assert candidate_version[1] == frozen_version[1] + 1
+        if candidate_version == frozen_version:
+            assert values["active_increment"] == "issue_124_v311_azure_demo_promotion"
+            assert values["validation_pr"].isdigit()
+            assert values["validation_gate_state"] == "controlled_validation_in_progress"
+            assert values["genuine_blockers"] != "none"
+        else:
+            assert candidate_version[0] == frozen_version[0]
+            assert candidate_version[1] == frozen_version[1] + 1
 
     required_phrases = (
         "GitHub branches, commits, frozen releases, pull requests, workflow results, issues, and closed acceptance records.",
