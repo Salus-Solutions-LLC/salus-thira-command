@@ -65,9 +65,9 @@ jobs:
             (.candidate_release == "release/v3.111") and
             (.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604") and
             (.candidate_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311") and
-            (.acceptance_script_sha256 == "af65c07f7e56baff01e02e462aeb581a325068bd90a03a2a1787f7ca2cee6770") and
-            (.acceptance_revision == 1) and
-            (.activation_key == "salcapa-v3.111-entra-tenant-isolation-20260911-r1") and
+            (.acceptance_script_sha256 == "024fc32fc2fc3b74cb3582772388cb5b0ad87887d1df8f3f938990b99c49fab4") and
+            (.acceptance_revision == 2) and
+            (.activation_key == "salcapa-v3.111-entra-tenant-isolation-20260911-r2") and
             ((keys - [
               "acceptance_revision", "acceptance_script_sha256", "accepted_commit",
               "accepted_image_digest", "accepted_release", "activation_key",
