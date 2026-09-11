@@ -66,8 +66,8 @@ jobs:
             (.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604") and
             (.candidate_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311") and
             (.acceptance_script_sha256 == "6ac4c05fab53f71f3dd08eb4af90852f1b7e1cc910e3617ac73d330e898746ae") and
-            (.acceptance_revision == 4) and
-            (.activation_key == "salcapa-v3.111-entra-tenant-isolation-20260911-r4") and
+            (.acceptance_revision == 5) and
+            (.activation_key == "salcapa-v3.111-entra-tenant-isolation-20260911-r5") and
             ((keys - [
               "acceptance_revision", "acceptance_script_sha256", "accepted_commit",
               "accepted_image_digest", "accepted_release", "activation_key",
@@ -184,7 +184,23 @@ jobs:
           ' /tmp/discovery.json >/dev/null
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' "https://${APP_FQDN}/api/auth/session")" = "401"
 
-          jq -S '{id:.id,image:.properties.template.containers[0].image,env:([.properties.template.containers[0].env[]|{name,value,secretRef}]|sort_by(.name)),ingress:.properties.configuration.ingress,identity:.identity,scale:.properties.template.scale,secretsCount:((.properties.configuration.secrets//[])|length)}' /tmp/application-before.json | sha256sum | cut -d ' ' -f 1 > /tmp/application-before.sha
+          jq -S '
+            {
+              id:.id,
+              image:.properties.template.containers[0].image,
+              env:([.properties.template.containers[0].env[]|{name,value,secretRef}]|sort_by(.name)),
+              ingress:.properties.configuration.ingress,
+              identity:.identity,
+              scale:.properties.template.scale,
+              secretsCount:((.properties.configuration.secrets//[])|length)
+            }
+            | walk(
+                if type == "array" then sort_by(tojson)
+                elif type == "object" then with_entries(select(.value != null and .value != [] and .value != {}))
+                else . end
+              )
+          ' /tmp/application-before.json > /tmp/application-before.normalized.json
+          sha256sum /tmp/application-before.normalized.json | cut -d ' ' -f 1 > /tmp/application-before.sha
           DIGEST="${CANDIDATE_IMAGE##*@}"
           test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@$DIGEST" --query digest --output tsv)" = "$DIGEST"
           SCRIPT_BASE64="$(base64 -w 0 tools/azure_entra_tenant_acceptance.py)"
@@ -226,8 +242,34 @@ jobs:
           grep -F '"issuer_audience_replay_denied": true' /tmp/acceptance.log >/dev/null
 
           az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --output json > /tmp/application-after.json
-          jq -S '{id:.id,image:.properties.template.containers[0].image,env:([.properties.template.containers[0].env[]|{name,value,secretRef}]|sort_by(.name)),ingress:.properties.configuration.ingress,identity:.identity,scale:.properties.template.scale,secretsCount:((.properties.configuration.secrets//[])|length)}' /tmp/application-after.json | sha256sum | cut -d ' ' -f 1 > /tmp/application-after.sha
-          cmp /tmp/application-before.sha /tmp/application-after.sha
+          jq -S '
+            {
+              id:.id,
+              image:.properties.template.containers[0].image,
+              env:([.properties.template.containers[0].env[]|{name,value,secretRef}]|sort_by(.name)),
+              ingress:.properties.configuration.ingress,
+              identity:.identity,
+              scale:.properties.template.scale,
+              secretsCount:((.properties.configuration.secrets//[])|length)
+            }
+            | walk(
+                if type == "array" then sort_by(tojson)
+                elif type == "object" then with_entries(select(.value != null and .value != [] and .value != {}))
+                else . end
+              )
+          ' /tmp/application-after.json > /tmp/application-after.normalized.json
+          sha256sum /tmp/application-after.normalized.json | cut -d ' ' -f 1 > /tmp/application-after.sha
+          if ! cmp /tmp/application-before.sha /tmp/application-after.sha; then
+            echo "Accepted application preservation check detected a governed configuration change." >&2
+            jq -nr \
+              --slurpfile before /tmp/application-before.normalized.json \
+              --slurpfile after /tmp/application-after.normalized.json '
+                ([($before[0] | paths), ($after[0] | paths)] | unique)[] as $path
+                | select(($before[0] | getpath($path)) != ($after[0] | getpath($path)))
+                | "Changed governed application configuration path: " + ($path | map(tostring) | join("."))
+              ' >&2
+            exit 1
+          fi
 
           az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes
           for attempt in $(seq 1 60); do
