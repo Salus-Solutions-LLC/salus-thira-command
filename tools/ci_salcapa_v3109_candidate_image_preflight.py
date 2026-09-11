@@ -21,6 +21,7 @@ V3109_COMMIT = "361a38300faddd7e9a93153c0629739acef870a0"
 V336_COMMIT = "63d513605f908d3308bb5dd1bbdbf1061878452b"
 V336_DIGEST = "sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46"
 V3111_COMMIT = "8bf4614ec79a27641c40dc1a21e1790746a08604"
+V3111_DIGEST = "sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311"
 PINNED_BLOBS = {
     "Dockerfile": "15468459038f2ba6786d4e7693a76fda758c3c7d",
     "salcapa_runtime.py": "9f568d750613adaeebdfa22575c533586c8e3b53",
@@ -91,9 +92,12 @@ accepted_application = load_json(ACCEPTED_APPLICATION)
 assert image_publication["source_release"] == "release/v3.111"
 assert image_publication["source_commit"] == V3111_COMMIT
 assert image_publication["activation_key"] == "salcapa-v3.111-image-8bf4614e"
-assert accepted_application["source_release"] == "release/v3.36"
-assert accepted_application["source_commit"] == V336_COMMIT
-assert accepted_application["image_digest"].endswith(V336_DIGEST)
+assert accepted_application["source_release"] == "release/v3.111"
+assert accepted_application["source_commit"] == V3111_COMMIT
+assert accepted_application["image_digest"].endswith(V3111_DIGEST)
+assert accepted_application["rollback_release"] == "release/v3.36"
+assert accepted_application["rollback_commit"] == V336_COMMIT
+assert accepted_application["rollback_image_digest"].endswith(V336_DIGEST)
 
 continuity = front_matter(CONTINUITY)
 assert continuity["deployed_release"] == "v3.36"
@@ -101,8 +105,8 @@ assert continuity["deployed_commit"] == V336_COMMIT
 assert continuity["image_digest"] == V336_DIGEST
 assert continuity["current_stable_release"] == "v3.111"
 assert continuity["current_stable_commit"] == V3111_COMMIT
-assert continuity["promotion_readiness"] == "not_ready"
-assert continuity["genuine_blocker"] != "none"
+assert continuity["promotion_readiness"] == "preflight_ready"
+assert continuity["genuine_blocker"] == "none"
 
 for forbidden in ("password", "client_secret", "access_token", "connection_string"):
     assert not re.search(rf'(?i)"{forbidden}"\s*:', CONTRACT.read_text(encoding="utf-8"))
