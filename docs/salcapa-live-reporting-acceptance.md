@@ -18,6 +18,8 @@ The exact v3.111 image exercises the application routes and database together. T
 
 Named test identities and authority transitions exist only inside the temporary acceptance copy. They demonstrate the application boundary but do not represent actual Salus review, approval, release, customer communication, or operational authority.
 
+The accepted application preservation check compares stable deployment configuration: immutable image, governed environment values, ingress, identity, scale, and absence of application secrets. Azure-managed audit timestamps are excluded because they may change independently of application configuration; the contract test prohibits those volatile fields from re-entering the comparison.
+
 ## Remaining gates
 
 Successful isolated reporting acceptance does not establish Microsoft Entra user mapping, live tenant/role isolation through Entra sessions, Azure recovery, Azure rollback, application deployment, or end-to-end demonstration acceptance. Those gates remain separately required before v3.111 can replace the accepted v3.36 demonstration.
