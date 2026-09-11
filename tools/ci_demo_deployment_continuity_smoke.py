@@ -99,6 +99,7 @@ def main() -> None:
         "candidate_image_boundary_verified_not_deployed",
         "v310_publication_contract_verified_not_deployed",
         "v310_image_published_not_deployed",
+        "v311_image_published_not_deployed",
         "verified",
     }
     assert values["critical_journey_acceptance"] in {"not_verified", "verified"}
