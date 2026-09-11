@@ -1,4 +1,4 @@
-name: SalCAPA governed Azure recovery readiness verification
+name: SalCAPA governed Azure recovery acceptance
 
 on:
   push:
@@ -29,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
+      actions: read
       contents: read
       id-token: write
     steps:
@@ -37,10 +38,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Checkout frozen recovery source
+      - name: Checkout exact frozen v3.111 recovery source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.30
+          ref: release/v3.111
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -58,13 +59,25 @@ jobs:
             (.location == "southcentralus") and
             (.unique_suffix == "b48224") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.30") and
-            (.source_commit == "00c40997225eb6ade3637b45a3c1ad543e066db7") and
-            (.verification_revision == 4) and
+            (.accepted_release == "release/v3.36") and
+            (.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b") and
+            (.accepted_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46") and
+            (.source_release == "release/v3.111") and
+            (.source_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604") and
+            (.candidate_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311") and
+            (.restore_evidence_run == 34557442913) and
+            (.restore_evidence_head == "e94ffd9d55708df9513c4545227ed56dddc5c364") and
+            (.verification_revision == 5) and
             ((keys - [
+              "accepted_commit",
+              "accepted_image_digest",
+              "accepted_release",
               "approval_record",
+              "candidate_image_digest",
               "location",
               "operation",
+              "restore_evidence_head",
+              "restore_evidence_run",
               "schema_version",
               "source_commit",
               "source_release",
@@ -73,8 +86,32 @@ jobs:
               "verification_revision"
             ]) | length == 0)
           ' "$ACTIVATION_FILE" >/dev/null
-          test "$(git -C frozen-release rev-parse HEAD)" = "00c40997225eb6ade3637b45a3c1ad543e066db7"
-          git merge-base --is-ancestor "00c40997225eb6ade3637b45a3c1ad543e066db7" "$GITHUB_SHA"
+          test "$(git -C frozen-release rev-parse HEAD)" = "8bf4614ec79a27641c40dc1a21e1790746a08604"
+          git merge-base --is-ancestor "8bf4614ec79a27641c40dc1a21e1790746a08604" "$GITHUB_SHA"
+          jq -e '.source_release == "release/v3.36" and .source_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b" and .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46"' deploy/azure/activations/application-dev.json >/dev/null
+
+      - name: Verify governed point-in-time restore evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTIVATION_FILE: deploy/azure/activations/recovery-readiness-dev.json
+        run: |
+          set -euo pipefail
+          RUN_ID="$(jq -r '.restore_evidence_run' "$ACTIVATION_FILE")"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" > /tmp/restore-run.json
+          jq -e --arg head "$(jq -r '.restore_evidence_head' "$ACTIVATION_FILE")" '
+            .name == "SalCAPA governed Azure live-copy migration acceptance" and
+            .path == ".github/workflows/azure-live-copy-migration-acceptance.yml" and
+            .head_branch == "development/salcapa-platform" and
+            .head_sha == $head and
+            .status == "completed" and
+            .conclusion == "success" and
+            .run_attempt == 1
+          ' /tmp/restore-run.json >/dev/null
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs?per_page=100" > /tmp/restore-jobs.json
+          jq -e '
+            ([.jobs[] | select(.name == "authorize" and .status == "completed" and .conclusion == "success")] | length) == 1 and
+            ([.jobs[] | select(.name == "accept" and .status == "completed" and .conclusion == "success")] | length) == 1
+          ' /tmp/restore-jobs.json >/dev/null
 
       - name: Validate required non-secret repository variables
         env:
@@ -108,6 +145,9 @@ jobs:
           test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
           test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
           test "$(az group show --name "$RESOURCE_GROUP" --query location --output tsv)" = "southcentralus"
+          CANDIDATE_IMAGE="$(jq -r '.candidate_image_digest' deploy/azure/activations/recovery-readiness-dev.json)"
+          CANDIDATE_DIGEST="${CANDIDATE_IMAGE##*@}"
+          test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@$CANDIDATE_DIGEST" --query digest --output tsv)" = "$CANDIDATE_DIGEST"
 
           BASE="https://management.azure.com/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers"
           az rest --method get --url "$BASE/Microsoft.DBforPostgreSQL/flexibleServers/salcapa-dev-b48224-pg?api-version=2024-08-01" --output json > /tmp/postgres.json
@@ -195,7 +235,8 @@ jobs:
             echo "- Monitoring: Azure Monitor connected; 30-day retention; 0.1 GB/day cap"
             echo "- Budget guardrail: USD 25 operational budget inside the USD 30 ceiling"
             echo "- Active application: exact approved immutable digest"
-            echo "- Restore operation: not performed"
+            echo "- Point-in-time restore: previously performed and bound to successful governed run 34557442913"
+            echo "- Current backup, evidence retention, monitoring, budget, accepted application, and v3.111 image state: verified read-only"
             echo "- Resource mutation: none"
             echo "- Client secret: not used"
             echo "- DNS or production cutover: not performed"
