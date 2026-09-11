@@ -99,7 +99,7 @@ continuity = front_matter(CONTINUITY)
 assert continuity["deployed_release"] == "v3.36"
 assert continuity["deployed_commit"] == V336_COMMIT
 assert continuity["image_digest"] == V336_DIGEST
-assert continuity["current_stable_release"] == "v3.110"
+assert continuity["current_stable_release"] == "v3.111"
 assert continuity["current_stable_commit"] == V3110_COMMIT
 assert continuity["promotion_readiness"] == "not_ready"
 assert continuity["genuine_blocker"] != "none"

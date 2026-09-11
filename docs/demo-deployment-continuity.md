@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 10 September 2026 20:23 CDT
+last_verified_at: 10 September 2026 20:30 CDT
 environment: azure_development_demonstration
 deployed_release: v3.36
 deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
@@ -9,8 +9,8 @@ image_digest: sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a
 deployed_at: 06 September 2026 13:18 CDT
 deployment_workflow_run: 34051066468
 deployment_acceptance: live_runtime_readiness_accepted
-current_stable_release: v3.110
-current_stable_commit: 935f0b7bea72375adc936f7904f4f74c2eb99643
+current_stable_release: v3.111
+current_stable_commit: 8bf4614ec79a27641c40dc1a21e1790746a08604
 promotion_candidate: v3.110
 promotion_candidate_image_commit: 935f0b7bea72375adc936f7904f4f74c2eb99643
 promotion_candidate_image_digest: sha256:c5f7b097a12589d3799205fa60e275afd020c4c41ec975eb175d54d04d4d7b44
@@ -22,7 +22,7 @@ promotion_readiness: not_ready
 fictional_member_seed_state: v310_image_published_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: v310_report_disclosure_gate_failed_v311_validation_entra_recovery_and_rollback_acceptance_missing
+genuine_blocker: v311_image_live_reporting_entra_recovery_and_rollback_acceptance_missing
 ---
 
 # SalCAPA development demonstration continuity
@@ -38,7 +38,7 @@ This non-sensitive engineering record identifies the last verifiable Azure devel
 
 ## Stable-release comparison
 
-The current stable product is **v3.110** at [`935f0b7bea72375adc936f7904f4f74c2eb99643`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/935f0b7bea72375adc936f7904f4f74c2eb99643). The demonstration materially lags the stable product and cannot yet represent its current user-visible capabilities.
+The current stable product is **v3.111** at [`8bf4614`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/8bf4614ec79a27641c40dc1a21e1790746a08604). The demonstration materially lags the stable product and cannot yet represent its current user-visible capabilities. The last published candidate image remains v3.110 and is retained as evidence and a non-deployed fallback; it is not the current stable product and must not be promoted.
 
 The deterministic fixture foundation, bounded cross-functional records, and repository role/tenant preflight are verified. An exact-source rehearsal now also checks out frozen v3.36, preserves its governed baseline through current additive migrations, verifies an immutable report snapshot, adds all three fictional environments, and restores and rolls back one tenant without changing the others. The rehearsal passed on SQLite, PostgreSQL 16, and the production container. It did not contact Azure and does not represent human review, authorization, approval, release, or live deployment. The fixtures have not been applied to Azure.
 
@@ -52,7 +52,7 @@ The immutable-image publication workflow is release-driven and fail-closed. It r
 
 The next live-reporting gate correctly stopped promotion after proving that Protected Member roles could retrieve Draft report snapshots and mutable internal report previews. Frozen v3.110 and its published image remain unchanged and must not be promoted. The bounded v3.111 successor candidate makes report discovery and delivery release-gated: before release, Protected Members receive no report; after authorized release, JSON, CSV, and printable HTML are derived from the same immutable, hash-verified snapshot. Internal Salus previews remain available for review work. The accepted v3.36 application, traffic, and database remain unchanged.
 
-All 20 required workflow families passed for the repair on exact candidate commit [`1582ae3`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1582ae3898fd59d961d0494192e040828903107b), including the accepted-v3.36 migration rehearsal on SQLite, PostgreSQL 16, and the production container. [Validation PR #274](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/274) was closed without merge. The candidate is not deployed; a final continuity checkpoint and freeze remain required before publishing a successor image.
+All 20 required workflow families passed for the repair on exact candidate commit [`1582ae3`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1582ae3898fd59d961d0494192e040828903107b), including the accepted-v3.36 migration rehearsal on SQLite, PostgreSQL 16, and the production container. [Validation PR #274](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/274) was closed without merge. All 20 families then passed again on final checkpoint commit [`8bf4614`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/8bf4614ec79a27641c40dc1a21e1790746a08604), and [checkpoint PR #275](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/275) was closed without merge. That exact checkpoint is frozen as v3.111 and is not deployed.
 
 ## Promotion gates
 
@@ -76,4 +76,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Complete controlled validation of the v3.111 report-release boundary repair under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), then publish and test its exact immutable image against an independently restored copy of the accepted v3.36 database without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.
+Publish exact frozen v3.111 through the existing fail-closed workload-identity path under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), then test its immutable image against an independently restored copy of the accepted v3.36 database without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.

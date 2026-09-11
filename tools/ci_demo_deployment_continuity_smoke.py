@@ -105,7 +105,9 @@ def main() -> None:
 
     assert values["current_stable_release"] == build["current_frozen_release"]
     assert values["current_stable_commit"] == build["current_frozen_commit"]
-    assert values["promotion_candidate_image_commit"] == values["current_stable_commit"]
+    assert version(values["promotion_candidate"]) <= version(values["current_stable_release"])
+    if values["promotion_candidate"] == values["current_stable_release"]:
+        assert values["promotion_candidate_image_commit"] == values["current_stable_commit"]
     assert version(values["current_stable_release"]) >= version(values["deployed_release"])
     assert values["rollback_baseline"] == values["deployed_release"]
 
