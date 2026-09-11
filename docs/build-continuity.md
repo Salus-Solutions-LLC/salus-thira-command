@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 September 2026 10:48 CDT
+last_verified_at: 11 September 2026 17:32 CDT
 current_frozen_release: v3.111
 current_frozen_commit: 8bf4614ec79a27641c40dc1a21e1790746a08604
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 124
-active_increment: issue_124_v311_azure_demo_promotion
+active_increment: issue_124_full_lifecycle_demonstration_followup
 last_completed_release: v3.111
-candidate_release: v3.111
-validation_pr: 293
-validation_gate_state: controlled_validation_in_progress
-genuine_blockers: v311_deployment_and_three_member_acceptance_pending
-next_authorized_increment: issue_124_v311_azure_demo_promotion
+candidate_release: none
+validation_pr: none
+validation_gate_state: all_required_gates_green
+genuine_blockers: none
+next_authorized_increment: issue_124_full_lifecycle_demonstration_followup
 ---
 
 # SalCAPA build continuity
@@ -47,11 +47,11 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Azure rollback acceptance: [workflow run 34617040315](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34617040315) completed successfully on 11 September 2026 at 10:48 CDT. Exact frozen v3.111 and its immutable image migrated an isolated 15-minute restore and established the three fictional environments. The temporary job was then replaced with exact frozen v3.36 and its accepted immutable image, which successfully read the candidate-migrated database. Source-database and accepted-application state hashes remained unchanged, and the temporary job and restored database were removed. [Controlled validation PR #291](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/291) passed all 20 required workflow families on exact head [`a90c445`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/a90c445c594cb7ff68a66c4ebb11f6107af01ed0) and was closed without merge before that exact commit advanced to development.
 - Migration and recovery rehearsal: the accepted-v3.36 rehearsal checks out exact frozen commit [`63d513605f908d3308bb5dd1bbdbf1061878452b`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/63d513605f908d3308bb5dd1bbdbf1061878452b), verifies pinned source identities, migrates its governed demonstration baseline into the current runtime without changing accepted records, verifies immutable report-snapshot integrity, adds the three fictional environments, and exercises tenant-scoped restore and rollback without changing the other tenants. SQLite, PostgreSQL 16, and the production container passed. [Validation PR #260](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/260) passed all 19 workflow families on exact head [`98edaa7b7731d64c67761d02b0de7286fb905cbe`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/98edaa7b7731d64c67761d02b0de7286fb905cbe) and was closed without merge. No Azure resource was contacted or changed by the rehearsal.
 - Exact-image boundary: [validation PR #262](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/262) passed all 20 workflow families on exact head [`c886134cce96eb84f6e4c6896dd9ea5d6c46ab6a`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/c886134cce96eb84f6e4c6896dd9ea5d6c46ab6a) and was closed without merge. The new preflight rebuilt exact frozen v3.109, verified its pinned Dockerfile, runtime and dependency identities, checked non-root runtime packaging and source labels, and produced trace evidence without publication, deployment, traffic, cost, or Azure changes. It also verified that v3.109 predates the Issue #124 fixture capability and therefore cannot by itself satisfy the maintained-demonstration requirement.
-- Remaining gate to the first stable demonstration: governed v3.111 deployment and end-to-end acceptance of the three fictional Protected Member environments. Live reporting, Microsoft Entra identity/tenant isolation, Azure recovery, and Azure rollback are accepted. The accepted Azure deployment remains unchanged on v3.36 until deployment succeeds.
-- Demonstration checkpoint: the [governed demonstration continuity record](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/demo-deployment-continuity.md) verifies that the most recent successful application-deployment workflow promoted v3.36 at `63d513605f908d3308bb5dd1bbdbf1061878452b` on 06 September 2026 at 13:18 CDT. Its acceptance covered live runtime readiness and identity/dependency configuration, not the full three-member Issue #124 journey.
+- First stable unified demonstration baseline: accepted. Exact frozen v3.111 is deployed, and live end-to-end acceptance of the three fictional Protected Member environments completed in workflow run 34654142382 on 11 September 2026 at 17:32 CDT. No user action is required to keep the accepted baseline available.
+- Demonstration checkpoint: the [governed demonstration continuity record](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/demo-deployment-continuity.md) records exact v3.111 deployment workflow 34621973343 and live three-member acceptance workflow 34654142382. The bounded acceptance used the normal governed fixture interface, preserved the application image, identity, ingress, traffic, DNS, scale, and secret configuration, and removed its temporary consumption job.
 - Last accepted architecture: the [scanned-PDF page-rendering design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-scanned-pdf-page-rendering-design.md) extends the approved handwriting and expanded-OCR design with embedded-text-first inspection, page-specific authority and purpose, local hash-pinned rendering, exact PDF-point and rendered-pixel transforms, ephemeral page bytes, independent source comparison, and low-cost graceful degradation. Exact page coordinates and authorized geographic coordinates remain preserved and usable; only unintended disclosure paths are restricted.
-- Active product increment: coherently promote exact frozen v3.111 and its immutable image to the maintained Azure demonstration.
-- Next authorized product increment: governed v3.111 demonstration promotion, followed by end-to-end acceptance of all three fictional Protected Member environments. The approved bounded scanned-PDF path and later Issue #236 capabilities remain preserved follow-on work.
+- Active product increment: preserve the accepted operational baseline while completing the broader Issue #124 demonstration-depth follow-up for completed reports, closure, lessons learned, and reassessment without fabricating human approval.
+- Next authorized product increment: complete the remaining Issue #124 full-lifecycle demonstration depth at minimum cost, then resume the highest-priority preserved roadmap work. The approved bounded scanned-PDF path and later Issue #236 capabilities remain preserved follow-on work.
 
 ## Recovery procedure
 
