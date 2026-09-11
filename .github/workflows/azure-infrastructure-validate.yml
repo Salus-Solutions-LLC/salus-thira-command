@@ -450,12 +450,19 @@ jobs:
               'permissions: {}',
               'needs: authorize',
               'id-token: write',
+              'ref: release/v3.111',
               'ref: release/v3.36',
-              '.source_release == "release/v3.36"',
-              '.activation_key == "salcapa-v3.36-application-63d51360"',
-              '.image_digest | test(',
+              '.source_release == "release/v3.111"',
+              '.source_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              '.activation_key == "salcapa-v3.111-application-8bf4614e"',
+              '.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311"',
+              '.rollback_release == "release/v3.36"',
+              '.rollback_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46"',
               'path: frozen-release',
+              'path: accepted-release',
               'git -C frozen-release rev-parse HEAD',
+              'git -C accepted-release rev-parse HEAD',
               'git merge-base --is-ancestor',
               'passwordAuth --output tsv)" = "Disabled"',
               'publicNetworkAccess --output tsv)" = "Disabled"',
@@ -502,6 +509,11 @@ jobs:
               '[REDACTED]',
               '/api/auth/oidc/start',
               'login.microsoftonline.com/$EXPECTED_TENANT_ID/oauth2/v2.0/authorize',
+              "if: failure() && steps.deployment.outcome == 'success'",
+              'az containerapp update',
+              '--image "$ROLLBACK_IMAGE"',
+              'accepted-release/tools/validate_live_readiness.py',
+              'PROMOTION_FAILED_ACCEPTED_STATE_RESTORED',
               'Minimum replicas: 0',
               'Maximum replicas: 1',
               'Client secret: not used',
@@ -519,8 +531,8 @@ jobs:
               )
           if re.search(r'^  (pull_request|workflow_dispatch|schedule):', application_deployment, re.MULTILINE):
               raise SystemExit('Application deployment may run only from the exact governed record push')
-          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', application_deployment)) < 2:
-              raise SystemExit('Both application-deployment checkouts must be pinned to commit SHAs')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', application_deployment)) < 3:
+              raise SystemExit('Development, candidate, and accepted application checkouts must be pinned')
           if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', application_deployment):
               raise SystemExit('Application-deployment Azure login action must be pinned to a commit SHA')
           if 'AZURE_CLIENT_SECRET' in application_deployment or ':latest' in application_deployment:
