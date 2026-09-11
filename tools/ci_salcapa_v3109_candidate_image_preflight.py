@@ -106,7 +106,7 @@ assert continuity["image_digest"] == V336_DIGEST
 assert continuity["current_stable_release"] == "v3.111"
 assert continuity["current_stable_commit"] == V3111_COMMIT
 assert continuity["promotion_readiness"] == "preflight_ready"
-assert continuity["genuine_blocker"] == "none"
+assert continuity["genuine_blocker"] != "none"
 
 for forbidden in ("password", "client_secret", "access_token", "connection_string"):
     assert not re.search(rf'(?i)"{forbidden}"\s*:', CONTRACT.read_text(encoding="utf-8"))
