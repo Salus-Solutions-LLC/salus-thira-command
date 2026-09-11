@@ -8,7 +8,7 @@ Image publication occurs only when `deploy/azure/activations/image-dev.json` cha
 
 The activation record must identify one `release/v3.<number>` branch and its exact 40-character commit. Its activation key is derived from that release and commit. Unknown fields, a mismatched key, an unrecognized environment, or a commit that is not an ancestor of the activating development commit fails closed.
 
-The candidate activation identifies exact frozen v3.110 at `935f0b7bea72375adc936f7904f4f74c2eb99643`. Validation in a pull request cannot publish the image because publication is limited to a change to this record on `development/salcapa-platform`. Advancing the exact validated commit to that branch is the separate governed publication request.
+The candidate activation identifies exact frozen v3.111 at `8bf4614ec79a27641c40dc1a21e1790746a08604`. Validation in a pull request cannot publish the image because publication is limited to a change to this record on `development/salcapa-platform`. Advancing the exact validated commit to that branch is the separate governed publication request.
 
 ## Source and image identity
 
