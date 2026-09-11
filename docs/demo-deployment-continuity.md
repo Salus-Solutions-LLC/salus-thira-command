@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 10 September 2026 20:11 CDT
+last_verified_at: 10 September 2026 20:23 CDT
 environment: azure_development_demonstration
 deployed_release: v3.36
 deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
@@ -51,6 +51,8 @@ The immutable-image publication workflow is release-driven and fail-closed. It r
 [Live-copy migration workflow run 34545773447](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34545773447) completed successfully on 10 September 2026 at 19:29 CDT. It restored a 15-minute point-in-time copy of the accepted v3.36 PostgreSQL database, ran exact frozen v3.110 from the published immutable digest, applied additive migration and deterministic fictional fixtures, and verified three fictional environments, 24 governed personas, three Draft baseline assessments, and three cross-functional journey records. It proved that the source database and running application configuration were unchanged, then removed the temporary Container Apps job and restored database. This acceptance does not constitute deployment or traffic change. Microsoft Entra identity and tenant isolation, live reporting, Azure recovery, and Azure rollback acceptance remain required.
 
 The next live-reporting gate correctly stopped promotion after proving that Protected Member roles could retrieve Draft report snapshots and mutable internal report previews. Frozen v3.110 and its published image remain unchanged and must not be promoted. The bounded v3.111 successor candidate makes report discovery and delivery release-gated: before release, Protected Members receive no report; after authorized release, JSON, CSV, and printable HTML are derived from the same immutable, hash-verified snapshot. Internal Salus previews remain available for review work. The accepted v3.36 application, traffic, and database remain unchanged.
+
+All 20 required workflow families passed for the repair on exact candidate commit [`1582ae3`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1582ae3898fd59d961d0494192e040828903107b), including the accepted-v3.36 migration rehearsal on SQLite, PostgreSQL 16, and the production container. [Validation PR #274](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/274) was closed without merge. The candidate is not deployed; a final continuity checkpoint and freeze remain required before publishing a successor image.
 
 ## Promotion gates
 
