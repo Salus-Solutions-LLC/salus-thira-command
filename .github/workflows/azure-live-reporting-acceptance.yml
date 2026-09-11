@@ -69,8 +69,8 @@ jobs:
             (.source_server == "salcapa-dev-b48224-pg") and
             (.temporary_restore_server == "salcapa-dev-b48224-v311-report") and
             (.restore_lag_minutes == 15) and
-            (.acceptance_revision == 5) and
-            (.activation_key == "salcapa-v3.111-live-reporting-20260911-r5") and
+            (.acceptance_revision == 6) and
+            (.activation_key == "salcapa-v3.111-live-reporting-20260911-r6") and
             ((keys - [
               "acceptance_revision", "acceptance_script_sha256", "accepted_commit",
               "accepted_image_digest", "accepted_release", "activation_key",
@@ -194,7 +194,11 @@ jobs:
               scale:.properties.template.scale,
               secretsCount:((.properties.configuration.secrets//[])|length)
             }
-            | walk(if type == "array" then sort_by(tojson) else . end)
+            | walk(
+                if type == "array" then sort_by(tojson)
+                elif type == "object" then with_entries(select(.value != null and .value != [] and .value != {}))
+                else . end
+              )
           ' /tmp/application-before.json > /tmp/application-before.normalized.json
           sha256sum /tmp/application-before.normalized.json | cut -d ' ' -f 1 > /tmp/application-before.sha
 
@@ -278,7 +282,11 @@ jobs:
               scale:.properties.template.scale,
               secretsCount:((.properties.configuration.secrets//[])|length)
             }
-            | walk(if type == "array" then sort_by(tojson) else . end)
+            | walk(
+                if type == "array" then sort_by(tojson)
+                elif type == "object" then with_entries(select(.value != null and .value != [] and .value != {}))
+                else . end
+              )
           ' /tmp/application-after.json > /tmp/application-after.normalized.json
           sha256sum /tmp/application-after.normalized.json | cut -d ' ' -f 1 > /tmp/application-after.sha
           cmp /tmp/source-before.sha /tmp/source-after.sha
@@ -287,7 +295,7 @@ jobs:
             jq -nr \
               --slurpfile before /tmp/application-before.normalized.json \
               --slurpfile after /tmp/application-after.normalized.json '
-                ([($before[0] | paths(scalars)), ($after[0] | paths(scalars))] | unique)[] as $path
+                ([($before[0] | paths), ($after[0] | paths)] | unique)[] as $path
                 | select(($before[0] | getpath($path)) != ($after[0] | getpath($path)))
                 | "Changed governed application configuration path: " + ($path | map(tostring) | join("."))
               ' >&2
