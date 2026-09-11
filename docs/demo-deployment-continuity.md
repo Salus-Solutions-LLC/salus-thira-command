@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 11 September 2026 10:18 CDT
+last_verified_at: 11 September 2026 10:48 CDT
 environment: azure_development_demonstration
 deployed_release: v3.36
 deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
@@ -18,11 +18,11 @@ promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha2
 promotion_candidate_image_published_at: 10 September 2026 21:10 CDT
 promotion_candidate_image_workflow_run: 34553461921
 promotion_candidate_image_acceptance: immutable_image_published_not_deployed
-promotion_readiness: not_ready
+promotion_readiness: ready_for_governed_promotion
 fictional_member_seed_state: v311_live_copy_migration_accepted_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: v311_rollback_acceptance_missing
+genuine_blocker: none
 ---
 
 # SalCAPA development demonstration continuity
@@ -62,7 +62,9 @@ All 20 required workflow families passed for the repair on exact candidate commi
 
 [Microsoft Entra and tenant-isolation workflow run 34613330596](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34613330596) completed successfully on 11 September 2026 at 10:01 CDT. It verified the accepted v3.36 demonstration's tenant-specific Entra discovery, exact redirect, passwordless managed-identity client authentication, no-runtime-secret configuration, and anonymous-session denial. Exact frozen v3.111 and its immutable image then passed an isolated three-fictional-tenant exercise proving server-derived tenant, role, and clearance; cross-tenant audit isolation; and denial of unknown, disabled, foreign-tenant, invalid-issuer, invalid-audience, and replay cases. No interactive human login was represented. The accepted application, database, and traffic remained unchanged, and the temporary consumption job was removed. [Controlled validation PR #288](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/288) passed all 20 required workflow families on exact head [`22de9cc`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/22de9cc1841a136ce75acdb436fb7fb99b67ca36) and was closed without merge before that exact commit advanced to development.
 
-[Azure recovery workflow run 34615239853](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34615239853) completed successfully on 11 September 2026 at 10:18 CDT. It bound the successful governed 15-minute point-in-time restore and exact-v3.111 migration evidence from run 34557442913 to fresh read-only verification of PostgreSQL recovery availability, versioned evidence retention, monitoring, budget controls, the accepted v3.36 application state, and the published immutable v3.111 image. It used workload identity, provisioned no resources, repeated no restore, and changed no accepted application, database, DNS, or traffic state. [Controlled validation PR #289](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/289) passed all 20 required workflow families on exact head [`aa1d008`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/aa1d0085ddff836ca9391d1fdefb585584f3d48a) and was closed without merge before that exact commit advanced to development. Recovery is accepted; rollback remains the final pre-promotion gate.
+[Azure recovery workflow run 34615239853](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34615239853) completed successfully on 11 September 2026 at 10:18 CDT. It bound the successful governed 15-minute point-in-time restore and exact-v3.111 migration evidence from run 34557442913 to fresh read-only verification of PostgreSQL recovery availability, versioned evidence retention, monitoring, budget controls, the accepted v3.36 application state, and the published immutable v3.111 image. It used workload identity, provisioned no resources, repeated no restore, and changed no accepted application, database, DNS, or traffic state. [Controlled validation PR #289](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/289) passed all 20 required workflow families on exact head [`aa1d008`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/aa1d0085ddff836ca9391d1fdefb585584f3d48a) and was closed without merge before that exact commit advanced to development. Recovery is accepted.
+
+[Azure rollback workflow run 34617040315](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34617040315) completed successfully on 11 September 2026 at 10:48 CDT. Exact frozen v3.111 and its immutable image migrated an isolated 15-minute restore and established all three fictional environments. The temporary job was then replaced with exact frozen v3.36 and the accepted immutable image; that runtime successfully read the candidate-migrated database. Source-database and accepted-application state hashes remained unchanged, and the temporary job and restored database were removed. [Controlled validation PR #291](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/291) passed all 20 required workflow families on exact head [`a90c445`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/a90c445c594cb7ff68a66c4ebb11f6107af01ed0) and was closed without merge before that exact commit advanced to development. Every pre-promotion gate is accepted.
 
 ## Promotion gates
 
@@ -86,4 +88,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Verify Azure rollback for exact frozen v3.111 under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), without changing the accepted application, database, traffic, or human authority and without weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.
+Promote exact frozen v3.111 and its immutable image through the governed Azure application deployment under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), then perform end-to-end acceptance of the three fictional Protected Member environments. A failed promotion must preserve or restore the accepted v3.36 state.
