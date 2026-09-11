@@ -65,9 +65,9 @@ jobs:
             (.candidate_release == "release/v3.111") and
             (.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604") and
             (.candidate_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311") and
-            (.acceptance_script_sha256 == "024fc32fc2fc3b74cb3582772388cb5b0ad87887d1df8f3f938990b99c49fab4") and
-            (.acceptance_revision == 2) and
-            (.activation_key == "salcapa-v3.111-entra-tenant-isolation-20260911-r2") and
+            (.acceptance_script_sha256 == "6ac4c05fab53f71f3dd08eb4af90852f1b7e1cc910e3617ac73d330e898746ae") and
+            (.acceptance_revision == 3) and
+            (.activation_key == "salcapa-v3.111-entra-tenant-isolation-20260911-r3") and
             ((keys - [
               "acceptance_revision", "acceptance_script_sha256", "accepted_commit",
               "accepted_image_digest", "accepted_release", "activation_key",
@@ -224,7 +224,7 @@ jobs:
           grep -F '"cross_tenant_visibility_denied": true' /tmp/acceptance.log >/dev/null
           grep -F '"unknown_disabled_foreign_denied": true' /tmp/acceptance.log >/dev/null
           grep -F '"issuer_audience_replay_denied": true' /tmp/acceptance.log >/dev/null
-          grep -F '"managed_identity_no_client_secret": true' /tmp/acceptance.log >/dev/null
+          grep -F '"passwordless_runtime_verified": true' /tmp/acceptance.log >/dev/null
 
           az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --output json > /tmp/application-after.json
           jq -S '{id:.id,image:.properties.template.containers[0].image,env:([.properties.template.containers[0].env[]|{name,value,secretRef}]|sort_by(.name)),ingress:.properties.configuration.ingress,identity:.identity,scale:.properties.template.scale,secretsCount:((.properties.configuration.secrets//[])|length)}' /tmp/application-after.json | sha256sum | cut -d ' ' -f 1 > /tmp/application-after.sha
