@@ -1,0 +1,327 @@
+name: SalCAPA governed Azure rollback acceptance
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - 'deploy/azure/activations/rollback-dev.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-rollback-acceptance-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - name: Record protected rollback acceptance approval gate passage
+        run: echo "Protected SalCAPA development rollback acceptance gate passed."
+
+  accept:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact frozen v3.111 candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.111
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout exact frozen v3.36 rollback baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.36
+          path: accepted-release
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate immutable rollback acceptance record
+        id: activation
+        env:
+          ACTIVATION_FILE: deploy/azure/activations/rollback-dev.json
+        run: |
+          set -euo pipefail
+          jq -e '
+            type == "object" and
+            (.schema_version == 1) and
+            (.operation == "accept_rollback") and
+            (.target_environment == "dev") and
+            (.location == "southcentralus") and
+            (.unique_suffix == "b48224") and
+            (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
+            (.accepted_release == "release/v3.36") and
+            (.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b") and
+            (.accepted_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46") and
+            (.candidate_release == "release/v3.111") and
+            (.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604") and
+            (.candidate_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311") and
+            (.source_server == "salcapa-dev-b48224-pg") and
+            (.temporary_restore_server == "salcapa-dev-b48224-v311-rollback") and
+            (.restore_lag_minutes == 15) and
+            (.acceptance_revision | type == "number" and . >= 1) and
+            (.activation_key | test("^salcapa-v3[.]111-rollback-[0-9]{8}-r[0-9]+$")) and
+            ((keys - [
+              "acceptance_revision", "accepted_commit", "accepted_image_digest",
+              "accepted_release", "activation_key", "approval_record",
+              "candidate_commit", "candidate_image_digest", "candidate_release",
+              "location", "operation", "restore_lag_minutes", "schema_version",
+              "source_server", "target_environment", "temporary_restore_server",
+              "unique_suffix"
+            ]) | length == 0)
+          ' "$ACTIVATION_FILE" >/dev/null
+          test "$(git -C frozen-release rev-parse HEAD)" = "8bf4614ec79a27641c40dc1a21e1790746a08604"
+          test "$(git -C accepted-release rev-parse HEAD)" = "63d513605f908d3308bb5dd1bbdbf1061878452b"
+          git merge-base --is-ancestor "8bf4614ec79a27641c40dc1a21e1790746a08604" "$GITHUB_SHA"
+          git merge-base --is-ancestor "63d513605f908d3308bb5dd1bbdbf1061878452b" "$GITHUB_SHA"
+          jq -e '
+            .source_release == "release/v3.36" and
+            .source_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b" and
+            .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46"
+          ' deploy/azure/activations/application-dev.json >/dev/null
+          {
+            echo "candidate_image=$(jq -r '.candidate_image_digest' "$ACTIVATION_FILE")"
+            echo "accepted_image=$(jq -r '.accepted_image_digest' "$ACTIVATION_FILE")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate required non-secret repository variables
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+        run: |
+          set -euo pipefail
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_RESOURCE_GROUP AZURE_LOCATION; do
+            test -n "${!name}" || { echo "Missing repository variable: $name" >&2; exit 1; }
+          done
+          test "$AZURE_RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$AZURE_LOCATION" = "southcentralus"
+
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Rehearse candidate then accepted-image rollback on an isolated restore
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          CANDIDATE_IMAGE: ${{ steps.activation.outputs.candidate_image }}
+          ACCEPTED_IMAGE: ${{ steps.activation.outputs.accepted_image }}
+          ACTIVATION_FILE: deploy/azure/activations/rollback-dev.json
+        run: |
+          set -euo pipefail
+          SOURCE_SERVER="$(jq -r '.source_server' "$ACTIVATION_FILE")"
+          RESTORE_SERVER="$(jq -r '.temporary_restore_server' "$ACTIVATION_FILE")"
+          RESTORE_LAG_MINUTES="$(jq -r '.restore_lag_minutes' "$ACTIVATION_FILE")"
+          JOB_NAME="salcapa-dev-b48224-rollback-job"
+          CLEANUP_REQUIRED=0
+
+          cleanup() {
+            exit_code=$?
+            trap - EXIT
+            set +e
+            az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes >/dev/null 2>&1
+            if [ "$CLEANUP_REQUIRED" = "1" ]; then
+              az postgres flexible-server delete --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" --yes >/dev/null 2>&1
+            fi
+            for attempt in $(seq 1 60); do
+              ! az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" >/dev/null 2>&1 && break
+              sleep 5
+            done
+            for attempt in $(seq 1 90); do
+              ! az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" >/dev/null 2>&1 && break
+              sleep 10
+            done
+            if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" >/dev/null 2>&1 ||
+               az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" >/dev/null 2>&1; then
+              echo "Temporary rollback acceptance cleanup did not converge." >&2
+              exit 1
+            fi
+            exit "$exit_code"
+          }
+          trap cleanup EXIT
+
+          run_job() {
+            local phase="$1"
+            local expected_marker="$2"
+            local execution_name state
+            execution_name="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv)"
+            test -n "$execution_name"
+            state=""
+            for attempt in $(seq 1 120); do
+              state="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$execution_name" --query properties.status --output tsv 2>/dev/null || true)"
+              case "$state" in
+                Succeeded) break ;;
+                Failed|Degraded|Stopped)
+                  echo "Rollback acceptance phase $phase failed closed: $state" >&2
+                  exit 1
+                  ;;
+              esac
+              sleep 10
+            done
+            test "$state" = "Succeeded"
+            az containerapp job logs show               --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME"               --execution "$execution_name" --container rollback-acceptance               --tail 100 --format text --only-show-errors               | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED]/Ig'               > "/tmp/${phase}.log"
+            grep -F "$expected_marker" "/tmp/${phase}.log" >/dev/null
+          }
+
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show --name "$RESOURCE_GROUP" --query location --output tsv)" = "southcentralus"
+          if az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" >/dev/null 2>&1 ||
+             az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" >/dev/null 2>&1; then
+            echo "Fail closed: a temporary rollback acceptance resource already exists." >&2
+            exit 1
+          fi
+
+          az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$SOURCE_SERVER" --output json > /tmp/source-before.json
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/application-before.json
+          SOURCE_FQDN="$(jq -r '.fullyQualifiedDomainName' /tmp/source-before.json)"
+          jq -e '
+            .version == "16" and .state == "Ready" and
+            .authConfig.activeDirectoryAuth == "Enabled" and
+            .authConfig.passwordAuth == "Disabled" and
+            .network.publicNetworkAccess == "Disabled" and
+            .backup.backupRetentionDays == 14 and
+            (.backup.earliestRestoreDate | type == "string" and length > 10)
+          ' /tmp/source-before.json >/dev/null
+          jq -e --arg accepted_image "$ACCEPTED_IMAGE" --arg source_host "$SOURCE_FQDN" '
+            .properties.template.containers[0].image == $accepted_image and
+            ([.properties.template.containers[0].env[] | select(.name == "SALUS_POSTGRES_HOST") | .value] == [$source_host]) and
+            .properties.configuration.ingress.allowInsecure == false and
+            ((.properties.configuration.secrets // []) | length == 0)
+          ' /tmp/application-before.json >/dev/null
+          jq -S '{id,state,version,authConfig,network,backupRetentionDays:.backup.backupRetentionDays,geoRedundantBackup:.backup.geoRedundantBackup,fullyQualifiedDomainName}' /tmp/source-before.json | sha256sum | cut -d ' ' -f 1 > /tmp/source-before.sha
+          jq -S '{
+            id:.id,
+            lastModifiedAt:.systemData.lastModifiedAt,
+            lastModifiedByType:.systemData.lastModifiedByType,
+            image:.properties.template.containers[0].image,
+            env:([.properties.template.containers[0].env[] | {name,value,secretRef}] | sort_by(.name)),
+            ingress:{
+              external:.properties.configuration.ingress.external,
+              allowInsecure:.properties.configuration.ingress.allowInsecure,
+              targetPort:.properties.configuration.ingress.targetPort,
+              transport:.properties.configuration.ingress.transport,
+              fqdn:.properties.configuration.ingress.fqdn,
+              clientCertificateMode:.properties.configuration.ingress.clientCertificateMode,
+              traffic:([.properties.configuration.ingress.traffic[] | {revisionName,label,latestRevision,weight}] | sort_by(.revisionName,.label))
+            },
+            identity:{
+              type:.identity.type,
+              userAssignedIdentities:(.identity.userAssignedIdentities | to_entries | sort_by(.key))
+            },
+            scale:.properties.template.scale,
+            secretsCount:((.properties.configuration.secrets // []) | length)
+          }' /tmp/application-before.json | sha256sum | cut -d ' ' -f 1 > /tmp/application-before.sha
+
+          EARLIEST_RESTORE="$(jq -r '.backup.earliestRestoreDate' /tmp/source-before.json)"
+          RESTORE_POINT="$(date -u -d "$RESTORE_LAG_MINUTES minutes ago" '+%Y-%m-%dT%H:%M:%SZ')"
+          test "$(date -u -d "$RESTORE_POINT" +%s)" -ge "$(date -u -d "$EARLIEST_RESTORE" +%s)"
+          CLEANUP_REQUIRED=1
+          az postgres flexible-server restore             --resource-group "$RESOURCE_GROUP"             --name "$RESTORE_SERVER"             --source-server "$SOURCE_SERVER"             --restore-time "$RESTORE_POINT"             --yes             --output none
+          az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" --output json > /tmp/restored.json
+          RESTORE_FQDN="$(jq -r '.fullyQualifiedDomainName' /tmp/restored.json)"
+          jq -e '
+            .version == "16" and .state == "Ready" and
+            .authConfig.activeDirectoryAuth == "Enabled" and
+            .authConfig.passwordAuth == "Disabled" and
+            .network.publicNetworkAccess == "Disabled"
+          ' /tmp/restored.json >/dev/null
+          test "$RESTORE_FQDN" != "$SOURCE_FQDN"
+
+          for image in "$CANDIDATE_IMAGE" "$ACCEPTED_IMAGE"; do
+            digest="${image##*@}"
+            test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@$digest" --query digest --output tsv)" = "$digest"
+          done
+          az bicep build --file infra/azure/rollback-acceptance.bicep --stdout >/tmp/rollback-acceptance-arm.json
+
+          CANDIDATE_DEPLOYMENT="salcapa-v311-rollback-candidate-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          az deployment group create             --name "$CANDIDATE_DEPLOYMENT"             --resource-group "$RESOURCE_GROUP"             --template-file infra/azure/rollback-acceptance.bicep             --parameters location=southcentralus environmentName=dev uniqueSuffix=b48224               imageDigest="$CANDIDATE_IMAGE"               sourceCommit=8bf4614ec79a27641c40dc1a21e1790746a08604               acceptedCommit=63d513605f908d3308bb5dd1bbdbf1061878452b               approvalRecord=MD-APPROVAL-AZURE-LEAN-20260904               restoredPostgresHost="$RESTORE_FQDN"               phase=candidate             --output none
+          test "$(az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query properties.template.containers[0].image --output tsv)" = "$CANDIDATE_IMAGE"
+          run_job candidate '"environment_count": 3'
+          grep -F '"persona_count": 24' /tmp/candidate.log >/dev/null
+          grep -F '"assessment_count": 3' /tmp/candidate.log >/dev/null
+          grep -F '"display_label": "FICTIONAL DEMONSTRATION DATA ONLY"' /tmp/candidate.log >/dev/null
+
+          ROLLBACK_DEPLOYMENT="salcapa-v311-rollback-accepted-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          az deployment group create             --name "$ROLLBACK_DEPLOYMENT"             --resource-group "$RESOURCE_GROUP"             --template-file infra/azure/rollback-acceptance.bicep             --parameters location=southcentralus environmentName=dev uniqueSuffix=b48224               imageDigest="$ACCEPTED_IMAGE"               sourceCommit=63d513605f908d3308bb5dd1bbdbf1061878452b               acceptedCommit=63d513605f908d3308bb5dd1bbdbf1061878452b               approvalRecord=MD-APPROVAL-AZURE-LEAN-20260904               restoredPostgresHost="$RESTORE_FQDN"               phase=accepted             --output none
+          test "$(az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query properties.template.containers[0].image --output tsv)" = "$ACCEPTED_IMAGE"
+          test "$(az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query tags.rollbackPhase --output tsv)" = "accepted"
+          test "$(az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query tags.acceptedCommit --output tsv)" = "63d513605f908d3308bb5dd1bbdbf1061878452b"
+          run_job accepted 'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE'
+
+          az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$SOURCE_SERVER" --output json > /tmp/source-after.json
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/application-after.json
+          jq -S '{id,state,version,authConfig,network,backupRetentionDays:.backup.backupRetentionDays,geoRedundantBackup:.backup.geoRedundantBackup,fullyQualifiedDomainName}' /tmp/source-after.json | sha256sum | cut -d ' ' -f 1 > /tmp/source-after.sha
+          jq -S '{
+            id:.id,
+            lastModifiedAt:.systemData.lastModifiedAt,
+            lastModifiedByType:.systemData.lastModifiedByType,
+            image:.properties.template.containers[0].image,
+            env:([.properties.template.containers[0].env[] | {name,value,secretRef}] | sort_by(.name)),
+            ingress:{
+              external:.properties.configuration.ingress.external,
+              allowInsecure:.properties.configuration.ingress.allowInsecure,
+              targetPort:.properties.configuration.ingress.targetPort,
+              transport:.properties.configuration.ingress.transport,
+              fqdn:.properties.configuration.ingress.fqdn,
+              clientCertificateMode:.properties.configuration.ingress.clientCertificateMode,
+              traffic:([.properties.configuration.ingress.traffic[] | {revisionName,label,latestRevision,weight}] | sort_by(.revisionName,.label))
+            },
+            identity:{
+              type:.identity.type,
+              userAssignedIdentities:(.identity.userAssignedIdentities | to_entries | sort_by(.key))
+            },
+            scale:.properties.template.scale,
+            secretsCount:((.properties.configuration.secrets // []) | length)
+          }' /tmp/application-after.json | sha256sum | cut -d ' ' -f 1 > /tmp/application-after.sha
+          cmp /tmp/source-before.sha /tmp/source-after.sha
+          cmp /tmp/application-before.sha /tmp/application-after.sha
+
+          az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes
+          az postgres flexible-server delete --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" --yes
+          CLEANUP_REQUIRED=0
+          for attempt in $(seq 1 90); do
+            ! az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" >/dev/null 2>&1 && break
+            sleep 10
+          done
+          ! az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" >/dev/null 2>&1
+          ! az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$RESTORE_SERVER" >/dev/null 2>&1
+          trap - EXIT
+
+          {
+            echo "### SalCAPA v3.111 Azure rollback acceptance"
+            echo ""
+            echo "- Candidate runtime: exact frozen v3.111 immutable image"
+            echo "- Rollback runtime: exact accepted v3.36 immutable image"
+            echo "- Database target: isolated 15-minute point-in-time restore"
+            echo "- Candidate migration and three fictional environments: verified"
+            echo "- Accepted runtime compatibility with candidate-migrated database: verified"
+            echo "- Source database and accepted running application: unchanged"
+            echo "- Temporary rollback job and restored database: removed"
+            echo "- Client secret, production application deployment, traffic shift, and DNS change: none"
+            echo "AZURE_ROLLBACK_ACCEPTED"
+          } >> "$GITHUB_STEP_SUMMARY"
