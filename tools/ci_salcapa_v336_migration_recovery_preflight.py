@@ -20,6 +20,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 ACCEPTED_COMMIT = "63d513605f908d3308bb5dd1bbdbf1061878452b"
+CANDIDATE_COMMIT = "8bf4614ec79a27641c40dc1a21e1790746a08604"
 ACCEPTED_BLOBS = {
     "app.py": "ff336aa87b387eb4f1f9f1bd55b93e923c74ab2c",
     "database.py": "531b3c417692d0d40ada03eda79f9ea114168517",
@@ -354,9 +355,14 @@ def run_parent() -> None:
             encoding="utf-8"
         )
     )
-    assert activation["source_commit"] == ACCEPTED_COMMIT
-    assert activation["source_release"] == "release/v3.36"
+    assert activation["source_commit"] == CANDIDATE_COMMIT
+    assert activation["source_release"] == "release/v3.111"
     assert activation["image_digest"].startswith(
+        "salcapadevb48224acr.azurecr.io/salcapa@sha256:"
+    )
+    assert activation["rollback_commit"] == ACCEPTED_COMMIT
+    assert activation["rollback_release"] == "release/v3.36"
+    assert activation["rollback_image_digest"].startswith(
         "salcapadevb48224acr.azurecr.io/salcapa@sha256:"
     )
 
