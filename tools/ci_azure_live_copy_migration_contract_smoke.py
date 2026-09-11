@@ -39,6 +39,8 @@ for value in (
     "az deployment group create",
     "LIVE_COPY_MIGRATION_ACCEPTED",
     "Source database and running application configuration: unchanged",
+    "lastModifiedAt:.systemData.lastModifiedAt",
+    "sort_by(.name)",
     "Password, client secret, application deployment, traffic shift, and DNS change: none",
 ):
     require(value, workflow)
@@ -91,8 +93,8 @@ if ACTIVATION.exists():
         "source_server": "salcapa-dev-b48224-pg",
         "temporary_restore_server": "salcapa-dev-b48224-v310-copy",
         "restore_lag_minutes": 15,
-        "acceptance_revision": 2,
-        "activation_key": "salcapa-v3.110-live-copy-20260910-r2",
+        "acceptance_revision": 3,
+        "activation_key": "salcapa-v3.110-live-copy-20260910-r3",
     }
     if record != expected:
         raise SystemExit("Live-copy migration activation does not match the exact governed record")
