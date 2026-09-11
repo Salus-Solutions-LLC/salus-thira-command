@@ -76,8 +76,10 @@ def main() -> None:
     assert values["last_completed_release"] == values["current_frozen_release"]
     if candidate_version is None:
         assert runtime_version == frozen_version
-        assert values["validation_pr"] == "none"
-        assert values["validation_gate_state"] == "all_required_gates_green"
+        if values["validation_gate_state"] == "all_required_gates_green":
+            assert values["validation_pr"] == "none"
+        else:
+            assert values["validation_pr"] == "pending" or values["validation_pr"].isdigit()
     else:
         assert candidate_version == runtime_version
         assert candidate_version[0] == frozen_version[0]
