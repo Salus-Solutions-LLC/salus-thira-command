@@ -141,7 +141,7 @@ def main() -> None:
         )
         assert qualified["status"] == "Qualified"
         handoff = post(client, f"/api/salintel/findings/{finding_id}/send-to-salthira", analyst)
-        assert handoff["finding"]["status"] == "Sent to SalTHIRA"
+        assert handoff["status"] == "Sent to SalTHIRA"
 
         recorded = post(
             client,
