@@ -84,7 +84,10 @@ def main() -> None:
     assert values["deployment_workflow_run"].isdigit()
     assert values["promotion_candidate_image_workflow_run"].isdigit()
     assert DATE_TIME.fullmatch(values["promotion_candidate_image_published_at"])
-    assert values["promotion_candidate_image_acceptance"] == "immutable_image_published_not_deployed"
+    assert values["promotion_candidate_image_acceptance"] in {
+        "immutable_image_published_not_deployed",
+        "immutable_image_deployed_and_accepted",
+    }
     assert values["deployment_acceptance"] in {
         "live_runtime_readiness_accepted",
         "full_demonstration_acceptance",
@@ -111,10 +114,11 @@ def main() -> None:
     if values["promotion_candidate"] == values["current_stable_release"]:
         assert values["promotion_candidate_image_commit"] == values["current_stable_commit"]
     assert version(values["current_stable_release"]) >= version(values["deployed_release"])
-    assert values["rollback_baseline"] == values["deployed_release"]
+    assert version(values["rollback_baseline"]) <= version(values["deployed_release"])
 
     if values["promotion_readiness"] == "accepted":
         assert values["deployed_release"] == values["current_stable_release"]
+        assert values["promotion_candidate_image_acceptance"] == "immutable_image_deployed_and_accepted"
         assert values["fictional_member_seed_state"] == "verified"
         assert values["critical_journey_acceptance"] == "verified"
         assert values["genuine_blocker"] == "none"
