@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 10 September 2026 17:14 CDT
+last_verified_at: 10 September 2026 19:29 CDT
 environment: azure_development_demonstration
 deployed_release: v3.36
 deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
@@ -17,12 +17,15 @@ promotion_candidate_image_digest: sha256:c5f7b097a12589d3799205fa60e275afd020c4c
 promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:c5f7b097a12589d3799205fa60e275afd020c4c41ec975eb175d54d04d4d7b44
 promotion_candidate_image_published_at: 10 September 2026 17:14 CDT
 promotion_candidate_image_workflow_run: 34536243545
-promotion_candidate_image_acceptance: immutable_image_published_not_deployed
+promotion_candidate_image_acceptance: immutable_image_and_live_copy_migration_accepted_not_deployed
+live_copy_migration_workflow_run: 34545773447
+live_copy_migration_accepted_at: 10 September 2026 19:29 CDT
+live_copy_migration_acceptance: accepted_v336_pitr_copy_migrated_verified_and_removed
 promotion_readiness: not_ready
-fictional_member_seed_state: v310_image_published_not_deployed
+fictional_member_seed_state: live_copy_migration_verified_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: live_v336_database_entra_reporting_recovery_and_rollback_acceptance_missing
+genuine_blocker: live_reporting_entra_recovery_and_rollback_acceptance_missing
 ---
 
 # SalCAPA development demonstration continuity
@@ -48,6 +51,8 @@ The immutable-image publication workflow is release-driven and fail-closed. It r
 
 [Publication workflow run 34536243545](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34536243545) then published exact frozen v3.110 as `salcapadevb48224acr.azurecr.io/salcapa@sha256:c5f7b097a12589d3799205fa60e275afd020c4c41ec975eb175d54d04d4d7b44` on 10 September 2026 at 17:14 CDT. It used workload identity and verified scoped registry authority. It created no mutable tag and performed no Container App deployment. Migration of an independently restored copy of the live accepted-v3.36 database, Microsoft Entra identity and tenant isolation, live reporting, Azure recovery, and Azure rollback acceptance remain required. The last accepted v3.36 deployment remains unchanged while those gaps are closed.
 
+[Live-copy migration workflow run 34545773447](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34545773447) completed successfully on 10 September 2026 at 19:29 CDT. It restored a 15-minute point-in-time copy of the accepted v3.36 PostgreSQL database, ran exact frozen v3.110 from the published immutable digest, applied additive migration and deterministic fictional fixtures, and verified three fictional environments, 24 governed personas, three Draft baseline assessments, and three cross-functional journey records. It proved that the source database and running application configuration were unchanged, then removed the temporary Container Apps job and restored database. This acceptance does not constitute deployment or traffic change. Microsoft Entra identity and tenant isolation, live reporting, Azure recovery, and Azure rollback acceptance remain required.
+
 ## Promotion gates
 
 Before any newer milestone is promoted, all of the following must be verified on the exact frozen candidate and immutable image digest:
@@ -70,4 +75,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Validate migration of an independently restored copy of the accepted v3.36 database with exact frozen v3.110 and the published immutable candidate image under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.
+Validate governed reporting against an independently restored copy of the accepted v3.36 database with exact frozen v3.110 and the published immutable candidate image under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.
