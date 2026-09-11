@@ -191,6 +191,16 @@ def current_migrate(manifest_path: Path) -> None:
         "X-Salus-Role": "SME Assessor",
         "X-Salus-User": "v336-migration-rehearsal",
     }
+    member_headers = {
+        "X-Salus-Tenant": str(tenant_id),
+        "X-Salus-Role": "Client Executive",
+        "X-Salus-User": "protected-member-report-authority",
+    }
+    viewer_headers = {
+        "X-Salus-Tenant": str(tenant_id),
+        "X-Salus-Role": "Protected Member Viewer",
+        "X-Salus-User": "protected-member-report-viewer",
+    }
     client = TestClient(core.app)
     report = client.post(f"/api/reports/{assessment_id}", headers=headers, json={})
     assert report.status_code == 200, report.text
@@ -201,6 +211,87 @@ def current_migrate(manifest_path: Path) -> None:
     assert rendered.status_code == 200
     assert rendered.headers["x-salus-report-status"] == "Draft"
     assert rendered.headers["etag"] == f'"{report_row["snapshot_sha256"]}"'
+
+    # Draft and in-review reports remain Salus work product. Protected Member
+    # delivery is bound to the immutable Released snapshot, including the
+    # familiar JSON, CSV, and printable HTML routes.
+    snapshot_path = f"/api/reports/versions/{report_row['id']}/snapshot"
+    report_list_path = f"/api/reports/{assessment_id}"
+    delivery_paths = (
+        f"/api/export/{assessment_id}",
+        f"/api/report/{assessment_id}/executive.csv",
+        f"/api/report/{assessment_id}/executive.html",
+    )
+    for protected_headers in (member_headers, viewer_headers):
+        assert client.get(report_list_path, headers=protected_headers).json() == []
+        assert client.get(snapshot_path, headers=protected_headers).status_code == 404
+        for path in delivery_paths:
+            assert client.get(path, headers=protected_headers).status_code == 404
+
+    transitions = (
+        ("Reviewed", "Lead Assessor", "report-reviewer"),
+        ("Approved", "System Administrator", "report-approver"),
+        ("Released", "Assessment Director", "report-release-authority"),
+    )
+    released_row = None
+    for status, authority_role, authority_user in transitions:
+        authority_headers = {
+            "X-Salus-Tenant": str(tenant_id),
+            "X-Salus-Role": authority_role,
+            "X-Salus-User": authority_user,
+        }
+        transition = client.post(
+            f"/api/reports/versions/{report_row['id']}/transition",
+            headers=authority_headers,
+            json={"status": status, "reason": f"Governed {status.lower()} acceptance"},
+        )
+        assert transition.status_code == 200, transition.text
+        released_row = transition.json()
+    assert released_row and released_row["status"] == "Released"
+
+    for protected_headers in (member_headers, viewer_headers):
+        visible = client.get(report_list_path, headers=protected_headers)
+        assert visible.status_code == 200, visible.text
+        assert len(visible.json()) == 1 and visible.json()[0]["status"] == "Released"
+        delivered = client.get(snapshot_path, headers=protected_headers)
+        assert delivered.status_code == 200, delivered.text
+        assert delivered.headers["x-salus-report-status"] == "Released"
+        assert delivered.headers["etag"] == f'"{report_row["snapshot_sha256"]}"'
+        assert "industry_defaults_snapshot_json" not in delivered.json()["assessment"]
+        assert "industry_profile_applied_by" not in delivered.json()["assessment"]
+        for path in delivery_paths:
+            response = client.get(path, headers=protected_headers)
+            assert response.status_code == 200, (path, response.text)
+            assert response.headers["x-salus-report-status"] == "Released"
+            assert response.headers["etag"] == f'"{report_row["snapshot_sha256"]}"'
+
+    other_tenant_headers = {
+        "X-Salus-Tenant": str(fixture_tenants[0]),
+        "X-Salus-Role": "Client Executive",
+        "X-Salus-User": "other-protected-member",
+    }
+    assert client.get(snapshot_path, headers=other_tenant_headers).status_code == 404
+
+    released_mission = rendered.json()["assessment"]["mission"]
+    conn = core.db()
+    conn.execute(
+        "UPDATE assessments SET mission=? WHERE id=?",
+        ("Unreleased reporting-change marker", assessment_id),
+    )
+    conn.commit()
+    conn.close()
+    member_export = client.get(f"/api/export/{assessment_id}", headers=member_headers)
+    assert member_export.status_code == 200, member_export.text
+    assert member_export.json()["assessment"]["mission"] == released_mission
+    internal_preview = client.get(f"/api/export/{assessment_id}", headers=headers)
+    assert internal_preview.status_code == 200, internal_preview.text
+    assert internal_preview.json()["assessment"]["mission"] == "Unreleased reporting-change marker"
+    conn = core.db()
+    conn.execute(
+        "UPDATE assessments SET mission=? WHERE id=?", (released_mission, assessment_id)
+    )
+    conn.commit()
+    conn.close()
 
     conn = core.db()
     try:

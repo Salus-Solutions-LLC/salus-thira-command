@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 10 September 2026 19:29 CDT
+last_verified_at: 10 September 2026 19:58 CDT
 environment: azure_development_demonstration
 deployed_release: v3.36
 deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
@@ -22,7 +22,7 @@ promotion_readiness: not_ready
 fictional_member_seed_state: v310_image_published_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: live_reporting_entra_recovery_and_rollback_acceptance_missing
+genuine_blocker: v310_report_disclosure_gate_failed_v311_validation_entra_recovery_and_rollback_acceptance_missing
 ---
 
 # SalCAPA development demonstration continuity
@@ -50,6 +50,8 @@ The immutable-image publication workflow is release-driven and fail-closed. It r
 
 [Live-copy migration workflow run 34545773447](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34545773447) completed successfully on 10 September 2026 at 19:29 CDT. It restored a 15-minute point-in-time copy of the accepted v3.36 PostgreSQL database, ran exact frozen v3.110 from the published immutable digest, applied additive migration and deterministic fictional fixtures, and verified three fictional environments, 24 governed personas, three Draft baseline assessments, and three cross-functional journey records. It proved that the source database and running application configuration were unchanged, then removed the temporary Container Apps job and restored database. This acceptance does not constitute deployment or traffic change. Microsoft Entra identity and tenant isolation, live reporting, Azure recovery, and Azure rollback acceptance remain required.
 
+The next live-reporting gate correctly stopped promotion after proving that Protected Member roles could retrieve Draft report snapshots and mutable internal report previews. Frozen v3.110 and its published image remain unchanged and must not be promoted. The bounded v3.111 successor candidate makes report discovery and delivery release-gated: before release, Protected Members receive no report; after authorized release, JSON, CSV, and printable HTML are derived from the same immutable, hash-verified snapshot. Internal Salus previews remain available for review work. The accepted v3.36 application, traffic, and database remain unchanged.
+
 ## Promotion gates
 
 Before any newer milestone is promoted, all of the following must be verified on the exact frozen candidate and immutable image digest:
@@ -72,4 +74,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Validate governed reporting against an independently restored copy of the accepted v3.36 database with exact frozen v3.110 and the published immutable candidate image under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.
+Complete controlled validation of the v3.111 report-release boundary repair under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), then publish and test its exact immutable image against an independently restored copy of the accepted v3.36 database without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.

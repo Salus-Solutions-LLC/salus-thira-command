@@ -5118,10 +5118,32 @@ def delete_evidence_attachment(attachment_id:int,request:Request):
 def _report_snapshot(assessment_id:int):
     return json.dumps(executive_package(assessment_id),sort_keys=True,separators=(',',':'),default=str)
 
+def _verified_report_snapshot(row,request:Request):
+    snapshot=row['snapshot_json']; actual=hashlib.sha256(snapshot.encode('utf-8')).hexdigest()
+    if actual!=row['snapshot_sha256']:
+        security_event(request,'REPORT_INTEGRITY_FAILURE','High',f'report_id={row["id"]}')
+        raise HTTPException(409,'Report snapshot failed integrity verification')
+    payload=json.loads(snapshot)
+    if protected_member_request(request) and payload.get('assessment'):
+        payload['assessment']=_member_assessment_view(payload['assessment'])
+    return payload,actual
+
+def _latest_released_report_snapshot(assessment_id:int,request:Request):
+    assessment_row_for_request(request,assessment_id); conn=db()
+    row=conn.execute("SELECT * FROM report_versions WHERE tenant_id=? AND assessment_id=? AND status='Released' ORDER BY released_at DESC,id DESC LIMIT 1",(tenant_id(request),assessment_id)).fetchone()
+    conn.close()
+    if not row: raise HTTPException(404,'Released report not found')
+    payload,actual=_verified_report_snapshot(row,request)
+    return payload,actual,dict(row)
+
 @app.get('/api/reports/{assessment_id}')
 def list_report_versions(assessment_id:int,request:Request):
     require(request,'read'); assessment_row_for_request(request,assessment_id)
-    conn=db(); rows=[dict(r) for r in conn.execute('SELECT id,assessment_id,assessment_version,report_type,status,snapshot_sha256,created_by,created_at,reviewed_by,reviewed_at,approved_by,approved_at,released_by,released_at,transition_reason FROM report_versions WHERE tenant_id=? AND assessment_id=? ORDER BY id DESC',(tenant_id(request),assessment_id))]; conn.close(); return rows
+    if protected_member_request(request):
+        query="SELECT id,assessment_id,assessment_version,report_type,status,snapshot_sha256,created_by,created_at,reviewed_by,reviewed_at,approved_by,approved_at,released_by,released_at,transition_reason FROM report_versions WHERE tenant_id=? AND assessment_id=? AND status='Released' ORDER BY id DESC"
+    else:
+        query='SELECT id,assessment_id,assessment_version,report_type,status,snapshot_sha256,created_by,created_at,reviewed_by,reviewed_at,approved_by,approved_at,released_by,released_at,transition_reason FROM report_versions WHERE tenant_id=? AND assessment_id=? ORDER BY id DESC'
+    conn=db(); rows=[dict(r) for r in conn.execute(query,(tenant_id(request),assessment_id))]; conn.close(); return rows
 
 @app.post('/api/reports/{assessment_id}')
 def create_report_version(assessment_id:int,request:Request,p:ReportCreateIn=ReportCreateIn()):
@@ -5145,10 +5167,9 @@ def transition_report_version(report_id:int,p:ReportTransitionIn,request:Request
 def report_version_snapshot(report_id:int,request:Request):
     require(request,'read'); conn=db(); row=conn.execute('SELECT * FROM report_versions WHERE id=? AND tenant_id=?',(report_id,tenant_id(request))).fetchone()
     if not row: conn.close(); raise HTTPException(404,'Report version not found')
-    assessment_row_for_request(request,row['assessment_id']); snapshot=row['snapshot_json']; actual=hashlib.sha256(snapshot.encode('utf-8')).hexdigest()
-    if actual!=row['snapshot_sha256']: conn.close(); security_event(request,'REPORT_INTEGRITY_FAILURE','High',f'report_id={report_id}'); raise HTTPException(409,'Report snapshot failed integrity verification')
-    conn.close(); payload=json.loads(snapshot)
-    if protected_member_request(request) and payload.get('assessment'): payload['assessment']=_member_assessment_view(payload['assessment'])
+    assessment_row_for_request(request,row['assessment_id'])
+    if protected_member_request(request) and row['status']!='Released': conn.close(); raise HTTPException(404,'Released report not found')
+    conn.close(); payload,actual=_verified_report_snapshot(row,request)
     response=JSONResponse(payload); response.headers['ETag']=f'"{actual}"'; response.headers['X-Salus-Report-Status']=row['status']; return response
 
 @app.get('/api/audit/assessments/{assessment_id}')
@@ -5185,7 +5206,11 @@ def list_restore_requests(request:Request):
 
 @app.get('/api/report/{assessment_id}/executive.csv')
 def executive_csv(assessment_id:int,request:Request):
-    require(request,'read'); assessment_row_for_request(request,assessment_id); package=executive_package(assessment_id); out=io.StringIO(); w=csv.writer(out)
+    require(request,'read'); assessment_row_for_request(request,assessment_id)
+    released=None
+    if protected_member_request(request): package,digest,released=_latest_released_report_snapshot(assessment_id,request)
+    else: package=executive_package(assessment_id)
+    out=io.StringIO(); w=csv.writer(out)
     a=package['assessment']; w.writerow(['SalCAPA Protective Readiness Executive Briefing']); w.writerow(['Assessment',a['name']]); w.writerow(['Organization',a['organization']]); w.writerow(['Status',a['status']]); w.writerow(['Version',a['version']]); w.writerow(['Mission',a['mission']]); w.writerow(['Methodology note','SalTHIRA applies a Salus-specific methodology informed by recognized THIRA principles; Salus does not claim ownership of the public THIRA framework.']); w.writerow([])
     w.writerow(['Risk Outlook']); w.writerow(['Threat / Hazard','Inherent','Current','Professional Assigned Risk','Predicted Residual','Validated Residual','Validated Improvements','Methodology','Confidence','Trend'])
     for r in package['risk']: w.writerow([r['name'],f"{r['inherent_band']} {r['inherent_score']}",f"{r['current_band']} {r['current_score']}",(f"{r['assigned_risk_band']} {r['assigned_risk_score']}" if r.get('professional_override') else ''),f"{r['predicted_residual_band']} {r['predicted_residual_score']}",f"{r['validated_residual_band']} {r['validated_residual_score']}",r['validated_improvements'],r['risk_methodology_version'],r['confidence'],r['trend']])
@@ -5201,11 +5226,17 @@ def executive_csv(assessment_id:int,request:Request):
     for r in package['accepted_risks']: w.writerow([r['status'],r['title'],r['authority'],r['residual_exposure'],r['owner'],r['review_date'],r['reconsideration_trigger']])
     w.writerow([]); w.writerow(['Professional Risk Override Register']); w.writerow(['Status','Threat ID','Calculated','Assigned','Authority','Reason','Evidence ID','Review Date','Created At','Withdrawn Reason'])
     for r in package['risk_overrides']: w.writerow([r['status'],r['threat_id'],f"{r['calculated_band']} {r['calculated_score']}",f"{r['assigned_band']} {r['assigned_score']}",r['authority'],r['reason'],r['evidence_id'] or '',r['review_date'],r['created_at'],r['withdrawn_reason']])
-    response=PlainTextResponse(out.getvalue(),media_type='text/csv; charset=utf-8'); response.headers['Content-Disposition']=f'attachment; filename=salcapa-protective-readiness-{assessment_id}.csv'; return response
+    response=PlainTextResponse(out.getvalue(),media_type='text/csv; charset=utf-8'); response.headers['Content-Disposition']=f'attachment; filename=salcapa-protective-readiness-{assessment_id}.csv'
+    if released: response.headers['ETag']=f'"{digest}"'; response.headers['X-Salus-Report-Status']='Released'
+    return response
 
 @app.get('/api/report/{assessment_id}/executive.html')
 def executive_html(assessment_id:int,request:Request):
-    require(request,'read'); assessment_row_for_request(request,assessment_id); p=executive_package(assessment_id); a=p['assessment']
+    require(request,'read'); assessment_row_for_request(request,assessment_id)
+    released=None
+    if protected_member_request(request): p,digest,released=_latest_released_report_snapshot(assessment_id,request)
+    else: p=executive_package(assessment_id)
+    a=p['assessment']; prepared_at=released['released_at'] if released else now()
     risk_rows=''.join(f"<tr><td>{html.escape(str(r['name']))}</td><td>{html.escape(str(r['inherent_band']))} {r['inherent_score']}</td><td>{html.escape(str(r['current_band']))} {r['current_score']}</td><td>{(html.escape(str(r['assigned_risk_band']))+' '+str(r['assigned_risk_score'])) if r.get('professional_override') else ''}</td><td>{html.escape(str(r['predicted_residual_band']))} {r['predicted_residual_score']}</td><td>{html.escape(str(r['validated_residual_band']))} {r['validated_residual_score']}</td><td>{r['validated_improvements']}</td><td>{html.escape(str(r['confidence']))}</td></tr>" for r in p['risk'])
     capability_rows=''.join(f"<tr><td>{html.escape(str(c['name']))}</td><td>{html.escape(str(c['measurement_type']))}</td><td>{html.escape(str(c['comparator']))} {c['required_standard']} {html.escape(str(c['measurement_unit']))}</td><td>{c['current_performance']} {html.escape(str(c['measurement_unit']))}</td><td>{c['attainment_percent']}%</td><td>{html.escape(str(c['target_status']))}</td></tr>" for c in p['capability_performance'])
     priority_rows=''.join(f"<tr><td>{r['priority_score']}</td><td>{html.escape(str(r['title']))}</td><td>{html.escape(str(r['status']))}</td><td>${float(r['initial_cost'] or 0):,.0f}</td></tr>" for r in p['priorities'][:10])
@@ -5213,14 +5244,20 @@ def executive_html(assessment_id:int,request:Request):
     accepted_rows=''.join(f"<tr><td>{html.escape(str(r['status']))}</td><td>{html.escape(str(r['title']))}</td><td>{html.escape(str(r['authority']))}</td><td>{html.escape(str(r['residual_exposure']))}</td><td>{html.escape(str(r['review_date']))}</td></tr>" for r in p['accepted_risks'])
     override_rows=''.join(f"<tr><td>{html.escape(str(r['status']))}</td><td>{r['threat_id']}</td><td>{html.escape(str(r['calculated_band']))} {r['calculated_score']}</td><td>{html.escape(str(r['assigned_band']))} {r['assigned_score']}</td><td>{html.escape(str(r['authority']))}</td><td>{html.escape(str(r['reason']))}</td><td>{html.escape(str(r['review_date']))}</td></tr>" for r in p['risk_overrides'])
     evidence_rows=''.join(f"<tr><td>{html.escape(str(e['title']))}</td><td>{html.escape(str(e['verification_status']))}</td><td>{html.escape(str(e.get('lifecycle_status','Current')))}</td><td>{html.escape(str(e.get('valid_until','')))}</td><td>{html.escape(str(e.get('stale_reason','')))}</td></tr>" for e in p['evidence'])
-    body=f'''<!doctype html><html><head><meta charset="utf-8"><title>SalCAPA Protective Readiness Executive Briefing</title><style>body{{font-family:Arial,sans-serif;margin:36px;color:#111}}h1{{margin-bottom:0}}.meta{{color:#555}}table{{width:100%;border-collapse:collapse;margin:16px 0 28px}}th,td{{border:1px solid #bbb;padding:8px;text-align:left;vertical-align:top}}th{{background:#eee}}@media print{{button{{display:none}}}}</style></head><body><button onclick="window.print()">Print / Save PDF</button><h1>SalCAPA Protective Readiness Executive Briefing</h1><p class="meta">Generated {html.escape(now())}</p><h2>{html.escape(str(a['name']))}</h2><p>{html.escape(str(a['organization']))} · {html.escape(str(a['assessment_type']))} · {html.escape(str(a['status']))} · Version {a['version']}</p><p><strong>Mission:</strong> {html.escape(str(a['mission']))}</p><p><strong>Purpose:</strong> {html.escape(str(a['purpose']))}</p><p><strong>Methodology note:</strong> SalTHIRA applies a Salus-specific methodology informed by recognized THIRA principles; Salus does not claim ownership of the public THIRA framework.</p><h2>Risk Outlook</h2><table><tr><th>Threat / Hazard</th><th>Inherent</th><th>Current</th><th>Professional Assigned Risk</th><th>Predicted Residual</th><th>Validated Residual</th><th>Validated Improvements</th><th>Confidence</th></tr>{risk_rows}</table><h2>Professional Risk Override Register</h2><table><tr><th>Status</th><th>Threat ID</th><th>Calculated</th><th>Assigned</th><th>Authority</th><th>Reason</th><th>Review Date</th></tr>{override_rows}</table><h2>Evidence Lifecycle</h2><table><tr><th>Evidence</th><th>Verification</th><th>Lifecycle</th><th>Valid Until</th><th>Stale Reason</th></tr>{evidence_rows}</table><h2>Capability Performance</h2><table><tr><th>Capability</th><th>Measure</th><th>Target</th><th>Current</th><th>Attainment</th><th>Status</th></tr>{capability_rows}</table><h2>Top Improvement Priorities</h2><table><tr><th>Priority</th><th>Improvement</th><th>Status</th><th>Initial Cost</th></tr>{priority_rows}</table><h2>Executive Decisions</h2><table><tr><th>Decision</th><th>Authority</th><th>Funding</th><th>Rationale</th></tr>{decision_rows}</table><h2>Accepted Risk Register</h2><table><tr><th>Status</th><th>Risk</th><th>Authority</th><th>Residual Exposure</th><th>Review Date</th></tr>{accepted_rows}</table><p class="meta">Decision-support output. Professional judgment and authoritative source records remain controlling.</p></body></html>'''
-    return HTMLResponse(body)
+    body=f'''<!doctype html><html><head><meta charset="utf-8"><title>SalCAPA Protective Readiness Executive Briefing</title><style>body{{font-family:Arial,sans-serif;margin:36px;color:#111}}h1{{margin-bottom:0}}.meta{{color:#555}}table{{width:100%;border-collapse:collapse;margin:16px 0 28px}}th,td{{border:1px solid #bbb;padding:8px;text-align:left;vertical-align:top}}th{{background:#eee}}@media print{{button{{display:none}}}}</style></head><body><button onclick="window.print()">Print / Save PDF</button><h1>SalCAPA Protective Readiness Executive Briefing</h1><p class="meta">Prepared {html.escape(str(prepared_at))}</p><h2>{html.escape(str(a['name']))}</h2><p>{html.escape(str(a['organization']))} · {html.escape(str(a['assessment_type']))} · {html.escape(str(a['status']))} · Version {a['version']}</p><p><strong>Mission:</strong> {html.escape(str(a['mission']))}</p><p><strong>Purpose:</strong> {html.escape(str(a['purpose']))}</p><p><strong>Methodology note:</strong> SalTHIRA applies a Salus-specific methodology informed by recognized THIRA principles; Salus does not claim ownership of the public THIRA framework.</p><h2>Risk Outlook</h2><table><tr><th>Threat / Hazard</th><th>Inherent</th><th>Current</th><th>Professional Assigned Risk</th><th>Predicted Residual</th><th>Validated Residual</th><th>Validated Improvements</th><th>Confidence</th></tr>{risk_rows}</table><h2>Professional Risk Override Register</h2><table><tr><th>Status</th><th>Threat ID</th><th>Calculated</th><th>Assigned</th><th>Authority</th><th>Reason</th><th>Review Date</th></tr>{override_rows}</table><h2>Evidence Lifecycle</h2><table><tr><th>Evidence</th><th>Verification</th><th>Lifecycle</th><th>Valid Until</th><th>Stale Reason</th></tr>{evidence_rows}</table><h2>Capability Performance</h2><table><tr><th>Capability</th><th>Measure</th><th>Target</th><th>Current</th><th>Attainment</th><th>Status</th></tr>{capability_rows}</table><h2>Top Improvement Priorities</h2><table><tr><th>Priority</th><th>Improvement</th><th>Status</th><th>Initial Cost</th></tr>{priority_rows}</table><h2>Executive Decisions</h2><table><tr><th>Decision</th><th>Authority</th><th>Funding</th><th>Rationale</th></tr>{decision_rows}</table><h2>Accepted Risk Register</h2><table><tr><th>Status</th><th>Risk</th><th>Authority</th><th>Residual Exposure</th><th>Review Date</th></tr>{accepted_rows}</table><p class="meta">Decision-support output. Professional judgment and authoritative source records remain controlling.</p></body></html>'''
+    response=HTMLResponse(body)
+    if released: response.headers['ETag']=f'"{digest}"'; response.headers['X-Salus-Report-Status']='Released'
+    return response
 
 @app.get('/api/export/{assessment_id}')
 def export_assessment(assessment_id:int, request:Request):
-    require(request,'read'); assessment_row_for_request(request,assessment_id); package=executive_package(assessment_id)
-    if protected_member_request(request): package['assessment']=_member_assessment_view(package['assessment'])
-    response=JSONResponse(package); response.headers['Content-Disposition']=f'attachment; filename="salus-thira-assessment-{assessment_id}.json"'; return response
+    require(request,'read'); assessment_row_for_request(request,assessment_id)
+    released=None
+    if protected_member_request(request): package,digest,released=_latest_released_report_snapshot(assessment_id,request)
+    else: package=executive_package(assessment_id)
+    response=JSONResponse(package); response.headers['Content-Disposition']=f'attachment; filename="salus-thira-assessment-{assessment_id}.json"'
+    if released: response.headers['ETag']=f'"{digest}"'; response.headers['X-Salus-Report-Status']='Released'
+    return response
 
 @app.put('/api/{table}/{entity_id}')
 def update_entity(table:str,entity_id:int,payload:dict[str,Any],request:Request):
