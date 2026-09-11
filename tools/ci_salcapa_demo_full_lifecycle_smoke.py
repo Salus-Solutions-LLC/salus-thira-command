@@ -48,7 +48,7 @@ def headers(tenant_id: int, role: str, responsibility: str) -> dict[str, str]:
     return {
         "X-Salus-Tenant": str(tenant_id),
         "X-Salus-Role": role,
-        "X-Salus-User": f"Fictional demonstration {responsibility} — simulated acceptance test",
+        "X-Salus-User": f"Fictional demonstration {responsibility} - simulated acceptance test",
         "X-Salus-Clearance": "Highly Sensitive",
     }
 
