@@ -19,6 +19,13 @@ os.environ.setdefault("SALUS_SEED_DEMO", "1")
 sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
+import app as core
+
+# Keep historical report windows deterministic across UTC date boundaries.
+# The runtime captures this function when it registers the commercial routes;
+# production time behavior is not changed by this process-local acceptance clock.
+core.now = lambda: "2026-09-10T12:00:00Z"
+
 import salcapa_runtime
 from salcapa_commercial import DEFAULT_RULES
 
