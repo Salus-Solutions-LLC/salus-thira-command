@@ -100,6 +100,7 @@ def main() -> None:
         "v310_publication_contract_verified_not_deployed",
         "v310_image_published_not_deployed",
         "v311_image_published_not_deployed",
+        "v311_live_copy_migration_accepted_not_deployed",
         "verified",
     }
     assert values["critical_journey_acceptance"] in {"not_verified", "verified"}

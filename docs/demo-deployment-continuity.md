@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 10 September 2026 21:10 CDT
+last_verified_at: 10 September 2026 22:24 CDT
 environment: azure_development_demonstration
 deployed_release: v3.36
 deployed_commit: 63d513605f908d3308bb5dd1bbdbf1061878452b
@@ -19,10 +19,10 @@ promotion_candidate_image_published_at: 10 September 2026 21:10 CDT
 promotion_candidate_image_workflow_run: 34553461921
 promotion_candidate_image_acceptance: immutable_image_published_not_deployed
 promotion_readiness: not_ready
-fictional_member_seed_state: v311_image_published_not_deployed
+fictional_member_seed_state: v311_live_copy_migration_accepted_not_deployed
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: v311_live_copy_reporting_entra_recovery_and_rollback_acceptance_missing
+genuine_blocker: v311_reporting_entra_recovery_and_rollback_acceptance_missing
 ---
 
 # SalCAPA development demonstration continuity
@@ -56,6 +56,8 @@ All 20 required workflow families passed for the repair on exact candidate commi
 
 [Publication workflow run 34553461921](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34553461921) published exact frozen v3.111 as `salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311` on 10 September 2026 at 21:10 CDT. Workload identity, scoped registry authority, exact frozen source, runtime release identity, non-root execution, and immutable digest checks passed. [Validation PR #276](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/276) passed all 20 required workflow families and was closed without merge before its exact head advanced to development. The workflow created no mutable tag, performed no Container App deployment, and changed no traffic or database state.
 
+[Live-copy migration workflow run 34557442913](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34557442913) completed successfully on 10 September 2026 at 22:24 CDT. It restored a 15-minute point-in-time copy of the accepted v3.36 PostgreSQL database, ran exact frozen v3.111 from the published immutable digest, applied additive migration and deterministic fictional fixtures, and verified three fictional environments, 24 governed personas, three Draft baseline assessments, and three cross-functional journey records. Source-database and running-application configuration hashes remained unchanged, and the temporary Container Apps job and restored database were removed. [Validation PR #277](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/277) passed all 20 required workflow families on exact head [`e94ffd9`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/e94ffd9d55708df9513c4545227ed56dddc5c364) and was closed without merge before that commit advanced to development. This acceptance does not constitute application deployment, traffic change, report-delivery acceptance, identity acceptance, or release authority.
+
 ## Promotion gates
 
 Before any newer milestone is promoted, all of the following must be verified on the exact frozen candidate and immutable image digest:
@@ -78,4 +80,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Test exact frozen v3.111 and its published immutable image against an independently restored copy of the accepted v3.36 database under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.
+Verify exact frozen v3.111 report delivery and its immutable Released-snapshot boundary against an isolated restored copy under [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124), without changing the running application or weakening frozen-source, immutable-digest, protected-environment, cost, identity, recovery, or rollback controls.
