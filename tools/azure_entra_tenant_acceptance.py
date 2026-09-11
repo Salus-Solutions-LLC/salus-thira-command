@@ -254,7 +254,7 @@ def main():
         "cross_tenant_visibility_denied": True,
         "unknown_disabled_foreign_denied": True,
         "issuer_audience_replay_denied": True,
-        "managed_identity_no_client_secret": True,
+        "passwordless_runtime_verified": True,
         "interactive_human_login_used": False,
     }, sort_keys=True))
 
