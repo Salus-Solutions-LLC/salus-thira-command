@@ -215,13 +215,13 @@ cross_tenant = client.post(
 )
 assert cross_tenant.status_code == 403 and first_tenant != other_tenant
 
-# Repository evidence records outstanding environment-bound gates; promotion stays closed.
+# Repository evidence records completed pre-promotion gates while deployment and end-to-end acceptance remain pending.
 deployment = front_matter(ROOT / "docs" / "demo-deployment-continuity.md")
 assert deployment["deployed_release"] == "v3.36"
 assert deployment["current_stable_release"] == "v3.111"
 assert deployment["current_stable_commit"] == "8bf4614ec79a27641c40dc1a21e1790746a08604"
-assert deployment["promotion_readiness"] == "not_ready"
+assert deployment["promotion_readiness"] == "preflight_ready"
 assert deployment["critical_journey_acceptance"] == "not_verified"
 assert deployment["genuine_blocker"] != "none"
 
-print("SalCAPA demonstration promotion preflight passed; live promotion remains not ready.")
+print("SalCAPA demonstration promotion preflight passed; live promotion remains governed and end-to-end acceptance remains pending.")
