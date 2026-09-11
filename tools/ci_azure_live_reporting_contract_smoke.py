@@ -46,7 +46,8 @@ for value in (
     "ACTIONS_ID_TOKEN_REQUEST_URL",
     '--federated-token "$FRESH_OIDC_TOKEN"',
     "unset FRESH_OIDC_TOKEN",
-    'walk(if type == "array" then sort_by(tojson) else . end)',
+    'elif type == "object" then with_entries(select(.value != null and .value != [] and .value != {}))',
+    '($before[0] | paths)',
     "Changed governed application configuration path:",
     "LIVE_REPORTING_ACCEPTED",
     "Source database and running application configuration: unchanged",
@@ -130,8 +131,8 @@ expected = {
     "source_server": "salcapa-dev-b48224-pg",
     "temporary_restore_server": "salcapa-dev-b48224-v311-report",
     "restore_lag_minutes": 15,
-    "acceptance_revision": 5,
-    "activation_key": "salcapa-v3.111-live-reporting-20260911-r5",
+    "acceptance_revision": 6,
+    "activation_key": "salcapa-v3.111-live-reporting-20260911-r6",
 }
 if record != expected:
     raise SystemExit("Live-reporting activation does not match the exact governed record")
