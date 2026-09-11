@@ -100,18 +100,27 @@ assert accepted_application["rollback_commit"] == V336_COMMIT
 assert accepted_application["rollback_image_digest"].endswith(V336_DIGEST)
 
 continuity = front_matter(CONTINUITY)
-assert continuity["deployed_release"] == "v3.36"
-assert continuity["deployed_commit"] == V336_COMMIT
-assert continuity["image_digest"] == V336_DIGEST
 assert continuity["current_stable_release"] == "v3.111"
 assert continuity["current_stable_commit"] == V3111_COMMIT
-assert continuity["promotion_readiness"] == "preflight_ready"
-assert continuity["genuine_blocker"] != "none"
+if continuity["promotion_readiness"] == "accepted":
+    assert continuity["deployed_release"] == "v3.111"
+    assert continuity["deployed_commit"] == V3111_COMMIT
+    assert continuity["image_digest"] == V3111_DIGEST
+    assert continuity["promotion_candidate_image_acceptance"] == "immutable_image_deployed_and_accepted"
+    assert continuity["fictional_member_seed_state"] == "verified"
+    assert continuity["critical_journey_acceptance"] == "verified"
+    assert continuity["genuine_blocker"] == "none"
+else:
+    assert continuity["promotion_readiness"] == "preflight_ready"
+    assert continuity["deployed_release"] == "v3.36"
+    assert continuity["deployed_commit"] == V336_COMMIT
+    assert continuity["image_digest"] == V336_DIGEST
+    assert continuity["genuine_blocker"] != "none"
 
 for forbidden in ("password", "client_secret", "access_token", "connection_string"):
     assert not re.search(rf'(?i)"{forbidden}"\s*:', CONTRACT.read_text(encoding="utf-8"))
 
 print(
     "Exact frozen v3.109 reference-image lineage passed; publication, deployment, "
-    "traffic, and cost changes remain unauthorized."
+    "traffic, and cost changes remain unauthorized by its historical preflight contract."
 )
