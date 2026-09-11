@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "activation_key": "salcapa-v3.111-live-demo-20260911-r1",
+  "activation_key": "salcapa-v3.111-live-demo-20260911-r2",
   "operation": "accept_live_demonstration",
   "target_environment": "dev",
   "unique_suffix": "b48224",
@@ -17,5 +17,5 @@
   "expected_persona_count": 24,
   "fixture_authority": "ISSUE-124",
   "demonstration_acknowledgement": "FICTIONAL DEMONSTRATION DATA ONLY",
-  "acceptance_revision": 1
+  "acceptance_revision": 2
 }
