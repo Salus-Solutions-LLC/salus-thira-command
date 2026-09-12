@@ -11,9 +11,9 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salcapa_facility_imagery.py.gz",
         ROOT / "salcapa_facility_imagery.py",
-        "fbdc9e40c770af8690d7646261ca7f867db3d897ab1223ebd31c130045f90780",
-        "d8a171329d6eedd871d24411bc738104515252828663ade645e2063f96de9186",
-        32673,
+        "015e5a12080e3871ae8f3d3e1f1895d60037fb7e2da561262730538e1f6e9fac",
+        "2681490e707bf26a9beeeaf5317bf75dc5a6a9b4ebb8814b08d178108852fae7",
+        32780,
     ),
     (
         ROOT / "source_archives/development/ci_salcapa_facility_imagery_smoke.py.gz",

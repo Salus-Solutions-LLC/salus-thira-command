@@ -383,6 +383,7 @@ def register_salcapa_facility_imagery(fastapi_app, core: dict) -> None:
         internal(request)
         return {
             "available": True, "external_processing": False, "standing_gpu": False,
+            "cost_note": "No paid processing service or standing GPU is used by this bounded capability.",
             "supported_coordinate_spaces": sorted(COORDINATE_SPACES),
             "supported_representation_classes": sorted(REPRESENTATION_CLASSES),
             "guidance": "Review the exact source, its authority, revision, coordinate space, scale limits, uncertainty, and destination before use.",
