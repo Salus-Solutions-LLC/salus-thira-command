@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 September 2026 21:16 CDT
+last_verified_at: 11 September 2026 21:19 CDT
 current_frozen_release: v3.111
 current_frozen_commit: 8bf4614ec79a27641c40dc1a21e1790746a08604
 active_development_branch: development/salcapa-platform
@@ -9,8 +9,8 @@ active_roadmap_issue: 124
 active_increment: issue_124_demo_evaluator_visibility
 last_completed_release: v3.111
 candidate_release: none
-validation_pr: none
-validation_gate_state: candidate_implementation_in_progress
+validation_pr: 301
+validation_gate_state: controlled_validation_in_progress
 genuine_blockers: authorized_evaluator_cannot_see_fictional_demonstration_environments
 next_authorized_increment: issue_124_demo_evaluator_visibility
 ---
