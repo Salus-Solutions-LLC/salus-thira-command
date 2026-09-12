@@ -47,6 +47,9 @@ STAFF_REVIEW_DECISIONS = (
     "Decline — No Fit",
     "Close — No Action",
 )
+SCOPING_HANDOFF_STATUS = (
+    "Prepared Draft — Fictional; Separate Scope and Price Approval Required"
+)
 POLICY_TABLES = {
     "Questionnaire": "advisor_questionnaire_versions",
     "Recommendation Policy": "advisor_recommendation_policy_versions",
@@ -289,6 +292,34 @@ class FictionalStaffReviewCommand(BaseModel):
         return self
 
 
+
+class FictionalScopingHandoffCommand(BaseModel):
+    """Strict command for a nonbinding fictional scope-draft handoff."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    authorizing_review_key: str = Field(pattern=r"^SPA-REVIEW-[A-F0-9]{64}$")
+    prepared_by_reviewer_key: str = Field(
+        pattern=r"^SPA-REVIEWER-FICTIONAL-[A-Z0-9-]{1,80}$"
+    )
+    prepared_by_reviewer_role: Literal[
+        "Qualified Salus Commercial Reviewer",
+        "Senior Salus Commercial Reviewer",
+    ]
+    preparation_purpose: Literal["Prepare Fictional Scope Draft"]
+    fictional_acceptance_simulation: Literal[True]
+    assumptions: tuple[str, ...] = ()
+    exclusions: tuple[str, ...] = ()
+    validation_questions: tuple[str, ...] = ()
+
+    @field_validator("assumptions", "exclusions", "validation_questions")
+    @classmethod
+    def validate_handoff_statements(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if len(value) > 20 or any(not item.strip() or len(item.strip()) > 500 for item in value):
+            raise ValueError("scope-draft statement collection exceeds the prototype limit")
+        return tuple(item.strip() for item in value)
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS advisor_questionnaire_versions (
  version_key TEXT PRIMARY KEY, status TEXT NOT NULL, data_boundary TEXT NOT NULL,
@@ -404,6 +435,15 @@ CREATE TABLE IF NOT EXISTS advisor_prospect_review_state (
  prospect_key TEXT PRIMARY KEY, current_review_key TEXT NOT NULL,
  review_sequence INTEGER NOT NULL, status TEXT NOT NULL,
  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS advisor_fictional_scoping_handoffs (
+ handoff_key TEXT PRIMARY KEY, prospect_key TEXT NOT NULL,
+ authorizing_review_key TEXT NOT NULL UNIQUE, status TEXT NOT NULL,
+ data_boundary TEXT NOT NULL, fictional_only INTEGER NOT NULL,
+ prepared_by_reviewer_key TEXT NOT NULL,
+ prepared_by_reviewer_role TEXT NOT NULL, basis_sha256 TEXT NOT NULL,
+ snapshot_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
+ created_at TEXT NOT NULL
 );
 """
 
@@ -2521,3 +2561,196 @@ def record_fictional_staff_review(
         conn.rollback()
         raise
     return {**review, "content_sha256": digest}
+
+
+
+def load_fictional_scoping_handoff(conn: Any, handoff_key: str) -> dict[str, Any]:
+    """Load and verify one immutable nonbinding fictional scope-draft handoff."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_fictional_scoping_handoffs WHERE handoff_key=?",
+        (handoff_key,),
+    ).fetchone()
+    if not row or content_sha256(row["snapshot_json"]) != row["content_sha256"]:
+        raise PolicyIntegrityError("fictional scoping handoff integrity check failed")
+    result = json.loads(row["snapshot_json"])
+    checks = {
+        "handoff_key": row["handoff_key"],
+        "prospect_key": row["prospect_key"],
+        "authorizing_review_key": row["authorizing_review_key"],
+        "status": row["status"],
+        "data_boundary": row["data_boundary"],
+        "prepared_by_reviewer_key": row["prepared_by_reviewer_key"],
+        "prepared_by_reviewer_role": row["prepared_by_reviewer_role"],
+        "basis_sha256": row["basis_sha256"],
+        "created_at": row["created_at"],
+    }
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(row["prepared_by_reviewer_key"])
+    if (
+        any(result.get(key) != value for key, value in checks.items())
+        or int(row["fictional_only"]) != 1
+        or result.get("fictional_only") is not True
+        or result.get("fictional_acceptance_simulation") is not True
+        or result.get("basis_sha256") != content_sha256(result.get("basis", {}))
+        or reviewer is None
+        or reviewer["reviewer_role"] != row["prepared_by_reviewer_role"]
+        or result.get("prepared_by_reviewer_fixture_sha256") != content_sha256(reviewer)
+        or result.get("contact_information_included") is not False
+        or any(result.get(flag) is not False for flag in (
+            "establishes_scope", "authorizes_package", "authorizes_price",
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release", "authorizes_onboarding",
+        ))
+    ):
+        raise PolicyIntegrityError("fictional scoping handoff boundary failed")
+    serialized = canonical_json(result).casefold()
+    if "@example.com" in serialized or "contact_email" in serialized or "contact_name" in serialized:
+        raise PolicyIntegrityError("fictional scoping handoff contains contact information")
+    assert_safe_public_projection(result["public_price_ranges"])
+    return {**result, "content_sha256": row["content_sha256"]}
+
+
+def prepare_fictional_scoping_handoff(
+    conn: Any,
+    prospect_key: str,
+    command: FictionalScopingHandoffCommand,
+    *,
+    prepared_at: str,
+) -> dict[str, Any]:
+    """Prepare a source-grounded fictional scope draft without commercial authority."""
+
+    initialize_policy_store(conn)
+    at = _parse_utc(prepared_at)
+    prospect = load_fictional_prospect(conn, prospect_key)
+    consent = load_fictional_consent(conn, prospect["consent_key"])
+    current_review = load_current_fictional_staff_review(conn, prospect_key)
+    if (
+        current_review["review_key"] != command.authorizing_review_key
+        or current_review["decision"] != "Proceed to Fictional Scoping"
+    ):
+        raise PolicyIntegrityError(
+            "current fictional review does not authorize scope-draft preparation"
+        )
+    if _parse_utc(prospect["expires_at"]) <= at or _parse_utc(consent["expires_at"]) <= at:
+        raise PolicyIntegrityError("fictional prospect consent has expired")
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(command.prepared_by_reviewer_key)
+    if (
+        reviewer is None
+        or reviewer["fictional_only"] is not True
+        or reviewer["reviewer_role"] != command.prepared_by_reviewer_role
+    ):
+        raise PolicyIntegrityError("fictional scope-draft preparer is not authorized")
+    if conn.execute(
+        "SELECT handoff_key FROM advisor_fictional_scoping_handoffs "
+        "WHERE authorizing_review_key=?",
+        (command.authorizing_review_key,),
+    ).fetchone():
+        raise PolicyIntegrityError("fictional review already has a scoping handoff")
+
+    evaluation = load_session_fictional_evaluation(conn, prospect["evaluation_key"])
+    recommendation = prospect["recommendation"]
+    if recommendation["evaluation_key"] != evaluation["evaluation_key"]:
+        raise PolicyIntegrityError("fictional recommendation reference failed")
+    assert_safe_public_projection(recommendation["price_ranges"])
+    basis = {
+        "prospect_key": prospect_key,
+        "prospect_snapshot_sha256": prospect["content_sha256"],
+        "consent_key": consent["consent_key"],
+        "consent_snapshot_sha256": consent["content_sha256"],
+        "evaluation_key": evaluation["evaluation_key"],
+        "evaluation_snapshot_sha256": evaluation["content_sha256"],
+        "authorizing_review_key": current_review["review_key"],
+        "authorizing_review_snapshot_sha256": current_review["content_sha256"],
+        "policy_bundle_sha256": evaluation["policy_bundle_sha256"],
+        "governing_versions": evaluation["governing_versions"],
+        "commercial_estimate_snapshot_sha256": (
+            evaluation["commercial_estimate_snapshot_sha256"]
+        ),
+    }
+    basis_sha256 = content_sha256(basis)
+    at_text = _utc_text(at)
+    seed = {
+        "prospect_key": prospect_key,
+        "authorizing_review_key": current_review["review_key"],
+        "status": SCOPING_HANDOFF_STATUS,
+        "scope_state": "Proposed — Not Authorized",
+        "data_boundary": DATA_BOUNDARY,
+        "fictional_only": True,
+        "fictional_acceptance_simulation": True,
+        "preparation_purpose": command.preparation_purpose,
+        "prepared_by_reviewer_key": command.prepared_by_reviewer_key,
+        "prepared_by_reviewer_role": command.prepared_by_reviewer_role,
+        "prepared_by_reviewer_fixture_sha256": content_sha256(reviewer),
+        "basis": basis,
+        "basis_sha256": basis_sha256,
+        "organization_profile": recommendation["organization_profile"],
+        "proposed_package": recommendation["primary_package"],
+        "recommended_investigation_depth": (
+            recommendation["recommended_investigation_depth"]
+        ),
+        "public_price_ranges": recommendation["price_ranges"],
+        "implementation_period": recommendation["price_ranges"]["implementation_period"],
+        "recommendation_assumptions": recommendation["assumptions"],
+        "recommendation_contradictions": recommendation["contradictions"],
+        "recommendation_information_gaps": recommendation["information_gaps"],
+        "preparer_assumptions": list(command.assumptions),
+        "preparer_exclusions": list(command.exclusions),
+        "validation_questions": list(command.validation_questions),
+        "required_separate_approvals": [
+            "Final scope",
+            "Final package",
+            "Final price",
+            "Customer release or commitment",
+            "Protected Member onboarding",
+        ],
+        "contact_information_included": False,
+        "created_at": at_text,
+        "created_display": _display_utc(at),
+        "what_happens_next": (
+            "Qualified Salus personnel review and revise this fictional scope draft. "
+            "No customer-facing release or commitment occurs without separate authority."
+        ),
+        "establishes_scope": False,
+        "authorizes_package": False,
+        "authorizes_price": False,
+        "creates_charge": False,
+        "creates_contract": False,
+        "creates_membership": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "authorizes_customer_release": False,
+        "authorizes_onboarding": False,
+    }
+    handoff_key = "SPA-HANDOFF-" + content_sha256(seed).upper()
+    handoff = {"handoff_key": handoff_key, **seed}
+    snapshot_json = canonical_json(handoff)
+    digest = content_sha256(snapshot_json)
+    try:
+        conn.execute(
+            "INSERT INTO advisor_fictional_scoping_handoffs(handoff_key,prospect_key,authorizing_review_key,status,data_boundary,fictional_only,prepared_by_reviewer_key,prepared_by_reviewer_role,basis_sha256,snapshot_json,content_sha256,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                handoff_key, prospect_key, current_review["review_key"],
+                SCOPING_HANDOFF_STATUS, DATA_BOUNDARY, 1,
+                command.prepared_by_reviewer_key, command.prepared_by_reviewer_role,
+                basis_sha256, snapshot_json, digest, at_text,
+            ),
+        )
+        _record_session_event(
+            conn,
+            prospect["session_key"],
+            "Fictional Scoping Handoff Prepared",
+            at_text,
+            {
+                "prospect_key": prospect_key,
+                "handoff_key": handoff_key,
+                "authorizing_review_key": current_review["review_key"],
+                "status": SCOPING_HANDOFF_STATUS,
+                "fictional_acceptance_simulation": True,
+            },
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {**handoff, "content_sha256": digest}
