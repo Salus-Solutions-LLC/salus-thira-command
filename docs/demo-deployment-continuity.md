@@ -1,14 +1,14 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 11 September 2026 22:42 CDT
+last_verified_at: 11 September 2026 23:08 CDT
 environment: azure_development_demonstration
-deployed_release: v3.111
-deployed_commit: 8bf4614ec79a27641c40dc1a21e1790746a08604
-image_digest: sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311
-deployed_at: 11 September 2026 11:31 CDT
-deployment_workflow_run: 34621973343
-deployment_acceptance: full_demonstration_acceptance
+deployed_release: v3.112
+deployed_commit: 1d1759375d37b7de884331c06833de8c727ac5af
+image_digest: sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce
+deployed_at: 11 September 2026 23:08 CDT
+deployment_workflow_run: 34672016498
+deployment_acceptance: live_runtime_readiness_accepted
 current_stable_release: v3.112
 current_stable_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 promotion_candidate: v3.112
@@ -17,12 +17,12 @@ promotion_candidate_image_digest: sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac9
 promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce
 promotion_candidate_image_published_at: 11 September 2026 22:42 CDT
 promotion_candidate_image_workflow_run: 34670976390
-promotion_candidate_image_acceptance: immutable_image_published_not_deployed
+promotion_candidate_image_acceptance: immutable_image_deployed_awaiting_live_acceptance
 promotion_readiness: preflight_ready
-fictional_member_seed_state: v312_image_published_not_deployed
+fictional_member_seed_state: v312_deployed_awaiting_live_acceptance
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.36
-genuine_blocker: accepted_azure_demo_lacks_authorized_evaluator_visibility
+genuine_blocker: live_authorized_evaluator_acceptance_pending
 ---
 
 # SalCAPA development demonstration continuity
@@ -72,6 +72,8 @@ All 20 required workflow families passed for the repair on exact candidate commi
 
 [Immutable-image publication workflow 34670976390](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34670976390) published exact frozen v3.112 commit [`1d1759375d37b7de884331c06833de8c727ac5af`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) as `salcapadevb48224acr.azurecr.io/salcapa@sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce` on **11 September 2026 at 22:42 CDT**. Workload identity, exact frozen source, runtime release identity, scoped registry authority, immutable labels, and non-root execution passed. No application, traffic, DNS, database, or recurring-cost configuration changed. The accepted v3.111 demonstration remains the rollback baseline.
 
+[Governed application-deployment workflow 34672016498](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34672016498) deployed exact frozen v3.112 and immutable digest `sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce` on **11 September 2026 at 23:08 CDT**. Workload identity, Entra-only PostgreSQL authentication, immutable image identity, HTTPS ingress, bounded scale, runtime readiness, required dependencies, and Entra sign-in redirect passed. Accepted v3.111 was retained as the fail-closed rollback baseline. Full acceptance remains pending until the ordinary read-only evaluator path proves Aster Ridge, Cedar Vale, and Northstar live without weakening tenant isolation or representing fictional authority.
+
 ## Promotion gates
 
 Before any newer milestone is promoted, all of the following must be verified on the exact frozen candidate and immutable image digest:
@@ -94,4 +96,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Preserve the accepted v3.111 operational baseline while validating the separate v3.112 application activation against its exact immutable image and v3.111 rollback. Promote only after every required gate passes, then complete live authorized-evaluator acceptance for Aster Ridge, Cedar Vale, and Northstar. Resume Issue #236 only after the ordinary evaluator interface is accepted.
+Run the separately governed live v3.112 acceptance against the ordinary read-only Demonstration Environments path. It must show exactly Aster Ridge, Cedar Vale, and Northstar to authorized Salus evaluator roles, deny Protected Member and cross-tenant misuse, preserve the live application configuration, and remove its bounded temporary job. Accepted v3.111 remains the rollback baseline until that gate passes. Resume Issue #236 only after the ordinary evaluator interface is accepted.
