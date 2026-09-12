@@ -729,6 +729,126 @@ def main() -> None:
         assert packet_audit[-1]["contains_contact_information"] is False
         assert juniper_contact["contact_email"] not in json.dumps(packet_audit).casefold()
 
+        interface_context = advisor.FictionalInternalReviewInterfaceContext(
+            reviewer_key="SPA-REVIEWER-FICTIONAL-SENIOR-1",
+            reviewer_role="Senior Salus Commercial Reviewer",
+            access_purpose="Review Fictional Protection Advisor Evidence",
+            fictional_acceptance_simulation=True,
+        )
+        for disabled_settings in (
+            {},
+            {
+                advisor.INTERNAL_REVIEW_INTERFACE_FLAG: (
+                    advisor.INTERNAL_REVIEW_INTERFACE_STATE
+                ),
+                "SALUS_ENV": "production",
+                "SALUS_AUTH_MODE": "oidc",
+            },
+            {
+                advisor.INTERNAL_REVIEW_INTERFACE_FLAG: (
+                    advisor.INTERNAL_REVIEW_INTERFACE_STATE
+                ),
+                "SALUS_ENV": "development",
+                "SALUS_AUTH_MODE": "disabled",
+            },
+        ):
+            try:
+                advisor.open_fictional_internal_review_interface(
+                    conn,
+                    packet["packet_key"],
+                    interface_context,
+                    viewed_at="2026-09-12T16:05:00Z",
+                    server_settings=disabled_settings,
+                )
+            except advisor.SessionAccessError:
+                pass
+            else:
+                raise AssertionError("disabled fictional internal interface opened")
+
+        interface = advisor.open_fictional_internal_review_interface(
+            conn,
+            packet["packet_key"],
+            interface_context,
+            viewed_at="2026-09-12T16:05:00Z",
+            server_settings={
+                advisor.INTERNAL_REVIEW_INTERFACE_FLAG: (
+                    advisor.INTERNAL_REVIEW_INTERFACE_STATE
+                ),
+                "SALUS_ENV": "development",
+                "SALUS_AUTH_MODE": "prototype",
+            },
+        )
+        assert interface["interface_version"] == advisor.INTERNAL_REVIEW_INTERFACE_VERSION
+        assert interface["page_title"] == "Salus Protection Advisor™"
+        assert interface["navigation_label"] == "Service Recommendation & Pricing"
+        assert interface["visibility"] == "Internal Salus Review Only — No Public Route"
+        assert interface["left_margin_release_version"] == "Internal prototype — not deployed"
+        assert interface["salus_workflow"] == ["See", "Decide", "Coordinate", "Act", "Prove"]
+        assert interface["status"] == advisor.INTERNAL_REVIEW_PACKET_STATUS
+        assert interface["lifecycle_state"] == "Current Fictional Review Evidence"
+        assert interface["viewed_display"] == "12 September 2026 16:05 UTC"
+        assert interface["human_review_completed"] is False
+        assert interface["server_gate"] == {
+            "interface_state": advisor.INTERNAL_REVIEW_INTERFACE_STATE,
+            "environment_class": "Non-production",
+            "authentication_boundary": "Server controlled",
+        }
+        assert interface["available_controls"] == {
+            "inspect_evidence": True,
+            "compare_source_lineage": True,
+            "prepare_review_notes": True,
+            "record_human_review": False,
+            "approve_prototype": False,
+            "authorize_public_release": False,
+        }
+        assert interface["accessibility_contract"]["color_is_not_the_only_signal"] is True
+        assert interface["accessibility_contract"]["mobile_reflow_required"] is True
+        assert interface["source_lineage"]["handoff_key"] == handoff["handoff_key"]
+        assert interface["source_lineage"]["policy_bundle_sha256"] == (
+            packet["evidence"]["policy_bundle_sha256"]
+        )
+        assert interface["view_sha256"] == advisor.content_sha256({
+            key: value for key, value in interface.items()
+            if key not in {"view_sha256", "server_gate"}
+        })
+        assert all(interface[flag] is False for flag in (
+            "approves_prototype", "authorizes_public_route", "authorizes_dns",
+            "authorizes_pilot", "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release", "authorizes_onboarding",
+        ))
+        interface_text = json.dumps(interface).casefold()
+        for hidden in (
+            "@example.com", "contact_email", "contact_name", "session_token",
+            "internal_cost", "role_rate", "margin_basis_points", "tenant_id",
+            "protected_member_id", "approved_customer_price_cents",
+        ):
+            assert hidden not in interface_text
+
+        try:
+            advisor.FictionalInternalReviewInterfaceContext(
+                reviewer_key=reviewer["reviewer_key"],
+                reviewer_role=reviewer["reviewer_role"],
+                access_purpose="Review Fictional Protection Advisor Evidence",
+                fictional_acceptance_simulation=True,
+                protected_member_id=1,
+            )
+        except ValidationError:
+            pass
+        else:
+            raise AssertionError("Protected Member field entered the internal interface context")
+
+        interface_audit = advisor.verify_fictional_session_audit(
+            conn, evaluation_session["session_key"]
+        )
+        assert interface_audit[-1]["event_type"] == (
+            "Fictional Internal Review Interface Opened"
+        )
+        assert interface_audit[-1]["details"]["packet_key"] == packet["packet_key"]
+        assert interface_audit[-1]["details"]["human_review_completed"] is False
+        assert interface_audit[-1]["contains_answer_content"] is False
+        assert interface_audit[-1]["contains_contact_information"] is False
+        assert juniper_contact["contact_email"] not in json.dumps(interface_audit).casefold()
+
         conn.execute(
             "UPDATE advisor_fictional_internal_review_packets SET snapshot_json=? WHERE packet_key=?",
             ("{}", packet["packet_key"]),
