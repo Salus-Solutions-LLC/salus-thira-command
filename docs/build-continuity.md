@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 September 2026 02:11 CDT
+last_verified_at: 12 September 2026 02:21 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 236
-active_increment: issue_236_maps_plans_facility_imagery_implementation
+active_increment: issue_236_facility_imagery_records_validation
 last_completed_release: v3.112
 candidate_release: none
-validation_pr: none
-validation_gate_state: all_required_gates_green
+validation_pr: pending
+validation_gate_state: local_verified_github_pending
 genuine_blockers: none
-next_authorized_increment: issue_236_maps_plans_facility_imagery_implementation
+next_authorized_increment: issue_236_facility_imagery_review_and_destination_integration
 ---
 
 # SalCAPA build continuity
@@ -61,7 +61,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Last frozen patch increment: [controlled validation PR #303](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/303) passed all 20 required workflow families on exact final head [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) and closed without merge. That exact head became immutable `release/v3.112` and advanced by non-force fast-forward to `development/salcapa-platform`. The accepted Azure v3.111 demonstration remains unchanged.
 - Next authorized product increment: implement the first bounded Issue #236 source-representation, authority, region, and relationship-proposal records using existing local visual, geospatial, scanned-PDF, Facility Assessment, Mission Map, and PROVE controls. No paid external service, standing GPU, biometric function, or Azure deployment is authorized.
 
-## Recovery procedure
+- Current candidate: the bounded Issue #236 facility-imagery records slice adds source representation, authority, revision, page/pixel geometry, scale limitations, Derived — Unverified relationship proposals, independent review, and destination proposals. It uses no external provider, paid service, standing GPU, biometric function, or Azure deployment. Frozen v3.112 and the accepted Azure demonstration remain unchanged.\n\n## Recovery procedure
 
 Before starting an increment:
 
