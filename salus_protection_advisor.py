@@ -1145,7 +1145,11 @@ def expire_fictional_sessions(conn: Any, *, as_of: str) -> list[str]:
         for row in rows:
             if _parse_utc(row["expires_at"]) <= now:
                 conn.execute(
-                    "UPDATE advisor_sessions SET status='Expired', current_token_sha256=NULL WHERE session_key=?",
+                    "DELETE FROM advisor_answer_revisions WHERE session_key=?",
+                    (row["session_key"],),
+                )
+                conn.execute(
+                    "UPDATE advisor_sessions SET status='Expired', current_token_sha256=NULL, latest_answer_revision=0 WHERE session_key=?",
                     (row["session_key"],),
                 )
                 conn.execute(
@@ -1154,7 +1158,10 @@ def expire_fictional_sessions(conn: Any, *, as_of: str) -> list[str]:
                 )
                 _record_session_event(
                     conn, row["session_key"], "Session Expired", _utc_text(now),
-                    {"retention_policy_version": row["retention_policy_version"]},
+                    {
+                        "retention_policy_version": row["retention_policy_version"],
+                        "answer_content_deleted": True,
+                    },
                 )
                 expired.append(row["session_key"])
         conn.commit()
@@ -1266,8 +1273,17 @@ def append_fictional_answer_revision(
     if bundle["content_sha256"] != session["policy_bundle_sha256"]:
         raise PolicyIntegrityError("session policy reference is unavailable")
     question = _question_by_key(conn, bundle, submission.question_key)
-    if submission.answer_state == "Answered" and question["choices"]:
-        if not isinstance(submission.value, str) or submission.value not in question["choices"]:
+    if submission.answer_state == "Answered":
+        case = next(item for item in FICTIONAL_CASES if item.case_key == session["case_key"])
+        if (
+            submission.question_key not in case.answers
+            or submission.value != case.answers[submission.question_key]
+        ):
+            raise ValueError("only the released fictional fixture value may be recorded")
+        if question["choices"] and (
+            not isinstance(submission.value, str)
+            or submission.value not in question["choices"]
+        ):
             raise ValueError("answer is outside the released choices")
     revision_number = int(session["latest_answer_revision"]) + 1
     answer_json = canonical_json(submission.value)
