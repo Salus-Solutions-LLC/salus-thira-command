@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 September 2026 06:08 CDT
+last_verified_at: 12 September 2026 07:10 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 290
-active_increment: issue_290_internal_prototype_design
+active_increment: issue_290_internal_prototype_policy_models
 last_completed_release: v3.112
 candidate_release: none
 validation_pr: none
 validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: issue_290_internal_prototype_contract
+next_authorized_increment: issue_290_internal_prototype_policy_models
 ---
 
 # SalCAPA build continuity
@@ -32,6 +32,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
+- Last completed development increment: [controlled validation PR #324](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/324) passed all 20 required workflow families on exact head [`e2fae84`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/e2fae84377a55d6832e1fda989112c7cb4ae0204), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The accepted Issue #290 design defines a disabled-by-default internal Salus Protection Advisor prototype, prospect and Protected Member isolation, immutable questionnaire/recommendation/package/public-price policies, sanitized public price ranges, explicit consent and lifecycle controls, qualified Salus commercial authority, deterministic recovery and rollback, and a separate release path. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 - Current frozen release: **v3.112** at [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) on `release/v3.112`. Governed deployment workflow 34672016498 placed that exact release and immutable image in the Azure development demonstration, and live acceptance workflow 34674570520 accepted the ordinary read-only evaluator path on 12 September 2026 at 00:06 CDT. Exact v3.111 remains the fail-closed rollback baseline.
 - Active development line: `development/salcapa-platform`.
 - Active roadmap: [Issue #290](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/290), beginning the separately released Salus Protection Advisor internal prototype in staging without destabilizing the accepted SalCAPA demonstration. [Issue #236](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/236) remains open and authoritative for the disabled external-provider route and separately authorized facial or biometric module. [Issue #298](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/298) completed the build-continuity and anti-stoppage operating procedure. [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124) is complete after exact v3.112 passed the ordinary live evaluator path for all three fictional Protected Members.
