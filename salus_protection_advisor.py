@@ -67,6 +67,24 @@ INTERNAL_REVIEW_TOPICS = (
 INTERNAL_REVIEW_INTERFACE_VERSION = "SPA-INTERNAL-REVIEW-INTERFACE-1.0.0"
 INTERNAL_REVIEW_INTERFACE_FLAG = "SALUS_PROTECTION_ADVISOR_INTERNAL_REVIEW"
 INTERNAL_REVIEW_INTERFACE_STATE = "Enabled for Fictional Internal Acceptance"
+INTERNAL_REVIEW_NOTE_KINDS = (
+    "Observation",
+    "Question",
+    "Change Requested",
+    "Evidence Needed",
+)
+INTERNAL_REVIEW_NOTE_STATUSES = ("Open", "Addressed", "Withdrawn")
+INTERNAL_REVIEW_EVIDENCE_REFERENCES = (
+    "Questionnaire and governing versions",
+    "Evaluation basis and uncertainty",
+    "Recommendation and investigation depth",
+    "Public price ranges and package inclusions",
+    "Consent and retention controls",
+    "Staff review and correction lineage",
+    "Scoping assumptions, exclusions, and validation questions",
+    "Accessibility and visual presentation requirements",
+    "Security, privacy, abuse, recovery, and rollback requirements",
+)
 POLICY_TABLES = {
     "Questionnaire": "advisor_questionnaire_versions",
     "Recommendation Policy": "advisor_recommendation_policy_versions",
@@ -378,6 +396,67 @@ class FictionalInternalReviewInterfaceContext(BaseModel):
     fictional_acceptance_simulation: Literal[True]
 
 
+class FictionalInternalReviewNoteCommand(BaseModel):
+    """Append-only fictional review note or governed correction."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    packet_key: str = Field(pattern=r"^SPA-REVIEW-PACKET-[A-F0-9]{64}$")
+    topic: str = Field(min_length=1, max_length=160)
+    note_kind: Literal["Observation", "Question", "Change Requested", "Evidence Needed"]
+    lifecycle_status: Literal["Open", "Addressed", "Withdrawn"]
+    statement: str = Field(min_length=10, max_length=1200)
+    evidence_references: tuple[str, ...]
+    reviewer_key: str = Field(
+        pattern=r"^SPA-REVIEWER-FICTIONAL-[A-Z0-9-]{1,80}$"
+    )
+    reviewer_role: Literal[
+        "Qualified Salus Commercial Reviewer",
+        "Senior Salus Commercial Reviewer",
+    ]
+    fictional_acceptance_simulation: Literal[True]
+    supersedes_note_key: str | None = Field(
+        default=None, pattern=r"^SPA-REVIEW-NOTE-[A-F0-9]{64}$"
+    )
+    correction_reason: str | None = Field(default=None, min_length=10, max_length=500)
+
+    @field_validator("topic", "statement")
+    @classmethod
+    def clean_review_note_text(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("topic")
+    @classmethod
+    def require_governed_topic(cls, value: str) -> str:
+        if value not in INTERNAL_REVIEW_TOPICS:
+            raise ValueError("review note topic is outside the governed review scope")
+        return value
+
+    @field_validator("evidence_references")
+    @classmethod
+    def require_governed_evidence_references(
+        cls, value: tuple[str, ...]
+    ) -> tuple[str, ...]:
+        cleaned = tuple(item.strip() for item in value)
+        if (
+            not cleaned
+            or len(cleaned) > 9
+            or len(set(cleaned)) != len(cleaned)
+            or any(item not in INTERNAL_REVIEW_EVIDENCE_REFERENCES for item in cleaned)
+        ):
+            raise ValueError("review note evidence references are invalid")
+        return cleaned
+
+    @model_validator(mode="after")
+    def validate_review_note_lifecycle(self) -> "FictionalInternalReviewNoteCommand":
+        if self.supersedes_note_key is None:
+            if self.lifecycle_status != "Open" or self.correction_reason is not None:
+                raise ValueError("an initial review note must be Open and cannot be a correction")
+        elif self.correction_reason is None:
+            raise ValueError("a superseding review note requires a correction reason")
+        return self
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS advisor_questionnaire_versions (
  version_key TEXT PRIMARY KEY, status TEXT NOT NULL, data_boundary TEXT NOT NULL,
@@ -511,6 +590,22 @@ CREATE TABLE IF NOT EXISTS advisor_fictional_internal_review_packets (
  prepared_by_reviewer_role TEXT NOT NULL, evidence_sha256 TEXT NOT NULL,
  snapshot_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS advisor_fictional_internal_review_notes (
+ note_key TEXT PRIMARY KEY, thread_key TEXT NOT NULL,
+ packet_key TEXT NOT NULL, note_revision INTEGER NOT NULL,
+ topic TEXT NOT NULL, note_kind TEXT NOT NULL,
+ lifecycle_status TEXT NOT NULL, reviewer_key TEXT NOT NULL,
+ reviewer_role TEXT NOT NULL, data_boundary TEXT NOT NULL,
+ fictional_only INTEGER NOT NULL, basis_sha256 TEXT NOT NULL,
+ supersedes_note_key TEXT, correction_reason TEXT,
+ snapshot_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
+ created_at TEXT NOT NULL, UNIQUE(thread_key, note_revision)
+);
+CREATE TABLE IF NOT EXISTS advisor_fictional_internal_review_note_state (
+ thread_key TEXT PRIMARY KEY, packet_key TEXT NOT NULL,
+ current_note_key TEXT NOT NULL, note_revision INTEGER NOT NULL,
+ lifecycle_status TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 """
 
@@ -3235,6 +3330,284 @@ def open_fictional_internal_review_interface(
     return {
         **interface,
         "view_sha256": view_sha256,
+        "server_gate": {
+            "interface_state": gate["interface_state"],
+            "environment_class": "Non-production",
+            "authentication_boundary": "Server controlled",
+        },
+    }
+
+
+def load_fictional_internal_review_note(
+    conn: Any, note_key: str
+) -> dict[str, Any]:
+    """Load and verify one immutable fictional internal review-note revision."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_fictional_internal_review_notes WHERE note_key=?",
+        (note_key,),
+    ).fetchone()
+    if not row or content_sha256(row["snapshot_json"]) != row["content_sha256"]:
+        raise PolicyIntegrityError("fictional internal review note integrity check failed")
+    result = json.loads(row["snapshot_json"])
+    checks = {
+        "note_key": row["note_key"],
+        "thread_key": row["thread_key"],
+        "packet_key": row["packet_key"],
+        "note_revision": int(row["note_revision"]),
+        "topic": row["topic"],
+        "note_kind": row["note_kind"],
+        "lifecycle_status": row["lifecycle_status"],
+        "reviewer_key": row["reviewer_key"],
+        "reviewer_role": row["reviewer_role"],
+        "data_boundary": row["data_boundary"],
+        "basis_sha256": row["basis_sha256"],
+        "supersedes_note_key": row["supersedes_note_key"],
+        "correction_reason": row["correction_reason"],
+        "created_at": row["created_at"],
+    }
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(row["reviewer_key"])
+    if (
+        any(result.get(key) != value for key, value in checks.items())
+        or int(row["fictional_only"]) != 1
+        or result.get("fictional_only") is not True
+        or result.get("fictional_acceptance_simulation") is not True
+        or result.get("basis_sha256") != content_sha256(result.get("basis", {}))
+        or result.get("topic") not in INTERNAL_REVIEW_TOPICS
+        or result.get("note_kind") not in INTERNAL_REVIEW_NOTE_KINDS
+        or result.get("lifecycle_status") not in INTERNAL_REVIEW_NOTE_STATUSES
+        or any(
+            item not in INTERNAL_REVIEW_EVIDENCE_REFERENCES
+            for item in result.get("evidence_references", [])
+        )
+        or reviewer is None
+        or reviewer["reviewer_role"] != row["reviewer_role"]
+        or result.get("reviewer_fixture_sha256") != content_sha256(reviewer)
+        or result.get("human_review_completed") is not False
+        or any(result.get(flag) is not False for flag in (
+            "approves_prototype", "changes_scoring", "changes_recommendation",
+            "changes_package", "changes_price", "authorizes_public_route",
+            "authorizes_pilot", "creates_protected_member",
+            "authorizes_customer_release",
+        ))
+    ):
+        raise PolicyIntegrityError("fictional internal review note boundary failed")
+    serialized = canonical_json(result).casefold()
+    for forbidden in (
+        "@example.com", "contact_email", "contact_name", "session_token",
+        "internal_cost", "role_rate", "margin_basis_points", "tenant_id",
+        "protected_member_id", "approved_customer_price_cents",
+    ):
+        if forbidden in serialized:
+            raise PolicyIntegrityError("fictional internal review note contains restricted data")
+    return {**result, "content_sha256": row["content_sha256"]}
+
+
+def load_current_fictional_internal_review_note(
+    conn: Any, thread_key: str
+) -> dict[str, Any]:
+    """Load the server-controlled current note revision for one thread."""
+
+    state = conn.execute(
+        "SELECT * FROM advisor_fictional_internal_review_note_state WHERE thread_key=?",
+        (thread_key,),
+    ).fetchone()
+    if not state:
+        raise PolicyIntegrityError("fictional internal review note thread was not found")
+    note = load_fictional_internal_review_note(conn, state["current_note_key"])
+    if (
+        note["thread_key"] != thread_key
+        or note["packet_key"] != state["packet_key"]
+        or note["note_revision"] != int(state["note_revision"])
+        or note["lifecycle_status"] != state["lifecycle_status"]
+    ):
+        raise PolicyIntegrityError("fictional internal review note state failed")
+    return note
+
+
+def fictional_internal_review_note_history(
+    conn: Any, thread_key: str
+) -> list[dict[str, Any]]:
+    """Return verified append-only revisions for one fictional note thread."""
+
+    rows = conn.execute(
+        "SELECT note_key FROM advisor_fictional_internal_review_notes "
+        "WHERE thread_key=? ORDER BY note_revision",
+        (thread_key,),
+    ).fetchall()
+    notes = [load_fictional_internal_review_note(conn, row["note_key"]) for row in rows]
+    if notes and [note["note_revision"] for note in notes] != list(
+        range(1, len(notes) + 1)
+    ):
+        raise PolicyIntegrityError("fictional internal review note history is not contiguous")
+    return notes
+
+
+def record_fictional_internal_review_note(
+    conn: Any,
+    command: FictionalInternalReviewNoteCommand,
+    *,
+    recorded_at: str,
+    server_settings: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Record an append-only fictional note without creating review authority."""
+
+    gate = _require_fictional_internal_review_interface(server_settings)
+    at = _parse_utc(recorded_at)
+    packet = load_fictional_internal_review_packet(conn, command.packet_key)
+    prospect = load_fictional_prospect(conn, packet["prospect_key"])
+    consent = load_fictional_consent(conn, prospect["consent_key"])
+    current_review = load_current_fictional_staff_review(conn, prospect["prospect_key"])
+    if (
+        current_review["review_key"]
+        != packet["evidence"]["authorizing_review_key"]
+    ):
+        raise PolicyIntegrityError("review notes require the current fictional packet basis")
+    if _parse_utc(prospect["expires_at"]) <= at or _parse_utc(consent["expires_at"]) <= at:
+        raise PolicyIntegrityError("fictional prospect consent has expired")
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(command.reviewer_key)
+    if (
+        reviewer is None
+        or reviewer["fictional_only"] is not True
+        or reviewer["reviewer_role"] != command.reviewer_role
+    ):
+        raise SessionAccessError("fictional internal review-note author is not authorized")
+
+    if command.supersedes_note_key is None:
+        revision = 1
+        thread_seed = {
+            "packet_key": command.packet_key,
+            "topic": command.topic,
+            "reviewer_key": command.reviewer_key,
+            "created_at": _utc_text(at),
+        }
+        thread_key = "SPA-REVIEW-THREAD-" + content_sha256(thread_seed).upper()
+        prior = None
+    else:
+        prior = load_fictional_internal_review_note(
+            conn, command.supersedes_note_key
+        )
+        state = conn.execute(
+            "SELECT * FROM advisor_fictional_internal_review_note_state "
+            "WHERE thread_key=?",
+            (prior["thread_key"],),
+        ).fetchone()
+        if (
+            not state
+            or state["current_note_key"] != command.supersedes_note_key
+            or prior["packet_key"] != command.packet_key
+            or prior["topic"] != command.topic
+        ):
+            raise PolicyIntegrityError("review-note correction must supersede current exact context")
+        thread_key = prior["thread_key"]
+        revision = int(state["note_revision"]) + 1
+
+    basis = {
+        "packet_key": packet["packet_key"],
+        "packet_content_sha256": packet["content_sha256"],
+        "evidence_sha256": packet["evidence_sha256"],
+        "topic": command.topic,
+        "evidence_references": list(command.evidence_references),
+        "superseded_note_key": prior["note_key"] if prior else None,
+        "superseded_note_content_sha256": prior["content_sha256"] if prior else None,
+    }
+    basis_sha256 = content_sha256(basis)
+    at_text = _utc_text(at)
+    seed = {
+        "thread_key": thread_key,
+        "packet_key": packet["packet_key"],
+        "note_revision": revision,
+        "topic": command.topic,
+        "note_kind": command.note_kind,
+        "lifecycle_status": command.lifecycle_status,
+        "statement": command.statement,
+        "evidence_references": list(command.evidence_references),
+        "reviewer_key": command.reviewer_key,
+        "reviewer_role": command.reviewer_role,
+        "reviewer_fixture_sha256": content_sha256(reviewer),
+        "fictional_only": True,
+        "fictional_acceptance_simulation": True,
+        "data_boundary": DATA_BOUNDARY,
+        "basis": basis,
+        "basis_sha256": basis_sha256,
+        "supersedes_note_key": command.supersedes_note_key,
+        "correction_reason": command.correction_reason,
+        "created_at": at_text,
+        "created_display": _display_utc(at),
+        "recommended_next_step": {
+            "Open": "Qualified Salus personnel review and decide whether follow-up is needed.",
+            "Addressed": "Retain the evidence and verify the matter during a separate decision.",
+            "Withdrawn": "Retain this history and rely on the stated correction reason.",
+        }[command.lifecycle_status],
+        "human_review_completed": False,
+        "approves_prototype": False,
+        "changes_scoring": False,
+        "changes_recommendation": False,
+        "changes_package": False,
+        "changes_price": False,
+        "authorizes_public_route": False,
+        "authorizes_pilot": False,
+        "creates_protected_member": False,
+        "authorizes_customer_release": False,
+    }
+    note_key = "SPA-REVIEW-NOTE-" + content_sha256(seed).upper()
+    note = {"note_key": note_key, **seed}
+    snapshot_json = canonical_json(note)
+    digest = content_sha256(snapshot_json)
+    try:
+        conn.execute(
+            "INSERT INTO advisor_fictional_internal_review_notes(note_key,thread_key,packet_key,note_revision,topic,note_kind,lifecycle_status,reviewer_key,reviewer_role,data_boundary,fictional_only,basis_sha256,supersedes_note_key,correction_reason,snapshot_json,content_sha256,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                note_key, thread_key, packet["packet_key"], revision, command.topic,
+                command.note_kind, command.lifecycle_status, command.reviewer_key,
+                command.reviewer_role, DATA_BOUNDARY, 1, basis_sha256,
+                command.supersedes_note_key, command.correction_reason,
+                snapshot_json, digest, at_text,
+            ),
+        )
+        if prior is None:
+            conn.execute(
+                "INSERT INTO advisor_fictional_internal_review_note_state(thread_key,packet_key,current_note_key,note_revision,lifecycle_status,updated_at) VALUES(?,?,?,?,?,?)",
+                (
+                    thread_key, packet["packet_key"], note_key, revision,
+                    command.lifecycle_status, at_text,
+                ),
+            )
+        else:
+            conn.execute(
+                "UPDATE advisor_fictional_internal_review_note_state "
+                "SET current_note_key=?,note_revision=?,lifecycle_status=?,updated_at=? "
+                "WHERE thread_key=?",
+                (
+                    note_key, revision, command.lifecycle_status, at_text,
+                    thread_key,
+                ),
+            )
+        _record_session_event(
+            conn,
+            prospect["session_key"],
+            "Fictional Internal Review Note Recorded",
+            at_text,
+            {
+                "packet_key": packet["packet_key"],
+                "thread_key": thread_key,
+                "note_key": note_key,
+                "note_revision": revision,
+                "topic": command.topic,
+                "note_kind": command.note_kind,
+                "lifecycle_status": command.lifecycle_status,
+                "reviewer_key": command.reviewer_key,
+                "human_review_completed": False,
+                "fictional_acceptance_simulation": True,
+            },
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {
+        **note,
+        "content_sha256": digest,
         "server_gate": {
             "interface_state": gate["interface_state"],
             "environment_class": "Non-production",
