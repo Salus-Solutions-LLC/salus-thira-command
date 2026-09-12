@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 September 2026 02:36 CDT
+last_verified_at: 12 September 2026 02:45 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 236
-active_increment: issue_236_facility_assessment_mission_map_interface
+active_increment: issue_236_facility_imagery_validation_repair
 last_completed_release: v3.112
 candidate_release: none
-validation_pr: none
-validation_gate_state: all_required_gates_green
+validation_pr: 314
+validation_gate_state: controlled_validation_in_progress
 genuine_blockers: none
-next_authorized_increment: issue_236_facility_assessment_mission_map_interface_guidance_and_acceptance
+next_authorized_increment: issue_236_facility_assessment_mission_map_interface_guidance_and_acceptance_after_gate_repair
 ---
 
 # SalCAPA build continuity
@@ -63,6 +63,8 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Next authorized product increment: add bounded Facility Assessment and Mission Map interface guidance and acceptance for the validated source-region and relationship-proposal records. No paid external service, standing GPU, biometric function, or Azure deployment is authorized.
 
 - Last completed development increment: [controlled validation PR #312](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/312) passed all 20 required workflow families on exact final head [`96323d6`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/96323d6f60fbcdbb86e53743759f7f2974a41ed4), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The bounded Issue #236 facility-imagery records preserve immutable source and region lineage, representation authority, coordinate and scale limitations, Derived — Unverified relationship proposals, alternatives, contradictions, uncertainty, independent review and correction, proposal-only destination references, tenant and disclosure controls, audit, backup, restore, and deterministic reconstruction. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
+
+- Current candidate: [controlled validation PR #314](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/314) repairs a discovered gate-coverage omission by invoking deterministic reconstruction and the dedicated facility-imagery smoke test across SQLite, PostgreSQL 16, production-container SQLite, and production-container PostgreSQL 16. Frozen v3.112 and the accepted Azure demonstration remain unchanged.
 
 ## Recovery procedure
 
