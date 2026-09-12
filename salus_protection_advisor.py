@@ -74,6 +74,8 @@ INTERNAL_REVIEW_NOTE_KINDS = (
     "Evidence Needed",
 )
 INTERNAL_REVIEW_NOTE_STATUSES = ("Open", "Addressed", "Withdrawn")
+INTERNAL_REVIEW_DECISION_CONTRACT_VERSION = "SPA-INTERNAL-REVIEW-DECISION-1.0.0"
+INTERNAL_REVIEW_READINESS_STATES = ("Evidence Needed", "Awaiting Human Decision")
 INTERNAL_REVIEW_EVIDENCE_REFERENCES = (
     "Questionnaire and governing versions",
     "Evaluation basis and uncertainty",
@@ -457,6 +459,23 @@ class FictionalInternalReviewNoteCommand(BaseModel):
         return self
 
 
+class FictionalInternalReviewDecisionContractCommand(BaseModel):
+    """Prepare readiness evidence; never record or imply a human decision."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    packet_key: str = Field(pattern=r"^SPA-REVIEW-PACKET-[A-F0-9]{64}$")
+    preparation_purpose: Literal["Measure Fictional Internal Review Readiness"]
+    prepared_by_reviewer_key: str = Field(
+        pattern=r"^SPA-REVIEWER-FICTIONAL-[A-Z0-9-]{1,80}$"
+    )
+    prepared_by_reviewer_role: Literal[
+        "Qualified Salus Commercial Reviewer",
+        "Senior Salus Commercial Reviewer",
+    ]
+    fictional_acceptance_simulation: Literal[True]
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS advisor_questionnaire_versions (
  version_key TEXT PRIMARY KEY, status TEXT NOT NULL, data_boundary TEXT NOT NULL,
@@ -606,6 +625,15 @@ CREATE TABLE IF NOT EXISTS advisor_fictional_internal_review_note_state (
  thread_key TEXT PRIMARY KEY, packet_key TEXT NOT NULL,
  current_note_key TEXT NOT NULL, note_revision INTEGER NOT NULL,
  lifecycle_status TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS advisor_fictional_internal_review_decision_contracts (
+ contract_key TEXT PRIMARY KEY, contract_version TEXT NOT NULL,
+ packet_key TEXT NOT NULL, status TEXT NOT NULL,
+ data_boundary TEXT NOT NULL, fictional_only INTEGER NOT NULL,
+ prepared_by_reviewer_key TEXT NOT NULL,
+ prepared_by_reviewer_role TEXT NOT NULL, basis_sha256 TEXT NOT NULL UNIQUE,
+ snapshot_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
+ created_at TEXT NOT NULL
 );
 """
 
@@ -3607,6 +3635,281 @@ def record_fictional_internal_review_note(
         raise
     return {
         **note,
+        "content_sha256": digest,
+        "server_gate": {
+            "interface_state": gate["interface_state"],
+            "environment_class": "Non-production",
+            "authentication_boundary": "Server controlled",
+        },
+    }
+
+
+def load_fictional_internal_review_decision_contract(
+    conn: Any, contract_key: str
+) -> dict[str, Any]:
+    """Load and verify one immutable internal-review readiness contract."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_fictional_internal_review_decision_contracts "
+        "WHERE contract_key=?",
+        (contract_key,),
+    ).fetchone()
+    if not row or content_sha256(row["snapshot_json"]) != row["content_sha256"]:
+        raise PolicyIntegrityError("fictional internal review decision contract integrity failed")
+    result = json.loads(row["snapshot_json"])
+    checks = {
+        "contract_key": row["contract_key"],
+        "contract_version": row["contract_version"],
+        "packet_key": row["packet_key"],
+        "status": row["status"],
+        "data_boundary": row["data_boundary"],
+        "prepared_by_reviewer_key": row["prepared_by_reviewer_key"],
+        "prepared_by_reviewer_role": row["prepared_by_reviewer_role"],
+        "basis_sha256": row["basis_sha256"],
+        "created_at": row["created_at"],
+    }
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(row["prepared_by_reviewer_key"])
+    topic_rows = result.get("topic_readiness", [])
+    if (
+        any(result.get(key) != value for key, value in checks.items())
+        or row["contract_version"] != INTERNAL_REVIEW_DECISION_CONTRACT_VERSION
+        or row["status"] not in INTERNAL_REVIEW_READINESS_STATES
+        or int(row["fictional_only"]) != 1
+        or result.get("fictional_only") is not True
+        or result.get("fictional_acceptance_simulation") is not True
+        or result.get("basis_sha256") != content_sha256(result.get("basis", {}))
+        or tuple(item.get("topic") for item in topic_rows) != INTERNAL_REVIEW_TOPICS
+        or result.get("topic_readiness_sha256") != content_sha256(topic_rows)
+        or reviewer is None
+        or reviewer["reviewer_role"] != row["prepared_by_reviewer_role"]
+        or result.get("prepared_by_reviewer_fixture_sha256") != content_sha256(reviewer)
+        or result.get("actual_human_authority_required") is not True
+        or result.get("entra_identity_verification_required") is not True
+        or result.get("entra_identity_verified") is not False
+        or result.get("human_review_completed") is not False
+        or result.get("decision_record_created") is not False
+        or any(result.get(flag) is not False for flag in (
+            "approves_prototype", "authorizes_security_testing",
+            "authorizes_public_route", "authorizes_dns", "authorizes_pilot",
+            "changes_scoring", "changes_recommendation", "changes_package",
+            "changes_price", "creates_protected_member",
+            "authorizes_customer_release",
+        ))
+    ):
+        raise PolicyIntegrityError("fictional internal review decision boundary failed")
+    serialized = canonical_json(result).casefold()
+    for forbidden in (
+        "@example.com", "contact_email", "contact_name", "session_token",
+        "internal_cost", "role_rate", "margin_basis_points", "tenant_id",
+        "protected_member_id", "approved_customer_price_cents",
+    ):
+        if forbidden in serialized:
+            raise PolicyIntegrityError("fictional review decision contract contains restricted data")
+    return {**result, "content_sha256": row["content_sha256"]}
+
+
+def prepare_fictional_internal_review_decision_contract(
+    conn: Any,
+    command: FictionalInternalReviewDecisionContractCommand,
+    *,
+    prepared_at: str,
+    server_settings: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Measure readiness while preserving the separate human decision gate."""
+
+    gate = _require_fictional_internal_review_interface(server_settings)
+    at = _parse_utc(prepared_at)
+    packet = load_fictional_internal_review_packet(conn, command.packet_key)
+    prospect = load_fictional_prospect(conn, packet["prospect_key"])
+    current_review = load_current_fictional_staff_review(conn, prospect["prospect_key"])
+    if current_review["review_key"] != packet["evidence"]["authorizing_review_key"]:
+        raise PolicyIntegrityError("decision readiness requires the current fictional packet")
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(command.prepared_by_reviewer_key)
+    if (
+        reviewer is None
+        or reviewer["fictional_only"] is not True
+        or reviewer["reviewer_role"] != command.prepared_by_reviewer_role
+    ):
+        raise SessionAccessError("fictional decision-contract preparer is not authorized")
+
+    state_rows = conn.execute(
+        "SELECT thread_key,current_note_key,note_revision,lifecycle_status "
+        "FROM advisor_fictional_internal_review_note_state "
+        "WHERE packet_key=? ORDER BY thread_key",
+        (packet["packet_key"],),
+    ).fetchall()
+    current_notes = [
+        load_current_fictional_internal_review_note(conn, row["thread_key"])
+        for row in state_rows
+    ]
+    topic_readiness = []
+    for topic in INTERNAL_REVIEW_TOPICS:
+        topic_notes = [note for note in current_notes if note["topic"] == topic]
+        if not topic_notes:
+            state = "Evidence Needed"
+            reason = "No governed current review note exists for this topic."
+        elif any(note["lifecycle_status"] == "Open" for note in topic_notes):
+            state = "Evidence Needed"
+            reason = "At least one current review note remains Open."
+        elif any(note["lifecycle_status"] == "Addressed" for note in topic_notes):
+            state = "Prepared for Human Decision"
+            reason = "Current governed note evidence is Addressed; human judgment remains required."
+        else:
+            state = "Evidence Needed"
+            reason = "Current note evidence was Withdrawn and has not been replaced."
+        topic_readiness.append(
+            {
+                "topic": topic,
+                "state": state,
+                "reason": reason,
+                "current_note_references": [
+                    {
+                        "thread_key": note["thread_key"],
+                        "note_key": note["note_key"],
+                        "note_revision": note["note_revision"],
+                        "note_kind": note["note_kind"],
+                        "lifecycle_status": note["lifecycle_status"],
+                        "content_sha256": note["content_sha256"],
+                    }
+                    for note in topic_notes
+                ],
+            }
+        )
+
+    ready = all(
+        item["state"] == "Prepared for Human Decision"
+        for item in topic_readiness
+    )
+    status = "Awaiting Human Decision" if ready else "Evidence Needed"
+    basis = {
+        "packet_key": packet["packet_key"],
+        "packet_content_sha256": packet["content_sha256"],
+        "topic_readiness_sha256": content_sha256(topic_readiness),
+        "current_note_state": [
+            {
+                "thread_key": note["thread_key"],
+                "note_key": note["note_key"],
+                "note_revision": note["note_revision"],
+                "lifecycle_status": note["lifecycle_status"],
+                "content_sha256": note["content_sha256"],
+            }
+            for note in current_notes
+        ],
+    }
+    basis_sha256 = content_sha256(basis)
+    if conn.execute(
+        "SELECT contract_key FROM advisor_fictional_internal_review_decision_contracts "
+        "WHERE basis_sha256=?",
+        (basis_sha256,),
+    ).fetchone():
+        raise PolicyIntegrityError("this exact fictional readiness contract already exists")
+
+    at_text = _utc_text(at)
+    seed = {
+        "contract_version": INTERNAL_REVIEW_DECISION_CONTRACT_VERSION,
+        "packet_key": packet["packet_key"],
+        "status": status,
+        "data_boundary": DATA_BOUNDARY,
+        "fictional_only": True,
+        "fictional_acceptance_simulation": True,
+        "preparation_purpose": command.preparation_purpose,
+        "prepared_by_reviewer_key": command.prepared_by_reviewer_key,
+        "prepared_by_reviewer_role": command.prepared_by_reviewer_role,
+        "prepared_by_reviewer_fixture_sha256": content_sha256(reviewer),
+        "basis": basis,
+        "basis_sha256": basis_sha256,
+        "topic_readiness": topic_readiness,
+        "topic_readiness_sha256": content_sha256(topic_readiness),
+        "topics_prepared_for_human_decision": sum(
+            item["state"] == "Prepared for Human Decision"
+            for item in topic_readiness
+        ),
+        "topics_needing_evidence": sum(
+            item["state"] == "Evidence Needed"
+            for item in topic_readiness
+        ),
+        "permitted_next_steps": (
+            [
+                "Present the complete evidence to separately authenticated Salus authority.",
+                "Record the authority's decision through a separately governed lifecycle.",
+            ]
+            if ready
+            else [
+                "Record or resolve governed review notes for every Evidence Needed topic.",
+                "Prepare a new readiness contract after the evidence changes.",
+            ]
+        ),
+        "available_authority_choices": [
+            "Require Changes",
+            "Pause Internal Review",
+            "End Internal Prototype",
+            "Advance to Security, Privacy, Accessibility, Mobile, and Abuse Validation",
+        ],
+        "authority_prerequisites": [
+            "A current review packet and complete topic evidence",
+            "Microsoft Entra authenticated Salus identity",
+            "Authorized Salus reviewer role",
+            "Explicit rationale and conditions",
+            "Immutable decision and supersession lineage",
+        ],
+        "actual_human_authority_required": True,
+        "entra_identity_verification_required": True,
+        "entra_identity_verified": False,
+        "human_review_completed": False,
+        "decision_record_created": False,
+        "created_at": at_text,
+        "created_display": _display_utc(at),
+        "what_happens_next": (
+            "Resolve Evidence Needed items, then present the exact governed record to "
+            "an authenticated Salus authority. This preparation does not make that decision."
+        ),
+        "approves_prototype": False,
+        "authorizes_security_testing": False,
+        "authorizes_public_route": False,
+        "authorizes_dns": False,
+        "authorizes_pilot": False,
+        "changes_scoring": False,
+        "changes_recommendation": False,
+        "changes_package": False,
+        "changes_price": False,
+        "creates_protected_member": False,
+        "authorizes_customer_release": False,
+    }
+    contract_key = "SPA-REVIEW-CONTRACT-" + content_sha256(seed).upper()
+    contract = {"contract_key": contract_key, **seed}
+    snapshot_json = canonical_json(contract)
+    digest = content_sha256(snapshot_json)
+    try:
+        conn.execute(
+            "INSERT INTO advisor_fictional_internal_review_decision_contracts(contract_key,contract_version,packet_key,status,data_boundary,fictional_only,prepared_by_reviewer_key,prepared_by_reviewer_role,basis_sha256,snapshot_json,content_sha256,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                contract_key, INTERNAL_REVIEW_DECISION_CONTRACT_VERSION,
+                packet["packet_key"], status, DATA_BOUNDARY, 1,
+                command.prepared_by_reviewer_key, command.prepared_by_reviewer_role,
+                basis_sha256, snapshot_json, digest, at_text,
+            ),
+        )
+        _record_session_event(
+            conn,
+            prospect["session_key"],
+            "Fictional Internal Review Decision Contract Prepared",
+            at_text,
+            {
+                "packet_key": packet["packet_key"],
+                "contract_key": contract_key,
+                "status": status,
+                "topics_needing_evidence": contract["topics_needing_evidence"],
+                "human_review_completed": False,
+                "decision_record_created": False,
+                "fictional_acceptance_simulation": True,
+            },
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {
+        **contract,
         "content_sha256": digest,
         "server_gate": {
             "interface_state": gate["interface_state"],
