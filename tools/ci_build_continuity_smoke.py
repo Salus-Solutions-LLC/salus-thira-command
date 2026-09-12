@@ -86,7 +86,7 @@ def main() -> None:
     else:
         assert candidate_version == runtime_version
         if candidate_version == frozen_version:
-            release_marker = f"v{candidate_version[0]}{candidate_version[1]}"
+            release_marker = f"v{candidate_version[0]}{candidate_version[1] % 100:02d}"
             assert release_marker in values["active_increment"]
             assert values["active_increment"].endswith(
                 ("_azure_demo_promotion", "_immutable_image_publication", "_application_promotion")
