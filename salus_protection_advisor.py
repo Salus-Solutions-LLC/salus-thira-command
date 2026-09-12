@@ -733,7 +733,7 @@ def _dimension_review(
     threat = 3 if len(concerns) >= 3 else 2 if len(concerns) == 2 else 1 if concerns else 0
     vulnerability = 3 if change == "Yes" and len(concerns) >= 2 else 2 if len(concerns) >= 2 else 1 if concerns else 0
     consequence = 3 if ("100,000" in people or org_type in {"Critical Infrastructure", "Public Agency"}) else 2 if "500" in people else 1 if people else 0
-    capability = 2 if ("inconsistently" in posture.casefold() or "varies materially" in posture.casefold() or "mixed" in posture.casefold()) else 1 if posture else 0
+    capability = 2 if ("inconsistently" in posture.casefold() or "varies materially" in posture.casefold()) else 1 if posture else 0
     complexity = 3 if jurisdictions >= 4 or locations >= 50 else 2 if jurisdictions >= 2 or locations >= 10 else 1 if locations or jurisdictions else 0
     urgency = 2 if change == "Yes" else 1 if change == "No" else 0
     service = {"Initial Pass": 1, "Intermediate Assessment": 2, "High Deep-Dive": 3}.get(depth, 0)
