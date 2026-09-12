@@ -135,6 +135,16 @@ def apply_transform(matrix: list[float], x: float, y: float) -> tuple[float, flo
 
 register_salcapa_pdf_processing(core.app, core.__dict__)
 register_salcapa_pdf_page_rendering(core.app, core.__dict__)
+conn = core.db()
+try:
+    if not conn.execute("SELECT id FROM tenants WHERE id=2").fetchone():
+        conn.execute(
+            "INSERT INTO tenants(id,name,slug,status,created_at) VALUES(?,?,?,?,?)",
+            (2, "Other Fictional Tenant", "other-fictional-tenant", "Active", core.now()),
+        )
+    conn.commit()
+finally:
+    conn.close()
 REQUESTER = {"X-Salus-Tenant": "1", "X-Salus-Role": "Assessment Director", "X-Salus-User": "Page Review Requester"}
 MEMBER = {"X-Salus-Tenant": "1", "X-Salus-Role": "Contributor", "X-Salus-User": "Protected Member Contributor"}
 OTHER = {**REQUESTER, "X-Salus-Tenant": "2", "X-Salus-User": "Other Tenant Lead"}
