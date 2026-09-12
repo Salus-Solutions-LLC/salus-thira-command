@@ -243,6 +243,16 @@ CREATE TABLE IF NOT EXISTS advisor_audit_events (
  event_at TEXT NOT NULL, event_json TEXT NOT NULL,
  content_sha256 TEXT NOT NULL UNIQUE, UNIQUE(session_key, event_sequence)
 );
+CREATE TABLE IF NOT EXISTS advisor_session_evaluation_snapshots (
+ evaluation_key TEXT PRIMARY KEY, session_key TEXT NOT NULL,
+ answer_revision INTEGER NOT NULL, answer_state_sha256 TEXT NOT NULL,
+ status TEXT NOT NULL, data_boundary TEXT NOT NULL, fictional_only INTEGER NOT NULL,
+ adapter_version TEXT NOT NULL, policy_bundle_sha256 TEXT NOT NULL,
+ commercial_estimate_snapshot_sha256 TEXT NOT NULL,
+ rate_card_snapshot_sha256 TEXT NOT NULL, snapshot_json TEXT NOT NULL,
+ content_sha256 TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL,
+ UNIQUE(session_key, answer_revision)
+);
 """
 
 
@@ -1412,3 +1422,278 @@ def verify_fictional_session_audit(conn: Any, session_key: str) -> list[dict[str
             raise PolicyIntegrityError("session audit information boundary failed")
         verified.append(event)
     return verified
+
+
+def prepare_session_fictional_evaluation(
+    conn: Any,
+    token: str,
+    *,
+    created_at: str,
+) -> dict[str, Any]:
+    """Prepare an immutable evaluation from the session's latest explicit revisions."""
+
+    session = _active_session(conn, token, as_of=created_at)
+    bundle = load_fictional_policy_bundle(conn)
+    if bundle["content_sha256"] != session["policy_bundle_sha256"]:
+        raise PolicyIntegrityError("session policy reference is unavailable")
+    questionnaire = _policy_payload(conn, bundle, "Questionnaire")
+    catalogue = _policy_payload(conn, bundle, "Package Catalogue")
+    price_policy = _policy_payload(conn, bundle, "Public Price Policy")
+    current = current_fictional_answers(conn, token, as_of=created_at)
+    required_keys = {
+        item["question_key"] for item in questionnaire["questions"] if item["required"]
+    }
+    missing_required = sorted(required_keys - set(current))
+    if missing_required:
+        raise ValueError("every required displayed question needs an explicit answer state")
+
+    answered = {
+        key: item["value"]
+        for key, item in current.items()
+        if item["answer_state"] == "Answered"
+    }
+    reviews, levels = _dimension_review(answered, questionnaire)
+    for review in reviews.values():
+        review["basis_answer_revision_keys"] = [
+            current[key]["revision_key"]
+            for key in review["basis_question_keys"]
+        ]
+        review["explicit_non_answer_states"] = {
+            key: current[key]["answer_state"]
+            for key in review["information_gaps"]
+            if key in current
+        }
+
+    investigation_depth = str(answered.get("investigation_depth", "Initial Pass"))
+    package_key = _select_package(levels, investigation_depth)
+    package = _load_package(catalogue, package_key)
+    candidates = fictional_commercial_candidates()
+    if set(candidates) != {item["package_key"] for item in catalogue["packages"]}:
+        raise PolicyIntegrityError("fictional commercial references do not match the package catalogue")
+    commercial = candidates[package_key]
+    if price_policy["qualified_salus_review_required"] is not True:
+        raise PolicyIntegrityError("public price policy does not preserve Salus review")
+
+    public_price = {
+        "currency": commercial.currency,
+        "one_time_range_minimum": commercial.one_time_range_minimum,
+        "one_time_range_maximum": commercial.one_time_range_maximum,
+        "one_time_cadence": "One-time",
+        "recurring_range_minimum": commercial.recurring_range_minimum,
+        "recurring_range_maximum": commercial.recurring_range_maximum,
+        "recurring_cadence": commercial.recurring_cadence,
+        "implementation_period": commercial.implementation_period,
+        "assumptions": list(commercial.assumptions),
+        "inclusions": package["includes"],
+        "exclusions": package["excludes"],
+        "preliminary_notice": "Qualified Salus review is required before scope, price, or customer use.",
+    }
+    assert_safe_public_projection(public_price)
+    answer_state_sha = content_sha256(current)
+    key_material = {
+        "session_key": session["session_key"],
+        "answer_revision": int(session["latest_answer_revision"]),
+        "answer_state_sha256": answer_state_sha,
+        "adapter_version": EVALUATION_ADAPTER_VERSION,
+        "policy_bundle_sha256": bundle["content_sha256"],
+        "commercial_estimate_snapshot_sha256": commercial.commercial_estimate_snapshot_sha256,
+        "rate_card_snapshot_sha256": commercial.rate_card_snapshot_sha256,
+    }
+    evaluation_key = "SPA-SESSION-EVAL-" + content_sha256(key_material).upper()
+    case = next(item for item in FICTIONAL_CASES if item.case_key == session["case_key"])
+    result = {
+        "evaluation_key": evaluation_key,
+        "session_key": session["session_key"],
+        "answer_revision": int(session["latest_answer_revision"]),
+        "answer_state_sha256": answer_state_sha,
+        "status": EVALUATION_STATUS,
+        "data_boundary": DATA_BOUNDARY,
+        "fictional_only": True,
+        "preliminary": True,
+        "adapter_version": EVALUATION_ADAPTER_VERSION,
+        "case": {
+            "case_key": case.case_key,
+            "display_name": case.display_name,
+            "organization_context": case.organization_context,
+        },
+        "answer_states": {
+            key: {
+                "answer_state": item["answer_state"],
+                "revision_key": item["revision_key"],
+            }
+            for key, item in current.items()
+        },
+        "policy_bundle_sha256": bundle["content_sha256"],
+        "governing_versions": {
+            kind: reference["version_key"]
+            for kind, reference in bundle["components"].items()
+        },
+        "commercial_estimate_snapshot_sha256": commercial.commercial_estimate_snapshot_sha256,
+        "rate_card_snapshot_sha256": commercial.rate_card_snapshot_sha256,
+        "dimensions": reviews,
+        "recommended_investigation_depth": investigation_depth,
+        "recommended_package": {
+            "package_key": package["package_key"],
+            "prototype_name": package["prototype_name"],
+            "purpose": package["purpose"],
+            "capacity_ceiling": package["capacity_ceiling"],
+            "classification": "Preliminary Inference",
+        },
+        "public_price": public_price,
+        "information_gaps": sorted({
+            gap for review in reviews.values() for gap in review["information_gaps"]
+        }),
+        "assumptions": list(commercial.assumptions),
+        "contradictions": [],
+        "authority": "A qualified Salus reviewer retains scope, package, price, release, and commercial authority.",
+        "creates_charge": False,
+        "creates_contract": False,
+        "creates_membership": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "has_routes": False,
+    }
+    snapshot_json = canonical_json(result)
+    digest = content_sha256(snapshot_json)
+    existing = conn.execute(
+        "SELECT snapshot_json, content_sha256 FROM advisor_session_evaluation_snapshots WHERE evaluation_key=?",
+        (evaluation_key,),
+    ).fetchone()
+    try:
+        if existing:
+            if existing["snapshot_json"] != snapshot_json or existing["content_sha256"] != digest:
+                raise PolicyIntegrityError("session evaluation key collision")
+        else:
+            conn.execute(
+                "INSERT INTO advisor_session_evaluation_snapshots(evaluation_key,session_key,answer_revision,answer_state_sha256,status,data_boundary,fictional_only,adapter_version,policy_bundle_sha256,commercial_estimate_snapshot_sha256,rate_card_snapshot_sha256,snapshot_json,content_sha256,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    evaluation_key, session["session_key"],
+                    int(session["latest_answer_revision"]), answer_state_sha,
+                    EVALUATION_STATUS, DATA_BOUNDARY, 1,
+                    EVALUATION_ADAPTER_VERSION, bundle["content_sha256"],
+                    commercial.commercial_estimate_snapshot_sha256,
+                    commercial.rate_card_snapshot_sha256,
+                    snapshot_json, digest, _utc_text(_parse_utc(created_at)),
+                ),
+            )
+            _record_session_event(
+                conn, session["session_key"], "Session Evaluated",
+                _utc_text(_parse_utc(created_at)),
+                {
+                    "evaluation_key": evaluation_key,
+                    "answer_revision": int(session["latest_answer_revision"]),
+                    "answer_content_recorded": False,
+                },
+            )
+            conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {**copy.deepcopy(result), "content_sha256": digest}
+
+
+def load_session_fictional_evaluation(conn: Any, evaluation_key: str) -> dict[str, Any]:
+    """Verify an immutable session evaluation without requiring an active token."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_session_evaluation_snapshots WHERE evaluation_key=?",
+        (evaluation_key,),
+    ).fetchone()
+    if not row:
+        raise PolicyIntegrityError("session evaluation is missing")
+    if (
+        row["status"] != EVALUATION_STATUS
+        or row["data_boundary"] != DATA_BOUNDARY
+        or int(row["fictional_only"]) != 1
+        or row["adapter_version"] != EVALUATION_ADAPTER_VERSION
+        or content_sha256(row["snapshot_json"]) != row["content_sha256"]
+    ):
+        raise PolicyIntegrityError("session evaluation integrity check failed")
+    result = json.loads(row["snapshot_json"])
+    checks = {
+        "evaluation_key": row["evaluation_key"],
+        "session_key": row["session_key"],
+        "answer_revision": int(row["answer_revision"]),
+        "answer_state_sha256": row["answer_state_sha256"],
+        "status": row["status"],
+        "data_boundary": row["data_boundary"],
+        "adapter_version": row["adapter_version"],
+        "policy_bundle_sha256": row["policy_bundle_sha256"],
+        "commercial_estimate_snapshot_sha256": row["commercial_estimate_snapshot_sha256"],
+        "rate_card_snapshot_sha256": row["rate_card_snapshot_sha256"],
+    }
+    if any(result.get(key) != value for key, value in checks.items()):
+        raise PolicyIntegrityError("session evaluation reference check failed")
+    if any(result.get(flag) is not False for flag in (
+        "creates_charge", "creates_contract", "creates_membership",
+        "creates_protected_member", "creates_disclosure", "has_routes",
+    )):
+        raise PolicyIntegrityError("session evaluation authority boundary failed")
+    assert_safe_public_projection(result["public_price"])
+    return {**result, "content_sha256": row["content_sha256"]}
+
+
+def retrieve_session_fictional_recommendation(
+    conn: Any,
+    token: str,
+    evaluation_key: str,
+    *,
+    as_of: str,
+) -> dict[str, Any]:
+    """Return a sanitized recommendation only for the active, unchanged session."""
+
+    session = _active_session(conn, token, as_of=as_of)
+    evaluation = load_session_fictional_evaluation(conn, evaluation_key)
+    if evaluation["session_key"] != session["session_key"]:
+        raise SessionAccessError("session is unavailable")
+    current = current_fictional_answers(conn, token, as_of=as_of)
+    if (
+        evaluation["answer_revision"] != int(session["latest_answer_revision"])
+        or evaluation["answer_state_sha256"] != content_sha256(current)
+    ):
+        raise PolicyIntegrityError("session answers changed; prepare a new evaluation")
+    result = {
+        "result_heading": "Your Salus Recommendation",
+        "evaluation_key": evaluation["evaluation_key"],
+        "status": evaluation["status"],
+        "fictional_only": True,
+        "demonstration_notice": "Internal fictional demonstration; no customer release is authorized.",
+        "preliminary": True,
+        "organization_profile": evaluation["case"],
+        "dimensions": {
+            name: {
+                "state": review["state"],
+                "classification": review["classification"],
+                "basis_question_keys": review["basis_question_keys"],
+                "information_gaps": review["information_gaps"],
+                "explicit_non_answer_states": review["explicit_non_answer_states"],
+                "uncertainty": review["uncertainty"],
+            }
+            for name, review in evaluation["dimensions"].items()
+        },
+        "recommended_investigation_depth": evaluation["recommended_investigation_depth"],
+        "primary_package": evaluation["recommended_package"],
+        "price_ranges": evaluation["public_price"],
+        "assumptions": evaluation["assumptions"],
+        "contradictions": evaluation["contradictions"],
+        "information_gaps": evaluation["information_gaps"],
+        "governing_versions": evaluation["governing_versions"],
+        "estimate_snapshot_reference": evaluation["commercial_estimate_snapshot_sha256"],
+        "authority": evaluation["authority"],
+        "what_happens_next": [
+            "Review or revise the fictional answers.",
+            "A qualified Salus reviewer evaluates scope, package, and price.",
+            "No charge, contract, membership, or Protected Member record is created.",
+        ],
+        "may_stop": True,
+        "may_revise": True,
+        "may_save_or_submit": False,
+        "creates_charge": False,
+        "creates_contract": False,
+        "creates_membership": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "has_routes": False,
+    }
+    assert_safe_public_projection(result)
+    return result
