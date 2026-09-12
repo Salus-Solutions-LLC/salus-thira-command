@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 September 2026 04:18 CDT
+last_verified_at: 12 September 2026 05:13 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 236
-active_increment: issue_236_facility_review_profile_interface
+active_increment: issue_236_facility_review_profile_interface_validation
 last_completed_release: v3.112
 candidate_release: none
-validation_pr: none
-validation_gate_state: all_required_gates_green
+validation_pr: 320
+validation_gate_state: controlled_validation_in_progress
 genuine_blockers: none
-next_authorized_increment: issue_236_facility_review_profile_interface
+next_authorized_increment: issue_236_completion_reconciliation_after_acceptance
 ---
 
 # SalCAPA build continuity
@@ -69,6 +69,8 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Last completed development increment: [controlled validation PR #316](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/316) passed all 20 required workflow families on exact final head [`aa208fe`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/aa208fe0d1619b02a6650321575705bd0ab37cf0), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The Salus-only Facility Assessment and Mission Map interface presents exact source-region lineage, representation authority, coordinate and scale limitations, contradictions, uncertainty, independently attributed review, and proposal-only destination references. Derived relationships remain visibly unverified; Protected Member roles are denied; and the interface creates no finding, priority, decision, engineering conclusion, safe-route determination, disclosure, or authorization. SQLite, PostgreSQL 16, and production-container acceptance passed after deterministic runtime dependencies were reconstructed consistently. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 
 - Last completed development increment: [controlled validation PR #318](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/318) passed all 20 required workflow families on exact final head [`b746125`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/b7461258ac020c84e143c7b97f7d252cb8fea1f3), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. Six server-controlled local review profiles now cover layouts, symbols and legends, visible facility conditions, damage indicators, equipment presence, and protective controls. Each prepared application preserves exact source and geometry hashes, an immutable profile snapshot, purpose, reviewer, sensitivity, disclosure posture, cost boundary, and human-review requirement. No source bytes are processed, no external route or standing GPU is enabled, and no finding, priority, decision, engineering conclusion, safe-route determination, disclosure, or authorization is created. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
+
+- Current candidate: [controlled validation PR #320](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/320) connects the six accepted server-controlled facility review profiles to the governed Salus-only Facility Assessment and Mission Map interfaces. Authorized personnel can compare compatible profiles with an exact source region, record a purpose and review question, prepare a bounded application, and see immutable profile, source, geometry, limitation, and human-review context. Protected Member roles remain denied; prepared work stays Salus internal and Derived — Unverified; and no source-byte processing, finding, priority, engineering conclusion, safe-route determination, decision, disclosure, or authorization occurs. Deterministic reconstruction uses transparent byte-identical source archives. Frozen v3.112 and the accepted Azure demonstration remain unchanged.
 
 ## Recovery procedure
 
