@@ -108,8 +108,13 @@ def main() -> None:
     }
     assert values["critical_journey_acceptance"] in {"not_verified", "verified"}
 
-    assert values["current_stable_release"] == build["current_frozen_release"]
-    assert values["current_stable_commit"] == build["current_frozen_commit"]
+    assert version(values["current_stable_release"]) <= version(build["current_frozen_release"])
+    if values["current_stable_release"] == build["current_frozen_release"]:
+        assert values["current_stable_commit"] == build["current_frozen_commit"]
+    else:
+        assert build["candidate_release"] == build["current_frozen_release"]
+        assert build["validation_pr"].isdigit()
+        assert build["genuine_blockers"] != "none"
     assert version(values["promotion_candidate"]) <= version(values["current_stable_release"])
     if values["promotion_candidate"] == values["current_stable_release"]:
         assert values["promotion_candidate_image_commit"] == values["current_stable_commit"]
