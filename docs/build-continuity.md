@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 September 2026 09:12 CDT
+last_verified_at: 12 September 2026 10:11 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 290
-active_increment: issue_290_internal_prototype_session_lifecycle
+active_increment: issue_290_internal_prototype_session_evaluation
 last_completed_release: v3.112
 candidate_release: none
 validation_pr: none
 validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: issue_290_internal_prototype_session_lifecycle
+next_authorized_increment: issue_290_internal_prototype_session_evaluation
 ---
 
 # SalCAPA build continuity
@@ -32,6 +32,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
+- Last completed development increment: [controlled validation PR #330](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/330) passed all 20 required workflow families on exact head [`3eb9dbb`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/3eb9dbb30190d5f9f6c0499488185301a7963f43), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The Issue #290 fictional session lifecycle issues opaque two-hour tokens stored only as hashes, rotates tokens with immediate replay denial, preserves append-only Answered/Unknown/Declined/Not Applicable revisions, permits only released fictional fixture values, enforces server-side expiry, deletes answer content on expiry or explicit deletion, and retains content-free integrity-checked lifecycle evidence. No routes, contact fields, tenant identifiers, public deployment, DNS change, paid service, binding event, or Protected Member access were introduced. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 - Last completed development increment: [controlled validation PR #328](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/328) passed all 20 required workflow families on exact head [`8ec799f`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/8ec799f0117ec088f1be6f528600cd5822a3c390), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The Issue #290 server-controlled adapter evaluates only the four repository-owned fictional cases against exact hash-verified policy and fictional commercial references; preserves visible answer lineage, information gaps, uncertainty, immutable snapshots, sanitized preliminary price ranges, and qualified Salus authority; and proves that exposure alone cannot escalate scope. No routes, public deployment, DNS change, paid service, contact information, binding event, or Protected Member access were introduced. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 - Last completed development increment: [controlled validation PR #326](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/326) passed all 20 required workflow families on corrected exact head [`954c55a`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/954c55afa20dc4cade471762425fde0ed752594a), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The first Issue #290 implementation provides hash-bound immutable questionnaire, recommendation-policy, package-catalogue, and public-price policy snapshots; four visibly fictional coverage cases; no tenant identifiers, contact fields, routes, or binding events; internal-commercial-field rejection; idempotent installation; and collision and integrity checks across SQLite, PostgreSQL 16, and the production container. The initial candidate failed closed on a smoke-script import path and was superseded by the fully green corrected head. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 - Last completed development increment: [controlled validation PR #324](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/324) passed all 20 required workflow families on exact head [`e2fae84`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/e2fae84377a55d6832e1fda989112c7cb4ae0204), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The accepted Issue #290 design defines a disabled-by-default internal Salus Protection Advisor prototype, prospect and Protected Member isolation, immutable questionnaire/recommendation/package/public-price policies, sanitized public price ranges, explicit consent and lifecycle controls, qualified Salus commercial authority, deterministic recovery and rollback, and a separate release path. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
