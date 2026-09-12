@@ -9,9 +9,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = (
-    ("salcapa_demo_evaluator.py.gz.b64", "salcapa_demo_evaluator.py", "1277d883991671b62f6f2f8ed2796ed7e397ae682ab232a2319153aaa70f1079", "5050b8c52bc7b96007dd3ec26d136a5846c4f03d718c2432f2d6baf383b9d997", "6bcd3ba106b00883b97d0db23e982e61cfb03f4995f104440e17533f4b481e82", 6989),
+    ("salcapa_demo_evaluator.py.gz.b64", "salcapa_demo_evaluator.py", "b557f3210fc82787806b7e417d796236ce699272f526655abd9b75f8f2c1ca7b", "499f50c40b5bfc717bd23acb8a1b65dadffc18c51bebfd8d37d34003db1ac777", "2d2c7c17e7ca5da455f1d15b5bde19d94140907313ff4a6c5eac7d340a796f2c", 6929),
     ("demo-environments.js.gz.b64", "static/demo-environments.js", "7db43f9ddee964d7582e928d0f1ce980f6ad9380f428ac452c992f8c02894281", "bd6f678c59803ae6f959f0bddfa9b3b910eed5cf4782587e0b5dfad4e9c3c559", "b3bef2e07cb6eec070848eeeb53b1bbfcd071d230f26bd1d89d0f606338af6ed", 4614),
-    ("ci_salcapa_demo_evaluator_smoke.py.gz.b64", "tools/ci_salcapa_demo_evaluator_smoke.py", "4530646a8cee7e5188a935de2de74f33c2480ab578305c9eab3645d05c296806", "04bc4995ed6c8b7304eedac0d8c31c99a3e1e3c961a7ef642a996755fbee8c08", "804d052ef91f2c848806bcde1c73256dd40abd311eb65dda0009f23a59e9e413", 5216),
+    ("ci_salcapa_demo_evaluator_smoke.py.gz.b64", "tools/ci_salcapa_demo_evaluator_smoke.py", "ba5cc3d3ea28f053353a56f33f488f241a76b851d89f827f685f9de4dcf9d37a", "8484ef71382981cd5e51f471c31f9f1172112080b78325cc7e94aa7d570e5b13", "e2c91011f549cc85e7b981a0191dd5ec83a0dda9834941df1d6a345126c2f2d0", 5597),
 )
 
 for archive_name, target_name, encoded_sha, archive_sha, target_sha, target_size in ARTIFACTS:
