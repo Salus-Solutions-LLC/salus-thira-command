@@ -21,7 +21,7 @@ promotion_candidate_image_acceptance: immutable_image_deployed_awaiting_live_acc
 promotion_readiness: preflight_ready
 fictional_member_seed_state: v312_deployed_awaiting_live_acceptance
 critical_journey_acceptance: not_verified
-rollback_baseline: v3.36
+rollback_baseline: v3.111
 genuine_blocker: live_authorized_evaluator_acceptance_pending
 ---
 
@@ -31,14 +31,14 @@ This non-sensitive engineering record identifies the last verifiable Azure devel
 
 ## Last verifiable deployment
 
-- The most recent successful governed application deployment is [workflow run 34621973343](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34621973343), completed on **11 September 2026 at 11:31 CDT**.
-- The accepted runtime uses frozen **v3.111** commit [`8bf4614ec79a27641c40dc1a21e1790746a08604`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/8bf4614ec79a27641c40dc1a21e1790746a08604) and immutable image digest `sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311`.
-- The deployment workflow verified the immutable image, managed identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, readiness endpoint, required Azure dependencies, and Entra sign-in redirect. Its fail-closed path retained exact accepted v3.36 as the rollback baseline.
+- The most recent successful governed application deployment is [workflow run 34672016498](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34672016498), completed on **11 September 2026 at 23:08 CDT**.
+- The live runtime uses frozen **v3.112** commit [`1d1759375d37b7de884331c06833de8c727ac5af`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) and immutable image digest `sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce`.
+- The deployment workflow verified the immutable image, managed identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, readiness endpoint, required Azure dependencies, and Entra sign-in redirect. Its fail-closed path retained exact accepted v3.111 as the rollback baseline.
 - [Live demonstration acceptance workflow 34654142382](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34654142382) completed on **11 September 2026 at 17:32 CDT** and established the three governed fictional Protected Member environments and bounded cross-functional journeys on the live development database.
 
 ## Stable-release comparison
 
-The current stable product is frozen **v3.112** at [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af). The maintained Azure development demonstration remains accepted v3.111 until the separately governed v3.112 application promotion and live evaluator acceptance pass. Every earlier frozen release remains unchanged.
+The current stable product is frozen **v3.112** at [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af). The maintained Azure development demonstration now runs v3.112 after governed deployment; full acceptance remains pending the separately governed live evaluator gate. Exact accepted v3.111 remains the fail-closed rollback baseline. Every earlier frozen release remains unchanged.
 
 The deterministic fixture foundation, bounded cross-functional records, repository role/tenant preflight, live-copy migration, reporting, Entra and tenant isolation, recovery, rollback, deployment, and live three-member acceptance are verified. The live acceptance prepared only clearly labeled fictional demonstration records through the governed fixture interface. It did not represent human review, authorization, approval, release, or a production cutover.
 
