@@ -115,4 +115,15 @@ for forbidden in ("X-Salus-Tenant", "localStorage", "impersonat", "method:'POST'
 module = (ROOT / "salcapa_demo_evaluator.py").read_text(encoding="utf-8").lower()
 for forbidden_sql in ("insert into", "update tenants", "delete from"):
     assert forbidden_sql not in module
+
+# The deliberate out-of-contract fixture is transient test data. PostgreSQL
+# workflow jobs share their service database across sequential acceptance
+# scripts, so remove it before the promotion preflight counts exact fixtures.
+conn = core.db()
+try:
+    conn.execute("DELETE FROM tenants WHERE fixture_key=?", ("unapproved-fixture",))
+    conn.commit()
+finally:
+    conn.close()
+
 print("SALCAPA_DEMO_EVALUATOR_SMOKE_PASS", core.DB_BACKEND)
