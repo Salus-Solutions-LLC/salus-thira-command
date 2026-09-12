@@ -93,7 +93,7 @@ def main() -> None:
         "live_runtime_readiness_accepted",
         "full_demonstration_acceptance",
     }
-    assert values["promotion_readiness"] in {"not_ready", "preflight_ready", "accepted"}
+    assert values["promotion_readiness"] in {"not_ready", "preflight_ready", "deployed_awaiting_live_acceptance", "accepted"}
     assert values["fictional_member_seed_state"] in {
         "not_verified",
         "foundation_verified_not_deployed",
@@ -133,6 +133,13 @@ def main() -> None:
     elif values["promotion_readiness"] == "preflight_ready":
         assert values["genuine_blocker"] != "none"
         assert values["deployed_release"] != values["promotion_candidate"]
+    elif values["promotion_readiness"] == "deployed_awaiting_live_acceptance":
+        assert values["deployed_release"] == values["promotion_candidate"]
+        assert values["deployed_release"] == values["current_stable_release"]
+        assert values["promotion_candidate_image_acceptance"] == "immutable_image_deployed_awaiting_live_acceptance"
+        assert values["fictional_member_seed_state"] == "v312_deployed_awaiting_live_acceptance"
+        assert values["critical_journey_acceptance"] == "not_verified"
+        assert values["genuine_blocker"] != "none"
     else:
         assert values["genuine_blocker"] != "none"
 
