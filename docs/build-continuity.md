@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 September 2026 22:08 CDT
-current_frozen_release: v3.111
-current_frozen_commit: 8bf4614ec79a27641c40dc1a21e1790746a08604
+last_verified_at: 11 September 2026 22:16 CDT
+current_frozen_release: v3.112
+current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 124
-active_increment: issue_124_v312_patch_freeze
-last_completed_release: v3.111
+active_increment: issue_124_v312_immutable_image_publication
+last_completed_release: v3.112
 candidate_release: v3.112
-validation_pr: 303
-validation_gate_state: all_required_gates_green
+validation_pr: 304
+validation_gate_state: controlled_validation_in_progress
 genuine_blockers: accepted_azure_demo_lacks_authorized_evaluator_visibility
-next_authorized_increment: issue_124_v312_immutable_image_publication
+next_authorized_increment: issue_124_v312_image_publish_then_application_promotion
 ---
 
 # SalCAPA build continuity
