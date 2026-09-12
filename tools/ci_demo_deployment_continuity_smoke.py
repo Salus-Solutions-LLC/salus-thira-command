@@ -86,6 +86,7 @@ def main() -> None:
     assert DATE_TIME.fullmatch(values["promotion_candidate_image_published_at"])
     assert values["promotion_candidate_image_acceptance"] in {
         "immutable_image_published_not_deployed",
+        "immutable_image_deployed_awaiting_live_acceptance",
         "immutable_image_deployed_and_accepted",
     }
     assert values["deployment_acceptance"] in {
@@ -104,6 +105,7 @@ def main() -> None:
         "v310_image_published_not_deployed",
         "v311_image_published_not_deployed",
         "v312_image_published_not_deployed",
+        "v312_deployed_awaiting_live_acceptance",
         "v311_live_copy_migration_accepted_not_deployed",
         "verified",
     }
