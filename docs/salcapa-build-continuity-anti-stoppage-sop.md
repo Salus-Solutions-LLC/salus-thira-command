@@ -1,6 +1,6 @@
 # SalCAPA Build Continuity and Anti-Stoppage SOP
 
-Status: governed candidate under Issue #298  
+Status: accepted under Issue #298  
 Applies to: SalCAPA build, validation, release, deployment, and maintained-development-demonstration work  
 Objective: no silent stoppage and no avoidable multi-hour loss
 
