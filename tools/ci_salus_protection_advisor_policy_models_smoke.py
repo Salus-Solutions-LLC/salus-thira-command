@@ -630,6 +630,133 @@ def main() -> None:
         assert handoff_audit[-1]["contains_contact_information"] is False
         assert juniper_contact["contact_email"] not in json.dumps(handoff_audit).casefold()
 
+        packet_command = advisor.FictionalInternalReviewPacketCommand(
+            handoff_key=handoff["handoff_key"],
+            prepared_by_reviewer_key="SPA-REVIEWER-FICTIONAL-SENIOR-1",
+            prepared_by_reviewer_role="Senior Salus Commercial Reviewer",
+            fictional_acceptance_simulation=True,
+            requested_review_topics=advisor.INTERNAL_REVIEW_TOPICS,
+        )
+        packet = advisor.prepare_fictional_internal_review_packet(
+            conn,
+            packet_command,
+            prepared_at="2026-09-12T15:55:00Z",
+        )
+        assert packet["packet_version"] == advisor.INTERNAL_REVIEW_PACKET_VERSION
+        assert packet["status"] == "Prepared — Awaiting Salus Review"
+        assert packet["human_review_completed"] is False
+        assert packet["contact_information_included"] is False
+        assert packet["created_display"] == "12 September 2026 15:55 UTC"
+        assert packet["handoff_key"] == handoff["handoff_key"]
+        assert packet["evidence_sha256"] == advisor.content_sha256(packet["evidence"])
+        assert packet["evidence"]["handoff_snapshot_sha256"] == handoff["content_sha256"]
+        assert len(packet["evidence"]["fictional_case_coverage"]) == 4
+        assert {item["case_key"] for item in packet["evidence"]["fictional_case_coverage"]} == {
+            case.case_key for case in advisor.FICTIONAL_CASES
+        }
+        assert tuple(packet["requested_review_topics"]) == advisor.INTERNAL_REVIEW_TOPICS
+        assert len(packet["topic_evidence"]) == len(advisor.INTERNAL_REVIEW_TOPICS)
+        assert {
+            item["state"] for item in packet["topic_evidence"]
+        } == {
+            "Evidence Prepared — Human Review Required",
+            "Evidence Needed",
+        }
+        assert all(packet[flag] is False for flag in (
+            "approves_prototype", "authorizes_public_route", "authorizes_dns",
+            "authorizes_pilot", "establishes_scope", "authorizes_package",
+            "authorizes_price", "creates_charge", "creates_contract",
+            "creates_membership", "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release", "authorizes_onboarding",
+        ))
+        packet_text = json.dumps(packet).casefold()
+        for hidden in (
+            "@example.com", "contact_email", "contact_name", "session_token",
+            "internal_cost", "role_rate", "margin_basis_points", "tenant_id",
+            "protected_member_id", "approved_customer_price_cents",
+        ):
+            assert hidden not in packet_text
+        loaded_packet = advisor.load_fictional_internal_review_packet(
+            conn, packet["packet_key"]
+        )
+        assert loaded_packet["content_sha256"] == packet["content_sha256"]
+        advisor.assert_safe_public_projection(
+            loaded_packet["evidence"]["public_price_ranges"]
+        )
+
+        try:
+            advisor.prepare_fictional_internal_review_packet(
+                conn,
+                packet_command,
+                prepared_at="2026-09-12T15:56:00Z",
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("duplicate fictional internal review packet was accepted")
+
+        for invalid_packet in (
+            {
+                "handoff_key": handoff["handoff_key"],
+                "prepared_by_reviewer_key": reviewer["reviewer_key"],
+                "prepared_by_reviewer_role": reviewer["reviewer_role"],
+                "fictional_acceptance_simulation": True,
+                "requested_review_topics": advisor.INTERNAL_REVIEW_TOPICS[:-1],
+            },
+            {
+                "handoff_key": handoff["handoff_key"],
+                "prepared_by_reviewer_key": reviewer["reviewer_key"],
+                "prepared_by_reviewer_role": reviewer["reviewer_role"],
+                "fictional_acceptance_simulation": True,
+                "requested_review_topics": advisor.INTERNAL_REVIEW_TOPICS,
+                "review_approved": True,
+            },
+        ):
+            try:
+                advisor.FictionalInternalReviewPacketCommand(**invalid_packet)
+            except ValidationError:
+                pass
+            else:
+                raise AssertionError("invalid fictional internal review packet was accepted")
+
+        packet_audit = advisor.verify_fictional_session_audit(
+            conn, evaluation_session["session_key"]
+        )
+        assert packet_audit[-1]["event_type"] == "Fictional Internal Review Packet Prepared"
+        assert packet_audit[-1]["details"]["packet_key"] == packet["packet_key"]
+        assert packet_audit[-1]["details"]["human_review_completed"] is False
+        assert packet_audit[-1]["contains_answer_content"] is False
+        assert packet_audit[-1]["contains_contact_information"] is False
+        assert juniper_contact["contact_email"] not in json.dumps(packet_audit).casefold()
+
+        conn.execute(
+            "UPDATE advisor_fictional_internal_review_packets SET snapshot_json=? WHERE packet_key=?",
+            ("{}", packet["packet_key"]),
+        )
+        try:
+            advisor.load_fictional_internal_review_packet(conn, packet["packet_key"])
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("tampered fictional internal review packet was accepted")
+        finally:
+            conn.rollback()
+        assert advisor.load_fictional_internal_review_packet(
+            conn, packet["packet_key"]
+        )["packet_key"] == packet["packet_key"]
+
+        packet_columns = {
+            column["name"]
+            for column in conn.execute(
+                "PRAGMA table_info(advisor_fictional_internal_review_packets)"
+            )
+        }
+        for forbidden_column in (
+            "tenant_id", "protected_member_id", "contact_email",
+            "approved_customer_price_cents", "review_approved",
+        ):
+            assert forbidden_column not in packet_columns
+
         conn.execute(
             "UPDATE advisor_fictional_scoping_handoffs SET snapshot_json=? WHERE handoff_key=?",
             ("{}", handoff["handoff_key"]),
