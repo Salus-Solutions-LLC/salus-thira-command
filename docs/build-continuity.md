@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 September 2026 21:51 CDT
+last_verified_at: 11 September 2026 22:02 CDT
 current_frozen_release: v3.111
 current_frozen_commit: 8bf4614ec79a27641c40dc1a21e1790746a08604
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 124
-active_increment: issue_124_demo_evaluator_patch_release
+active_increment: issue_124_v312_patch_validation
 last_completed_release: v3.111
-candidate_release: none
-validation_pr: none
-validation_gate_state: all_required_gates_green
+candidate_release: v3.112
+validation_pr: 303
+validation_gate_state: controlled_validation_in_progress
 genuine_blockers: accepted_azure_demo_lacks_authorized_evaluator_visibility
-next_authorized_increment: issue_124_demo_evaluator_patch_freeze_promotion_live_acceptance
+next_authorized_increment: issue_124_v312_freeze_immutable_image_promotion_live_acceptance
 ---
 
 # SalCAPA build continuity
@@ -53,7 +53,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - First stable unified demonstration baseline: accepted. Exact frozen v3.111 is deployed, and live end-to-end acceptance of the three fictional Protected Member environments completed in workflow run 34654142382 on 11 September 2026 at 17:32 CDT. No user action is required to keep the accepted baseline available.
 - Demonstration checkpoint: the [governed demonstration continuity record](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/demo-deployment-continuity.md) records exact v3.111 deployment workflow 34621973343 and live three-member acceptance workflow 34654142382. The bounded acceptance used the normal governed fixture interface, preserved the application image, identity, ingress, traffic, DNS, scale, and secret configuration, and removed its temporary consumption job.
 - Last accepted architecture: the [scanned-PDF page-rendering design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/development/salcapa-platform/docs/salcapa-scanned-pdf-page-rendering-design.md) extends the approved handwriting and expanded-OCR design with embedded-text-first inspection, page-specific authority and purpose, local hash-pinned rendering, exact PDF-point and rendered-pixel transforms, ephemeral page bytes, independent source comparison, and low-cost graceful degradation. Exact page coordinates and authorized geographic coordinates remain preserved and usable; only unintended disclosure paths are restricted.
-- Active product increment: freeze the validated Issue #124 evaluator-visibility correction as a bounded patch, promote it through the governed Azure path, and prove the ordinary authorized Salus evaluator interface visibly exposes Aster Ridge, Cedar Vale, and Northstar. Lower-priority Issue #236 work remains deferred until live acceptance.
+- Active product increment: controlled validation of the bounded v3.112 Issue #124 patch at [PR #303](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/303). The patch changes release identity only after the evaluator correction passed all 20 required families; frozen v3.111 and the accepted Azure deployment remain unchanged.
 - Next authorized product increment: prepare the deterministic patch release from exact validated commit `c6505e2f0d0cdfe88ba980e496fee2828f6c8393`; reverify release identity, migration compatibility, immutable image publication, Entra/tenant isolation, recovery, and rollback; then promote and run live authorized-evaluator acceptance. Resume Issue #236 rendering-to-recognition work only after the ordinary evaluator interface passes.
 
 ## Recovery procedure
