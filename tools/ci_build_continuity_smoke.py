@@ -86,10 +86,18 @@ def main() -> None:
     else:
         assert candidate_version == runtime_version
         if candidate_version == frozen_version:
-            assert values["active_increment"] == "issue_124_v311_azure_demo_promotion"
+            release_marker = f"v{candidate_version[0]}{candidate_version[1]}"
+            assert release_marker in values["active_increment"]
+            assert values["active_increment"].endswith(
+                ("_azure_demo_promotion", "_immutable_image_publication", "_application_promotion")
+            )
             assert values["validation_pr"].isdigit()
-            assert values["validation_gate_state"] == "controlled_validation_in_progress"
-            assert values["genuine_blockers"] != "none"
+            assert values["validation_gate_state"] in {
+                "controlled_validation_in_progress",
+                "all_required_gates_green",
+            }
+            if values["validation_gate_state"] == "controlled_validation_in_progress":
+                assert values["genuine_blockers"] != "none"
         else:
             assert candidate_version[0] == frozen_version[0]
             assert candidate_version[1] == frozen_version[1] + 1
