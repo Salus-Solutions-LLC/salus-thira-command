@@ -41,6 +41,12 @@ CONSENTED_FIELDS = (
     "evaluation_snapshot",
     "purpose_and_consent_evidence",
 )
+STAFF_REVIEW_DECISIONS = (
+    "Proceed to Fictional Scoping",
+    "Questions Required",
+    "Decline — No Fit",
+    "Close — No Action",
+)
 POLICY_TABLES = {
     "Questionnaire": "advisor_questionnaire_versions",
     "Recommendation Policy": "advisor_recommendation_policy_versions",
@@ -233,6 +239,56 @@ class FictionalProspectSubmission(BaseModel):
         return value
 
 
+
+class FictionalStaffReviewCommand(BaseModel):
+    """Strict fictional Salus staff-review command with correction lineage."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    decision: Literal[
+        "Proceed to Fictional Scoping",
+        "Questions Required",
+        "Decline — No Fit",
+        "Close — No Action",
+    ]
+    reviewer_key: str = Field(pattern=r"^SPA-REVIEWER-FICTIONAL-[A-Z0-9-]{1,80}$")
+    reviewer_role: Literal[
+        "Qualified Salus Commercial Reviewer",
+        "Senior Salus Commercial Reviewer",
+    ]
+    qualifications_confirmed: Literal[True]
+    fictional_acceptance_simulation: Literal[True]
+    rationale: str = Field(min_length=10, max_length=2000)
+    assumptions: tuple[str, ...] = ()
+    information_needed: tuple[str, ...] = ()
+    supersedes_review_key: str | None = Field(
+        default=None, pattern=r"^SPA-REVIEW-[A-F0-9]{64}$"
+    )
+    correction_reason: str | None = Field(default=None, min_length=10, max_length=1000)
+
+    @field_validator("rationale")
+    @classmethod
+    def normalize_rationale(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("assumptions", "information_needed")
+    @classmethod
+    def validate_bounded_statements(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if len(value) > 20 or any(not item.strip() or len(item.strip()) > 500 for item in value):
+            raise ValueError("review statement collection exceeds the prototype limit")
+        return tuple(item.strip() for item in value)
+
+    @model_validator(mode="after")
+    def validate_review_lineage(self) -> "FictionalStaffReviewCommand":
+        if self.decision == "Questions Required" and not self.information_needed:
+            raise ValueError("questions-required decisions must identify information needed")
+        if self.decision != "Questions Required" and self.information_needed:
+            raise ValueError("information-needed entries require a questions-required decision")
+        if bool(self.supersedes_review_key) != bool(self.correction_reason):
+            raise ValueError("supersession and correction reason must be supplied together")
+        return self
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS advisor_questionnaire_versions (
  version_key TEXT PRIMARY KEY, status TEXT NOT NULL, data_boundary TEXT NOT NULL,
@@ -333,6 +389,21 @@ CREATE TABLE IF NOT EXISTS advisor_prospects (
  expires_at TEXT NOT NULL, retention_policy_version TEXT NOT NULL,
  correction_state TEXT NOT NULL, withdrawal_state TEXT NOT NULL,
  deletion_state TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS advisor_prospect_review_decisions (
+ review_key TEXT PRIMARY KEY, prospect_key TEXT NOT NULL,
+ review_sequence INTEGER NOT NULL, status TEXT NOT NULL,
+ decision TEXT NOT NULL, reviewer_key TEXT NOT NULL,
+ reviewer_role TEXT NOT NULL, data_boundary TEXT NOT NULL,
+ fictional_only INTEGER NOT NULL, basis_sha256 TEXT NOT NULL,
+ supersedes_review_key TEXT, correction_reason TEXT,
+ snapshot_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
+ created_at TEXT NOT NULL, UNIQUE(prospect_key, review_sequence)
+);
+CREATE TABLE IF NOT EXISTS advisor_prospect_review_state (
+ prospect_key TEXT PRIMARY KEY, current_review_key TEXT NOT NULL,
+ review_sequence INTEGER NOT NULL, status TEXT NOT NULL,
+ updated_at TEXT NOT NULL
 );
 """
 
@@ -667,6 +738,36 @@ def fictional_prospect_contacts() -> dict[str, dict[str, str]]:
     """Return repository-owned fictional contacts for internal acceptance only."""
 
     return copy.deepcopy(FICTIONAL_PROSPECT_CONTACTS)
+
+
+FICTIONAL_STAFF_REVIEWERS = {
+    "SPA-REVIEWER-FICTIONAL-COMMERCIAL-1": {
+        "reviewer_key": "SPA-REVIEWER-FICTIONAL-COMMERCIAL-1",
+        "display_name": "Fictional Commercial Reviewer",
+        "reviewer_role": "Qualified Salus Commercial Reviewer",
+        "fictional_only": True,
+        "authority": (
+            "May record a fictional preliminary review decision; may not establish "
+            "scope, price, contract, membership, or customer release."
+        ),
+    },
+    "SPA-REVIEWER-FICTIONAL-SENIOR-1": {
+        "reviewer_key": "SPA-REVIEWER-FICTIONAL-SENIOR-1",
+        "display_name": "Fictional Senior Commercial Reviewer",
+        "reviewer_role": "Senior Salus Commercial Reviewer",
+        "fictional_only": True,
+        "authority": (
+            "May record or correct a fictional preliminary review decision; may not "
+            "establish scope, price, contract, membership, or customer release."
+        ),
+    },
+}
+
+
+def fictional_staff_reviewers() -> dict[str, dict[str, Any]]:
+    """Return repository-owned fictional reviewer fixtures."""
+
+    return copy.deepcopy(FICTIONAL_STAFF_REVIEWERS)
 
 
 def _snapshot(definition: AdvisorPolicyDefinition) -> tuple[str, str]:
@@ -2172,3 +2273,251 @@ def record_fictional_consent_and_prospect(
         "creates_disclosure": False,
         "authorizes_customer_release": False,
     }
+
+
+
+def _fictional_review_status(decision: str) -> str:
+    return {
+        "Proceed to Fictional Scoping": (
+            "Accepted for Fictional Scoping — Separate Salus Approval Required"
+        ),
+        "Questions Required": "Awaiting Fictional Prospect Information",
+        "Decline — No Fit": "Declined — Fictional; No Commitment Created",
+        "Close — No Action": "Closed — Fictional; No Action Authorized",
+    }[decision]
+
+
+def load_fictional_staff_review(conn: Any, review_key: str) -> dict[str, Any]:
+    """Load and verify one immutable fictional staff-review decision."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_prospect_review_decisions WHERE review_key=?",
+        (review_key,),
+    ).fetchone()
+    if not row or content_sha256(row["snapshot_json"]) != row["content_sha256"]:
+        raise PolicyIntegrityError("fictional staff review integrity check failed")
+    result = json.loads(row["snapshot_json"])
+    checks = {
+        "review_key": row["review_key"],
+        "prospect_key": row["prospect_key"],
+        "review_sequence": int(row["review_sequence"]),
+        "status": row["status"],
+        "decision": row["decision"],
+        "reviewer_key": row["reviewer_key"],
+        "reviewer_role": row["reviewer_role"],
+        "data_boundary": row["data_boundary"],
+        "basis_sha256": row["basis_sha256"],
+        "supersedes_review_key": row["supersedes_review_key"],
+        "correction_reason": row["correction_reason"],
+        "created_at": row["created_at"],
+    }
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(row["reviewer_key"])
+    if (
+        any(result.get(key) != value for key, value in checks.items())
+        or int(row["fictional_only"]) != 1
+        or result.get("fictional_only") is not True
+        or result.get("fictional_acceptance_simulation") is not True
+        or reviewer is None
+        or reviewer["reviewer_role"] != row["reviewer_role"]
+        or result.get("reviewer_fixture_sha256") != content_sha256(reviewer)
+        or result.get("basis_sha256") != content_sha256(result.get("basis", {}))
+        or any(result.get(flag) is not False for flag in (
+            "establishes_scope", "changes_package", "changes_price",
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release", "authorizes_onboarding",
+        ))
+    ):
+        raise PolicyIntegrityError("fictional staff review boundary failed")
+    review_text = canonical_json(result).casefold()
+    if "@example.com" in review_text or "contact_email" in review_text:
+        raise PolicyIntegrityError("fictional staff review contains contact information")
+    return {**result, "content_sha256": row["content_sha256"]}
+
+
+def fictional_staff_review_history(
+    conn: Any, prospect_key: str
+) -> list[dict[str, Any]]:
+    """Return hash-verified review history in immutable sequence order."""
+
+    rows = list(conn.execute(
+        "SELECT review_key FROM advisor_prospect_review_decisions "
+        "WHERE prospect_key=? ORDER BY review_sequence",
+        (prospect_key,),
+    ))
+    history = [load_fictional_staff_review(conn, row["review_key"]) for row in rows]
+    for expected, review in enumerate(history, start=1):
+        if review["review_sequence"] != expected:
+            raise PolicyIntegrityError("fictional staff review sequence is incomplete")
+        if expected == 1 and review["supersedes_review_key"] is not None:
+            raise PolicyIntegrityError("first fictional staff review cannot supersede another")
+        if expected > 1 and review["supersedes_review_key"] != history[expected - 2]["review_key"]:
+            raise PolicyIntegrityError("fictional staff review supersession lineage failed")
+    return history
+
+
+def load_current_fictional_staff_review(
+    conn: Any, prospect_key: str
+) -> dict[str, Any]:
+    """Load the server-controlled current review pointer and immutable decision."""
+
+    state = conn.execute(
+        "SELECT * FROM advisor_prospect_review_state WHERE prospect_key=?",
+        (prospect_key,),
+    ).fetchone()
+    if not state:
+        raise PolicyIntegrityError("fictional prospect has no staff review")
+    review = load_fictional_staff_review(conn, state["current_review_key"])
+    if (
+        review["prospect_key"] != prospect_key
+        or review["review_sequence"] != int(state["review_sequence"])
+        or review["status"] != state["status"]
+    ):
+        raise PolicyIntegrityError("fictional staff review current state failed")
+    return review
+
+
+def record_fictional_staff_review(
+    conn: Any,
+    prospect_key: str,
+    command: FictionalStaffReviewCommand,
+    *,
+    reviewed_at: str,
+) -> dict[str, Any]:
+    """Record a fictional staff decision without creating commercial authority."""
+
+    initialize_policy_store(conn)
+    at = _parse_utc(reviewed_at)
+    prospect = load_fictional_prospect(conn, prospect_key)
+    consent = load_fictional_consent(conn, prospect["consent_key"])
+    if prospect["status"] != "Submitted — Fictional; Awaiting Salus Review":
+        raise PolicyIntegrityError("only a submitted fictional prospect may be reviewed")
+    if consent["lifecycle_state"] != "Retained under affirmative fictional consent":
+        raise PolicyIntegrityError("fictional prospect consent is not active")
+    if _parse_utc(prospect["expires_at"]) <= at or _parse_utc(consent["expires_at"]) <= at:
+        raise PolicyIntegrityError("fictional prospect consent has expired")
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(command.reviewer_key)
+    if (
+        reviewer is None
+        or reviewer["fictional_only"] is not True
+        or reviewer["reviewer_role"] != command.reviewer_role
+    ):
+        raise PolicyIntegrityError("fictional reviewer role is not authorized")
+
+    state = conn.execute(
+        "SELECT * FROM advisor_prospect_review_state WHERE prospect_key=?",
+        (prospect_key,),
+    ).fetchone()
+    if state:
+        if command.supersedes_review_key != state["current_review_key"]:
+            raise PolicyIntegrityError("review correction must supersede the current decision")
+        sequence = int(state["review_sequence"]) + 1
+    else:
+        if command.supersedes_review_key is not None:
+            raise PolicyIntegrityError("first review cannot supersede another decision")
+        sequence = 1
+
+    evaluation = load_session_fictional_evaluation(conn, prospect["evaluation_key"])
+    basis = {
+        "prospect_key": prospect_key,
+        "prospect_snapshot_sha256": prospect["content_sha256"],
+        "consent_key": consent["consent_key"],
+        "consent_snapshot_sha256": consent["content_sha256"],
+        "evaluation_key": evaluation["evaluation_key"],
+        "evaluation_snapshot_sha256": evaluation["content_sha256"],
+        "policy_bundle_sha256": evaluation["policy_bundle_sha256"],
+        "governing_versions": evaluation["governing_versions"],
+        "commercial_estimate_snapshot_sha256": (
+            evaluation["commercial_estimate_snapshot_sha256"]
+        ),
+    }
+    basis_sha256 = content_sha256(basis)
+    at_text = _utc_text(at)
+    status = _fictional_review_status(command.decision)
+    seed = {
+        "prospect_key": prospect_key,
+        "review_sequence": sequence,
+        "status": status,
+        "decision": command.decision,
+        "reviewer_key": command.reviewer_key,
+        "reviewer_role": command.reviewer_role,
+        "reviewer_fixture_sha256": content_sha256(reviewer),
+        "qualifications_confirmed": True,
+        "fictional_only": True,
+        "fictional_acceptance_simulation": True,
+        "data_boundary": DATA_BOUNDARY,
+        "basis": basis,
+        "basis_sha256": basis_sha256,
+        "rationale": command.rationale,
+        "assumptions": list(command.assumptions),
+        "information_needed": list(command.information_needed),
+        "supersedes_review_key": command.supersedes_review_key,
+        "correction_reason": command.correction_reason,
+        "created_at": at_text,
+        "created_display": _display_utc(at),
+        "authority": (
+            "This fictional acceptance simulation records a preliminary Salus review "
+            "decision only. Separate qualified approval is required for scope, package, "
+            "price, customer release, onboarding, or commitment."
+        ),
+        "recommended_next_step": {
+            "Proceed to Fictional Scoping": "Prepare a separate fictional scope for review.",
+            "Questions Required": "Request only the identified fictional information.",
+            "Decline — No Fit": "Record the non-binding fictional disposition.",
+            "Close — No Action": "Retain the fictional closure evidence through expiry.",
+        }[command.decision],
+        "establishes_scope": False,
+        "changes_package": False,
+        "changes_price": False,
+        "creates_charge": False,
+        "creates_contract": False,
+        "creates_membership": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "authorizes_customer_release": False,
+        "authorizes_onboarding": False,
+    }
+    review_key = "SPA-REVIEW-" + content_sha256(seed).upper()
+    review = {"review_key": review_key, **seed}
+    snapshot_json = canonical_json(review)
+    digest = content_sha256(snapshot_json)
+    try:
+        conn.execute(
+            "INSERT INTO advisor_prospect_review_decisions(review_key,prospect_key,review_sequence,status,decision,reviewer_key,reviewer_role,data_boundary,fictional_only,basis_sha256,supersedes_review_key,correction_reason,snapshot_json,content_sha256,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                review_key, prospect_key, sequence, status, command.decision,
+                command.reviewer_key, command.reviewer_role, DATA_BOUNDARY, 1,
+                basis_sha256, command.supersedes_review_key,
+                command.correction_reason, snapshot_json, digest, at_text,
+            ),
+        )
+        if state:
+            conn.execute(
+                "UPDATE advisor_prospect_review_state SET current_review_key=?,review_sequence=?,status=?,updated_at=? WHERE prospect_key=?",
+                (review_key, sequence, status, at_text, prospect_key),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO advisor_prospect_review_state(prospect_key,current_review_key,review_sequence,status,updated_at) VALUES(?,?,?,?,?)",
+                (prospect_key, review_key, sequence, status, at_text),
+            )
+        _record_session_event(
+            conn,
+            prospect["session_key"],
+            "Fictional Staff Review Recorded",
+            at_text,
+            {
+                "prospect_key": prospect_key,
+                "review_key": review_key,
+                "review_sequence": sequence,
+                "decision": command.decision,
+                "status": status,
+                "reviewer_key": command.reviewer_key,
+                "fictional_acceptance_simulation": True,
+            },
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {**review, "content_sha256": digest}
