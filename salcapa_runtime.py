@@ -26,6 +26,7 @@ from salcapa_visual_object_processing import register_salcapa_visual_object_proc
 from salcapa_handwriting_ocr_processing import register_salcapa_handwriting_ocr_processing
 from salcapa_pdf_page_rendering import register_salcapa_pdf_page_rendering
 from salcapa_demo_fixtures import register_demo_fixture_contract
+from salcapa_demo_evaluator import register_demo_evaluator
 from mission_map import register_mission_map
 try:
     from salops_plan_assembly import register_salops_plan_assembly
@@ -61,6 +62,7 @@ register_salcapa_visual_object_processing(core.app, core.__dict__)
 register_salcapa_handwriting_ocr_processing(core.app, core.__dict__)
 register_salcapa_pdf_page_rendering(core.app, core.__dict__)
 register_demo_fixture_contract(core)
+register_demo_evaluator(core)
 register_mission_map(core.app, core.__dict__)
 
 SALCAPA_RELEASE_VERSION = "3.111"
