@@ -5,12 +5,21 @@ on:
     branches: [development/salcapa-platform]
     paths:
       - 'salcapa_demo_fixtures.py'
+      - 'salcapa_demo_evaluator.py'
+      - 'static/demo-environments.js'
+      - 'static/index.html'
+      - 'static/app.js'
       - 'salcapa_runtime.py'
       - 'tools/ci_salcapa_demo_fixtures_smoke.py'
+      - 'tools/ci_salcapa_demo_evaluator_smoke.py'
       - 'tools/ci_salcapa_demo_full_lifecycle_smoke.py'
       - 'tools/ci_salcapa_demo_promotion_preflight.py'
       - 'tools/reconstruct_salcapa_demo_fixtures.py'
+      - 'tools/reconstruct_salcapa_demo_evaluator.py'
       - 'source_archives/development/salcapa_demo_fixtures.py.gz'
+      - 'source_archives/development/salcapa_demo_evaluator.py.gz.b64'
+      - 'source_archives/development/demo-environments.js.gz.b64'
+      - 'source_archives/development/ci_salcapa_demo_evaluator_smoke.py.gz.b64'
       - 'Dockerfile'
       - '.github/workflows/salcapa-demo-fixtures.yml'
   pull_request:
@@ -33,11 +42,13 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt bandit pip-audit
       - run: python tools/reconstruct_salcapa_demo_fixtures.py
-      - run: python -m py_compile salcapa_demo_fixtures.py salcapa_runtime.py tools/ci_salcapa_demo_fixtures_smoke.py tools/ci_salcapa_demo_full_lifecycle_smoke.py tools/ci_salcapa_demo_promotion_preflight.py
+      - run: python tools/reconstruct_salcapa_demo_evaluator.py
+      - run: python -m py_compile salcapa_demo_fixtures.py salcapa_demo_evaluator.py salcapa_runtime.py tools/ci_salcapa_demo_fixtures_smoke.py tools/ci_salcapa_demo_evaluator_smoke.py tools/ci_salcapa_demo_full_lifecycle_smoke.py tools/ci_salcapa_demo_promotion_preflight.py
       - run: python tools/ci_salcapa_demo_fixtures_smoke.py
+      - run: python tools/ci_salcapa_demo_evaluator_smoke.py
       - run: python tools/ci_salcapa_demo_full_lifecycle_smoke.py
       - run: python tools/ci_salcapa_demo_promotion_preflight.py
-      - run: bandit -q -r salcapa_demo_fixtures.py tools/ci_salcapa_demo_fixtures_smoke.py tools/ci_salcapa_demo_full_lifecycle_smoke.py tools/ci_salcapa_demo_promotion_preflight.py -ll
+      - run: bandit -q -r salcapa_demo_fixtures.py salcapa_demo_evaluator.py tools/ci_salcapa_demo_fixtures_smoke.py tools/ci_salcapa_demo_evaluator_smoke.py tools/ci_salcapa_demo_full_lifecycle_smoke.py tools/ci_salcapa_demo_promotion_preflight.py -ll
       - run: pip-audit -r requirements.txt
       - name: Repository hygiene
         run: |
@@ -76,7 +87,9 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
       - run: python tools/reconstruct_salcapa_demo_fixtures.py
+      - run: python tools/reconstruct_salcapa_demo_evaluator.py
       - run: python tools/ci_salcapa_demo_fixtures_smoke.py
+      - run: python tools/ci_salcapa_demo_evaluator_smoke.py
       - run: python tools/ci_salcapa_demo_full_lifecycle_smoke.py
       - run: python tools/ci_salcapa_demo_promotion_preflight.py
 
@@ -95,6 +108,13 @@ jobs:
           -e SALUS_SEED_DEMO=0
           salcapa-demo-fixture-candidate
           python tools/ci_salcapa_demo_fixtures_smoke.py
+      - run: >-
+          docker run --rm
+          -e SALUS_ENV=development
+          -e SALUS_AUTH_MODE=prototype
+          -e SALUS_SEED_DEMO=0
+          salcapa-demo-fixture-candidate
+          python tools/ci_salcapa_demo_evaluator_smoke.py
       - run: >-
           docker run --rm
           -e SALUS_ENV=development
