@@ -21,7 +21,7 @@ from salcapa_commercial import register_salcapa_commercial
 from salcapa_contextual_intake import register_salcapa_contextual_intake
 from salcapa_audio_video_processing import register_salcapa_audio_video_processing
 from salcapa_material_suggestions import register_salcapa_material_suggestions
-from salcapa_visual_geospatial import register_salcapa_visual_geospatial
+from salcapa_visual_geospatial import register_salcapa_visual_geospatial\nfrom salcapa_facility_imagery import register_salcapa_facility_imagery
 from salcapa_visual_object_processing import register_salcapa_visual_object_processing
 from salcapa_handwriting_ocr_processing import register_salcapa_handwriting_ocr_processing
 from salcapa_pdf_page_rendering import register_salcapa_pdf_page_rendering
@@ -57,7 +57,7 @@ register_salcapa_commercial(core.app, core.__dict__)
 register_salcapa_contextual_intake(core.app, core.__dict__)
 register_salcapa_audio_video_processing(core.app, core.__dict__)
 register_salcapa_material_suggestions(core.app, core.__dict__)
-register_salcapa_visual_geospatial(core.app, core.__dict__)
+register_salcapa_visual_geospatial(core.app, core.__dict__)\nregister_salcapa_facility_imagery(core.app, core.__dict__)
 register_salcapa_visual_object_processing(core.app, core.__dict__)
 register_salcapa_handwriting_ocr_processing(core.app, core.__dict__)
 register_salcapa_pdf_page_rendering(core.app, core.__dict__)
