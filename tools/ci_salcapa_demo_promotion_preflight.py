@@ -268,7 +268,10 @@ else:
         assert deployment["deployed_commit"] == "8bf4614ec79a27641c40dc1a21e1790746a08604"
     else:
         assert deployment["deployed_commit"] == "1d1759375d37b7de884331c06833de8c727ac5af"
-    assert deployment["promotion_readiness"] == "preflight_ready"
+    assert deployment["promotion_readiness"] in {"preflight_ready", "deployed_awaiting_live_acceptance"}
+    if deployment["deployed_release"] == "v3.112":
+        assert deployment["promotion_readiness"] == "deployed_awaiting_live_acceptance"
+        assert deployment["promotion_candidate_image_acceptance"] == "immutable_image_deployed_awaiting_live_acceptance"
     assert deployment["critical_journey_acceptance"] == "not_verified"
     assert deployment["genuine_blocker"] != "none"
 
