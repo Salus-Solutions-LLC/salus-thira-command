@@ -73,7 +73,7 @@ AUDITOR = {"X-Salus-Tenant": "1", "X-Salus-Role": "Auditor", "X-Salus-User": "Re
 
 with TestClient(core.app) as client:
     for headers in (ADMIN, DIRECTOR):
-        response = client.get("/api/demonstration-environments", headers=headers)
+        response = client.get("/api/salcapa/demonstration-environments", headers=headers)
         assert response.status_code == 200, response.text
         body = response.json()
         assert body["environment_count"] == 3
@@ -95,20 +95,19 @@ with TestClient(core.app) as client:
         assert "Unapproved Fictional Environment" not in str(body)
         assert "password" not in str(body).lower()
 
-    assert client.get("/api/demonstration-environments", headers=MEMBER).status_code == 403
-    assert client.get("/api/demonstration-environments", headers=AUDITOR).status_code == 403
-    assert client.post("/api/demonstration-environments", headers=ADMIN).status_code == 405
+    assert client.get("/api/salcapa/demonstration-environments", headers=MEMBER).status_code == 403
+    assert client.get("/api/salcapa/demonstration-environments", headers=AUDITOR).status_code == 403
+    assert client.post("/api/salcapa/demonstration-environments", headers=ADMIN).status_code == 405
     tenant_one = client.get("/api/assessments", headers=ADMIN)
     assert tenant_one.status_code == 200
     assert not any(item.get("fixture_key") in EXPECTED_KEYS for item in tenant_one.json())
 
-index = (ROOT / "static/index.html").read_text(encoding="utf-8")
-app_js = (ROOT / "static/app.js").read_text(encoding="utf-8")
+runtime = (ROOT / "salcapa_runtime.py").read_text(encoding="utf-8")
 evaluator_js = (ROOT / "static/demo-environments.js").read_text(encoding="utf-8")
-assert 'data-view="demo_environments"' in index
-assert 'data-salus-only="true"' in index
-assert '/static/demo-environments.js' in index
-assert "SalusDemoEnvironments" in app_js
+assert 'data-view="demo_environments"' in runtime
+assert 'data-salus-only="true"' in runtime
+assert '/static/demo-environments.js' in runtime
+assert "renderSalcapaView" in evaluator_js
 for name in ("Aster Ridge", "Cedar Vale", "Northstar"):
     assert name not in evaluator_js, "The UI must render only server-authorized fixture records"
 for forbidden in ("X-Salus-Tenant", "localStorage", "impersonat", "method:'POST'", 'method:"POST"'):
@@ -117,4 +116,3 @@ module = (ROOT / "salcapa_demo_evaluator.py").read_text(encoding="utf-8").lower(
 for forbidden_sql in ("insert into", "update tenants", "delete from"):
     assert forbidden_sql not in module
 print("SALCAPA_DEMO_EVALUATOR_SMOKE_PASS", core.DB_BACKEND)
-
