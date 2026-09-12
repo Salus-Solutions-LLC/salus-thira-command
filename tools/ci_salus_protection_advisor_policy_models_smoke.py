@@ -38,6 +38,25 @@ def main() -> None:
         assert loaded["data_boundary"] == advisor.DATA_BOUNDARY
         assert loaded["fictional_only"] is True
 
+        notice = advisor.install_fictional_consent_notice(
+            conn, released_at="2026-09-12T15:39:00Z"
+        )
+        repeated_notice = advisor.install_fictional_consent_notice(
+            conn, released_at="2026-09-12T15:39:00Z"
+        )
+        assert notice["content_sha256"] == repeated_notice["content_sha256"]
+        assert notice["notice_version"] == advisor.CONSENT_NOTICE_VERSION
+        assert notice["authorized_fields"] == list(advisor.CONSENTED_FIELDS)
+        assert notice["retention_days"] == 30
+        assert all(notice[flag] is False for flag in (
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release", "has_routes",
+        ))
+        loaded_notice = advisor.load_fictional_consent_notice(conn)
+        assert loaded_notice["content_sha256"] == notice["content_sha256"]
+        assert "@example.com" not in json.dumps(loaded_notice).casefold()
+
         for kind, table in advisor.POLICY_TABLES.items():
             rows = list(conn.execute(f"SELECT * FROM {table}"))
             assert len(rows) == 1, (kind, len(rows))
@@ -275,7 +294,10 @@ def main() -> None:
         assert recommendation["fictional_only"] is True
         assert recommendation["may_stop"] is True
         assert recommendation["may_revise"] is True
-        assert recommendation["may_save_or_submit"] is False
+        assert recommendation["may_save_or_submit"] is True
+        assert recommendation["save_or_submit_notice"].startswith(
+            "Fictional contact details are requested only"
+        )
         assert all(recommendation[flag] is False for flag in (
             "creates_charge", "creates_contract", "creates_membership",
             "creates_protected_member", "creates_disclosure", "has_routes",
@@ -320,6 +342,164 @@ def main() -> None:
             as_of="2026-09-12T15:38:30Z",
         )
         assert revised_recommendation["dimensions"]["Urgency"]["explicit_non_answer_states"]["recent_change"] == "Unknown"
+
+        contacts = advisor.fictional_prospect_contacts()
+        juniper_contact = contacts["SPA-FICTIONAL-JUNIPER-TABLE"]
+        submission = advisor.FictionalProspectSubmission(
+            action="Submit for Salus Review",
+            affirmative_consent=True,
+            notice_version=advisor.CONSENT_NOTICE_VERSION,
+            authorized_fields=advisor.CONSENTED_FIELDS,
+            **juniper_contact,
+        )
+        prospect_result = advisor.record_fictional_consent_and_prospect(
+            conn,
+            evaluation_token,
+            revised_evaluation["evaluation_key"],
+            submission,
+            consented_at="2026-09-12T15:40:00Z",
+        )
+        assert prospect_result["status"] == "Submitted — Fictional; Awaiting Salus Review"
+        assert prospect_result["awaiting_salus_review"] is True
+        assert prospect_result["created_display"] == "12 September 2026 15:40 UTC"
+        assert all(prospect_result[flag] is False for flag in (
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release",
+        ))
+        consent = advisor.load_fictional_consent(conn, prospect_result["consent_key"])
+        assert consent["evaluation_key"] == revised_evaluation["evaluation_key"]
+        assert consent["affirmative_consent"] is True
+        assert consent["authorized_fields"] == list(advisor.CONSENTED_FIELDS)
+        consent_text = json.dumps(consent).casefold()
+        assert juniper_contact["contact_email"] not in consent_text
+        assert juniper_contact["contact_name"].casefold() not in consent_text
+
+        prospect = advisor.load_fictional_prospect(conn, prospect_result["prospect_key"])
+        assert prospect["contact_email"].endswith("@example.com")
+        assert prospect["contact_name"].startswith("Fictional ")
+        assert prospect["classification"] == "Fictional Prospect-Reported Information"
+        assert prospect["recommendation"]["may_save_or_submit"] is True
+        assert prospect["recommendation"]["evaluation_key"] == revised_evaluation["evaluation_key"]
+        assert all(prospect[flag] is False for flag in (
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release",
+        ))
+        advisor.assert_safe_public_projection(prospect["recommendation"])
+        assert list(conn.execute(
+            "SELECT * FROM advisor_answer_revisions WHERE session_key=?",
+            (evaluation_session["session_key"],),
+        )) == []
+        try:
+            advisor.load_fictional_session(
+                conn, evaluation_token, as_of="2026-09-12T15:40:01Z"
+            )
+        except advisor.SessionAccessError:
+            pass
+        else:
+            raise AssertionError("submitted prospect token remained active")
+        try:
+            advisor.record_fictional_consent_and_prospect(
+                conn,
+                evaluation_token,
+                revised_evaluation["evaluation_key"],
+                submission,
+                consented_at="2026-09-12T15:40:01Z",
+            )
+        except advisor.SessionAccessError:
+            pass
+        else:
+            raise AssertionError("fictional prospect submission was replayable")
+
+        submitted_audit = advisor.verify_fictional_session_audit(
+            conn, evaluation_session["session_key"]
+        )
+        assert submitted_audit[-1]["event_type"] == "Prospect Submitted"
+        assert submitted_audit[-1]["contains_answer_content"] is False
+        assert submitted_audit[-1]["contains_contact_information"] is False
+        assert juniper_contact["contact_email"] not in json.dumps(submitted_audit).casefold()
+
+        consent_row = conn.execute(
+            "SELECT snapshot_json FROM advisor_consents WHERE consent_key=?",
+            (prospect_result["consent_key"],),
+        ).fetchone()
+        assert juniper_contact["contact_email"] not in consent_row["snapshot_json"].casefold()
+
+        conn.execute(
+            "UPDATE advisor_consents SET snapshot_json=? WHERE consent_key=?",
+            ("{}", prospect_result["consent_key"]),
+        )
+        try:
+            advisor.load_fictional_consent(conn, prospect_result["consent_key"])
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("tampered fictional consent was accepted")
+        finally:
+            conn.rollback()
+        assert advisor.load_fictional_consent(
+            conn, prospect_result["consent_key"]
+        )["consent_key"] == prospect_result["consent_key"]
+
+        conn.execute(
+            "UPDATE advisor_prospects SET payload_json=? WHERE prospect_key=?",
+            ("{}", prospect_result["prospect_key"]),
+        )
+        try:
+            advisor.load_fictional_prospect(conn, prospect_result["prospect_key"])
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("tampered fictional prospect was accepted")
+        finally:
+            conn.rollback()
+        assert advisor.load_fictional_prospect(
+            conn, prospect_result["prospect_key"]
+        )["prospect_key"] == prospect_result["prospect_key"]
+
+        for invalid in (
+            {
+                "action": "Submit for Salus Review",
+                "affirmative_consent": False,
+                "notice_version": advisor.CONSENT_NOTICE_VERSION,
+                "authorized_fields": advisor.CONSENTED_FIELDS,
+                **juniper_contact,
+            },
+            {
+                "action": "Submit for Salus Review",
+                "affirmative_consent": True,
+                "notice_version": advisor.CONSENT_NOTICE_VERSION,
+                "authorized_fields": ("contact_email",),
+                **juniper_contact,
+            },
+            {
+                "action": "Submit for Salus Review",
+                "affirmative_consent": True,
+                "notice_version": advisor.CONSENT_NOTICE_VERSION,
+                "authorized_fields": advisor.CONSENTED_FIELDS,
+                "organization_display_name": "Actual Organization",
+                "contact_name": "Actual Person",
+                "contact_email": "actual@real-domain.test",
+            },
+        ):
+            try:
+                advisor.FictionalProspectSubmission(**invalid)
+            except ValidationError:
+                pass
+            else:
+                raise AssertionError("invalid fictional consent submission was accepted")
+
+        for table in (
+            "advisor_consent_notice_versions", "advisor_consents", "advisor_prospects",
+        ):
+            columns = {
+                column["name"] for column in conn.execute(f"PRAGMA table_info({table})")
+            }
+            assert "tenant_id" not in columns
+            assert "protected_member_id" not in columns
+            assert "payment" not in columns
+            assert "credential" not in columns
 
         incomplete_session = advisor.start_fictional_session(
             conn,
