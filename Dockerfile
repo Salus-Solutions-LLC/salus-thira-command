@@ -49,6 +49,7 @@ RUN python tools/reconstruct_salcapa_pdf_processing.py
 RUN python tools/reconstruct_salcapa_image_ocr_processing.py
 RUN python tools/reconstruct_salcapa_audio_video_processing.py
 RUN python tools/reconstruct_salcapa_visual_geospatial.py
+RUN python tools/reconstruct_salcapa_facility_imagery.py
 RUN python tools/reconstruct_salcapa_visual_object_processing.py
 RUN python tools/reconstruct_salcapa_handwriting_ocr_processing.py
 RUN python tools/reconstruct_salcapa_pdf_page_rendering.py
