@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 September 2026 13:10 CDT
+last_verified_at: 12 September 2026 14:16 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 290
-active_increment: issue_290_fictional_scoping_handoff
+active_increment: issue_290_internal_review_packet
 last_completed_release: v3.112
 candidate_release: none
 validation_pr: none
 validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: issue_290_fictional_scoping_handoff
+next_authorized_increment: issue_290_internal_review_packet
 ---
 
 # SalCAPA build continuity
@@ -32,6 +32,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
+- Last completed development increment: [controlled validation PR #343](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/343) passed all 20 required workflow families on exact final head [`58e6b5a`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/58e6b5afca257963b9c0c71963f70505c76c802d), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The Issue #290 internal prototype now prepares an immutable nonbinding fictional scoping handoff only from the exact current Proceed to Fictional Scoping review. The handoff preserves prospect, consent, evaluation, policy, commercial-reference, reviewer, recommendation, assumption, exclusion, validation-question, and public price-range lineage while excluding contact information and Salus-internal commercial fields. Stale, questions-required, duplicate, expired, or tampered handoffs fail closed. Separate qualified Salus approval remains required for final scope, package, price, customer release, commitment, or Protected Member onboarding. No public route, DNS change, Azure deployment, paid service, real prospect data, or Protected Member access was introduced. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 - Last completed development increment: [controlled validation PR #338](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/338) passed all 20 required workflow families on exact final head [`70f1003`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/70f10035d81fd8a303b739646266ccd4319c0030), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The Issue #290 internal prototype now records immutable fictional Salus staff-review decisions against exact prospect, consent, evaluation, policy, commercial-reference, rationale, assumption, information-gap, qualification, and fictional reviewer-role evidence. Server-controlled current state preserves the full decision history, requires an exact current review key and correction reason for supersession, and rejects stale corrections. Every decision remains explicitly a fictional acceptance simulation; even Proceed to Fictional Scoping establishes no scope, package, price, charge, contract, membership, Protected Member status, disclosure, customer release, onboarding, or commitment. No public route, DNS change, Azure deployment, paid service, real prospect data, or Protected Member access was introduced. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 - Last completed development increment: [controlled validation PR #335](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/335) passed all 20 required workflow families on exact head [`3777590`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/377759036dc7114f425ac408b14322214382b1a8), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The Issue #290 internal boundary now presents a hash-verified consent notice before retaining contact information, accepts only affirmative consent for an exact current evaluation and exact field set, and permits only repository-owned fictional identities and reserved `.example` addresses. Save or submit creates a controlled fictional prospect with 30-day retention, correction, withdrawal, deletion, source, policy, evaluation, and consent lineage; deletes ephemeral answer revisions; and disables token replay. A submitted record remains Awaiting Salus Review and cannot create a charge, contract, membership, Protected Member, disclosure, customer release, scope, package, or price decision. No public route, DNS change, Azure deployment, paid service, real prospect data, or Protected Member access was introduced. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 - Last completed development increment: [controlled validation PR #332](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/332) passed all 20 required workflow families on exact head [`30beedd`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/30beedd6ad78bad15105b8b426b03b34ee0993c6), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The Issue #290 session-evaluation boundary uses only the active session's latest explicit answer revisions; requires an explicit state for every required displayed question; preserves basis-revision lineage, non-answer distinctions, uncertainty, policy versions, and commercial snapshot references; blocks cross-session access; and makes prior recommendations fail closed after any answer change. Sanitized retrieval omits session identifiers, token material, rate-card references, internal cost and margin data, tenant data, and contact fields. No routes, public deployment, DNS change, paid service, binding event, or Protected Member access were introduced. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
