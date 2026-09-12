@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 September 2026 01:29 CDT
+last_verified_at: 12 September 2026 01:46 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 236
-active_increment: issue_236_select_next_bounded_visual_increment
+active_increment: issue_236_maps_plans_facility_imagery_design_validation
 last_completed_release: v3.112
 candidate_release: none
-validation_pr: none
-validation_gate_state: all_required_gates_green
+validation_pr: 310
+validation_gate_state: validation_in_progress
 genuine_blockers: none
-next_authorized_increment: issue_236_select_next_bounded_visual_increment
+next_authorized_increment: issue_236_maps_plans_facility_imagery_implementation
 ---
 
 # SalCAPA build continuity
@@ -61,7 +61,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Last frozen patch increment: [controlled validation PR #303](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/303) passed all 20 required workflow families on exact final head [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) and closed without merge. That exact head became immutable `release/v3.112` and advanced by non-force fast-forward to `development/salcapa-platform`. The accepted Azure v3.111 demonstration remains unchanged.
 - Next authorized product increment: select the next bounded Issue #236 visual-intelligence increment from the governed roadmap, without deploying optional GPU services or changing the accepted v3.112 Azure baseline.
 
-## Recovery procedure
+- Current controlled validation: [PR #310](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/310) validates the bounded [maps, plans, diagrams, and facility-imagery design](https://github.com/Salus-Solutions-LLC/salus-thira-command/blob/candidate/issue-236-maps-plans-facility-design/docs/salcapa-maps-plans-facility-imagery-design.md). The design preserves immutable source, representation authority, exact page/frame/region and coordinate lineage, scale limitations, uncertainty, contradiction, independent review, domain-specific acceptance, tenancy, Protected Member disclosure, backup, recovery, cost, and manual fallback. It adds no paid external service, standing GPU, Azure deployment, biometric function, engineering conclusion, finding, priority, decision, disclosure, or release authority. Frozen v3.112 and the accepted Azure demonstration remain unchanged.\n\n## Recovery procedure
 
 Before starting an increment:
 
