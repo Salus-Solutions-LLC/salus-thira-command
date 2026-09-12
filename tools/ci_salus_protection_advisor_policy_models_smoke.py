@@ -210,6 +210,177 @@ def main() -> None:
         ):
             assert forbidden not in evaluation_serialized
 
+        evaluation_session = advisor.start_fictional_session(
+            conn,
+            "SPA-FICTIONAL-JUNIPER-TABLE",
+            created_at="2026-09-12T15:20:00Z",
+        )
+        evaluation_token = evaluation_session["session_token"]
+        required_submissions = (
+            ("organization_type", "Answered", "Small Business"),
+            ("mission", "Unknown", None),
+            ("locations", "Answered", 1),
+            ("jurisdictions", "Answered", 1),
+            ("people_exposed", "Answered", "Under 100"),
+            ("capability_posture", "Answered", "Mixed and partly documented"),
+            (
+                "reported_concerns",
+                "Answered",
+                ["Severe weather", "Utility interruption", "Workplace violence"],
+            ),
+            ("recent_change", "Answered", "No"),
+            ("investigation_depth", "Answered", "Initial Pass"),
+        )
+        for offset, (question_key, answer_state, value) in enumerate(required_submissions, start=1):
+            advisor.append_fictional_answer_revision(
+                conn,
+                evaluation_token,
+                advisor.FictionalAnswerSubmission(
+                    question_key=question_key,
+                    answer_state=answer_state,
+                    value=value,
+                ),
+                created_at=f"2026-09-12T15:{20 + offset:02d}:00Z",
+            )
+        session_evaluation = advisor.prepare_session_fictional_evaluation(
+            conn, evaluation_token, created_at="2026-09-12T15:35:00Z"
+        )
+        repeated_session_evaluation = advisor.prepare_session_fictional_evaluation(
+            conn, evaluation_token, created_at="2026-09-12T15:36:00Z"
+        )
+        assert session_evaluation["content_sha256"] == repeated_session_evaluation["content_sha256"]
+        assert session_evaluation["answer_revision"] == len(required_submissions)
+        assert session_evaluation["recommended_package"]["package_key"] == "SPA-PKG-FOUNDATION"
+        assert session_evaluation["recommended_investigation_depth"] == "Initial Pass"
+        assert session_evaluation["preliminary"] is True
+        assert session_evaluation["answer_states"]["mission"]["answer_state"] == "Unknown"
+        assert session_evaluation["dimensions"]["Consequence"]["basis_answer_revision_keys"]
+        assert session_evaluation["dimensions"]["Consequence"]["explicit_non_answer_states"]["mission"] == "Unknown"
+        assert len(session_evaluation["governing_versions"]) == 4
+
+        loaded_session_evaluation = advisor.load_session_fictional_evaluation(
+            conn, session_evaluation["evaluation_key"]
+        )
+        assert loaded_session_evaluation["content_sha256"] == session_evaluation["content_sha256"]
+        recommendation = advisor.retrieve_session_fictional_recommendation(
+            conn,
+            evaluation_token,
+            session_evaluation["evaluation_key"],
+            as_of="2026-09-12T15:36:30Z",
+        )
+        assert recommendation["result_heading"] == "Your Salus Recommendation"
+        assert recommendation["primary_package"]["package_key"] == "SPA-PKG-FOUNDATION"
+        assert recommendation["recommended_investigation_depth"] == "Initial Pass"
+        assert recommendation["preliminary"] is True
+        assert recommendation["fictional_only"] is True
+        assert recommendation["may_stop"] is True
+        assert recommendation["may_revise"] is True
+        assert recommendation["may_save_or_submit"] is False
+        assert all(recommendation[flag] is False for flag in (
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure", "has_routes",
+        ))
+        advisor.assert_safe_public_projection(recommendation)
+        recommendation_text = json.dumps(recommendation).casefold()
+        for hidden in (
+            "session_key", "session_token", "rate_card_snapshot_sha256",
+            "internal_cost", "role_rate", "margin", "tenant_id",
+            "protected_member_id", "contact_email",
+        ):
+            assert hidden not in recommendation_text
+
+        advisor.append_fictional_answer_revision(
+            conn,
+            evaluation_token,
+            advisor.FictionalAnswerSubmission(
+                question_key="recent_change",
+                answer_state="Unknown",
+            ),
+            created_at="2026-09-12T15:37:00Z",
+        )
+        try:
+            advisor.retrieve_session_fictional_recommendation(
+                conn,
+                evaluation_token,
+                session_evaluation["evaluation_key"],
+                as_of="2026-09-12T15:37:30Z",
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("a stale session recommendation remained current")
+        revised_evaluation = advisor.prepare_session_fictional_evaluation(
+            conn, evaluation_token, created_at="2026-09-12T15:38:00Z"
+        )
+        assert revised_evaluation["evaluation_key"] != session_evaluation["evaluation_key"]
+        revised_recommendation = advisor.retrieve_session_fictional_recommendation(
+            conn,
+            evaluation_token,
+            revised_evaluation["evaluation_key"],
+            as_of="2026-09-12T15:38:30Z",
+        )
+        assert revised_recommendation["dimensions"]["Urgency"]["explicit_non_answer_states"]["recent_change"] == "Unknown"
+
+        incomplete_session = advisor.start_fictional_session(
+            conn,
+            "SPA-FICTIONAL-MERIDIAN-REGIONAL",
+            created_at="2026-09-12T15:20:00Z",
+        )
+        try:
+            advisor.prepare_session_fictional_evaluation(
+                conn,
+                incomplete_session["session_token"],
+                created_at="2026-09-12T15:21:00Z",
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("missing required answer states did not fail closed")
+        try:
+            advisor.retrieve_session_fictional_recommendation(
+                conn,
+                incomplete_session["session_token"],
+                revised_evaluation["evaluation_key"],
+                as_of="2026-09-12T15:39:00Z",
+            )
+        except advisor.SessionAccessError:
+            pass
+        else:
+            raise AssertionError("another fictional session retrieved the recommendation")
+
+        session_evaluation_rows = list(conn.execute(
+            "SELECT * FROM advisor_session_evaluation_snapshots"
+        ))
+        assert len(session_evaluation_rows) == 2
+        session_evaluation_columns = {
+            column["name"]
+            for column in conn.execute(
+                "PRAGMA table_info(advisor_session_evaluation_snapshots)"
+            )
+        }
+        assert "tenant_id" not in session_evaluation_columns
+        assert "protected_member_id" not in session_evaluation_columns
+        assert not any(name.startswith("contact") for name in session_evaluation_columns)
+
+        tampered_session_evaluation_key = revised_evaluation["evaluation_key"]
+        conn.execute(
+            "UPDATE advisor_session_evaluation_snapshots SET snapshot_json=? WHERE evaluation_key=?",
+            ("{}", tampered_session_evaluation_key),
+        )
+        try:
+            advisor.load_session_fictional_evaluation(
+                conn, tampered_session_evaluation_key
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("tampered session evaluation was accepted")
+        finally:
+            conn.rollback()
+        assert advisor.load_session_fictional_evaluation(
+            conn, tampered_session_evaluation_key
+        )["evaluation_key"] == tampered_session_evaluation_key
+
         session = advisor.start_fictional_session(
             conn,
             "SPA-FICTIONAL-JUNIPER-TABLE",
