@@ -114,9 +114,13 @@ if continuity["promotion_readiness"] == "accepted":
     assert continuity["genuine_blocker"] == "none"
 else:
     assert continuity["promotion_readiness"] == "preflight_ready"
-    assert continuity["deployed_release"] == "v3.111"
-    assert continuity["deployed_commit"] == V3111_COMMIT
-    assert continuity["image_digest"] == V3111_DIGEST
+    assert continuity["deployed_release"] in {"v3.111", "v3.112"}
+    if continuity["deployed_release"] == "v3.111":
+        assert continuity["deployed_commit"] == V3111_COMMIT
+        assert continuity["image_digest"] == V3111_DIGEST
+    else:
+        assert continuity["deployed_commit"] == V3112_COMMIT
+        assert continuity["image_digest"] == V3112_DIGEST
     assert continuity["genuine_blocker"] != "none"
 
 for forbidden in ("password", "client_secret", "access_token", "connection_string"):
