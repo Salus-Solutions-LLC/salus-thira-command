@@ -849,6 +849,196 @@ def main() -> None:
         assert interface_audit[-1]["contains_contact_information"] is False
         assert juniper_contact["contact_email"] not in json.dumps(interface_audit).casefold()
 
+        review_settings = {
+            advisor.INTERNAL_REVIEW_INTERFACE_FLAG: (
+                advisor.INTERNAL_REVIEW_INTERFACE_STATE
+            ),
+            "SALUS_ENV": "development",
+            "SALUS_AUTH_MODE": "prototype",
+        }
+        initial_note = advisor.record_fictional_internal_review_note(
+            conn,
+            advisor.FictionalInternalReviewNoteCommand(
+                packet_key=packet["packet_key"],
+                topic="Question wording and participant burden",
+                note_kind="Question",
+                lifecycle_status="Open",
+                statement=(
+                    "Does the fictional participant understand why the mission question "
+                    "is required before continuing?"
+                ),
+                evidence_references=("Questionnaire and governing versions",),
+                reviewer_key=reviewer["reviewer_key"],
+                reviewer_role=reviewer["reviewer_role"],
+                fictional_acceptance_simulation=True,
+            ),
+            recorded_at="2026-09-12T16:10:00Z",
+            server_settings=review_settings,
+        )
+        assert initial_note["note_revision"] == 1
+        assert initial_note["lifecycle_status"] == "Open"
+        assert initial_note["human_review_completed"] is False
+        assert initial_note["basis"]["packet_content_sha256"] == packet["content_sha256"]
+        assert initial_note["created_display"] == "12 September 2026 16:10 UTC"
+        assert initial_note["server_gate"]["authentication_boundary"] == "Server controlled"
+
+        addressed_note = advisor.record_fictional_internal_review_note(
+            conn,
+            advisor.FictionalInternalReviewNoteCommand(
+                packet_key=packet["packet_key"],
+                topic="Question wording and participant burden",
+                note_kind="Observation",
+                lifecycle_status="Addressed",
+                statement=(
+                    "The fictional help text states the purpose and preserves an "
+                    "Unknown response while a separate review remains required."
+                ),
+                evidence_references=("Questionnaire and governing versions",),
+                reviewer_key="SPA-REVIEWER-FICTIONAL-SENIOR-1",
+                reviewer_role="Senior Salus Commercial Reviewer",
+                fictional_acceptance_simulation=True,
+                supersedes_note_key=initial_note["note_key"],
+                correction_reason=(
+                    "The fictional wording evidence was rechecked against the packet."
+                ),
+            ),
+            recorded_at="2026-09-12T16:12:00Z",
+            server_settings=review_settings,
+        )
+        assert addressed_note["thread_key"] == initial_note["thread_key"]
+        assert addressed_note["note_revision"] == 2
+        assert addressed_note["supersedes_note_key"] == initial_note["note_key"]
+        assert addressed_note["lifecycle_status"] == "Addressed"
+        assert advisor.load_current_fictional_internal_review_note(
+            conn, initial_note["thread_key"]
+        )["note_key"] == addressed_note["note_key"]
+        note_history = advisor.fictional_internal_review_note_history(
+            conn, initial_note["thread_key"]
+        )
+        assert [item["note_revision"] for item in note_history] == [1, 2]
+        assert note_history[0]["content_sha256"] == initial_note["content_sha256"]
+        assert note_history[1]["content_sha256"] == addressed_note["content_sha256"]
+        assert all(item["human_review_completed"] is False for item in note_history)
+        assert all(item["approves_prototype"] is False for item in note_history)
+
+        try:
+            advisor.record_fictional_internal_review_note(
+                conn,
+                advisor.FictionalInternalReviewNoteCommand(
+                    packet_key=packet["packet_key"],
+                    topic="Question wording and participant burden",
+                    note_kind="Question",
+                    lifecycle_status="Addressed",
+                    statement="This stale fictional note should not be accepted.",
+                    evidence_references=("Questionnaire and governing versions",),
+                    reviewer_key=reviewer["reviewer_key"],
+                    reviewer_role=reviewer["reviewer_role"],
+                    fictional_acceptance_simulation=True,
+                    supersedes_note_key=initial_note["note_key"],
+                    correction_reason="This correction deliberately uses a stale note.",
+                ),
+                recorded_at="2026-09-12T16:13:00Z",
+                server_settings=review_settings,
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("stale fictional internal review-note correction was accepted")
+
+        for invalid_note in (
+            {
+                "packet_key": packet["packet_key"],
+                "topic": "Uncontrolled topic",
+                "note_kind": "Observation",
+                "lifecycle_status": "Open",
+                "statement": "This fictional note has an ungoverned topic.",
+                "evidence_references": ("Questionnaire and governing versions",),
+                "reviewer_key": reviewer["reviewer_key"],
+                "reviewer_role": reviewer["reviewer_role"],
+                "fictional_acceptance_simulation": True,
+            },
+            {
+                "packet_key": packet["packet_key"],
+                "topic": advisor.INTERNAL_REVIEW_TOPICS[0],
+                "note_kind": "Observation",
+                "lifecycle_status": "Addressed",
+                "statement": "An initial fictional note cannot begin as Addressed.",
+                "evidence_references": ("Questionnaire and governing versions",),
+                "reviewer_key": reviewer["reviewer_key"],
+                "reviewer_role": reviewer["reviewer_role"],
+                "fictional_acceptance_simulation": True,
+            },
+            {
+                "packet_key": packet["packet_key"],
+                "topic": advisor.INTERNAL_REVIEW_TOPICS[0],
+                "note_kind": "Observation",
+                "lifecycle_status": "Open",
+                "statement": "A fictional note cannot carry approval authority.",
+                "evidence_references": ("Questionnaire and governing versions",),
+                "reviewer_key": reviewer["reviewer_key"],
+                "reviewer_role": reviewer["reviewer_role"],
+                "fictional_acceptance_simulation": True,
+                "approves_prototype": True,
+            },
+        ):
+            try:
+                advisor.FictionalInternalReviewNoteCommand(**invalid_note)
+            except ValidationError:
+                pass
+            else:
+                raise AssertionError("invalid fictional internal review note was accepted")
+
+        note_text = json.dumps(note_history).casefold()
+        for hidden in (
+            "@example.com", "contact_email", "contact_name", "session_token",
+            "internal_cost", "role_rate", "margin_basis_points", "tenant_id",
+            "protected_member_id", "approved_customer_price_cents",
+        ):
+            assert hidden not in note_text
+
+        note_audit = advisor.verify_fictional_session_audit(
+            conn, evaluation_session["session_key"]
+        )
+        assert note_audit[-1]["event_type"] == "Fictional Internal Review Note Recorded"
+        assert note_audit[-1]["details"]["note_key"] == addressed_note["note_key"]
+        assert note_audit[-1]["details"]["human_review_completed"] is False
+        assert note_audit[-1]["contains_answer_content"] is False
+        assert note_audit[-1]["contains_contact_information"] is False
+        assert juniper_contact["contact_email"] not in json.dumps(note_audit).casefold()
+
+        conn.execute(
+            "UPDATE advisor_fictional_internal_review_notes SET snapshot_json=? "
+            "WHERE note_key=?",
+            ("{}", addressed_note["note_key"]),
+        )
+        try:
+            advisor.load_fictional_internal_review_note(
+                conn, addressed_note["note_key"]
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("tampered fictional internal review note was accepted")
+        finally:
+            conn.rollback()
+        assert advisor.load_fictional_internal_review_note(
+            conn, addressed_note["note_key"]
+        )["note_key"] == addressed_note["note_key"]
+
+        for table in (
+            "advisor_fictional_internal_review_notes",
+            "advisor_fictional_internal_review_note_state",
+        ):
+            note_columns = {
+                column["name"]
+                for column in conn.execute(f"PRAGMA table_info({table})")
+            }
+            for forbidden_column in (
+                "tenant_id", "protected_member_id", "contact_email",
+                "approved_customer_price_cents", "review_approved",
+            ):
+                assert forbidden_column not in note_columns
+
         conn.execute(
             "UPDATE advisor_fictional_internal_review_packets SET snapshot_json=? WHERE packet_key=?",
             ("{}", packet["packet_key"]),
