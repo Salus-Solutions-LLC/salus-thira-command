@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 11 September 2026 23:08 CDT
+last_verified_at: 11 September 2026 23:43 CDT
 environment: azure_development_demonstration
 deployed_release: v3.112
 deployed_commit: 1d1759375d37b7de884331c06833de8c727ac5af
@@ -22,7 +22,7 @@ promotion_readiness: deployed_awaiting_live_acceptance
 fictional_member_seed_state: v312_deployed_awaiting_live_acceptance
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.111
-genuine_blocker: live_authorized_evaluator_acceptance_pending
+genuine_blocker: corrected_live_acceptance_retry_pending
 ---
 
 # SalCAPA development demonstration continuity
@@ -73,6 +73,8 @@ All 20 required workflow families passed for the repair on exact candidate commi
 [Immutable-image publication workflow 34670976390](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34670976390) published exact frozen v3.112 commit [`1d1759375d37b7de884331c06833de8c727ac5af`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) as `salcapadevb48224acr.azurecr.io/salcapa@sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce` on **11 September 2026 at 22:42 CDT**. Workload identity, exact frozen source, runtime release identity, scoped registry authority, immutable labels, and non-root execution passed. No application, traffic, DNS, database, or recurring-cost configuration changed. The accepted v3.111 demonstration remains the rollback baseline.
 
 [Governed application-deployment workflow 34672016498](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34672016498) deployed exact frozen v3.112 and immutable digest `sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce` on **11 September 2026 at 23:08 CDT**. Workload identity, Entra-only PostgreSQL authentication, immutable image identity, HTTPS ingress, bounded scale, runtime readiness, required dependencies, and Entra sign-in redirect passed. Accepted v3.111 was retained as the fail-closed rollback baseline. Full acceptance remains pending until the ordinary read-only evaluator path proves Aster Ridge, Cedar Vale, and Northstar live without weakening tenant isolation or representing fictional authority.
+
+[Live acceptance workflow 34673592500](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34673592500) failed closed on **11 September 2026 at 23:43 CDT**. The temporary job was removed and the deployed v3.112 application remained unchanged. The harness had searched for an obsolete success marker and had not yet required the dedicated evaluator-route test. The corrected retry now requires both the governed promotion preflight and the read-only evaluator acceptance marker from exact frozen v3.112.
 
 ## Promotion gates
 
