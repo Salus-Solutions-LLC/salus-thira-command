@@ -23,6 +23,7 @@ V336_DIGEST = "sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86
 V3111_COMMIT = "8bf4614ec79a27641c40dc1a21e1790746a08604"
 V3111_DIGEST = "sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311"
 V3112_COMMIT = "1d1759375d37b7de884331c06833de8c727ac5af"
+V3112_DIGEST = "sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce"
 PINNED_BLOBS = {
     "Dockerfile": "15468459038f2ba6786d4e7693a76fda758c3c7d",
     "salcapa_runtime.py": "9f568d750613adaeebdfa22575c533586c8e3b53",
@@ -93,29 +94,29 @@ accepted_application = load_json(ACCEPTED_APPLICATION)
 assert image_publication["source_release"] == "release/v3.112"
 assert image_publication["source_commit"] == V3112_COMMIT
 assert image_publication["activation_key"] == "salcapa-v3.112-image-1d175937"
-assert accepted_application["source_release"] == "release/v3.111"
-assert accepted_application["source_commit"] == V3111_COMMIT
-assert accepted_application["image_digest"].endswith(V3111_DIGEST)
-assert accepted_application["rollback_release"] == "release/v3.36"
-assert accepted_application["rollback_commit"] == V336_COMMIT
-assert accepted_application["rollback_image_digest"].endswith(V336_DIGEST)
+assert accepted_application["source_release"] == "release/v3.112"
+assert accepted_application["source_commit"] == V3112_COMMIT
+assert accepted_application["image_digest"].endswith(V3112_DIGEST)
+assert accepted_application["rollback_release"] == "release/v3.111"
+assert accepted_application["rollback_commit"] == V3111_COMMIT
+assert accepted_application["rollback_image_digest"].endswith(V3111_DIGEST)
 
 continuity = front_matter(CONTINUITY)
-assert continuity["current_stable_release"] == "v3.111"
-assert continuity["current_stable_commit"] == V3111_COMMIT
+assert continuity["current_stable_release"] == "v3.112"
+assert continuity["current_stable_commit"] == V3112_COMMIT
 if continuity["promotion_readiness"] == "accepted":
-    assert continuity["deployed_release"] == "v3.111"
-    assert continuity["deployed_commit"] == V3111_COMMIT
-    assert continuity["image_digest"] == V3111_DIGEST
+    assert continuity["deployed_release"] == "v3.112"
+    assert continuity["deployed_commit"] == V3112_COMMIT
+    assert continuity["image_digest"] == V3112_DIGEST
     assert continuity["promotion_candidate_image_acceptance"] == "immutable_image_deployed_and_accepted"
     assert continuity["fictional_member_seed_state"] == "verified"
     assert continuity["critical_journey_acceptance"] == "verified"
     assert continuity["genuine_blocker"] == "none"
 else:
     assert continuity["promotion_readiness"] == "preflight_ready"
-    assert continuity["deployed_release"] == "v3.36"
-    assert continuity["deployed_commit"] == V336_COMMIT
-    assert continuity["image_digest"] == V336_DIGEST
+    assert continuity["deployed_release"] == "v3.111"
+    assert continuity["deployed_commit"] == V3111_COMMIT
+    assert continuity["image_digest"] == V3111_DIGEST
     assert continuity["genuine_blocker"] != "none"
 
 for forbidden in ("password", "client_secret", "access_token", "connection_string"):
