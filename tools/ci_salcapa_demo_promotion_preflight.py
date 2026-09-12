@@ -133,6 +133,37 @@ for tenant in tenants:
 conn.close()
 
 client = TestClient(core.app)
+
+# The normal read-only evaluator route must expose exactly the governed fixture
+# set without changing tenant identity, impersonating a persona, or creating authority.
+evaluator_headers = headers(
+    int(tenants[0]["id"]),
+    "System Administrator",
+    "Salus Evaluator",
+)
+evaluator_response = client.get(
+    "/api/salcapa/demonstration-environments",
+    headers=evaluator_headers,
+)
+assert evaluator_response.status_code == 200, evaluator_response.text
+evaluator_body = evaluator_response.json()
+assert evaluator_body["environment_count"] == 3
+assert evaluator_body["access_mode"] == "Read-only Salus evaluation"
+assert {item["key"] for item in evaluator_body["environments"]} == {
+    "aster-ridge-airport",
+    "cedar-vale-energy",
+    "northstar-applied-technologies",
+}
+assert all(item["assessments"] for item in evaluator_body["environments"])
+assert all(item["intelligence"] for item in evaluator_body["environments"])
+assert all(item["coordination"] for item in evaluator_body["environments"])
+assert all(item["operations"] for item in evaluator_body["environments"])
+assert all("tenant_id" not in item for item in evaluator_body["environments"])
+assert client.get(
+    "/api/salcapa/demonstration-environments",
+    headers=headers(int(tenants[0]["id"]), "Contributor", "Protected Member Contributor"),
+).status_code == 403
+
 decision_ids: list[tuple[int, int]] = []
 internal_only_fields = {
     "details", "source", "source_locator", "created_by", "assigned_by",
@@ -230,8 +261,11 @@ if deployment["promotion_readiness"] == "accepted":
     assert deployment["critical_journey_acceptance"] == "verified"
     assert deployment["genuine_blocker"] == "none"
 else:
-    assert deployment["deployed_release"] == "v3.111"
-    assert deployment["deployed_commit"] == "8bf4614ec79a27641c40dc1a21e1790746a08604"
+    assert deployment["deployed_release"] in {"v3.111", "v3.112"}
+    if deployment["deployed_release"] == "v3.111":
+        assert deployment["deployed_commit"] == "8bf4614ec79a27641c40dc1a21e1790746a08604"
+    else:
+        assert deployment["deployed_commit"] == "1d1759375d37b7de884331c06833de8c727ac5af"
     assert deployment["promotion_readiness"] == "preflight_ready"
     assert deployment["critical_journey_acceptance"] == "not_verified"
     assert deployment["genuine_blocker"] != "none"
