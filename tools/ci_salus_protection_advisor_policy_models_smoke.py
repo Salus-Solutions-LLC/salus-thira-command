@@ -420,6 +420,182 @@ def main() -> None:
         assert submitted_audit[-1]["contains_contact_information"] is False
         assert juniper_contact["contact_email"] not in json.dumps(submitted_audit).casefold()
 
+        reviewers = advisor.fictional_staff_reviewers()
+        reviewer = reviewers["SPA-REVIEWER-FICTIONAL-COMMERCIAL-1"]
+        first_review = advisor.record_fictional_staff_review(
+            conn,
+            prospect_result["prospect_key"],
+            advisor.FictionalStaffReviewCommand(
+                decision="Questions Required",
+                reviewer_key=reviewer["reviewer_key"],
+                reviewer_role=reviewer["reviewer_role"],
+                qualifications_confirmed=True,
+                fictional_acceptance_simulation=True,
+                rationale=(
+                    "The fictional record supports preliminary review, but the "
+                    "reported continuity arrangements need clarification."
+                ),
+                assumptions=("The submitted fictional information remains current.",),
+                information_needed=(
+                    "Clarify the fictional continuity exercise cadence.",
+                ),
+            ),
+            reviewed_at="2026-09-12T15:45:00Z",
+        )
+        assert first_review["review_sequence"] == 1
+        assert first_review["decision"] == "Questions Required"
+        assert first_review["status"] == "Awaiting Fictional Prospect Information"
+        assert first_review["fictional_acceptance_simulation"] is True
+        assert first_review["created_display"] == "12 September 2026 15:45 UTC"
+        assert first_review["basis"]["prospect_key"] == prospect_result["prospect_key"]
+        assert first_review["basis_sha256"] == advisor.content_sha256(first_review["basis"])
+        assert all(first_review[flag] is False for flag in (
+            "establishes_scope", "changes_package", "changes_price",
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release", "authorizes_onboarding",
+        ))
+        assert "@example.com" not in json.dumps(first_review).casefold()
+        assert "contact_email" not in json.dumps(first_review).casefold()
+        assert advisor.load_current_fictional_staff_review(
+            conn, prospect_result["prospect_key"]
+        )["review_key"] == first_review["review_key"]
+
+        try:
+            advisor.record_fictional_staff_review(
+                conn,
+                prospect_result["prospect_key"],
+                advisor.FictionalStaffReviewCommand(
+                    decision="Proceed to Fictional Scoping",
+                    reviewer_key="SPA-REVIEWER-FICTIONAL-SENIOR-1",
+                    reviewer_role="Senior Salus Commercial Reviewer",
+                    qualifications_confirmed=True,
+                    fictional_acceptance_simulation=True,
+                    rationale=(
+                        "The fictional clarification is sufficient for a bounded "
+                        "scoping exercise."
+                    ),
+                    supersedes_review_key="SPA-REVIEW-" + ("0" * 64),
+                    correction_reason=(
+                        "The fictional clarification changes the preliminary disposition."
+                    ),
+                ),
+                reviewed_at="2026-09-12T15:46:00Z",
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("stale fictional review supersession was accepted")
+
+        corrected_review = advisor.record_fictional_staff_review(
+            conn,
+            prospect_result["prospect_key"],
+            advisor.FictionalStaffReviewCommand(
+                decision="Proceed to Fictional Scoping",
+                reviewer_key="SPA-REVIEWER-FICTIONAL-SENIOR-1",
+                reviewer_role="Senior Salus Commercial Reviewer",
+                qualifications_confirmed=True,
+                fictional_acceptance_simulation=True,
+                rationale=(
+                    "The fictional clarification is sufficient for a bounded "
+                    "scoping exercise."
+                ),
+                assumptions=("Separate scope and price approval remain required.",),
+                supersedes_review_key=first_review["review_key"],
+                correction_reason=(
+                    "The fictional clarification changes the preliminary disposition."
+                ),
+            ),
+            reviewed_at="2026-09-12T15:47:00Z",
+        )
+        assert corrected_review["review_sequence"] == 2
+        assert corrected_review["supersedes_review_key"] == first_review["review_key"]
+        assert corrected_review["status"] == (
+            "Accepted for Fictional Scoping — Separate Salus Approval Required"
+        )
+        assert corrected_review["establishes_scope"] is False
+        assert corrected_review["changes_package"] is False
+        assert corrected_review["changes_price"] is False
+        assert advisor.load_current_fictional_staff_review(
+            conn, prospect_result["prospect_key"]
+        )["review_key"] == corrected_review["review_key"]
+        review_history = advisor.fictional_staff_review_history(
+            conn, prospect_result["prospect_key"]
+        )
+        assert [item["review_sequence"] for item in review_history] == [1, 2]
+        assert review_history[0]["content_sha256"] == first_review["content_sha256"]
+        assert review_history[1]["content_sha256"] == corrected_review["content_sha256"]
+
+        review_audit = advisor.verify_fictional_session_audit(
+            conn, evaluation_session["session_key"]
+        )
+        assert review_audit[-1]["event_type"] == "Fictional Staff Review Recorded"
+        assert review_audit[-1]["details"]["review_key"] == corrected_review["review_key"]
+        assert review_audit[-1]["contains_answer_content"] is False
+        assert review_audit[-1]["contains_contact_information"] is False
+        assert juniper_contact["contact_email"] not in json.dumps(review_audit).casefold()
+
+        conn.execute(
+            "UPDATE advisor_prospect_review_decisions SET snapshot_json=? WHERE review_key=?",
+            ("{}", corrected_review["review_key"]),
+        )
+        try:
+            advisor.load_fictional_staff_review(conn, corrected_review["review_key"])
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("tampered fictional staff review was accepted")
+        finally:
+            conn.rollback()
+        assert advisor.load_fictional_staff_review(
+            conn, corrected_review["review_key"]
+        )["review_key"] == corrected_review["review_key"]
+
+        for invalid_review in (
+            {
+                "decision": "Proceed to Fictional Scoping",
+                "reviewer_key": reviewer["reviewer_key"],
+                "reviewer_role": reviewer["reviewer_role"],
+                "qualifications_confirmed": False,
+                "fictional_acceptance_simulation": True,
+                "rationale": "This fictional rationale is long enough for validation.",
+            },
+            {
+                "decision": "Questions Required",
+                "reviewer_key": reviewer["reviewer_key"],
+                "reviewer_role": reviewer["reviewer_role"],
+                "qualifications_confirmed": True,
+                "fictional_acceptance_simulation": True,
+                "rationale": "This fictional rationale is long enough for validation.",
+            },
+            {
+                "decision": "Proceed to Fictional Scoping",
+                "reviewer_key": reviewer["reviewer_key"],
+                "reviewer_role": reviewer["reviewer_role"],
+                "qualifications_confirmed": True,
+                "fictional_acceptance_simulation": True,
+                "rationale": "This fictional rationale is long enough for validation.",
+                "recommended_customer_price_cents": 1,
+            },
+        ):
+            try:
+                advisor.FictionalStaffReviewCommand(**invalid_review)
+            except ValidationError:
+                pass
+            else:
+                raise AssertionError("invalid fictional staff review was accepted")
+
+        for table in (
+            "advisor_prospect_review_decisions", "advisor_prospect_review_state",
+        ):
+            columns = {
+                column["name"] for column in conn.execute(f"PRAGMA table_info({table})")
+            }
+            assert "tenant_id" not in columns
+            assert "protected_member_id" not in columns
+            assert "contact_email" not in columns
+            assert "approved_customer_price_cents" not in columns
+
         consent_row = conn.execute(
             "SELECT snapshot_json FROM advisor_consents WHERE consent_key=?",
             (prospect_result["consent_key"],),
