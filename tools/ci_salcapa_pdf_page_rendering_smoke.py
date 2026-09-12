@@ -64,6 +64,33 @@ profile = {
     "no_network": True,
 }
 MANIFEST.write_text(json.dumps(profile, sort_keys=True), encoding="utf-8")
+OCR_PROFILE_ROOT = Path(WORKSPACE.name) / "approved-handwriting-ocr-profile"
+OCR_PROFILE_ROOT.mkdir()
+OCR_RUNNER = OCR_PROFILE_ROOT / "local-recognizer"
+OCR_MODEL = OCR_PROFILE_ROOT / "approved-model.bin"
+OCR_LANGUAGE = OCR_PROFILE_ROOT / "approved-language.bin"
+OCR_MANIFEST = OCR_PROFILE_ROOT / "active-profile.json"
+OCR_RUNNER.write_text(
+    "#!/bin/sh\nprintf '%s\\n' '{\"ok\":true,\"segments\":[{\"reading_order\":1,\"text\":\"Meet at 0?30\",\"segment_type\":\"handwritten\",\"score\":0.71,\"region\":{\"x\":12,\"y\":18,\"width\":180,\"height\":40},\"language\":\"English\",\"script\":\"Latin\",\"alternatives\":[\"Meet at 0830\",\"Meet at 0930\"],\"uncertain_spans\":[{\"start\":8,\"end\":9,\"alternatives\":[\"8\",\"9\"],\"reason\":\"Ambiguous visible mark\"}],\"limitations\":\"Faint numeral; compare with the exact PDF page.\"}]}'\n",
+    encoding="utf-8",
+)
+OCR_RUNNER.chmod(0o500)
+OCR_MODEL.write_bytes(b"fictional demonstration handwriting model; not operational\n")
+OCR_LANGUAGE.write_bytes(b"fictional demonstration English Latin language data\n")
+ocr_profile = {
+    "profile_key": "HRO-PDF-FICTIONAL-ACCEPTANCE-V1", "name": "Fictional PDF-page recognition profile", "status": "Active",
+    "executable_path": str(OCR_RUNNER), "executable_sha256": sha_file(OCR_RUNNER),
+    "model_path": str(OCR_MODEL), "model_sha256": sha_file(OCR_MODEL),
+    "language_data_path": str(OCR_LANGUAGE), "language_data_sha256": sha_file(OCR_LANGUAGE),
+    "configuration_sha256": "d" * 64, "model_version": "acceptance-1",
+    "model_provenance": "Repository fictional acceptance fixture", "model_license": "Test fixture only",
+    "modes": ["Printed text", "Handwritten text", "Mixed text"], "languages": ["English"], "scripts": ["Latin"],
+    "score_semantics": "Profile ranking score; not truth probability, source reliability, evidentiary weight, or analyst confidence.",
+    "preprocessing": {"contract": "identity rendered-page acceptance fixture"},
+    "known_limitations": "Fictional fixture only. Compare prepared text with the exact rendered PDF page.",
+    "approved_purposes": ["handwriting"], "timeout_seconds": 10, "max_segments": 20, "max_characters": 10000,
+}
+OCR_MANIFEST.write_text(json.dumps(ocr_profile, sort_keys=True), encoding="utf-8")
 os.chdir(ROOT)
 os.environ.update({
     "SALUS_AUTH_MODE": "prototype",
@@ -74,12 +101,15 @@ os.environ.update({
     "SALUS_BACKUP_DIR": str(Path(WORKSPACE.name) / "backups"),
     "SALUS_PDF_RENDER_PROFILE_ROOT": str(PROFILE_ROOT),
     "SALUS_PDF_RENDER_PROFILE_MANIFEST": str(MANIFEST),
+    "SALUS_HANDWRITING_OCR_PROFILE_ROOT": str(OCR_PROFILE_ROOT),
+    "SALUS_HANDWRITING_OCR_PROFILE_MANIFEST": str(OCR_MANIFEST),
 })
 sys.path.insert(0, str(ROOT))
 
 import app as core  # noqa: E402
 from salcapa_pdf_processing import register_salcapa_pdf_processing  # noqa: E402
 from salcapa_pdf_page_rendering import _affine, register_salcapa_pdf_page_rendering  # noqa: E402
+from salcapa_handwriting_ocr_processing import register_salcapa_handwriting_ocr_processing  # noqa: E402
 
 
 def fictional_pdf(texts: list[str]) -> bytes:
@@ -134,6 +164,7 @@ def apply_transform(matrix: list[float], x: float, y: float) -> tuple[float, flo
 
 
 register_salcapa_pdf_processing(core.app, core.__dict__)
+register_salcapa_handwriting_ocr_processing(core.app, core.__dict__)
 register_salcapa_pdf_page_rendering(core.app, core.__dict__)
 conn = core.db()
 try:
@@ -146,6 +177,7 @@ try:
 finally:
     conn.close()
 REQUESTER = {"X-Salus-Tenant": "1", "X-Salus-Role": "Assessment Director", "X-Salus-User": "Page Review Requester"}
+REVIEWER = {**REQUESTER, "X-Salus-User": "Independent PDF Page Reviewer"}
 MEMBER = {"X-Salus-Tenant": "1", "X-Salus-Role": "Contributor", "X-Salus-User": "Protected Member Contributor"}
 OTHER = {**REQUESTER, "X-Salus-Tenant": "2", "X-Salus-User": "Other Tenant Lead"}
 
@@ -153,6 +185,7 @@ OTHER = {**REQUESTER, "X-Salus-Tenant": "2", "X-Salus-User": "Other Tenant Lead"
 with TestClient(core.app) as client:
     status = client.get("/api/pdf-page-rendering/status", headers=REQUESTER)
     assert status.status_code == 200 and status.json()["available"] is True, status.text
+    assert status.json()["recognition_available"] is True
     assert status.json()["external_processing"] is False
     assert status.json()["rendered_bytes_posture"] == "Ephemeral — Deleted After Validation"
     assert client.get("/api/pdf-page-rendering/status", headers=MEMBER).status_code == 403
@@ -173,7 +206,7 @@ with TestClient(core.app) as client:
     rendered = client.post(endpoint, headers=REQUESTER, json={
         "purpose": "Review scanned page handwriting and layout",
         "pages": [
-            {"page_number": 2, "reason": "No Embedded Text"},
+            {"page_number": 2, "reason": "No Embedded Text", "recognition_mode": "Handwritten text"},
             {"page_number": 1, "reason": "Layout Review Needed"},
         ],
     })
@@ -190,6 +223,26 @@ with TestClient(core.app) as client:
     ))
     assert {page["page_number"] for page in pages} == {1, 2}
     assert {page["rendering_reason"] for page in pages} == {"No Embedded Text", "Layout Review Needed"}
+    assert len(body["recognitions"]) == 1
+    recognition = body["recognitions"][0]
+    recognition_job, recognition_segment = recognition["job"], recognition["segments"][0]
+    assert recognition_job["route"] == "Approved local profile — Ephemeral rendered PDF page"
+    assert recognition_job["source_sha256"] == sha_bytes(source_bytes)
+    assert recognition_job["source_media_type"] == "application/pdf; representation=rendered-page/png"
+    assert recognition_job["external_processing"] == 0 and recognition_job["recognition_mode"] == "Handwritten text"
+    assert recognition_job["transform"]["source_pdf"] == {"material_id": source["id"], "sha256": sha_bytes(source_bytes), "page_number": 2}
+    assert recognition_job["transform"]["rendered_page"]["page_key"] == recognition["page_key"]
+    assert recognition_job["transform"]["rendered_page"]["bytes_posture"] == "Ephemeral — Deleted After Validation"
+    assert recognition_segment["record_type"] == "Prepared Text — Derived and Unverified"
+    assert recognition_segment["review_status"] == "Awaiting Human Review"
+    assert recognition_segment["original_text"] == "Meet at 0?30"
+    assert recognition_segment["alternatives"] == ["Meet at 0830", "Meet at 0930"]
+    assert client.post(f"/api/handwriting-ocr/segments/{recognition_segment['id']}/review", headers=REQUESTER,
+                       json={"status": "Confirm Representation", "reason": "Self-review must fail."}).status_code == 409
+    reviewed = client.post(f"/api/handwriting-ocr/segments/{recognition_segment['id']}/review", headers=REVIEWER,
+                           json={"status": "Correct", "reason": "Compared with the exact fictional PDF page.",
+                                 "corrected_text": "Meet at 0830", "limitations": "The page does not establish a date."})
+    assert reviewed.status_code == 200 and reviewed.json()["review_status"] == "Correct"
     for page in pages:
         assert page["record_type"] == "Rendered Representation — Not Source Truth"
         assert page["review_status"] == "Awaiting Human Review"
@@ -208,6 +261,8 @@ with TestClient(core.app) as client:
     try:
         assert conn.execute("SELECT COUNT(*) c FROM pdf_render_jobs WHERE tenant_id=?", (1,)).fetchone()["c"] == 1
         assert conn.execute("SELECT COUNT(*) c FROM pdf_rendered_pages WHERE tenant_id=?", (1,)).fetchone()["c"] == 2
+        assert conn.execute("SELECT COUNT(*) c FROM handwriting_ocr_jobs WHERE tenant_id=?", (1,)).fetchone()["c"] == 1
+        assert conn.execute("SELECT COUNT(*) c FROM handwriting_ocr_segments WHERE tenant_id=?", (1,)).fetchone()["c"] == 1
     finally:
         conn.close()
     if os.environ.get("SALUS_DB_BACKEND", "sqlite") == "sqlite":
@@ -217,6 +272,7 @@ with TestClient(core.app) as client:
         finally:
             conn.close()
         assert records["pdf_render_jobs"] and records["pdf_rendered_pages"]
+        assert records["handwriting_ocr_jobs"] and records["handwriting_ocr_segments"] and records["handwriting_ocr_reviews"]
         assert core.validate_records(records, 1) == []
         tampered = copy.deepcopy(records)
         tampered["pdf_rendered_pages"][0]["rendered_sha256"] = "bad"

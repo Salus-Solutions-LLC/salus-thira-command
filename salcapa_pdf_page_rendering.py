@@ -20,6 +20,7 @@ from fastapi import HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 import salcapa_pdf_processing as pdf_processing
+import salcapa_handwriting_ocr_processing as handwriting_ocr
 
 
 WORKER = Path(__file__).resolve().parent / "tools" / "salcapa_pdf_render_worker.py"
@@ -50,6 +51,7 @@ class PageSelectionIn(BaseModel):
         "Handwriting or Mark Review",
         "Layout Review Needed",
     ]
+    recognition_mode: Literal["Printed text", "Handwritten text", "Mixed text"] | None = None
 
 
 class PdfRenderJobIn(BaseModel):
@@ -219,6 +221,61 @@ def _affine(box: list[float], rotation: int, width: int, height: int) -> tuple[l
     return [round(item, 12) for item in forward], [round(item, 12) for item in inverse]
 
 
+def _recognize_rendered_page(output_path: Path, rendered_sha256: str, mode: str, profile: dict) -> dict:
+    """Run the approved local recognition worker while rendered bytes remain ephemeral."""
+    from PIL import Image
+
+    with Image.open(output_path) as image:
+        width, height = image.size
+    snapshot = {key: value for key, value in profile.items() if key != "profile_root"}
+    with tempfile.TemporaryDirectory(prefix="salcapa-pdf-page-recognition-") as directory:
+        request_path = Path(directory) / "request.json"
+        manifest = {
+            **profile,
+            "source_path": str(output_path),
+            "source_sha256": rendered_sha256,
+            "mode": mode,
+            "region": {"x": 0, "y": 0, "width": width, "height": height},
+        }
+        request_path.write_text(_canonical(manifest), encoding="utf-8")
+        request_path.chmod(0o400)
+        started = time.monotonic()
+        try:
+            completed = subprocess.run(
+                [sys.executable, "-I", str(handwriting_ocr.WORKER), str(request_path)],
+                cwd=directory,
+                env={"LC_ALL": "C.UTF-8", "PYTHONHASHSEED": "0", "PATH": "/usr/bin:/bin"},
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=int(profile["timeout_seconds"]) + 10,
+                check=False,
+                start_new_session=True,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise HTTPException(
+                503,
+                "The approved local text-recognition process is unavailable. The original PDF and manual page review remain available.",
+            ) from exc
+        if len(completed.stdout) > handwriting_ocr.MAX_WORKER_OUTPUT_BYTES:
+            raise HTTPException(422, "The bounded recognition result exceeded its output limit.")
+        try:
+            result = json.loads(completed.stdout.decode("utf-8", errors="strict"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise HTTPException(422, "The isolated recognition worker returned an invalid result.") from exc
+        if completed.returncode != 0 or result.get("ok") is not True:
+            raise HTTPException(422, str(result.get("detail", "Local recognition did not complete safely."))[:1000])
+    return {
+        "profile": profile,
+        "snapshot_json": _canonical(snapshot),
+        "segments": result["segments"],
+        "duration_ms": max(0, int((time.monotonic() - started) * 1000)),
+        "width": width,
+        "height": height,
+        "mode": mode,
+    }
+
+
 def register_salcapa_pdf_page_rendering(fastapi_app, core: dict) -> None:
     db, now, actor, role, tenant_id = (core[name] for name in ("db", "now", "actor", "role", "tenant_id"))
     require, require_sensitivity = core["require"], core["require_sensitivity"]
@@ -317,12 +374,17 @@ def register_salcapa_pdf_page_rendering(fastapi_app, core: dict) -> None:
     @fastapi_app.get("/api/pdf-page-rendering/status")
     def status(request: Request):
         internal(request); profile, guidance = _profile()
+        recognition_profile, recognition_guidance = handwriting_ocr._profile()
         public_profile = None if profile is None else {key: profile[key] for key in (
             "profile_key", "name", "renderer_version", "renderer_provenance", "renderer_license", "dpi",
             "color_mode", "output_format", "max_pages", "known_limitations")}
         return {"available": profile is not None, "profile": public_profile, "guidance": guidance,
                 "page_reasons": sorted(PAGE_REASONS), "external_processing": False,
-                "rendered_bytes_posture": "Ephemeral — Deleted After Validation", "authority_note": AUTHORITY_NOTE}
+                "rendered_bytes_posture": "Ephemeral — Deleted After Validation",
+                "recognition_available": recognition_profile is not None,
+                "recognition_guidance": recognition_guidance,
+                "recognition_modes": ["Printed text", "Handwritten text", "Mixed text"],
+                "authority_note": AUTHORITY_NOTE}
 
     @fastapi_app.post("/api/materials/{material_id}/pdf-render-jobs")
     def create_job(material_id: int, payload: PdfRenderJobIn, request: Request):
@@ -333,6 +395,15 @@ def register_salcapa_pdf_page_rendering(fastapi_app, core: dict) -> None:
             raise HTTPException(422, "The selected page count exceeds the installed profile limit.")
         if not any(token.lower() in payload.purpose.lower() for token in profile["approved_purposes"]):
             raise HTTPException(403, "The stated purpose is outside the installed profile's approved purposes.")
+        recognition_profile = None
+        if any(item.recognition_mode for item in payload.pages):
+            recognition_profile, recognition_guidance = handwriting_ocr._profile()
+            if recognition_profile is None:
+                raise HTTPException(503, recognition_guidance)
+            if any(item.recognition_mode not in recognition_profile["modes"] for item in payload.pages if item.recognition_mode):
+                raise HTTPException(422, "A selected recognition mode is not supported by the installed profile.")
+            if not any(token.lower() in payload.purpose.lower() for token in recognition_profile["approved_purposes"]):
+                raise HTTPException(403, "The stated purpose is outside the installed text-recognition profile's approved purposes.")
         conn = db(); row = source(conn, material_id, request); conn.close()
         if int(row["size_bytes"]) > MAX_SOURCE_BYTES: raise HTTPException(422, "The PDF exceeds the bounded source-size limit.")
         try: data = storage.get_bytes(row["stored_name"])
@@ -353,7 +424,8 @@ def register_salcapa_pdf_page_rendering(fastapi_app, core: dict) -> None:
             if selected.reason == "No Embedded Text" and page_facts[selected.page_number].get("embedded_text_available") is not False:
                 raise HTTPException(422, "No Embedded Text may be used only when inspection found no usable embedded text on that page.")
         snapshot = {key: value for key, value in profile.items() if key != "profile_root"}; snapshot_json = _canonical(snapshot)
-        requested_pages = [{"page_number": item.page_number, "reason": item.reason} for item in payload.pages]
+        requested_pages = [{"page_number": item.page_number, "reason": item.reason,
+                            "recognition_mode": item.recognition_mode} for item in payload.pages]
         inspection_json = _canonical(facts)
         requested_at, started = now(), time.monotonic()
         with tempfile.TemporaryDirectory(prefix="salcapa-pdf-render-") as directory:
@@ -408,10 +480,17 @@ def register_salcapa_pdf_page_rendering(fastapi_app, core: dict) -> None:
                     rotation = int(item.get("rotation", 0)) % 360
                     forward, inverse = _affine(numeric_crop, rotation, width, height)
                 except (TypeError, ValueError) as exc: raise HTTPException(422, "The isolated page renderer returned invalid page geometry.") from exc
-                validated_pages.append({**item, "page_number": number, "reason": selected.reason,
+                page_key = "PDRP-" + uuid.uuid4().hex
+                recognition = None
+                if selected.recognition_mode:
+                    recognition = _recognize_rendered_page(
+                        output_path, digest, selected.recognition_mode, recognition_profile
+                    )
+                validated_pages.append({**item, "page_key": page_key, "page_number": number, "reason": selected.reason,
                     "embedded_text_available": bool(page_facts[number].get("embedded_text_available")),
                     "media_box": numeric_media, "crop_box": numeric_crop, "forward": forward, "inverse": inverse,
-                    "width": width, "height": height, "rendered_sha256": digest, "output_bytes": output_bytes})
+                    "width": width, "height": height, "rendered_sha256": digest, "output_bytes": output_bytes,
+                    "recognition": recognition})
             if total_pixels > int(profile["max_total_pixels"]) or total_bytes > int(profile["max_total_output_bytes"]):
                 raise HTTPException(422, "The rendered page set exceeded the aggregate governed resource boundary.")
         completed_at = now(); duration_ms = max(0, int((time.monotonic() - started) * 1000)); job_key = "PDRJ-" + uuid.uuid4().hex
@@ -426,7 +505,7 @@ def register_salcapa_pdf_page_rendering(fastapi_app, core: dict) -> None:
         job = conn.execute("SELECT * FROM pdf_render_jobs WHERE job_key=?", (job_key,)).fetchone()
         for item in validated_pages:
             conn.execute("INSERT INTO pdf_rendered_pages(tenant_id,page_key,job_id,source_material_id,source_sha256,page_number,source_page_label,rendering_reason,embedded_text_available,media_box_json,crop_box_json,rotation,user_unit,rendered_width,rendered_height,dpi,color_mode,output_format,rendered_sha256,forward_transform_json,inverse_transform_json,limitations,rendered_bytes_posture,record_type,review_status,sensitivity,purpose,disclosure_status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (tenant_id(request), "PDRP-" + uuid.uuid4().hex, job["id"], material_id, row["sha256"], item["page_number"],
+                (tenant_id(request), item["page_key"], job["id"], material_id, row["sha256"], item["page_number"],
                  str(item.get("source_page_label", ""))[:200], item["reason"], int(item["embedded_text_available"]),
                  _canonical(item["media_box"]), _canonical(item["crop_box"]), int(item["rotation"]), str(item.get("user_unit", 1)),
                  item["width"], item["height"], int(profile["dpi"]), profile["color_mode"], profile["output_format"],
@@ -434,9 +513,62 @@ def register_salcapa_pdf_page_rendering(fastapi_app, core: dict) -> None:
                  str(item.get("limitations", profile["known_limitations"]))[:2000], "Ephemeral — Deleted After Validation",
                  "Rendered Representation — Not Source Truth", "Awaiting Human Review", row["sensitivity"], payload.purpose,
                  "Salus Internal — Not Released", completed_at))
+            recognition = item["recognition"]
+            if recognition is not None:
+                recognition_profile = recognition["profile"]
+                recognition_job_key = "HROJ-" + uuid.uuid4().hex
+                recognition_transform = {
+                    "source_pdf": {"material_id": material_id, "sha256": row["sha256"], "page_number": item["page_number"]},
+                    "rendered_page": {"page_key": item["page_key"], "sha256": item["rendered_sha256"],
+                                      "dimensions": [item["width"], item["height"]], "bytes_posture": "Ephemeral — Deleted After Validation"},
+                    "pdf_points_to_rendered_pixels": item["forward"],
+                    "rendered_pixels_to_pdf_points": item["inverse"],
+                    "selected_region": [0, 0, item["width"], item["height"]],
+                    "preprocessing": recognition_profile["preprocessing"],
+                    "output_coordinates": "rendered-page pixels; exact PDF-point transforms retained above",
+                }
+                recognition_snapshot = recognition["snapshot_json"]
+                segments = recognition["segments"]
+                conn.execute("INSERT INTO handwriting_ocr_jobs(tenant_id,job_key,source_material_id,source_sha256,source_media_type,purpose,recognition_mode,route,source_width,source_height,region_x,region_y,region_width,region_height,profile_key,profile_snapshot_json,profile_snapshot_sha256,executable_sha256,model_sha256,language_data_sha256,configuration_sha256,transform_json,external_processing,outcome,duration_ms,segment_count,character_count,sensitivity,disclosure_status,requested_by,requested_by_role,requested_at,completed_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (tenant_id(request), recognition_job_key, material_id, row["sha256"], "application/pdf; representation=rendered-page/png",
+                     payload.purpose, recognition["mode"], "Approved local profile — Ephemeral rendered PDF page",
+                     item["width"], item["height"], 0, 0, item["width"], item["height"], recognition_profile["profile_key"],
+                     recognition_snapshot, hashlib.sha256(recognition_snapshot.encode()).hexdigest(), recognition_profile["executable_sha256"],
+                     recognition_profile["model_sha256"], recognition_profile["language_data_sha256"], recognition_profile["configuration_sha256"],
+                     _canonical(recognition_transform), 0, "Completed", recognition["duration_ms"], len(segments),
+                     sum(len(segment["text"]) for segment in segments), row["sensitivity"], "Salus Internal — Not Released",
+                     actor(request), role(request), requested_at, completed_at))
+                recognition_job = conn.execute("SELECT * FROM handwriting_ocr_jobs WHERE job_key=?", (recognition_job_key,)).fetchone()
+                item["recognition_job_id"] = int(recognition_job["id"])
+                for segment in segments:
+                    conn.execute("INSERT INTO handwriting_ocr_segments(tenant_id,segment_key,job_id,source_material_id,source_sha256,reading_order,original_text,segment_type,processor_score,score_semantics,alternatives_json,uncertain_spans_json,limitations,region_x,region_y,region_width,region_height,language,script,record_type,record_origin,review_status,sensitivity,disclosure_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (tenant_id(request), "HROS-" + uuid.uuid4().hex, recognition_job["id"], material_id, row["sha256"],
+                         segment["reading_order"], segment["text"], segment["segment_type"], segment["score"],
+                         recognition_profile["score_semantics"], _canonical(segment["alternatives"]), _canonical(segment["uncertain_spans"]),
+                         segment["limitations"], segment["region_x"], segment["region_y"], segment["region_width"], segment["region_height"],
+                         segment["language"], segment["script"], "Prepared Text — Derived and Unverified",
+                         "Approved local recognition profile — Ephemeral rendered PDF page", "Awaiting Human Review",
+                         row["sensitivity"], "Salus Internal — Not Released", completed_at, completed_at))
+                audit(conn, request, "PDF_RENDERED_PAGE_RECOGNITION_PREPARED", "handwriting_ocr_job", int(recognition_job["id"]),
+                      f"source_material_id={material_id}; page_number={item['page_number']}; page_key={item['page_key']}; rendered_bytes_deleted=true; independent_review_required=true; no_source_truth_authorship_identity_finding_or_disclosure=true")
         audit(conn, request, "PDF_SELECTED_PAGES_RENDERED", "pdf_render_job", int(job["id"]),
               f"source_material_id={material_id}; selected_pages={len(validated_pages)}; external_processing=false; rendered_bytes_deleted=true; no_finding_decision_or_disclosure=true")
-        conn.commit(); output = {"job": dict(job), "pages": [dict(item) for item in conn.execute("SELECT * FROM pdf_rendered_pages WHERE job_id=? ORDER BY page_number,id", (job["id"],))]}; conn.close()
+        conn.commit()
+        output = {"job": dict(job),
+                  "pages": [dict(item) for item in conn.execute("SELECT * FROM pdf_rendered_pages WHERE job_id=? ORDER BY page_number,id", (job["id"],))],
+                  "recognitions": []}
+        for item in validated_pages:
+            if item["recognition"] is None:
+                continue
+            recognition_job = dict(conn.execute("SELECT * FROM handwriting_ocr_jobs WHERE id=?", (item["recognition_job_id"],)).fetchone())
+            recognition_segments = [dict(segment) for segment in conn.execute("SELECT * FROM handwriting_ocr_segments WHERE job_id=? ORDER BY reading_order,id", (recognition_job["id"],))]
+            for segment in recognition_segments:
+                segment["alternatives"] = json.loads(segment.pop("alternatives_json"))
+                segment["uncertain_spans"] = json.loads(segment.pop("uncertain_spans_json"))
+                segment["authority_note"] = "Prepared text is derived and unverified until a different authorized person compares it with the exact PDF page."
+            recognition_job["transform"] = json.loads(recognition_job.pop("transform_json"))
+            output["recognitions"].append({"page_key": item["page_key"], "job": recognition_job, "segments": recognition_segments})
+        conn.close()
         for item in output["pages"]:
             for field in ("media_box_json", "crop_box_json", "forward_transform_json", "inverse_transform_json"):
                 item[field.removesuffix("_json")] = json.loads(item.pop(field))
