@@ -66,10 +66,11 @@ resource acceptanceJob 'Microsoft.App/jobs@2025-01-01' = {
           name: 'live-demo-acceptance'
           image: imageDigest
           command: [
-            'python'
+            '/bin/sh'
           ]
           args: [
-            'tools/ci_salcapa_demo_promotion_preflight.py'
+            '-c'
+            'python tools/ci_salcapa_demo_promotion_preflight.py && python tools/ci_salcapa_demo_evaluator_smoke.py'
           ]
           resources: {
             cpu: json('0.25')
