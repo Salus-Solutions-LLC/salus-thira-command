@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 September 2026 07:10 CDT
+last_verified_at: 12 September 2026 08:17 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 290
-active_increment: issue_290_internal_prototype_policy_models
+active_increment: issue_290_internal_prototype_evaluation_adapter
 last_completed_release: v3.112
 candidate_release: none
 validation_pr: none
 validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: issue_290_internal_prototype_policy_models
+next_authorized_increment: issue_290_internal_prototype_evaluation_adapter
 ---
 
 # SalCAPA build continuity
@@ -32,6 +32,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
+- Last completed development increment: [controlled validation PR #326](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/326) passed all 20 required workflow families on corrected exact head [`954c55a`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/954c55afa20dc4cade471762425fde0ed752594a), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The first Issue #290 implementation provides hash-bound immutable questionnaire, recommendation-policy, package-catalogue, and public-price policy snapshots; four visibly fictional coverage cases; no tenant identifiers, contact fields, routes, or binding events; internal-commercial-field rejection; idempotent installation; and collision and integrity checks across SQLite, PostgreSQL 16, and the production container. The initial candidate failed closed on a smoke-script import path and was superseded by the fully green corrected head. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 - Last completed development increment: [controlled validation PR #324](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/324) passed all 20 required workflow families on exact head [`e2fae84`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/e2fae84377a55d6832e1fda989112c7cb4ae0204), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The accepted Issue #290 design defines a disabled-by-default internal Salus Protection Advisor prototype, prospect and Protected Member isolation, immutable questionnaire/recommendation/package/public-price policies, sanitized public price ranges, explicit consent and lifecycle controls, qualified Salus commercial authority, deterministic recovery and rollback, and a separate release path. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 - Current frozen release: **v3.112** at [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) on `release/v3.112`. Governed deployment workflow 34672016498 placed that exact release and immutable image in the Azure development demonstration, and live acceptance workflow 34674570520 accepted the ordinary read-only evaluator path on 12 September 2026 at 00:06 CDT. Exact v3.111 remains the fail-closed rollback baseline.
 - Active development line: `development/salcapa-platform`.
