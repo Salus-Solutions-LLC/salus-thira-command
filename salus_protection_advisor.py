@@ -27,6 +27,20 @@ EVALUATION_STATUS = "Prepared — Salus Review Required"
 SESSION_RETENTION_HOURS = 2
 SESSION_RETENTION_POLICY = "SPA-EPHEMERAL-RETENTION-1.0.0"
 ANSWER_STATES = ("Answered", "Unknown", "Declined", "Not Applicable")
+CONSENT_NOTICE_VERSION = "SPA-CONSENT-NOTICE-1.0.0"
+CONSENT_PURPOSE = (
+    "Retain the fictional Advisor recommendation and fictional contact details "
+    "for an internal Salus review."
+)
+PROSPECT_RETENTION_DAYS = 30
+PROSPECT_RETENTION_POLICY = "SPA-FICTIONAL-PROSPECT-RETENTION-1.0.0"
+CONSENTED_FIELDS = (
+    "organization_display_name",
+    "contact_name",
+    "contact_email",
+    "evaluation_snapshot",
+    "purpose_and_consent_evidence",
+)
 POLICY_TABLES = {
     "Questionnaire": "advisor_questionnaire_versions",
     "Recommendation Policy": "advisor_recommendation_policy_versions",
@@ -179,6 +193,46 @@ class FictionalAnswerSubmission(BaseModel):
         return self
 
 
+
+class FictionalProspectSubmission(BaseModel):
+    """Strict fictional contact-and-consent command for the disabled prototype."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    action: Literal["Save for Later", "Submit for Salus Review"]
+    affirmative_consent: Literal[True]
+    notice_version: Literal["SPA-CONSENT-NOTICE-1.0.0"]
+    organization_display_name: str = Field(min_length=1, max_length=160)
+    contact_name: str = Field(min_length=1, max_length=160)
+    contact_email: str = Field(min_length=3, max_length=254)
+    authorized_fields: tuple[str, ...]
+
+    @field_validator("organization_display_name", "contact_name")
+    @classmethod
+    def validate_fictional_identity(cls, value: str) -> str:
+        normalized = value.strip()
+        if "fictional" not in normalized.casefold():
+            raise ValueError("only explicitly fictional prospect identities are accepted")
+        return normalized
+
+    @field_validator("contact_email")
+    @classmethod
+    def validate_fictional_email(cls, value: str) -> str:
+        normalized = value.strip().casefold()
+        if "@" not in normalized or not (
+            normalized.endswith("@example.com") or normalized.endswith(".example")
+        ):
+            raise ValueError("only reserved fictional email addresses are accepted")
+        return normalized
+
+    @field_validator("authorized_fields")
+    @classmethod
+    def validate_authorized_fields(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if len(value) != len(set(value)) or set(value) != set(CONSENTED_FIELDS):
+            raise ValueError("consent must name the exact authorized field set")
+        return value
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS advisor_questionnaire_versions (
  version_key TEXT PRIMARY KEY, status TEXT NOT NULL, data_boundary TEXT NOT NULL,
@@ -252,6 +306,33 @@ CREATE TABLE IF NOT EXISTS advisor_session_evaluation_snapshots (
  rate_card_snapshot_sha256 TEXT NOT NULL, snapshot_json TEXT NOT NULL,
  content_sha256 TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL,
  UNIQUE(session_key, answer_revision)
+);
+CREATE TABLE IF NOT EXISTS advisor_consent_notice_versions (
+ notice_version TEXT PRIMARY KEY, status TEXT NOT NULL,
+ data_boundary TEXT NOT NULL, fictional_only INTEGER NOT NULL,
+ notice_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
+ released_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS advisor_consents (
+ consent_key TEXT PRIMARY KEY, session_key TEXT NOT NULL,
+ evaluation_key TEXT NOT NULL, notice_version TEXT NOT NULL,
+ notice_sha256 TEXT NOT NULL, status TEXT NOT NULL, action TEXT NOT NULL,
+ purpose TEXT NOT NULL, authorized_fields_json TEXT NOT NULL,
+ affirmative_action INTEGER NOT NULL, consented_at TEXT NOT NULL,
+ consented_display TEXT NOT NULL, expires_at TEXT NOT NULL,
+ retention_policy_version TEXT NOT NULL, lifecycle_state TEXT NOT NULL,
+ withdrawn_at TEXT, deleted_at TEXT, snapshot_json TEXT NOT NULL,
+ content_sha256 TEXT NOT NULL UNIQUE
+);
+CREATE TABLE IF NOT EXISTS advisor_prospects (
+ prospect_key TEXT PRIMARY KEY, session_key TEXT NOT NULL,
+ evaluation_key TEXT NOT NULL, consent_key TEXT NOT NULL,
+ status TEXT NOT NULL, data_boundary TEXT NOT NULL,
+ fictional_only INTEGER NOT NULL, payload_json TEXT NOT NULL,
+ content_sha256 TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL,
+ expires_at TEXT NOT NULL, retention_policy_version TEXT NOT NULL,
+ correction_state TEXT NOT NULL, withdrawal_state TEXT NOT NULL,
+ deletion_state TEXT NOT NULL
 );
 """
 
@@ -556,6 +637,36 @@ FICTIONAL_CASES = (
         acceptance_focus=("major multi-jurisdiction complexity", "authority distinctions", "bounded professional capacity"),
     ),
 )
+
+
+FICTIONAL_PROSPECT_CONTACTS = {
+    "SPA-FICTIONAL-JUNIPER-TABLE": {
+        "organization_display_name": "Fictional Juniper Table Restaurant",
+        "contact_name": "Fictional Jordan Example",
+        "contact_email": "jordan.juniper@example.com",
+    },
+    "SPA-FICTIONAL-MERIDIAN-REGIONAL": {
+        "organization_display_name": "Fictional Meridian Regional Services",
+        "contact_name": "Fictional Morgan Example",
+        "contact_email": "morgan.meridian@example.com",
+    },
+    "SPA-FICTIONAL-HARBORLIGHT-UTILITY": {
+        "organization_display_name": "Fictional Harborlight Utility Cooperative",
+        "contact_name": "Fictional Casey Example",
+        "contact_email": "casey.harborlight@example.com",
+    },
+    "SPA-FICTIONAL-SUMMIT-METRO": {
+        "organization_display_name": "Fictional Summit Metro Administration",
+        "contact_name": "Fictional Taylor Example",
+        "contact_email": "taylor.summit@example.com",
+    },
+}
+
+
+def fictional_prospect_contacts() -> dict[str, dict[str, str]]:
+    """Return repository-owned fictional contacts for internal acceptance only."""
+
+    return copy.deepcopy(FICTIONAL_PROSPECT_CONTACTS)
 
 
 def _snapshot(definition: AdvisorPolicyDefinition) -> tuple[str, str]:
@@ -1687,7 +1798,11 @@ def retrieve_session_fictional_recommendation(
         ],
         "may_stop": True,
         "may_revise": True,
-        "may_save_or_submit": False,
+        "may_save_or_submit": True,
+        "save_or_submit_notice": (
+            "Fictional contact details are requested only after an explicit "
+            "choice and affirmative consent."
+        ),
         "creates_charge": False,
         "creates_contract": False,
         "creates_membership": False,
@@ -1697,3 +1812,363 @@ def retrieve_session_fictional_recommendation(
     }
     assert_safe_public_projection(result)
     return result
+
+
+
+def _display_utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).strftime("%d %B %Y %H:%M UTC")
+
+
+def build_fictional_consent_notice() -> dict[str, Any]:
+    """Build the exact notice shown before fictional contact retention."""
+
+    return {
+        "notice_version": CONSENT_NOTICE_VERSION,
+        "status": POLICY_STATUS,
+        "data_boundary": DATA_BOUNDARY,
+        "fictional_only": True,
+        "purpose": CONSENT_PURPOSE,
+        "recipient": "Qualified Salus reviewers in the internal fictional prototype",
+        "authorized_fields": list(CONSENTED_FIELDS),
+        "retention_days": PROSPECT_RETENTION_DAYS,
+        "retention_policy_version": PROSPECT_RETENTION_POLICY,
+        "what_happens_next": [
+            "The fictional recommendation and fictional contact details are retained for the selected purpose.",
+            "A qualified Salus reviewer may review the fictional submission.",
+            "Correction, withdrawal, and deletion remain available within the governed lifecycle.",
+        ],
+        "creates_charge": False,
+        "creates_contract": False,
+        "creates_membership": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "authorizes_customer_release": False,
+        "has_routes": False,
+    }
+
+
+def install_fictional_consent_notice(conn: Any, *, released_at: str) -> dict[str, Any]:
+    """Install the immutable fictional notice idempotently."""
+
+    initialize_policy_store(conn)
+    released = _utc_text(_parse_utc(released_at))
+    notice = build_fictional_consent_notice()
+    notice_json = canonical_json(notice)
+    digest = content_sha256(notice_json)
+    existing = conn.execute(
+        "SELECT * FROM advisor_consent_notice_versions WHERE notice_version=?",
+        (CONSENT_NOTICE_VERSION,),
+    ).fetchone()
+    try:
+        if existing:
+            if (
+                existing["notice_json"] != notice_json
+                or existing["content_sha256"] != digest
+                or existing["status"] != POLICY_STATUS
+                or existing["data_boundary"] != DATA_BOUNDARY
+                or int(existing["fictional_only"]) != 1
+            ):
+                raise PolicyIntegrityError("consent notice version collision")
+        else:
+            conn.execute(
+                "INSERT INTO advisor_consent_notice_versions(notice_version,status,data_boundary,fictional_only,notice_json,content_sha256,released_at) VALUES(?,?,?,?,?,?,?)",
+                (
+                    CONSENT_NOTICE_VERSION, POLICY_STATUS, DATA_BOUNDARY, 1,
+                    notice_json, digest, released,
+                ),
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {**notice, "content_sha256": digest, "released_at": released}
+
+
+def load_fictional_consent_notice(conn: Any) -> dict[str, Any]:
+    """Load and verify the released fictional consent notice."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_consent_notice_versions WHERE notice_version=?",
+        (CONSENT_NOTICE_VERSION,),
+    ).fetchone()
+    if not row:
+        raise PolicyIntegrityError("fictional consent notice is missing")
+    if (
+        row["status"] != POLICY_STATUS
+        or row["data_boundary"] != DATA_BOUNDARY
+        or int(row["fictional_only"]) != 1
+        or content_sha256(row["notice_json"]) != row["content_sha256"]
+    ):
+        raise PolicyIntegrityError("fictional consent notice integrity check failed")
+    notice = json.loads(row["notice_json"])
+    if (
+        notice.get("notice_version") != row["notice_version"]
+        or notice.get("authorized_fields") != list(CONSENTED_FIELDS)
+        or notice.get("purpose") != CONSENT_PURPOSE
+        or any(notice.get(flag) is not False for flag in (
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release", "has_routes",
+        ))
+    ):
+        raise PolicyIntegrityError("fictional consent notice boundary failed")
+    return {**notice, "content_sha256": row["content_sha256"], "released_at": row["released_at"]}
+
+
+def load_fictional_consent(conn: Any, consent_key: str) -> dict[str, Any]:
+    """Load and verify immutable consent evidence without contact values."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_consents WHERE consent_key=?", (consent_key,)
+    ).fetchone()
+    if not row or content_sha256(row["snapshot_json"]) != row["content_sha256"]:
+        raise PolicyIntegrityError("fictional consent integrity check failed")
+    result = json.loads(row["snapshot_json"])
+    checks = {
+        "consent_key": row["consent_key"],
+        "session_key": row["session_key"],
+        "evaluation_key": row["evaluation_key"],
+        "notice_version": row["notice_version"],
+        "notice_sha256": row["notice_sha256"],
+        "status": row["status"],
+        "action": row["action"],
+        "purpose": row["purpose"],
+        "authorized_fields": json.loads(row["authorized_fields_json"]),
+        "consented_at": row["consented_at"],
+        "consented_display": row["consented_display"],
+        "expires_at": row["expires_at"],
+        "retention_policy_version": row["retention_policy_version"],
+        "lifecycle_state": row["lifecycle_state"],
+    }
+    if (
+        any(result.get(key) != value for key, value in checks.items())
+        or int(row["affirmative_action"]) != 1
+        or result.get("affirmative_consent") is not True
+        or set(result.get("authorized_fields", [])) != set(CONSENTED_FIELDS)
+        or any(result.get(flag) is not False for flag in (
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release",
+        ))
+    ):
+        raise PolicyIntegrityError("fictional consent boundary failed")
+    serialized = canonical_json(result).casefold()
+    if "contact_email" in serialized and "@example.com" in serialized:
+        raise PolicyIntegrityError("consent evidence contains contact values")
+    return {**result, "content_sha256": row["content_sha256"]}
+
+
+def load_fictional_prospect(conn: Any, prospect_key: str) -> dict[str, Any]:
+    """Load and verify a fictional prospect retained under exact consent."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_prospects WHERE prospect_key=?", (prospect_key,)
+    ).fetchone()
+    if not row or content_sha256(row["payload_json"]) != row["content_sha256"]:
+        raise PolicyIntegrityError("fictional prospect integrity check failed")
+    result = json.loads(row["payload_json"])
+    checks = {
+        "prospect_key": row["prospect_key"],
+        "session_key": row["session_key"],
+        "evaluation_key": row["evaluation_key"],
+        "consent_key": row["consent_key"],
+        "status": row["status"],
+        "data_boundary": row["data_boundary"],
+        "created_at": row["created_at"],
+        "expires_at": row["expires_at"],
+        "retention_policy_version": row["retention_policy_version"],
+        "correction_state": row["correction_state"],
+        "withdrawal_state": row["withdrawal_state"],
+        "deletion_state": row["deletion_state"],
+    }
+    if (
+        any(result.get(key) != value for key, value in checks.items())
+        or int(row["fictional_only"]) != 1
+        or result.get("fictional_only") is not True
+        or any(result.get(flag) is not False for flag in (
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release",
+        ))
+    ):
+        raise PolicyIntegrityError("fictional prospect boundary failed")
+    assert_safe_public_projection(result["recommendation"])
+    return {**result, "content_sha256": row["content_sha256"]}
+
+
+def record_fictional_consent_and_prospect(
+    conn: Any,
+    token: str,
+    evaluation_key: str,
+    submission: FictionalProspectSubmission,
+    *,
+    consented_at: str,
+) -> dict[str, Any]:
+    """Retain one exact fictional prospect only after explicit informed consent."""
+
+    at = _parse_utc(consented_at)
+    session = _active_session(conn, token, as_of=consented_at)
+    recommendation = retrieve_session_fictional_recommendation(
+        conn, token, evaluation_key, as_of=consented_at
+    )
+    evaluation = load_session_fictional_evaluation(conn, evaluation_key)
+    expected = FICTIONAL_PROSPECT_CONTACTS.get(session["case_key"])
+    supplied = {
+        "organization_display_name": submission.organization_display_name,
+        "contact_name": submission.contact_name,
+        "contact_email": submission.contact_email,
+    }
+    if expected is None or supplied != expected:
+        raise ValueError("only the released fictional contact fixture may be retained")
+    notice = install_fictional_consent_notice(conn, released_at=consented_at)
+    if (
+        submission.notice_version != notice["notice_version"]
+        or set(submission.authorized_fields) != set(notice["authorized_fields"])
+        or evaluation["session_key"] != session["session_key"]
+    ):
+        raise PolicyIntegrityError("consent does not cover the current fictional evaluation")
+
+    at_text = _utc_text(at)
+    expires_at = _utc_text(at + timedelta(days=PROSPECT_RETENTION_DAYS))
+    status = (
+        "Saved — Fictional"
+        if submission.action == "Save for Later"
+        else "Submitted — Fictional; Awaiting Salus Review"
+    )
+    lifecycle_state = "Retained under affirmative fictional consent"
+    consent_seed = {
+        "session_key": session["session_key"],
+        "evaluation_key": evaluation_key,
+        "notice_version": notice["notice_version"],
+        "notice_sha256": notice["content_sha256"],
+        "status": "Affirmative Consent Recorded — Fictional",
+        "action": submission.action,
+        "purpose": CONSENT_PURPOSE,
+        "authorized_fields": list(submission.authorized_fields),
+        "affirmative_consent": True,
+        "consented_at": at_text,
+        "consented_display": _display_utc(at),
+        "expires_at": expires_at,
+        "retention_policy_version": PROSPECT_RETENTION_POLICY,
+        "lifecycle_state": lifecycle_state,
+        "withdrawal_available": True,
+        "correction_available": True,
+        "deletion_available": True,
+        "creates_charge": False,
+        "creates_contract": False,
+        "creates_membership": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "authorizes_customer_release": False,
+    }
+    consent_key = "SPA-CONSENT-" + content_sha256(consent_seed).upper()
+    consent = {"consent_key": consent_key, **consent_seed}
+    consent_json = canonical_json(consent)
+    consent_digest = content_sha256(consent_json)
+
+    prospect_seed = {
+        "session_key": session["session_key"],
+        "evaluation_key": evaluation_key,
+        "consent_key": consent_key,
+        "status": status,
+        "data_boundary": DATA_BOUNDARY,
+        "fictional_only": True,
+        "classification": "Fictional Prospect-Reported Information",
+        "organization_display_name": submission.organization_display_name,
+        "contact_name": submission.contact_name,
+        "contact_email": submission.contact_email,
+        "recommendation": recommendation,
+        "created_at": at_text,
+        "created_display": _display_utc(at),
+        "expires_at": expires_at,
+        "retention_policy_version": PROSPECT_RETENTION_POLICY,
+        "correction_state": "Available through governed Salus review",
+        "withdrawal_state": "Available before any separately authorized next step",
+        "deletion_state": "Available under the governed retention lifecycle",
+        "what_happens_next": (
+            "A qualified Salus reviewer may review this fictional submission; "
+            "no scope, price, customer relationship, or service commitment is established."
+        ),
+        "creates_charge": False,
+        "creates_contract": False,
+        "creates_membership": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "authorizes_customer_release": False,
+    }
+    prospect_key = "SPA-PROSPECT-" + content_sha256(prospect_seed).upper()
+    prospect = {"prospect_key": prospect_key, **prospect_seed}
+    prospect_json = canonical_json(prospect)
+    prospect_digest = content_sha256(prospect_json)
+    token_digest = content_sha256(token)
+    try:
+        conn.execute(
+            "INSERT INTO advisor_consents(consent_key,session_key,evaluation_key,notice_version,notice_sha256,status,action,purpose,authorized_fields_json,affirmative_action,consented_at,consented_display,expires_at,retention_policy_version,lifecycle_state,withdrawn_at,deleted_at,snapshot_json,content_sha256) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                consent_key, session["session_key"], evaluation_key,
+                notice["notice_version"], notice["content_sha256"],
+                consent["status"], submission.action, CONSENT_PURPOSE,
+                canonical_json(list(submission.authorized_fields)), 1, at_text,
+                consent["consented_display"], expires_at, PROSPECT_RETENTION_POLICY,
+                lifecycle_state, None, None, consent_json, consent_digest,
+            ),
+        )
+        conn.execute(
+            "INSERT INTO advisor_prospects(prospect_key,session_key,evaluation_key,consent_key,status,data_boundary,fictional_only,payload_json,content_sha256,created_at,expires_at,retention_policy_version,correction_state,withdrawal_state,deletion_state) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                prospect_key, session["session_key"], evaluation_key, consent_key,
+                status, DATA_BOUNDARY, 1, prospect_json, prospect_digest,
+                at_text, expires_at, PROSPECT_RETENTION_POLICY,
+                prospect["correction_state"], prospect["withdrawal_state"],
+                prospect["deletion_state"],
+            ),
+        )
+        conn.execute(
+            "DELETE FROM advisor_answer_revisions WHERE session_key=?",
+            (session["session_key"],),
+        )
+        conn.execute(
+            "UPDATE advisor_sessions SET status=?, current_token_sha256=NULL WHERE session_key=?",
+            ("Saved" if submission.action == "Save for Later" else "Submitted", session["session_key"]),
+        )
+        conn.execute(
+            "UPDATE advisor_session_tokens SET token_status=?, superseded_at=? WHERE token_sha256=?",
+            ("Saved" if submission.action == "Save for Later" else "Submitted", at_text, token_digest),
+        )
+        _record_session_event(
+            conn,
+            session["session_key"],
+            "Prospect Saved" if submission.action == "Save for Later" else "Prospect Submitted",
+            at_text,
+            {
+                "prospect_key": prospect_key,
+                "consent_key": consent_key,
+                "evaluation_key": evaluation_key,
+                "status": status,
+                "retention_policy_version": PROSPECT_RETENTION_POLICY,
+                "answer_content_deleted": True,
+            },
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {
+        "prospect_key": prospect_key,
+        "consent_key": consent_key,
+        "evaluation_key": evaluation_key,
+        "status": status,
+        "fictional_only": True,
+        "data_boundary": DATA_BOUNDARY,
+        "created_at": at_text,
+        "created_display": _display_utc(at),
+        "expires_at": expires_at,
+        "retention_policy_version": PROSPECT_RETENTION_POLICY,
+        "awaiting_salus_review": submission.action == "Submit for Salus Review",
+        "creates_charge": False,
+        "creates_contract": False,
+        "creates_membership": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "authorizes_customer_release": False,
+    }
