@@ -157,13 +157,12 @@ def register_demo_evaluator(core: Any) -> None:
         context = _require_evaluator(core, request)
         conn = core.db()
         try:
-            marks = ",".join("?" for _ in EXPECTED_KEYS)
             tenants = _rows(
                 conn,
-                f"""SELECT id,name,status,display_label,fixture_key,fixture_version
+                """SELECT id,name,status,display_label,fixture_key,fixture_version
                     FROM tenants
                     WHERE environment_kind='Fictional Demonstration'
-                      AND fixture_key IN ({marks})
+                      AND fixture_key IN (?,?,?)
                     ORDER BY id""",
                 EXPECTED_KEYS,
             )
