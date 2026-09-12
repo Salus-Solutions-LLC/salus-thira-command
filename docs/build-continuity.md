@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 September 2026 04:11 CDT
+last_verified_at: 12 September 2026 04:18 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
 active_roadmap_issue: 236
-active_increment: issue_236_local_layout_symbol_condition_profiles_validation
+active_increment: issue_236_facility_review_profile_interface
 last_completed_release: v3.112
 candidate_release: none
-validation_pr: 318
-validation_gate_state: controlled_validation_in_progress
+validation_pr: none
+validation_gate_state: all_required_gates_green
 genuine_blockers: none
-next_authorized_increment: issue_236_facility_review_profile_interface_after_acceptance
+next_authorized_increment: issue_236_facility_review_profile_interface
 ---
 
 # SalCAPA build continuity
@@ -60,7 +60,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Live evaluator acceptance: [workflow run 34674570520](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34674570520) passed on 12 September 2026 at 00:06 CDT after [controlled validation PR #307](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/307) passed all 20 required workflow families on exact final head [`e241540`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/e241540d9cf2109dad9863012f937bd8aa080133) and closed without merge. Exact frozen v3.112 proved the ordinary read-only evaluator route for all three fictional Protected Members, governed cross-functional journeys, role and tenant denial, and PostgreSQL persistence. The temporary job was removed and application configuration remained unchanged.
 - Last completed promotion increment: [controlled validation PR #304](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/304) passed all 20 required workflow families on exact final head [`ae1c79f`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/ae1c79fd9b4a3bef8ce4a2252e74f48a831c15ba) and closed without merge before that exact head advanced by non-force fast-forward to `development/salcapa-platform`. [Workflow run 34670976390](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34670976390) then published exact frozen v3.112 as immutable digest `sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce`. No application, traffic, DNS, or database state changed; accepted v3.111 remains live.
 - Last frozen patch increment: [controlled validation PR #303](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/303) passed all 20 required workflow families on exact final head [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) and closed without merge. That exact head became immutable `release/v3.112` and advanced by non-force fast-forward to `development/salcapa-platform`. The accepted Azure v3.111 demonstration remains unchanged.
-- Next authorized product increment: add bounded local layout, symbol, and condition profiles for governed facility imagery. No paid external service, standing GPU, biometric function, or Azure deployment is authorized.
+- Next authorized product increment: connect the accepted facility review profiles to the governed Salus-only Facility Assessment and Mission Map interface. No paid external service, standing GPU, biometric function, source-byte processing, or Azure deployment is authorized.
 
 - Last completed development increment: [controlled validation PR #312](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/312) passed all 20 required workflow families on exact final head [`96323d6`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/96323d6f60fbcdbb86e53743759f7f2974a41ed4), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The bounded Issue #236 facility-imagery records preserve immutable source and region lineage, representation authority, coordinate and scale limitations, Derived — Unverified relationship proposals, alternatives, contradictions, uncertainty, independent review and correction, proposal-only destination references, tenant and disclosure controls, audit, backup, restore, and deterministic reconstruction. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 
@@ -68,7 +68,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 - Last completed development increment: [controlled validation PR #316](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/316) passed all 20 required workflow families on exact final head [`aa208fe`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/aa208fe0d1619b02a6650321575705bd0ab37cf0), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. The Salus-only Facility Assessment and Mission Map interface presents exact source-region lineage, representation authority, coordinate and scale limitations, contradictions, uncertainty, independently attributed review, and proposal-only destination references. Derived relationships remain visibly unverified; Protected Member roles are denied; and the interface creates no finding, priority, decision, engineering conclusion, safe-route determination, disclosure, or authorization. SQLite, PostgreSQL 16, and production-container acceptance passed after deterministic runtime dependencies were reconstructed consistently. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 
-- Current candidate: [controlled validation PR #318](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/318) adds six server-controlled local review profiles for layouts, symbols and legends, visible facility conditions, damage indicators, equipment presence, and protective controls. Each prepared application preserves exact source and geometry hashes, an immutable profile snapshot, purpose, reviewer, sensitivity, disclosure posture, cost boundary, and human-review requirement. No source bytes are processed, no external route or standing GPU is enabled, and no finding, priority, decision, engineering conclusion, safe-route determination, disclosure, or authorization is created. Frozen v3.112 and the accepted Azure demonstration remain unchanged.
+- Last completed development increment: [controlled validation PR #318](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/318) passed all 20 required workflow families on exact final head [`b746125`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/b7461258ac020c84e143c7b97f7d252cb8fea1f3), closed without merge, and advanced by non-force fast-forward to `development/salcapa-platform`. Six server-controlled local review profiles now cover layouts, symbols and legends, visible facility conditions, damage indicators, equipment presence, and protective controls. Each prepared application preserves exact source and geometry hashes, an immutable profile snapshot, purpose, reviewer, sensitivity, disclosure posture, cost boundary, and human-review requirement. No source bytes are processed, no external route or standing GPU is enabled, and no finding, priority, decision, engineering conclusion, safe-route determination, disclosure, or authorization is created. Frozen v3.112 and the accepted Azure demonstration were not changed or redeployed.
 
 ## Recovery procedure
 
