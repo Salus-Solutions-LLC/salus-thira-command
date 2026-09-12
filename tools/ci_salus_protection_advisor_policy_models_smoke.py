@@ -141,6 +141,124 @@ def main() -> None:
         else:
             raise AssertionError("unexpected policy fields were not rejected")
 
+        evaluations = advisor.prepare_all_fictional_evaluations(
+            conn, created_at="2026-09-12T13:35:00Z"
+        )
+        repeated_evaluations = advisor.prepare_all_fictional_evaluations(
+            conn, created_at="2026-09-12T13:36:00Z"
+        )
+        assert [item["content_sha256"] for item in evaluations] == [
+            item["content_sha256"] for item in repeated_evaluations
+        ]
+        assert len(evaluations) == 4
+        assert len({item["evaluation_key"] for item in evaluations}) == 4
+        expected_packages = {
+            "SPA-FICTIONAL-JUNIPER-TABLE": "SPA-PKG-FOUNDATION",
+            "SPA-FICTIONAL-MERIDIAN-REGIONAL": "SPA-PKG-INTEGRATED",
+            "SPA-FICTIONAL-HARBORLIGHT-UTILITY": "SPA-PKG-COMPLEX-MISSION",
+            "SPA-FICTIONAL-SUMMIT-METRO": "SPA-PKG-COMPLEX-MISSION",
+        }
+        fixture_answers = {case["case_key"]: set(case["answers"]) for case in advisor.fictional_cases()}
+        for evaluation in evaluations:
+            case_key = evaluation["case"]["case_key"]
+            assert evaluation["status"] == advisor.EVALUATION_STATUS
+            assert evaluation["fictional_only"] is True
+            assert evaluation["preliminary"] is True
+            assert evaluation["data_boundary"] == advisor.DATA_BOUNDARY
+            assert evaluation["adapter_version"] == advisor.EVALUATION_ADAPTER_VERSION
+            assert evaluation["policy_bundle_sha256"] == installed["content_sha256"]
+            assert len(evaluation["commercial_estimate_snapshot_sha256"]) == 64
+            assert len(evaluation["rate_card_snapshot_sha256"]) == 64
+            assert set(evaluation["dimensions"]) == set(advisor.DIMENSIONS)
+            assert evaluation["recommended_package"]["package_key"] == expected_packages[case_key]
+            assert evaluation["authority"].startswith("A qualified Salus reviewer")
+            assert all(evaluation[flag] is False for flag in (
+                "creates_charge", "creates_contract", "creates_membership",
+                "creates_protected_member", "creates_disclosure", "has_routes",
+            ))
+            advisor.assert_safe_public_projection(evaluation["public_price"])
+            assert evaluation["public_price"]["one_time_range_minimum"] <= evaluation["public_price"]["one_time_range_maximum"]
+            assert evaluation["public_price"]["recurring_range_minimum"] <= evaluation["public_price"]["recurring_range_maximum"]
+            for review in evaluation["dimensions"].values():
+                assert review["classification"] == "Preliminary Inference"
+                assert review["state"] in {
+                    "Evidence Needed", "Limited Indication",
+                    "Developing Indication", "Material Indication",
+                }
+                assert set(review["basis_question_keys"]) <= fixture_answers[case_key]
+                assert set(review["reported_information"]) == set(review["basis_question_keys"])
+                assert review["uncertainty"]
+
+            loaded_evaluation = advisor.load_fictional_evaluation(
+                conn, evaluation["evaluation_key"]
+            )
+            assert loaded_evaluation["content_sha256"] == evaluation["content_sha256"]
+
+        evaluation_rows = list(conn.execute("SELECT * FROM advisor_fictional_evaluation_snapshots"))
+        assert len(evaluation_rows) == 4
+        evaluation_columns = {
+            column["name"]
+            for column in conn.execute("PRAGMA table_info(advisor_fictional_evaluation_snapshots)")
+        }
+        assert "tenant_id" not in evaluation_columns
+        assert "protected_member_id" not in evaluation_columns
+        assert not any(name.startswith("contact") for name in evaluation_columns)
+        evaluation_serialized = json.dumps(evaluations).casefold()
+        for forbidden in (
+            "tenant_id", "protected_member_id", "contact_email", "payment",
+            "invoice", "internal_cost", "role_rate", "margin",
+        ):
+            assert forbidden not in evaluation_serialized
+
+        exposure_low = {dimension: 0 for dimension in advisor.DIMENSIONS}
+        exposure_high = dict(exposure_low)
+        exposure_low["Exposure"] = 1
+        exposure_high["Exposure"] = 3
+        assert advisor._select_package(exposure_low, "Initial Pass") == "SPA-PKG-FOUNDATION"
+        assert advisor._select_package(exposure_high, "Initial Pass") == "SPA-PKG-FOUNDATION"
+
+        try:
+            advisor.prepare_fictional_evaluation(
+                conn, "SPA-FICTIONAL-NOT-RELEASED", created_at="2026-09-12T13:35:00Z"
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("an ungoverned fictional case was accepted")
+
+        try:
+            advisor.FictionalCommercialCandidate(
+                package_key="SPA-PKG-FOUNDATION",
+                commercial_estimate_snapshot_sha256="a" * 64,
+                rate_card_snapshot_sha256="b" * 64,
+                one_time_range_minimum=2000,
+                one_time_range_maximum=1000,
+                recurring_range_minimum=0,
+                recurring_range_maximum=0,
+                recurring_cadence="Annual",
+                implementation_period="Fictional",
+                assumptions=("Fictional",),
+            )
+        except ValidationError:
+            pass
+        else:
+            raise AssertionError("invalid commercial range was accepted")
+
+        tampered_key = evaluations[0]["evaluation_key"]
+        conn.execute(
+            "UPDATE advisor_fictional_evaluation_snapshots SET snapshot_json=? WHERE evaluation_key=?",
+            ("{}", tampered_key),
+        )
+        try:
+            advisor.load_fictional_evaluation(conn, tampered_key)
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("tampered fictional evaluation was accepted")
+        finally:
+            conn.rollback()
+        assert advisor.load_fictional_evaluation(conn, tampered_key)["evaluation_key"] == tampered_key
+
         collision = advisor.AdvisorPolicyDefinition(
             policy_kind="Questionnaire",
             version_key="SPA-QUESTIONNAIRE-1.0.0",
