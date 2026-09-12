@@ -215,18 +215,23 @@ cross_tenant = client.post(
 )
 assert cross_tenant.status_code == 403 and first_tenant != other_tenant
 
-# Repository evidence records completed pre-promotion gates while deployment and end-to-end acceptance remain pending.
+# Repository evidence records the exact v3.112 promotion candidate while the
+# accepted v3.111 demonstration remains the fail-closed baseline until live acceptance.
 deployment = front_matter(ROOT / "docs" / "demo-deployment-continuity.md")
-assert deployment["current_stable_release"] == "v3.111"
-assert deployment["current_stable_commit"] == "8bf4614ec79a27641c40dc1a21e1790746a08604"
+assert deployment["current_stable_release"] == "v3.112"
+assert deployment["current_stable_commit"] == "1d1759375d37b7de884331c06833de8c727ac5af"
+assert deployment["promotion_candidate"] == "v3.112"
+assert deployment["promotion_candidate_image_commit"] == "1d1759375d37b7de884331c06833de8c727ac5af"
+assert deployment["promotion_candidate_image_digest"] == "sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce"
 if deployment["promotion_readiness"] == "accepted":
-    assert deployment["deployed_release"] == "v3.111"
-    assert deployment["deployed_commit"] == "8bf4614ec79a27641c40dc1a21e1790746a08604"
+    assert deployment["deployed_release"] == "v3.112"
+    assert deployment["deployed_commit"] == "1d1759375d37b7de884331c06833de8c727ac5af"
     assert deployment["fictional_member_seed_state"] == "verified"
     assert deployment["critical_journey_acceptance"] == "verified"
     assert deployment["genuine_blocker"] == "none"
 else:
-    assert deployment["deployed_release"] == "v3.36"
+    assert deployment["deployed_release"] == "v3.111"
+    assert deployment["deployed_commit"] == "8bf4614ec79a27641c40dc1a21e1790746a08604"
     assert deployment["promotion_readiness"] == "preflight_ready"
     assert deployment["critical_journey_acceptance"] == "not_verified"
     assert deployment["genuine_blocker"] != "none"
