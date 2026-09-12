@@ -14,12 +14,14 @@ import hashlib
 import json
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 POLICY_STATUS = "Released for Fictional Internal Prototype"
 DATA_BOUNDARY = "Advisor Prospect — No Protected Member Access"
 BUNDLE_KEY = "SPA-INTERNAL-PROTOTYPE-1"
+EVALUATION_ADAPTER_VERSION = "SPA-EVALUATION-ADAPTER-1.0.0"
+EVALUATION_STATUS = "Prepared — Salus Review Required"
 POLICY_TABLES = {
     "Questionnaire": "advisor_questionnaire_versions",
     "Recommendation Policy": "advisor_recommendation_policy_versions",
@@ -115,6 +117,33 @@ class FictionalAdvisorCase(BaseModel):
         return clean
 
 
+class FictionalCommercialCandidate(BaseModel):
+    """Hash-bound commercial input available only to the fictional adapter."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    package_key: str = Field(pattern=r"^SPA-PKG-[A-Z-]+$")
+    fictional_only: Literal[True] = True
+    commercial_estimate_snapshot_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    rate_card_snapshot_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    currency: Literal["USD"] = "USD"
+    one_time_range_minimum: int = Field(ge=0)
+    one_time_range_maximum: int = Field(ge=0)
+    recurring_range_minimum: int = Field(ge=0)
+    recurring_range_maximum: int = Field(ge=0)
+    recurring_cadence: Literal["Monthly", "Quarterly", "Annual"]
+    implementation_period: str = Field(min_length=1, max_length=160)
+    assumptions: tuple[str, ...]
+
+    @model_validator(mode="after")
+    def validate_ranges(self) -> "FictionalCommercialCandidate":
+        if self.one_time_range_maximum < self.one_time_range_minimum:
+            raise ValueError("one-time maximum must not be below minimum")
+        if self.recurring_range_maximum < self.recurring_range_minimum:
+            raise ValueError("recurring maximum must not be below minimum")
+        return self
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS advisor_questionnaire_versions (
  version_key TEXT PRIMARY KEY, status TEXT NOT NULL, data_boundary TEXT NOT NULL,
@@ -144,6 +173,15 @@ CREATE TABLE IF NOT EXISTS advisor_policy_bundles (
  bundle_key TEXT PRIMARY KEY, status TEXT NOT NULL, data_boundary TEXT NOT NULL,
  fictional_only INTEGER NOT NULL, snapshot_json TEXT NOT NULL,
  content_sha256 TEXT NOT NULL UNIQUE, released_by TEXT NOT NULL, released_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS advisor_fictional_evaluation_snapshots (
+ evaluation_key TEXT PRIMARY KEY, case_key TEXT NOT NULL,
+ status TEXT NOT NULL, data_boundary TEXT NOT NULL, fictional_only INTEGER NOT NULL,
+ adapter_version TEXT NOT NULL, policy_bundle_sha256 TEXT NOT NULL,
+ commercial_estimate_snapshot_sha256 TEXT NOT NULL,
+ rate_card_snapshot_sha256 TEXT NOT NULL, input_sha256 TEXT NOT NULL,
+ snapshot_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
+ created_at TEXT NOT NULL
 );
 """
 
@@ -610,3 +648,327 @@ def assert_safe_public_projection(value: Any) -> None:
     violations = public_projection_violations(value)
     if violations:
         raise ValueError("public projection contains Salus-internal commercial fields")
+
+
+def fictional_commercial_candidates() -> dict[str, FictionalCommercialCandidate]:
+    """Return isolated fictional commercial-engine references for adapter acceptance."""
+
+    estimate_reference = content_sha256(
+        {"source": "fictional-commercial-engine", "version": "SPA-COMMERCIAL-ESTIMATE-1.0.0"}
+    )
+    rate_reference = content_sha256(
+        {"source": "fictional-governed-rate-card", "version": "SPA-RATE-CARD-1.0.0"}
+    )
+    definitions = (
+        ("SPA-PKG-FOUNDATION", 7500, 15000, 0, 0, "Annual", "Four to six weeks"),
+        ("SPA-PKG-READINESS", 18000, 35000, 2500, 5000, "Monthly", "Six to twelve weeks"),
+        ("SPA-PKG-INTEGRATED", 40000, 85000, 6500, 12500, "Monthly", "Three to six months"),
+        ("SPA-PKG-COMPLEX-MISSION", 90000, 225000, 15000, 35000, "Monthly", "Six to twelve months"),
+    )
+    return {
+        package_key: FictionalCommercialCandidate(
+            package_key=package_key,
+            commercial_estimate_snapshot_sha256=estimate_reference,
+            rate_card_snapshot_sha256=rate_reference,
+            one_time_range_minimum=one_min,
+            one_time_range_maximum=one_max,
+            recurring_range_minimum=recurring_min,
+            recurring_range_maximum=recurring_max,
+            recurring_cadence=cadence,
+            implementation_period=period,
+            assumptions=(
+                "Fictional internal prototype only.",
+                "Final scope and price require qualified Salus review.",
+                "Travel, specialists, equipment, partner work, and incident operations require separate scope.",
+            ),
+        )
+        for package_key, one_min, one_max, recurring_min, recurring_max, cadence, period in definitions
+    }
+
+
+def _policy_payload(conn: Any, bundle: dict[str, Any], kind: str) -> dict[str, Any]:
+    reference = bundle["components"][kind]
+    row = conn.execute(
+        f"SELECT snapshot_json FROM {POLICY_TABLES[kind]} WHERE version_key=?",
+        (reference["version_key"],),
+    ).fetchone()
+    if not row:
+        raise PolicyIntegrityError(f"{kind} snapshot is missing")
+    definition = json.loads(row["snapshot_json"])
+    return definition["payload"]
+
+
+def _reported_answer(answer: Any) -> bool:
+    return answer not in (None, "", [], "Unknown", "Declined", "Not Applicable")
+
+
+def _level_label(level: int) -> str:
+    return {
+        0: "Evidence Needed",
+        1: "Limited Indication",
+        2: "Developing Indication",
+        3: "Material Indication",
+    }[max(0, min(3, int(level)))]
+
+
+def _dimension_review(
+    answers: dict[str, Any],
+    questionnaire: dict[str, Any],
+) -> tuple[dict[str, dict[str, Any]], dict[str, int]]:
+    """Apply visible deterministic rules only to explicitly answered questions."""
+
+    permitted = {item["question_key"]: item for item in questionnaire["questions"]}
+    used = {key: value for key, value in answers.items() if key in permitted and _reported_answer(value)}
+    locations = int(used.get("locations", 0) or 0)
+    jurisdictions = int(used.get("jurisdictions", 0) or 0)
+    concerns = used.get("reported_concerns", [])
+    concerns = concerns if isinstance(concerns, list) else [concerns]
+    people = str(used.get("people_exposed", ""))
+    posture = str(used.get("capability_posture", ""))
+    change = str(used.get("recent_change", ""))
+    depth = str(used.get("investigation_depth", "Initial Pass"))
+    org_type = str(used.get("organization_type", ""))
+
+    exposure = 3 if ("100,000" in people or locations >= 50) else 2 if (locations >= 10 or "500" in people) else 1 if (locations or people) else 0
+    threat = 3 if len(concerns) >= 3 else 2 if len(concerns) == 2 else 1 if concerns else 0
+    vulnerability = 3 if change == "Yes" and len(concerns) >= 2 else 2 if len(concerns) >= 2 else 1 if concerns else 0
+    consequence = 3 if ("100,000" in people or org_type in {"Critical Infrastructure", "Public Agency"}) else 2 if "500" in people else 1 if people else 0
+    capability = 2 if ("inconsistently" in posture.casefold() or "varies materially" in posture.casefold() or "mixed" in posture.casefold()) else 1 if posture else 0
+    complexity = 3 if jurisdictions >= 4 or locations >= 50 else 2 if jurisdictions >= 2 or locations >= 10 else 1 if locations or jurisdictions else 0
+    urgency = 2 if change == "Yes" else 1 if change == "No" else 0
+    service = {"Initial Pass": 1, "Intermediate Assessment": 2, "High Deep-Dive": 3}.get(depth, 0)
+    levels = {
+        "Exposure": exposure,
+        "Threat and Hazard Environment": threat,
+        "Vulnerability": vulnerability,
+        "Consequence": consequence,
+        "Capability": capability,
+        "Complexity": complexity,
+        "Urgency": urgency,
+        "Service Intensity": service,
+    }
+
+    reviews: dict[str, dict[str, Any]] = {}
+    for dimension in DIMENSIONS:
+        linked = [
+            item["question_key"]
+            for item in questionnaire["questions"]
+            if dimension in item["dimension_links"]
+        ]
+        basis = [key for key in linked if key in used]
+        missing = [key for key in linked if key not in used]
+        reviews[dimension] = {
+            "state": _level_label(levels[dimension]),
+            "classification": "Preliminary Inference",
+            "basis_question_keys": basis,
+            "reported_information": {key: used[key] for key in basis},
+            "information_gaps": missing,
+            "assumptions": [],
+            "contradictions": [],
+            "uncertainty": (
+                "Evidence remains incomplete; a qualified Salus reviewer must validate the context."
+                if missing else
+                "Based only on the displayed fictional answers; independent Salus review remains required."
+            ),
+        }
+    return reviews, levels
+
+
+def _select_package(levels: dict[str, int], investigation_depth: str) -> str:
+    """Select by transparent multi-factor gates; exposure alone never governs."""
+
+    non_exposure = [
+        levels[name] for name in DIMENSIONS if name != "Exposure"
+    ]
+    material_or_developing = sum(value >= 2 for value in non_exposure)
+    depth = INVESTIGATION_LEVELS.get(investigation_depth, "Tier 1")
+    depth_number = int(depth.rsplit(" ", 1)[-1])
+    if depth_number >= 3 and material_or_developing >= 2:
+        return "SPA-PKG-COMPLEX-MISSION"
+    if depth_number >= 2 and (
+        levels["Complexity"] >= 2 or levels["Service Intensity"] >= 2
+    ):
+        return "SPA-PKG-INTEGRATED"
+    if (
+        depth_number >= 2
+        or levels["Capability"] >= 2
+        or levels["Urgency"] >= 2
+    ):
+        return "SPA-PKG-READINESS"
+    return "SPA-PKG-FOUNDATION"
+
+
+def _load_package(catalogue: dict[str, Any], package_key: str) -> dict[str, Any]:
+    matches = [item for item in catalogue["packages"] if item["package_key"] == package_key]
+    if len(matches) != 1:
+        raise PolicyIntegrityError("selected package is absent or duplicated")
+    return matches[0]
+
+
+def prepare_fictional_evaluation(
+    conn: Any,
+    case_key: str,
+    *,
+    created_at: str,
+) -> dict[str, Any]:
+    """Prepare and persist a non-binding evaluation for one repository-owned fixture."""
+
+    if not created_at.strip():
+        raise ValueError("creation time is required")
+    initialize_policy_store(conn)
+    bundle = load_fictional_policy_bundle(conn)
+    cases = {case.case_key: case for case in FICTIONAL_CASES}
+    if case_key not in cases:
+        raise ValueError("only repository-owned fictional cases may be evaluated")
+    case = cases[case_key]
+    case_payload = case.model_dump(mode="json")
+    expected_fixture_hash = bundle["fictional_fixture_hashes"].get(case_key)
+    if content_sha256(case_payload) != expected_fixture_hash:
+        raise PolicyIntegrityError("fictional case does not match the released bundle")
+
+    questionnaire = _policy_payload(conn, bundle, "Questionnaire")
+    catalogue = _policy_payload(conn, bundle, "Package Catalogue")
+    price_policy = _policy_payload(conn, bundle, "Public Price Policy")
+    reviews, levels = _dimension_review(case_payload["answers"], questionnaire)
+    package_key = _select_package(levels, str(case_payload["answers"].get("investigation_depth", "")))
+    package = _load_package(catalogue, package_key)
+    candidates = fictional_commercial_candidates()
+    if set(candidates) != {item["package_key"] for item in catalogue["packages"]}:
+        raise PolicyIntegrityError("fictional commercial references do not match the package catalogue")
+    commercial = candidates[package_key]
+
+    public_price = {
+        "currency": commercial.currency,
+        "one_time_range_minimum": commercial.one_time_range_minimum,
+        "one_time_range_maximum": commercial.one_time_range_maximum,
+        "one_time_cadence": "One-time",
+        "recurring_range_minimum": commercial.recurring_range_minimum,
+        "recurring_range_maximum": commercial.recurring_range_maximum,
+        "recurring_cadence": commercial.recurring_cadence,
+        "implementation_period": commercial.implementation_period,
+        "assumptions": list(commercial.assumptions),
+        "inclusions": package["includes"],
+        "exclusions": package["excludes"],
+        "preliminary_notice": "Qualified Salus review is required before scope, price, or customer use.",
+    }
+    assert_safe_public_projection(public_price)
+    if price_policy["qualified_salus_review_required"] is not True:
+        raise PolicyIntegrityError("public price policy does not preserve Salus review")
+
+    input_sha = content_sha256(case_payload)
+    key_material = {
+        "adapter_version": EVALUATION_ADAPTER_VERSION,
+        "case_key": case_key,
+        "input_sha256": input_sha,
+        "policy_bundle_sha256": bundle["content_sha256"],
+        "commercial_estimate_snapshot_sha256": commercial.commercial_estimate_snapshot_sha256,
+        "rate_card_snapshot_sha256": commercial.rate_card_snapshot_sha256,
+    }
+    evaluation_key = "SPA-EVAL-" + content_sha256(key_material).upper()
+    result = {
+        "evaluation_key": evaluation_key,
+        "status": EVALUATION_STATUS,
+        "data_boundary": DATA_BOUNDARY,
+        "fictional_only": True,
+        "preliminary": True,
+        "adapter_version": EVALUATION_ADAPTER_VERSION,
+        "case": {
+            "case_key": case.case_key,
+            "display_name": case.display_name,
+            "organization_context": case.organization_context,
+            "input_sha256": input_sha,
+        },
+        "policy_bundle_sha256": bundle["content_sha256"],
+        "commercial_estimate_snapshot_sha256": commercial.commercial_estimate_snapshot_sha256,
+        "rate_card_snapshot_sha256": commercial.rate_card_snapshot_sha256,
+        "dimensions": reviews,
+        "recommended_package": {
+            "package_key": package["package_key"],
+            "prototype_name": package["prototype_name"],
+            "purpose": package["purpose"],
+            "capacity_ceiling": package["capacity_ceiling"],
+            "classification": "Preliminary Inference",
+        },
+        "public_price": public_price,
+        "information_gaps": sorted({
+            gap for review in reviews.values() for gap in review["information_gaps"]
+        }),
+        "assumptions": list(commercial.assumptions),
+        "contradictions": [],
+        "authority": "A qualified Salus reviewer retains scope, package, price, release, and commercial authority.",
+        "creates_charge": False,
+        "creates_contract": False,
+        "creates_membership": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "has_routes": False,
+    }
+    snapshot_json = canonical_json(result)
+    digest = content_sha256(snapshot_json)
+    existing = conn.execute(
+        "SELECT snapshot_json, content_sha256 FROM advisor_fictional_evaluation_snapshots WHERE evaluation_key=?",
+        (evaluation_key,),
+    ).fetchone()
+    if existing:
+        if existing["snapshot_json"] != snapshot_json or existing["content_sha256"] != digest:
+            raise PolicyIntegrityError("fictional evaluation key collision")
+    else:
+        conn.execute(
+            "INSERT INTO advisor_fictional_evaluation_snapshots(evaluation_key,case_key,status,data_boundary,fictional_only,adapter_version,policy_bundle_sha256,commercial_estimate_snapshot_sha256,rate_card_snapshot_sha256,input_sha256,snapshot_json,content_sha256,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                evaluation_key, case_key, EVALUATION_STATUS, DATA_BOUNDARY, 1,
+                EVALUATION_ADAPTER_VERSION, bundle["content_sha256"],
+                commercial.commercial_estimate_snapshot_sha256,
+                commercial.rate_card_snapshot_sha256, input_sha,
+                snapshot_json, digest, created_at.strip(),
+            ),
+        )
+        conn.commit()
+    return {**copy.deepcopy(result), "content_sha256": digest}
+
+
+def load_fictional_evaluation(conn: Any, evaluation_key: str) -> dict[str, Any]:
+    """Load an immutable fictional evaluation and fail closed on any mismatch."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_fictional_evaluation_snapshots WHERE evaluation_key=?",
+        (evaluation_key,),
+    ).fetchone()
+    if not row:
+        raise PolicyIntegrityError("fictional evaluation is missing")
+    if (
+        row["status"] != EVALUATION_STATUS
+        or row["data_boundary"] != DATA_BOUNDARY
+        or int(row["fictional_only"]) != 1
+        or row["adapter_version"] != EVALUATION_ADAPTER_VERSION
+        or content_sha256(row["snapshot_json"]) != row["content_sha256"]
+    ):
+        raise PolicyIntegrityError("fictional evaluation integrity check failed")
+    result = json.loads(row["snapshot_json"])
+    checks = {
+        "evaluation_key": row["evaluation_key"],
+        "status": row["status"],
+        "data_boundary": row["data_boundary"],
+        "adapter_version": row["adapter_version"],
+        "policy_bundle_sha256": row["policy_bundle_sha256"],
+        "commercial_estimate_snapshot_sha256": row["commercial_estimate_snapshot_sha256"],
+        "rate_card_snapshot_sha256": row["rate_card_snapshot_sha256"],
+    }
+    if any(result.get(key) != value for key, value in checks.items()):
+        raise PolicyIntegrityError("fictional evaluation reference check failed")
+    if result["case"]["input_sha256"] != row["input_sha256"]:
+        raise PolicyIntegrityError("fictional evaluation input reference check failed")
+    if any(result.get(flag) is not False for flag in (
+        "creates_charge", "creates_contract", "creates_membership",
+        "creates_protected_member", "creates_disclosure", "has_routes",
+    )):
+        raise PolicyIntegrityError("fictional evaluation authority boundary failed")
+    assert_safe_public_projection(result["public_price"])
+    return {**result, "content_sha256": row["content_sha256"]}
+
+
+def prepare_all_fictional_evaluations(conn: Any, *, created_at: str) -> list[dict[str, Any]]:
+    return [
+        prepare_fictional_evaluation(conn, case.case_key, created_at=created_at)
+        for case in FICTIONAL_CASES
+    ]
