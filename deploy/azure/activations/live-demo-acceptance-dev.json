@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
-  "activation_key": "salcapa-v3.111-live-demo-20260911-r2",
+  "activation_key": "salcapa-v3.112-live-demo-20260911-r3",
   "operation": "accept_live_demonstration",
   "target_environment": "dev",
   "unique_suffix": "b48224",
   "location": "southcentralus",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-  "source_release": "release/v3.111",
-  "source_commit": "8bf4614ec79a27641c40dc1a21e1790746a08604",
-  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311",
-  "deployment_workflow_run": 34621973343,
+  "source_release": "release/v3.112",
+  "source_commit": "1d1759375d37b7de884331c06833de8c727ac5af",
+  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce",
+  "deployment_workflow_run": 34672016498,
   "postgres_server": "salcapa-dev-b48224-pg",
   "write_fictional_fixtures": true,
   "real_data_authorized": false,
@@ -17,5 +17,5 @@
   "expected_persona_count": 24,
   "fixture_authority": "ISSUE-124",
   "demonstration_acknowledgement": "FICTIONAL DEMONSTRATION DATA ONLY",
-  "acceptance_revision": 2
+  "acceptance_revision": 3
 }
