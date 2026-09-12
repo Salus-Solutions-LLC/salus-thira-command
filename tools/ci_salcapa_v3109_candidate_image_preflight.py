@@ -22,6 +22,7 @@ V336_COMMIT = "63d513605f908d3308bb5dd1bbdbf1061878452b"
 V336_DIGEST = "sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46"
 V3111_COMMIT = "8bf4614ec79a27641c40dc1a21e1790746a08604"
 V3111_DIGEST = "sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311"
+V3112_COMMIT = "1d1759375d37b7de884331c06833de8c727ac5af"
 PINNED_BLOBS = {
     "Dockerfile": "15468459038f2ba6786d4e7693a76fda758c3c7d",
     "salcapa_runtime.py": "9f568d750613adaeebdfa22575c533586c8e3b53",
@@ -89,9 +90,9 @@ assert not (FROZEN_ROOT / "tools" / "reconstruct_salcapa_demo_fixtures.py").exis
 
 image_publication = load_json(IMAGE_PUBLICATION)
 accepted_application = load_json(ACCEPTED_APPLICATION)
-assert image_publication["source_release"] == "release/v3.111"
-assert image_publication["source_commit"] == V3111_COMMIT
-assert image_publication["activation_key"] == "salcapa-v3.111-image-8bf4614e"
+assert image_publication["source_release"] == "release/v3.112"
+assert image_publication["source_commit"] == V3112_COMMIT
+assert image_publication["activation_key"] == "salcapa-v3.112-image-1d175937"
 assert accepted_application["source_release"] == "release/v3.111"
 assert accepted_application["source_commit"] == V3111_COMMIT
 assert accepted_application["image_digest"].endswith(V3111_DIGEST)
