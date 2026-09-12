@@ -12,9 +12,10 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal
+from typing import Any, Literal, Mapping
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -63,6 +64,9 @@ INTERNAL_REVIEW_TOPICS = (
     "Accessibility, responsive presentation, and Salus visual continuity",
     "Security, privacy, abuse resistance, recovery, and rollback readiness",
 )
+INTERNAL_REVIEW_INTERFACE_VERSION = "SPA-INTERNAL-REVIEW-INTERFACE-1.0.0"
+INTERNAL_REVIEW_INTERFACE_FLAG = "SALUS_PROTECTION_ADVISOR_INTERNAL_REVIEW"
+INTERNAL_REVIEW_INTERFACE_STATE = "Enabled for Fictional Internal Acceptance"
 POLICY_TABLES = {
     "Questionnaire": "advisor_questionnaire_versions",
     "Recommendation Policy": "advisor_recommendation_policy_versions",
@@ -356,6 +360,22 @@ class FictionalInternalReviewPacketCommand(BaseModel):
         if cleaned != INTERNAL_REVIEW_TOPICS:
             raise ValueError("internal review packet must retain the complete governed review scope")
         return cleaned
+
+
+class FictionalInternalReviewInterfaceContext(BaseModel):
+    """Server-side fictional reviewer context; no public request model uses it."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    reviewer_key: str = Field(
+        pattern=r"^SPA-REVIEWER-FICTIONAL-[A-Z0-9-]{1,80}$"
+    )
+    reviewer_role: Literal[
+        "Qualified Salus Commercial Reviewer",
+        "Senior Salus Commercial Reviewer",
+    ]
+    access_purpose: Literal["Review Fictional Protection Advisor Evidence"]
+    fictional_acceptance_simulation: Literal[True]
 
 
 SCHEMA = """
@@ -3038,3 +3058,186 @@ def prepare_fictional_internal_review_packet(
         conn.rollback()
         raise
     return {**packet, "content_sha256": digest}
+
+
+def _require_fictional_internal_review_interface(
+    server_settings: Mapping[str, str] | None,
+) -> dict[str, str]:
+    """Fail closed unless the internal fictional-review boundary is explicitly enabled."""
+
+    settings = dict(os.environ if server_settings is None else server_settings)
+    environment = str(settings.get("SALUS_ENV", "")).strip().lower()
+    auth_mode = str(settings.get("SALUS_AUTH_MODE", "")).strip().lower()
+    interface_state = str(settings.get(INTERNAL_REVIEW_INTERFACE_FLAG, "")).strip()
+    if (
+        environment not in {"development", "test"}
+        or auth_mode not in {"prototype", "session", "oidc"}
+        or interface_state != INTERNAL_REVIEW_INTERFACE_STATE
+    ):
+        raise SessionAccessError("fictional internal review interface is unavailable")
+    return {
+        "environment": environment,
+        "auth_mode": auth_mode,
+        "interface_state": interface_state,
+    }
+
+
+def open_fictional_internal_review_interface(
+    conn: Any,
+    packet_key: str,
+    context: FictionalInternalReviewInterfaceContext,
+    *,
+    viewed_at: str,
+    server_settings: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Open a read-only internal view without claiming review or approval."""
+
+    gate = _require_fictional_internal_review_interface(server_settings)
+    at = _parse_utc(viewed_at)
+    packet = load_fictional_internal_review_packet(conn, packet_key)
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(context.reviewer_key)
+    if (
+        reviewer is None
+        or reviewer["fictional_only"] is not True
+        or reviewer["reviewer_role"] != context.reviewer_role
+    ):
+        raise SessionAccessError("fictional internal review viewer is not authorized")
+
+    prospect = load_fictional_prospect(conn, packet["prospect_key"])
+    current_review = load_current_fictional_staff_review(conn, prospect["prospect_key"])
+    basis_is_current = (
+        current_review["review_key"]
+        == packet["evidence"]["authorizing_review_key"]
+    )
+    lifecycle_state = (
+        "Current Fictional Review Evidence"
+        if basis_is_current
+        else "Superseded — Historical Fictional Evidence"
+    )
+    interface = {
+        "interface_version": INTERNAL_REVIEW_INTERFACE_VERSION,
+        "page_title": "Salus Protection Advisor™",
+        "navigation_label": "Service Recommendation & Pricing",
+        "page_purpose": "Internal Fictional Review",
+        "visibility": "Internal Salus Review Only — No Public Route",
+        "left_margin_release_version": "Internal prototype — not deployed",
+        "salus_workflow": ["See", "Decide", "Coordinate", "Act", "Prove"],
+        "status": packet["status"],
+        "lifecycle_state": lifecycle_state,
+        "data_boundary": packet["data_boundary"],
+        "fictional_only": True,
+        "fictional_acceptance_simulation": True,
+        "packet_key": packet["packet_key"],
+        "packet_content_sha256": packet["content_sha256"],
+        "viewer_key": context.reviewer_key,
+        "viewer_role": context.reviewer_role,
+        "access_purpose": context.access_purpose,
+        "viewed_at": _utc_text(at),
+        "viewed_display": _display_utc(at),
+        "guidance": (
+            "Review the evidence, uncertainty, assumptions, and unresolved validation "
+            "needs. Salus personnel retain judgment and decide what happens next."
+        ),
+        "review_topics": packet["topic_evidence"],
+        "evidence_summary": {
+            "fictional_case_coverage": packet["evidence"]["fictional_case_coverage"],
+            "organization_profile": packet["evidence"]["organization_profile"],
+            "proposed_package": packet["evidence"]["proposed_package"],
+            "recommended_investigation_depth": (
+                packet["evidence"]["recommended_investigation_depth"]
+            ),
+            "public_price_ranges": packet["evidence"]["public_price_ranges"],
+            "recommendation_assumptions": (
+                packet["evidence"]["recommendation_assumptions"]
+            ),
+            "recommendation_contradictions": (
+                packet["evidence"]["recommendation_contradictions"]
+            ),
+            "recommendation_information_gaps": (
+                packet["evidence"]["recommendation_information_gaps"]
+            ),
+            "scoping_assumptions": packet["evidence"]["scoping_assumptions"],
+            "scoping_exclusions": packet["evidence"]["scoping_exclusions"],
+            "validation_questions": packet["evidence"]["validation_questions"],
+        },
+        "source_lineage": {
+            key: packet["evidence"][key]
+            for key in (
+                "handoff_key", "handoff_snapshot_sha256", "prospect_key",
+                "prospect_snapshot_sha256", "consent_key",
+                "consent_snapshot_sha256", "evaluation_key",
+                "evaluation_snapshot_sha256", "policy_bundle_sha256",
+                "governing_versions", "commercial_estimate_snapshot_sha256",
+                "authorizing_review_key",
+                "authorizing_review_snapshot_sha256", "review_history",
+            )
+        },
+        "open_decisions": packet["open_decisions"],
+        "what_happens_next": packet["what_happens_next"],
+        "human_authority": (
+            "Qualified Salus personnel may accept, reject, request changes, pause, or "
+            "end this work through a separately governed decision record."
+        ),
+        "available_controls": {
+            "inspect_evidence": True,
+            "compare_source_lineage": True,
+            "prepare_review_notes": True,
+            "record_human_review": False,
+            "approve_prototype": False,
+            "authorize_public_release": False,
+        },
+        "accessibility_contract": {
+            "reading_order": [
+                "Identity and purpose", "Status and authority", "Review topics",
+                "Evidence summary", "Source lineage", "Open decisions", "Next step",
+            ],
+            "keyboard_operable": True,
+            "visible_focus_required": True,
+            "color_is_not_the_only_signal": True,
+            "supports_text_resize": True,
+            "mobile_reflow_required": True,
+        },
+        "human_review_completed": False,
+        "approves_prototype": False,
+        "authorizes_public_route": False,
+        "authorizes_dns": False,
+        "authorizes_pilot": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "authorizes_customer_release": False,
+        "authorizes_onboarding": False,
+    }
+    interface_text = canonical_json(interface).casefold()
+    for forbidden in (
+        "@example.com", "contact_email", "contact_name", "session_token",
+        "internal_cost", "role_rate", "margin_basis_points", "tenant_id",
+        "protected_member_id", "approved_customer_price_cents",
+    ):
+        if forbidden in interface_text:
+            raise PolicyIntegrityError("fictional internal review interface contains restricted data")
+    assert_safe_public_projection(interface["evidence_summary"]["public_price_ranges"])
+    view_sha256 = content_sha256(interface)
+    _record_session_event(
+        conn,
+        prospect["session_key"],
+        "Fictional Internal Review Interface Opened",
+        interface["viewed_at"],
+        {
+            "packet_key": packet["packet_key"],
+            "view_sha256": view_sha256,
+            "viewer_key": context.reviewer_key,
+            "lifecycle_state": lifecycle_state,
+            "human_review_completed": False,
+            "fictional_acceptance_simulation": True,
+        },
+    )
+    conn.commit()
+    return {
+        **interface,
+        "view_sha256": view_sha256,
+        "server_gate": {
+            "interface_state": gate["interface_state"],
+            "environment_class": "Non-production",
+            "authentication_boundary": "Server controlled",
+        },
+    }
