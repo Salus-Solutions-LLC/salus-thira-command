@@ -1,14 +1,14 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 11 September 2026 23:43 CDT
+last_verified_at: 12 September 2026 00:06 CDT
 environment: azure_development_demonstration
 deployed_release: v3.112
 deployed_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 image_digest: sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce
 deployed_at: 11 September 2026 23:08 CDT
 deployment_workflow_run: 34672016498
-deployment_acceptance: live_runtime_readiness_accepted
+deployment_acceptance: full_demonstration_acceptance
 current_stable_release: v3.112
 current_stable_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 promotion_candidate: v3.112
@@ -17,12 +17,12 @@ promotion_candidate_image_digest: sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac9
 promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce
 promotion_candidate_image_published_at: 11 September 2026 22:42 CDT
 promotion_candidate_image_workflow_run: 34670976390
-promotion_candidate_image_acceptance: immutable_image_deployed_awaiting_live_acceptance
-promotion_readiness: deployed_awaiting_live_acceptance
-fictional_member_seed_state: v312_deployed_awaiting_live_acceptance
-critical_journey_acceptance: not_verified
+promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
+promotion_readiness: accepted
+fictional_member_seed_state: verified
+critical_journey_acceptance: verified
 rollback_baseline: v3.111
-genuine_blocker: corrected_live_acceptance_retry_pending
+genuine_blocker: none
 ---
 
 # SalCAPA development demonstration continuity
@@ -76,6 +76,8 @@ All 20 required workflow families passed for the repair on exact candidate commi
 
 [Live acceptance workflow 34673592500](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34673592500) failed closed on **11 September 2026 at 23:43 CDT**. The temporary job was removed and the deployed v3.112 application remained unchanged. The harness had searched for an obsolete success marker and had not yet required the dedicated evaluator-route test. The corrected retry now requires both the governed promotion preflight and the read-only evaluator acceptance marker from exact frozen v3.112.
 
+[Live acceptance workflow 34674570520](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34674570520) passed on **12 September 2026 at 00:06 CDT**. Exact frozen v3.112 verified Aster Ridge, Cedar Vale, and Northstar through the ordinary read-only Demonstration Environments route, all governed SalINTEL/SalTHIRA/SalCAPA/SalOPS/PROVE journeys, role restrictions, server-controlled tenant state, cross-tenant denial, and PostgreSQL persistence. The bounded temporary job was removed, and application image, identity, ingress, traffic, DNS, scale, and secret configuration remained unchanged. No real data or human approval, decision, validation, or release is represented.
+
 ## Promotion gates
 
 Before any newer milestone is promoted, all of the following must be verified on the exact frozen candidate and immutable image digest:
@@ -98,4 +100,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Run the separately governed live v3.112 acceptance against the ordinary read-only Demonstration Environments path. It must show exactly Aster Ridge, Cedar Vale, and Northstar to authorized Salus evaluator roles, deny Protected Member and cross-tenant misuse, preserve the live application configuration, and remove its bounded temporary job. Accepted v3.111 remains the rollback baseline until that gate passes. Resume Issue #236 only after the ordinary evaluator interface is accepted.
+Live v3.112 acceptance is complete. Preserve this exact accepted deployment and v3.111 rollback baseline while resuming the bounded Issue #236 rendering-to-recognition and independent-review path. Do not redeploy until another coherent frozen milestone passes every promotion gate.
