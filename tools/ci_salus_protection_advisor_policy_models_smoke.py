@@ -535,6 +535,142 @@ def main() -> None:
         assert review_audit[-1]["contains_contact_information"] is False
         assert juniper_contact["contact_email"] not in json.dumps(review_audit).casefold()
 
+        handoff_command = advisor.FictionalScopingHandoffCommand(
+            authorizing_review_key=corrected_review["review_key"],
+            prepared_by_reviewer_key="SPA-REVIEWER-FICTIONAL-SENIOR-1",
+            prepared_by_reviewer_role="Senior Salus Commercial Reviewer",
+            preparation_purpose="Prepare Fictional Scope Draft",
+            fictional_acceptance_simulation=True,
+            assumptions=(
+                "The fictional recommendation remains preliminary.",
+                "Travel and specialist requirements remain to be validated.",
+            ),
+            exclusions=(
+                "No incident deployment, equipment purchase, or partner commitment.",
+            ),
+            validation_questions=(
+                "Which fictional locations should a later scope include?",
+            ),
+        )
+        handoff = advisor.prepare_fictional_scoping_handoff(
+            conn,
+            prospect_result["prospect_key"],
+            handoff_command,
+            prepared_at="2026-09-12T15:50:00Z",
+        )
+        assert handoff["status"] == advisor.SCOPING_HANDOFF_STATUS
+        assert handoff["scope_state"] == "Proposed — Not Authorized"
+        assert handoff["authorizing_review_key"] == corrected_review["review_key"]
+        assert handoff["proposed_package"]["package_key"] == "SPA-PKG-FOUNDATION"
+        assert handoff["recommended_investigation_depth"] == "Initial Pass"
+        assert handoff["implementation_period"] == "Four to six weeks"
+        assert handoff["contact_information_included"] is False
+        assert handoff["created_display"] == "12 September 2026 15:50 UTC"
+        assert handoff["basis_sha256"] == advisor.content_sha256(handoff["basis"])
+        assert set(handoff["required_separate_approvals"]) == {
+            "Final scope", "Final package", "Final price",
+            "Customer release or commitment", "Protected Member onboarding",
+        }
+        assert all(handoff[flag] is False for flag in (
+            "establishes_scope", "authorizes_package", "authorizes_price",
+            "creates_charge", "creates_contract", "creates_membership",
+            "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release", "authorizes_onboarding",
+        ))
+        handoff_text = json.dumps(handoff).casefold()
+        assert "@example.com" not in handoff_text
+        assert "contact_email" not in handoff_text
+        assert "contact_name" not in handoff_text
+        for hidden in (
+            "internal_cost", "role_rate", "margin", "tenant_id",
+            "protected_member_id", "approved_customer_price_cents",
+        ):
+            assert hidden not in handoff_text
+        loaded_handoff = advisor.load_fictional_scoping_handoff(
+            conn, handoff["handoff_key"]
+        )
+        assert loaded_handoff["content_sha256"] == handoff["content_sha256"]
+        advisor.assert_safe_public_projection(loaded_handoff["public_price_ranges"])
+
+        try:
+            advisor.prepare_fictional_scoping_handoff(
+                conn,
+                prospect_result["prospect_key"],
+                advisor.FictionalScopingHandoffCommand(
+                    authorizing_review_key=first_review["review_key"],
+                    prepared_by_reviewer_key=reviewer["reviewer_key"],
+                    prepared_by_reviewer_role=reviewer["reviewer_role"],
+                    preparation_purpose="Prepare Fictional Scope Draft",
+                    fictional_acceptance_simulation=True,
+                ),
+                prepared_at="2026-09-12T15:51:00Z",
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("superseded questions-required review created a handoff")
+        try:
+            advisor.prepare_fictional_scoping_handoff(
+                conn,
+                prospect_result["prospect_key"],
+                handoff_command,
+                prepared_at="2026-09-12T15:51:00Z",
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("duplicate fictional scoping handoff was accepted")
+
+        handoff_audit = advisor.verify_fictional_session_audit(
+            conn, evaluation_session["session_key"]
+        )
+        assert handoff_audit[-1]["event_type"] == "Fictional Scoping Handoff Prepared"
+        assert handoff_audit[-1]["details"]["handoff_key"] == handoff["handoff_key"]
+        assert handoff_audit[-1]["contains_answer_content"] is False
+        assert handoff_audit[-1]["contains_contact_information"] is False
+        assert juniper_contact["contact_email"] not in json.dumps(handoff_audit).casefold()
+
+        conn.execute(
+            "UPDATE advisor_fictional_scoping_handoffs SET snapshot_json=? WHERE handoff_key=?",
+            ("{}", handoff["handoff_key"]),
+        )
+        try:
+            advisor.load_fictional_scoping_handoff(conn, handoff["handoff_key"])
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("tampered fictional scoping handoff was accepted")
+        finally:
+            conn.rollback()
+        assert advisor.load_fictional_scoping_handoff(
+            conn, handoff["handoff_key"]
+        )["handoff_key"] == handoff["handoff_key"]
+
+        try:
+            advisor.FictionalScopingHandoffCommand(
+                authorizing_review_key=corrected_review["review_key"],
+                prepared_by_reviewer_key=reviewer["reviewer_key"],
+                prepared_by_reviewer_role=reviewer["reviewer_role"],
+                preparation_purpose="Prepare Fictional Scope Draft",
+                fictional_acceptance_simulation=True,
+                approved_customer_price_cents=1,
+            )
+        except ValidationError:
+            pass
+        else:
+            raise AssertionError("binding field was accepted in a fictional handoff")
+
+        handoff_columns = {
+            column["name"]
+            for column in conn.execute(
+                "PRAGMA table_info(advisor_fictional_scoping_handoffs)"
+            )
+        }
+        assert "tenant_id" not in handoff_columns
+        assert "protected_member_id" not in handoff_columns
+        assert "contact_email" not in handoff_columns
+        assert "approved_customer_price_cents" not in handoff_columns
+
         conn.execute(
             "UPDATE advisor_prospect_review_decisions SET snapshot_json=? WHERE review_key=?",
             ("{}", corrected_review["review_key"]),
