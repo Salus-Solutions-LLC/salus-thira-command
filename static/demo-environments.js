@@ -32,8 +32,8 @@
       </div>`;
   }
 
-  async function render(){
-    const data=await api('/api/demonstration-environments');
+  async function renderDemoEnvironments(){
+    const data=await api('/api/salcapa/demonstration-environments');
     if(!data.environments.length){
       $('#content').innerHTML='<div class="notice">The governed fictional demonstration environments are not prepared in this deployment.</div>';
       return;
@@ -45,6 +45,10 @@
     show();
   }
 
-  window.SalusDemoEnvironments={render};
+  const renderSalcapaView=render;
+  render=async function(){
+    if(currentView==='demo_environments') return renderDemoEnvironments();
+    return renderSalcapaView();
+  };
+  window.SalusDemoEnvironments={render:renderDemoEnvironments};
 })();
-
