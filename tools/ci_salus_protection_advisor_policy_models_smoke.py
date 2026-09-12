@@ -1039,6 +1039,150 @@ def main() -> None:
             ):
                 assert forbidden_column not in note_columns
 
+        decision_contract = (
+            advisor.prepare_fictional_internal_review_decision_contract(
+                conn,
+                advisor.FictionalInternalReviewDecisionContractCommand(
+                    packet_key=packet["packet_key"],
+                    preparation_purpose="Measure Fictional Internal Review Readiness",
+                    prepared_by_reviewer_key=reviewer["reviewer_key"],
+                    prepared_by_reviewer_role=reviewer["reviewer_role"],
+                    fictional_acceptance_simulation=True,
+                ),
+                prepared_at="2026-09-12T16:15:00Z",
+                server_settings=review_settings,
+            )
+        )
+        assert decision_contract["contract_version"] == (
+            advisor.INTERNAL_REVIEW_DECISION_CONTRACT_VERSION
+        )
+        assert decision_contract["status"] == "Evidence Needed"
+        assert decision_contract["topics_prepared_for_human_decision"] == 1
+        assert decision_contract["topics_needing_evidence"] == 8
+        assert len(decision_contract["topic_readiness"]) == 9
+        assert tuple(
+            item["topic"] for item in decision_contract["topic_readiness"]
+        ) == advisor.INTERNAL_REVIEW_TOPICS
+        prepared_topics = [
+            item for item in decision_contract["topic_readiness"]
+            if item["state"] == "Prepared for Human Decision"
+        ]
+        assert [item["topic"] for item in prepared_topics] == [
+            "Question wording and participant burden"
+        ]
+        assert decision_contract["actual_human_authority_required"] is True
+        assert decision_contract["entra_identity_verification_required"] is True
+        assert decision_contract["entra_identity_verified"] is False
+        assert decision_contract["human_review_completed"] is False
+        assert decision_contract["decision_record_created"] is False
+        assert decision_contract["basis_sha256"] == advisor.content_sha256(
+            decision_contract["basis"]
+        )
+        assert decision_contract["topic_readiness_sha256"] == advisor.content_sha256(
+            decision_contract["topic_readiness"]
+        )
+        assert all(decision_contract[flag] is False for flag in (
+            "approves_prototype", "authorizes_security_testing",
+            "authorizes_public_route", "authorizes_dns", "authorizes_pilot",
+            "changes_scoring", "changes_recommendation", "changes_package",
+            "changes_price", "creates_protected_member",
+            "authorizes_customer_release",
+        ))
+        loaded_contract = (
+            advisor.load_fictional_internal_review_decision_contract(
+                conn, decision_contract["contract_key"]
+            )
+        )
+        assert loaded_contract["content_sha256"] == decision_contract["content_sha256"]
+
+        try:
+            advisor.prepare_fictional_internal_review_decision_contract(
+                conn,
+                advisor.FictionalInternalReviewDecisionContractCommand(
+                    packet_key=packet["packet_key"],
+                    preparation_purpose="Measure Fictional Internal Review Readiness",
+                    prepared_by_reviewer_key=reviewer["reviewer_key"],
+                    prepared_by_reviewer_role=reviewer["reviewer_role"],
+                    fictional_acceptance_simulation=True,
+                ),
+                prepared_at="2026-09-12T16:16:00Z",
+                server_settings=review_settings,
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("duplicate fictional decision contract was accepted")
+
+        try:
+            advisor.FictionalInternalReviewDecisionContractCommand(
+                packet_key=packet["packet_key"],
+                preparation_purpose="Measure Fictional Internal Review Readiness",
+                prepared_by_reviewer_key=reviewer["reviewer_key"],
+                prepared_by_reviewer_role=reviewer["reviewer_role"],
+                fictional_acceptance_simulation=True,
+                approves_prototype=True,
+            )
+        except ValidationError:
+            pass
+        else:
+            raise AssertionError("approval entered the fictional decision contract command")
+
+        contract_text = json.dumps(decision_contract).casefold()
+        for hidden in (
+            "@example.com", "contact_email", "contact_name", "session_token",
+            "internal_cost", "role_rate", "margin_basis_points", "tenant_id",
+            "protected_member_id", "approved_customer_price_cents",
+        ):
+            assert hidden not in contract_text
+
+        contract_audit = advisor.verify_fictional_session_audit(
+            conn, evaluation_session["session_key"]
+        )
+        assert contract_audit[-1]["event_type"] == (
+            "Fictional Internal Review Decision Contract Prepared"
+        )
+        assert contract_audit[-1]["details"]["contract_key"] == (
+            decision_contract["contract_key"]
+        )
+        assert contract_audit[-1]["details"]["human_review_completed"] is False
+        assert contract_audit[-1]["details"]["decision_record_created"] is False
+        assert contract_audit[-1]["contains_answer_content"] is False
+        assert contract_audit[-1]["contains_contact_information"] is False
+        assert juniper_contact["contact_email"] not in json.dumps(contract_audit).casefold()
+
+        conn.execute(
+            "UPDATE advisor_fictional_internal_review_decision_contracts "
+            "SET snapshot_json=? WHERE contract_key=?",
+            ("{}", decision_contract["contract_key"]),
+        )
+        try:
+            advisor.load_fictional_internal_review_decision_contract(
+                conn, decision_contract["contract_key"]
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("tampered fictional decision contract was accepted")
+        finally:
+            conn.rollback()
+        assert advisor.load_fictional_internal_review_decision_contract(
+            conn, decision_contract["contract_key"]
+        )["contract_key"] == decision_contract["contract_key"]
+
+        contract_columns = {
+            column["name"]
+            for column in conn.execute(
+                "PRAGMA table_info("
+                "advisor_fictional_internal_review_decision_contracts)"
+            )
+        }
+        for forbidden_column in (
+            "tenant_id", "protected_member_id", "contact_email",
+            "approved_customer_price_cents", "human_review_completed",
+            "decision_record_created",
+        ):
+            assert forbidden_column not in contract_columns
+
         conn.execute(
             "UPDATE advisor_fictional_internal_review_packets SET snapshot_json=? WHERE packet_key=?",
             ("{}", packet["packet_key"]),
