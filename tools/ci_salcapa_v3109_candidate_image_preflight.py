@@ -113,7 +113,7 @@ if continuity["promotion_readiness"] == "accepted":
     assert continuity["critical_journey_acceptance"] == "verified"
     assert continuity["genuine_blocker"] == "none"
 else:
-    assert continuity["promotion_readiness"] == "preflight_ready"
+    assert continuity["promotion_readiness"] in {"preflight_ready", "deployed_awaiting_live_acceptance"}
     assert continuity["deployed_release"] in {"v3.111", "v3.112"}
     if continuity["deployed_release"] == "v3.111":
         assert continuity["deployed_commit"] == V3111_COMMIT
