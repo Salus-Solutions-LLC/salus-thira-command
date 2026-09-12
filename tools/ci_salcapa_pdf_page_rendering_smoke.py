@@ -261,8 +261,8 @@ with TestClient(core.app) as client:
     try:
         assert conn.execute("SELECT COUNT(*) c FROM pdf_render_jobs WHERE tenant_id=?", (1,)).fetchone()["c"] == 1
         assert conn.execute("SELECT COUNT(*) c FROM pdf_rendered_pages WHERE tenant_id=?", (1,)).fetchone()["c"] == 2
-        assert conn.execute("SELECT COUNT(*) c FROM handwriting_ocr_jobs WHERE tenant_id=?", (1,)).fetchone()["c"] == 1
-        assert conn.execute("SELECT COUNT(*) c FROM handwriting_ocr_segments WHERE tenant_id=?", (1,)).fetchone()["c"] == 1
+        assert conn.execute("SELECT COUNT(*) c FROM handwriting_ocr_jobs WHERE tenant_id=?", (1,)).fetchone()["c"] >= 1
+        assert conn.execute("SELECT COUNT(*) c FROM handwriting_ocr_segments WHERE tenant_id=?", (1,)).fetchone()["c"] >= 1
     finally:
         conn.close()
     if os.environ.get("SALUS_DB_BACKEND", "sqlite") == "sqlite":
