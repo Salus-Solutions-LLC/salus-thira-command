@@ -210,6 +210,228 @@ def main() -> None:
         ):
             assert forbidden not in evaluation_serialized
 
+        session = advisor.start_fictional_session(
+            conn,
+            "SPA-FICTIONAL-JUNIPER-TABLE",
+            created_at="2026-09-12T15:00:00Z",
+        )
+        assert len(session["session_token"]) >= 40
+        assert session["status"] == "Active"
+        assert session["fictional_only"] is True
+        assert session["contact_information_required"] is False
+        assert session["has_protected_member_access"] is False
+        assert session["expires_at"] == "2026-09-12T17:00:00Z"
+        token = session["session_token"]
+        session_row = conn.execute(
+            "SELECT * FROM advisor_sessions WHERE session_key=?",
+            (session["session_key"],),
+        ).fetchone()
+        assert session_row["current_token_sha256"] == advisor.content_sha256(token)
+        assert session_row["current_token_sha256"] != token
+        assert advisor.load_fictional_session(
+            conn, token, as_of="2026-09-12T15:01:00Z"
+        )["latest_answer_revision"] == 0
+
+        answer_one = advisor.append_fictional_answer_revision(
+            conn,
+            token,
+            advisor.FictionalAnswerSubmission(
+                question_key="organization_type",
+                answer_state="Answered",
+                value="Small Business",
+            ),
+            created_at="2026-09-12T15:02:00Z",
+        )
+        assert answer_one["classification"] == "Prospect-Reported Fictional Information"
+        advisor.append_fictional_answer_revision(
+            conn,
+            token,
+            advisor.FictionalAnswerSubmission(
+                question_key="mission",
+                answer_state="Unknown",
+            ),
+            created_at="2026-09-12T15:03:00Z",
+        )
+        advisor.append_fictional_answer_revision(
+            conn,
+            token,
+            advisor.FictionalAnswerSubmission(
+                question_key="organization_type",
+                answer_state="Unknown",
+            ),
+            created_at="2026-09-12T15:04:00Z",
+        )
+        advisor.append_fictional_answer_revision(
+            conn,
+            token,
+            advisor.FictionalAnswerSubmission(
+                question_key="organization_type",
+                answer_state="Answered",
+                value="Small Business",
+            ),
+            created_at="2026-09-12T15:05:00Z",
+        )
+        current_answers = advisor.current_fictional_answers(
+            conn, token, as_of="2026-09-12T15:06:00Z"
+        )
+        assert current_answers["organization_type"]["answer_state"] == "Answered"
+        assert current_answers["organization_type"]["value"] == "Small Business"
+        assert current_answers["organization_type"]["revision_number"] == 4
+        assert current_answers["mission"]["answer_state"] == "Unknown"
+        assert current_answers["mission"]["value"] is None
+        revision_rows = list(conn.execute(
+            "SELECT * FROM advisor_answer_revisions WHERE session_key=?",
+            (session["session_key"],),
+        ))
+        assert len(revision_rows) == 4
+        assert {int(row["revision_number"]) for row in revision_rows} == {1, 2, 3, 4}
+
+        try:
+            advisor.append_fictional_answer_revision(
+                conn,
+                token,
+                advisor.FictionalAnswerSubmission(
+                    question_key="organization_type",
+                    answer_state="Answered",
+                    value="Public Agency",
+                ),
+                created_at="2026-09-12T15:07:00Z",
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("non-fixture answer content was accepted")
+
+        try:
+            advisor.FictionalAnswerSubmission(
+                question_key="mission",
+                answer_state="Unknown",
+                value="hidden value",
+            )
+        except ValidationError:
+            pass
+        else:
+            raise AssertionError("a non-answered state retained a value")
+
+        rotated = advisor.rotate_fictional_session(
+            conn, token, rotated_at="2026-09-12T15:10:00Z"
+        )
+        rotated_token = rotated["session_token"]
+        assert rotated_token != token
+        assert rotated["session_key"] == session["session_key"]
+        try:
+            advisor.load_fictional_session(
+                conn, token, as_of="2026-09-12T15:11:00Z"
+            )
+        except advisor.SessionAccessError:
+            pass
+        else:
+            raise AssertionError("superseded session token was replayed")
+        assert advisor.load_fictional_session(
+            conn, rotated_token, as_of="2026-09-12T15:11:00Z"
+        )["latest_answer_revision"] == 4
+
+        deleted = advisor.delete_fictional_session(
+            conn, rotated_token, deleted_at="2026-09-12T15:12:00Z"
+        )
+        assert deleted["status"] == "Deleted"
+        assert deleted["answer_content_deleted"] is True
+        assert deleted["contact_information_retained"] is False
+        assert deleted["protected_member_record_created"] is False
+        assert list(conn.execute(
+            "SELECT * FROM advisor_answer_revisions WHERE session_key=?",
+            (session["session_key"],),
+        )) == []
+        try:
+            advisor.load_fictional_session(
+                conn, rotated_token, as_of="2026-09-12T15:13:00Z"
+            )
+        except advisor.SessionAccessError:
+            pass
+        else:
+            raise AssertionError("deleted session remained accessible")
+
+        expiring = advisor.start_fictional_session(
+            conn,
+            "SPA-FICTIONAL-MERIDIAN-REGIONAL",
+            created_at="2026-09-12T15:00:00Z",
+        )
+        advisor.append_fictional_answer_revision(
+            conn,
+            expiring["session_token"],
+            advisor.FictionalAnswerSubmission(
+                question_key="organization_type",
+                answer_state="Answered",
+                value="Multi-location Business",
+            ),
+            created_at="2026-09-12T15:01:00Z",
+        )
+        expired_keys = advisor.expire_fictional_sessions(
+            conn, as_of="2026-09-12T17:00:00Z"
+        )
+        assert expired_keys == [expiring["session_key"]]
+        assert list(conn.execute(
+            "SELECT * FROM advisor_answer_revisions WHERE session_key=?",
+            (expiring["session_key"],),
+        )) == []
+        try:
+            advisor.load_fictional_session(
+                conn, expiring["session_token"], as_of="2026-09-12T17:01:00Z"
+            )
+        except advisor.SessionAccessError:
+            pass
+        else:
+            raise AssertionError("expired session remained accessible")
+
+        for session_key in (session["session_key"], expiring["session_key"]):
+            audit = advisor.verify_fictional_session_audit(conn, session_key)
+            assert audit
+            assert all(event["contains_answer_content"] is False for event in audit)
+            assert all(event["contains_contact_information"] is False for event in audit)
+            assert all(event["creates_protected_member"] is False for event in audit)
+        assert advisor.verify_fictional_session_audit(
+            conn, session["session_key"]
+        )[-1]["event_type"] == "Session Deleted"
+        assert advisor.verify_fictional_session_audit(
+            conn, expiring["session_key"]
+        )[-1]["event_type"] == "Session Expired"
+
+        lifecycle_tables = (
+            "advisor_sessions", "advisor_session_tokens",
+            "advisor_answer_revisions", "advisor_audit_events",
+        )
+        for table in lifecycle_tables:
+            columns = {
+                column["name"] for column in conn.execute(f"PRAGMA table_info({table})")
+            }
+            assert "tenant_id" not in columns
+            assert "protected_member_id" not in columns
+            assert not any(name.startswith("contact") for name in columns)
+        token_rows = list(conn.execute("SELECT token_sha256 FROM advisor_session_tokens"))
+        assert token_rows
+        assert all(row["token_sha256"] not in {token, rotated_token, expiring["session_token"]} for row in token_rows)
+
+        try:
+            advisor.start_fictional_session(
+                conn,
+                "SPA-FICTIONAL-NOT-RELEASED",
+                created_at="2026-09-12T15:00:00Z",
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("unreleased fictional session case was accepted")
+        try:
+            advisor.start_fictional_session(
+                conn,
+                "SPA-FICTIONAL-JUNIPER-TABLE",
+                created_at="2026-09-12 15:00:00",
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("timezone-free lifecycle time was accepted")
+
         exposure_low = {dimension: 0 for dimension in advisor.DIMENSIONS}
         exposure_high = dict(exposure_low)
         exposure_low["Exposure"] = 1
