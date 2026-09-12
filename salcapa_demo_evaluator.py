@@ -193,9 +193,8 @@ def register_demo_evaluator(core: Any) -> None:
         }
 
     core.app.add_api_route(
-        "/api/demonstration-environments",
+        "/api/salcapa/demonstration-environments",
         list_demo_environments,
         methods=["GET"],
         include_in_schema=False,
     )
-
