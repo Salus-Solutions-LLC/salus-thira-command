@@ -12,6 +12,8 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -22,6 +24,9 @@ DATA_BOUNDARY = "Advisor Prospect — No Protected Member Access"
 BUNDLE_KEY = "SPA-INTERNAL-PROTOTYPE-1"
 EVALUATION_ADAPTER_VERSION = "SPA-EVALUATION-ADAPTER-1.0.0"
 EVALUATION_STATUS = "Prepared — Salus Review Required"
+SESSION_RETENTION_HOURS = 2
+SESSION_RETENTION_POLICY = "SPA-EPHEMERAL-RETENTION-1.0.0"
+ANSWER_STATES = ("Answered", "Unknown", "Declined", "Not Applicable")
 POLICY_TABLES = {
     "Questionnaire": "advisor_questionnaire_versions",
     "Recommendation Policy": "advisor_recommendation_policy_versions",
@@ -74,6 +79,10 @@ FORBIDDEN_PUBLIC_FIELDS = frozenset(
 
 class PolicyIntegrityError(RuntimeError):
     """Raised when a released policy snapshot cannot be verified."""
+
+
+class SessionAccessError(RuntimeError):
+    """Generic fail-closed error for invalid, replayed, expired, or deleted sessions."""
 
 
 class AdvisorPolicyDefinition(BaseModel):
@@ -144,6 +153,32 @@ class FictionalCommercialCandidate(BaseModel):
         return self
 
 
+class FictionalAnswerSubmission(BaseModel):
+    """Strict answer command accepted only by the internal fictional service."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    question_key: str = Field(pattern=r"^[a-z][a-z0-9_]{0,79}$")
+    answer_state: Literal["Answered", "Unknown", "Declined", "Not Applicable"]
+    value: str | int | list[str] | None = None
+
+    @model_validator(mode="after")
+    def validate_state_and_value(self) -> "FictionalAnswerSubmission":
+        if self.answer_state == "Answered":
+            if self.value in (None, "", []):
+                raise ValueError("answered submissions require a value")
+        elif self.value is not None:
+            raise ValueError("non-answered states must not carry a value")
+        if isinstance(self.value, str) and len(self.value.strip()) > 1200:
+            raise ValueError("answer text exceeds the prototype limit")
+        if isinstance(self.value, int) and not 0 <= self.value <= 10000:
+            raise ValueError("answer count exceeds the prototype limit")
+        if isinstance(self.value, list):
+            if len(self.value) > 25 or any(not item.strip() or len(item.strip()) > 160 for item in self.value):
+                raise ValueError("answer collection exceeds the prototype limit")
+        return self
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS advisor_questionnaire_versions (
  version_key TEXT PRIMARY KEY, status TEXT NOT NULL, data_boundary TEXT NOT NULL,
@@ -182,6 +217,31 @@ CREATE TABLE IF NOT EXISTS advisor_fictional_evaluation_snapshots (
  rate_card_snapshot_sha256 TEXT NOT NULL, input_sha256 TEXT NOT NULL,
  snapshot_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS advisor_sessions (
+ session_key TEXT PRIMARY KEY, case_key TEXT NOT NULL,
+ status TEXT NOT NULL, data_boundary TEXT NOT NULL, fictional_only INTEGER NOT NULL,
+ policy_bundle_sha256 TEXT NOT NULL, questionnaire_version_key TEXT NOT NULL,
+ retention_policy_version TEXT NOT NULL, latest_answer_revision INTEGER NOT NULL,
+ current_token_sha256 TEXT, created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
+ deleted_at TEXT
+);
+CREATE TABLE IF NOT EXISTS advisor_session_tokens (
+ token_sha256 TEXT PRIMARY KEY, session_key TEXT NOT NULL,
+ token_status TEXT NOT NULL, issued_at TEXT NOT NULL, superseded_at TEXT
+);
+CREATE TABLE IF NOT EXISTS advisor_answer_revisions (
+ revision_key TEXT PRIMARY KEY, session_key TEXT NOT NULL,
+ revision_number INTEGER NOT NULL, question_key TEXT NOT NULL,
+ questionnaire_version_key TEXT NOT NULL, answer_state TEXT NOT NULL,
+ answer_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
+ created_at TEXT NOT NULL, UNIQUE(session_key, revision_number)
+);
+CREATE TABLE IF NOT EXISTS advisor_audit_events (
+ event_key TEXT PRIMARY KEY, session_key TEXT NOT NULL,
+ event_sequence INTEGER NOT NULL, event_type TEXT NOT NULL,
+ event_at TEXT NOT NULL, event_json TEXT NOT NULL,
+ content_sha256 TEXT NOT NULL UNIQUE, UNIQUE(session_key, event_sequence)
 );
 """
 
@@ -972,3 +1032,367 @@ def prepare_all_fictional_evaluations(conn: Any, *, created_at: str) -> list[dic
         prepare_fictional_evaluation(conn, case.case_key, created_at=created_at)
         for case in FICTIONAL_CASES
     ]
+
+
+def _parse_utc(value: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("a valid timezone-aware time is required") from exc
+    if parsed.tzinfo is None:
+        raise ValueError("a timezone-aware time is required")
+    return parsed.astimezone(timezone.utc)
+
+
+def _utc_text(value: datetime) -> str:
+    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _record_session_event(
+    conn: Any,
+    session_key: str,
+    event_type: str,
+    event_at: str,
+    details: dict[str, Any],
+) -> None:
+    row = conn.execute(
+        "SELECT MAX(event_sequence) AS latest FROM advisor_audit_events WHERE session_key=?",
+        (session_key,),
+    ).fetchone()
+    sequence = int(row["latest"] or 0) + 1
+    event = {
+        "session_key": session_key,
+        "event_sequence": sequence,
+        "event_type": event_type,
+        "event_at": event_at,
+        "details": details,
+        "contains_answer_content": False,
+        "contains_contact_information": False,
+        "creates_protected_member": False,
+    }
+    event_json = canonical_json(event)
+    digest = content_sha256(event_json)
+    conn.execute(
+        "INSERT INTO advisor_audit_events(event_key,session_key,event_sequence,event_type,event_at,event_json,content_sha256) VALUES(?,?,?,?,?,?,?)",
+        ("SPA-AUDIT-" + digest.upper(), session_key, sequence, event_type, event_at, event_json, digest),
+    )
+
+
+def start_fictional_session(
+    conn: Any,
+    case_key: str,
+    *,
+    created_at: str,
+) -> dict[str, Any]:
+    """Issue a new opaque token for one repository-owned fictional case."""
+
+    initialize_policy_store(conn)
+    created = _parse_utc(created_at)
+    bundle = load_fictional_policy_bundle(conn)
+    cases = {case.case_key: case for case in FICTIONAL_CASES}
+    case = cases.get(case_key)
+    if not case or content_sha256(case.model_dump(mode="json")) != bundle["fictional_fixture_hashes"].get(case_key):
+        raise ValueError("only repository-owned fictional cases may start a session")
+    token = secrets.token_urlsafe(32)
+    token_digest = content_sha256(token)
+    session_key = "SPA-SESSION-" + secrets.token_hex(16).upper()
+    expires_at = _utc_text(created + timedelta(hours=SESSION_RETENTION_HOURS))
+    questionnaire_version = bundle["components"]["Questionnaire"]["version_key"]
+    try:
+        conn.execute(
+            "INSERT INTO advisor_sessions(session_key,case_key,status,data_boundary,fictional_only,policy_bundle_sha256,questionnaire_version_key,retention_policy_version,latest_answer_revision,current_token_sha256,created_at,expires_at,deleted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                session_key, case_key, "Active", DATA_BOUNDARY, 1,
+                bundle["content_sha256"], questionnaire_version,
+                SESSION_RETENTION_POLICY, 0, token_digest,
+                _utc_text(created), expires_at, None,
+            ),
+        )
+        conn.execute(
+            "INSERT INTO advisor_session_tokens(token_sha256,session_key,token_status,issued_at,superseded_at) VALUES(?,?,?,?,?)",
+            (token_digest, session_key, "Active", _utc_text(created), None),
+        )
+        _record_session_event(
+            conn, session_key, "Session Started", _utc_text(created),
+            {"case_key": case_key, "expires_at": expires_at, "retention_policy_version": SESSION_RETENTION_POLICY},
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {
+        "session_token": token,
+        "session_key": session_key,
+        "case_key": case_key,
+        "status": "Active",
+        "fictional_only": True,
+        "data_boundary": DATA_BOUNDARY,
+        "created_at": _utc_text(created),
+        "expires_at": expires_at,
+        "retention_policy_version": SESSION_RETENTION_POLICY,
+        "contact_information_required": False,
+        "has_protected_member_access": False,
+    }
+
+
+def expire_fictional_sessions(conn: Any, *, as_of: str) -> list[str]:
+    """Enforce server-side expiry and disable every active token."""
+
+    now = _parse_utc(as_of)
+    expired: list[str] = []
+    rows = list(conn.execute("SELECT * FROM advisor_sessions WHERE status='Active'"))
+    try:
+        for row in rows:
+            if _parse_utc(row["expires_at"]) <= now:
+                conn.execute(
+                    "UPDATE advisor_sessions SET status='Expired', current_token_sha256=NULL WHERE session_key=?",
+                    (row["session_key"],),
+                )
+                conn.execute(
+                    "UPDATE advisor_session_tokens SET token_status='Expired', superseded_at=? WHERE session_key=? AND token_status='Active'",
+                    (_utc_text(now), row["session_key"]),
+                )
+                _record_session_event(
+                    conn, row["session_key"], "Session Expired", _utc_text(now),
+                    {"retention_policy_version": row["retention_policy_version"]},
+                )
+                expired.append(row["session_key"])
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return expired
+
+
+def _active_session(conn: Any, token: str, *, as_of: str) -> Any:
+    if not isinstance(token, str) or len(token) < 32:
+        raise SessionAccessError("session is unavailable")
+    token_digest = content_sha256(token)
+    token_row = conn.execute(
+        "SELECT * FROM advisor_session_tokens WHERE token_sha256=?",
+        (token_digest,),
+    ).fetchone()
+    if not token_row or token_row["token_status"] != "Active":
+        raise SessionAccessError("session is unavailable")
+    session = conn.execute(
+        "SELECT * FROM advisor_sessions WHERE session_key=?",
+        (token_row["session_key"],),
+    ).fetchone()
+    if not session or session["status"] != "Active" or session["current_token_sha256"] != token_digest:
+        raise SessionAccessError("session is unavailable")
+    if _parse_utc(session["expires_at"]) <= _parse_utc(as_of):
+        expire_fictional_sessions(conn, as_of=as_of)
+        raise SessionAccessError("session is unavailable")
+    if session["data_boundary"] != DATA_BOUNDARY or int(session["fictional_only"]) != 1:
+        raise SessionAccessError("session is unavailable")
+    return session
+
+
+def load_fictional_session(conn: Any, token: str, *, as_of: str) -> dict[str, Any]:
+    session = _active_session(conn, token, as_of=as_of)
+    return {
+        "session_key": session["session_key"],
+        "case_key": session["case_key"],
+        "status": session["status"],
+        "data_boundary": session["data_boundary"],
+        "fictional_only": True,
+        "policy_bundle_sha256": session["policy_bundle_sha256"],
+        "questionnaire_version_key": session["questionnaire_version_key"],
+        "retention_policy_version": session["retention_policy_version"],
+        "latest_answer_revision": int(session["latest_answer_revision"]),
+        "created_at": session["created_at"],
+        "expires_at": session["expires_at"],
+        "contact_information_required": False,
+        "has_protected_member_access": False,
+    }
+
+
+def rotate_fictional_session(
+    conn: Any,
+    token: str,
+    *,
+    rotated_at: str,
+) -> dict[str, Any]:
+    """Rotate an active token; the old token becomes unusable immediately."""
+
+    session = _active_session(conn, token, as_of=rotated_at)
+    new_token = secrets.token_urlsafe(32)
+    new_digest = content_sha256(new_token)
+    old_digest = content_sha256(token)
+    at = _utc_text(_parse_utc(rotated_at))
+    try:
+        conn.execute(
+            "UPDATE advisor_session_tokens SET token_status='Superseded', superseded_at=? WHERE token_sha256=?",
+            (at, old_digest),
+        )
+        conn.execute(
+            "INSERT INTO advisor_session_tokens(token_sha256,session_key,token_status,issued_at,superseded_at) VALUES(?,?,?,?,?)",
+            (new_digest, session["session_key"], "Active", at, None),
+        )
+        conn.execute(
+            "UPDATE advisor_sessions SET current_token_sha256=? WHERE session_key=?",
+            (new_digest, session["session_key"]),
+        )
+        _record_session_event(conn, session["session_key"], "Session Token Rotated", at, {"old_token_replay_denied": True})
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {"session_token": new_token, **load_fictional_session(conn, new_token, as_of=rotated_at)}
+
+
+def _question_by_key(conn: Any, bundle: dict[str, Any], question_key: str) -> dict[str, Any]:
+    questionnaire = _policy_payload(conn, bundle, "Questionnaire")
+    matches = [item for item in questionnaire["questions"] if item["question_key"] == question_key]
+    if len(matches) != 1:
+        raise ValueError("question is not in the released questionnaire")
+    question = matches[0]
+    if question.get("shown_when"):
+        raise ValueError("conditional question is not available without its released display condition")
+    return question
+
+
+def append_fictional_answer_revision(
+    conn: Any,
+    token: str,
+    submission: FictionalAnswerSubmission,
+    *,
+    created_at: str,
+) -> dict[str, Any]:
+    """Append one governed answer state without overwriting prior revisions."""
+
+    session = _active_session(conn, token, as_of=created_at)
+    bundle = load_fictional_policy_bundle(conn)
+    if bundle["content_sha256"] != session["policy_bundle_sha256"]:
+        raise PolicyIntegrityError("session policy reference is unavailable")
+    question = _question_by_key(conn, bundle, submission.question_key)
+    if submission.answer_state == "Answered" and question["choices"]:
+        if not isinstance(submission.value, str) or submission.value not in question["choices"]:
+            raise ValueError("answer is outside the released choices")
+    revision_number = int(session["latest_answer_revision"]) + 1
+    answer_json = canonical_json(submission.value)
+    at = _utc_text(_parse_utc(created_at))
+    snapshot = {
+        "session_key": session["session_key"],
+        "revision_number": revision_number,
+        "question_key": submission.question_key,
+        "questionnaire_version_key": session["questionnaire_version_key"],
+        "answer_state": submission.answer_state,
+        "answer": submission.value,
+        "created_at": at,
+        "classification": "Prospect-Reported Fictional Information",
+    }
+    snapshot_json = canonical_json(snapshot)
+    digest = content_sha256(snapshot_json)
+    revision_key = "SPA-ANSWER-" + digest.upper()
+    try:
+        conn.execute(
+            "INSERT INTO advisor_answer_revisions(revision_key,session_key,revision_number,question_key,questionnaire_version_key,answer_state,answer_json,content_sha256,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+            (
+                revision_key, session["session_key"], revision_number,
+                submission.question_key, session["questionnaire_version_key"],
+                submission.answer_state, answer_json, digest, at,
+            ),
+        )
+        conn.execute(
+            "UPDATE advisor_sessions SET latest_answer_revision=? WHERE session_key=?",
+            (revision_number, session["session_key"]),
+        )
+        _record_session_event(
+            conn, session["session_key"], "Answer Revision Appended", at,
+            {"question_key": submission.question_key, "revision_number": revision_number, "answer_state": submission.answer_state},
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {**snapshot, "revision_key": revision_key, "content_sha256": digest}
+
+
+def current_fictional_answers(conn: Any, token: str, *, as_of: str) -> dict[str, dict[str, Any]]:
+    """Resolve only the latest append-only revision for each answered question."""
+
+    session = _active_session(conn, token, as_of=as_of)
+    rows = list(conn.execute(
+        "SELECT * FROM advisor_answer_revisions WHERE session_key=? ORDER BY revision_number",
+        (session["session_key"],),
+    ))
+    current: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        expected = {
+            "session_key": session["session_key"],
+            "revision_number": int(row["revision_number"]),
+            "question_key": row["question_key"],
+            "questionnaire_version_key": row["questionnaire_version_key"],
+            "answer_state": row["answer_state"],
+            "answer": json.loads(row["answer_json"]),
+            "created_at": row["created_at"],
+            "classification": "Prospect-Reported Fictional Information",
+        }
+        if content_sha256(canonical_json(expected)) != row["content_sha256"]:
+            raise PolicyIntegrityError("answer revision integrity check failed")
+        current[row["question_key"]] = {
+            "revision_key": row["revision_key"],
+            "revision_number": int(row["revision_number"]),
+            "answer_state": row["answer_state"],
+            "value": json.loads(row["answer_json"]),
+            "questionnaire_version_key": row["questionnaire_version_key"],
+            "classification": "Prospect-Reported Fictional Information",
+        }
+    return current
+
+
+def delete_fictional_session(conn: Any, token: str, *, deleted_at: str) -> dict[str, Any]:
+    """Delete fictional answer content while retaining content-free lifecycle evidence."""
+
+    session = _active_session(conn, token, as_of=deleted_at)
+    at = _utc_text(_parse_utc(deleted_at))
+    try:
+        conn.execute(
+            "DELETE FROM advisor_answer_revisions WHERE session_key=?",
+            (session["session_key"],),
+        )
+        conn.execute(
+            "UPDATE advisor_session_tokens SET token_status='Deleted', superseded_at=? WHERE session_key=? AND token_status='Active'",
+            (at, session["session_key"]),
+        )
+        conn.execute(
+            "UPDATE advisor_sessions SET status='Deleted', current_token_sha256=NULL, latest_answer_revision=0, deleted_at=? WHERE session_key=?",
+            (at, session["session_key"]),
+        )
+        _record_session_event(
+            conn, session["session_key"], "Session Deleted", at,
+            {"answer_content_deleted": True, "retention_policy_version": session["retention_policy_version"]},
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {
+        "session_key": session["session_key"],
+        "status": "Deleted",
+        "deleted_at": at,
+        "answer_content_deleted": True,
+        "contact_information_retained": False,
+        "protected_member_record_created": False,
+    }
+
+
+def verify_fictional_session_audit(conn: Any, session_key: str) -> list[dict[str, Any]]:
+    rows = list(conn.execute(
+        "SELECT * FROM advisor_audit_events WHERE session_key=? ORDER BY event_sequence",
+        (session_key,),
+    ))
+    verified: list[dict[str, Any]] = []
+    for expected_sequence, row in enumerate(rows, start=1):
+        if int(row["event_sequence"]) != expected_sequence:
+            raise PolicyIntegrityError("session audit sequence is invalid")
+        if content_sha256(row["event_json"]) != row["content_sha256"]:
+            raise PolicyIntegrityError("session audit integrity check failed")
+        event = json.loads(row["event_json"])
+        if event["event_sequence"] != expected_sequence or event["session_key"] != session_key:
+            raise PolicyIntegrityError("session audit reference check failed")
+        if event["contains_answer_content"] or event["contains_contact_information"] or event["creates_protected_member"]:
+            raise PolicyIntegrityError("session audit information boundary failed")
+        verified.append(event)
+    return verified
