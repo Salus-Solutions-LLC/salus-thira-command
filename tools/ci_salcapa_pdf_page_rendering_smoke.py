@@ -222,7 +222,9 @@ with TestClient(core.app) as client:
         tampered["pdf_rendered_pages"][0]["rendered_sha256"] = "bad"
         assert any("invalid rendered hash" in error for error in core.validate_records(tampered, 1))
 
+    RENDERER.chmod(0o700)
     RENDERER.write_bytes(b"tampered")
+    RENDERER.chmod(0o500)
     disabled = client.get("/api/pdf-page-rendering/status", headers=REQUESTER)
     assert disabled.status_code == 200 and disabled.json()["available"] is False
     assert "does not match" in disabled.json()["guidance"]
