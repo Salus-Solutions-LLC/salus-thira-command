@@ -138,6 +138,7 @@ jobs:
       - run: python tools/run_current_release_smoke.py tools/ci_salcapa_material_suggestions_smoke.py
       - run: python tools/ci_salcapa_visual_geospatial_smoke.py
       - run: python tools/ci_salcapa_facility_imagery_smoke.py
+      - run: python tools/reconstruct_salintel_relationships.py
       - run: python tools/ci_salcapa_facility_imagery_ui_smoke.py
       - run: python tools/ci_salcapa_visual_object_processing_smoke.py
       - run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
@@ -191,6 +192,7 @@ jobs:
       - run: python tools/run_current_release_smoke.py tools/ci_salcapa_material_suggestions_smoke.py
       - run: python tools/ci_salcapa_visual_geospatial_smoke.py
       - run: python tools/ci_salcapa_facility_imagery_smoke.py
+      - run: python tools/reconstruct_salintel_relationships.py
       - run: python tools/ci_salcapa_facility_imagery_ui_smoke.py
       - run: python tools/ci_salcapa_visual_object_processing_smoke.py
       - run: python tools/ci_salcapa_handwriting_ocr_processing_smoke.py
