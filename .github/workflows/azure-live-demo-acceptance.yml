@@ -70,8 +70,8 @@ jobs:
             (.expected_persona_count == 24) and
             (.fixture_authority == "ISSUE-124") and
             (.demonstration_acknowledgement == "FICTIONAL DEMONSTRATION DATA ONLY") and
-            (.acceptance_revision == 3) and
-            (.activation_key == "salcapa-v3.112-live-demo-20260911-r3") and
+            (.acceptance_revision == 4) and
+            (.activation_key == "salcapa-v3.112-live-demo-20260911-r4") and
             ((keys - [
               "acceptance_revision", "activation_key", "approval_record",
               "demonstration_acknowledgement", "deployment_workflow_run",
