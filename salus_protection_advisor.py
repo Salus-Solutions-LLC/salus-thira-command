@@ -50,6 +50,19 @@ STAFF_REVIEW_DECISIONS = (
 SCOPING_HANDOFF_STATUS = (
     "Prepared Draft — Fictional; Separate Scope and Price Approval Required"
 )
+INTERNAL_REVIEW_PACKET_VERSION = "SPA-INTERNAL-REVIEW-PACKET-1.0.0"
+INTERNAL_REVIEW_PACKET_STATUS = "Prepared — Awaiting Salus Review"
+INTERNAL_REVIEW_TOPICS = (
+    "Question wording and participant burden",
+    "Visible evaluation basis, uncertainty, and information gaps",
+    "Recommendation fit and investigation depth",
+    "Sanitized public price ranges and package inclusions",
+    "Consent, retention, correction, withdrawal, and deletion",
+    "Staff review, correction, and authority lineage",
+    "Scoping handoff assumptions, exclusions, and validation questions",
+    "Accessibility, responsive presentation, and Salus visual continuity",
+    "Security, privacy, abuse resistance, recovery, and rollback readiness",
+)
 POLICY_TABLES = {
     "Questionnaire": "advisor_questionnaire_versions",
     "Recommendation Policy": "advisor_recommendation_policy_versions",
@@ -320,6 +333,31 @@ class FictionalScopingHandoffCommand(BaseModel):
         return tuple(item.strip() for item in value)
 
 
+class FictionalInternalReviewPacketCommand(BaseModel):
+    """Strict command that prepares evidence for an actual Salus human review."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    handoff_key: str = Field(pattern=r"^SPA-HANDOFF-[A-F0-9]{64}$")
+    prepared_by_reviewer_key: str = Field(
+        pattern=r"^SPA-REVIEWER-FICTIONAL-[A-Z0-9-]{1,80}$"
+    )
+    prepared_by_reviewer_role: Literal[
+        "Qualified Salus Commercial Reviewer",
+        "Senior Salus Commercial Reviewer",
+    ]
+    fictional_acceptance_simulation: Literal[True]
+    requested_review_topics: tuple[str, ...]
+
+    @field_validator("requested_review_topics")
+    @classmethod
+    def require_complete_review_scope(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        cleaned = tuple(item.strip() for item in value)
+        if cleaned != INTERNAL_REVIEW_TOPICS:
+            raise ValueError("internal review packet must retain the complete governed review scope")
+        return cleaned
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS advisor_questionnaire_versions (
  version_key TEXT PRIMARY KEY, status TEXT NOT NULL, data_boundary TEXT NOT NULL,
@@ -442,6 +480,15 @@ CREATE TABLE IF NOT EXISTS advisor_fictional_scoping_handoffs (
  data_boundary TEXT NOT NULL, fictional_only INTEGER NOT NULL,
  prepared_by_reviewer_key TEXT NOT NULL,
  prepared_by_reviewer_role TEXT NOT NULL, basis_sha256 TEXT NOT NULL,
+ snapshot_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
+ created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS advisor_fictional_internal_review_packets (
+ packet_key TEXT PRIMARY KEY, packet_version TEXT NOT NULL,
+ handoff_key TEXT NOT NULL UNIQUE, prospect_key TEXT NOT NULL,
+ status TEXT NOT NULL, data_boundary TEXT NOT NULL,
+ fictional_only INTEGER NOT NULL, prepared_by_reviewer_key TEXT NOT NULL,
+ prepared_by_reviewer_role TEXT NOT NULL, evidence_sha256 TEXT NOT NULL,
  snapshot_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
  created_at TEXT NOT NULL
 );
@@ -2754,3 +2801,240 @@ def prepare_fictional_scoping_handoff(
         conn.rollback()
         raise
     return {**handoff, "content_sha256": digest}
+
+
+def load_fictional_internal_review_packet(
+    conn: Any, packet_key: str
+) -> dict[str, Any]:
+    """Load and verify one immutable, content-safe internal review packet."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_fictional_internal_review_packets WHERE packet_key=?",
+        (packet_key,),
+    ).fetchone()
+    if not row or content_sha256(row["snapshot_json"]) != row["content_sha256"]:
+        raise PolicyIntegrityError("fictional internal review packet integrity check failed")
+    result = json.loads(row["snapshot_json"])
+    checks = {
+        "packet_key": row["packet_key"],
+        "packet_version": row["packet_version"],
+        "handoff_key": row["handoff_key"],
+        "prospect_key": row["prospect_key"],
+        "status": row["status"],
+        "data_boundary": row["data_boundary"],
+        "prepared_by_reviewer_key": row["prepared_by_reviewer_key"],
+        "prepared_by_reviewer_role": row["prepared_by_reviewer_role"],
+        "evidence_sha256": row["evidence_sha256"],
+        "created_at": row["created_at"],
+    }
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(row["prepared_by_reviewer_key"])
+    handoff = load_fictional_scoping_handoff(conn, row["handoff_key"])
+    if (
+        any(result.get(key) != value for key, value in checks.items())
+        or row["packet_version"] != INTERNAL_REVIEW_PACKET_VERSION
+        or row["status"] != INTERNAL_REVIEW_PACKET_STATUS
+        or int(row["fictional_only"]) != 1
+        or result.get("fictional_only") is not True
+        or result.get("fictional_acceptance_simulation") is not True
+        or result.get("human_review_completed") is not False
+        or result.get("contact_information_included") is not False
+        or tuple(result.get("requested_review_topics", [])) != INTERNAL_REVIEW_TOPICS
+        or result.get("evidence_sha256") != content_sha256(result.get("evidence", {}))
+        or reviewer is None
+        or reviewer["reviewer_role"] != row["prepared_by_reviewer_role"]
+        or result.get("prepared_by_reviewer_fixture_sha256") != content_sha256(reviewer)
+        or result["evidence"].get("handoff_snapshot_sha256") != handoff["content_sha256"]
+        or any(result.get(flag) is not False for flag in (
+            "approves_prototype", "authorizes_public_route", "authorizes_dns",
+            "authorizes_pilot", "establishes_scope", "authorizes_package",
+            "authorizes_price", "creates_charge", "creates_contract",
+            "creates_membership", "creates_protected_member", "creates_disclosure",
+            "authorizes_customer_release", "authorizes_onboarding",
+        ))
+    ):
+        raise PolicyIntegrityError("fictional internal review packet boundary failed")
+    serialized = canonical_json(result).casefold()
+    for forbidden in (
+        "@example.com", "contact_email", "contact_name", "session_token",
+        "internal_cost", "role_rate", "margin_basis_points", "tenant_id",
+        "protected_member_id", "approved_customer_price_cents",
+    ):
+        if forbidden in serialized:
+            raise PolicyIntegrityError("fictional internal review packet contains restricted data")
+    assert_safe_public_projection(result["evidence"]["public_price_ranges"])
+    return {**result, "content_sha256": row["content_sha256"]}
+
+
+def prepare_fictional_internal_review_packet(
+    conn: Any,
+    command: FictionalInternalReviewPacketCommand,
+    *,
+    prepared_at: str,
+) -> dict[str, Any]:
+    """Prepare evidence for human review without claiming that review occurred."""
+
+    initialize_policy_store(conn)
+    at = _parse_utc(prepared_at)
+    handoff = load_fictional_scoping_handoff(conn, command.handoff_key)
+    prospect = load_fictional_prospect(conn, handoff["prospect_key"])
+    consent = load_fictional_consent(conn, prospect["consent_key"])
+    current_review = load_current_fictional_staff_review(conn, prospect["prospect_key"])
+    if (
+        current_review["review_key"] != handoff["authorizing_review_key"]
+        or current_review["decision"] != "Proceed to Fictional Scoping"
+    ):
+        raise PolicyIntegrityError("internal review packet requires the current scoping handoff")
+    if _parse_utc(prospect["expires_at"]) <= at or _parse_utc(consent["expires_at"]) <= at:
+        raise PolicyIntegrityError("fictional prospect consent has expired")
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(command.prepared_by_reviewer_key)
+    if (
+        reviewer is None
+        or reviewer["fictional_only"] is not True
+        or reviewer["reviewer_role"] != command.prepared_by_reviewer_role
+    ):
+        raise PolicyIntegrityError("fictional review packet preparer is not authorized")
+    if conn.execute(
+        "SELECT packet_key FROM advisor_fictional_internal_review_packets WHERE handoff_key=?",
+        (command.handoff_key,),
+    ).fetchone():
+        raise PolicyIntegrityError("fictional scoping handoff already has a review packet")
+
+    review_history = fictional_staff_review_history(conn, prospect["prospect_key"])
+    evidence = {
+        "handoff_key": handoff["handoff_key"],
+        "handoff_snapshot_sha256": handoff["content_sha256"],
+        "prospect_key": prospect["prospect_key"],
+        "prospect_snapshot_sha256": prospect["content_sha256"],
+        "consent_key": consent["consent_key"],
+        "consent_snapshot_sha256": consent["content_sha256"],
+        "evaluation_key": handoff["basis"]["evaluation_key"],
+        "evaluation_snapshot_sha256": handoff["basis"]["evaluation_snapshot_sha256"],
+        "policy_bundle_sha256": handoff["basis"]["policy_bundle_sha256"],
+        "governing_versions": handoff["basis"]["governing_versions"],
+        "commercial_estimate_snapshot_sha256": (
+            handoff["basis"]["commercial_estimate_snapshot_sha256"]
+        ),
+        "authorizing_review_key": current_review["review_key"],
+        "authorizing_review_snapshot_sha256": current_review["content_sha256"],
+        "review_history": [
+            {
+                "review_key": review["review_key"],
+                "review_sequence": review["review_sequence"],
+                "decision": review["decision"],
+                "status": review["status"],
+                "content_sha256": review["content_sha256"],
+            }
+            for review in review_history
+        ],
+        "organization_profile": handoff["organization_profile"],
+        "proposed_package": handoff["proposed_package"],
+        "recommended_investigation_depth": handoff["recommended_investigation_depth"],
+        "public_price_ranges": handoff["public_price_ranges"],
+        "recommendation_assumptions": handoff["recommendation_assumptions"],
+        "recommendation_contradictions": handoff["recommendation_contradictions"],
+        "recommendation_information_gaps": handoff["recommendation_information_gaps"],
+        "scoping_assumptions": handoff["preparer_assumptions"],
+        "scoping_exclusions": handoff["preparer_exclusions"],
+        "validation_questions": handoff["validation_questions"],
+        "fictional_case_coverage": [
+            {
+                "case_key": case.case_key,
+                "display_name": case.display_name,
+                "acceptance_focus": list(case.acceptance_focus),
+                "case_fixture_sha256": content_sha256(case.model_dump(mode="json")),
+            }
+            for case in FICTIONAL_CASES
+        ],
+    }
+    evidence_sha256 = content_sha256(evidence)
+    topic_evidence = [
+        {
+            "topic": topic,
+            "state": (
+                "Evidence Needed"
+                if topic in INTERNAL_REVIEW_TOPICS[-2:]
+                else "Evidence Prepared — Human Review Required"
+            ),
+        }
+        for topic in INTERNAL_REVIEW_TOPICS
+    ]
+    at_text = _utc_text(at)
+    seed = {
+        "packet_version": INTERNAL_REVIEW_PACKET_VERSION,
+        "handoff_key": handoff["handoff_key"],
+        "prospect_key": prospect["prospect_key"],
+        "status": INTERNAL_REVIEW_PACKET_STATUS,
+        "data_boundary": DATA_BOUNDARY,
+        "fictional_only": True,
+        "fictional_acceptance_simulation": True,
+        "prepared_by_reviewer_key": command.prepared_by_reviewer_key,
+        "prepared_by_reviewer_role": command.prepared_by_reviewer_role,
+        "prepared_by_reviewer_fixture_sha256": content_sha256(reviewer),
+        "requested_review_topics": list(command.requested_review_topics),
+        "topic_evidence": topic_evidence,
+        "evidence": evidence,
+        "evidence_sha256": evidence_sha256,
+        "open_decisions": [
+            "Qualified Salus personnel must review and may accept, reject, or request changes.",
+            "Question wording, evaluation basis, recommendation fit, package details, and public price ranges remain subject to Salus judgment.",
+            "Accessibility, responsive presentation, privacy, security, abuse resistance, recovery, and rollback require separate validation.",
+            "No public route, DNS change, pilot, customer release, or Protected Member onboarding is authorized.",
+            "The Salus Protection Advisor name remains provisional pending trademark clearance.",
+        ],
+        "human_review_completed": False,
+        "contact_information_included": False,
+        "created_at": at_text,
+        "created_display": _display_utc(at),
+        "what_happens_next": (
+            "Qualified Salus personnel review this evidence, record questions or changes, "
+            "and separately decide whether the internal prototype is ready for further validation."
+        ),
+        "approves_prototype": False,
+        "authorizes_public_route": False,
+        "authorizes_dns": False,
+        "authorizes_pilot": False,
+        "establishes_scope": False,
+        "authorizes_package": False,
+        "authorizes_price": False,
+        "creates_charge": False,
+        "creates_contract": False,
+        "creates_membership": False,
+        "creates_protected_member": False,
+        "creates_disclosure": False,
+        "authorizes_customer_release": False,
+        "authorizes_onboarding": False,
+    }
+    packet_key = "SPA-REVIEW-PACKET-" + content_sha256(seed).upper()
+    packet = {"packet_key": packet_key, **seed}
+    snapshot_json = canonical_json(packet)
+    digest = content_sha256(snapshot_json)
+    try:
+        conn.execute(
+            "INSERT INTO advisor_fictional_internal_review_packets(packet_key,packet_version,handoff_key,prospect_key,status,data_boundary,fictional_only,prepared_by_reviewer_key,prepared_by_reviewer_role,evidence_sha256,snapshot_json,content_sha256,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                packet_key, INTERNAL_REVIEW_PACKET_VERSION, handoff["handoff_key"],
+                prospect["prospect_key"], INTERNAL_REVIEW_PACKET_STATUS,
+                DATA_BOUNDARY, 1, command.prepared_by_reviewer_key,
+                command.prepared_by_reviewer_role, evidence_sha256,
+                snapshot_json, digest, at_text,
+            ),
+        )
+        _record_session_event(
+            conn,
+            prospect["session_key"],
+            "Fictional Internal Review Packet Prepared",
+            at_text,
+            {
+                "prospect_key": prospect["prospect_key"],
+                "handoff_key": handoff["handoff_key"],
+                "packet_key": packet_key,
+                "status": INTERNAL_REVIEW_PACKET_STATUS,
+                "human_review_completed": False,
+                "fictional_acceptance_simulation": True,
+            },
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {**packet, "content_sha256": digest}
