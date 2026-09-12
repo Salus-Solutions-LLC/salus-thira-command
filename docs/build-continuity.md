@@ -8,7 +8,7 @@ active_development_branch: development/salcapa-platform
 active_roadmap_issue: 236
 active_increment: issue_236_scanned_pdf_recognition_review_link
 last_completed_release: v3.112
-candidate_release: issue_236_pdf_page_recognition_link
+candidate_release: none
 validation_pr: 309
 validation_gate_state: controlled_validation_in_progress
 genuine_blockers: none
