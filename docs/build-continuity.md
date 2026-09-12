@@ -10,7 +10,7 @@ active_increment: issue_236_maps_plans_facility_imagery_design_validation
 last_completed_release: v3.112
 candidate_release: none
 validation_pr: 310
-validation_gate_state: validation_in_progress
+validation_gate_state: controlled_validation_in_progress
 genuine_blockers: none
 next_authorized_increment: issue_236_maps_plans_facility_imagery_implementation
 ---
