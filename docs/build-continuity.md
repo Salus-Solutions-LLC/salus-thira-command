@@ -10,7 +10,7 @@ active_increment: issue_298_build_continuity_anti_stoppage_sop
 last_completed_release: v3.111
 candidate_release: none
 validation_pr: 299
-validation_gate_state: validation_in_progress
+validation_gate_state: controlled_validation_in_progress
 genuine_blockers: none
 next_authorized_increment: issue_298_build_continuity_anti_stoppage_sop
 ---
