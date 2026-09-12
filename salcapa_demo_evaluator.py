@@ -102,7 +102,7 @@ def _environment_view(conn: Any, tenant: dict[str, Any]) -> dict[str, Any]:
         "key": key,
         "name": tenant["name"],
         "sector": definition.sector,
-        "purpose": definition.purpose,
+        "purpose": definition.mission,
         "label": tenant["display_label"],
         "fixture_version": tenant["fixture_version"],
         "status": tenant["status"],
