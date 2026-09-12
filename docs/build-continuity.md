@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 September 2026 23:47 CDT
+last_verified_at: 11 September 2026 23:49 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
@@ -9,8 +9,8 @@ active_roadmap_issue: 124
 active_increment: issue_124_v312_live_evaluator_acceptance
 last_completed_release: v3.112
 candidate_release: v3.112
-validation_pr: pending
-validation_gate_state: local_verified_github_pending
+validation_pr: 307
+validation_gate_state: controlled_validation_in_progress
 genuine_blockers: corrected_live_acceptance_retry_pending
 next_authorized_increment: issue_124_v312_validate_live_evaluator_acceptance
 ---
