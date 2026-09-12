@@ -219,6 +219,7 @@ jobs:
             case "$STATE" in
               Succeeded) break ;;
               Failed|Degraded|Stopped)
+                az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container live-demo-acceptance --tail 200 --format text --only-show-errors 2>/dev/null | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED]/Ig' >&2 || true
                 echo "Live demonstration acceptance failed closed: $STATE" >&2
                 exit 1
                 ;;
@@ -227,7 +228,8 @@ jobs:
           done
           test "$STATE" = "Succeeded"
           az containerapp job logs show             --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME"             --execution "$EXECUTION_NAME" --container live-demo-acceptance             --tail 200 --format text --only-show-errors             | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED]/Ig'             > /tmp/acceptance.log
-          grep -F 'SalCAPA demonstration promotion preflight passed' /tmp/acceptance.log >/dev/null
+          grep -F 'SalCAPA demonstration role, tenant, recovery, and governed-state preflight passed.' /tmp/acceptance.log >/dev/null
+          grep -F 'SALCAPA_DEMO_EVALUATOR_SMOKE_PASS postgres' /tmp/acceptance.log >/dev/null
 
           az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes
           for attempt in $(seq 1 60); do
