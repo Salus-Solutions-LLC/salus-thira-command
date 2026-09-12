@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 September 2026 23:09 CDT
+last_verified_at: 11 September 2026 23:12 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
@@ -11,7 +11,7 @@ last_completed_release: v3.112
 candidate_release: v3.112
 validation_pr: pending
 validation_gate_state: local_verified_github_pending
-genuine_blockers: accepted_azure_demo_lacks_authorized_evaluator_visibility
+genuine_blockers: live_authorized_evaluator_acceptance_pending
 next_authorized_increment: issue_124_v312_validate_live_evaluator_acceptance
 ---
 
@@ -32,7 +32,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 
 ## Verified checkpoint
 
-- Current frozen release: **v3.112** at [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) on `release/v3.112`. The accepted Azure development demonstration remains v3.111 until the separately governed immutable-image publication, application promotion, and live acceptance gates pass.
+- Current frozen release: **v3.112** at [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) on `release/v3.112`. Governed deployment workflow 34672016498 placed that exact release and immutable image in the Azure development demonstration. Full acceptance remains pending the separately governed live evaluator gate; exact accepted v3.111 remains the fail-closed rollback baseline.
 - Active development line: `development/salcapa-platform`.
 - Active roadmap: [Issue #236](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/236), beginning with the approved bounded scanned-PDF page-rendering path. [Issue #298](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/298) completed the build-continuity and anti-stoppage operating procedure. [Issue #124](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/124) has an accepted Azure v3.111 baseline and a fully validated repository walkthrough; it remains open only for separately governed live or facilitator-led evaluation that must not manufacture human authority.
 - Last completed increment: v3.111 enforces the report release boundary found missing during live-reporting acceptance. Protected Members cannot discover or retrieve Draft, Reviewed, or Approved report work, while released JSON, CSV, and printable HTML are derived from the same immutable, hash-verified Released snapshot. Internal Salus previews and human release authority remain intact.
@@ -57,7 +57,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 - Last completed promotion increment: [controlled validation PR #305](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/305) passed all 20 required workflow families on exact final head [`83725c7`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/83725c76ae7347ffb9fe361eb3e29a1ab6aa35e1), closed without merge, and advanced by non-force fast-forward to development. [Workflow run 34672016498](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34672016498) then deployed exact frozen v3.112 and its immutable image. Identity, ingress, dependencies, readiness, and Entra redirect passed; v3.111 remains the fail-closed rollback baseline. Full demonstration acceptance is pending the ordinary evaluator path.
 - Last completed promotion increment: [controlled validation PR #304](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/304) passed all 20 required workflow families on exact final head [`ae1c79f`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/ae1c79fd9b4a3bef8ce4a2252e74f48a831c15ba) and closed without merge before that exact head advanced by non-force fast-forward to `development/salcapa-platform`. [Workflow run 34670976390](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34670976390) then published exact frozen v3.112 as immutable digest `sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce`. No application, traffic, DNS, or database state changed; accepted v3.111 remains live.
 - Last frozen patch increment: [controlled validation PR #303](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/303) passed all 20 required workflow families on exact final head [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) and closed without merge. That exact head became immutable `release/v3.112` and advanced by non-force fast-forward to `development/salcapa-platform`. The accepted Azure v3.111 demonstration remains unchanged.
-- Next authorized product increment: after exact activation validation, publish the immutable v3.112 image; bind a separate application activation to its verified digest; reverify Entra/tenant isolation, recovery, rollback, schema and fictional-fixture compatibility; then promote and run live authorized-evaluator acceptance. Resume Issue #236 rendering-to-recognition work only after the ordinary evaluator interface passes.
+- Next authorized product increment: validate the exact live-acceptance activation, run the bounded Azure acceptance against the ordinary read-only Demonstration Environments path, and reconcile the deployment record. Resume Issue #236 rendering-to-recognition work only after the ordinary evaluator interface passes.
 
 ## Recovery procedure
 
