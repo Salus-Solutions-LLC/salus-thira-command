@@ -24,6 +24,7 @@ if temporary is not None:
 
 import app as core  # noqa: E402
 from portable_backup import collect_tenant_records, validate_records  # noqa: E402
+from salcapa_demo_evaluator import register_demo_evaluator  # noqa: E402
 from salcapa_demo_fixtures import (  # noqa: E402
     DEMONSTRATION_ACKNOWLEDGEMENT,
     FIXTURE_AUTHORITY,
@@ -52,6 +53,7 @@ def front_matter(path: pathlib.Path) -> dict[str, str]:
 
 
 register_demo_fixture_contract(core)
+register_demo_evaluator(core)
 conn = core.db()
 try:
     seed_demo_environments(
