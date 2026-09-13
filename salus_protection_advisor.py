@@ -87,6 +87,22 @@ INTERNAL_REVIEW_EVIDENCE_REFERENCES = (
     "Accessibility and visual presentation requirements",
     "Security, privacy, abuse, recovery, and rollback requirements",
 )
+AUTHENTICATED_REVIEW_DECISION_VERSION = "SPA-AUTHENTICATED-REVIEW-DECISION-1.0.0"
+AUTHENTICATED_REVIEW_IDENTITY_MODE = "Microsoft Entra — Fictional Acceptance"
+AUTHENTICATED_REVIEW_DECISION_OUTCOMES = (
+    "Require Changes",
+    "Pause Internal Review",
+    "End Internal Prototype",
+    "Advance to Security, Privacy, Accessibility, Mobile, and Abuse Validation",
+)
+AUTHENTICATED_REVIEW_DECISION_STATUSES = {
+    "Require Changes": "Changes Required — Fictional Acceptance Simulation",
+    "Pause Internal Review": "Paused — Fictional Acceptance Simulation",
+    "End Internal Prototype": "Ended — Fictional Acceptance Simulation",
+    "Advance to Security, Privacy, Accessibility, Mobile, and Abuse Validation": (
+        "Prepared for Validation Stage — Fictional Acceptance Simulation"
+    ),
+}
 POLICY_TABLES = {
     "Questionnaire": "advisor_questionnaire_versions",
     "Recommendation Policy": "advisor_recommendation_policy_versions",
@@ -476,6 +492,89 @@ class FictionalInternalReviewDecisionContractCommand(BaseModel):
     fictional_acceptance_simulation: Literal[True]
 
 
+class FictionalAuthenticatedReviewAuthority(BaseModel):
+    """Fictional OIDC evidence; it never represents an actual person's identity."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    reviewer_key: str = Field(
+        pattern=r"^SPA-REVIEWER-FICTIONAL-[A-Z0-9-]{1,80}$"
+    )
+    reviewer_role: Literal[
+        "Qualified Salus Commercial Reviewer",
+        "Senior Salus Commercial Reviewer",
+    ]
+    authentication_mode: Literal["Microsoft Entra — Fictional Acceptance"]
+    identity_subject_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    authentication_evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    authenticated_at: str = Field(min_length=1, max_length=80)
+    qualification_confirmed: Literal[True]
+    fictional_acceptance_simulation: Literal[True]
+
+    @field_validator("authenticated_at")
+    @classmethod
+    def require_timezone_aware_authentication_time(cls, value: str) -> str:
+        clean = value.strip()
+        try:
+            parsed = datetime.fromisoformat(clean.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("a valid authentication time is required") from exc
+        if parsed.tzinfo is None:
+            raise ValueError("authentication time must be timezone-aware")
+        return clean
+
+    @model_validator(mode="after")
+    def require_distinct_evidence_hashes(self) -> "FictionalAuthenticatedReviewAuthority":
+        if self.identity_subject_sha256 == self.authentication_evidence_sha256:
+            raise ValueError("identity subject and authentication evidence must be distinct")
+        return self
+
+
+class FictionalAuthenticatedReviewDecisionCommand(BaseModel):
+    """Append one fictional decision simulation without granting real authority."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    contract_key: str = Field(pattern=r"^SPA-REVIEW-CONTRACT-[A-F0-9]{64}$")
+    outcome: Literal[
+        "Require Changes",
+        "Pause Internal Review",
+        "End Internal Prototype",
+        "Advance to Security, Privacy, Accessibility, Mobile, and Abuse Validation",
+    ]
+    rationale: str = Field(min_length=20, max_length=2000)
+    conditions: tuple[str, ...] = ()
+    supersedes_decision_key: str | None = Field(
+        default=None, pattern=r"^SPA-AUTH-REVIEW-DECISION-[A-F0-9]{64}$"
+    )
+    correction_reason: str | None = Field(default=None, min_length=10, max_length=1000)
+    fictional_acceptance_simulation: Literal[True]
+
+    @field_validator("rationale")
+    @classmethod
+    def normalize_authenticated_decision_rationale(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("conditions")
+    @classmethod
+    def validate_authenticated_decision_conditions(
+        cls, value: tuple[str, ...]
+    ) -> tuple[str, ...]:
+        if len(value) > 20 or any(
+            not item.strip() or len(item.strip()) > 500 for item in value
+        ):
+            raise ValueError("decision conditions exceed the fictional prototype limit")
+        return tuple(item.strip() for item in value)
+
+    @model_validator(mode="after")
+    def validate_authenticated_decision_lineage(
+        self,
+    ) -> "FictionalAuthenticatedReviewDecisionCommand":
+        if bool(self.supersedes_decision_key) != bool(self.correction_reason):
+            raise ValueError("supersession and correction reason must be supplied together")
+        return self
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS advisor_questionnaire_versions (
  version_key TEXT PRIMARY KEY, status TEXT NOT NULL, data_boundary TEXT NOT NULL,
@@ -634,6 +733,24 @@ CREATE TABLE IF NOT EXISTS advisor_fictional_internal_review_decision_contracts 
  prepared_by_reviewer_role TEXT NOT NULL, basis_sha256 TEXT NOT NULL UNIQUE,
  snapshot_json TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE,
  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS advisor_fictional_authenticated_review_decisions (
+ decision_key TEXT PRIMARY KEY, decision_thread_key TEXT NOT NULL,
+ contract_key TEXT NOT NULL, decision_version TEXT NOT NULL,
+ decision_revision INTEGER NOT NULL, outcome TEXT NOT NULL,
+ lifecycle_status TEXT NOT NULL, data_boundary TEXT NOT NULL,
+ fictional_only INTEGER NOT NULL, reviewer_key TEXT NOT NULL,
+ reviewer_role TEXT NOT NULL, authentication_mode TEXT NOT NULL,
+ identity_subject_sha256 TEXT NOT NULL, authentication_evidence_sha256 TEXT NOT NULL,
+ basis_sha256 TEXT NOT NULL UNIQUE, supersedes_decision_key TEXT,
+ correction_reason TEXT, snapshot_json TEXT NOT NULL,
+ content_sha256 TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL,
+ UNIQUE(decision_thread_key, decision_revision)
+);
+CREATE TABLE IF NOT EXISTS advisor_fictional_authenticated_review_decision_state (
+ contract_key TEXT PRIMARY KEY, decision_thread_key TEXT NOT NULL,
+ current_decision_key TEXT NOT NULL, decision_revision INTEGER NOT NULL,
+ lifecycle_status TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 """
 
@@ -3915,5 +4032,381 @@ def prepare_fictional_internal_review_decision_contract(
             "interface_state": gate["interface_state"],
             "environment_class": "Non-production",
             "authentication_boundary": "Server controlled",
+        },
+    }
+
+
+def _require_fictional_authenticated_review_authority(
+    authority: FictionalAuthenticatedReviewAuthority,
+    server_settings: Mapping[str, str] | None,
+    decision_at: datetime,
+) -> dict[str, str]:
+    """Verify the disabled OIDC acceptance boundary without asserting real identity."""
+
+    gate = _require_fictional_internal_review_interface(server_settings)
+    settings = dict(os.environ) if server_settings is None else dict(server_settings)
+    if settings.get("SALUS_AUTH_MODE", "").strip().casefold() != "oidc":
+        raise SessionAccessError("fictional authenticated decisions require the OIDC server boundary")
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(authority.reviewer_key)
+    if (
+        reviewer is None
+        or reviewer["fictional_only"] is not True
+        or reviewer["reviewer_role"] != authority.reviewer_role
+        or authority.qualification_confirmed is not True
+    ):
+        raise SessionAccessError("fictional authenticated reviewer is not authorized")
+    authenticated_at = _parse_utc(authority.authenticated_at)
+    if authenticated_at > decision_at or decision_at - authenticated_at > timedelta(minutes=15):
+        raise SessionAccessError("fictional authentication evidence is not current")
+    return gate
+
+
+def _current_contract_note_state(conn: Any, packet_key: str) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT thread_key FROM advisor_fictional_internal_review_note_state "
+        "WHERE packet_key=? ORDER BY thread_key",
+        (packet_key,),
+    ).fetchall()
+    notes = [
+        load_current_fictional_internal_review_note(conn, row["thread_key"])
+        for row in rows
+    ]
+    return [
+        {
+            "thread_key": note["thread_key"],
+            "note_key": note["note_key"],
+            "note_revision": note["note_revision"],
+            "lifecycle_status": note["lifecycle_status"],
+            "content_sha256": note["content_sha256"],
+        }
+        for note in notes
+    ]
+
+
+def load_fictional_authenticated_review_decision(
+    conn: Any, decision_key: str
+) -> dict[str, Any]:
+    """Load and verify one immutable fictional authenticated-decision simulation."""
+
+    row = conn.execute(
+        "SELECT * FROM advisor_fictional_authenticated_review_decisions "
+        "WHERE decision_key=?",
+        (decision_key,),
+    ).fetchone()
+    if not row or content_sha256(row["snapshot_json"]) != row["content_sha256"]:
+        raise PolicyIntegrityError("fictional authenticated review decision integrity failed")
+    result = json.loads(row["snapshot_json"])
+    checks = {
+        "decision_key": row["decision_key"],
+        "decision_thread_key": row["decision_thread_key"],
+        "contract_key": row["contract_key"],
+        "decision_version": row["decision_version"],
+        "decision_revision": int(row["decision_revision"]),
+        "outcome": row["outcome"],
+        "lifecycle_status": row["lifecycle_status"],
+        "data_boundary": row["data_boundary"],
+        "reviewer_key": row["reviewer_key"],
+        "reviewer_role": row["reviewer_role"],
+        "authentication_mode": row["authentication_mode"],
+        "identity_subject_sha256": row["identity_subject_sha256"],
+        "authentication_evidence_sha256": row["authentication_evidence_sha256"],
+        "basis_sha256": row["basis_sha256"],
+        "supersedes_decision_key": row["supersedes_decision_key"],
+        "correction_reason": row["correction_reason"],
+        "created_at": row["created_at"],
+    }
+    reviewer = FICTIONAL_STAFF_REVIEWERS.get(row["reviewer_key"])
+    if (
+        any(result.get(key) != value for key, value in checks.items())
+        or row["decision_version"] != AUTHENTICATED_REVIEW_DECISION_VERSION
+        or row["outcome"] not in AUTHENTICATED_REVIEW_DECISION_OUTCOMES
+        or row["lifecycle_status"] != AUTHENTICATED_REVIEW_DECISION_STATUSES[row["outcome"]]
+        or row["data_boundary"] != DATA_BOUNDARY
+        or int(row["fictional_only"]) != 1
+        or result.get("fictional_only") is not True
+        or result.get("fictional_acceptance_simulation") is not True
+        or reviewer is None
+        or reviewer["reviewer_role"] != row["reviewer_role"]
+        or result.get("reviewer_fixture_sha256") != content_sha256(reviewer)
+        or result.get("basis_sha256") != content_sha256(result.get("basis", {}))
+        or result.get("simulated_decision_recorded") is not True
+        or result.get("actual_entra_identity_verified") is not False
+        or result.get("actual_human_review_completed") is not False
+        or result.get("actual_decision_recorded") is not False
+        or any(result.get(flag) is not False for flag in (
+            "advances_release_gate", "approves_prototype",
+            "authorizes_security_testing", "authorizes_public_route",
+            "authorizes_dns", "authorizes_pilot", "changes_scoring",
+            "changes_recommendation", "changes_package", "changes_price",
+            "creates_protected_member", "authorizes_customer_release",
+        ))
+    ):
+        raise PolicyIntegrityError("fictional authenticated review decision boundary failed")
+    load_fictional_internal_review_decision_contract(conn, row["contract_key"])
+    if row["supersedes_decision_key"]:
+        predecessor = load_fictional_authenticated_review_decision(
+            conn, row["supersedes_decision_key"]
+        )
+        if (
+            predecessor["decision_thread_key"] != row["decision_thread_key"]
+            or predecessor["contract_key"] != row["contract_key"]
+            or predecessor["decision_revision"] + 1 != int(row["decision_revision"])
+        ):
+            raise PolicyIntegrityError("fictional authenticated decision lineage failed")
+    elif int(row["decision_revision"]) != 1:
+        raise PolicyIntegrityError("fictional authenticated decision initial revision failed")
+    serialized = canonical_json(result).casefold()
+    for forbidden in (
+        "@example.com", "contact_email", "contact_name", "session_token",
+        "internal_cost", "role_rate", "margin_basis_points", "tenant_id",
+        "protected_member_id", "approved_customer_price_cents", "object_id",
+    ):
+        if forbidden in serialized:
+            raise PolicyIntegrityError("fictional authenticated decision contains restricted data")
+    return {**result, "content_sha256": row["content_sha256"]}
+
+
+def load_current_fictional_authenticated_review_decision(
+    conn: Any, contract_key: str
+) -> dict[str, Any]:
+    row = conn.execute(
+        "SELECT * FROM advisor_fictional_authenticated_review_decision_state "
+        "WHERE contract_key=?",
+        (contract_key,),
+    ).fetchone()
+    if not row:
+        raise PolicyIntegrityError("fictional authenticated review decision state is missing")
+    decision = load_fictional_authenticated_review_decision(
+        conn, row["current_decision_key"]
+    )
+    if (
+        decision["contract_key"] != contract_key
+        or decision["decision_thread_key"] != row["decision_thread_key"]
+        or decision["decision_revision"] != int(row["decision_revision"])
+        or decision["lifecycle_status"] != row["lifecycle_status"]
+    ):
+        raise PolicyIntegrityError("fictional authenticated review decision state failed")
+    return decision
+
+
+def fictional_authenticated_review_decision_history(
+    conn: Any, contract_key: str
+) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT decision_key FROM advisor_fictional_authenticated_review_decisions "
+        "WHERE contract_key=? ORDER BY decision_revision",
+        (contract_key,),
+    ).fetchall()
+    decisions = [
+        load_fictional_authenticated_review_decision(conn, row["decision_key"])
+        for row in rows
+    ]
+    for index, decision in enumerate(decisions, start=1):
+        expected_previous = None if index == 1 else decisions[index - 2]["decision_key"]
+        if (
+            decision["decision_revision"] != index
+            or decision["supersedes_decision_key"] != expected_previous
+        ):
+            raise PolicyIntegrityError("fictional authenticated decision history failed")
+    return decisions
+
+
+def record_fictional_authenticated_review_decision(
+    conn: Any,
+    command: FictionalAuthenticatedReviewDecisionCommand,
+    authority: FictionalAuthenticatedReviewAuthority,
+    *,
+    decided_at: str,
+    server_settings: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Record only a fictional acceptance simulation behind the OIDC server gate."""
+
+    initialize_policy_store(conn)
+    at = _parse_utc(decided_at)
+    gate = _require_fictional_authenticated_review_authority(
+        authority, server_settings, at
+    )
+    contract = load_fictional_internal_review_decision_contract(
+        conn, command.contract_key
+    )
+    current_note_state = _current_contract_note_state(conn, contract["packet_key"])
+    if current_note_state != contract["basis"]["current_note_state"]:
+        raise PolicyIntegrityError("fictional review decision contract is stale")
+    if (
+        command.outcome
+        == "Advance to Security, Privacy, Accessibility, Mobile, and Abuse Validation"
+        and (
+            contract["status"] != "Awaiting Human Decision"
+            or contract["topics_needing_evidence"] != 0
+        )
+    ):
+        raise PolicyIntegrityError("advance simulation requires complete governed topic evidence")
+
+    state = conn.execute(
+        "SELECT * FROM advisor_fictional_authenticated_review_decision_state "
+        "WHERE contract_key=?",
+        (contract["contract_key"],),
+    ).fetchone()
+    if state is None:
+        if command.supersedes_decision_key or command.correction_reason:
+            raise PolicyIntegrityError("initial fictional decision cannot supersede another")
+        revision = 1
+        decision_thread_key = (
+            "SPA-AUTH-REVIEW-THREAD-"
+            + content_sha256(contract["contract_key"]).upper()
+        )
+        previous = None
+    else:
+        previous = load_current_fictional_authenticated_review_decision(
+            conn, contract["contract_key"]
+        )
+        if command.supersedes_decision_key != previous["decision_key"]:
+            raise PolicyIntegrityError("fictional decision correction must supersede the current record")
+        revision = previous["decision_revision"] + 1
+        decision_thread_key = previous["decision_thread_key"]
+
+    at_text = _utc_text(at)
+    basis = {
+        "contract_key": contract["contract_key"],
+        "contract_content_sha256": contract["content_sha256"],
+        "contract_status": contract["status"],
+        "topic_readiness_sha256": contract["topic_readiness_sha256"],
+        "outcome": command.outcome,
+        "rationale": command.rationale,
+        "conditions": list(command.conditions),
+        "reviewer_fixture_sha256": content_sha256(
+            FICTIONAL_STAFF_REVIEWERS[authority.reviewer_key]
+        ),
+        "identity_subject_sha256": authority.identity_subject_sha256,
+        "authentication_evidence_sha256": authority.authentication_evidence_sha256,
+        "authenticated_at": _utc_text(_parse_utc(authority.authenticated_at)),
+        "supersedes_decision_key": command.supersedes_decision_key,
+        "correction_reason": command.correction_reason,
+    }
+    basis_sha256 = content_sha256(basis)
+    lifecycle_status = AUTHENTICATED_REVIEW_DECISION_STATUSES[command.outcome]
+    seed = {
+        "decision_thread_key": decision_thread_key,
+        "contract_key": contract["contract_key"],
+        "decision_version": AUTHENTICATED_REVIEW_DECISION_VERSION,
+        "decision_revision": revision,
+        "outcome": command.outcome,
+        "lifecycle_status": lifecycle_status,
+        "data_boundary": DATA_BOUNDARY,
+        "fictional_only": True,
+        "fictional_acceptance_simulation": True,
+        "reviewer_key": authority.reviewer_key,
+        "reviewer_role": authority.reviewer_role,
+        "reviewer_fixture_sha256": content_sha256(
+            FICTIONAL_STAFF_REVIEWERS[authority.reviewer_key]
+        ),
+        "authentication_mode": authority.authentication_mode,
+        "identity_subject_sha256": authority.identity_subject_sha256,
+        "authentication_evidence_sha256": authority.authentication_evidence_sha256,
+        "authenticated_at": _utc_text(_parse_utc(authority.authenticated_at)),
+        "rationale": command.rationale,
+        "conditions": list(command.conditions),
+        "basis": basis,
+        "basis_sha256": basis_sha256,
+        "supersedes_decision_key": command.supersedes_decision_key,
+        "correction_reason": command.correction_reason,
+        "created_at": at_text,
+        "created_display": _display_utc(at),
+        "simulated_decision_recorded": True,
+        "actual_entra_identity_verified": False,
+        "actual_human_review_completed": False,
+        "actual_decision_recorded": False,
+        "what_happens_next": (
+            "Present this fictional acceptance evidence to an actually authenticated "
+            "authorized Salus person. No release gate changes until that separate review."
+        ),
+        "advances_release_gate": False,
+        "approves_prototype": False,
+        "authorizes_security_testing": False,
+        "authorizes_public_route": False,
+        "authorizes_dns": False,
+        "authorizes_pilot": False,
+        "changes_scoring": False,
+        "changes_recommendation": False,
+        "changes_package": False,
+        "changes_price": False,
+        "creates_protected_member": False,
+        "authorizes_customer_release": False,
+    }
+    decision_key = "SPA-AUTH-REVIEW-DECISION-" + content_sha256(seed).upper()
+    decision = {"decision_key": decision_key, **seed}
+    snapshot_json = canonical_json(decision)
+    digest = content_sha256(snapshot_json)
+    try:
+        conn.execute(
+            "INSERT INTO advisor_fictional_authenticated_review_decisions("
+            "decision_key,decision_thread_key,contract_key,decision_version,"
+            "decision_revision,outcome,lifecycle_status,data_boundary,fictional_only,"
+            "reviewer_key,reviewer_role,authentication_mode,identity_subject_sha256,"
+            "authentication_evidence_sha256,basis_sha256,supersedes_decision_key,"
+            "correction_reason,snapshot_json,content_sha256,created_at"
+            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                decision_key, decision_thread_key, contract["contract_key"],
+                AUTHENTICATED_REVIEW_DECISION_VERSION, revision, command.outcome,
+                lifecycle_status, DATA_BOUNDARY, 1, authority.reviewer_key,
+                authority.reviewer_role, authority.authentication_mode,
+                authority.identity_subject_sha256,
+                authority.authentication_evidence_sha256, basis_sha256,
+                command.supersedes_decision_key, command.correction_reason,
+                snapshot_json, digest, at_text,
+            ),
+        )
+        if state is None:
+            conn.execute(
+                "INSERT INTO advisor_fictional_authenticated_review_decision_state("
+                "contract_key,decision_thread_key,current_decision_key,"
+                "decision_revision,lifecycle_status,updated_at"
+                ") VALUES(?,?,?,?,?,?)",
+                (
+                    contract["contract_key"], decision_thread_key, decision_key,
+                    revision, lifecycle_status, at_text,
+                ),
+            )
+        else:
+            conn.execute(
+                "UPDATE advisor_fictional_authenticated_review_decision_state "
+                "SET current_decision_key=?,decision_revision=?,"
+                "lifecycle_status=?,updated_at=? WHERE contract_key=?",
+                (
+                    decision_key, revision, lifecycle_status, at_text,
+                    contract["contract_key"],
+                ),
+            )
+        packet = load_fictional_internal_review_packet(conn, contract["packet_key"])
+        prospect = load_fictional_prospect(conn, packet["prospect_key"])
+        _record_session_event(
+            conn,
+            prospect["session_key"],
+            "Fictional Authenticated Review Decision Simulated",
+            at_text,
+            {
+                "contract_key": contract["contract_key"],
+                "decision_key": decision_key,
+                "decision_revision": revision,
+                "outcome": command.outcome,
+                "fictional_acceptance_simulation": True,
+                "actual_entra_identity_verified": False,
+                "actual_human_review_completed": False,
+                "advances_release_gate": False,
+            },
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {
+        **decision,
+        "content_sha256": digest,
+        "server_gate": {
+            "interface_state": gate["interface_state"],
+            "environment_class": "Non-production",
+            "authentication_boundary": "OIDC — fictional acceptance path only",
+            "actual_entra_identity_verified": False,
         },
     }
