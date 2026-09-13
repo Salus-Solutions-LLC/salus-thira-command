@@ -327,6 +327,8 @@ code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size
 .readiness-stage.act, .readiness-stage.prove { border-top-color: var(--ops); }
 
 
+.command-stats { grid-template-columns: repeat(3,minmax(0,1fr)); }
+
 .workspace-handoff {
   display: flex;
   justify-content: space-between;
@@ -357,7 +359,7 @@ code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size
 .field-help { color: var(--muted); font-size: 10px; font-weight: 400; line-height: 1.4; }
 
 @media (max-width: 1050px) {
-  .stats { grid-template-columns: repeat(2,1fr); }
+  .stats, .command-stats { grid-template-columns: repeat(2,1fr); }
   .app-shell { grid-template-columns: 210px 1fr; }
   .split { grid-template-columns: 1fr; }
   .readiness-path { grid-template-columns: repeat(2,1fr); }
@@ -369,7 +371,7 @@ code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size
 @media (max-width: 760px) {
   .app-shell { display: block; }
   .sidebar { position: relative; height: auto; }
-  .stats, .two-col, .form-grid { grid-template-columns: 1fr; }
+  .stats, .command-stats, .two-col, .form-grid { grid-template-columns: 1fr; }
   .readiness-path { grid-template-columns: 1fr; }
   .main { padding: 0 14px 30px; }
   .topbar { position: relative; align-items: flex-start; gap: 10px; padding-top: 20px; }
