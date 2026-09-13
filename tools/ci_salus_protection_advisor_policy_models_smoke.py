@@ -1150,6 +1150,240 @@ def main() -> None:
         assert contract_audit[-1]["contains_contact_information"] is False
         assert juniper_contact["contact_email"] not in json.dumps(contract_audit).casefold()
 
+        oidc_review_settings = {
+            **review_settings,
+            "SALUS_AUTH_MODE": "oidc",
+        }
+        fictional_authority = advisor.FictionalAuthenticatedReviewAuthority(
+            reviewer_key=reviewer["reviewer_key"],
+            reviewer_role=reviewer["reviewer_role"],
+            authentication_mode=advisor.AUTHENTICATED_REVIEW_IDENTITY_MODE,
+            identity_subject_sha256="a" * 64,
+            authentication_evidence_sha256="b" * 64,
+            authenticated_at="2026-09-12T16:19:00Z",
+            qualification_confirmed=True,
+            fictional_acceptance_simulation=True,
+        )
+
+        try:
+            advisor.record_fictional_authenticated_review_decision(
+                conn,
+                advisor.FictionalAuthenticatedReviewDecisionCommand(
+                    contract_key=decision_contract["contract_key"],
+                    outcome=(
+                        "Advance to Security, Privacy, Accessibility, Mobile, "
+                        "and Abuse Validation"
+                    ),
+                    rationale=(
+                        "This fictional advance must fail because eight governed "
+                        "review topics still need evidence."
+                    ),
+                    conditions=(),
+                    fictional_acceptance_simulation=True,
+                ),
+                fictional_authority,
+                decided_at="2026-09-12T16:20:00Z",
+                server_settings=oidc_review_settings,
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("incomplete review evidence advanced the fictional gate")
+
+        first_authenticated_decision = (
+            advisor.record_fictional_authenticated_review_decision(
+                conn,
+                advisor.FictionalAuthenticatedReviewDecisionCommand(
+                    contract_key=decision_contract["contract_key"],
+                    outcome="Require Changes",
+                    rationale=(
+                        "Eight governed review topics still need evidence before an "
+                        "authorized Salus person can consider the next validation stage."
+                    ),
+                    conditions=(
+                        "Prepare objective evidence for each remaining governed review topic.",
+                    ),
+                    fictional_acceptance_simulation=True,
+                ),
+                fictional_authority,
+                decided_at="2026-09-12T16:20:00Z",
+                server_settings=oidc_review_settings,
+            )
+        )
+        assert first_authenticated_decision["decision_revision"] == 1
+        assert first_authenticated_decision["outcome"] == "Require Changes"
+        assert first_authenticated_decision["lifecycle_status"] == (
+            "Changes Required — Fictional Acceptance Simulation"
+        )
+        assert first_authenticated_decision["simulated_decision_recorded"] is True
+        assert first_authenticated_decision["actual_entra_identity_verified"] is False
+        assert first_authenticated_decision["actual_human_review_completed"] is False
+        assert first_authenticated_decision["actual_decision_recorded"] is False
+        assert first_authenticated_decision["advances_release_gate"] is False
+        assert first_authenticated_decision["server_gate"]["authentication_boundary"] == (
+            "OIDC — fictional acceptance path only"
+        )
+
+        corrected_authenticated_decision = (
+            advisor.record_fictional_authenticated_review_decision(
+                conn,
+                advisor.FictionalAuthenticatedReviewDecisionCommand(
+                    contract_key=decision_contract["contract_key"],
+                    outcome="Pause Internal Review",
+                    rationale=(
+                        "Pause the fictional internal review simulation while the "
+                        "remaining objective evidence is prepared and reconciled."
+                    ),
+                    conditions=(
+                        "Do not represent this simulation as a human approval or Entra verification.",
+                    ),
+                    supersedes_decision_key=first_authenticated_decision["decision_key"],
+                    correction_reason=(
+                        "The fictional lifecycle test requires a distinct current disposition."
+                    ),
+                    fictional_acceptance_simulation=True,
+                ),
+                fictional_authority,
+                decided_at="2026-09-12T16:21:00Z",
+                server_settings=oidc_review_settings,
+            )
+        )
+        assert corrected_authenticated_decision["decision_revision"] == 2
+        assert corrected_authenticated_decision["supersedes_decision_key"] == (
+            first_authenticated_decision["decision_key"]
+        )
+        assert advisor.load_current_fictional_authenticated_review_decision(
+            conn, decision_contract["contract_key"]
+        )["decision_key"] == corrected_authenticated_decision["decision_key"]
+        authenticated_history = (
+            advisor.fictional_authenticated_review_decision_history(
+                conn, decision_contract["contract_key"]
+            )
+        )
+        assert [item["decision_revision"] for item in authenticated_history] == [1, 2]
+        assert authenticated_history[0]["supersedes_decision_key"] is None
+        assert authenticated_history[1]["supersedes_decision_key"] == (
+            authenticated_history[0]["decision_key"]
+        )
+
+        try:
+            advisor.record_fictional_authenticated_review_decision(
+                conn,
+                advisor.FictionalAuthenticatedReviewDecisionCommand(
+                    contract_key=decision_contract["contract_key"],
+                    outcome="Require Changes",
+                    rationale=(
+                        "This fictional stale correction must not replace the current record."
+                    ),
+                    conditions=(),
+                    supersedes_decision_key=first_authenticated_decision["decision_key"],
+                    correction_reason="The referenced record is intentionally stale.",
+                    fictional_acceptance_simulation=True,
+                ),
+                fictional_authority,
+                decided_at="2026-09-12T16:22:00Z",
+                server_settings=oidc_review_settings,
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("stale fictional authenticated decision was accepted")
+
+        try:
+            advisor.record_fictional_authenticated_review_decision(
+                conn,
+                advisor.FictionalAuthenticatedReviewDecisionCommand(
+                    contract_key=decision_contract["contract_key"],
+                    outcome="Require Changes",
+                    rationale=(
+                        "The prototype authentication mode must fail before decision handling."
+                    ),
+                    conditions=(),
+                    supersedes_decision_key=corrected_authenticated_decision["decision_key"],
+                    correction_reason="Authentication-mode rejection is under test.",
+                    fictional_acceptance_simulation=True,
+                ),
+                fictional_authority,
+                decided_at="2026-09-12T16:22:00Z",
+                server_settings=review_settings,
+            )
+        except advisor.SessionAccessError:
+            pass
+        else:
+            raise AssertionError("non-OIDC fictional decision boundary was accepted")
+
+        try:
+            advisor.FictionalAuthenticatedReviewAuthority(
+                reviewer_key=reviewer["reviewer_key"],
+                reviewer_role=reviewer["reviewer_role"],
+                authentication_mode=advisor.AUTHENTICATED_REVIEW_IDENTITY_MODE,
+                identity_subject_sha256="a" * 64,
+                authentication_evidence_sha256="a" * 64,
+                authenticated_at="2026-09-12T16:19:00Z",
+                qualification_confirmed=True,
+                fictional_acceptance_simulation=True,
+            )
+        except ValidationError:
+            pass
+        else:
+            raise AssertionError("non-distinct fictional identity evidence was accepted")
+
+        authenticated_columns = {
+            column["name"]
+            for column in conn.execute(
+                "PRAGMA table_info(advisor_fictional_authenticated_review_decisions)"
+            )
+        }
+        for forbidden_column in (
+            "tenant_id", "protected_member_id", "contact_email", "contact_name",
+            "object_id", "approved_customer_price_cents",
+            "actual_human_review_completed", "actual_entra_identity_verified",
+        ):
+            assert forbidden_column not in authenticated_columns
+        authenticated_text = json.dumps(corrected_authenticated_decision).casefold()
+        for hidden in (
+            "@example.com", "contact_email", "contact_name", "session_token",
+            "internal_cost", "role_rate", "margin_basis_points", "tenant_id",
+            "protected_member_id", "approved_customer_price_cents", "object_id",
+        ):
+            assert hidden not in authenticated_text
+
+        authenticated_audit = advisor.verify_fictional_session_audit(
+            conn, evaluation_session["session_key"]
+        )
+        assert authenticated_audit[-1]["event_type"] == (
+            "Fictional Authenticated Review Decision Simulated"
+        )
+        assert authenticated_audit[-1]["details"][
+            "actual_entra_identity_verified"
+        ] is False
+        assert authenticated_audit[-1]["details"][
+            "actual_human_review_completed"
+        ] is False
+        assert authenticated_audit[-1]["details"][
+            "advances_release_gate"
+        ] is False
+        assert authenticated_audit[-1]["contains_contact_information"] is False
+
+        conn.execute(
+            "UPDATE advisor_fictional_authenticated_review_decisions "
+            "SET snapshot_json=? WHERE decision_key=?",
+            ("{}", corrected_authenticated_decision["decision_key"]),
+        )
+        try:
+            advisor.load_fictional_authenticated_review_decision(
+                conn, corrected_authenticated_decision["decision_key"]
+            )
+        except advisor.PolicyIntegrityError:
+            pass
+        else:
+            raise AssertionError("tampered fictional authenticated decision was accepted")
+        finally:
+            conn.rollback()
+        assert advisor.load_current_fictional_authenticated_review_decision(
+            conn, decision_contract["contract_key"]
+        )["decision_key"] == corrected_authenticated_decision["decision_key"]
+
         conn.execute(
             "UPDATE advisor_fictional_internal_review_decision_contracts "
             "SET snapshot_json=? WHERE contract_key=?",
