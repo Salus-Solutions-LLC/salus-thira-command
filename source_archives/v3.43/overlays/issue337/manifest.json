@@ -1,0 +1,52 @@
+{
+  "format": "salcapa-source-overlay-v1",
+  "version": "3.43.0",
+  "overlay": "issue337-light-airy-shell",
+  "files": {
+    "static/app.js": {
+      "source_path": "source_archives/v3.43/overlays/issue337/static__app.js.source",
+      "target_sha256": "4f1c41b68ce437ac41243401ed8827dc591a5ef3175b777e187624e37cc085c6",
+      "target_size_bytes": 129572
+    },
+    "static/index.html": {
+      "source_path": "source_archives/v3.43/overlays/issue337/static__index.html.source",
+      "target_sha256": "870ed69e98a48c6612bfc08805b036cd69d1ea7a57bd30e38f62d01b136f4286",
+      "target_size_bytes": 3400
+    },
+    "static/styles.css": {
+      "source_path": "source_archives/v3.43/overlays/issue337/static__styles.css.source",
+      "target_sha256": "74086ca0c1f7aeffe983d295c451727d831111f36e55f6ea65561d83012a0bca",
+      "target_size_bytes": 14254
+    },
+    "static/product-branding.css": {
+      "source_path": "source_archives/v3.43/overlays/issue337/static__product-branding.css.source",
+      "target_sha256": "728bb2c4a949cdebd387bdceba605b44fa7d096d19da7240ea2cadea7b592a92",
+      "target_size_bytes": 913
+    },
+    "static/salintel-domains.js": {
+      "source_path": "source_archives/v3.43/overlays/issue337/static__salintel-domains.js.source",
+      "target_sha256": "49f301cca4b797548979bebb58c98a2fbf6bfd06402429f14298a99890f1b48d",
+      "target_size_bytes": 21894
+    },
+    "static/salintel-domains.css": {
+      "source_path": "source_archives/v3.43/overlays/issue337/static__salintel-domains.css.source",
+      "target_sha256": "a282e67e491fe65063e5e0a9767691cb4156aab46f859c3f768d9b2c4d2a2ed4",
+      "target_size_bytes": 2322
+    },
+    "static/assets/salus-solutions-horizontal-blue.svg": {
+      "source_path": "source_archives/v3.43/overlays/issue337/static__assets__salus-solutions-horizontal-blue.svg.source",
+      "target_sha256": "0d66316a5a14de5239cb2c9c74e647a822a0c523a97d40349a3aa4d5b82ec223",
+      "target_size_bytes": 11652
+    },
+    "tools/ci_product_branding_smoke.py": {
+      "source_path": "source_archives/v3.43/overlays/issue337/tools__ci_product_branding_smoke.py.source",
+      "target_sha256": "5f561c3e24f6c61e65a4f13e9d922289337f2829fb96f02368a10438429181a0",
+      "target_size_bytes": 3470
+    },
+    "tools/ci_salintel_domain_ui_smoke.py": {
+      "source_path": "source_archives/v3.43/overlays/issue337/tools__ci_salintel_domain_ui_smoke.py.source",
+      "target_sha256": "12bcb0c1920e6f64875f3963095493f7d80d33f22ce71aa3e9119896535599b2",
+      "target_size_bytes": 2389
+    }
+  }
+}
