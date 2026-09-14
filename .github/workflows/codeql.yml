@@ -34,10 +34,9 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: requirements.txt
-      - name: Reconstruct and verify archived source
+      - name: Verify immutable archived source
         run: |
-          if [ ! -f app.py ] && [ -f tools/reconstruct_v343_source.py ]; then python tools/reconstruct_v343_source.py; fi
-          python tools/verify_v343_source.py
+          python tools/verify_v343_archive.py
           python tools/reconstruct_salops_preparedness.py
           python tools/reconstruct_personnel_assessment.py
           python tools/reconstruct_salintel_relationships.py
