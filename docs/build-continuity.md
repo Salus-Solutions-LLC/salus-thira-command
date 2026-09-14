@@ -1,11 +1,11 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 September 2026 17:11 CDT
+last_verified_at: 14 September 2026 17:16 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
-current_development_head: b819b8e0c981f6702f06760c45852371b525e34e
+current_development_head: 9116476735976768a72cf4b5588c668e3f8f3f32
 active_product_milestone: issue_337_with_issue_360_phase_1
 active_build_system_issue: 368
 active_increment: issue_337_issue_360_phase_1_full_milestone_validation
@@ -14,15 +14,15 @@ candidate_release: none
 validation_pr: 372
 validation_branch: validation/issue-337-phase1-current
 validation_base: main
-validation_head: b819b8e0c981f6702f06760c45852371b525e34e
-validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_on_exact_candidate_at_validation_start
-first_root_failing_gate: none
-root_cause: none
-repair_head: b819b8e0c981f6702f06760c45852371b525e34e
-repair_summary: isolated_archive_verification_non_root_runtime_navigation_composition_light_brand_acceptance_and_operating_model_copy_are_aligned
-genuine_blockers: none
-next_authorized_step: complete_PR_372_full_gates_close_without_merge_then_freeze_exact_green_candidate_and_promote_exact_tested_artifact_to_Azure_development
+validation_head: 0a1bcef159efc5b4a462fe77857517cd2097ee87
+validation_gate_state: repair_validation_pending
+failed_workflows: salcapa_build_continuity
+first_root_failing_gate: continuity_record_required_phrase
+root_cause: continuity_record_missing_exact_close_without_merge_governance_phrase
+repair_head: pending_current_validation_branch_commit
+repair_summary: align_continuity_governance_phrase_with_deterministic_acceptance_contract_without_changing_product_runtime
+ genuine_blockers: none
+next_authorized_step: rerun_PR_372_full_gates_after_continuity_repair_close_without_merge_then_freeze_exact_green_candidate_and_promote_exact_tested_artifact_to_Azure_development
 deployed_demo_release: v3.112
 deployed_demo_state: accepted_unchanged
 ---
@@ -34,11 +34,12 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 ## Current verified checkpoint
 
 - Frozen release remains **v3.112** at `1d1759375d37b7de884331c06833de8c727ac5af`; the accepted Azure development demonstration remains unchanged.
-- The exact coherent Phase 1 visual candidate is `b819b8e0c981f6702f06760c45852371b525e34e` from `development/salcapa-platform`.
-- Issue #368 archive/current-runtime separation now passes SQLite, PostgreSQL 16, production-container, non-root container-runtime, functional validation, dependency/security, and CodeQL checks on the exact candidate.
-- Issue #337 with Issue #360 Phase 1 is present on the exact candidate: light-airy Salus surfaces, restrained navigation/header hierarchy, plain-language page framing, and updated deterministic visual acceptance.
-- Controlled validation PR #372 is open from `validation/issue-337-phase1-current` at the exact candidate head. It must be closed without merge after the complete milestone gate family finishes.
-- No blocker requires Marc. The next authorized step is to complete full validation, then freeze and promote only the exact green artifact.
+- The coherent Phase 1 visual lineage is rooted in `development/salcapa-platform` at `9116476735976768a72cf4b5588c668e3f8f3f32` and continues in controlled validation PR #372.
+- Issue #368 archive/current-runtime separation passes the development gate family, including SQLite, PostgreSQL 16, production-container, non-root container-runtime, functional validation, dependency/security, and CodeQL checks.
+- Issue #337 with Issue #360 Phase 1 is present in the candidate: light-airy Salus surfaces, restrained navigation/header hierarchy, plain-language page framing, and updated deterministic visual acceptance.
+- Controlled validation PR #372 is open from `validation/issue-337-phase1-current`. The first full-validation attempt exposed only a continuity-governance wording mismatch; the product/runtime gates that completed before that point were not the root cause.
+- This repair adds the exact governed close-without-merge instruction required by the deterministic continuity acceptance check. It does not alter product runtime behavior.
+- No blocker requires Marc. The next authorized step is to let the repaired candidate complete the full milestone gate family, then freeze and promote only the exact green artifact.
 
 ## Source precedence
 
@@ -63,7 +64,7 @@ At each build or continuity check:
 ## Standing controls
 
 - Preserve `main`, `development/v1.17`, `release/v1.16`, and every frozen release.
-- Controlled validation PRs remain governed and are closed without merge where required; only an exact verified green head may advance by governed non-force fast-forward.
+- After all required gates are green, close the controlled validation pull request without merge, then advance only the exact verified green head by the governed non-force path.
 - Preserve security, tenant isolation, sensitivity, disclosure, provenance, human authority, recovery, rollback, frozen-history, Azure identity/deployment boundaries, accessibility, reporting, date/time, and release-version controls.
 - Human-First Communications and Human Trust & Comprehension doctrine remain in force.
 - Preserve canonical SalINTEL, SalTHIRA, SalCAPA, SalOPS, and cross-cutting PROVE distinctions.
