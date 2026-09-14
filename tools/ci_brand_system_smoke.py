@@ -15,11 +15,11 @@ def require(value: str, source: str, label: str) -> None:
 
 
 tokens = {
-    "--bg": "#f6f7f7",
+    "--bg": "#f8fafb",
     "--panel": "#ffffff",
-    "--ink": "#17242f",
-    "--nav": "#0b2236",
-    "--accent": "#2b7d76",
+    "--ink": "#20313d",
+    "--nav": "var(--salus-blue)",
+    "--accent": "var(--salus-orange)",
     "--intel": "#147fa6",
     "--thira": "#ad7720",
     "--ops": "#337a65",
@@ -51,7 +51,7 @@ for forbidden in ("@font-face", "fonts.googleapis.com", "fonts.gstatic.com"):
         raise SystemExit("External or bundled proprietary font path is not permitted")
 
 logo_match = re.search(
-    r'<img\s+src="/static/assets/salus-solutions-horizontal-white[.]svg"\s+'
+    r'<img\s+src="/static/assets/salus-solutions-horizontal-blue[.]svg"\s+'
     r'class="brand-logo"\s+alt="Salus Solutions"\s*/?>',
     HTML,
 )
@@ -73,6 +73,7 @@ for view in (
     require(f'data-view="{view}"', HTML, f"navigation view {view}")
 
 for name in (
+    "salus-solutions-horizontal-blue.svg",
     "salus-solutions-horizontal-white.svg",
     "salus-solutions-stacked-white.svg",
 ):
