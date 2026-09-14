@@ -1,11 +1,11 @@
 /* Trademark-first product navigation for Protected Members and Salus personnel. */
-.nav-product-group { display:grid; gap:2px; margin:0 0 10px; padding:0 0 10px; border-bottom:1px solid rgba(255,255,255,.09); }
+.nav-product-group { display:grid; gap:2px; margin:0 0 12px; padding:0 0 12px; border-bottom:1px solid var(--line); }
 .nav-product-group:last-of-type { border-bottom:0; }
-.nav-product-title { padding:0 12px 1px; color:#fff; font-size:12px; font-weight:700; letter-spacing:.025em; }
-.nav-product-description { padding:0 12px 5px; color:#9fb1bd; font-size:9px; line-height:1.35; }
-.nav-product-group[data-product="salintel"] .nav-product-title { color:#67c5e5; }
-.nav-product-group[data-product="salthira"] .nav-product-title { color:#e3b24f; }
-.nav-product-group[data-product="salops"] .nav-product-title { color:#72c5a8; }
+.nav-product-title { padding:0 12px 1px; color:var(--salus-blue); font-size:12px; font-weight:750; letter-spacing:.025em; }
+.nav-product-description { padding:0 12px 7px; color:var(--muted); font-size:9px; line-height:1.4; }
+.nav-product-group[data-product="salintel"] .nav-product-title,
+.nav-product-group[data-product="salthira"] .nav-product-title,
+.nav-product-group[data-product="salops"] .nav-product-title { color:var(--salus-blue); }
 .nav-product-group [hidden] { display:none !important; }
 @media (max-width:760px) { .nav-product-title{font-size:11px} .nav-product-description{font-size:9px} }
 @media print { .nav-product-description{color:#444} }
