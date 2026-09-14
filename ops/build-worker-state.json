@@ -6,6 +6,6 @@
   "next_priority": "Complete PR #372 full milestone validation for Issue #337 + Issue #360 Phase 1, close without merge, freeze the exact green candidate, and promote the exact tested artifact to the Azure development demonstration.",
   "last_verified_head": "b819b8e0c981f6702f06760c45852371b525e34e",
   "worker_status": "full_validation",
-  "last_transition": "2026-09-14T22:11:00Z",
-  "notes": "Issue #368 archive/runtime repair and candidate compatibility repairs are green on the development head. PR #372 is the controlled full-validation candidate. No secrets or Protected Member data permitted in this file."
+  "last_transition": "2026-09-14T22:14:00Z",
+  "notes": "PR #372 full milestone validation triggered on this exact candidate after Issue #368 and Phase 1 visual repairs passed development validation. No secrets or Protected Member data permitted in this file."
 }
