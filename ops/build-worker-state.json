@@ -2,10 +2,10 @@
   "schema_version": 1,
   "mode": "persistent-supervisor",
   "authoritative_branch": "development/salcapa-platform",
-  "active_issue": 368,
-  "next_priority": "Complete Issue #368 archive/runtime isolation and validation repair, then revalidate Issue #337 + Issue #360 Phase 1 aesthetic candidate.",
-  "last_verified_head": "589502b4a2916fff45fc278a770a8a20c7c7fd0e",
-  "worker_status": "validating",
-  "last_transition": "2026-09-14T21:34:32Z",
-  "notes": "Repository-side persistent-worker contract initialized under Issue #370. No secrets or protected-member data permitted in this file."
+  "active_issue": 337,
+  "next_priority": "Complete PR #372 full milestone validation for Issue #337 + Issue #360 Phase 1, close without merge, freeze the exact green candidate, and promote the exact tested artifact to the Azure development demonstration.",
+  "last_verified_head": "b819b8e0c981f6702f06760c45852371b525e34e",
+  "worker_status": "full_validation",
+  "last_transition": "2026-09-14T22:11:00Z",
+  "notes": "Issue #368 archive/runtime repair and candidate compatibility repairs are green on the development head. PR #372 is the controlled full-validation candidate. No secrets or Protected Member data permitted in this file."
 }

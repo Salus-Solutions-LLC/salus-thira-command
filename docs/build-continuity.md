@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 September 2026 12:59 CDT
+last_verified_at: 14 September 2026 17:11 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
-current_development_head: d3e3c5626049061171c2db7ff5468a3cfef42178
+current_development_head: b819b8e0c981f6702f06760c45852371b525e34e
 active_product_milestone: issue_337_with_issue_360_phase_1
 active_build_system_issue: 368
-active_increment: issue_368_archive_runtime_isolation_repair_validation
-last_completed_increment: issue_290_authenticated_advisor_decision_checkpoint
+active_increment: issue_337_issue_360_phase_1_full_milestone_validation
+last_completed_increment: issue_368_archive_runtime_isolation_and_visual_candidate_repair
 candidate_release: none
-validation_pr: 365
-validation_branch: validation/issue-337-light-airy-shell
+validation_pr: 372
+validation_branch: validation/issue-337-phase1-current
 validation_base: main
-validation_head: 2b831b6c0a0df9238d01caeb08c419d257d1710c
-validation_gate_state: repair_validation_pending
-failed_workflows: prior_PR_365_CI; prior_PR_365_CodeQL_Local_Analysis
-first_root_failing_gate: prior_PR_365_Reconstruct_and_verify_archived_source
-root_cause: archived_v3_43_verification_and_reconstruction_were_coupled_to_current_runtime_source
-repair_head: d3e3c5626049061171c2db7ff5468a3cfef42178
-repair_summary: v3_43_reconstruction_and_verification_now_default_to_isolated_reference_storage_and_regression_checks_assert_current_UI_is_not_mutated
-genuine_blockers: none_requiring_marc; repair_validation_in_progress
-next_authorized_step: verify_issue_368_repair_gates_then_recreate_or_revalidate_issue_337_issue_360_phase_1_candidate
+validation_head: b819b8e0c981f6702f06760c45852371b525e34e
+validation_gate_state: controlled_validation_in_progress
+failed_workflows: none_on_exact_candidate_at_validation_start
+first_root_failing_gate: none
+root_cause: none
+repair_head: b819b8e0c981f6702f06760c45852371b525e34e
+repair_summary: isolated_archive_verification_non_root_runtime_navigation_composition_light_brand_acceptance_and_operating_model_copy_are_aligned
+genuine_blockers: none
+next_authorized_step: complete_PR_372_full_gates_close_without_merge_then_freeze_exact_green_candidate_and_promote_exact_tested_artifact_to_Azure_development
 deployed_demo_release: v3.112
 deployed_demo_state: accepted_unchanged
 ---
@@ -33,15 +33,12 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current verified checkpoint
 
-- Frozen release remains **v3.112** at `1d1759375d37b7de884331c06833de8c727ac5af`. The accepted Azure development demonstration remains on v3.112 and is unchanged.
-- `development/salcapa-platform` is now at `d3e3c5626049061171c2db7ff5468a3cfef42178` for the bounded Issue #368 archive/runtime isolation repair.
-- The repair changes the historical v3.43 reconstruction and verification tools so their default operation uses an isolated temporary reference directory instead of the current runtime working tree. Existing Docker, CI, CodeQL, and local runtime entrypoints therefore no longer overwrite current governed UI/runtime source when they execute the archived-source commands.
-- A regression was added to `tools/check_release_entrypoints.py` that hashes current `static/app.js`, `static/index.html`, and `static/styles.css`, performs the archive reconstruction/verification flow, and fails if any current UI file changes.
-- A dedicated `tools/verify_v343_archive.py` helper was added for explicit isolated archive verification.
-- GitHub Actions runs for repair head `d3e3c5626049061171c2db7ff5468a3cfef42178` have started and are still pending/validating. No repair acceptance is claimed until the required scoped checks are green.
-- The active product milestone remains **Issue #337** with **Issue #360 Phase 1** visible simplification folded into the same coherent visual-refinement milestone.
-- Existing controlled validation **PR #365**, `validation/issue-337-light-airy-shell`, remains the historical failed candidate at exact head `2b831b6c0a0df9238d01caeb08c419d257d1710c`. Its prior CI and CodeQL failures were caused by the now-addressed archive/current-runtime coupling. It must not be promoted as-is; after the repair validates, rebuild/rebase or otherwise create a governed exact candidate against the repaired development head and run the required milestone gates.
-- There is no current blocker requiring Marc action. The next authorized step is to verify the Issue #368 repair, then recreate/revalidate the Issue #337 / Issue #360 Phase 1 aesthetic candidate and proceed only when the exact candidate artifact is green.
+- Frozen release remains **v3.112** at `1d1759375d37b7de884331c06833de8c727ac5af`; the accepted Azure development demonstration remains unchanged.
+- The exact coherent Phase 1 visual candidate is `b819b8e0c981f6702f06760c45852371b525e34e` from `development/salcapa-platform`.
+- Issue #368 archive/current-runtime separation now passes SQLite, PostgreSQL 16, production-container, non-root container-runtime, functional validation, dependency/security, and CodeQL checks on the exact candidate.
+- Issue #337 with Issue #360 Phase 1 is present on the exact candidate: light-airy Salus surfaces, restrained navigation/header hierarchy, plain-language page framing, and updated deterministic visual acceptance.
+- Controlled validation PR #372 is open from `validation/issue-337-phase1-current` at the exact candidate head. It must be closed without merge after the complete milestone gate family finishes.
+- No blocker requires Marc. The next authorized step is to complete full validation, then freeze and promote only the exact green artifact.
 
 ## Source precedence
 
