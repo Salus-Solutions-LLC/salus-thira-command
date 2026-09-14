@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the exact v3.109 reference-image boundary without authorizing deployment."""
+"""Verify the exact v3.109 reference-image boundary without blocking newer governed releases."""
 
 from __future__ import annotations
 
@@ -9,13 +9,13 @@ import pathlib
 import re
 import subprocess
 
-
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FROZEN_ROOT = pathlib.Path(os.environ.get("SALCAPA_FROZEN_V3109_ROOT", ROOT / "frozen-v3109"))
 CONTRACT = ROOT / "deploy" / "azure" / "candidates" / "v3.109-reference-image-preflight.json"
 IMAGE_PUBLICATION = ROOT / "deploy" / "azure" / "activations" / "image-dev.json"
 ACCEPTED_APPLICATION = ROOT / "deploy" / "azure" / "activations" / "application-dev.json"
 CONTINUITY = ROOT / "docs" / "demo-deployment-continuity.md"
+BUILD_CONTINUITY = ROOT / "docs" / "build-continuity.md"
 
 V3109_COMMIT = "361a38300faddd7e9a93153c0629739acef870a0"
 V336_COMMIT = "63d513605f908d3308bb5dd1bbdbf1061878452b"
@@ -89,11 +89,21 @@ assert 'SALCAPA_RELEASE_VERSION = "3.109"' in runtime
 assert not (FROZEN_ROOT / "salcapa_demo_fixtures.py").exists()
 assert not (FROZEN_ROOT / "tools" / "reconstruct_salcapa_demo_fixtures.py").exists()
 
+# The historical v3.109 reference remains immutable, while the current image
+# activation may legitimately advance to the currently frozen SalCAPA release.
 image_publication = load_json(IMAGE_PUBLICATION)
 accepted_application = load_json(ACCEPTED_APPLICATION)
-assert image_publication["source_release"] == "release/v3.112"
-assert image_publication["source_commit"] == V3112_COMMIT
-assert image_publication["activation_key"] == "salcapa-v3.112-image-1d175937"
+build_continuity = front_matter(BUILD_CONTINUITY)
+current_frozen_release = build_continuity["current_frozen_release"]
+current_frozen_commit = build_continuity["current_frozen_commit"]
+assert image_publication["source_release"] == f"release/{current_frozen_release}"
+assert image_publication["source_commit"] == current_frozen_commit
+assert image_publication["activation_key"] == (
+    f"salcapa-{current_frozen_release}-image-{current_frozen_commit[:8]}"
+)
+
+# The accepted live application remains the rollback truth until a newer image
+# is published and separately promoted through the governed application gate.
 assert accepted_application["source_release"] == "release/v3.112"
 assert accepted_application["source_commit"] == V3112_COMMIT
 assert accepted_application["image_digest"].endswith(V3112_DIGEST)
@@ -127,6 +137,6 @@ for forbidden in ("password", "client_secret", "access_token", "connection_strin
     assert not re.search(rf'(?i)"{forbidden}"\s*:', CONTRACT.read_text(encoding="utf-8"))
 
 print(
-    "Exact frozen v3.109 reference-image lineage passed; publication, deployment, "
-    "traffic, and cost changes remain unauthorized by its historical preflight contract."
+    "Exact frozen v3.109 reference-image lineage passed; newer image publication "
+    "is bound to the currently frozen governed release without altering historical evidence."
 )
