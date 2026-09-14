@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
 """Verify exact SalCAPA v3.43 source against its immutable archive snapshot.
 
-Current-runtime validation should pass --root pointing to an isolated reconstructed
-reference directory. The repository root remains the default only for historical
-explicit verification workflows.
+Verification reads the isolated archive-reference directory by default so current
+runtime/UI source is never required to equal the historical v3.43 snapshot.
 """
 
 import argparse
 import hashlib
 import json
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE = REPO_ROOT / "source_archives" / "v3.43"
+DEFAULT_ROOT = Path(tempfile.gettempdir()) / "salcapa-v343-reference"
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--root",
     type=Path,
-    default=REPO_ROOT,
-    help="directory containing reconstructed v3.43 files (default: repository root)",
+    default=DEFAULT_ROOT,
+    help="isolated directory containing reconstructed v3.43 files",
 )
 args = parser.parse_args()
 source_root = args.root.resolve()
