@@ -220,8 +220,8 @@ def main():
     assert 'SalCAPA Protective Readiness Executive Briefing' in briefing.text
     assert 'informed by recognized THIRA principles' in briefing.text
     product_copy = (ROOT / 'static' / 'app.js').read_text()
-    assert 'Protective Readiness operating environment' in product_copy
-    assert 'See risk early. Decide with confidence. Act in time. Prove the work was done.' in product_copy
+    assert 'Work that needs attention' in product_copy
+    assert 'Coordinate action &gt;' in product_copy
 
     member_payload = json.dumps({
         'cop': client.get('/api/salcapa/common-operating-picture', headers=member_authority).json(),
