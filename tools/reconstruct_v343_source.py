@@ -1,25 +1,27 @@
 #!/usr/bin/env python3
 """Deterministically reconstruct the governed SalCAPA v3.43 source snapshot.
 
-By default this preserves the historical behavior and reconstructs into the repository
-root. Current-runtime validation should pass --target so immutable archive evidence is
-materialized in an isolated reference directory and cannot overwrite active source.
+The immutable archive is reconstructed into an isolated reference directory by
+default so current governed runtime/UI source can never be overwritten by archive
+validation. Pass --target only for an explicitly controlled reference location.
 """
 
 import argparse
 import hashlib
 import json
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE = ROOT / "source_archives" / "v3.43"
+DEFAULT_TARGET = Path(tempfile.gettempdir()) / "salcapa-v343-reference"
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--target",
     type=Path,
-    default=ROOT,
-    help="directory to receive reconstructed v3.43 files (default: repository root)",
+    default=DEFAULT_TARGET,
+    help="isolated directory to receive reconstructed v3.43 files",
 )
 args = parser.parse_args()
 target_root = args.target.resolve()
