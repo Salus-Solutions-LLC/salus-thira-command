@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "mode": "persistent-supervisor",
+  "authoritative_branch": "development/salcapa-platform",
+  "active_issue": 368,
+  "next_priority": "Complete Issue #368 archive/runtime isolation and validation repair, then revalidate Issue #337 + Issue #360 Phase 1 aesthetic candidate.",
+  "last_verified_head": "589502b4a2916fff45fc278a770a8a20c7c7fd0e",
+  "worker_status": "validating",
+  "last_transition": "2026-09-14T21:34:32Z",
+  "notes": "Repository-side persistent-worker contract initialized under Issue #370. No secrets or protected-member data permitted in this file."
+}
