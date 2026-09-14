@@ -18,14 +18,26 @@ REQUIRED_KEYS = {
     "current_frozen_release",
     "current_frozen_commit",
     "active_development_branch",
-    "active_roadmap_issue",
+    "current_development_head",
+    "active_product_milestone",
+    "active_build_system_issue",
     "active_increment",
-    "last_completed_release",
+    "last_completed_increment",
     "candidate_release",
     "validation_pr",
+    "validation_branch",
+    "validation_base",
+    "validation_head",
     "validation_gate_state",
+    "failed_workflows",
+    "first_root_failing_gate",
+    "root_cause",
+    "repair_head",
+    "repair_summary",
     "genuine_blockers",
-    "next_authorized_increment",
+    "next_authorized_step",
+    "deployed_demo_release",
+    "deployed_demo_state",
 }
 
 
@@ -54,7 +66,7 @@ def main() -> None:
     assert values["schema_version"] == "1"
     assert values["record_kind"] == "salcapa_build_continuity"
     assert values["active_development_branch"] == "development/salcapa-platform"
-    assert values["active_roadmap_issue"].isdigit()
+    assert values["active_build_system_issue"].isdigit()
     assert re.fullmatch(r"[0-9a-f]{40}", values["current_frozen_commit"])
     assert re.fullmatch(
         r"\d{2} (January|February|March|April|May|June|July|August|September|October|November|December) "
@@ -68,6 +80,11 @@ def main() -> None:
         "github_validation_running",
         "controlled_validation_in_progress",
         "all_required_gates_green",
+        "repair_validation_pending",
+        "preflight",
+        "full_validation",
+        "failed",
+        "green",
     }
 
     runtime_text = RUNTIME.read_text(encoding="utf-8")
@@ -76,7 +93,6 @@ def main() -> None:
     runtime_version = version_tuple(match.group(1))
     frozen_version = version_tuple(values["current_frozen_release"])
     candidate_version = version_tuple(values["candidate_release"]) if values["candidate_release"] != "none" else None
-    assert values["last_completed_release"] == values["current_frozen_release"]
     if candidate_version is None:
         assert runtime_version == frozen_version
         if values["validation_gate_state"] == "all_required_gates_green":
