@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RECONSTRUCT = "tools/reconstruct_v343_source.py"
 VERIFY = "tools/verify_v343_source.py"
+ARCHIVE_VERIFY = "tools/verify_v343_archive.py"
 FILES = (
     "README.md",
     "Dockerfile",
@@ -25,9 +26,13 @@ PROTECTED_CURRENT_FILES = (
 
 for relative in FILES:
     text = (ROOT / relative).read_text(encoding="utf-8").replace("\\", "/")
-    missing = [command for command in (RECONSTRUCT, VERIFY) if command not in text]
-    if missing:
-        raise SystemExit(f"{relative} does not select verified archive evidence: {', '.join(missing)}")
+    selects_pair = RECONSTRUCT in text and VERIFY in text
+    selects_isolated = ARCHIVE_VERIFY in text
+    if not (selects_pair or selects_isolated):
+        raise SystemExit(
+            f"{relative} does not select verified archive evidence through "
+            f"{ARCHIVE_VERIFY} or the governed reconstruct/verify pair"
+        )
 
 
 def digest(path: Path) -> str:
@@ -39,8 +44,10 @@ before = {
     if (ROOT / relative).is_file()
 }
 
-subprocess.run([sys.executable, str(ROOT / RECONSTRUCT)], cwd=ROOT, check=True)
-subprocess.run([sys.executable, str(ROOT / VERIFY)], cwd=ROOT, check=True)
+# Use the same isolated archive verifier that CI and CodeQL use. It reconstructs
+# v3.43 only under a temporary reference directory and must never touch current
+# governed runtime/UI files.
+subprocess.run([sys.executable, str(ROOT / ARCHIVE_VERIFY)], cwd=ROOT, check=True)
 
 after = {relative: digest(ROOT / relative) for relative in before}
 if before != after:
