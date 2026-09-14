@@ -1,26 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 13 September 2026 19:22 CDT
+last_verified_at: 14 September 2026 12:59 CDT
 current_frozen_release: v3.112
 current_frozen_commit: 1d1759375d37b7de884331c06833de8c727ac5af
 active_development_branch: development/salcapa-platform
-current_development_head: cd481bf16723a750b3a6915c7fbd87282b264eff
+current_development_head: d3e3c5626049061171c2db7ff5468a3cfef42178
 active_product_milestone: issue_337_with_issue_360_phase_1
 active_build_system_issue: 368
-active_increment: issue_368_minimum_A_B_archive_runtime_separation_and_fail_fast_preflight
+active_increment: issue_368_archive_runtime_isolation_repair_validation
 last_completed_increment: issue_290_authenticated_advisor_decision_checkpoint
 candidate_release: none
 validation_pr: 365
 validation_branch: validation/issue-337-light-airy-shell
 validation_base: main
 validation_head: 2b831b6c0a0df9238d01caeb08c419d257d1710c
-validation_gate_state: failed
-failed_workflows: CI; CodeQL Local Analysis
-first_root_failing_gate: Reconstruct and verify archived source
-root_cause: archived_v3_43_verification_and_reconstruction_are_coupled_to_current_runtime_source
-genuine_blockers: issue_368_minimum_A_and_B_repair_required_before_pr_365_rerun_or_replacement
-next_authorized_step: complete_issue_368_minimum_A_B_repair_then_revalidate_issue_337_issue_360_phase_1_candidate
+validation_gate_state: repair_validation_pending
+failed_workflows: prior_PR_365_CI; prior_PR_365_CodeQL_Local_Analysis
+first_root_failing_gate: prior_PR_365_Reconstruct_and_verify_archived_source
+root_cause: archived_v3_43_verification_and_reconstruction_were_coupled_to_current_runtime_source
+repair_head: d3e3c5626049061171c2db7ff5468a3cfef42178
+repair_summary: v3_43_reconstruction_and_verification_now_default_to_isolated_reference_storage_and_regression_checks_assert_current_UI_is_not_mutated
+genuine_blockers: none_requiring_marc; repair_validation_in_progress
+next_authorized_step: verify_issue_368_repair_gates_then_recreate_or_revalidate_issue_337_issue_360_phase_1_candidate
 deployed_demo_release: v3.112
 deployed_demo_state: accepted_unchanged
 ---
@@ -32,12 +34,14 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 ## Current verified checkpoint
 
 - Frozen release remains **v3.112** at `1d1759375d37b7de884331c06833de8c727ac5af`. The accepted Azure development demonstration remains on v3.112 and is unchanged.
-- `development/salcapa-platform` is currently at `cd481bf16723a750b3a6915c7fbd87282b264eff` (`Record authenticated Advisor decision checkpoint`). The latest relevant CI, CodeQL Local Analysis, Azure infrastructure validation, and other returned workflow families for that exact development head completed successfully.
-- The active product milestone is **Issue #337** with **Issue #360 Phase 1** visible simplification folded into the same coherent visual-refinement milestone.
-- Open controlled validation **PR #365**, `validation/issue-337-light-airy-shell`, is at exact head `2b831b6c0a0df9238d01caeb08c419d257d1710c`. Its current base is `main`, which Issue #368 identifies as a validation-noise/focused-diff problem to correct under the governed build-system hardening work.
-- On that exact validation head, **CI** and **CodeQL Local Analysis** are failed. Both fail at the common **Reconstruct and verify archived source** step before substantive downstream validation can complete.
-- **Issue #368** is the immediate prerequisite. Its verified findings show archived v3.43 verification/reconstruction is coupled to current runtime source, and its sequencing requires correction A plus minimum B before rerunning Issue #337 PR #365. Broader focused-diff and validation-efficiency improvements remain governed by the same issue and must not weaken release assurance.
-- Therefore the current validation gate state is **failed**. The genuine blocker is the bounded Issue #368 A+B repair. The next authorized step is to complete that repair and then revalidate the exact Issue #337 / Issue #360 Phase 1 candidate. No freeze, release, deployment, or candidate promotion is authorized until the required milestone gates are green on the exact candidate artifact.
+- `development/salcapa-platform` is now at `d3e3c5626049061171c2db7ff5468a3cfef42178` for the bounded Issue #368 archive/runtime isolation repair.
+- The repair changes the historical v3.43 reconstruction and verification tools so their default operation uses an isolated temporary reference directory instead of the current runtime working tree. Existing Docker, CI, CodeQL, and local runtime entrypoints therefore no longer overwrite current governed UI/runtime source when they execute the archived-source commands.
+- A regression was added to `tools/check_release_entrypoints.py` that hashes current `static/app.js`, `static/index.html`, and `static/styles.css`, performs the archive reconstruction/verification flow, and fails if any current UI file changes.
+- A dedicated `tools/verify_v343_archive.py` helper was added for explicit isolated archive verification.
+- GitHub Actions runs for repair head `d3e3c5626049061171c2db7ff5468a3cfef42178` have started and are still pending/validating. No repair acceptance is claimed until the required scoped checks are green.
+- The active product milestone remains **Issue #337** with **Issue #360 Phase 1** visible simplification folded into the same coherent visual-refinement milestone.
+- Existing controlled validation **PR #365**, `validation/issue-337-light-airy-shell`, remains the historical failed candidate at exact head `2b831b6c0a0df9238d01caeb08c419d257d1710c`. Its prior CI and CodeQL failures were caused by the now-addressed archive/current-runtime coupling. It must not be promoted as-is; after the repair validates, rebuild/rebase or otherwise create a governed exact candidate against the repaired development head and run the required milestone gates.
+- There is no current blocker requiring Marc action. The next authorized step is to verify the Issue #368 repair, then recreate/revalidate the Issue #337 / Issue #360 Phase 1 aesthetic candidate and proceed only when the exact candidate artifact is green.
 
 ## Source precedence
 
