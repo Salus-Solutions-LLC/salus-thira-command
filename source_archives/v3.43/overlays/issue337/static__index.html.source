@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SalCAPA</title>
+<link rel="stylesheet" href="/static/styles.css" />
+<link rel="stylesheet" href="/static/guidance.css" />
+<link rel="stylesheet" href="/static/condition-visuals.css" />
+<link rel="stylesheet" href="/static/intake-capture.css" />
+<link rel="stylesheet" href="/static/brand-lockup.css" />
+<link rel="stylesheet" href="/static/salintel-domains.css" />
+<link rel="stylesheet" href="/static/product-branding.css" />
+<link rel="stylesheet" href="/static/product-version.css" />
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="/static/assets/salus-solutions-horizontal-blue.svg" class="brand-logo" alt="Salus Solutions" />
+      <div class="brand-product">SalCAPA™</div>
+    </div>
+    <nav id="nav" aria-label="SalCAPA product navigation">
+      <div class="nav-product-group" data-product="salcapa">
+        <div class="nav-product-title">SalCAPA™</div><div class="nav-product-description">See what matters. Coordinate the work.</div>
+        <button class="active" data-view="dashboard">Command Center</button><span class="nav-view-description">Coordinate decisions, assignments, approvals, and action.</span>
+        <button data-view="common_operating_picture">Common Operating Picture</button><span class="nav-view-description">See what is happening, what matters, and what has changed.</span>
+        <button data-view="reports">Reports</button>
+      </div>
+      <div class="nav-product-group" data-product="salintel">
+        <div class="nav-product-title">SalINTEL™</div><div class="nav-product-description">Find and check the facts.</div>
+        <button data-view="salintel">Intelligence Overview</button><button data-view="salintel_domains" data-salus-only="true">Type of Investigation</button>
+      </div>
+      <div class="nav-product-group" data-product="salthira">
+        <div class="nav-product-title">SalTHIRA™</div><div class="nav-product-description">Understand risk and set priorities.</div>
+        <button data-view="salthira">Risk Assessments</button>
+      </div>
+      <div class="nav-product-group" data-product="salops">
+        <div class="nav-product-title">SalOPS™</div><div class="nav-product-description">Put approved work into action.</div>
+        <button data-view="salops">Operations & Requests</button>
+      </div>
+    </nav>
+    <div class="sidebar-note sidebar-footer-note">
+      <div id="salcapa-version" class="salcapa-version" hidden></div>
+      <div>Protected Member workspace<br/>See • Coordinate • Act</div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><h1 id="page-title">Command Center</h1><p id="page-subtitle">See risk early, decide with confidence, act in time, and prove the work was done.</p></div>
+      <div class="status-pill">Private workspace</div>
+    </header>
+    <section id="content"></section>
+  </main>
+</div>
+<script src="/static/product-branding.js"></script>
+<script src="/static/app.js"></script>
+<script src="/static/product-version.js"></script>
+<script src="/static/salintel-domains.js"></script>
+<script src="/static/guidance.js"></script>
+<script src="/static/condition-visuals.js"></script>
+<script src="/static/intake-capture.js"></script>
+</body>
+</html>
