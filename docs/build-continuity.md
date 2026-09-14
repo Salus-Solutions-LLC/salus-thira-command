@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 September 2026 17:39 CDT
+last_verified_at: 14 September 2026 17:41 CDT
 current_frozen_release: v3.113
 current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 active_development_branch: development/salcapa-platform
@@ -10,7 +10,7 @@ active_product_milestone: issue_337_with_issue_360_phase_1
 active_build_system_issue: 370
 active_increment: issue_337_v3113_immutable_image_publication
 last_completed_increment: issue_337_v3113_exact_head_all_20_green_frozen
-candidate_release: none
+candidate_release: v3.113
 validation_pr: 374
 validation_branch: candidate/v3.113-image-activation
 validation_base: main
@@ -21,7 +21,7 @@ first_root_failing_gate: none
 root_cause: none
 repair_head: none
 repair_summary: none
-genuine_blockers: none
+genuine_blockers: v3113_immutable_image_not_yet_published
 next_authorized_step: validate_PR_374_close_without_merge_advance_exact_green_activation_head_to_development_trigger_protected_v3113_image_publication_capture_digest_then_prepare_exact_application_promotion
 deployed_demo_release: v3.112
 deployed_demo_state: accepted_unchanged
@@ -37,10 +37,9 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - PR #373 was closed without merge. The exact validated release head advanced by non-force fast-forward to `development/salcapa-platform` before the immutable release branch was created.
 - The accepted Azure development demonstration still runs v3.112. No application deployment, DNS change, credential creation, or public production cutover has occurred for v3.113.
 - Controlled validation PR #374 now governs only the v3.113 immutable-image activation record. Its source release is `release/v3.113` and its source commit is the exact frozen v3.113 head.
-- `candidate_release` is intentionally `none` in this post-freeze deployment stage: the runtime version and current frozen release are both v3.113, while PR #374 validates deployment activation metadata rather than a new product release.
+- `candidate_release` remains v3.113 during the deployment promotion sequence because the Azure demonstration stable/deployed record is still v3.112. The current governed precondition is publication of the immutable v3.113 image; this is an engineering gate and does not require Marc unless the protected environment explicitly requests human approval.
 - The image-publication workflow remains passwordless and scoped to the existing approved Azure development environment. It builds the exact frozen release, checks non-root/runtime identity, and publishes an immutable Azure Container Registry digest before any application promotion may begin.
 - Issue #368 archive/current-runtime separation remains preserved in frozen v3.113: immutable v3.43 evidence verification cannot overwrite the current interface.
-- No blocker currently requires Marc. If the protected Azure environment pauses for an explicit approval that cannot be performed through available authorized tools, that specific approval will be the only human action requested.
 
 ## Source precedence
 
