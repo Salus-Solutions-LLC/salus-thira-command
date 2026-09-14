@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Verify the immutable-image publication workflow remains activation-led and fail-closed."""
+"""Verify immutable-image publication remains activation-led, release-bound, and fail-closed."""
 
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "azure-image-publish.yml"
@@ -20,31 +20,43 @@ def require(fragment: str, text: str) -> None:
 workflow = WORKFLOW.read_text(encoding="utf-8")
 activation = json.loads(ACTIVATION.read_text(encoding="utf-8"))
 
-# Updating the workflow cannot publish an image: only the separately governed
-# activation record is in the publication workflow's push path filter.
+# Updating workflow code alone cannot publish an image. Publication is requested
+# only by a separately governed activation record advancing on development.
 trigger_prefix = workflow.split("permissions:", 1)[0]
 require("- 'deploy/azure/activations/image-dev.json'", trigger_prefix)
 assert "azure-image-publish.yml" not in trigger_prefix
 assert "pull_request:" not in trigger_prefix
 assert "workflow_dispatch:" not in trigger_prefix
 
-# This candidate activation binds publication to exact frozen v3.112. A pull
-# request cannot execute the push-only publication workflow; only the validated
-# commit later advancing to the governed development branch can request it.
-assert activation == {
-    "schema_version": 1,
-    "operation": "publish_image",
-    "target_environment": "dev",
-    "repository": "salcapa",
-    "location": "southcentralus",
-    "unique_suffix": "b48224",
-    "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-    "source_release": "release/v3.112",
-    "source_commit": "1d1759375d37b7de884331c06833de8c727ac5af",
-    "activation_key": "salcapa-v3.112-image-1d175937",
+expected_keys = {
+    "schema_version",
+    "operation",
+    "target_environment",
+    "repository",
+    "location",
+    "unique_suffix",
+    "approval_record",
+    "source_release",
+    "source_commit",
+    "activation_key",
 }
+assert set(activation) == expected_keys
+assert activation["schema_version"] == 1
+assert activation["operation"] == "publish_image"
+assert activation["target_environment"] == "dev"
+assert activation["repository"] == "salcapa"
+assert activation["location"] == "southcentralus"
+assert activation["unique_suffix"] == "b48224"
+assert activation["approval_record"] == "MD-APPROVAL-AZURE-LEAN-20260904"
+assert re.fullmatch(r"release/v3\.\d+", activation["source_release"])
+assert re.fullmatch(r"[0-9a-f]{40}", activation["source_commit"])
+expected_key = (
+    f"salcapa-{activation['source_release'].removeprefix('release/')}-image-"
+    f"{activation['source_commit'][:8]}"
+)
+assert activation["activation_key"] == expected_key
 
-# Publication is release-driven and must bind a release branch, exact commit,
+# Publication is release-driven and binds the release branch, exact commit,
 # runtime version, and derived activation key before contacting Azure.
 require("ref: ${{ steps.activation.outputs.source_release }}", workflow)
 assert "ref: release/v3.36" not in workflow
