@@ -80,6 +80,7 @@ def main() -> None:
         "github_validation_running",
         "controlled_validation_in_progress",
         "all_required_gates_green",
+        "controlled_validation_passed_closed_without_merge",
         "repair_validation_pending",
         "preflight",
         "full_validation",
