@@ -262,10 +262,6 @@ table,
   font-size: var(--readable-body);
   font-weight: 500;
 }
-.action-link::after,
-.workspace-handoff .btn:not(.danger)::after {
-  content: " >";
-}
 .action-link:hover {
   color: var(--accent-strong);
 }
