@@ -12,6 +12,17 @@ os.environ['SALUS_SEED_DEMO'] = '1'
 from fastapi.testclient import TestClient
 import app
 
+repository_root = Path(__file__).resolve().parents[1]
+navigation_html = (repository_root / 'static' / 'index.html').read_text(encoding='utf-8')
+navigation_js = (repository_root / 'static' / 'app.js').read_text(encoding='utf-8')
+assert '<div class="nav-primary" aria-label="Start here">' in navigation_html
+assert navigation_html.index('data-view="dashboard"') < navigation_html.index('<details class="nav-work-areas">')
+assert navigation_html.index('data-view="common_operating_picture"') < navigation_html.index('<details class="nav-work-areas">')
+assert '<summary><span>More work areas</span>' in navigation_html
+assert navigation_html.index('data-view="reports"') > navigation_html.index('<details class="nav-work-areas">')
+assert "closest('details.nav-work-areas')" in navigation_js
+assert 'workAreaDisclosure.open=true' in navigation_js
+
 client = TestClient(app.app)
 salus = {'X-Salus-Role': 'Assessment Director', 'X-Salus-User': 'Salus Tester', 'X-Salus-Tenant': '1'}
 member = {'X-Salus-Role': 'Client Executive', 'X-Salus-User': 'Protected Member', 'X-Salus-Tenant': '1'}
