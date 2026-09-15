@@ -40,6 +40,12 @@ assert '<summary>Available services</summary>' in navigation_js
 assert '<summary>People, financials, statements, and field updates</summary>' in navigation_js
 assert 'Nothing on this page creates an invoice or operational authority by itself.' in navigation_js
 assert 'const attentionEstimateRows=estimateRows.filter' in navigation_js
+assert 'SalTHIRA™ · Identify risk and establish priorities' in navigation_js
+assert 'Risk assessment workspaces' in navigation_js
+assert 'Start a new risk assessment' in navigation_js
+assert 'Reassessment records shown only when their lifecycle is due, overdue, or stale' in navigation_js
+assert 'Authorized people retain assessment, decision, approval, and operational authority.' in navigation_js
+assert "if(key==='assessments')" in navigation_js
 
 client = TestClient(app.app)
 salus = {'X-Salus-Role': 'Assessment Director', 'X-Salus-User': 'Salus Tester', 'X-Salus-Tenant': '1'}
