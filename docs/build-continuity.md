@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 September 2026 21:17 CDT
+last_verified_at: 14 September 2026 21:31 CDT
 current_frozen_release: v3.113
 current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 active_development_branch: development/salcapa-platform
-current_development_head: cc1db1c23dbb6ca5e24b24dea8dc8e57f46eb603
+current_development_head: 5bf77b88395d0277198fc03bed7c2c17ada53b6f
 active_product_milestone: issue_337_with_issue_360_phase_1
 active_build_system_issue: 370
 active_increment: issue_337_v3113_live_evaluator_acceptance
-last_completed_increment: issue_337_v3113_application_promoted
+last_completed_increment: issue_337_v3113_live_evaluator_acceptance
 candidate_release: v3.113
-validation_pr: 376
-validation_branch: candidate/v3.113-live-demo-acceptance
+validation_pr: 377
+validation_branch: candidate/v3.113-live-acceptance-continuity
 validation_base: main
 validation_head: pending_exact_final_head_after_continuity_commit
 validation_gate_state: controlled_validation_in_progress
@@ -20,11 +20,11 @@ failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: exact_v3113_live_acceptance_bindings_and_deployment_evidence_prepared
-genuine_blockers: v3113_live_demonstration_acceptance_not_yet_verified
-next_authorized_step: open_controlled_validation_PR_run_all_required_gates_close_without_merge_advance_exact_green_head_to_development_trigger_live_acceptance_capture_result_and_reconcile_continuity
+repair_summary: exact_v3113_live_acceptance_passed_and_temporary_job_removed
+genuine_blockers: continuity_checkpoint_validation_pending
+next_authorized_step: complete_PR_377_exact_validation_close_without_merge_advance_exact_green_head_to_development_then_begin_next_issue_360_increment_with_issue_368_orchestration_hardening
 deployed_demo_release: v3.113
-deployed_demo_state: application_deployed_awaiting_live_acceptance
+deployed_demo_state: full_demonstration_acceptance
 ---
 
 # SalCAPA build continuity
@@ -36,7 +36,8 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **v3.113 is frozen** at exact commit `9d9873203fffd8c8ae477123ea94eb35b27c2acd` on `release/v3.113`; controlled validation PR #373 passed all 20 required workflow families and closed without merge.
 - [Immutable-image publication workflow 34908424307](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34908424307) published that exact frozen source as `salcapadevb48224acr.azurecr.io/salcapa@sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8` on 14 September 2026 at 18:22 CDT.
 - [Governed application-deployment workflow 34915370013](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34915370013) deployed exact frozen v3.113 and that immutable digest on 14 September 2026 at 20:03 CDT. Image, workload identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, readiness, dependency, and sign-in checks passed; rollback was not invoked.
-- Exact accepted v3.112 remains the fail-closed rollback baseline until ordinary live acceptance verifies Aster Ridge, Cedar Vale, and Northstar on v3.113.
+- [Live demonstration acceptance workflow 34921297674](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34921297674) passed on 14 September 2026 at 21:31 CDT. Aster Ridge, Cedar Vale, and Northstar, 24 fictional personas, tenant and role boundaries, ordinary read-only evaluator access, cross-tenant denial, PostgreSQL persistence, and SalINTEL/SalTHIRA/SalCAPA/SalOPS/PROVE journeys were verified. The temporary job was removed and the deployed application configuration remained unchanged.
+- Exact accepted v3.112 remains available as the verified rollback baseline.
 - The deployment remains passwordless, bounded to the existing approved Azure development environment, and prohibited from changing custom DNS or performing a public production cutover.
 - Issue #368 archive/current-runtime separation remains preserved in frozen v3.113: immutable v3.43 evidence verification cannot overwrite the current interface.
 
