@@ -47,6 +47,12 @@ assert "source_type:'ops_request'" in navigation_js
 assert "copDecisionSources.find(x=>x.source_type===source_type&&x.source_id===source_id)" in navigation_js
 assert "source_type:source.source_type,source_id:source.source_id" in navigation_js
 assert "Prepare a decision from its governed source in the Common Operating Picture." in navigation_js
+assert "Accepted expert assignment ID (optional):" not in navigation_js
+assert "async function createOpsTask(id,assignmentId=null)" in navigation_js
+assert "assignments.find(a=>a.id===assignmentId)" in navigation_js
+assert "This expert assignment is no longer accepted for the selected engagement." in navigation_js
+assert 'onclick="createOpsTask(${engagement.id},${a.id})">Add task</button>' in navigation_js
+assert 'onclick="createOpsTask(${x.id},null)">Add unassigned task</button>' in navigation_js
 assert '<h2>Current Work</h2>' in navigation_js
 assert '<summary>Preview and export</summary>' in navigation_js
 assert '<summary>Supporting assessment detail</summary>' in navigation_js
