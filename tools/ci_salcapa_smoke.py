@@ -22,6 +22,12 @@ assert '<summary><span>More work areas</span>' in navigation_html
 assert navigation_html.index('data-view="reports"') > navigation_html.index('<details class="nav-work-areas">')
 assert "closest('details.nav-work-areas')" in navigation_js
 assert 'workAreaDisclosure.open=true' in navigation_js
+assert 'Prepare a report for authorized review' in navigation_js
+assert '<h2>Needs Your Attention</h2>' in navigation_js
+assert '<h2>Current Work</h2>' in navigation_js
+assert '<summary>Preview and export</summary>' in navigation_js
+assert '<summary>Supporting assessment detail</summary>' in navigation_js
+assert 'Preview and export do not approve or release a governed report version.' in navigation_js
 
 client = TestClient(app.app)
 salus = {'X-Salus-Role': 'Assessment Director', 'X-Salus-User': 'Salus Tester', 'X-Salus-Tenant': '1'}
