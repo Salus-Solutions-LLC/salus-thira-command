@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 12 September 2026 00:06 CDT
+last_verified_at: 14 September 2026 19:15 CDT
 environment: azure_development_demonstration
 deployed_release: v3.112
 deployed_commit: 1d1759375d37b7de884331c06833de8c727ac5af
@@ -9,20 +9,20 @@ image_digest: sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e
 deployed_at: 11 September 2026 23:08 CDT
 deployment_workflow_run: 34672016498
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.112
-current_stable_commit: 1d1759375d37b7de884331c06833de8c727ac5af
-promotion_candidate: v3.112
-promotion_candidate_image_commit: 1d1759375d37b7de884331c06833de8c727ac5af
-promotion_candidate_image_digest: sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce
-promotion_candidate_image_published_at: 11 September 2026 22:42 CDT
-promotion_candidate_image_workflow_run: 34670976390
-promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
-promotion_readiness: accepted
-fictional_member_seed_state: verified
-critical_journey_acceptance: verified
-rollback_baseline: v3.111
-genuine_blocker: none
+current_stable_release: v3.113
+current_stable_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
+promotion_candidate: v3.113
+promotion_candidate_image_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
+promotion_candidate_image_digest: sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8
+promotion_candidate_image_published_at: 14 September 2026 18:22 CDT
+promotion_candidate_image_workflow_run: 34908424307
+promotion_candidate_image_acceptance: immutable_image_published_not_deployed
+promotion_readiness: preflight_ready
+fictional_member_seed_state: v313_image_published_not_deployed
+critical_journey_acceptance: not_verified
+rollback_baseline: v3.112
+genuine_blocker: v313_application_not_yet_deployed
 ---
 
 # SalCAPA development demonstration continuity
@@ -38,7 +38,7 @@ This non-sensitive engineering record identifies the last verifiable Azure devel
 
 ## Stable-release comparison
 
-The current stable product is frozen **v3.112** at [`1d17593`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af). The maintained Azure development demonstration now runs v3.112 after governed deployment; full acceptance remains pending the separately governed live evaluator gate. Exact accepted v3.111 remains the fail-closed rollback baseline. Every earlier frozen release remains unchanged.
+The current stable product is frozen **v3.113** at [`9d98732`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/9d9873203fffd8c8ae477123ea94eb35b27c2acd). The maintained Azure development demonstration still runs accepted v3.112 while the separately governed v3.113 application-promotion and live-acceptance gates remain pending. Exact accepted v3.112 is the fail-closed rollback baseline for this promotion. Every frozen release remains unchanged.
 
 The deterministic fixture foundation, bounded cross-functional records, repository role/tenant preflight, live-copy migration, reporting, Entra and tenant isolation, recovery, rollback, deployment, and live three-member acceptance are verified. The live acceptance prepared only clearly labeled fictional demonstration records through the governed fixture interface. It did not represent human review, authorization, approval, release, or a production cutover.
 
@@ -78,6 +78,8 @@ All 20 required workflow families passed for the repair on exact candidate commi
 
 [Live acceptance workflow 34674570520](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34674570520) passed on **12 September 2026 at 00:06 CDT**. Exact frozen v3.112 verified Aster Ridge, Cedar Vale, and Northstar through the ordinary read-only Demonstration Environments route, all governed SalINTEL/SalTHIRA/SalCAPA/SalOPS/PROVE journeys, role restrictions, server-controlled tenant state, cross-tenant denial, and PostgreSQL persistence. The bounded temporary job was removed, and application image, identity, ingress, traffic, DNS, scale, and secret configuration remained unchanged. No real data or human approval, decision, validation, or release is represented.
 
+[Immutable-image publication workflow 34908424307](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34908424307) published exact frozen v3.113 commit [`9d9873203fffd8c8ae477123ea94eb35b27c2acd`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/9d9873203fffd8c8ae477123ea94eb35b27c2acd) as `salcapadevb48224acr.azurecr.io/salcapa@sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8` on **14 September 2026 at 18:22 CDT**. Exact frozen source, runtime release identity, non-root execution, workload identity, scoped registry authority, and immutable labels passed. No application, traffic, DNS, database, mutable tag, or public-production state changed; accepted v3.112 remains live and is the rollback baseline.
+
 ## Promotion gates
 
 Before any newer milestone is promoted, all of the following must be verified on the exact frozen candidate and immutable image digest:
@@ -100,4 +102,4 @@ Before any newer milestone is promoted, all of the following must be verified on
 
 ## Next authorized work
 
-Live v3.112 acceptance is complete. Preserve this exact accepted deployment and v3.111 rollback baseline while resuming the bounded Issue #236 rendering-to-recognition and independent-review path. Do not redeploy until another coherent frozen milestone passes every promotion gate.
+Exact frozen v3.113 and its immutable image are ready for the separately governed application-promotion gate. Preserve accepted v3.112 until the v3.113 deployment verifies readiness, passwordless identity, tenant isolation, rollback authority, and the ordinary three-environment live acceptance. Do not change DNS, production traffic, the approved cost posture, or real-data boundaries.
