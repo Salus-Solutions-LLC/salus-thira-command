@@ -60,6 +60,13 @@ assert "Verified evidence record ID (optional):" not in navigation_js
 assert "const evidenceRecords=(await api('/api/evidence')).filter(e=>e.verification_status==='Verified'&&e.lifecycle_status==='Current')" in navigation_js
 assert "Verified current evidence (Cancel to continue without evidence)" in navigation_js
 assert "evidence_id:evidence?.id||null" in navigation_js
+assert "async function createFieldReport(id,taskId=null)" in navigation_js
+assert "const tasks=await api(`/api/salops/engagements/${id}/tasks`)" in navigation_js
+assert "tasks.find(t=>t.id===taskId&&t.status!=='Cancelled')" in navigation_js
+assert "This task is no longer available for field reporting." in navigation_js
+assert 'onclick="createFieldReport(${engagement.id},${t.id})">Field report</button>' in navigation_js
+assert 'onclick="createFieldReport(${x.id},null)">Field report</button>' in navigation_js
+assert "task_id:task?.id||null" in navigation_js
 assert "prompt('Service type:')" not in navigation_js
 assert "const source=(await api('/api/salops/requests')).find(r=>r.id===id&&r.status==='Authorized')" in navigation_js
 assert "This request is no longer authorized for engagement planning." in navigation_js
