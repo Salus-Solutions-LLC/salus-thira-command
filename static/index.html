@@ -21,24 +21,32 @@
       <div class="brand-product">SalCAPA™</div>
     </div>
     <nav id="nav" aria-label="SalCAPA product navigation">
-      <div class="nav-product-group" data-product="salcapa">
-        <div class="nav-product-title">SalCAPA™</div><div class="nav-product-description">See what matters. Coordinate the work.</div>
+      <div class="nav-primary" aria-label="Start here">
+        <div class="nav-section-label">Start here</div>
         <button class="active" data-view="dashboard">Command Center</button><span class="nav-view-description">Coordinate decisions, assignments, approvals, and action.</span>
         <button data-view="common_operating_picture">Common Operating Picture</button><span class="nav-view-description">See what is happening, what matters, and what has changed.</span>
-        <button data-view="reports">Reports</button>
       </div>
-      <div class="nav-product-group" data-product="salintel">
-        <div class="nav-product-title">SalINTEL™</div><div class="nav-product-description">Find and check the facts.</div>
-        <button data-view="salintel">Intelligence Overview</button><button data-view="salintel_domains" data-salus-only="true">Type of Investigation</button>
-      </div>
-      <div class="nav-product-group" data-product="salthira">
-        <div class="nav-product-title">SalTHIRA™</div><div class="nav-product-description">Understand risk and set priorities.</div>
-        <button data-view="salthira">Risk Assessments</button>
-      </div>
-      <div class="nav-product-group" data-product="salops">
-        <div class="nav-product-title">SalOPS™</div><div class="nav-product-description">Put approved work into action.</div>
-        <button data-view="salops">Operations & Requests</button>
-      </div>
+      <details class="nav-work-areas">
+        <summary><span>More work areas</span><small>Reports, intelligence, risk, and operations</small></summary>
+        <div class="nav-work-area-list">
+          <div class="nav-product-group" data-product="salcapa">
+            <div class="nav-product-title">SalCAPA™</div><div class="nav-product-description">Coordinate the work and prepare governed reports.</div>
+            <button data-view="reports">Reports</button>
+          </div>
+          <div class="nav-product-group" data-product="salintel">
+            <div class="nav-product-title">SalINTEL™</div><div class="nav-product-description">Find and check the facts.</div>
+            <button data-view="salintel">Intelligence Overview</button><button data-view="salintel_domains" data-salus-only="true">Type of Investigation</button>
+          </div>
+          <div class="nav-product-group" data-product="salthira">
+            <div class="nav-product-title">SalTHIRA™</div><div class="nav-product-description">Understand risk and establish priorities for authorized decisions.</div>
+            <button data-view="salthira">Risk Assessments</button>
+          </div>
+          <div class="nav-product-group" data-product="salops">
+            <div class="nav-product-title">SalOPS™</div><div class="nav-product-description">Put approved work into action.</div>
+            <button data-view="salops">Operations & Requests</button>
+          </div>
+        </div>
+      </details>
     </nav>
     <div class="sidebar-note sidebar-footer-note">
       <div id="salcapa-version" class="salcapa-version" hidden></div>
