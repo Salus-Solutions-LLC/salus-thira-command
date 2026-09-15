@@ -24,6 +24,11 @@ assert "closest('details.nav-work-areas')" in navigation_js
 assert 'workAreaDisclosure.open=true' in navigation_js
 assert 'Prepare a report for authorized review' in navigation_js
 assert '<h2>Needs Your Attention</h2>' in navigation_js
+assert '<h2>Current Picture</h2>' in navigation_js
+assert 'Assessment lifecycle items that may require review or follow-up.' in navigation_js
+assert '<summary>Accepted risk, released work, and observations</summary>' in navigation_js
+assert 'Supporting records remain available for review without crowding the current picture.' in navigation_js
+assert 'Authorized people decide priorities, approvals, and operational action.' in navigation_js
 assert '<h2>Current Work</h2>' in navigation_js
 assert '<summary>Preview and export</summary>' in navigation_js
 assert '<summary>Supporting assessment detail</summary>' in navigation_js
