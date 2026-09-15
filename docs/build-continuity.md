@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 15 September 2026 04:12 CDT
+last_verified_at: 15 September 2026 05:13 CDT
 current_frozen_release: v3.113
 current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 active_development_branch: development/salcapa-platform
-current_development_head: 659d8bae691e17c0ef691a20e83818b112db08ee
+current_development_head: 79afe259b53cda80b9c1faaf4c9fa7971a6582e9
 active_product_milestone: issue_360_phase_2
 active_build_system_issue: 370
-active_increment: issue_360_phase_2_protected_member_salintel_overview
-last_completed_increment: issue_360_phase_2_protected_member_salintel_overview
+active_increment: issue_360_phase_2_common_operating_picture_overview
+last_completed_increment: issue_360_phase_2_common_operating_picture_overview
 candidate_release: none
-validation_pr: 388
-validation_branch: candidate/issue-360-phase2-member-salintel-overview-20260915
+validation_pr: 390
+validation_branch: candidate/issue-360-phase2-cop-overview-20260915
 validation_base: development/salcapa-platform
-validation_head: 659d8bae691e17c0ef691a20e83818b112db08ee
+validation_head: 79afe259b53cda80b9c1faaf4c9fa7971a6582e9
 validation_gate_state: controlled_validation_passed_closed_without_merge
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: protected_member_salintel_primary_action_current_work_and_progressive_disclosure_validated
+repair_summary: common_operating_picture_attention_current_picture_and_progressive_disclosure_validated
 genuine_blockers: none
-next_authorized_step: continue_issue_360_phase_2_one_page_one_job_simplification_with_issue_368_focused_validation_and_issue_369_lean_controls
+next_authorized_step: begin_issue_360_phase_3_enter_once_reuse_by_governed_reference_with_issue_368_focused_validation_and_issue_369_lean_controls
 deployed_demo_release: v3.113
 deployed_demo_state: full_demonstration_acceptance
 ---
@@ -53,6 +53,9 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - The SalTHIRA assessment overview now distinguishes risk-assessment workspaces, reassessment lifecycle items needing attention, and assessment creation or editing. SalTHIRA remains an evidence-based risk and priority method; authorized people retain assessment, decision, approval, and operational authority.
 - [Controlled validation PR #388](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/388) closed without merge after exact commit `659d8bae691e17c0ef691a20e83818b112db08ee` passed all seven focused CI, PostgreSQL 16, production-container, contextual-intake, and local CodeQL checks. The exact green commit advanced by non-force fast-forward on 15 September 2026 at 04:11 CDT.
 - The Protected Member SalINTEL overview now keeps governed observation reporting as the primary task, shows open observation records under Current Work, and progressively discloses qualified intelligence and closed history. It states that Salus personnel review submitted information before qualification or routing and that submission does not establish a finding, decision, or operational action.
+- [Controlled validation PR #390](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/390) closed without merge after exact commit `79afe259b53cda80b9c1faaf4c9fa7971a6582e9` passed all seven focused CI, PostgreSQL 16, production-container, contextual-intake, and local CodeQL checks. The exact green commit advanced by non-force fast-forward on 15 September 2026 at 05:12 CDT.
+- The Common Operating Picture now leads with assessment lifecycle items needing attention, keeps qualified intelligence and active protective work under Current Picture, and progressively discloses accepted risk, released work, and observations. It presents saved information and evidence while authorized people retain priority, approval, and operational authority.
+- Issue #360 Phase 2 task-oriented simplification is now represented across the six primary navigation surfaces: Command Center, Common Operating Picture, Reports, Intelligence Overview, Risk Assessments, and Operations & Requests. The next bounded work begins Phase 3 governed information reuse; this is not a release freeze or Azure promotion checkpoint.
 
 ## Source precedence
 
