@@ -105,6 +105,8 @@ def main() -> None:
         "v310_image_published_not_deployed",
         "v311_image_published_not_deployed",
         "v312_image_published_not_deployed",
+        "v313_image_published_not_deployed",
+        "v313_deployed_awaiting_live_acceptance",
         "v312_deployed_awaiting_live_acceptance",
         "v311_live_copy_migration_accepted_not_deployed",
         "verified",
@@ -137,7 +139,10 @@ def main() -> None:
         assert values["deployed_release"] == values["promotion_candidate"]
         assert values["deployed_release"] == values["current_stable_release"]
         assert values["promotion_candidate_image_acceptance"] == "immutable_image_deployed_awaiting_live_acceptance"
-        assert values["fictional_member_seed_state"] == "v312_deployed_awaiting_live_acceptance"
+        assert values["fictional_member_seed_state"] in {
+            "v312_deployed_awaiting_live_acceptance",
+            "v313_deployed_awaiting_live_acceptance",
+        }
         assert values["critical_journey_acceptance"] == "not_verified"
         assert values["genuine_blocker"] != "none"
     else:
