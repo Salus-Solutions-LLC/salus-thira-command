@@ -1,0 +1,159 @@
+/*
+ * SalCAPA readability floor.
+ * Loaded last so feature styles cannot reduce essential on-screen text below
+ * the accessible demonstration baseline. Print-specific layouts remain owned
+ * by their feature styles.
+ */
+:root {
+  --readable-body: 16px;
+  --readable-secondary: 14px;
+  --readable-label: 13px;
+}
+
+body {
+  font-size: var(--readable-body);
+  line-height: 1.55;
+}
+
+.sidebar button {
+  font-size: var(--readable-secondary);
+  line-height: 1.4;
+}
+.nav-view-description,
+.nav-product-description {
+  font-size: var(--readable-label);
+  line-height: 1.45;
+}
+.nav-product-title,
+.brand strong {
+  font-size: var(--readable-secondary);
+}
+.brand span,
+.sidebar-note,
+.salcapa-version {
+  font-size: var(--readable-label);
+  line-height: 1.45;
+}
+
+.topbar p,
+.status-pill,
+.guidance-trigger,
+.guidance-breadcrumbs {
+  font-size: var(--readable-secondary);
+}
+.btn,
+.row-actions .btn {
+  min-height: 40px;
+  padding: 10px 14px;
+  font-size: var(--readable-secondary);
+}
+.action-link {
+  font-size: var(--readable-secondary);
+}
+
+th,
+td {
+  padding: 13px 14px;
+  font-size: var(--readable-secondary);
+  line-height: 1.45;
+}
+th {
+  font-size: var(--readable-label);
+  letter-spacing: .04em;
+}
+.badge,
+.component,
+.metric span,
+.cop-hero span {
+  font-size: var(--readable-label);
+}
+label,
+.subtle,
+.field-help,
+.stage-heading p,
+.readiness-stage p,
+.message span,
+.message em,
+code {
+  font-size: var(--readable-secondary);
+  line-height: 1.5;
+}
+input,
+select,
+textarea {
+  min-height: 42px;
+  font-size: var(--readable-body);
+}
+textarea {
+  min-height: 104px;
+}
+
+.lifecycle-step {
+  min-height: 62px;
+}
+.lifecycle-step strong {
+  font-size: var(--readable-secondary);
+}
+.lifecycle-step span {
+  font-size: var(--readable-label);
+  line-height: 1.4;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.help-dot {
+  width: 24px;
+  height: 24px;
+  font-size: var(--readable-label);
+}
+.guidance-drawer-header p,
+.guidance-panel p,
+.guidance-panel .guidance-kicker,
+.guidance-brand-grid strong,
+.guidance-brand-grid span,
+.guidance-step-card strong,
+.guidance-step-card p,
+.guidance-step-card > span,
+.guidance-nav-help {
+  font-size: var(--readable-secondary);
+  line-height: 1.5;
+}
+
+.mission-filter-grid label,
+.mission-portfolio-grid span,
+.mission-trace-summary-grid span,
+.mission-objective-grid dt,
+.mission-route-heading > span,
+.mission-station > strong,
+.mission-empty,
+.mission-marker-label,
+.mission-kicker,
+.mission-neutral-state,
+.mission-path,
+.mission-prove-trace h4 {
+  font-size: var(--readable-secondary);
+  line-height: 1.45;
+}
+.mission-marker {
+  min-height: 48px;
+}
+.mission-detail-grid small,
+.mission-prove-trace li small {
+  font-size: var(--readable-label);
+  line-height: 1.45;
+}
+
+small {
+  font-size: .875em;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  body { font-size: 16px; }
+  .nav-product-title,
+  .nav-product-description { font-size: var(--readable-secondary); }
+}
+
+@media print {
+  body { font-size: initial; line-height: initial; }
+}
