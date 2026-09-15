@@ -60,6 +60,11 @@ assert "Verified evidence record ID (optional):" not in navigation_js
 assert "const evidenceRecords=(await api('/api/evidence')).filter(e=>e.verification_status==='Verified'&&e.lifecycle_status==='Current')" in navigation_js
 assert "Verified current evidence (Cancel to continue without evidence)" in navigation_js
 assert "evidence_id:evidence?.id||null" in navigation_js
+assert "prompt('Service type:')" not in navigation_js
+assert "const source=(await api('/api/salops/requests')).find(r=>r.id===id&&r.status==='Authorized')" in navigation_js
+assert "This request is no longer authorized for engagement planning." in navigation_js
+assert "const service_type=source.service_name_snapshot||prompt('Confirm service type:',source.title)" in navigation_js
+assert "const objective=prompt('Confirm operational objective:',source.description||source.title)" in navigation_js
 assert "function chooseGovernedRecord(label,records,describe)" in navigation_js
 assert "profile_id:selected.id" in navigation_js
 assert "profile_id:expert.id,conflict_id:conflict.id" in navigation_js
