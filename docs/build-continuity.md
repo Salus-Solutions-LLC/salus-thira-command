@@ -1,26 +1,26 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 September 2026 22:32 CDT
+last_verified_at: 15 September 2026 01:10 CDT
 current_frozen_release: v3.113
 current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 active_development_branch: development/salcapa-platform
-current_development_head: b412c0eafbbe09ac47dec69bbc56122f15639348
+current_development_head: 1670abbe6a88d502ad51076cb4a11e16b22c7c79
 active_product_milestone: issue_360_phase_2
 active_build_system_issue: 370
-active_increment: issue_360_phase_2_governed_reporting_workflow
-last_completed_increment: issue_360_phase_2_governed_reporting_workflow
+active_increment: issue_360_phase_2_salintel_overview_workflow
+last_completed_increment: issue_360_phase_2_salintel_overview_workflow
 candidate_release: none
-validation_pr: 380
-validation_branch: candidate/issue-360-phase2-reports-workflow-20260914
+validation_pr: 382
+validation_branch: candidate/issue-360-phase2-salintel-overview-20260915
 validation_base: development/salcapa-platform
-validation_head: b412c0eafbbe09ac47dec69bbc56122f15639348
+validation_head: 1670abbe6a88d502ad51076cb4a11e16b22c7c79
 validation_gate_state: controlled_validation_passed_closed_without_merge
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: governed_reporting_page_hierarchy_and_progressive_disclosure_validated
+repair_summary: salintel_attention_current_work_and_progressive_disclosure_validated
 genuine_blockers: none
 next_authorized_step: continue_issue_360_phase_2_one_page_one_job_simplification_with_issue_368_focused_validation_and_issue_369_lean_controls
 deployed_demo_release: v3.113
@@ -44,6 +44,9 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - Issue #360 Phase 2 now keeps Command Center and Common Operating Picture visible as the two starting choices while progressively disclosing reports, intelligence, risk, and operations. Specialist views reveal their active work area; access, tenancy, disclosure, human-authority, date/time, and release controls remain unchanged.
 - [Controlled validation PR #380](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/380) closed without merge after exact commit `b412c0eafbbe09ac47dec69bbc56122f15639348` passed the focused CI, PostgreSQL 16, production-container, contextual-intake, and local CodeQL checks. The exact green commit advanced by non-force fast-forward on 14 September 2026 at 22:32 CDT.
 - The Reports page now follows one governed job: prepare a report for authorized review. Needs Your Attention, Current Work, immutable version status, hashes, authority, and next steps remain visible; preview/export and supporting assessment detail use progressive disclosure and explicitly do not approve or release a report.
+- [Controlled validation PR #381](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/381) closed without merge after all 43 governed checks passed on exact continuity commit `84ebe99371253a5e5305d3f429ebcb606a15e3e9`; that exact commit advanced by non-force fast-forward on 15 September 2026 at 01:00 CDT.
+- [Controlled validation PR #382](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/382) closed without merge after exact commit `1670abbe6a88d502ad51076cb4a11e16b22c7c79` passed focused CI, PostgreSQL 16, production-container, contextual-intake, and local CodeQL checks. The exact green commit advanced by non-force fast-forward on 15 September 2026 at 01:10 CDT.
+- The SalINTEL overview now separates non-closed incoming information under Needs Your Attention from the intelligence register under Current Work. New finding entry and closed observation history use progressive disclosure; unverified-information separation, qualification, tenant access, provenance, human authority, and the SalINTEL-to-SalTHIRA handoff remain unchanged.
 
 ## Source precedence
 
