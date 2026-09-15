@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 15 September 2026 05:13 CDT
+last_verified_at: 15 September 2026 06:09 CDT
 current_frozen_release: v3.113
 current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 active_development_branch: development/salcapa-platform
-current_development_head: 79afe259b53cda80b9c1faaf4c9fa7971a6582e9
-active_product_milestone: issue_360_phase_2
+current_development_head: abdc371226f7c5a48439efbb33058721ee78650d
+active_product_milestone: issue_360_phase_3
 active_build_system_issue: 370
-active_increment: issue_360_phase_2_common_operating_picture_overview
-last_completed_increment: issue_360_phase_2_common_operating_picture_overview
+active_increment: issue_360_phase_3_coordination_context_reuse
+last_completed_increment: issue_360_phase_3_coordination_context_reuse
 candidate_release: none
-validation_pr: 390
-validation_branch: candidate/issue-360-phase2-cop-overview-20260915
+validation_pr: 392
+validation_branch: candidate/issue-360-phase3-coordination-context-reuse-20260915
 validation_base: development/salcapa-platform
-validation_head: 79afe259b53cda80b9c1faaf4c9fa7971a6582e9
+validation_head: abdc371226f7c5a48439efbb33058721ee78650d
 validation_gate_state: controlled_validation_passed_closed_without_merge
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: common_operating_picture_attention_current_picture_and_progressive_disclosure_validated
+repair_summary: active_assessment_governed_coordination_reference_reuse_validated
 genuine_blockers: none
-next_authorized_step: begin_issue_360_phase_3_enter_once_reuse_by_governed_reference_with_issue_368_focused_validation_and_issue_369_lean_controls
+next_authorized_step: continue_issue_360_phase_3_enter_once_reuse_by_governed_reference_with_issue_368_focused_validation_and_issue_369_lean_controls
 deployed_demo_release: v3.113
 deployed_demo_state: full_demonstration_acceptance
 ---
@@ -56,6 +56,8 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - [Controlled validation PR #390](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/390) closed without merge after exact commit `79afe259b53cda80b9c1faaf4c9fa7971a6582e9` passed all seven focused CI, PostgreSQL 16, production-container, contextual-intake, and local CodeQL checks. The exact green commit advanced by non-force fast-forward on 15 September 2026 at 05:12 CDT.
 - The Common Operating Picture now leads with assessment lifecycle items needing attention, keeps qualified intelligence and active protective work under Current Picture, and progressively discloses accepted risk, released work, and observations. It presents saved information and evidence while authorized people retain priority, approval, and operational authority.
 - Issue #360 Phase 2 task-oriented simplification is now represented across the six primary navigation surfaces: Command Center, Common Operating Picture, Reports, Intelligence Overview, Risk Assessments, and Operations & Requests. The next bounded work begins Phase 3 governed information reuse; this is not a release freeze or Azure promotion checkpoint.
+- [Controlled validation PR #392](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/392) closed without merge after exact commit `abdc371226f7c5a48439efbb33058721ee78650d` passed all seven focused CI, PostgreSQL 16, production-container, contextual-intake, and local CodeQL checks. The exact green commit advanced by non-force fast-forward on 15 September 2026 at 06:09 CDT.
+- New coordination threads now reuse the selected active assessment by governed reference instead of asking people to re-enter its number. The interface explains how to change that context and preserves workspace-level threads when no assessment is selected; existing server-side assessment access and tenant validation remain authoritative.
 
 ## Source precedence
 
