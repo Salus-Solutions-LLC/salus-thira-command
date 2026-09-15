@@ -21,7 +21,17 @@ function scopedUrl(key){return key==='assessments'||!activeAssessmentId?'/api/'+
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function fmtMoney(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(v||0))}
 function badge(v){return `<span class="badge ${String(v||'').toLowerCase()}">${esc(v)}</span>`}
-function setView(v){currentView=v; [...document.querySelectorAll('#nav button')].forEach(b=>b.classList.toggle('active',b.dataset.view===v)); $('#page-title').textContent=viewTitles[v]||v.replace(/\b\w/g,c=>c.toUpperCase()); $('#page-subtitle').textContent=subtitles[v]||''; render();}
+function setView(v){
+  currentView=v;
+  const buttons=[...document.querySelectorAll('#nav button')];
+  buttons.forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  const activeButton=buttons.find(b=>b.dataset.view===v);
+  const workAreaDisclosure=activeButton?.closest('details.nav-work-areas');
+  if(workAreaDisclosure) workAreaDisclosure.open=true;
+  $('#page-title').textContent=viewTitles[v]||v.replace(/\b\w/g,c=>c.toUpperCase());
+  $('#page-subtitle').textContent=subtitles[v]||'';
+  render();
+}
 [...document.querySelectorAll('#nav button')].forEach(b=>b.onclick=()=>setView(b.dataset.view));
 function isProtectedMember(){return workspaceState?.experience==='Protected Member';}
 function applyWorkspaceNavigation(){
