@@ -336,6 +336,30 @@ textarea {
   overflow: visible;
   text-overflow: clip;
 }
+.lifecycle-step[data-stage="see"] {
+  background: #f2f8e8;
+  box-shadow: inset 0 -2px 0 #76aa3d;
+}
+.lifecycle-step[data-stage="decide"] {
+  background: #fffbd8;
+  box-shadow: inset 0 -2px 0 #d5b500;
+}
+.lifecycle-step[data-stage="coordinate"] {
+  background: #fff4dc;
+  box-shadow: inset 0 -2px 0 var(--salus-orange);
+}
+.lifecycle-step[data-stage="act"] {
+  background: #fff0ef;
+  box-shadow: inset 0 -2px 0 #d9665d;
+}
+.lifecycle-step[data-stage="prove"] {
+  background: #f1f6f8;
+  box-shadow: inset 0 -2px 0 var(--salus-blue);
+}
+.lifecycle-step:hover,
+.lifecycle-step.active {
+  filter: saturate(1.08);
+}
 .help-dot {
   width: 24px;
   height: 24px;
