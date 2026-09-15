@@ -56,6 +56,10 @@ assert 'onclick="createOpsTask(${x.id},null)">Add unassigned task</button>' in n
 assert "Expert profile ID:" not in navigation_js
 assert "Active expert profile ID:" not in navigation_js
 assert "Cleared conflict ID:" not in navigation_js
+assert "Verified evidence record ID (optional):" not in navigation_js
+assert "const evidenceRecords=(await api('/api/evidence')).filter(e=>e.verification_status==='Verified'&&e.lifecycle_status==='Current')" in navigation_js
+assert "Verified current evidence (Cancel to continue without evidence)" in navigation_js
+assert "evidence_id:evidence?.id||null" in navigation_js
 assert "function chooseGovernedRecord(label,records,describe)" in navigation_js
 assert "profile_id:selected.id" in navigation_js
 assert "profile_id:expert.id,conflict_id:conflict.id" in navigation_js
