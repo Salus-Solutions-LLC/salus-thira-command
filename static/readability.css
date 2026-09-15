@@ -1,65 +1,277 @@
 /*
- * SalCAPA readability floor.
- * Loaded last so feature styles cannot reduce essential on-screen text below
- * the accessible demonstration baseline. Print-specific layouts remain owned
- * by their feature styles.
+ * Salus-aligned application presentation.
+ * Loaded last so every workspace inherits the public Salus Solutions visual
+ * language and an accessible on-screen typography floor. Feature-owned print
+ * layouts remain unchanged.
  */
 :root {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --ink: #222d35;
+  --muted: #5f6f79;
+  --line: #e4e7e9;
+  --line-strong: #cbd2d7;
+  --salus-blue: #3d7fa6;
+  --salus-blue-strong: #174a73;
+  --salus-blue-soft: #f2f7fa;
+  --salus-orange: #df5526;
+  --salus-orange-soft: #fff6f1;
+  --accent: var(--salus-orange);
+  --accent-strong: #b8431d;
+  --accent-soft: var(--salus-orange-soft);
+  --soft: #f7f8f8;
+  --shadow: none;
   --readable-body: 16px;
   --readable-secondary: 14px;
   --readable-label: 13px;
 }
 
+html,
 body {
+  background: #ffffff;
+}
+body {
+  color: var(--ink);
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: var(--readable-body);
   line-height: 1.55;
+  letter-spacing: 0;
 }
 
+.app-shell {
+  grid-template-columns: 286px minmax(0, 1fr);
+  background: #fff;
+}
+.sidebar {
+  padding: 30px 22px;
+  border-right: 1px solid var(--line);
+  box-shadow: none;
+}
+.brand {
+  padding: 0 4px 28px;
+}
+.brand-logo {
+  width: 168px;
+  max-width: 72%;
+}
+.brand-product {
+  color: var(--salus-blue);
+  font-size: 18px;
+  font-weight: 500;
+}
+.sidebar nav {
+  padding-top: 24px;
+  gap: 7px;
+}
+.nav-section-label {
+  padding: 0 10px 9px;
+  color: var(--salus-blue);
+  font-size: var(--readable-label);
+}
+.nav-primary,
+.nav-product-group {
+  gap: 5px;
+}
 .sidebar button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 2px;
+  padding: 11px 10px;
+  color: #394b57;
   font-size: var(--readable-secondary);
   line-height: 1.4;
 }
+.sidebar button::after {
+  content: ">";
+  flex: none;
+  color: var(--salus-orange);
+  font-size: 17px;
+  font-weight: 500;
+  opacity: .72;
+}
+.sidebar button:hover,
+.sidebar button.active {
+  background: transparent;
+  color: var(--salus-orange);
+}
+.sidebar button:hover::after,
+.sidebar button.active::after {
+  opacity: 1;
+}
+.sidebar button.active::before {
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+}
 .nav-view-description,
 .nav-product-description {
+  margin-left: 10px;
+  margin-right: 10px;
+  color: var(--muted);
   font-size: var(--readable-label);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 .nav-product-title,
 .brand strong {
+  color: var(--salus-blue);
   font-size: var(--readable-secondary);
+  font-weight: 600;
 }
 .brand span,
 .sidebar-note,
-.salcapa-version {
+.salcapa-version,
+.nav-work-areas > summary small {
+  color: var(--muted);
   font-size: var(--readable-label);
-  line-height: 1.45;
+  line-height: 1.5;
+}
+.nav-work-areas {
+  margin-top: 18px;
+  padding-top: 16px;
+}
+.nav-work-areas > summary {
+  border-radius: 2px;
+  padding: 11px 10px;
+  color: var(--salus-blue);
+  font-size: var(--readable-secondary);
+}
+.nav-work-areas > summary:hover {
+  background: transparent;
+  color: var(--salus-orange);
 }
 
+.main {
+  max-width: 1500px;
+  padding: 0 64px 88px;
+}
+.topbar {
+  position: relative;
+  padding: 38px 0 26px;
+  margin-bottom: 20px;
+  border-bottom-color: var(--line);
+  backdrop-filter: none;
+}
+.topbar h1 {
+  color: var(--salus-blue-strong);
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: -.015em;
+}
 .topbar p,
 .status-pill,
 .guidance-trigger,
 .guidance-breadcrumbs {
   font-size: var(--readable-secondary);
 }
+.topbar p {
+  margin-top: 9px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.status-pill,
+.guidance-trigger {
+  border-radius: 2px;
+  padding: 9px 12px;
+}
+
+.card,
+table,
+.lifecycle-strip,
+.guidance-panel,
+.guidance-step-card,
+.readiness-stage,
+.workspace-handoff,
+.mission-route,
+.mission-structure-summary {
+  border-color: var(--line);
+  border-radius: 2px;
+  box-shadow: none;
+}
+.card {
+  padding: 28px;
+}
+.card h2,
+.card h3,
+.section-title h2,
+.section-title h3,
+.stage-heading h2,
+.stage-heading h3,
+.workspace-handoff h2 {
+  color: var(--salus-blue-strong);
+  font-weight: 500;
+}
+.page-section {
+  margin-top: 48px;
+}
+.section-title {
+  margin: 38px 0 17px;
+}
+.grid {
+  gap: 20px;
+}
+.stats {
+  margin: 26px 0 24px;
+}
+.workspace-handoff {
+  margin: 34px 0;
+  padding: 28px 30px;
+  background: #fff;
+  border-left: 3px solid var(--salus-orange);
+}
+
+#content > p,
+.card p,
+.notice,
+.message p,
+.workspace-handoff p,
+.mission-hero p,
+.mission-route-heading p,
+.mission-detail-grid p {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.55;
+  color: #27333b;
+}
+
 .btn,
 .row-actions .btn {
-  min-height: 40px;
-  padding: 10px 14px;
+  min-height: 42px;
+  border-radius: 2px;
+  padding: 10px 15px;
   font-size: var(--readable-secondary);
+  font-weight: 500;
+}
+.btn.secondary {
+  color: var(--salus-blue-strong);
+  background: #fff;
 }
 .action-link {
-  font-size: var(--readable-secondary);
+  color: var(--salus-orange);
+  font-size: var(--readable-body);
+  font-weight: 500;
+}
+.action-link::after,
+.workspace-handoff .btn:not(.danger)::after,
+.section-title .btn:not(.danger)::after,
+.stage-heading .btn:not(.danger)::after {
+  content: " >";
+}
+.action-link:hover {
+  color: var(--accent-strong);
 }
 
 th,
 td {
-  padding: 13px 14px;
+  padding: 15px 16px;
   font-size: var(--readable-secondary);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 th {
+  color: #4b5e69;
   font-size: var(--readable-label);
-  letter-spacing: .04em;
+  letter-spacing: .045em;
 }
 .badge,
 .component,
@@ -81,22 +293,26 @@ code {
 input,
 select,
 textarea {
-  min-height: 42px;
+  min-height: 44px;
+  border-radius: 2px;
   font-size: var(--readable-body);
 }
 textarea {
-  min-height: 104px;
+  min-height: 108px;
 }
 
 .lifecycle-step {
-  min-height: 62px;
+  min-height: 70px;
+  padding: 13px 14px;
 }
 .lifecycle-step strong {
+  color: var(--salus-blue-strong);
   font-size: var(--readable-secondary);
 }
 .lifecycle-step span {
+  color: var(--muted);
   font-size: var(--readable-label);
-  line-height: 1.4;
+  line-height: 1.45;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
@@ -116,7 +332,7 @@ textarea {
 .guidance-step-card > span,
 .guidance-nav-help {
   font-size: var(--readable-secondary);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .mission-filter-grid label,
@@ -132,28 +348,46 @@ textarea {
 .mission-path,
 .mission-prove-trace h4 {
   font-size: var(--readable-secondary);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 .mission-marker {
-  min-height: 48px;
+  min-height: 50px;
+  border-radius: 2px;
 }
 .mission-detail-grid small,
 .mission-prove-trace li small {
   font-size: var(--readable-label);
-  line-height: 1.45;
+  line-height: 1.5;
 }
-
 small {
   font-size: .875em;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
+@media (max-width: 1050px) {
+  .app-shell { grid-template-columns: 240px 1fr; }
+  .main { padding-left: 34px; padding-right: 34px; }
+}
 @media (max-width: 760px) {
   body { font-size: 16px; }
+  .sidebar { padding: 22px 18px; }
+  .main { padding: 0 18px 44px; }
+  .topbar { padding-top: 26px; }
+  .topbar h1 { font-size: 29px; }
   .nav-product-title,
   .nav-product-description { font-size: var(--readable-secondary); }
 }
-
 @media print {
   body { font-size: initial; line-height: initial; }
+  #content > p,
+  .card p,
+  .notice,
+  .message p,
+  .workspace-handoff p,
+  .mission-hero p,
+  .mission-route-heading p,
+  .mission-detail-grid p {
+    font-family: Arial, sans-serif;
+    font-size: inherit;
+  }
 }
