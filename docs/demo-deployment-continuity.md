@@ -8,7 +8,7 @@ deployed_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 image_digest: sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8
 deployed_at: 14 September 2026 20:03 CDT
 deployment_workflow_run: 34915370013
-deployment_acceptance: application_deployed_awaiting_live_acceptance
+deployment_acceptance: live_runtime_readiness_accepted
 current_stable_release: v3.113
 current_stable_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 promotion_candidate: v3.113
@@ -19,7 +19,7 @@ promotion_candidate_image_published_at: 14 September 2026 18:22 CDT
 promotion_candidate_image_workflow_run: 34908424307
 promotion_candidate_image_acceptance: immutable_image_deployed_awaiting_live_acceptance
 promotion_readiness: deployed_awaiting_live_acceptance
-fictional_member_seed_state: v313_deployed_live_acceptance_pending
+fictional_member_seed_state: v313_deployed_awaiting_live_acceptance
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.112
 genuine_blocker: v313_live_acceptance_pending
