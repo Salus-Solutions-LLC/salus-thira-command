@@ -35,6 +35,11 @@ assert '<summary>Collect a new finding</summary>' in navigation_js
 assert '<summary>Closed observation history</summary>' in navigation_js
 assert 'Routing does not make a human decision or establish operational authority.' in navigation_js
 assert '<h2>Observation triage</h2>' not in navigation_js
+assert 'Estimate decisions awaiting your authorized review' in navigation_js
+assert '<summary>Available services</summary>' in navigation_js
+assert '<summary>People, financials, statements, and field updates</summary>' in navigation_js
+assert 'Nothing on this page creates an invoice or operational authority by itself.' in navigation_js
+assert 'const attentionEstimateRows=estimateRows.filter' in navigation_js
 
 client = TestClient(app.app)
 salus = {'X-Salus-Role': 'Assessment Director', 'X-Salus-User': 'Salus Tester', 'X-Salus-Tenant': '1'}
