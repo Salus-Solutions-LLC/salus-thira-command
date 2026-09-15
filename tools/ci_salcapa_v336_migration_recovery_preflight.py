@@ -20,8 +20,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 ACCEPTED_COMMIT = "63d513605f908d3308bb5dd1bbdbf1061878452b"
-CANDIDATE_COMMIT = "1d1759375d37b7de884331c06833de8c727ac5af"
-ROLLBACK_COMMIT = "8bf4614ec79a27641c40dc1a21e1790746a08604"
+CANDIDATE_COMMIT = "9d9873203fffd8c8ae477123ea94eb35b27c2acd"
+ROLLBACK_COMMIT = "1d1759375d37b7de884331c06833de8c727ac5af"
 ACCEPTED_BLOBS = {
     "app.py": "ff336aa87b387eb4f1f9f1bd55b93e923c74ab2c",
     "database.py": "531b3c417692d0d40ada03eda79f9ea114168517",
@@ -357,12 +357,12 @@ def run_parent() -> None:
         )
     )
     assert activation["source_commit"] == CANDIDATE_COMMIT
-    assert activation["source_release"] == "release/v3.112"
+    assert activation["source_release"] == "release/v3.113"
     assert activation["image_digest"].startswith(
         "salcapadevb48224acr.azurecr.io/salcapa@sha256:"
     )
     assert activation["rollback_commit"] == ROLLBACK_COMMIT
-    assert activation["rollback_release"] == "release/v3.111"
+    assert activation["rollback_release"] == "release/v3.112"
     assert activation["rollback_image_digest"].startswith(
         "salcapadevb48224acr.azurecr.io/salcapa@sha256:"
     )
