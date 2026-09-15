@@ -37,6 +37,16 @@ assert "const assessmentRequired=['SalTHIRA','SalOPS'].includes(target);" in nav
 assert 'Select or create an assessment before routing this observation to SalTHIRA or SalOPS.' in navigation_js
 assert 'const assessment_id=activeAssessmentId||null;' in navigation_js
 assert "prompt('Assessment ID:'" not in navigation_js
+assert "prompt('Source record ID:')" not in navigation_js
+assert "prompt('Source type:" not in navigation_js
+assert "let copDecisionSources=[];" in navigation_js
+assert "source_type:'intel_finding'" in navigation_js
+assert "source_type:'reassessment_trigger'" in navigation_js
+assert "source_type:'accepted_risk'" in navigation_js
+assert "source_type:'ops_request'" in navigation_js
+assert "copDecisionSources.find(x=>x.source_type===source_type&&x.source_id===source_id)" in navigation_js
+assert "source_type:source.source_type,source_id:source.source_id" in navigation_js
+assert "Prepare a decision from its governed source in the Common Operating Picture." in navigation_js
 assert '<h2>Current Work</h2>' in navigation_js
 assert '<summary>Preview and export</summary>' in navigation_js
 assert '<summary>Supporting assessment detail</summary>' in navigation_js
