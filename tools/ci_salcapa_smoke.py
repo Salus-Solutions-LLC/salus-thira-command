@@ -29,6 +29,10 @@ assert 'Assessment lifecycle items that may require review or follow-up.' in nav
 assert '<summary>Accepted risk, released work, and observations</summary>' in navigation_js
 assert 'Supporting records remain available for review without crowding the current picture.' in navigation_js
 assert 'Authorized people decide priorities, approvals, and operational action.' in navigation_js
+assert 'The active assessment is linked automatically.' in navigation_js
+assert 'Change the active assessment above before starting this thread if the context should be different.' in navigation_js
+assert '<input type="hidden" name="assessment_id" value="${activeAssessmentId||\'\'}">' in navigation_js
+assert 'Assessment, if needed<input name="assessment_id" type="number"' not in navigation_js
 assert '<h2>Current Work</h2>' in navigation_js
 assert '<summary>Preview and export</summary>' in navigation_js
 assert '<summary>Supporting assessment detail</summary>' in navigation_js
