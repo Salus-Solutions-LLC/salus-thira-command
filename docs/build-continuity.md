@@ -1,26 +1,26 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 15 September 2026 11:16 CDT
+last_verified_at: 15 September 2026 12:10 CDT
 current_frozen_release: v3.113
 current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 active_development_branch: development/salcapa-platform
-current_development_head: 7f1867ab28245dcda7f1f1263823e4b76e4e8113
+current_development_head: 1c5faece68279f7021e76c92b3ff4c51de3e262e
 active_product_milestone: issue_360_phase_3
 active_build_system_issue: 370
-active_increment: issue_360_phase_3_decision_source_reference_reuse
-last_completed_increment: issue_360_phase_3_decision_source_reference_reuse
+active_increment: issue_360_phase_3_task_assignment_reference_reuse
+last_completed_increment: issue_360_phase_3_task_assignment_reference_reuse
 candidate_release: none
-validation_pr: 400
-validation_branch: candidate/issue-360-phase3-decision-source-reuse-20260915
+validation_pr: 403
+validation_branch: candidate/issue-360-phase3-task-assignment-reuse-20260915
 validation_base: development/salcapa-platform
-validation_head: 7f1867ab28245dcda7f1f1263823e4b76e4e8113
+validation_head: 1c5faece68279f7021e76c92b3ff4c51de3e262e
 validation_gate_state: controlled_validation_passed_closed_without_merge
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: governed_decision_source_reference_reuse_validated
+repair_summary: accepted_expert_assignment_task_reference_reuse_validated
 genuine_blockers: none
 next_authorized_step: continue_issue_360_phase_3_enter_once_reuse_by_governed_reference_with_issue_368_focused_validation_and_issue_369_lean_controls
 deployed_demo_release: v3.113
@@ -63,6 +63,8 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - Observation routing now reuses the selected active assessment by governed reference instead of asking personnel to re-enter an assessment number. SalTHIRA or SalOPS routing fails closed with clear guidance when no assessment is active; server-side routing, assessment access, tenant, disclosure, provenance, and human-authority controls remain authoritative.
 
 - [Controlled validation PR #400](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/400) closed without merge after exact commit `7f1867ab28245dcda7f1f1263823e4b76e4e8113` passed all seven focused checks. Decision requests now start from the exact governed intelligence, reassessment, accepted-risk, or operations record visible in the Common Operating Picture, reusing its server identity and title instead of asking personnel to re-enter internal source identifiers. Server-side tenant, accessible-assessment, source-state, action compatibility, duplicate-request, disclosure, and human-authority controls remain authoritative.
+
+- [Controlled validation PR #403](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/403) closed without merge after exact commit `1c5faece68279f7021e76c92b3ff4c51de3e262e` passed all seven focused checks. SalOPS task creation can now begin from the exact accepted expert-assignment record, reusing its governed engagement, assignment, and member-display references instead of asking personnel to re-enter an assignment identifier. The engagement-level path remains explicit for genuinely unassigned tasks, stale assignments fail closed, and server-side tenant, engagement, assignment, role, and lifecycle controls remain authoritative.
 
 ## Source precedence
 
