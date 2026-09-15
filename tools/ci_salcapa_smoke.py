@@ -45,6 +45,11 @@ assert 'Risk assessment workspaces' in navigation_js
 assert 'Start a new risk assessment' in navigation_js
 assert 'Reassessment records shown only when their lifecycle is due, overdue, or stale' in navigation_js
 assert 'Authorized people retain assessment, decision, approval, and operational authority.' in navigation_js
+assert 'Open observation records and acknowledgement status' in navigation_js
+assert '<summary>Qualified intelligence</summary>' in navigation_js
+assert 'Qualified information released for your organization' in navigation_js
+assert 'memberClosedObservations.map' in navigation_js
+assert 'A submission does not establish a finding, decision, or operational action.' in navigation_js
 assert "if(key==='assessments')" in navigation_js
 
 client = TestClient(app.app)
