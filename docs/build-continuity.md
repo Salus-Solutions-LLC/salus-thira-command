@@ -1,26 +1,26 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 15 September 2026 02:33 CDT
+last_verified_at: 15 September 2026 03:11 CDT
 current_frozen_release: v3.113
 current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 active_development_branch: development/salcapa-platform
-current_development_head: 66007dccb0be3028b9240e05bacf729b7fc3108e
+current_development_head: 71d27516adb9351e5a6be09d000ac5ef8e55eb0e
 active_product_milestone: issue_360_phase_2
 active_build_system_issue: 370
-active_increment: issue_360_phase_2_protected_member_salops_overview
-last_completed_increment: issue_360_phase_2_protected_member_salops_overview
+active_increment: issue_360_phase_2_salthira_assessment_overview
+last_completed_increment: issue_360_phase_2_salthira_assessment_overview
 candidate_release: none
-validation_pr: 384
-validation_branch: candidate/issue-360-phase2-member-salops-overview-20260915
+validation_pr: 386
+validation_branch: candidate/issue-360-phase2-salthira-assessment-overview-20260915
 validation_base: development/salcapa-platform
-validation_head: 66007dccb0be3028b9240e05bacf729b7fc3108e
+validation_head: 71d27516adb9351e5a6be09d000ac5ef8e55eb0e
 validation_gate_state: controlled_validation_passed_closed_without_merge
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: protected_member_salops_primary_action_attention_current_work_and_progressive_disclosure_validated
+repair_summary: salthira_assessment_attention_current_work_and_progressive_disclosure_validated
 genuine_blockers: none
 next_authorized_step: continue_issue_360_phase_2_one_page_one_job_simplification_with_issue_368_focused_validation_and_issue_369_lean_controls
 deployed_demo_release: v3.113
@@ -49,6 +49,8 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - The SalINTEL overview now separates non-closed incoming information under Needs Your Attention from the intelligence register under Current Work. New finding entry and closed observation history use progressive disclosure; unverified-information separation, qualification, tenant access, provenance, human authority, and the SalINTEL-to-SalTHIRA handoff remain unchanged.
 - [Controlled validation PR #384](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/384) closed without merge after exact commit `66007dccb0be3028b9240e05bacf729b7fc3108e` passed all seven focused CI, PostgreSQL 16, production-container, contextual-intake, and local CodeQL checks. The exact green commit advanced by non-force fast-forward on 15 September 2026 at 02:32 CDT.
 - The Protected Member SalOPS overview now keeps the support request as its primary first-use action, shows estimate decisions under Needs Your Attention, keeps requests and active engagements under Current Work, and progressively discloses service, expert, financial, statement, and field-update detail. It explicitly does not create an invoice or operational authority.
+- [Controlled validation PR #386](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/386) closed without merge after exact commit `71d27516adb9351e5a6be09d000ac5ef8e55eb0e` passed all seven focused CI, PostgreSQL 16, production-container, contextual-intake, and local CodeQL checks. The exact green commit advanced by non-force fast-forward on 15 September 2026 at 03:11 CDT.
+- The SalTHIRA assessment overview now distinguishes risk-assessment workspaces, reassessment lifecycle items needing attention, and assessment creation or editing. SalTHIRA remains an evidence-based risk and priority method; authorized people retain assessment, decision, approval, and operational authority.
 
 ## Source precedence
 
