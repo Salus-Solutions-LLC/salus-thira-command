@@ -1,21 +1,21 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 September 2026 20:03 CDT
+last_verified_at: 14 September 2026 21:17 CDT
 current_frozen_release: v3.113
 current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 active_development_branch: development/salcapa-platform
 current_development_head: cc1db1c23dbb6ca5e24b24dea8dc8e57f46eb603
 active_product_milestone: issue_337_with_issue_360_phase_1
 active_build_system_issue: 370
-active_increment: issue_337_v3113_live_demonstration_acceptance
+active_increment: issue_337_v3113_live_evaluator_acceptance
 last_completed_increment: issue_337_v3113_application_promoted
 candidate_release: v3.113
-validation_pr: pending
+validation_pr: 376
 validation_branch: candidate/v3.113-live-demo-acceptance
 validation_base: main
 validation_head: pending_exact_final_head_after_continuity_commit
-validation_gate_state: candidate_preparation
+validation_gate_state: controlled_validation_in_progress
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
