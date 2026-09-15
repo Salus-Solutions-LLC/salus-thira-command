@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 September 2026 21:31 CDT
+last_verified_at: 14 September 2026 22:16 CDT
 current_frozen_release: v3.113
 current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 active_development_branch: development/salcapa-platform
-current_development_head: 5bf77b88395d0277198fc03bed7c2c17ada53b6f
-active_product_milestone: issue_337_with_issue_360_phase_1
+current_development_head: 1e21b4f1eeab012c67a2157c68dd8f43c269afa8
+active_product_milestone: issue_360_phase_2
 active_build_system_issue: 370
-active_increment: issue_337_v3113_live_evaluator_acceptance
-last_completed_increment: issue_337_v3113_live_evaluator_acceptance
-candidate_release: v3.113
-validation_pr: 377
-validation_branch: candidate/v3.113-live-acceptance-continuity
-validation_base: main
-validation_head: pending_exact_final_head_after_continuity_commit
-validation_gate_state: controlled_validation_in_progress
+active_increment: issue_360_phase_2_task_oriented_navigation
+last_completed_increment: issue_360_phase_2_task_oriented_navigation
+candidate_release: none
+validation_pr: 378
+validation_branch: candidate/issue-360-phase2-task-navigation-20260914
+validation_base: development/salcapa-platform
+validation_head: 1e21b4f1eeab012c67a2157c68dd8f43c269afa8
+validation_gate_state: controlled_validation_passed_closed_without_merge
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: exact_v3113_live_acceptance_passed_and_temporary_job_removed
-genuine_blockers: continuity_checkpoint_validation_pending
-next_authorized_step: complete_PR_377_exact_validation_close_without_merge_advance_exact_green_head_to_development_then_begin_next_issue_360_increment_with_issue_368_orchestration_hardening
+repair_summary: task_oriented_navigation_and_progressive_disclosure_validated
+genuine_blockers: none
+next_authorized_step: continue_issue_360_phase_2_one_page_one_job_simplification_with_issue_368_focused_validation_and_issue_369_lean_controls
 deployed_demo_release: v3.113
 deployed_demo_state: full_demonstration_acceptance
 ---
@@ -40,6 +40,8 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - Exact accepted v3.112 remains available as the verified rollback baseline.
 - The deployment remains passwordless, bounded to the existing approved Azure development environment, and prohibited from changing custom DNS or performing a public production cutover.
 - Issue #368 archive/current-runtime separation remains preserved in frozen v3.113: immutable v3.43 evidence verification cannot overwrite the current interface.
+- [Controlled validation PR #378](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/378) closed without merge after exact commit `1e21b4f1eeab012c67a2157c68dd8f43c269afa8` passed the path-scoped CI, PostgreSQL 16, production-container, contextual-intake, and local CodeQL checks. The exact green commit advanced by non-force fast-forward on 14 September 2026 at 22:16 CDT.
+- Issue #360 Phase 2 now keeps Command Center and Common Operating Picture visible as the two starting choices while progressively disclosing reports, intelligence, risk, and operations. Specialist views reveal their active work area; access, tenancy, disclosure, human-authority, date/time, and release controls remain unchanged.
 
 ## Source precedence
 
