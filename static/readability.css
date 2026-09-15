@@ -397,6 +397,27 @@ textarea {
   min-height: 50px;
   border-radius: 2px;
 }
+.route-salcapa .mission-marker,
+.route-mission-structure .mission-marker {
+  background: #f5f8df;
+  border-color: #72c99a;
+}
+.route-salintel .mission-marker {
+  background: #fff1df;
+  border-color: #e7ad32;
+}
+.route-salthira .mission-marker {
+  background: #fff7d8;
+  border-color: #e4ba32;
+}
+.route-salops .mission-marker {
+  background: #fff0ef;
+  border-color: #e66a62;
+}
+.route-prove .mission-marker {
+  background: #f1f6f8;
+  border-color: var(--salus-blue);
+}
 .mission-detail-grid small,
 .mission-prove-trace li small {
   font-size: var(--readable-label);
