@@ -1,26 +1,26 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 15 September 2026 14:11 CDT
+last_verified_at: 15 September 2026 15:08 CDT
 current_frozen_release: v3.113
 current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
 active_development_branch: development/salcapa-platform
-current_development_head: 0cd7b8d156ec9f47d6cf834f24c8c1744a90fdc9
+current_development_head: 0a101c9a41abc0b4124062ada1fca00866be3b9a
 active_product_milestone: issue_360_phase_3
 active_build_system_issue: 370
-active_increment: issue_360_phase_3_credential_evidence_reference_reuse
-last_completed_increment: issue_360_phase_3_credential_evidence_reference_reuse
+active_increment: issue_360_phase_3_engagement_request_reference_reuse
+last_completed_increment: issue_360_phase_3_engagement_request_reference_reuse
 candidate_release: none
-validation_pr: 407
-validation_branch: candidate/issue-360-phase3-credential-evidence-reference-reuse-20260915
+validation_pr: 409
+validation_branch: candidate/issue-360-phase3-engagement-request-reference-reuse-20260915
 validation_base: development/salcapa-platform
-validation_head: 0cd7b8d156ec9f47d6cf834f24c8c1744a90fdc9
+validation_head: 0a101c9a41abc0b4124062ada1fca00866be3b9a
 validation_gate_state: controlled_validation_passed_closed_without_merge
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: governed_verified_current_credential_evidence_reference_selection_validated
+repair_summary: authorized_request_service_and_objective_reference_reuse_validated
 genuine_blockers: none
 next_authorized_step: continue_issue_360_phase_3_enter_once_reuse_by_governed_reference_with_issue_368_focused_validation_and_issue_369_lean_controls
 deployed_demo_release: v3.113
@@ -69,6 +69,8 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - [Controlled validation PR #405](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/405) closed without merge after exact commit `cbc814bcaecd87074b6093a131361f7b36476b57` passed all seven focused checks. Engagement conflict disclosure and expert-assignment proposal now select from the current governed expert and cleared-conflict records without asking personnel to type internal identifiers. Empty, invalid, inactive, uncleared, or stale choices fail closed; server-side tenant, engagement, expert, conflict, qualification, role, and lifecycle controls remain authoritative.
 
 - [Controlled validation PR #407](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/407) closed without merge after exact commit `0cd7b8d156ec9f47d6cf834f24c8c1744a90fdc9` passed all seven focused checks. Expert credential records now reuse a selected, currently accessible evidence record whose verification and lifecycle states are Verified and Current instead of asking personnel to type an internal identifier. The evidence-optional path remains explicit, and server-side tenant, assessment-access, sensitivity, credential-verification, lifecycle, provenance, and human-authority controls remain authoritative.
+
+- [Controlled validation PR #409](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/409) closed without merge after exact commit `0a101c9a41abc0b4124062ada1fca00866be3b9a` passed all seven focused checks. Engagement planning now re-fetches and requires the exact current Authorized SalOPS request, reuses its governed published-service snapshot directly when present, and presents existing manual-request service and objective details for confirmation instead of blank re-entry. Stale authorization fails closed; server-side tenant, assessment-access, request-state, unique-engagement, chronology, provenance, disclosure, and human-authority controls remain authoritative.
 
 ## Source precedence
 
