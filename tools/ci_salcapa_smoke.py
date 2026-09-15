@@ -53,6 +53,14 @@ assert "assignments.find(a=>a.id===assignmentId)" in navigation_js
 assert "This expert assignment is no longer accepted for the selected engagement." in navigation_js
 assert 'onclick="createOpsTask(${engagement.id},${a.id})">Add task</button>' in navigation_js
 assert 'onclick="createOpsTask(${x.id},null)">Add unassigned task</button>' in navigation_js
+assert "Expert profile ID:" not in navigation_js
+assert "Active expert profile ID:" not in navigation_js
+assert "Cleared conflict ID:" not in navigation_js
+assert "function chooseGovernedRecord(label,records,describe)" in navigation_js
+assert "profile_id:selected.id" in navigation_js
+assert "profile_id:expert.id,conflict_id:conflict.id" in navigation_js
+assert "conflicts.filter(c=>c.profile_id===expert.id&&c.status==='Cleared')" in navigation_js
+assert "Choose one of the listed records." in navigation_js
 assert '<h2>Current Work</h2>' in navigation_js
 assert '<summary>Preview and export</summary>' in navigation_js
 assert '<summary>Supporting assessment detail</summary>' in navigation_js
