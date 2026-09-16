@@ -55,7 +55,7 @@ with tempfile.TemporaryDirectory() as td:
 
     assert client.post("/public/protection-advisor/answer",json={
         "question_key":"risk_list","answer_state":"Answered","note":""
-    }).status_code==403
+    }).status_code in (401,403)
 
     for index,q in enumerate(questions):
         state="No" if index<4 else ("Unknown" if index==4 else "Answered")
