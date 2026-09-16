@@ -25,6 +25,8 @@ QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-1.1.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-1.0.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-SPLIT-RETENTION-1.0.0"
+PACKAGE_PROFILE_VERSION = "SPA-SERVICE-PROFILE-1.0.0"
+PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-1.0.0"
 SESSION_HOURS = 24
 NOTIFICATION_MODE = os.getenv("SALUS_ADVISOR_NOTIFICATION_MODE", "outbox").strip().lower()
 NOTIFICATION_TO = os.getenv("SALUS_ADVISOR_NOTIFICATION_TO", "mduncan@salus.solutions").strip().lower()
@@ -60,6 +62,32 @@ QUESTIONS = (
     ("continuity", "Can essential operations continue if facilities, utilities, technology, suppliers, or personnel are disrupted?", "continuity"),
     ("recovery", "Are recovery priorities, alternate resources, and restoration responsibilities documented?", "continuity"),
 )
+SERVICE_CATALOG = (
+    ("salthira", "Salus THIRA Assessment", "Identify credible threats and hazards, consequences, capability targets, current capability, gaps, priorities, and defensible improvements."),
+    ("facility", "Facility and Physical Security Assessment", "Examine facilities, operations, people, physical and cyber-physical dependencies, surrounding conditions, intentional threats, continuity, and recovery."),
+    ("protective_intelligence", "Protective Intelligence and Threat Monitoring", "Establish intelligence requirements, reporting, warning indicators, threat assessment, escalation, monitoring, and decision support."),
+    ("planning", "Emergency Planning and Crisis Communications", "Develop usable emergency, notification, accountability, coordination, leadership, and crisis-communications arrangements."),
+    ("continuity", "Business Continuity and Recovery", "Define essential functions, dependencies, minimum operations, recovery targets, alternate resources, and restoration priorities."),
+    ("cyber_physical", "Cyber-Physical Resilience", "Review the relationship among information systems, operational technology, facilities, security systems, vendors, and continuity requirements."),
+    ("training", "Training, Exercises, and Capability Validation", "Prepare personnel, exercise integrated plans and systems, document performance, and turn lessons into governed improvement."),
+    ("protection", "Protection and Security Operations", "Design or strengthen protective staffing, procedures, access, incident support, executive protection, and operational coordination."),
+    ("incident_support", "Incident, Crisis, and Recovery Support", "Provide planning, coordination, specialist, communications, logistics, response, recovery, and sustainment support when conditions require action."),
+    ("implementation", "Implementation and Technical Assistance", "Help leadership assign, sequence, budget, implement, document, and validate approved improvements."),
+    ("monitoring", "Ongoing Monitoring and SalCAPA Support", "Maintain awareness, records, responsibilities, reassessment, notifications, and continuing improvement through SalCAPA."),
+)
+ACTIVITY_OPTIONS = {
+    "Precious metals or other high-value materials",
+    "Hazardous materials, fuels, chemicals, or regulated waste",
+    "Manufacturing, industrial processes, or heavy equipment",
+    "Healthcare, medical, behavioral-health, or human services",
+    "Children, students, older adults, or people needing assistance",
+    "Public events, venues, hospitality, or mass gatherings",
+    "Critical infrastructure, utilities, transportation, or logistics",
+    "Sensitive information, technology, research, or intellectual property",
+    "Distributed, mobile, remote, travel, or international operations",
+    "Government, public safety, or essential public services",
+}
+
 FAITH_QUESTION = ("volunteer_roles", "Where volunteers have protective or emergency responsibilities, are their roles current, understood, and practiced?", "capability")
 SCHOOL_QUESTION = ("reunification", "Have student accountability and family reunification procedures been tested with responsible personnel?", "capability")
 PUBLIC_QUESTION = ("public_access", "Are public access, visitor management, and concerning-behavior reporting handled consistently?", "risk")
@@ -104,14 +132,32 @@ class SubmitCommand(BaseModel):
     organization_name: str = Field(min_length=1, max_length=160)
     contact_name: str = Field(min_length=1, max_length=160)
     contact_email: str = Field(min_length=3, max_length=254)
+    facility_scope: str = Field(min_length=1, max_length=80)
+    facility_locations: str = Field(default="", max_length=1500)
+    personnel_range: str = Field(min_length=1, max_length=80)
+    annual_revenue_range: str = Field(min_length=1, max_length=80)
+    specific_activities: list[str] = Field(default_factory=list, max_length=10)
+    essential_functions: str = Field(default="", max_length=1200)
+    recent_concerns: str = Field(default="", max_length=1200)
+    desired_timing: str = Field(min_length=1, max_length=80)
+    decision_authority: str = Field(min_length=1, max_length=160)
+    investment_range: str = Field(min_length=1, max_length=80)
 
-    @field_validator("organization_name", "contact_name", "contact_email")
+    @field_validator("organization_name", "contact_name", "contact_email", "facility_scope", "facility_locations", "personnel_range", "annual_revenue_range", "essential_functions", "recent_concerns", "desired_timing", "decision_authority", "investment_range")
     @classmethod
     def clean(cls, value: str) -> str:
         value = value.strip()
         if any(ch in value for ch in "\r\n"):
             raise ValueError("line breaks are not permitted")
         return value
+
+    @field_validator("specific_activities")
+    @classmethod
+    def valid_activities(cls, value: list[str]) -> list[str]:
+        cleaned = list(dict.fromkeys(item.strip() for item in value if item.strip()))
+        if any(item not in ACTIVITY_OPTIONS for item in cleaned):
+            raise ValueError("unsupported activity")
+        return cleaned
 
     @field_validator("contact_email")
     @classmethod
@@ -223,6 +269,17 @@ def _initialize(conn: Any) -> None:
     );
     CREATE INDEX IF NOT EXISTS idx_advisor_notification_state
       ON advisor_public_notification_outbox(state,created_at);
+    CREATE TABLE IF NOT EXISTS advisor_public_service_profiles (
+      profile_key TEXT PRIMARY KEY,
+      submission_key TEXT NOT NULL UNIQUE,
+      profile_version TEXT NOT NULL,
+      profile_json TEXT NOT NULL,
+      profile_sha256 TEXT NOT NULL,
+      package_recommendation_version TEXT NOT NULL,
+      package_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (submission_key) REFERENCES advisor_public_submissions(submission_key) ON DELETE CASCADE
+    );
     """)
 
 
@@ -290,51 +347,131 @@ def _result(questions: list[dict[str, str]], answers: dict[str, dict[str, Any]])
 
 def _page() -> str:
     options = "".join(f'<option value="{html.escape(item)}">{html.escape(item)}</option>' for item in sorted(ORGANIZATION_TYPES))
+    activities = "".join(
+        f'<label class="choice"><input type="checkbox" name="activity" value="{html.escape(item)}"> {html.escape(item)}</label>'
+        for item in sorted(ACTIVITY_OPTIONS)
+    )
     return """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Protection Advisor | Salus Solutions</title>
 <style>
-:root{--blue:#477d9f;--ink:#14283a;--orange:#d9571e;--line:#d8e0e6;--soft:#f7f9fa}
-*{box-sizing:border-box} body{margin:0;background:white;color:var(--ink);font:18px/1.55 Georgia,serif}
-main{max-width:940px;margin:auto;padding:48px 28px 80px} h1,h2,h3,button,label,select,input{font-family:Arial,sans-serif}
-h1{font-size:3rem;font-weight:300;color:var(--blue);margin:.2rem 0} h2{font-weight:400;font-size:1.9rem;margin-top:2rem}
-.brand{font:28px Arial,sans-serif;color:#111;margin-bottom:44px;display:flex;align-items:center;gap:14px}.brand img{width:58px;height:58px;object-fit:contain} .muted{color:#536675} .panel{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
-label{display:block;font-weight:600;margin:18px 0 7px} select,input[type=text],input[type=email]{width:100%;font-size:1rem;padding:13px;border:1px solid #8d9aa3;border-radius:2px}
-.check{display:flex;gap:12px;align-items:flex-start;font-family:Georgia,serif;font-weight:400} .check input{margin-top:7px}
-button{border:0;background:none;color:var(--orange);font-size:1.05rem;padding:14px 0;cursor:pointer;text-align:left} button:disabled{color:#888;cursor:not-allowed}
-.question{padding:20px 0;border-bottom:1px solid var(--line)} .choices{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}
-.choices label{font-weight:400;margin:0} .hidden{display:none} .error{color:#a12612} .result{background:var(--soft);padding:24px;margin-top:24px}
-@media(max-width:600px){body{font-size:17px} main{padding:28px 20px} h1{font-size:2.4rem}}
+:root{--blue:#477d9f;--ink:#14283a;--orange:#d9571e;--line:#d8e0e6;--soft:#f7f9fa}*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--ink);font:18px/1.55 Georgia,serif}main{max-width:980px;margin:auto;padding:48px 28px 80px}
+h1,h2,h3,button,label,select,input,textarea{font-family:Arial,sans-serif}h1{font-size:3rem;font-weight:300;color:var(--blue);margin:.2rem 0}
+h2{font-weight:400;font-size:1.9rem;margin-top:2rem}.brand{font:28px Arial,sans-serif;color:#111;margin-bottom:44px;display:flex;align-items:center;gap:14px}
+.brand img{width:58px;height:58px;object-fit:contain}.muted{color:#536675}.panel{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
+label{display:block;font-weight:600;margin:18px 0 7px}select,input[type=text],input[type=email],textarea{width:100%;font-size:1rem;padding:13px;border:1px solid #8d9aa3;border-radius:2px}
+textarea{min-height:100px}.check,.choice{display:flex;gap:12px;align-items:flex-start;font-family:Georgia,serif;font-weight:400}.check input,.choice input{margin-top:7px}
+button,.action{border:0;background:none;color:var(--orange);font:1.05rem Arial,sans-serif;padding:14px 0;cursor:pointer;text-align:left;text-decoration:none;display:inline-block;margin-right:26px}
+button:disabled{color:#888;cursor:not-allowed}.question{padding:20px 0;border-bottom:1px solid var(--line)}.choices{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}
+.choices label{font-weight:400;margin:0}.hidden{display:none}.error{color:#a12612}.result{background:var(--soft);padding:24px;margin-top:24px}.route{border-left:3px solid var(--blue);padding:4px 20px;margin:28px 0}
+.package-item{padding:16px 0;border-bottom:1px solid var(--line)}.eyebrow{font:700 .78rem Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
+@media(max-width:600px){body{font-size:17px}main{padding:28px 20px}h1{font-size:2.4rem}}
 </style></head><body><main>
 <div class="brand"><img src="/static/salus-reticle.svg" alt="Salus Solutions reticle"> Salus Solutions</div>
 <h1>Protection Advisor™</h1><p class="muted">Find Your Salus Package</p>
-<h2>Understand what could affect your organization and what to do next</h2>
-<p>The Protection Advisor provides a preliminary, non-binding review. It does not create membership, a contract, an approved scope, a price commitment, or operational authority.</p>
+<h2>Part One — Anonymous Protection Readiness Review</h2>
+<p>Learn what may deserve attention without providing your name, email address, or organization name. Your anonymous answers produce an immediate preliminary summary.</p>
 <section id="start" class="panel">
 <label for="orgType">Organization type</label><select id="orgType"><option value="">Select your organization type</option>__OPTIONS__</select>
-<label class="check"><input id="primary" type="checkbox"> <span>I consent to Salus retaining my assessment answers and contact information to prepare, review, and follow up on my preliminary recommendation. I understand I may request correction, withdrawal, or deletion.</span></label>
-<label class="check"><input id="secondary" type="checkbox"> <span>Optional: I permit Salus to derive separately reviewed, appropriately deidentified knowledge for long-term protective research and service improvement. Declining does not prevent the assessment.</span></label>
-<button onclick="startAssessment()">Begin Your Protection Assessment &gt;</button><p id="startError" class="error"></p>
-</section>
-<section id="assessment" class="hidden"><h2>Your assessment</h2><p>You may choose Not Sure, Not Applicable, or Prefer Not to Answer.</p><div id="questions"></div>
-<button onclick="showContact()">Review and submit &gt;</button></section>
-<section id="contact" class="hidden"><h2>Submit for Salus review</h2>
+<label class="check"><input id="primary" type="checkbox"> <span>I consent to Salus retaining my anonymous assessment answers to prepare this preliminary result. I understand I may delete this record from this session.</span></label>
+<label class="check"><input id="secondary" type="checkbox"> <span>Optional: I permit Salus to derive separately reviewed, appropriately deidentified knowledge for protective research and service improvement.</span></label>
+<button onclick="startAssessment()">Begin Your Anonymous Review &gt;</button><p id="startError" class="error"></p></section>
+<section id="assessment" class="hidden"><h2>Your anonymous assessment</h2><p>You may choose Not Sure, Not Applicable, or Prefer Not to Answer.</p><div id="questions"></div>
+<button onclick="preliminaryResult()">Review My Preliminary Results &gt;</button><p id="assessmentError" class="error"></p></section>
+<section id="result" class="hidden result"></section>
+<section id="paths" class="hidden panel"><h2>Choose what happens next</h2>
+<p>Your anonymous review is complete. Continue for a tailored preliminary package or browse individual Salus services without identifying yourself.</p>
+<div class="route"><a class="action" href="#profile" onclick="showProfile()">Continue to Your Tailored Salus Package &gt;</a><br>
+<a class="action" href="/protection-advisor/services">Explore Individual Salus Services &gt;</a></div></section>
+<section id="profile" class="hidden panel"><p class="eyebrow">Part Two — Confidential Organization and Service Profile</p>
+<h2>Help us prepare your tailored preliminary package</h2>
+<p>These candid questions help Salus understand scale, complexity, priorities, timing, and likely services. Identifying information is requested only because you elected to continue.</p>
 <label>Organization name<input id="organizationName" type="text" maxlength="160"></label>
 <label>Your name<input id="contactName" type="text" maxlength="160"></label>
 <label>Email address<input id="contactEmail" type="email" maxlength="254"></label>
-<button onclick="submitAssessment()">Submit for Salus Review &gt;</button><p id="submitError" class="error"></p></section>
-<section id="result" class="hidden result"></section>
-<section class="panel"><h2>Important notice</h2><p>This is not an emergency reporting service, completed THIRA, professional security assessment, legal or insurance advice, or guarantee against loss. For an immediate threat to life or safety, contact 911 or the appropriate local emergency service.</p></section>
+<label>Facility scope<select id="facilityScope"><option value="">Select</option><option>One facility</option><option>Several facilities</option><option>Organization-wide</option><option>Distributed, mobile, or remote operations</option><option>Not sure</option></select></label>
+<label>Facility locations or general service area<textarea id="facilityLocations" maxlength="1500" placeholder="Provide addresses or general locations appropriate for this preliminary review. Do not provide access codes, floor plans, or sensitive security details."></textarea></label>
+<label>Personnel and population range<select id="personnelRange"><option value="">Select</option><option>1–25</option><option>26–100</option><option>101–500</option><option>501–2,500</option><option>2,501–10,000</option><option>More than 10,000</option><option>Varies significantly</option><option>Prefer to discuss with Salus</option></select></label>
+<label>Annual revenue or operating-budget range<select id="revenueRange"><option value="">Select</option><option>Under $1 million</option><option>$1 million–$5 million</option><option>$5 million–$25 million</option><option>$25 million–$100 million</option><option>$100 million–$500 million</option><option>Over $500 million</option><option>Government or nonprofit operating budget</option><option>Prefer to discuss with Salus</option></select></label>
+<label>Activities and operating conditions that apply</label><div id="activities">__ACTIVITIES__</div>
+<label>Essential products, services, or functions<textarea id="essentialFunctions" maxlength="1200"></textarea></label>
+<label>Recent incidents, concerns, deadlines, or reasons for seeking assistance<textarea id="recentConcerns" maxlength="1200"></textarea></label>
+<label>Desired timing<select id="desiredTiming"><option value="">Select</option><option>Immediate concern</option><option>Within 30 days</option><option>Within 90 days</option><option>Within 6 months</option><option>Planning for a future budget cycle</option><option>Not sure</option></select></label>
+<label>Who can authorize the next step?<input id="decisionAuthority" type="text" maxlength="160" placeholder="Role or decision group; a personal name is not required"></label>
+<label>Potential investment range<select id="investmentRange"><option value="">Select</option><option>Under $10,000</option><option>$10,000–$25,000</option><option>$25,000–$75,000</option><option>$75,000–$250,000</option><option>Over $250,000</option><option>Need phased options</option><option>Not established</option><option>Prefer to discuss with Salus</option></select></label>
+<p class="muted">Do not enter passwords, financial account information, medical records, government identifiers, classified information, detailed hazardous-material inventories, access-control details, or information whose disclosure could create an immediate security risk.</p>
+<button onclick="submitProfile()">Prepare My Tailored Preliminary Package &gt;</button><p id="submitError" class="error"></p></section>
+<section id="package" class="hidden result"></section>
+<section class="panel"><h2>Important notice</h2><p>Protection Advisor provides preliminary educational and decision-support information. It is not an emergency reporting service, completed THIRA, professional security assessment, legal or insurance advice, or guarantee against loss. Salus professionals review information, evidence, context, scope, recommendations, and pricing before issuing formal findings or proposals.</p></section>
 </main><script>
 let csrf="",questions=[];
 async function call(path,opts={}){opts.headers={"Content-Type":"application/json",...(csrf?{"X-CSRF-Token":csrf}:{}),...(opts.headers||{})};const r=await fetch(path,opts);const data=await r.json().catch(()=>({detail:"Request failed"}));if(!r.ok)throw new Error(data.detail||"Request failed");return data}
-async function startAssessment(){const e=document.getElementById("startError");e.textContent="";try{const data=await call("/public/protection-advisor/session",{method:"POST",body:JSON.stringify({organization_type:orgType.value,primary_consent:primary.checked,secondary_deidentified_consent:secondary.checked})});csrf=data.csrf_token;questions=data.questions;start.classList.add("hidden");assessment.classList.remove("hidden");renderQuestions()}catch(x){e.textContent=x.message}}
-function renderQuestions(){document.getElementById("questions").innerHTML=questions.map((q,i)=>`<div class="question"><strong>${i+1}. ${q.text}</strong><div class="choices">${["Answered","Partially","No","Unknown","Not Applicable","Declined"].map(s=>`<label><input type="radio" name="${q.key}" value="${s}" onchange="saveAnswer('${q.key}','${s}')"> ${s==="Answered"?"Yes":s==="Unknown"?"Not Sure":s==="Declined"?"Prefer Not to Answer":s}</label>`).join("")}</div></div>`).join("")}
+async function startAssessment(){startError.textContent="";try{const data=await call("/public/protection-advisor/session",{method:"POST",body:JSON.stringify({organization_type:orgType.value,primary_consent:primary.checked,secondary_deidentified_consent:secondary.checked})});csrf=data.csrf_token;questions=data.questions;start.classList.add("hidden");assessment.classList.remove("hidden");renderQuestions()}catch(x){startError.textContent=x.message}}
+function renderQuestions(){document.getElementById("questions").innerHTML=questions.map((q,i)=>'<div class="question"><strong>'+(i+1)+'. '+q.text+'</strong><div class="choices">'+["Answered","Partially","No","Unknown","Not Applicable","Declined"].map(s=>'<label><input type="radio" name="'+q.key+'" value="'+s+'" onchange="saveAnswer(\''+q.key+'\',\''+s+'\')"> '+(s==="Answered"?"Yes":s==="Unknown"?"Not Sure":s==="Declined"?"Prefer Not to Answer":s)+'</label>').join("")+'</div></div>').join("")}
 async function saveAnswer(key,state){await call("/public/protection-advisor/answer",{method:"POST",body:JSON.stringify({question_key:key,answer_state:state,note:""})})}
-function showContact(){contact.classList.remove("hidden");contact.scrollIntoView({behavior:"smooth"})}
-async function submitAssessment(){const e=document.getElementById("submitError");e.textContent="";try{const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value})});assessment.classList.add("hidden");contact.classList.add("hidden");const r=data.result;result.innerHTML=`<h2>Your Salus Recommendation</h2><h3>${r.recommendation}</h3><p>${r.notice}</p><p><strong>Potential attention areas:</strong> ${r.attention_count}. <strong>Information gaps:</strong> ${r.information_gap_count}.</p><p>${r.manual_next_step}</p><button onclick="deleteRecord()">Withdraw and delete my submitted information &gt;</button>`;result.classList.remove("hidden");result.scrollIntoView({behavior:"smooth"})}catch(x){e.textContent=x.message}}
-async function deleteRecord(){if(!confirm("Withdraw this assessment and delete its submitted content?"))return;await call("/public/protection-advisor/delete",{method:"POST",body:"{}"});result.innerHTML="<h2>Information withdrawn</h2><p>Your assessment content and contact information have been deleted. Content-free lifecycle evidence is retained for accountability.</p>"}
-</script></body></html>""".replace("__OPTIONS__", options)
+async function preliminaryResult(){assessmentError.textContent="";try{const data=await call("/public/protection-advisor/preliminary",{method:"POST",body:"{}"});const r=data.result;assessment.classList.add("hidden");result.classList.remove("hidden");paths.classList.remove("hidden");result.innerHTML='<p class="eyebrow">Your Anonymous Preliminary Summary</p><h2>'+r.recommendation+'</h2><p>'+r.notice+'</p><p><strong>Potential attention areas:</strong> '+r.attention_count+'. <strong>Indicated strengths:</strong> '+r.strength_count+'. <strong>Information gaps:</strong> '+r.information_gap_count+'.</p><p>'+r.manual_next_step+'</p>';result.scrollIntoView({behavior:"smooth"})}catch(x){assessmentError.textContent=x.message}}
+function showProfile(){profile.classList.remove("hidden");profile.scrollIntoView({behavior:"smooth"})}
+async function submitProfile(){submitError.textContent="";try{const selected=[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value);const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,annual_revenue_range:revenueRange.value,specific_activities:selected,essential_functions:essentialFunctions.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value})});profile.classList.add("hidden");const p=data.package;package.classList.remove("hidden");package.innerHTML='<p class="eyebrow">Tailored Preliminary Salus Package</p><h2>'+p.title+'</h2><p>'+p.rationale+'</p>'+p.services.map(s=>'<div class="package-item"><h3>'+s.title+'</h3><p>'+s.summary+'</p></div>').join("")+'<p><strong>Suggested sequence:</strong> '+p.sequence.join(" → ")+'</p><p>'+p.notice+'</p><a class="action" href="https://www.salus.solutions/contact">Discuss This Package With Salus &gt;</a>';package.scrollIntoView({behavior:"smooth"})}catch(x){submitError.textContent=x.message}}
+</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities)
+
+
+def _service_catalog_page() -> str:
+    items = "".join(
+        f'<article class="service"><h2>{html.escape(title)}</h2><p>{html.escape(summary)}</p>'
+        f'<a href="https://www.salus.solutions/contact">Discuss This Service With Salus &gt;</a></article>'
+        for _, title, summary in SERVICE_CATALOG
+    )
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Individual Salus Services | Protection Advisor</title><style>
+:root{{--blue:#477d9f;--orange:#d9571e;--ink:#14283a;--line:#d8e0e6}}*{{box-sizing:border-box}}body{{margin:0;color:var(--ink);font:18px/1.55 Georgia,serif}}
+main{{max-width:980px;margin:auto;padding:48px 28px 80px}}header{{display:flex;align-items:center;gap:14px;font:28px Arial,sans-serif;margin-bottom:42px}}header img{{width:58px;height:58px}}
+h1,h2,a{{font-family:Arial,sans-serif}}h1{{font-size:3rem;font-weight:300;color:var(--blue)}}h2{{font-weight:400}}a{{color:var(--orange);text-decoration:none}}.service{{padding:20px 0;border-bottom:1px solid var(--line)}}
+</style></head><body><main><header><img src="/static/salus-reticle.svg" alt="Salus Solutions reticle">Salus Solutions</header>
+<p><a href="/protection-advisor">&lt; Protection Advisor</a></p><h1>Individual Salus Services</h1>
+<p>Explore services directly without completing the confidential Organization and Service Profile. A Salus professional will confirm scope, deliverables, schedule, and pricing before any engagement.</p>
+{items}</main></body></html>"""
+
+
+def _package_recommendation(questions: list[dict[str, str]], answers: dict[str, dict[str, Any]], profile: dict[str, Any]) -> dict[str, Any]:
+    selected: list[str] = ["salthira"]
+    attention_domains = {
+        q["domain"] for q in questions
+        if answers.get(q["key"], {{}}).get("answer_state", "Unknown") in {{"No", "Partially", "Unknown"}}
+    }
+    activities = set(profile.get("specific_activities", []))
+    if "intelligence" in attention_domains or "risk" in attention_domains:
+        selected.append("protective_intelligence")
+    if "capability" in attention_domains:
+        selected.extend(["planning", "training"])
+    if "continuity" in attention_domains:
+        selected.append("continuity")
+    if "evidence" in attention_domains:
+        selected.append("training")
+    if "governance" in attention_domains or profile.get("decision_authority", "").casefold() in {{"unknown", "not sure"}}:
+        selected.append("implementation")
+    if any("Hazardous" in item or "Manufacturing" in item or "Critical infrastructure" in item for item in activities):
+        selected.extend(["facility", "cyber_physical", "continuity"])
+    if any("Precious metals" in item or "public events" in item.casefold() or "Government" in item for item in activities):
+        selected.extend(["facility", "protection", "protective_intelligence"])
+    if any("Healthcare" in item or "Children" in item for item in activities):
+        selected.extend(["planning", "training", "continuity"])
+    if profile.get("desired_timing") == "Immediate concern":
+        selected.insert(0, "incident_support")
+    if profile.get("facility_scope") in {{"Several facilities", "Organization-wide", "Distributed, mobile, or remote operations"}}:
+        selected.extend(["implementation", "monitoring"])
+    selected = list(dict.fromkeys(selected))
+    lookup = {{key: {{"key": key, "title": title, "summary": summary}} for key, title, summary in SERVICE_CATALOG}}
+    services = [lookup[key] for key in selected if key in lookup]
+    sequence = [item["title"] for item in services[:4]]
+    return {{
+        "title": "A phased Salus protection and capability program",
+        "services": services,
+        "sequence": sequence,
+        "rationale": "This preliminary package connects the conditions identified in Part One with the scale, activities, dependencies, timing, and implementation context supplied in Part Two.",
+        "notice": "Preliminary — Subject to Salus Professional Review. A Salus professional must validate scope, evidence, specialists, deliverables, schedule, pricing, contract terms, and Protected Member eligibility.",
+        "version": PACKAGE_RECOMMENDATION_VERSION,
+    }}
 
 
 async def _send_graph_email(recipient: str, subject: str, body_text: str) -> tuple[bool, str]:
@@ -458,6 +595,10 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
         if not allowed:
             raise HTTPException(429, f"Please wait {retry} seconds before trying again")
 
+    @app.get("/protection-advisor/services", response_class=HTMLResponse)
+    def protection_advisor_services() -> HTMLResponse:
+        return HTMLResponse(_service_catalog_page(), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer"})
+
     @app.get("/protection-advisor", response_class=HTMLResponse)
     def protection_advisor_page() -> HTMLResponse:
         return HTMLResponse(_page(), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"})
@@ -567,6 +708,23 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
         finally:
             conn.close()
 
+    @app.post("/public/protection-advisor/preliminary")
+    async def preliminary_public_assessment(request: Request) -> dict[str, Any]:
+        limited(request, request.cookies.get("salus_advisor_session", ""))
+        conn = ctx["db"]()
+        try:
+            session, _ = _session(conn, request)
+            if session["status"] != "Active":
+                raise HTTPException(409, "Assessment has already been submitted")
+            questions = _questions(session["organization_type"])
+            answers = _current_answers(conn, session["session_key"])
+            missing = [q["key"] for q in questions if q["key"] not in answers]
+            if missing:
+                raise HTTPException(400, "Answer every question before reviewing results")
+            return {"anonymous": True, "result": _result(questions, answers)}
+        finally:
+            conn.close()
+
     @app.post("/public/protection-advisor/submit")
     async def submit_public_assessment(command: SubmitCommand, request: Request) -> dict[str, Any]:
         limited(request, request.cookies.get("salus_advisor_session", ""))
@@ -582,6 +740,19 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 raise HTTPException(400, "Answer every question before submitting")
             snapshot = {key:{"answer_state":value["answer_state"],"note":value["note"],"revision_no":value["revision_no"],"content_sha256":value["content_sha256"]} for key,value in sorted(answers.items())}
             result = _result(questions, answers)
+            profile = {
+                "facility_scope": command.facility_scope,
+                "facility_locations": command.facility_locations,
+                "personnel_range": command.personnel_range,
+                "annual_revenue_range": command.annual_revenue_range,
+                "specific_activities": command.specific_activities,
+                "essential_functions": command.essential_functions,
+                "recent_concerns": command.recent_concerns,
+                "desired_timing": command.desired_timing,
+                "decision_authority": command.decision_authority,
+                "investment_range": command.investment_range,
+            }
+            package = _package_recommendation(questions, answers, profile)
             created = _utc_text(_utc_now())
             submission_key = "SPA-SUBMISSION-" + secrets.token_hex(16).upper()
             conn.execute(
@@ -597,6 +768,14 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                  CONSENT_NOTICE_VERSION,RETENTION_POLICY_VERSION,
                  session["secondary_deidentified_consent"],_json(result),
                  "Awaiting Salus Review",created),
+            )
+            conn.execute(
+                """INSERT INTO advisor_public_service_profiles
+                (profile_key,submission_key,profile_version,profile_json,profile_sha256,
+                 package_recommendation_version,package_json,created_at)
+                 VALUES(?,?,?,?,?,?,?,?)""",
+                ("SPA-PROFILE-"+secrets.token_hex(16).upper(),submission_key,PACKAGE_PROFILE_VERSION,
+                 _json(profile),_sha(_json(profile)),PACKAGE_RECOMMENDATION_VERSION,_json(package),created),
             )
             conn.execute("UPDATE advisor_public_sessions SET status='Submitted',submitted_at=? WHERE session_key=?",(created,session["session_key"]))
             conn.execute("INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
@@ -651,6 +830,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             return {
                 "submitted": True,
                 "result": result,
+                "package": package,
                 "notifications": [dict(row) for row in notification_rows],
             }
         finally:
