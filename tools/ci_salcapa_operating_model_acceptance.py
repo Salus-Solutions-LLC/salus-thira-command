@@ -287,7 +287,8 @@ def main():
     )
     assert all(token in condition_css for token in required_tokens)
     for stylesheet in (guidance_css, readability_css, contextual_css, mission_css, styles_css):
-        assert all(f'var({token})' in stylesheet for token in required_tokens), token
+        missing_tokens = [token for token in required_tokens if f'var({token})' not in stylesheet]
+        assert not missing_tokens, missing_tokens
     assert 'aria-current="step"' in guidance_js
     assert 'Light green — approved protective action is underway' in guidance_js
     assert 'Full green — current evidence demonstrates the highest reasonably achievable protective condition within scope, not absolute safety' in guidance_js
