@@ -1365,6 +1365,12 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
         conn = ctx["db"]()
         try:
             session, _ = _session(conn, request)
+            account = _account_session(conn, request)
+            _require_account_assessment(conn, account["account_key"], session["session_key"])
+            if not command.detailed_assessment_acknowledged or not command.identifiable_retention_consent:
+                raise HTTPException(400, "Part Two acknowledgement and retention consent are required")
+            if command.contact_email != account["email"]:
+                raise HTTPException(400, "Contact email must match the signed-in Part Two account")
             if session["status"] != "Active":
                 raise HTTPException(409, "Assessment has already been submitted")
             questions = _questions(session["organization_type"])
@@ -1378,9 +1384,15 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 "facility_scope": command.facility_scope,
                 "facility_locations": command.facility_locations,
                 "personnel_range": command.personnel_range,
+                "affected_population_range": command.affected_population_range,
                 "annual_revenue_range": command.annual_revenue_range,
                 "specific_activities": command.specific_activities,
                 "essential_functions": command.essential_functions,
+                "maximum_tolerable_downtime": command.maximum_tolerable_downtime,
+                "existing_program_maturity": command.existing_program_maturity,
+                "internal_implementation_capacity": command.internal_implementation_capacity,
+                "primary_objective": command.primary_objective,
+                "external_requirements": command.external_requirements,
                 "recent_concerns": command.recent_concerns,
                 "desired_timing": command.desired_timing,
                 "decision_authority": command.decision_authority,
@@ -1412,6 +1424,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                  _json(profile),_sha(_json(profile)),PACKAGE_RECOMMENDATION_VERSION,_json(package),created),
             )
             conn.execute("UPDATE advisor_public_sessions SET status='Submitted',submitted_at=? WHERE session_key=?",(created,session["session_key"]))
+            conn.execute("DELETE FROM advisor_public_profile_drafts WHERE session_key=?", (session["session_key"],))
             conn.execute("INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
                 ("SPA-EVENT-"+secrets.token_hex(16).upper(),session["session_key"],"Submitted for Salus Review",created,_sha(_json({"snapshot_sha256":_sha(_json(snapshot))}))))
             conn.commit()
