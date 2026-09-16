@@ -565,7 +565,7 @@ def _account_session(conn: Any, request: Request) -> Any:
     if not token:
         raise HTTPException(401, "Part Two account login is required")
     row = conn.execute(
-        """SELECT s.*,a.email,a.status account_status
+        """SELECT s.*,a.email,a.email_verified_at,a.status account_status
              FROM advisor_public_account_sessions s
              JOIN advisor_public_accounts a ON a.account_key=s.account_key
             WHERE s.token_sha256=?""",
@@ -1212,6 +1212,14 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                    VALUES(?,?,?,?,?)""",
                 (account_key, session["session_key"], 1, 1, _utc_text(now)),
             )
+            verification_token = secrets.token_urlsafe(32)
+            conn.execute(
+                """INSERT INTO advisor_public_account_tokens
+                   (token_sha256,account_key,purpose,created_at,expires_at,used_at)
+                   VALUES(?,?,?,?,?,?)""",
+                (_sha(verification_token), account_key, "Verify Email", _utc_text(now),
+                 _utc_text(now + timedelta(hours=24)), ""),
+            )
             conn.execute(
                 "INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
                 ("SPA-EVENT-" + secrets.token_hex(16).upper(), session["session_key"],
@@ -1219,13 +1227,137 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                  _sha(_json({"account_key": account_key, "email": command.email}))),
             )
             conn.commit()
-            response = JSONResponse({"authenticated": True, "email": command.email, "draft": {}})
+            verification_url = (
+                str(request.base_url).rstrip("/")
+                + "/protection-advisor/verify-email?token="
+                + verification_token
+            )
+            delivered, delivery_error = await _send_graph_email(
+                command.email,
+                "Verify your Salus Protection Advisor account",
+                "Verify your Protection Advisor Part Two account within 24 hours:\n\n"
+                + verification_url
+                + "\n\nIf you did not create this account, do not use this link.",
+            )
+            response = JSONResponse({
+                "authenticated": True,
+                "email": command.email,
+                "draft": {},
+                "email_verification": "Delivered" if delivered else "Pending",
+                "email_verification_error": delivery_error,
+            })
             response.set_cookie(
                 "salus_advisor_account", account_token, httponly=True,
                 secure=ctx.get("COOKIE_SECURE", True), samesite="strict",
                 max_age=30 * 24 * 3600, path="/",
             )
             return response
+        finally:
+            conn.close()
+
+    @app.get("/protection-advisor/verify-email", response_class=HTMLResponse)
+    async def verify_protection_advisor_email(token: str, request: Request) -> HTMLResponse:
+        conn = ctx["db"]()
+        try:
+            _initialize(conn)
+            row = conn.execute(
+                """SELECT t.*,a.email FROM advisor_public_account_tokens t
+                   JOIN advisor_public_accounts a ON a.account_key=t.account_key
+                  WHERE t.token_sha256=? AND t.purpose='Verify Email'""",
+                (_sha(token),),
+            ).fetchone()
+            now = _utc_text(_utc_now())
+            if not row or row["used_at"] or row["expires_at"] <= now:
+                raise HTTPException(400, "Verification link is invalid or expired")
+            conn.execute(
+                "UPDATE advisor_public_accounts SET email_verified_at=? WHERE account_key=?",
+                (now, row["account_key"]),
+            )
+            conn.execute(
+                "UPDATE advisor_public_account_tokens SET used_at=? WHERE token_sha256=?",
+                (now, _sha(token)),
+            )
+            conn.commit()
+            return HTMLResponse(
+                "<!doctype html><html><body><main><h1>Email verified</h1>"
+                "<p>Your Protection Advisor Part Two account is verified.</p>"
+                "<p><a href='/protection-advisor'>Return to Protection Advisor &gt;</a></p>"
+                "</main></body></html>",
+                headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+            )
+        finally:
+            conn.close()
+
+    @app.post("/public/protection-advisor/password-reset-request")
+    async def request_protection_advisor_password_reset(
+        command: PasswordResetRequestCommand, request: Request
+    ) -> dict[str, Any]:
+        limited(request, command.email)
+        conn = ctx["db"]()
+        try:
+            _initialize(conn)
+            account = conn.execute(
+                "SELECT * FROM advisor_public_accounts WHERE email=? AND status='Active'",
+                (command.email,),
+            ).fetchone()
+            if account:
+                now = _utc_now()
+                token = secrets.token_urlsafe(32)
+                conn.execute(
+                    """INSERT INTO advisor_public_account_tokens
+                       (token_sha256,account_key,purpose,created_at,expires_at,used_at)
+                       VALUES(?,?,?,?,?,?)""",
+                    (_sha(token), account["account_key"], "Reset Password", _utc_text(now),
+                     _utc_text(now + timedelta(hours=1)), ""),
+                )
+                conn.commit()
+                reset_url = (
+                    str(request.base_url).rstrip("/")
+                    + "/protection-advisor?reset_token="
+                    + token
+                )
+                await _send_graph_email(
+                    command.email,
+                    "Reset your Salus Protection Advisor password",
+                    "Use this link within one hour to reset your Protection Advisor password:\n\n"
+                    + reset_url
+                    + "\n\nIf you did not request this, no action is required.",
+                )
+            return {"accepted": True}
+        finally:
+            conn.close()
+
+    @app.post("/public/protection-advisor/password-reset")
+    async def reset_protection_advisor_password(
+        command: PasswordResetCommand, request: Request
+    ) -> dict[str, Any]:
+        limited(request, command.token)
+        conn = ctx["db"]()
+        try:
+            now = _utc_text(_utc_now())
+            row = conn.execute(
+                """SELECT * FROM advisor_public_account_tokens
+                    WHERE token_sha256=? AND purpose='Reset Password'""",
+                (_sha(command.token),),
+            ).fetchone()
+            if not row or row["used_at"] or row["expires_at"] <= now:
+                raise HTTPException(400, "Password-reset link is invalid or expired")
+            salt = secrets.token_hex(16)
+            conn.execute(
+                """UPDATE advisor_public_accounts
+                      SET password_salt=?,password_hash=? WHERE account_key=?""",
+                (salt, _password_hash(command.new_password, salt), row["account_key"]),
+            )
+            conn.execute(
+                "UPDATE advisor_public_account_tokens SET used_at=? WHERE token_sha256=?",
+                (now, _sha(command.token)),
+            )
+            conn.execute(
+                "UPDATE advisor_public_account_sessions SET revoked_at=? WHERE account_key=? AND revoked_at=''",
+                (now, row["account_key"]),
+            )
+            conn.commit()
+            return {"reset": True}
         finally:
             conn.close()
 
@@ -1436,6 +1568,8 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             _require_account_assessment(conn, account["account_key"], session["session_key"])
             if not command.detailed_assessment_acknowledged or not command.identifiable_retention_consent:
                 raise HTTPException(400, "Part Two acknowledgement and retention consent are required")
+            if REQUIRE_EMAIL_VERIFICATION and not account["email_verified_at"]:
+                raise HTTPException(403, "Verify the Part Two account email before submitting")
             if command.contact_email != account["email"]:
                 raise HTTPException(400, "Contact email must match the signed-in Part Two account")
             if session["status"] != "Active":
