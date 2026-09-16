@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 import os
 import tempfile
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 WORKSPACE = tempfile.TemporaryDirectory()
 os.environ['SALUS_DB_BACKEND'] = 'sqlite'
