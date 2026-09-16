@@ -620,13 +620,13 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             )
             outbox_created = _utc_text(_utc_now())
             conn.execute(
-                "INSERT INTO advisor_public_notification_outbox VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO advisor_public_notification_outbox VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
                 (internal_key,submission_key,"Salus Reviewer",NOTIFICATION_TO,
                  f"Protection Advisor submission: {command.organization_name}",internal_body,
                  "Pending",0,"","","",outbox_created),
             )
             conn.execute(
-                "INSERT INTO advisor_public_notification_outbox VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO advisor_public_notification_outbox VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
                 (participant_key,submission_key,"Participant",command.contact_email,
                  "Your Salus Protection Advisor assessment",participant_body,
                  "Pending",0,"","","",outbox_created),
