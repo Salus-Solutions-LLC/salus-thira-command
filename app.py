@@ -2927,7 +2927,11 @@ def oidc_callback(request:Request,code:str='',state:str='',error:str=''):
 
 def _normalized_pilot_email(value:str):
     email=str(value or '').strip().lower()
-    if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+',email):
+    if any(ch.isspace() for ch in email) or email.count('@') != 1:
+        raise HTTPException(422,'A valid email address is required.')
+    local,domain=email.split('@',1)
+    domain_parts=domain.split('.')
+    if not local or len(local)>64 or len(email)>320 or len(domain_parts)<2 or any(not part for part in domain_parts):
         raise HTTPException(422,'A valid email address is required.')
     return email
 
