@@ -515,6 +515,22 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
               value: '1'
             }
             {
+              name: 'SALUS_ADVISOR_NOTIFICATION_MODE'
+              value: 'graph'
+            }
+            {
+              name: 'SALUS_ADVISOR_NOTIFICATION_FROM'
+              value: 'protectionadvisor@salus.solutions'
+            }
+            {
+              name: 'SALUS_ADVISOR_NOTIFICATION_TO'
+              value: 'mduncan@salus.solutions'
+            }
+            {
+              name: 'SALUS_ADVISOR_REQUIRE_EMAIL_VERIFICATION'
+              value: '0'
+            }
+            {
               name: 'SALUS_ALLOW_RESTORE'
               value: '0'
             }
