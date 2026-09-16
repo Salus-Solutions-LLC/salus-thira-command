@@ -1104,6 +1104,192 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
         finally:
             conn.close()
 
+    @app.post("/public/protection-advisor/account")
+    async def create_protection_advisor_account(command: AccountCreateCommand, request: Request) -> JSONResponse:
+        limited(request, request.cookies.get("salus_advisor_session", ""))
+        if not command.detailed_assessment_acknowledged:
+            raise HTTPException(400, "Detailed-assessment acknowledgement is required")
+        if not command.identifiable_retention_consent:
+            raise HTTPException(400, "Identifiable-information retention consent is required")
+        conn = ctx["db"]()
+        try:
+            session, _ = _session(conn, request)
+            existing = conn.execute(
+                "SELECT account_key FROM advisor_public_accounts WHERE email=?",
+                (command.email,),
+            ).fetchone()
+            if existing:
+                raise HTTPException(409, "An account already exists for this email; sign in instead")
+            now = _utc_now()
+            account_key = "SPA-ACCOUNT-" + secrets.token_hex(16).upper()
+            salt = secrets.token_hex(16)
+            account_token = secrets.token_urlsafe(32)
+            conn.execute(
+                """INSERT INTO advisor_public_accounts
+                   (account_key,email,password_salt,password_hash,status,created_at,last_login_at)
+                   VALUES(?,?,?,?,?,?,?)""",
+                (account_key, command.email, salt, _password_hash(command.password, salt),
+                 "Active", _utc_text(now), _utc_text(now)),
+            )
+            conn.execute(
+                """INSERT INTO advisor_public_account_sessions
+                   (token_sha256,account_key,created_at,expires_at,revoked_at)
+                   VALUES(?,?,?,?,?)""",
+                (_sha(account_token), account_key, _utc_text(now),
+                 _utc_text(now + timedelta(days=30)), ""),
+            )
+            conn.execute(
+                """INSERT INTO advisor_public_account_assessments
+                   (account_key,session_key,detailed_assessment_acknowledged,
+                    identifiable_retention_consent,acknowledged_at)
+                   VALUES(?,?,?,?,?)""",
+                (account_key, session["session_key"], 1, 1, _utc_text(now)),
+            )
+            conn.execute(
+                "INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
+                ("SPA-EVENT-" + secrets.token_hex(16).upper(), session["session_key"],
+                 "Part Two Account Created", _utc_text(now),
+                 _sha(_json({"account_key": account_key, "email": command.email}))),
+            )
+            conn.commit()
+            response = JSONResponse({"authenticated": True, "email": command.email, "draft": {}})
+            response.set_cookie(
+                "salus_advisor_account", account_token, httponly=True,
+                secure=ctx.get("COOKIE_SECURE", True), samesite="strict",
+                max_age=30 * 24 * 3600, path="/",
+            )
+            return response
+        finally:
+            conn.close()
+
+    @app.post("/public/protection-advisor/login")
+    async def login_protection_advisor_account(command: AccountLoginCommand, request: Request) -> JSONResponse:
+        limited(request, command.email)
+        conn = ctx["db"]()
+        try:
+            _initialize(conn)
+            account = conn.execute(
+                "SELECT * FROM advisor_public_accounts WHERE email=?",
+                (command.email,),
+            ).fetchone()
+            if (
+                not account
+                or account["status"] != "Active"
+                or not _password_matches(command.password, account["password_salt"], account["password_hash"])
+            ):
+                raise HTTPException(401, "Email or password is incorrect")
+            linked = conn.execute(
+                """SELECT s.* FROM advisor_public_account_assessments aa
+                   JOIN advisor_public_sessions s ON s.session_key=aa.session_key
+                  WHERE aa.account_key=? AND s.status='Active' AND s.deleted_at=''
+                  ORDER BY aa.acknowledged_at DESC LIMIT 1""",
+                (account["account_key"],),
+            ).fetchone()
+            if not linked:
+                raise HTTPException(404, "No resumable Part Two assessment is available")
+            now = _utc_now()
+            account_token = secrets.token_urlsafe(32)
+            advisor_token = secrets.token_urlsafe(32)
+            csrf = secrets.token_urlsafe(24)
+            conn.execute(
+                "UPDATE advisor_public_account_sessions SET revoked_at=? WHERE account_key=? AND revoked_at=''",
+                (_utc_text(now), account["account_key"]),
+            )
+            conn.execute(
+                """INSERT INTO advisor_public_account_sessions
+                   (token_sha256,account_key,created_at,expires_at,revoked_at)
+                   VALUES(?,?,?,?,?)""",
+                (_sha(account_token), account["account_key"], _utc_text(now),
+                 _utc_text(now + timedelta(days=30)), ""),
+            )
+            conn.execute(
+                """UPDATE advisor_public_sessions
+                      SET token_sha256=?,csrf_sha256=?,expires_at=?
+                    WHERE session_key=?""",
+                (_sha(advisor_token), _sha(csrf), _utc_text(now + timedelta(hours=SESSION_HOURS)),
+                 linked["session_key"]),
+            )
+            conn.execute(
+                "UPDATE advisor_public_accounts SET last_login_at=? WHERE account_key=?",
+                (_utc_text(now), account["account_key"]),
+            )
+            draft = conn.execute(
+                "SELECT draft_json FROM advisor_public_profile_drafts WHERE session_key=?",
+                (linked["session_key"],),
+            ).fetchone()
+            answers = _current_answers(conn, linked["session_key"])
+            conn.commit()
+            response = JSONResponse({
+                "authenticated": True,
+                "email": account["email"],
+                "csrf_token": csrf,
+                "questions": _questions(linked["organization_type"]),
+                "answers": {key: row["answer_state"] for key, row in answers.items()},
+                "draft": json.loads(draft["draft_json"]) if draft else {},
+            })
+            response.set_cookie(
+                "salus_advisor_account", account_token, httponly=True,
+                secure=ctx.get("COOKIE_SECURE", True), samesite="strict",
+                max_age=30 * 24 * 3600, path="/",
+            )
+            response.set_cookie(
+                "salus_advisor_session", advisor_token, httponly=True,
+                secure=ctx.get("COOKIE_SECURE", True), samesite="strict",
+                max_age=SESSION_HOURS * 3600, path="/",
+            )
+            return response
+        finally:
+            conn.close()
+
+    @app.post("/public/protection-advisor/draft")
+    async def save_protection_advisor_draft(command: DraftCommand, request: Request) -> dict[str, Any]:
+        limited(request, request.cookies.get("salus_advisor_account", ""))
+        conn = ctx["db"]()
+        try:
+            account = _account_session(conn, request)
+            session, _ = _session(conn, request)
+            _require_account_assessment(conn, account["account_key"], session["session_key"])
+            now = _utc_text(_utc_now())
+            payload = _json(command.fields)
+            existing = conn.execute(
+                "SELECT session_key FROM advisor_public_profile_drafts WHERE session_key=?",
+                (session["session_key"],),
+            ).fetchone()
+            if existing:
+                conn.execute(
+                    """UPDATE advisor_public_profile_drafts
+                          SET draft_json=?,updated_at=? WHERE session_key=?""",
+                    (payload, now, session["session_key"]),
+                )
+            else:
+                conn.execute(
+                    """INSERT INTO advisor_public_profile_drafts
+                       (session_key,account_key,draft_json,updated_at) VALUES(?,?,?,?)""",
+                    (session["session_key"], account["account_key"], payload, now),
+                )
+            conn.commit()
+            return {"saved": True, "updated_at": now}
+        finally:
+            conn.close()
+
+    @app.post("/public/protection-advisor/logout")
+    async def logout_protection_advisor_account(request: Request) -> JSONResponse:
+        conn = ctx["db"]()
+        try:
+            token = request.cookies.get("salus_advisor_account", "")
+            if token:
+                conn.execute(
+                    "UPDATE advisor_public_account_sessions SET revoked_at=? WHERE token_sha256=?",
+                    (_utc_text(_utc_now()), _sha(token)),
+                )
+                conn.commit()
+            response = JSONResponse({"authenticated": False})
+            response.delete_cookie("salus_advisor_account", path="/")
+            response.delete_cookie("salus_advisor_session", path="/")
+            return response
+        finally:
+            conn.close()
+
     @app.post("/public/protection-advisor/session")
     async def start_public_session(command: StartCommand, request: Request) -> JSONResponse:
         limited(request)
