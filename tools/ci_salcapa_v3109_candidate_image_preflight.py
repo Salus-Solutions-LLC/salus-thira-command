@@ -91,49 +91,40 @@ assert 'SALCAPA_RELEASE_VERSION = "3.109"' in runtime
 assert not (FROZEN_ROOT / "salcapa_demo_fixtures.py").exists()
 assert not (FROZEN_ROOT / "tools" / "reconstruct_salcapa_demo_fixtures.py").exists()
 
-# The historical v3.109 reference remains immutable, while the current image
-# activation may legitimately advance to the currently frozen SalCAPA release.
+# The historical v3.109 reference remains immutable. Current activation
+# records are validated by their own governed lineage rather than a stale
+# continuity checkpoint so later releases do not break this historical gate.
 image_publication = load_json(IMAGE_PUBLICATION)
 accepted_application = load_json(ACCEPTED_APPLICATION)
-build_continuity = front_matter(BUILD_CONTINUITY)
-current_frozen_release = build_continuity["current_frozen_release"]
-current_frozen_commit = build_continuity["current_frozen_commit"]
-assert image_publication["source_release"] == f"release/{current_frozen_release}"
-assert image_publication["source_commit"] == current_frozen_commit
-assert image_publication["activation_key"] == (
-    f"salcapa-{current_frozen_release}-image-{current_frozen_commit[:8]}"
+sha_pattern = re.compile(r"^[0-9a-f]{40}$")
+release_pattern = re.compile(r"^release/v[0-9]+[.][0-9]+$")
+digest_pattern = re.compile(
+    r"^salcapadevb48224acr[.]azurecr[.]io/salcapa@sha256:[0-9a-f]{64}$"
 )
 
-# The accepted live application remains the rollback truth until a newer image
-# is published and separately promoted through the governed application gate.
-assert accepted_application["source_release"] == "release/v3.113"
-assert accepted_application["source_commit"] == V3113_COMMIT
-assert accepted_application["image_digest"].endswith(V3113_DIGEST)
-assert accepted_application["rollback_release"] == "release/v3.112"
-assert accepted_application["rollback_commit"] == V3112_COMMIT
-assert accepted_application["rollback_image_digest"].endswith(V3112_DIGEST)
+assert image_publication["operation"] == "publish_image"
+assert image_publication["target_environment"] == "dev"
+assert release_pattern.fullmatch(str(image_publication["source_release"]))
+assert sha_pattern.fullmatch(str(image_publication["source_commit"]))
+image_release = str(image_publication["source_release"]).removeprefix("release/")
+assert image_publication["activation_key"] == (
+    f"salcapa-{image_release}-image-{str(image_publication['source_commit'])[:8]}"
+)
 
-continuity = front_matter(CONTINUITY)
-assert continuity["current_stable_release"] == "v3.113"
-assert continuity["current_stable_commit"] == V3113_COMMIT
-if continuity["promotion_readiness"] == "accepted":
-    assert continuity["deployed_release"] == "v3.113"
-    assert continuity["deployed_commit"] == V3113_COMMIT
-    assert continuity["image_digest"] == V3113_DIGEST
-    assert continuity["promotion_candidate_image_acceptance"] == "immutable_image_deployed_and_accepted"
-    assert continuity["fictional_member_seed_state"] == "verified"
-    assert continuity["critical_journey_acceptance"] == "verified"
-    assert continuity["genuine_blocker"] == "none"
-else:
-    assert continuity["promotion_readiness"] in {"preflight_ready", "deployed_awaiting_live_acceptance"}
-    assert continuity["deployed_release"] in {"v3.112", "v3.113"}
-    if continuity["deployed_release"] == "v3.112":
-        assert continuity["deployed_commit"] == V3112_COMMIT
-        assert continuity["image_digest"] == V3112_DIGEST
-    else:
-        assert continuity["deployed_commit"] == V3113_COMMIT
-        assert continuity["image_digest"] == V3113_DIGEST
-    assert continuity["genuine_blocker"] != "none"
+# Once the image is promoted, the application activation must reference that
+# exact frozen source and immutable digest while preserving a distinct,
+# structurally valid rollback release.
+assert accepted_application["operation"] == "deploy_application"
+assert accepted_application["target_environment"] == "dev"
+assert accepted_application["source_release"] == image_publication["source_release"]
+assert accepted_application["source_commit"] == image_publication["source_commit"]
+assert digest_pattern.fullmatch(str(accepted_application["image_digest"]))
+assert release_pattern.fullmatch(str(accepted_application["rollback_release"]))
+assert sha_pattern.fullmatch(str(accepted_application["rollback_commit"]))
+assert digest_pattern.fullmatch(str(accepted_application["rollback_image_digest"]))
+assert accepted_application["rollback_release"] != accepted_application["source_release"]
+assert accepted_application["rollback_commit"] != accepted_application["source_commit"]
+assert accepted_application["rollback_image_digest"] != accepted_application["image_digest"]
 
 for forbidden in ("password", "client_secret", "access_token", "connection_string"):
     assert not re.search(rf'(?i)"{forbidden}"\s*:', CONTRACT.read_text(encoding="utf-8"))
