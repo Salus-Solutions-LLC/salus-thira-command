@@ -21,7 +21,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-1.0.0"
+QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-1.1.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-1.0.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-SPLIT-RETENTION-1.0.0"
@@ -38,15 +38,25 @@ ORGANIZATION_TYPES = {
 }
 QUESTIONS = (
     ("risk_list", "Do you maintain a current list of threats and hazards that could affect your organization?", "risk"),
+    ("capability_targets", "For priority scenarios, has your organization defined measurable capability targets across prevention, protection, mitigation, response, recovery, and continuity—including who must act, under what conditions, within what time, and to what standard?", "capability"),
     ("consequence", "Have you assessed how serious the consequences could be for your most credible scenarios?", "risk"),
+    ("vulnerable_people", "Have capability requirements been adjusted for children, older adults, people with disabilities or access and functional needs, people in crisis, and others who may need additional assistance?", "capability"),
     ("reporting", "Are concerns and incident reports collected in one governed place for appropriate review?", "risk"),
+    ("warning_thresholds", "Are warning indicators, escalation thresholds, and reporting paths defined so emerging concerns are distinguished from assumptions, combined with related information, and acted on while choices remain?", "intelligence"),
     ("required_actions", "Do personnel understand what they may need to do during likely emergencies or disruptions?", "capability"),
+    ("decision_authority", "If normal leaders are unavailable, are decision authority, succession, delegation limits, and alternate coordination responsibilities documented and understood?", "governance"),
     ("current_capability", "Has your organization compared what it can reliably do today with what it may need to do?", "capability"),
+    ("dependency_map", "Have essential functions been traced to their critical people, facilities, technology, utilities, suppliers, partners, and transportation dependencies—including shared points of failure?", "continuity"),
     ("integrated_test", "Have plans, communications, facilities, systems, and personnel been tested together?", "capability"),
+    ("degraded_communications", "Can the organization communicate decisions and protective instructions with personnel, responders, partners, and affected people if internet, cellular service, power, or primary systems fail?", "capability"),
     ("priority_gaps", "Can leadership identify the most important protection or readiness gaps in priority order?", "gap"),
+    ("resource_competition", "Has the organization tested whether critical personnel, responders, vendors, fuel, medical support, equipment, communications, and alternate facilities would remain available during a regional or simultaneous emergency?", "continuity"),
     ("ownership", "Does a specific authorized person own each priority gap, with a plan and review date?", "gap"),
+    ("validation_evidence", "Is there recent evidence—not only a written plan—that each critical capability can meet its target under realistic stress, reduced staffing, and degraded conditions?", "evidence"),
     ("training_test", "Have trained personnel demonstrated that they can perform their assigned actions?", "gap"),
+    ("recovery_targets", "Are recovery-time and service-restoration targets defined for every essential function, including minimum acceptable operations, alternate resources, and restoration priority?", "continuity"),
     ("leadership_record", "Could leadership explain what was known, what was decided, and what action was underway?", "governance"),
+    ("investment_tradeoffs", "When choosing improvements, does leadership compare consequence reduction, cost, feasibility, dependencies, implementation time, and time to protective benefit?", "governance"),
     ("continuity", "Can essential operations continue if facilities, utilities, technology, suppliers, or personnel are disrupted?", "continuity"),
     ("recovery", "Are recovery priorities, alternate resources, and restoration responsibilities documented?", "continuity"),
 )
