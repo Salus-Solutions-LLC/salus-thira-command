@@ -9,7 +9,11 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import os
 import secrets
+
+import httpx
+from azure.identity import ManagedIdentityCredential
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -22,6 +26,9 @@ RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-1.0.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-SPLIT-RETENTION-1.0.0"
 SESSION_HOURS = 24
+NOTIFICATION_MODE = os.getenv("SALUS_ADVISOR_NOTIFICATION_MODE", "outbox").strip().lower()
+NOTIFICATION_TO = os.getenv("SALUS_ADVISOR_NOTIFICATION_TO", "mduncan@salus.solutions").strip().lower()
+NOTIFICATION_FROM = os.getenv("SALUS_ADVISOR_NOTIFICATION_FROM", "mduncan@salus.solutions").strip().lower()
 ANSWER_STATES = {"Answered", "Partially", "No", "Unknown", "Not Applicable", "Declined"}
 ORGANIZATION_TYPES = {
     "Business", "Faith-Based Organization", "School or Educational Institution",
@@ -189,6 +196,23 @@ def _initialize(conn: Any) -> None:
       detail_sha256 TEXT NOT NULL,
       FOREIGN KEY (session_key) REFERENCES advisor_public_sessions(session_key) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS advisor_public_notification_outbox (
+      notification_key TEXT PRIMARY KEY,
+      submission_key TEXT NOT NULL,
+      audience TEXT NOT NULL,
+      recipient_email TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      body_text TEXT NOT NULL,
+      state TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_attempt_at TEXT NOT NULL DEFAULT '',
+      delivered_at TEXT NOT NULL DEFAULT '',
+      error_code TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (submission_key) REFERENCES advisor_public_submissions(submission_key) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_advisor_notification_state
+      ON advisor_public_notification_outbox(state,created_at);
     """)
 
 
@@ -264,7 +288,7 @@ def _page() -> str:
 *{box-sizing:border-box} body{margin:0;background:white;color:var(--ink);font:18px/1.55 Georgia,serif}
 main{max-width:940px;margin:auto;padding:48px 28px 80px} h1,h2,h3,button,label,select,input{font-family:Arial,sans-serif}
 h1{font-size:3rem;font-weight:300;color:var(--blue);margin:.2rem 0} h2{font-weight:400;font-size:1.9rem;margin-top:2rem}
-.brand{font:28px Arial,sans-serif;color:#111;margin-bottom:44px} .muted{color:#536675} .panel{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
+.brand{font:28px Arial,sans-serif;color:#111;margin-bottom:44px;display:flex;align-items:center;gap:14px}.brand img{width:58px;height:58px;object-fit:contain} .muted{color:#536675} .panel{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
 label{display:block;font-weight:600;margin:18px 0 7px} select,input[type=text],input[type=email]{width:100%;font-size:1rem;padding:13px;border:1px solid #8d9aa3;border-radius:2px}
 .check{display:flex;gap:12px;align-items:flex-start;font-family:Georgia,serif;font-weight:400} .check input{margin-top:7px}
 button{border:0;background:none;color:var(--orange);font-size:1.05rem;padding:14px 0;cursor:pointer;text-align:left} button:disabled{color:#888;cursor:not-allowed}
@@ -272,7 +296,7 @@ button{border:0;background:none;color:var(--orange);font-size:1.05rem;padding:14
 .choices label{font-weight:400;margin:0} .hidden{display:none} .error{color:#a12612} .result{background:var(--soft);padding:24px;margin-top:24px}
 @media(max-width:600px){body{font-size:17px} main{padding:28px 20px} h1{font-size:2.4rem}}
 </style></head><body><main>
-<div class="brand">◎ Salus Solutions</div>
+<div class="brand"><img src="/static/salus-reticle.svg" alt="Salus Solutions reticle"> Salus Solutions</div>
 <h1>Protection Advisor™</h1><p class="muted">Find Your Salus Package</p>
 <h2>Understand what could affect your organization and what to do next</h2>
 <p>The Protection Advisor provides a preliminary, non-binding review. It does not create membership, a contract, an approved scope, a price commitment, or operational authority.</p>
@@ -303,6 +327,111 @@ async function deleteRecord(){if(!confirm("Withdraw this assessment and delete i
 </script></body></html>""".replace("__OPTIONS__", options)
 
 
+async def _send_graph_email(recipient: str, subject: str, body_text: str) -> tuple[bool, str]:
+    if NOTIFICATION_MODE != "graph":
+        return False, "delivery_not_configured"
+    if not NOTIFICATION_FROM:
+        return False, "sender_not_configured"
+    try:
+        credential = ManagedIdentityCredential(client_id=os.getenv("AZURE_CLIENT_ID") or None)
+        token = credential.get_token("https://graph.microsoft.com/.default").token
+        sender = NOTIFICATION_FROM.replace("'", "").replace("/", "")
+        payload = {
+            "message": {
+                "subject": subject,
+                "body": {"contentType": "Text", "content": body_text},
+                "toRecipients": [{"emailAddress": {"address": recipient}}],
+            },
+            "saveToSentItems": True,
+        }
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                f"https://graph.microsoft.com/v1.0/users/{sender}/sendMail",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json=payload,
+            )
+        if response.status_code == 202:
+            return True, ""
+        return False, f"graph_http_{response.status_code}"
+    except Exception as exc:
+        return False, type(exc).__name__[:80]
+
+
+async def _deliver_outbox(conn: Any, notification_key: str) -> None:
+    row = conn.execute(
+        "SELECT * FROM advisor_public_notification_outbox WHERE notification_key=?",
+        (notification_key,),
+    ).fetchone()
+    if not row or row["state"] == "Delivered":
+        return
+    attempted = _utc_text(_utc_now())
+    delivered, error_code = await _send_graph_email(
+        row["recipient_email"], row["subject"], row["body_text"]
+    )
+    conn.execute(
+        """UPDATE advisor_public_notification_outbox
+           SET state=?,attempts=attempts+1,last_attempt_at=?,delivered_at=?,error_code=?
+         WHERE notification_key=?""",
+        (
+            "Delivered" if delivered else "Pending",
+            attempted,
+            attempted if delivered else "",
+            error_code,
+            notification_key,
+        ),
+    )
+    conn.commit()
+
+
+def _review_page(rows: list[dict[str, Any]]) -> str:
+    body_rows = []
+    for row in rows:
+        result = json.loads(row["result_json"])
+        body_rows.append(
+            "<tr>"
+            f"<td>{html.escape(row['created_at'])}</td>"
+            f"<td><a href='/protection-advisor/review/{html.escape(row['submission_key'])}'>"
+            f"{html.escape(row['organization_name'])} &gt;</a></td>"
+            f"<td>{html.escape(row['contact_name'])}<br>{html.escape(row['contact_email'])}</td>"
+            f"<td>{html.escape(result.get('recommendation',''))}</td>"
+            f"<td>{html.escape(row['status'])}</td>"
+            f"<td>{html.escape(row['notification_state'])}</td>"
+            "</tr>"
+        )
+    rows_html = "".join(body_rows) or "<tr><td colspan='6'>No Protection Advisor submissions yet.</td></tr>"
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protection Advisor Review | Salus Solutions</title><style>
+:root{{--orange:#dc4f17;--blue:#477fa4;--ink:#172938;--line:#dce3e8}}*{{box-sizing:border-box}}body{{margin:0;background:#fff;color:var(--ink);font:17px/1.55 Georgia,serif}}
+main{{max-width:1180px;margin:auto;padding:44px 28px 80px}}header{{display:flex;align-items:center;gap:18px;margin-bottom:42px}}header img{{width:66px;height:66px;object-fit:contain}}
+.brand{{font:30px Arial,sans-serif;color:#111}}h1{{font:300 2.7rem Arial,sans-serif;color:var(--blue)}}table{{width:100%;border-collapse:collapse}}th,td{{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}}
+th{{font:600 .85rem Arial,sans-serif;text-transform:uppercase}}a{{color:var(--orange);text-decoration:none}}.notice{{background:#f6f8fa;padding:14px 18px;border-left:3px solid var(--blue)}}
+@media(max-width:760px){{table,thead,tbody,tr,th,td{{display:block}}thead{{display:none}}tr{{margin:18px 0;border:1px solid var(--line)}}}}
+</style></head><body><main><header><img src="/static/salus-reticle.svg" alt="Salus Solutions reticle"><div class="brand">Salus Solutions</div></header>
+<h1>Protection Advisor Review</h1><p class="notice">Authorized Salus review workspace. Prospect records remain separate from Protected Member tenant records until an authorized person completes the governed intake decision.</p>
+<table><thead><tr><th>Submitted</th><th>Organization</th><th>Contact</th><th>Recommendation</th><th>Status</th><th>Notification</th></tr></thead><tbody>{rows_html}</tbody></table>
+<p><a href="/">&lt; SalCAPA Command Center</a></p></main></body></html>"""
+
+
+def _review_detail(row: dict[str, Any]) -> str:
+    result = json.loads(row["result_json"])
+    answers = json.loads(row["answer_snapshot_json"])
+    answer_rows = "".join(
+        f"<tr><td>{html.escape(key.replace('_',' ').title())}</td><td>{html.escape(str(value.get('answer_state','')))}</td></tr>"
+        for key, value in answers.items()
+    )
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protection Advisor Submission | Salus Solutions</title><style>
+body{{max-width:900px;margin:auto;padding:42px 26px 80px;color:#172938;font:17px/1.55 Georgia,serif}}header{{display:flex;align-items:center;gap:16px}}header img{{width:62px;height:62px;object-fit:contain}}h1{{font:300 2.5rem Arial,sans-serif;color:#477fa4}}h2{{font:400 1.55rem Arial,sans-serif}}a,button{{color:#dc4f17}}table{{width:100%;border-collapse:collapse}}td{{padding:11px;border-bottom:1px solid #dce3e8;vertical-align:top}}
+.notice{{background:#f6f8fa;padding:14px 18px;border-left:3px solid #477fa4}}</style></head><body>
+<header><img src="/static/salus-reticle.svg" alt="Salus Solutions reticle"><strong>Salus Solutions</strong></header>
+<p><a href="/protection-advisor/review">&lt; All submissions</a></p><h1>{html.escape(row['organization_name'])}</h1>
+<p><strong>Contact:</strong> {html.escape(row['contact_name'])} · <a href="mailto:{html.escape(row['contact_email'])}">{html.escape(row['contact_email'])}</a><br>
+<strong>Submitted:</strong> {html.escape(row['created_at'])}<br><strong>Status:</strong> {html.escape(row['status'])}</p>
+<h2>Preliminary result</h2><p class="notice"><strong>{html.escape(result.get('recommendation',''))}</strong><br>{html.escape(result.get('notice',''))}</p>
+<p>Potential attention areas: {int(result.get('attention_count',0))}. Information gaps: {int(result.get('information_gap_count',0))}.</p>
+<h2>Assessment answers</h2><table>{answer_rows}</table></body></html>"""
+
+
 def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
     conn = ctx["db"]()
     try:
@@ -322,6 +451,59 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
     @app.get("/protection-advisor", response_class=HTMLResponse)
     def protection_advisor_page() -> HTMLResponse:
         return HTMLResponse(_page(), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"})
+
+    @app.get("/protection-advisor/review", response_class=HTMLResponse)
+    def protection_advisor_review(request: Request) -> HTMLResponse:
+        ctx["require"](request, "admin")
+        conn = ctx["db"]()
+        try:
+            _initialize(conn)
+            rows = [dict(row) for row in conn.execute(
+                """SELECT s.*,
+                   COALESCE((SELECT CASE WHEN SUM(CASE WHEN state='Delivered' THEN 1 ELSE 0 END)=COUNT(*)
+                                        THEN 'Delivered' ELSE 'Pending' END
+                               FROM advisor_public_notification_outbox n
+                              WHERE n.submission_key=s.submission_key),'Not queued') notification_state
+                     FROM advisor_public_submissions s
+                    ORDER BY s.created_at DESC"""
+            ).fetchall()]
+            return HTMLResponse(_review_page(rows), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY"})
+        finally:
+            conn.close()
+
+    @app.get("/protection-advisor/review/{submission_key}", response_class=HTMLResponse)
+    def protection_advisor_review_detail(submission_key: str, request: Request) -> HTMLResponse:
+        ctx["require"](request, "admin")
+        if not submission_key.startswith("SPA-SUBMISSION-"):
+            raise HTTPException(404, "Submission not found")
+        conn = ctx["db"]()
+        try:
+            row = conn.execute(
+                "SELECT * FROM advisor_public_submissions WHERE submission_key=?",
+                (submission_key,),
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "Submission not found")
+            return HTMLResponse(_review_detail(dict(row)), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY"})
+        finally:
+            conn.close()
+
+    @app.post("/api/protection-advisor/review/notifications/{notification_key}/retry")
+    async def retry_protection_advisor_notification(notification_key: str, request: Request) -> dict[str, Any]:
+        ctx["require"](request, "admin")
+        conn = ctx["db"]()
+        try:
+            _initialize(conn)
+            await _deliver_outbox(conn, notification_key)
+            row = conn.execute(
+                "SELECT state,attempts,last_attempt_at,delivered_at,error_code FROM advisor_public_notification_outbox WHERE notification_key=?",
+                (notification_key,),
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "Notification not found")
+            return dict(row)
+        finally:
+            conn.close()
 
     @app.post("/public/protection-advisor/session")
     async def start_public_session(command: StartCommand, request: Request) -> JSONResponse:
@@ -409,7 +591,57 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             conn.execute("INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
                 ("SPA-EVENT-"+secrets.token_hex(16).upper(),session["session_key"],"Submitted for Salus Review",created,_sha(_json({"snapshot_sha256":_sha(_json(snapshot))}))))
             conn.commit()
-            return {"submitted": True, "result": result}
+
+            review_url = str(request.base_url).rstrip("/") + "/protection-advisor/review/" + submission_key
+            internal_key = "SPA-NOTIFY-" + secrets.token_hex(16).upper()
+            participant_key = "SPA-NOTIFY-" + secrets.token_hex(16).upper()
+            internal_body = (
+                "A new Protection Advisor assessment is awaiting Salus review.\n\n"
+                f"Organization: {command.organization_name}\n"
+                f"Contact: {command.contact_name}\n"
+                f"Email: {command.contact_email}\n"
+                f"Preliminary recommendation: {result['recommendation']}\n"
+                f"Attention areas: {result['attention_count']}\n"
+                f"Information gaps: {result['information_gap_count']}\n\n"
+                f"Review securely in SalCAPA: {review_url}\n\n"
+                "Assessment answers are intentionally not included in email."
+            )
+            participant_body = (
+                f"Hello {command.contact_name},\n\n"
+                "Salus Solutions received your Protection Advisor assessment.\n\n"
+                f"Preliminary recommendation: {result['recommendation']}\n"
+                f"Potential attention areas: {result['attention_count']}\n"
+                f"Information gaps: {result['information_gap_count']}\n\n"
+                f"{result['notice']}\n\n"
+                "A Salus professional may contact you to discuss appropriate next steps. "
+                "Do not reply with passwords, financial information, medical records, government identifiers, "
+                "classified information, or operational details whose disclosure could create an immediate security risk."
+            )
+            outbox_created = _utc_text(_utc_now())
+            conn.execute(
+                "INSERT INTO advisor_public_notification_outbox VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (internal_key,submission_key,"Salus Reviewer",NOTIFICATION_TO,
+                 f"Protection Advisor submission: {command.organization_name}",internal_body,
+                 "Pending",0,"","","",outbox_created),
+            )
+            conn.execute(
+                "INSERT INTO advisor_public_notification_outbox VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (participant_key,submission_key,"Participant",command.contact_email,
+                 "Your Salus Protection Advisor assessment",participant_body,
+                 "Pending",0,"","","",outbox_created),
+            )
+            conn.commit()
+            await _deliver_outbox(conn, internal_key)
+            await _deliver_outbox(conn, participant_key)
+            notification_rows = conn.execute(
+                "SELECT audience,state,error_code FROM advisor_public_notification_outbox WHERE submission_key=? ORDER BY audience",
+                (submission_key,),
+            ).fetchall()
+            return {
+                "submitted": True,
+                "result": result,
+                "notifications": [dict(row) for row in notification_rows],
+            }
         finally:
             conn.close()
 
