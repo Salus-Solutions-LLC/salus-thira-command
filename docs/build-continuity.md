@@ -2,8 +2,8 @@
 schema_version: 1
 record_kind: salcapa_build_continuity
 last_verified_at: 15 September 2026 21:12 CDT
-current_frozen_release: v3.113
-current_frozen_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
+current_frozen_release: v3.114
+current_frozen_commit: 600d152d74f773a14fd3b38e36c9929daca07ec3
 active_development_branch: development/salcapa-platform
 current_development_head: ea7a62b507edde27e0948e8ae73a3582dea7860e
 active_product_milestone: issue_290_public_protection_advisor
@@ -23,8 +23,8 @@ repair_head: 64f5bf994e561b4e2874e0f1a93bbf0799b121ed
 repair_summary: administrator_review_durable_notification_outbox_and_official_reticle
 genuine_blockers: github_validation_running
 next_authorized_step: freeze_v3115_publish_image_deploy_and_request_graph_mail_send_activation
-deployed_demo_release: v3.113
-deployed_demo_state: full_demonstration_acceptance
+deployed_demo_release: v3.114
+deployed_demo_state: public_protection_advisor_live
 ---
 
 # SalCAPA build continuity
