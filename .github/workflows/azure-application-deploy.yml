@@ -357,7 +357,7 @@ jobs:
               {
                 echo "### SalCAPA failed promotion rollback"
                 echo ""
-                echo "- Accepted immutable v3.115 image restored"
+                echo "- Accepted immutable v3.119 image restored"
                 echo "- Live readiness restored"
                 echo "- DNS unchanged"
                 echo "- Client secret not used"
@@ -367,5 +367,5 @@ jobs:
             fi
             sleep 10
           done
-          echo "Failed promotion did not restore the accepted v3.115 runtime." >&2
+          echo "Failed promotion did not restore the accepted v3.119 runtime." >&2
           exit 1
