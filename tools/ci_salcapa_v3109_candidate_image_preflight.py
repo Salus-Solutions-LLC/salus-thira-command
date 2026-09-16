@@ -111,14 +111,28 @@ assert image_publication["activation_key"] == (
     f"salcapa-{image_release}-image-{str(image_publication['source_commit'])[:8]}"
 )
 
-# Once the image is promoted, the application activation must reference that
-# exact frozen source and immutable digest while preserving a distinct,
-# structurally valid rollback release.
+# Image publication intentionally precedes application promotion. The pending
+# image must be the immediate successor to the currently accepted application;
+# the accepted application remains unchanged until the digest is known and a
+# separate deployment activation is validated.
 assert accepted_application["operation"] == "deploy_application"
 assert accepted_application["target_environment"] == "dev"
-assert accepted_application["source_release"] == image_publication["source_release"]
-assert accepted_application["source_commit"] == image_publication["source_commit"]
+assert release_pattern.fullmatch(str(accepted_application["source_release"]))
+assert sha_pattern.fullmatch(str(accepted_application["source_commit"]))
 assert digest_pattern.fullmatch(str(accepted_application["image_digest"]))
+
+def release_number(value: object) -> tuple[int, int]:
+    match = re.fullmatch(r"release/v(?P<major>[0-9]+)[.](?P<minor>[0-9]+)", str(value))
+    assert match is not None
+    return int(match.group("major")), int(match.group("minor"))
+
+published_version = release_number(image_publication["source_release"])
+accepted_version = release_number(accepted_application["source_release"])
+assert published_version == (accepted_version[0], accepted_version[1] + 1)
+assert image_publication["source_commit"] != accepted_application["source_commit"]
+
+# The current accepted activation must itself retain a distinct, structurally
+# valid rollback release while the successor image is being published.
 assert release_pattern.fullmatch(str(accepted_application["rollback_release"]))
 assert sha_pattern.fullmatch(str(accepted_application["rollback_commit"]))
 assert digest_pattern.fullmatch(str(accepted_application["rollback_image_digest"]))
