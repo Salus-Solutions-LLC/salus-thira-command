@@ -1,0 +1,39 @@
+name: Public Protection Advisor
+
+on:
+  pull_request:
+    paths:
+      - public_protection_advisor.py
+      - app.py
+      - tools/ci_public_protection_advisor_smoke.py
+      - .github/workflows/public-protection-advisor.yml
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - public_protection_advisor.py
+      - app.py
+      - tools/ci_public_protection_advisor_smoke.py
+      - .github/workflows/public-protection-advisor.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-protection-advisor-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sqlite-security-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python tools/ci_public_protection_advisor_smoke.py
+      - name: Compile public boundary
+        run: python -m py_compile public_protection_advisor.py tools/ci_public_protection_advisor_smoke.py
