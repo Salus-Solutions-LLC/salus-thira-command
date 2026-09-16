@@ -1,29 +1,29 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 15 September 2026 22:52 CDT
-current_frozen_release: v3.115
-current_frozen_commit: e35ae8ce7488e6b4d23d86c1579e6d462c5f2b1c
+last_verified_at: 16 September 2026 13:24 UTC
+current_frozen_release: v3.120
+current_frozen_commit: feffb4644368c77c7c55ce613b1177d235474356
 active_development_branch: development/salcapa-platform
-current_development_head: 5761bc37a8bae22947ca879df4404341a09e0f8b
+current_development_head: 38d10b7e3c2289731e64cdd135c0abea6749e6df
 active_product_milestone: issue_290_public_protection_advisor
 active_build_system_issue: 370
-active_increment: issue_290_v3116_two_part_tailored_packages
-last_completed_increment: issue_290_v3115_review_notifications_official_branding
-candidate_release: v3.116
-validation_pr: 416
-validation_branch: candidate/protection-advisor-two-part-packages
-validation_base: main
-validation_head: 4d435f51fa3673f2e7726fdd0af444bca435c0d7
-validation_gate_state: controlled_validation_in_progress
+active_increment: issue_290_v3120_live_part_two_acceptance
+last_completed_increment: issue_290_v3120_graph_mail_and_anonymous_live_acceptance
+candidate_release: none
+validation_pr: pending
+validation_branch: candidate/salcapa-v3120-continuity-reconciliation
+validation_base: development/salcapa-platform
+validation_head: pending
+validation_gate_state: continuity_reconciliation
 failed_workflows: none
 first_root_failing_gate: none
-root_cause: none
-repair_head: 4d435f51fa3673f2e7726fdd0af444bca435c0d7
-repair_summary: anonymous_part_one_optional_confidential_part_two_tailored_packages_and_service_catalog
-genuine_blockers: github_validation_running
-next_authorized_step: validate_freeze_v3116_publish_image_and_deploy
-deployed_demo_release: v3.115
+root_cause: stale_continuity_metadata
+repair_head: eec827f7aca1f1b287569a0756c89206ab87ac4b
+repair_summary: reconcile_release_deployment_mail_and_live_anonymous_acceptance
+genuine_blockers: controlled_part_two_test_identity_required
+next_authorized_step: validate_continuity_then_complete_controlled_live_part_two_acceptance
+deployed_demo_release: v3.120
 deployed_demo_state: public_protection_advisor_live
 ---
 
@@ -32,6 +32,8 @@ deployed_demo_state: public_protection_advisor_live
 This non-sensitive engineering record is the restart point for the unified SalCAPA build. GitHub branches, commits, frozen releases, pull requests, workflow results, issues, and closed acceptance records control whenever they disagree with this file.
 
 ## Current verified checkpoint
+
+- **v3.120 is frozen** at exact commit `feffb4644368c77c7c55ce613b1177d235474356` on `release/v3.120` and is the deployed public Protection Advisor release. Microsoft Graph mail from `ProtectionAdvisor@Salus.Solutions` returned 202 Accepted and the intended recipient confirmed receipt. Live anonymous Part One acceptance returned HTTP 200 with hardened headers, presented 28 adaptive questions spanning all 32 core capabilities and five mission areas, produced differentiated mission-area and capability results, verified the direct individual-services path, and deleted the synthetic anonymous validation record. Controlled validation PR #427 then passed all eight required checks, closed without merge, and exact head `38d10b7e3c2289731e64cdd135c0abea6749e6df` advanced to development by non-force fast-forward. Remaining live acceptance is the controlled Part Two account/save/resume/submission/recommendation/reviewer/recovery lifecycle.
 
 - **v3.113 is frozen** at exact commit `9d9873203fffd8c8ae477123ea94eb35b27c2acd` on `release/v3.113`; controlled validation PR #373 passed all 20 required workflow families and closed without merge.
 - [Immutable-image publication workflow 34908424307](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34908424307) published that exact frozen source as `salcapadevb48224acr.azurecr.io/salcapa@sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8` on 14 September 2026 at 18:22 CDT.
