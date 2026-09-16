@@ -1,27 +1,27 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 14 September 2026 21:31 CDT
+last_verified_at: 15 September 2026 21:18 CDT
 environment: azure_development_demonstration
-deployed_release: v3.113
-deployed_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
-image_digest: sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8
-deployed_at: 14 September 2026 20:03 CDT
-deployment_workflow_run: 34915370013
+deployed_release: v3.114
+deployed_commit: 600d152d74f773a14fd3b38e36c9929daca07ec3
+image_digest: sha256:dd1482cbbaeb32dc1634e53e6a7c9a321982898a4fd3095ccc47a0f22454061a
+deployed_at: 15 September 2026 20:18 CDT
+deployment_workflow_run: 35043218593
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.113
-current_stable_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
-promotion_candidate: v3.113
-promotion_candidate_image_commit: 9d9873203fffd8c8ae477123ea94eb35b27c2acd
-promotion_candidate_image_digest: sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8
-promotion_candidate_image_published_at: 14 September 2026 18:22 CDT
-promotion_candidate_image_workflow_run: 34908424307
+current_stable_release: v3.114
+current_stable_commit: 600d152d74f773a14fd3b38e36c9929daca07ec3
+promotion_candidate: v3.114
+promotion_candidate_image_commit: 600d152d74f773a14fd3b38e36c9929daca07ec3
+promotion_candidate_image_digest: sha256:dd1482cbbaeb32dc1634e53e6a7c9a321982898a4fd3095ccc47a0f22454061a
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:dd1482cbbaeb32dc1634e53e6a7c9a321982898a4fd3095ccc47a0f22454061a
+promotion_candidate_image_published_at: 15 September 2026 20:10 CDT
+promotion_candidate_image_workflow_run: 35042817297
 promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
 promotion_readiness: accepted
 fictional_member_seed_state: verified
 critical_journey_acceptance: verified
-rollback_baseline: v3.112
+rollback_baseline: v3.113
 genuine_blocker: none
 ---
 
