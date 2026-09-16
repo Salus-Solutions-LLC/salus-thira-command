@@ -473,6 +473,43 @@ def _initialize(conn: Any) -> None:
       created_at TEXT NOT NULL,
       FOREIGN KEY (submission_key) REFERENCES advisor_public_submissions(submission_key) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS advisor_public_accounts (
+      account_key TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_salt TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      last_login_at TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS advisor_public_account_sessions (
+      token_sha256 TEXT PRIMARY KEY,
+      account_key TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      revoked_at TEXT NOT NULL DEFAULT '',
+      FOREIGN KEY (account_key) REFERENCES advisor_public_accounts(account_key) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_advisor_account_sessions_account
+      ON advisor_public_account_sessions(account_key,expires_at);
+    CREATE TABLE IF NOT EXISTS advisor_public_account_assessments (
+      account_key TEXT NOT NULL,
+      session_key TEXT NOT NULL UNIQUE,
+      detailed_assessment_acknowledged INTEGER NOT NULL,
+      identifiable_retention_consent INTEGER NOT NULL,
+      acknowledged_at TEXT NOT NULL,
+      PRIMARY KEY (account_key,session_key),
+      FOREIGN KEY (account_key) REFERENCES advisor_public_accounts(account_key) ON DELETE CASCADE,
+      FOREIGN KEY (session_key) REFERENCES advisor_public_sessions(session_key) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS advisor_public_profile_drafts (
+      session_key TEXT PRIMARY KEY,
+      account_key TEXT NOT NULL,
+      draft_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (session_key) REFERENCES advisor_public_sessions(session_key) ON DELETE CASCADE,
+      FOREIGN KEY (account_key) REFERENCES advisor_public_accounts(account_key) ON DELETE CASCADE
+    );
     """)
 
 
@@ -492,6 +529,35 @@ def _session(conn: Any, request: Request) -> tuple[Any, str]:
     if row["expires_at"] <= _utc_text(_utc_now()) and row["status"] == "Active":
         raise HTTPException(401, "Advisor session has expired")
     return row, token
+
+
+def _account_session(conn: Any, request: Request) -> Any:
+    token = request.cookies.get("salus_advisor_account", "")
+    if not token:
+        raise HTTPException(401, "Part Two account login is required")
+    row = conn.execute(
+        """SELECT s.*,a.email,a.status account_status
+             FROM advisor_public_account_sessions s
+             JOIN advisor_public_accounts a ON a.account_key=s.account_key
+            WHERE s.token_sha256=?""",
+        (_sha(token),),
+    ).fetchone()
+    if not row or row["revoked_at"] or row["account_status"] != "Active":
+        raise HTTPException(401, "Part Two account session is unavailable")
+    if row["expires_at"] <= _utc_text(_utc_now()):
+        raise HTTPException(401, "Part Two account session has expired")
+    return row
+
+
+def _require_account_assessment(conn: Any, account_key: str, session_key: str) -> Any:
+    row = conn.execute(
+        """SELECT * FROM advisor_public_account_assessments
+            WHERE account_key=? AND session_key=?""",
+        (account_key, session_key),
+    ).fetchone()
+    if not row or not row["detailed_assessment_acknowledged"] or not row["identifiable_retention_consent"]:
+        raise HTTPException(403, "Part Two acknowledgement and identifiable-information consent are required")
+    return row
 
 
 def _current_answers(conn: Any, session_key: str) -> dict[str, dict[str, Any]]:
