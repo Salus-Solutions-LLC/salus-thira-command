@@ -52,6 +52,14 @@ with tempfile.TemporaryDirectory() as td:
     questions=payload["questions"]
     assert any(q["key"]=="volunteer_roles" for q in questions)
     assert not any("student" in q["text"].casefold() for q in questions)
+    base_keys=[q["key"] for q in questions if q["key"] not in {"volunteer_roles","public_access"}]
+    assert len(base_keys)==22
+    assert base_keys[1]=="capability_targets"
+    assert base_keys[5]=="warning_thresholds"
+    assert base_keys[9]=="dependency_map"
+    assert base_keys[15]=="validation_evidence"
+    assert base_keys[19]=="investment_tradeoffs"
+    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-1.1.0"
     headers={"X-CSRF-Token":csrf}
 
     assert client.post("/public/protection-advisor/answer",json={
@@ -90,7 +98,7 @@ with tempfile.TemporaryDirectory() as td:
     assert session["secondary_deidentified_consent"]==0
     assert session["status"]=="Submitted"
     assert submission["status"]=="Awaiting Salus Review"
-    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-1.0.0"
+    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-1.1.0"
     assert len(submission["answer_snapshot_sha256"])==64
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_answer_revisions").fetchone()[0]==len(questions)
     outbox=conn.execute("SELECT * FROM advisor_public_notification_outbox ORDER BY audience").fetchall()
