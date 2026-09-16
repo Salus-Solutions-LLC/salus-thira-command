@@ -1,29 +1,29 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 15 September 2026 21:12 CDT
-current_frozen_release: v3.114
-current_frozen_commit: 600d152d74f773a14fd3b38e36c9929daca07ec3
+last_verified_at: 15 September 2026 22:52 CDT
+current_frozen_release: v3.115
+current_frozen_commit: e35ae8ce7488e6b4d23d86c1579e6d462c5f2b1c
 active_development_branch: development/salcapa-platform
-current_development_head: ea7a62b507edde27e0948e8ae73a3582dea7860e
+current_development_head: 5761bc37a8bae22947ca879df4404341a09e0f8b
 active_product_milestone: issue_290_public_protection_advisor
 active_build_system_issue: 370
-active_increment: issue_290_v3115_review_notifications_official_branding
-last_completed_increment: issue_290_v3114_public_deployment
-candidate_release: v3.115
-validation_pr: 415
-validation_branch: candidate/protection-advisor-review-notifications-logo
+active_increment: issue_290_v3116_two_part_tailored_packages
+last_completed_increment: issue_290_v3115_review_notifications_official_branding
+candidate_release: v3.116
+validation_pr: 416
+validation_branch: candidate/protection-advisor-two-part-packages
 validation_base: main
-validation_head: 64f5bf994e561b4e2874e0f1a93bbf0799b121ed
+validation_head: 4d435f51fa3673f2e7726fdd0af444bca435c0d7
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
-repair_head: 64f5bf994e561b4e2874e0f1a93bbf0799b121ed
-repair_summary: administrator_review_durable_notification_outbox_and_official_reticle
+repair_head: 4d435f51fa3673f2e7726fdd0af444bca435c0d7
+repair_summary: anonymous_part_one_optional_confidential_part_two_tailored_packages_and_service_catalog
 genuine_blockers: github_validation_running
-next_authorized_step: freeze_v3115_publish_image_deploy_and_request_graph_mail_send_activation
-deployed_demo_release: v3.114
+next_authorized_step: validate_freeze_v3116_publish_image_and_deploy
+deployed_demo_release: v3.115
 deployed_demo_state: public_protection_advisor_live
 ---
 
