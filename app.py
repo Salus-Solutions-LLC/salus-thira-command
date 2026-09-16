@@ -5375,3 +5375,8 @@ register_material_capability(app, globals())
 # Register shared SalINTEL investigative domains after governed materials.
 from salintel_domains import register_salintel_domain_capability
 register_salintel_domain_capability(app, globals())
+
+
+# Register the isolated public Protection Advisor prospect boundary.
+from public_protection_advisor import register_public_protection_advisor
+register_public_protection_advisor(app, globals())
