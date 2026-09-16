@@ -88,19 +88,19 @@ def _salcapa_operating_model_summary(conn, assessment_ids: list[int], tenant: in
         "Coordinate people, information, decisions, and action. Act through protective capability."
     )
     result["stages"] = [
-        {"key": "see", "label": "See â SalINTELâ¢",
+        {"key": "see", "label": "See — SalINTEL™",
          "count": trace["qualified_signals"],
          "description": "SalINTEL develops qualified intelligence."},
-        {"key": "decide", "label": "Decide â SalTHIRAâ¢ and authorized people",
+        {"key": "decide", "label": "Decide — SalTHIRA™ and authorized people",
          "count": trace["prioritized_improvements"] + trace["executive_decisions"],
          "description": "SalTHIRA identifies risk and establishes priorities; authorized people decide."},
-        {"key": "coordinate", "label": "Coordinate â SalCAPAâ¢",
+        {"key": "coordinate", "label": "Coordinate — SalCAPA™",
          "count": coordination_count,
          "description": "SalCAPA coordinates Protected Members, information, decisions, and action."},
-        {"key": "act", "label": "Act â SalOPSâ¢",
+        {"key": "act", "label": "Act — SalOPS™",
          "count": trace["authorized_actions"],
          "description": "SalOPS implements, sustains, and improves protective capability."},
-        {"key": "prove", "label": "Prove â cross-cutting assurance",
+        {"key": "prove", "label": "Prove — cross-cutting assurance",
          "count": trace["completed_actions"] + trace["verified_actions"]
                   + trace["released_proof_records"],
          "description": "Evidence, accountability, results, learning, and improvement span every function."},
@@ -108,8 +108,8 @@ def _salcapa_operating_model_summary(conn, assessment_ids: list[int], tenant: in
     for stage in result["stages"]:
         stage["state"] = "Active" if stage["count"] else "No records"
     result["functional_ownership"] = {
-        "see": "SalINTELâ¢", "decide": "SalTHIRAâ¢ plus authorized decision-makers",
-        "coordinate": "SalCAPAâ¢", "act": "SalOPSâ¢", "prove": "Cross-cutting assurance",
+        "see": "SalINTEL™", "decide": "SalTHIRA™ plus authorized decision-makers",
+        "coordinate": "SalCAPA™", "act": "SalOPS™", "prove": "Cross-cutting assurance",
     }
     return result
 
@@ -179,7 +179,7 @@ def _preparedness_index() -> str:
          '<link rel="stylesheet" href="/static/salcapa-visual-geospatial.css" />\n<link rel="stylesheet" href="/static/salcapa-facility-imagery.css" />',
          '/static/salcapa-facility-imagery.css'),
         ('<button data-view="common_operating_picture">Common Operating Picture</button><span class="nav-view-description">See what is happening, what matters, and what has changed.</span>',
-         '<button data-view="common_operating_picture">Common Operating Picture</button><span class="nav-view-description">See what is happening, what matters, and what has changed.</span><button data-view="material_review" data-salus-only="true">Information Review</button><button data-view="mission_map">Mission Map</button><button data-view="prove">PROVE â Assurance & Results</button><button data-view="demo_environments" data-salus-only="true">Demonstration Environments</button>',
+         '<button data-view="common_operating_picture">Common Operating Picture</button><span class="nav-view-description">See what is happening, what matters, and what has changed.</span><button data-view="material_review" data-salus-only="true">Information Review</button><button data-view="mission_map">Mission Map</button><button data-view="prove">PROVE — Assurance & Results</button><button data-view="demo_environments" data-salus-only="true">Demonstration Environments</button>',
          'data-view="demo_environments"'),
         ('<button data-view="salintel_domains" data-salus-only="true">Type of Investigation</button>',
          '<button data-view="salintel_domains" data-salus-only="true">Type of Investigation</button><button data-view="personnel_assessments" data-salus-only="true">Personnel Assessment</button>',
