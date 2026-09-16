@@ -194,6 +194,7 @@ with tempfile.TemporaryDirectory() as td:
     assert retained_payload["result"]==result
     assert retained_payload["package"]==package
     assert retained_payload["submitted_at"]
+    headers={"X-CSRF-Token":retained_payload["csrf_token"]}
 
     conn=sqlite3.connect(db_path)
     conn.row_factory=sqlite3.Row
