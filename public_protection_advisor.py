@@ -28,7 +28,7 @@ CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-SPLIT-RETENTION-1.0.0"
 PACKAGE_PROFILE_VERSION = "SPA-SERVICE-PROFILE-2.0.0"
 PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-2.0.0"
-SESSION_HOURS = 24
+SESSION_HOURS = 24  # Browser authentication lifetime only; retained records do not expire here.
 NOTIFICATION_MODE = os.getenv("SALUS_ADVISOR_NOTIFICATION_MODE", "outbox").strip().lower()
 NOTIFICATION_TO = os.getenv("SALUS_ADVISOR_NOTIFICATION_TO", "mduncan@salus.solutions").strip().lower()
 NOTIFICATION_FROM = os.getenv("SALUS_ADVISOR_NOTIFICATION_FROM", "protectionadvisor@salus.solutions").strip().lower()
@@ -687,7 +687,7 @@ button:disabled{color:#888;cursor:not-allowed}.question{padding:20px 0;border-bo
 <button onclick="confirmProfile()">I Understand — Continue to Part Two &gt;</button><p id="profileAgreementError" class="error"></p></section>
 <section id="accountAccess" class="hidden panel"><p class="eyebrow">Part Two Account</p>
 <h2>Create an account or sign in</h2>
-<p>Your Part Two account protects the confidential organization profile and lets you save your work, sign out, and return later.</p>
+<p>Your Part Two account protects the confidential organization profile and lets you save your work, sign out, and return later. Submitted results remain available through your account while the record is retained. A 24-hour verification link or browser session is only a security credential; it does not delete or expire your assessment results.</p>
 <div id="createAccountPanel"><h3>Create your account</h3>
 <label>Email address<input id="accountEmail" type="email" maxlength="254" autocomplete="email"></label>
 <label>Password<input id="accountPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password"></label>
@@ -741,7 +741,9 @@ function openAccountLogin(event){event.preventDefault();accountAccess.classList.
 function confirmProfile(){profileAgreementError.textContent="";if(!detailAck.checked||!identifiableConsent.checked){profileAgreementError.textContent="Both acknowledgements are required before Part Two.";return}profileAgreement.classList.add("hidden");accountAccess.classList.remove("hidden");accountAccess.scrollIntoView({behavior:"smooth"})}
 function showProfileForAccount(email,draft){accountAccess.classList.add("hidden");contactEmail.value=email;contactEmail.readOnly=true;hydrateDraft(draft||{});profile.classList.remove("hidden");profile.scrollIntoView({behavior:"smooth"});enableAutosave()}
 async function createAccount(){accountError.textContent="";try{if(accountPassword.value!==accountPasswordConfirm.value)throw new Error("Passwords do not match");const data=await call("/public/protection-advisor/account",{method:"POST",body:JSON.stringify({email:accountEmail.value,password:accountPassword.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked})});showProfileForAccount(data.email,data.draft)}catch(x){accountError.textContent=x.message}}
-async function loginAccount(){accountError.textContent="";try{const data=await call("/public/protection-advisor/login",{method:"POST",body:JSON.stringify({email:loginEmail.value,password:loginPassword.value})});csrf=data.csrf_token;questions=data.questions||[];showProfileForAccount(data.email,data.draft)}catch(x){accountError.textContent=x.message}}
+function packageMarkup(p){return '<h2>'+p.title+'</h2><p>'+p.rationale+'</p>'+p.services.map(s=>'<div class="package-item"><h3>'+s.title+' — Level '+s.level+'</h3><p>'+s.summary+'</p><p><strong>Why this level:</strong> '+s.why+'</p><p><strong>Core capabilities addressed:</strong> '+s.capabilities.join(", ")+'</p></div>').join("")+(p.later_phase_services.length?'<h3>Possible later-phase services</h3><p>'+p.later_phase_services.map(s=>s.title+' — Level '+s.level).join("; ")+'</p>':'')+'<p><strong>Suggested sequence:</strong> '+p.sequence.join(" → ")+'</p><p>'+p.notice+'</p><a class="action" href="https://www.salus.solutions/contact">Discuss This Package With Salus &gt;</a>'}
+function showRetainedResults(data){accountAccess.classList.add("hidden");profile.classList.add("hidden");const r=data.result,p=data.package;package.classList.remove("hidden");package.innerHTML='<p class="eyebrow">Your Retained Protection Advisor Results</p><p class="muted">Submitted '+new Date(data.submitted_at).toLocaleString()+'. Sign in whenever you need to review this retained record.</p><p><strong>'+r.recommendation+'</strong></p><p>Potential attention areas: '+r.attention_count+'. Indicated strengths: '+r.strength_count+'. Information gaps: '+r.information_gap_count+'.</p>'+packageMarkup(p);package.scrollIntoView({behavior:"smooth"})}
+async function loginAccount(){accountError.textContent="";try{const data=await call("/public/protection-advisor/login",{method:"POST",body:JSON.stringify({email:loginEmail.value,password:loginPassword.value})});csrf=data.csrf_token;questions=data.questions||[];if(data.assessment_status==="Submitted"){showRetainedResults(data)}else{showProfileForAccount(data.email,data.draft)}}catch(x){accountError.textContent=x.message}}
 async function requestPasswordReset(){accountError.textContent="";try{await call("/public/protection-advisor/password-reset-request",{method:"POST",body:JSON.stringify({email:loginEmail.value})});accountError.textContent="If the account exists, a password-reset message has been requested."}catch(x){accountError.textContent=x.message}}
 async function resetAccountPassword(){accountError.textContent="";try{const token=new URLSearchParams(location.search).get("reset_token")||"";await call("/public/protection-advisor/password-reset",{method:"POST",body:JSON.stringify({token:token,new_password:resetPassword.value})});accountError.textContent="Password reset. Sign in with the new password.";resetPanel.classList.add("hidden")}catch(x){accountError.textContent=x.message}}
 function draftFields(){return {organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value),essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value}}
@@ -750,7 +752,7 @@ let draftTimer=null;
 function enableAutosave(){profile.querySelectorAll("input,select,textarea").forEach(el=>el.addEventListener("change",()=>{clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,500)}))}
 async function saveDraft(){draftStatus.textContent="Saving…";try{const data=await call("/public/protection-advisor/draft",{method:"POST",body:JSON.stringify({fields:draftFields()})});draftStatus.textContent="Saved "+new Date(data.updated_at).toLocaleString()}catch(x){draftStatus.textContent="Draft not saved: "+x.message}}
 async function logoutAccount(){try{await call("/public/protection-advisor/logout",{method:"POST",body:"{}"})}finally{location.reload()}}
-async function submitProfile(){submitError.textContent="";try{const selected=[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value);const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:selected,essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value})});profile.classList.add("hidden");const p=data.package;package.classList.remove("hidden");package.innerHTML='<p class="eyebrow">Tailored Preliminary Salus Package</p><h2>'+p.title+'</h2><p>'+p.rationale+'</p>'+p.services.map(s=>'<div class="package-item"><h3>'+s.title+' — Level '+s.level+'</h3><p>'+s.summary+'</p><p><strong>Why this level:</strong> '+s.why+'</p><p><strong>Core capabilities addressed:</strong> '+s.capabilities.join(", ")+'</p></div>').join("")+(p.later_phase_services.length?'<h3>Possible later-phase services</h3><p>'+p.later_phase_services.map(s=>s.title+' — Level '+s.level).join("; ")+'</p>':'')+'<p><strong>Suggested sequence:</strong> '+p.sequence.join(" → ")+'</p><p>'+p.notice+'</p><a class="action" href="https://www.salus.solutions/contact">Discuss This Package With Salus &gt;</a>';package.scrollIntoView({behavior:"smooth"})}catch(x){submitError.textContent=x.message}}
+async function submitProfile(){submitError.textContent="";try{const selected=[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value);const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:selected,essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value})});profile.classList.add("hidden");const p=data.package;package.classList.remove("hidden");package.innerHTML='<p class="eyebrow">Tailored Preliminary Salus Package</p>'+packageMarkup(p);package.scrollIntoView({behavior:"smooth"})}catch(x){submitError.textContent=x.message}}
 const resetToken=new URLSearchParams(location.search).get("reset_token");if(resetToken){accountAccess.classList.remove("hidden");resetPanel.classList.remove("hidden");}
 </script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities)
 
@@ -1387,7 +1389,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             linked = conn.execute(
                 """SELECT s.* FROM advisor_public_account_assessments aa
                    JOIN advisor_public_sessions s ON s.session_key=aa.session_key
-                  WHERE aa.account_key=? AND s.status='Active' AND s.deleted_at=''
+                  WHERE aa.account_key=? AND s.status IN ('Active','Submitted') AND s.deleted_at=''
                   ORDER BY aa.acknowledged_at DESC LIMIT 1""",
                 (account["account_key"],),
             ).fetchone()
@@ -1424,15 +1426,37 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 (linked["session_key"],),
             ).fetchone()
             answers = _current_answers(conn, linked["session_key"])
+            retained = None
+            if linked["status"] == "Submitted":
+                retained = conn.execute(
+                    """SELECT s.result_json,s.created_at,p.package_json
+                         FROM advisor_public_submissions s
+                         JOIN advisor_public_service_profiles p ON p.submission_key=s.submission_key
+                        WHERE s.session_key=?""",
+                    (linked["session_key"],),
+                ).fetchone()
+                if not retained:
+                    raise HTTPException(409, "Submitted assessment results are unavailable")
             conn.commit()
-            response = JSONResponse({
+            payload: dict[str, Any] = {
                 "authenticated": True,
                 "email": account["email"],
                 "csrf_token": csrf,
-                "questions": _questions(linked["organization_type"]),
-                "answers": {key: row["answer_state"] for key, row in answers.items()},
-                "draft": json.loads(draft["draft_json"]) if draft else {},
-            })
+                "assessment_status": linked["status"],
+            }
+            if retained:
+                payload.update({
+                    "result": json.loads(retained["result_json"]),
+                    "package": json.loads(retained["package_json"]),
+                    "submitted_at": retained["created_at"],
+                })
+            else:
+                payload.update({
+                    "questions": _questions(linked["organization_type"]),
+                    "answers": {key: row["answer_state"] for key, row in answers.items()},
+                    "draft": json.loads(draft["draft_json"]) if draft else {},
+                })
+            response = JSONResponse(payload)
             response.set_cookie(
                 "salus_advisor_account", account_token, httponly=True,
                 secure=ctx.get("COOKIE_SECURE", True), samesite="strict",

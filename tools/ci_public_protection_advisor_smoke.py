@@ -176,6 +176,25 @@ with tempfile.TemporaryDirectory() as td:
     notifications=submitted.json()["notifications"]
     assert {row["audience"] for row in notifications}=={"Participant","Salus Reviewer"}
 
+    # The 24-hour advisor token is a security credential, not a result-retention limit.
+    # Even after that token's stored expiry, a fresh account login must recover the
+    # submitted result and exact package for the retained account record.
+    conn=sqlite3.connect(db_path)
+    conn.execute("UPDATE advisor_public_sessions SET expires_at='2000-01-01T00:00:00+00:00'")
+    conn.commit()
+    conn.close()
+    logged_out_after_submit=client.post("/public/protection-advisor/logout",headers=headers,json={})
+    assert logged_out_after_submit.status_code==200
+    retained=client.post("/public/protection-advisor/login",json={
+        "email":"contact@example.com","password":"Correct-Horse-Battery-2026"
+    })
+    assert retained.status_code==200,retained.text
+    retained_payload=retained.json()
+    assert retained_payload["assessment_status"]=="Submitted"
+    assert retained_payload["result"]==result
+    assert retained_payload["package"]==package
+    assert retained_payload["submitted_at"]
+
     conn=sqlite3.connect(db_path)
     conn.row_factory=sqlite3.Row
     session=conn.execute("SELECT * FROM advisor_public_sessions").fetchone()

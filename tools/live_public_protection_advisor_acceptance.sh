@@ -94,6 +94,14 @@ jq -e '.submitted==true and .result.status=="Preliminary — Salus Review Requir
 
 SUMMARY="$(jq -c '{submitted,result_status:.result.status,capabilities:.package.core_capabilities_considered,services:[.package.services[]|{title,level}],notifications}' "$WORK/submit-result.json")"
 
+STAGE="submitted result logout and long-term account retrieval"
+curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
+  -d '{}' "$BASE/public/protection-advisor/logout" >/dev/null
+curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' \
+  -d @"$WORK/login.json" "$BASE/public/protection-advisor/login" > "$WORK/retained-result.json"
+CSRF="$(jq -r '.csrf_token' "$WORK/retained-result.json")"
+jq -e '.authenticated==true and .assessment_status=="Submitted" and .result.status=="Preliminary — Salus Review Required" and .package.core_capabilities_considered==32 and (.package.services|length)>0 and ([.package.services[].level]|all(.>=1 and .<=3)) and (.submitted_at|length)>0' "$WORK/retained-result.json" >/dev/null
+
 STAGE="test content deletion"
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
   -d '{}' "$BASE/public/protection-advisor/delete" > "$WORK/delete-result.json"
