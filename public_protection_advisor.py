@@ -737,6 +737,19 @@ h1,h2,a{{font-family:Arial,sans-serif}}h1{{font-size:3rem;font-weight:300;color:
 
 
 SERVICE_LEVEL_NAMES = {1: "Foundation", 2: "Enhanced", 3: "Comprehensive"}
+SERVICE_DEFAULT_CAPABILITIES = {
+    "salthira": ("Threats and Hazards Identification", "Risk and Disaster Resilience Assessment"),
+    "facility": ("Physical Protective Measures", "Access Control and Identity Verification"),
+    "protective_intelligence": ("Intelligence and Information Sharing", "Situational Assessment"),
+    "planning": ("Planning", "Public Information and Warning", "Operational Coordination"),
+    "continuity": ("Infrastructure Systems", "Economic Recovery"),
+    "cyber_physical": ("Cybersecurity", "Infrastructure Systems"),
+    "training": ("Operational Coordination", "Risk Management for Protection Programs and Activities"),
+    "protection": ("Physical Protective Measures", "On-scene Security, Protection, and Law Enforcement"),
+    "incident_support": ("Operational Coordination", "Situational Assessment"),
+    "implementation": ("Planning", "Long-term Vulnerability Reduction"),
+    "monitoring": ("Intelligence and Information Sharing", "Risk Management for Protection Programs and Activities"),
+}
 
 
 def _package_recommendation(
@@ -908,8 +921,7 @@ def _package_recommendation(
         score = scores[key]
         level = 3 if score >= 12.0 else 2 if score >= 6.0 else 1
         level_name = SERVICE_LEVEL_NAMES[level]
-        relevant_capabilities = sorted(capabilities[key])[:6]
-        if relevant_capabilities:
+        relevant_capabilities = sorted(capabilities[key] or SERVICE_DEFAULT_CAPABILITIES[key])[:6]\n        if relevant_capabilities:
             why = (
                 f"{level_name} service is indicated by needs involving "
                 + ", ".join(relevant_capabilities[:3])
