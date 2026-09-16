@@ -35,6 +35,8 @@ with tempfile.TemporaryDirectory() as td:
     assert "/static/salus-reticle.svg" in page.text
     assert "Anonymous Protection Readiness Review" in page.text
     assert "Explore Individual Salus Services" in page.text
+    assert 'onchange="saveAnswer(this.name,this.value)"' in page.text
+    assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
     catalog=client.get("/protection-advisor/services")
     assert catalog.status_code==200
     assert "Salus THIRA Assessment" in catalog.text
