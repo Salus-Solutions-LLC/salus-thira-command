@@ -256,28 +256,28 @@ def _result(questions: list[dict[str, str]], answers: dict[str, dict[str, Any]])
 
 def _page() -> str:
     options = "".join(f'<option value="{html.escape(item)}">{html.escape(item)}</option>' for item in sorted(ORGANIZATION_TYPES))
-    return f"""<!doctype html>
+    return """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Protection Advisor | Salus Solutions</title>
 <style>
-:root{{--blue:#477d9f;--ink:#14283a;--orange:#d9571e;--line:#d8e0e6;--soft:#f7f9fa}}
-*{{box-sizing:border-box}} body{{margin:0;background:white;color:var(--ink);font:18px/1.55 Georgia,serif}}
-main{{max-width:940px;margin:auto;padding:48px 28px 80px}} h1,h2,h3,button,label,select,input{{font-family:Arial,sans-serif}}
-h1{{font-size:3rem;font-weight:300;color:var(--blue);margin:.2rem 0}} h2{{font-weight:400;font-size:1.9rem;margin-top:2rem}}
-.brand{{font:28px Arial,sans-serif;color:#111;margin-bottom:44px}} .muted{{color:#536675}} .panel{{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}}
-label{{display:block;font-weight:600;margin:18px 0 7px}} select,input[type=text],input[type=email]{{width:100%;font-size:1rem;padding:13px;border:1px solid #8d9aa3;border-radius:2px}}
-.check{{display:flex;gap:12px;align-items:flex-start;font-family:Georgia,serif;font-weight:400}} .check input{{margin-top:7px}}
-button{{border:0;background:none;color:var(--orange);font-size:1.05rem;padding:14px 0;cursor:pointer;text-align:left}} button:disabled{{color:#888;cursor:not-allowed}}
-.question{{padding:20px 0;border-bottom:1px solid var(--line)}} .choices{{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}}
-.choices label{{font-weight:400;margin:0}} .hidden{{display:none}} .error{{color:#a12612}} .result{{background:var(--soft);padding:24px;margin-top:24px}}
-@media(max-width:600px){{body{{font-size:17px}} main{{padding:28px 20px}} h1{{font-size:2.4rem}}}}
+:root{--blue:#477d9f;--ink:#14283a;--orange:#d9571e;--line:#d8e0e6;--soft:#f7f9fa}
+*{box-sizing:border-box} body{margin:0;background:white;color:var(--ink);font:18px/1.55 Georgia,serif}
+main{max-width:940px;margin:auto;padding:48px 28px 80px} h1,h2,h3,button,label,select,input{font-family:Arial,sans-serif}
+h1{font-size:3rem;font-weight:300;color:var(--blue);margin:.2rem 0} h2{font-weight:400;font-size:1.9rem;margin-top:2rem}
+.brand{font:28px Arial,sans-serif;color:#111;margin-bottom:44px} .muted{color:#536675} .panel{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
+label{display:block;font-weight:600;margin:18px 0 7px} select,input[type=text],input[type=email]{width:100%;font-size:1rem;padding:13px;border:1px solid #8d9aa3;border-radius:2px}
+.check{display:flex;gap:12px;align-items:flex-start;font-family:Georgia,serif;font-weight:400} .check input{margin-top:7px}
+button{border:0;background:none;color:var(--orange);font-size:1.05rem;padding:14px 0;cursor:pointer;text-align:left} button:disabled{color:#888;cursor:not-allowed}
+.question{padding:20px 0;border-bottom:1px solid var(--line)} .choices{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}
+.choices label{font-weight:400;margin:0} .hidden{display:none} .error{color:#a12612} .result{background:var(--soft);padding:24px;margin-top:24px}
+@media(max-width:600px){body{font-size:17px} main{padding:28px 20px} h1{font-size:2.4rem}}
 </style></head><body><main>
 <div class="brand">◎ Salus Solutions</div>
 <h1>Protection Advisor™</h1><p class="muted">Find Your Salus Package</p>
 <h2>Understand what could affect your organization and what to do next</h2>
 <p>The Protection Advisor provides a preliminary, non-binding review. It does not create membership, a contract, an approved scope, a price commitment, or operational authority.</p>
 <section id="start" class="panel">
-<label for="orgType">Organization type</label><select id="orgType"><option value="">Select your organization type</option>{options}</select>
+<label for="orgType">Organization type</label><select id="orgType"><option value="">Select your organization type</option>__OPTIONS__</select>
 <label class="check"><input id="primary" type="checkbox"> <span>I consent to Salus retaining my assessment answers and contact information to prepare, review, and follow up on my preliminary recommendation. I understand I may request correction, withdrawal, or deletion.</span></label>
 <label class="check"><input id="secondary" type="checkbox"> <span>Optional: I permit Salus to derive separately reviewed, appropriately deidentified knowledge for long-term protective research and service improvement. Declining does not prevent the assessment.</span></label>
 <button onclick="startAssessment()">Begin Your Protection Assessment &gt;</button><p id="startError" class="error"></p>
@@ -293,14 +293,14 @@ button{{border:0;background:none;color:var(--orange);font-size:1.05rem;padding:1
 <section class="panel"><h2>Important notice</h2><p>This is not an emergency reporting service, completed THIRA, professional security assessment, legal or insurance advice, or guarantee against loss. For an immediate threat to life or safety, contact 911 or the appropriate local emergency service.</p></section>
 </main><script>
 let csrf="",questions=[];
-async function call(path,opts={{}}){{opts.headers={{"Content-Type":"application/json",...(csrf?{{"X-CSRF-Token":csrf}}:{{}}),...(opts.headers||{{}})}};const r=await fetch(path,opts);const data=await r.json().catch(()=>({{detail:"Request failed"}}));if(!r.ok)throw new Error(data.detail||"Request failed");return data}}
-async function startAssessment(){{const e=document.getElementById("startError");e.textContent="";try{{const data=await call("/public/protection-advisor/session",{{method:"POST",body:JSON.stringify({{organization_type:orgType.value,primary_consent:primary.checked,secondary_deidentified_consent:secondary.checked}})}});csrf=data.csrf_token;questions=data.questions;start.classList.add("hidden");assessment.classList.remove("hidden");renderQuestions()}}catch(x){{e.textContent=x.message}}}}
-function renderQuestions(){{document.getElementById("questions").innerHTML=questions.map((q,i)=>`<div class="question"><strong>${i+1}. ${q.text}</strong><div class="choices">${["Answered","Partially","No","Unknown","Not Applicable","Declined"].map(s=>`<label><input type="radio" name="${q.key}" value="${s}" onchange="saveAnswer('${q.key}','${s}')"> ${{{Answered:"Yes",Unknown:"Not Sure",Declined:"Prefer Not to Answer"}}[s]||s}</label>`).join("")}</div></div>`).join("")}}
-async function saveAnswer(key,state){{await call("/public/protection-advisor/answer",{{method:"POST",body:JSON.stringify({{question_key:key,answer_state:state,note:""}})}})}}
-function showContact(){{contact.classList.remove("hidden");contact.scrollIntoView({{behavior:"smooth"}})}}
-async function submitAssessment(){{const e=document.getElementById("submitError");e.textContent="";try{{const data=await call("/public/protection-advisor/submit",{{method:"POST",body:JSON.stringify({{organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value}})}});assessment.classList.add("hidden");contact.classList.add("hidden");const r=data.result;result.innerHTML=`<h2>Your Salus Recommendation</h2><h3>${r.recommendation}</h3><p>${r.notice}</p><p><strong>Potential attention areas:</strong> ${r.attention_count}. <strong>Information gaps:</strong> ${r.information_gap_count}.</p><p>${r.manual_next_step}</p><button onclick="deleteRecord()">Withdraw and delete my submitted information &gt;</button>`;result.classList.remove("hidden");result.scrollIntoView({{behavior:"smooth"}})}}catch(x){{e.textContent=x.message}}}}
-async function deleteRecord(){{if(!confirm("Withdraw this assessment and delete its submitted content?"))return;await call("/public/protection-advisor/delete",{{method:"POST",body:"{{}}"}});result.innerHTML="<h2>Information withdrawn</h2><p>Your assessment content and contact information have been deleted. Content-free lifecycle evidence is retained for accountability.</p>"}}
-</script></body></html>"""
+async function call(path,opts={}){opts.headers={"Content-Type":"application/json",...(csrf?{"X-CSRF-Token":csrf}:{}),...(opts.headers||{})};const r=await fetch(path,opts);const data=await r.json().catch(()=>({detail:"Request failed"}));if(!r.ok)throw new Error(data.detail||"Request failed");return data}
+async function startAssessment(){const e=document.getElementById("startError");e.textContent="";try{const data=await call("/public/protection-advisor/session",{method:"POST",body:JSON.stringify({organization_type:orgType.value,primary_consent:primary.checked,secondary_deidentified_consent:secondary.checked})});csrf=data.csrf_token;questions=data.questions;start.classList.add("hidden");assessment.classList.remove("hidden");renderQuestions()}catch(x){e.textContent=x.message}}
+function renderQuestions(){document.getElementById("questions").innerHTML=questions.map((q,i)=>`<div class="question"><strong>${i+1}. ${q.text}</strong><div class="choices">${["Answered","Partially","No","Unknown","Not Applicable","Declined"].map(s=>`<label><input type="radio" name="${q.key}" value="${s}" onchange="saveAnswer('${q.key}','${s}')"> ${s==="Answered"?"Yes":s==="Unknown"?"Not Sure":s==="Declined"?"Prefer Not to Answer":s}</label>`).join("")}</div></div>`).join("")}
+async function saveAnswer(key,state){await call("/public/protection-advisor/answer",{method:"POST",body:JSON.stringify({question_key:key,answer_state:state,note:""})})}
+function showContact(){contact.classList.remove("hidden");contact.scrollIntoView({behavior:"smooth"})}
+async function submitAssessment(){const e=document.getElementById("submitError");e.textContent="";try{const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value})});assessment.classList.add("hidden");contact.classList.add("hidden");const r=data.result;result.innerHTML=`<h2>Your Salus Recommendation</h2><h3>${r.recommendation}</h3><p>${r.notice}</p><p><strong>Potential attention areas:</strong> ${r.attention_count}. <strong>Information gaps:</strong> ${r.information_gap_count}.</p><p>${r.manual_next_step}</p><button onclick="deleteRecord()">Withdraw and delete my submitted information &gt;</button>`;result.classList.remove("hidden");result.scrollIntoView({behavior:"smooth"})}catch(x){e.textContent=x.message}}
+async function deleteRecord(){if(!confirm("Withdraw this assessment and delete its submitted content?"))return;await call("/public/protection-advisor/delete",{method:"POST",body:"{}"});result.innerHTML="<h2>Information withdrawn</h2><p>Your assessment content and contact information have been deleted. Content-free lifecycle evidence is retained for accountability.</p>"}
+</script></body></html>""".replace("__OPTIONS__", options)
 
 
 def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
