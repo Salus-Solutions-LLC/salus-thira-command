@@ -128,8 +128,15 @@ def release_number(value: object) -> tuple[int, int]:
 
 published_version = release_number(image_publication["source_release"])
 accepted_version = release_number(accepted_application["source_release"])
-assert published_version == (accepted_version[0], accepted_version[1] + 1)
-assert image_publication["source_commit"] != accepted_application["source_commit"]
+if published_version == accepted_version:
+    # Deployment-ready: the application activation is bound to the published
+    # frozen source and will additionally bind the exact immutable digest.
+    assert image_publication["source_commit"] == accepted_application["source_commit"]
+else:
+    # Publication-staged: the next image is the immediate successor while the
+    # currently accepted application remains unchanged.
+    assert published_version == (accepted_version[0], accepted_version[1] + 1)
+    assert image_publication["source_commit"] != accepted_application["source_commit"]
 
 # The current accepted activation must itself retain a distinct, structurally
 # valid rollback release while the successor image is being published.
