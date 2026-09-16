@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.115
+          ref: release/v3.116
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -48,7 +48,7 @@ jobs:
       - name: Checkout accepted rollback source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.114
+          ref: release/v3.115
           path: accepted-release
           fetch-depth: 1
           persist-credentials: false
@@ -62,18 +62,18 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.115-application-e35ae8ce") and
+            (.activation_key == "salcapa-v3.116-application-8b733d23") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.115") and
-            (.source_commit == "e35ae8ce7488e6b4d23d86c1579e6d462c5f2b1c") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:2cf997f1a14dbe1dabe181df164aac2bebc5c7d256dfb7891403bef38f9ea11e") and
-            (.rollback_release == "release/v3.114") and
-            (.rollback_commit == "600d152d74f773a14fd3b38e36c9929daca07ec3") and
-            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:dd1482cbbaeb32dc1634e53e6a7c9a321982898a4fd3095ccc47a0f22454061a") and
+            (.source_release == "release/v3.116") and
+            (.source_commit == "8b733d230edc182fcaafea875cf7241db0ba0dd1") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:e3ba19396a744237865ab0dce8bee48e0a1302c6a36a21570e2783c95f834f08") and
+            (.rollback_release == "release/v3.115") and
+            (.rollback_commit == "e35ae8ce7488e6b4d23d86c1579e6d462c5f2b1c") and
+            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:2cf997f1a14dbe1dabe181df164aac2bebc5c7d256dfb7891403bef38f9ea11e") and
             ((keys - [
               "activation_key",
               "approval_record",
@@ -357,7 +357,7 @@ jobs:
               {
                 echo "### SalCAPA failed promotion rollback"
                 echo ""
-                echo "- Accepted immutable v3.114 image restored"
+                echo "- Accepted immutable v3.115 image restored"
                 echo "- Live readiness restored"
                 echo "- DNS unchanged"
                 echo "- Client secret not used"
@@ -367,5 +367,5 @@ jobs:
             fi
             sleep 10
           done
-          echo "Failed promotion did not restore the accepted v3.114 runtime." >&2
+          echo "Failed promotion did not restore the accepted v3.115 runtime." >&2
           exit 1
