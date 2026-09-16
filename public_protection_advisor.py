@@ -243,16 +243,82 @@ def _json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
 
-def _questions(org_type: str) -> list[dict[str, str]]:
-    rows = [{"key": key, "text": text, "domain": domain} for key, text, domain in QUESTIONS]
+STATE_NEED = {
+    "Validated": 0.0,
+    "Answered": 0.0,
+    "Documented": 0.7,
+    "Partially": 1.8,
+    "No": 3.0,
+    "Unknown": 0.8,
+    "Declined": 0.5,
+    "Not Applicable": 0.0,
+}
+
+
+def _question_row(row: tuple[Any, ...]) -> dict[str, Any]:
+    key, text, domain, capabilities, services, weight = row
+    return {
+        "key": key,
+        "text": text,
+        "domain": domain,
+        "capabilities": list(capabilities),
+        "mission_areas": sorted({area for capability in capabilities for area in CORE_CAPABILITIES[capability]}),
+        "services": list(services),
+        "weight": float(weight),
+    }
+
+
+def _questions(org_type: str) -> list[dict[str, Any]]:
+    rows = [_question_row(row) for row in QUESTION_BLUEPRINTS]
     if org_type == "Faith-Based Organization":
-        rows.append({"key": FAITH_QUESTION[0], "text": FAITH_QUESTION[1], "domain": FAITH_QUESTION[2]})
+        rows.append(_question_row(FAITH_QUESTION))
     if org_type == "School or Educational Institution":
-        rows.append({"key": SCHOOL_QUESTION[0], "text": SCHOOL_QUESTION[1], "domain": SCHOOL_QUESTION[2]})
+        rows.append(_question_row(SCHOOL_QUESTION))
     if org_type in {"Faith-Based Organization", "School or Educational Institution", "Government or Public Institution", "Event Venue or Hospitality"}:
-        rows.append({"key": PUBLIC_QUESTION[0], "text": PUBLIC_QUESTION[1], "domain": PUBLIC_QUESTION[2]})
+        rows.append(_question_row(PUBLIC_QUESTION))
     return rows
 
+
+_COVERED_CORE_CAPABILITIES = {
+    capability
+    for row in QUESTION_BLUEPRINTS
+    for capability in row[3]
+}
+if set(CORE_CAPABILITIES) != _COVERED_CORE_CAPABILITIES:
+    missing = sorted(set(CORE_CAPABILITIES) - _COVERED_CORE_CAPABILITIES)
+    extra = sorted(_COVERED_CORE_CAPABILITIES - set(CORE_CAPABILITIES))
+    raise RuntimeError(f"Protection Advisor capability coverage mismatch; missing={missing}; extra={extra}")
+
+
+def _capability_results(
+    questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]]
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    totals = {name: {"need": 0.0, "possible": 0.0, "unknown": 0} for name in CORE_CAPABILITIES}
+    for question in questions:
+        state = answers.get(question["key"], {}).get("answer_state", "Unknown")
+        if state == "Not Applicable":
+            continue
+        need = STATE_NEED.get(state, 0.8)
+        for capability in question["capabilities"]:
+            totals[capability]["need"] += need * question["weight"]
+            totals[capability]["possible"] += 3.0 * question["weight"]
+            if state in {"Unknown", "Declined"}:
+                totals[capability]["unknown"] += 1
+    capability_rows = []
+    for name, values in totals.items():
+        score = round(100 * values["need"] / values["possible"]) if values["possible"] else 0
+        capability_rows.append({
+            "capability": name,
+            "mission_areas": list(CORE_CAPABILITIES[name]),
+            "need_score": score,
+            "information_gap": values["unknown"] > 0,
+        })
+    capability_rows.sort(key=lambda row: (-row["need_score"], row["capability"]))
+    mission_scores: dict[str, int] = {}
+    for area in ("Prevention", "Protection", "Mitigation", "Response", "Recovery"):
+        relevant = [row["need_score"] for row in capability_rows if area in row["mission_areas"]]
+        mission_scores[area] = round(sum(relevant) / len(relevant)) if relevant else 0
+    return capability_rows, mission_scores
 
 def _initialize(conn: Any) -> None:
     conn.executescript("""
@@ -372,23 +438,26 @@ def _current_answers(conn: Any, session_key: str) -> dict[str, dict[str, Any]]:
     return {row["question_key"]: dict(row) for row in rows}
 
 
-def _result(questions: list[dict[str, str]], answers: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]]) -> dict[str, Any]:
     attention = []
     strengths = []
     unknowns = []
-    for q in questions:
-        answer = answers.get(q["key"], {})
-        state = answer.get("answer_state", "Unknown")
+    for question in questions:
+        state = answers.get(question["key"], {}).get("answer_state", "Unknown")
         if state in {"No", "Partially"}:
-            attention.append(q["text"])
-        elif state == "Answered":
-            strengths.append(q["text"])
+            attention.append(question["text"])
+        elif state in {"Validated", "Documented", "Answered"}:
+            strengths.append(question["text"])
         elif state in {"Unknown", "Declined"}:
-            unknowns.append(q["text"])
-    if len(attention) >= 6:
+            unknowns.append(question["text"])
+    capability_rows, mission_scores = _capability_results(questions, answers)
+    highest_need = capability_rows[0]["need_score"] if capability_rows else 0
+    if highest_need >= 65 or len(attention) >= 10:
         level = "Comprehensive review recommended"
-    elif len(attention) >= 3:
+    elif highest_need >= 35 or len(attention) >= 4:
         level = "Focused review recommended"
+    elif unknowns:
+        level = "Foundation discovery recommended"
     else:
         level = "Foundation review recommended"
     return {
@@ -399,7 +468,10 @@ def _result(questions: list[dict[str, str]], answers: dict[str, dict[str, Any]])
         "information_gap_count": len(unknowns),
         "attention_topics": attention[:6],
         "information_gaps": unknowns[:6],
-        "notice": "This result is preliminary and non-binding. A qualified Salus professional must review scope, recommendations, and any price.",
+        "priority_capabilities": [row for row in capability_rows if row["need_score"] > 0][:8],
+        "mission_area_scores": mission_scores,
+        "core_capabilities_considered": len(CORE_CAPABILITIES),
+        "notice": "This result is preliminary and non-binding. A qualified Salus professional must review scope, recommendations, service levels, and any price.",
         "manual_next_step": "Qualification, scoping, proposal, onboarding, and service delivery remain human-controlled.",
     }
 
