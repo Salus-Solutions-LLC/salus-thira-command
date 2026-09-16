@@ -921,7 +921,8 @@ def _package_recommendation(
         score = scores[key]
         level = 3 if score >= 12.0 else 2 if score >= 6.0 else 1
         level_name = SERVICE_LEVEL_NAMES[level]
-        relevant_capabilities = sorted(capabilities[key] or SERVICE_DEFAULT_CAPABILITIES[key])[:6]\n        if relevant_capabilities:
+        relevant_capabilities = sorted(capabilities[key] or SERVICE_DEFAULT_CAPABILITIES[key])[:6]
+        if relevant_capabilities:
             why = (
                 f"{level_name} service is indicated by needs involving "
                 + ", ".join(relevant_capabilities[:3])
