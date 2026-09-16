@@ -465,9 +465,47 @@ async function logoutSession(){await fetch('/api/auth/logout',{method:'POST'});a
 
 async function securityReadiness(){
   if(currentRole!=='System Administrator'){ $('#content').innerHTML='<div class="notice">Security and readiness controls require the System Administrator role.</div>'; return; }
-  const [ready,events]=await Promise.all([api('/api/admin/readiness'),api('/api/admin/security-events?limit=200')]);
+  const [ready,events,tenants,users]=await Promise.all([
+    api('/api/admin/readiness'),api('/api/admin/security-events?limit=200'),
+    api('/api/admin/pilot/tenants'),api('/api/admin/pilot/users')
+  ]);
   const db=ready.managed_database_target||{}; const runtime=ready.runtime_database||{}; const secrets=ready.secret_provider||{}; const rate=ready.rate_limit||{}; const tel=ready.telemetry||{};
-  $('#content').innerHTML=`<div class="grid two-col"><div class="card"><div class="section-title"><h2>Operational Readiness</h2></div><p><strong>Status:</strong> ${ready.ready?badge('Ready'):badge('Needs Attention')}</p><p><strong>Environment:</strong> ${esc(ready.environment)}<br><strong>Authentication:</strong> ${esc(ready.auth_mode)}<br><strong>Storage:</strong> ${esc(ready.storage_backend)}<br><strong>Malware scanning:</strong> ${esc(ready.av_mode)}</p>${ready.issues.length?`<div class="notice">${ready.issues.map(x=>esc(x)).join('<br>')}</div>`:'<div class="notice">No readiness issues detected for the current operating mode.</div>'}</div><div class="card"><div class="section-title"><h2>Infrastructure Controls</h2></div><p><strong>Runtime DB:</strong> ${esc(runtime.provider||'')} · ${runtime.healthy?badge('Healthy'):badge('Attention')}<br><strong>Managed DB target:</strong> ${esc(db.target||'none')} · ${db.configured?(db.healthy?badge('Reachable'):badge('Unreachable')):badge('Not Configured')}<br><strong>Secrets:</strong> ${esc(secrets.backend||'')} · ${secrets.configured?badge('Available'):badge('Unavailable')}<br><strong>Rate limiting:</strong> ${esc(rate.backend||'')} · ${rate.healthy?badge('Healthy'):badge('Attention')}<br><strong>Telemetry:</strong> ${esc(tel.backend||'')} · ${tel.healthy?badge('Healthy'):badge('Attention')}</p><p class="subtle">The active runtime provider is shown above. Governed operation uses managed credentials, managed object storage, protected recovery controls, and sanitized telemetry.</p></div></div><div class="section-title"><h2>Security Event Register</h2><span class="subtle">${events.length} recent events</span></div>${table(['Time','Severity','Event','User','Source IP','Request ID','Detail'],events.map(e=>[esc(e.ts),badge(e.severity),esc(e.event_type),esc(e.user_name),esc(e.source_ip),`<code>${esc((e.request_id||'').slice(0,12))}</code>`,esc(e.detail)]))}`;
+  const tenantOptions=tenants.filter(t=>t.status==='Active').map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  const userRows=users.map(u=>[
+    esc(u.display_name),esc(u.email),esc(u.tenant_name),esc(u.role),esc(u.sensitivity_clearance),
+    u.identity_bound?badge('Identity Bound'):badge('Invitation Pending'),badge(u.status),
+    `<button class="btn secondary" onclick="setPilotUserStatus(${u.id},'${u.status==='Active'?'Disabled':'Active'}')">${u.status==='Active'?'Disable':'Enable'}</button>`
+  ]);
+  $('#content').innerHTML=`
+    <div class="grid two-col">
+      <div class="card"><div class="section-title"><h2>Operational Readiness</h2></div><p><strong>Status:</strong> ${ready.ready?badge('Ready'):badge('Needs Attention')}</p><p><strong>Environment:</strong> ${esc(ready.environment)}<br><strong>Authentication:</strong> ${esc(ready.auth_mode)}<br><strong>Storage:</strong> ${esc(ready.storage_backend)}<br><strong>Malware scanning:</strong> ${esc(ready.av_mode)}</p>${ready.issues.length?`<div class="notice">${ready.issues.map(x=>esc(x)).join('<br>')}</div>`:'<div class="notice">No readiness issues detected for the current operating mode.</div>'}</div>
+      <div class="card"><div class="section-title"><h2>Infrastructure Controls</h2></div><p><strong>Runtime DB:</strong> ${esc(runtime.provider||'')} · ${runtime.healthy?badge('Healthy'):badge('Attention')}<br><strong>Managed DB target:</strong> ${esc(db.target||'none')} · ${db.configured?(db.healthy?badge('Reachable'):badge('Unreachable')):badge('Not Configured')}<br><strong>Secrets:</strong> ${esc(secrets.backend||'')} · ${secrets.configured?badge('Available'):badge('Unavailable')}<br><strong>Rate limiting:</strong> ${esc(rate.backend||'')} · ${rate.healthy?badge('Healthy'):badge('Attention')}<br><strong>Telemetry:</strong> ${esc(tel.backend||'')} · ${tel.healthy?badge('Healthy'):badge('Attention')}</p><p class="subtle">The active runtime provider is shown above. Governed operation uses managed credentials, managed object storage, protected recovery controls, and sanitized telemetry.</p></div>
+    </div>
+    <div class="section-title"><h2>Early-Access Accounts</h2><span class="subtle">Administrator-controlled Microsoft Entra admission</span></div>
+    <div class="notice"><strong>Invitation-only pilot.</strong> Creating a record authorizes only the named email, organization, role, and clearance. The immutable Microsoft Entra identity is bound on first successful sign-in. Disabling a user immediately revokes active SalCAPA sessions.</div>
+    <div class="split" style="margin-top:16px">
+      <div class="card">
+        <h3>Add Protected Member organization</h3>
+        <form id="pilot-tenant-form"><label>Organization name<input name="name" required maxlength="200"></label><label>Organization slug<input name="slug" required maxlength="100" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="example-organization"></label><div class="form-actions"><button class="btn">Add organization &gt;</button></div></form>
+      </div>
+      <div class="card">
+        <h3>Preauthorize user</h3>
+        <form id="pilot-user-form"><label>Name<input name="display_name" required maxlength="200"></label><label>Email<input name="email" type="email" required maxlength="320" autocomplete="email"></label><label>Organization<select name="tenant_id" required>${tenantOptions}</select></label><label>Role<select name="role"><option>Contributor</option><option>Client Executive</option><option>Program Owner</option><option>Auditor</option><option>Assessment Director</option><option>Lead Assessor</option><option>SME Assessor</option><option>System Administrator</option></select></label><label>Information clearance<select name="sensitivity_clearance"><option>Standard</option><option>Restricted</option><option>Sensitive</option><option>Highly Sensitive</option></select></label><div class="form-actions"><button class="btn">Authorize account &gt;</button></div></form>
+      </div>
+    </div>
+    <div class="section-title"><h2>Authorized users</h2><span class="subtle">${users.length} governed accounts</span></div>
+    ${table(['Name','Email','Organization','Role','Clearance','Entra identity','Status','Action'],userRows)}
+    <div class="section-title"><h2>Security Event Register</h2><span class="subtle">${events.length} recent events</span></div>
+    ${table(['Time','Severity','Event','User','Source IP','Request ID','Detail'],events.map(e=>[esc(e.ts),badge(e.severity),esc(e.event_type),esc(e.user_name),esc(e.source_ip),`<code>${esc((e.request_id||'').slice(0,12))}</code>`,esc(e.detail)]))}
+  `;
+  $('#pilot-tenant-form').onsubmit=async e=>{e.preventDefault();const data={};new FormData(e.target).forEach((v,k)=>data[k]=v);await api('/api/admin/pilot/tenants',{method:'POST',body:JSON.stringify(data)});render();};
+  $('#pilot-user-form').onsubmit=async e=>{e.preventDefault();const data={};new FormData(e.target).forEach((v,k)=>data[k]=k==='tenant_id'?Number(v):v);await api('/api/admin/pilot/users',{method:'POST',body:JSON.stringify(data)});render();};
+}
+async function setPilotUserStatus(id,status){
+  const verb=status==='Disabled'?'disable':'enable';
+  if(!confirm(`Confirm ${verb} for this SalCAPA account?`))return;
+  await api(`/api/admin/pilot/users/${id}/status`,{method:'POST',body:JSON.stringify({status})});
+  render();
 }
 
 async function backups(){
