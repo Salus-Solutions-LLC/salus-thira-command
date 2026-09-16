@@ -563,7 +563,7 @@ def _session(conn: Any, request: Request) -> tuple[Any, str]:
 def _account_session(conn: Any, request: Request) -> Any:
     token = request.cookies.get("salus_advisor_account", "")
     if not token:
-        raise HTTPException(401, "Part Two account login is required")
+        raise HTTPException(401, "Part 2 account login is required")
     row = conn.execute(
         """SELECT s.*,a.email,a.email_verified_at,a.status account_status
              FROM advisor_public_account_sessions s
@@ -572,9 +572,9 @@ def _account_session(conn: Any, request: Request) -> Any:
         (_sha(token),),
     ).fetchone()
     if not row or row["revoked_at"] or row["account_status"] != "Active":
-        raise HTTPException(401, "Part Two account session is unavailable")
+        raise HTTPException(401, "Part 2 account session is unavailable")
     if row["expires_at"] <= _utc_text(_utc_now()):
-        raise HTTPException(401, "Part Two account session has expired")
+        raise HTTPException(401, "Part 2 account session has expired")
     return row
 
 
@@ -585,7 +585,7 @@ def _require_account_assessment(conn: Any, account_key: str, session_key: str) -
         (account_key, session_key),
     ).fetchone()
     if not row or not row["detailed_assessment_acknowledged"] or not row["identifiable_retention_consent"]:
-        raise HTTPException(403, "Part Two acknowledgement and identifiable-information consent are required")
+        raise HTTPException(403, "Part 2 acknowledgement and identifiable-information consent are required")
     return row
 
 
@@ -675,7 +675,7 @@ def _verification_page() -> str:
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Email Verified | Protection Advisor</title><style>{_salus_theme_css()}</style></head><body><main>{_salus_header()}
 <p class="eyebrow">Protection Advisor Account</p><h1>Email verified</h1>
-<h2>Your Part Two account is ready</h2><p>Your assessment and submitted results remain associated with your account under the consented retention policy. Security links and browser sessions expire; your retained assessment result does not expire with them.</p>
+<h2>Your Part 2 account is ready</h2><p>Your assessment and submitted results remain associated with your account under the consented retention policy. Security links and browser sessions expire; your retained assessment result does not expire with them.</p>
 <p><a href="/protection-advisor">Return to Protection Advisor &gt;</a></p></main></body></html>"""
 
 
@@ -698,8 +698,8 @@ button:disabled{color:#888;cursor:not-allowed}.question{padding:20px 0;border-bo
 .package-item{padding:16px 0;border-bottom:1px solid var(--line)}.eyebrow{font:700 .78rem Arial,Helvetica,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
 </style></head><body><main>
 __SALUS_HEADER__
-<h1>Protection Advisor™</h1><p class="muted">Find Your Salus Package</p>\n<p><a class="action" href="#accountAccess" onclick="openAccountLogin(event)">Return to Your Part Two Assessment &gt;</a></p>
-<h2>Part One — Anonymous Protection Readiness Review</h2>
+<h1>Protection Advisor™</h1><p class="muted">Find Your Salus Package</p>\n<p><a class="action" href="#accountAccess" onclick="openAccountLogin(event)">Return to Your Part 2 Assessment &gt;</a></p>
+<h2>Part 1 — Anonymous Protection Readiness Review</h2>
 <p>Learn what may deserve attention without providing your name, email address, or organization name. Your anonymous answers produce an immediate preliminary summary.</p>
 <section id="start" class="panel">
 <label for="orgType">Organization type</label><select id="orgType"><option value="">Select your organization type</option>__OPTIONS__</select>
@@ -713,23 +713,23 @@ __SALUS_HEADER__
 <p>Your anonymous review is complete. Continue for a tailored preliminary package or browse individual Salus services without identifying yourself.</p>
 <div class="route"><a class="action" href="#profileAgreement" onclick="showProfileAgreement(event)">Continue to Your Tailored Salus Package &gt;</a><br>
 <a class="action" href="/protection-advisor/services">Explore Individual Salus Services &gt;</a></div></section>
-<section id="profileAgreement" class="hidden panel"><p class="eyebrow">Before Part Two</p>
+<section id="profileAgreement" class="hidden panel"><p class="eyebrow">Before Part 2</p>
 <h2>Understand the detailed assessment</h2>
-<p>Part Two asks more detailed and sometimes difficult questions about your organization, operations, capabilities, concerns, and priorities. Accurate answers are necessary for a useful preliminary package recommendation.</p>
+<p>Part 2 asks more detailed and sometimes difficult questions about your organization, operations, capabilities, concerns, and priorities. Accurate answers are necessary for a useful preliminary package recommendation.</p>
 <p>You do not need to conduct research or obtain new records before continuing. Answer truthfully from your current knowledge. When you do not know, select <strong>Not sure</strong> or <strong>Prefer to discuss with Salus</strong> where available rather than guessing.</p>
-<label class="check"><input id="detailAck" type="checkbox"> <span>I understand that Part Two is a detailed assessment and agree to answer truthfully from my current knowledge without guessing or overstating the organization’s capabilities.</span></label>
-<label class="check"><input id="identifiableConsent" type="checkbox"> <span>I consent to Salus retaining the identifiable organization and contact information I provide in Part Two with my assessment record for package preparation, professional review, and possible follow-up.</span></label>
-<button onclick="confirmProfile()">I Understand — Continue to Part Two &gt;</button><p id="profileAgreementError" class="error"></p></section>
-<section id="accountAccess" class="hidden panel"><p class="eyebrow">Part Two Account</p>
+<label class="check"><input id="detailAck" type="checkbox"> <span>I understand that Part 2 is a detailed assessment and agree to answer truthfully from my current knowledge without guessing or overstating the organization’s capabilities.</span></label>
+<label class="check"><input id="identifiableConsent" type="checkbox"> <span>I consent to Salus retaining the identifiable organization and contact information I provide in Part 2 with my assessment record for package preparation, professional review, and possible follow-up.</span></label>
+<button onclick="confirmProfile()">I Understand — Continue to Part 2 &gt;</button><p id="profileAgreementError" class="error"></p></section>
+<section id="accountAccess" class="hidden panel"><p class="eyebrow">Part 2 Account</p>
 <h2>Create an account or sign in</h2>
-<p>Your Part Two account protects the confidential organization profile and lets you save your work, sign out, and return later. Submitted results remain available through your account while the record is retained. A 24-hour verification link or browser session is only a security credential; it does not delete or expire your assessment results.</p>
+<p>Your Part 2 account protects the confidential organization profile and lets you save your work, sign out, and return later. Submitted results remain available through your account while the record is retained. A 24-hour verification link or browser session is only a security credential; it does not delete or expire your assessment results.</p>
 <div id="createAccountPanel"><h3>Create your account</h3>
 <label>Email address<input id="accountEmail" type="email" maxlength="254" autocomplete="email"></label>
 <label>Password<input id="accountPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password"></label>
 <label>Confirm password<input id="accountPasswordConfirm" type="password" minlength="12" maxlength="200" autocomplete="new-password"></label>
 <p class="muted">Use at least 12 characters. Email verification and password recovery require the authorized Salus mail service.</p>
 <button onclick="createAccount()">Create Account and Continue &gt;</button></div>
-<div id="loginAccountPanel"><h3>Already have a Part Two account?</h3>
+<div id="loginAccountPanel"><h3>Already have a Part 2 account?</h3>
 <label>Email address<input id="loginEmail" type="email" maxlength="254" autocomplete="email"></label>
 <label>Password<input id="loginPassword" type="password" minlength="12" maxlength="200" autocomplete="current-password"></label>
 <button onclick="loginAccount()">Sign In and Resume &gt;</button>
@@ -738,7 +738,7 @@ __SALUS_HEADER__
 <label>New password<input id="resetPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password"></label>
 <button onclick="resetAccountPassword()">Reset Password &gt;</button></div>
 <p id="accountError" class="error"></p></section>
-<section id="profile" class="hidden panel"><p class="eyebrow">Part Two — Confidential Organization and Service Profile</p>
+<section id="profile" class="hidden panel"><p class="eyebrow">Part 2 — Confidential Organization and Service Profile</p>
 <h2>Help us prepare your tailored preliminary package</h2>
 <p>These candid questions help Salus understand scale, complexity, priorities, timing, and likely services. Identifying information is requested only because you elected to continue.</p>
 <label>Organization name<input id="organizationName" type="text" maxlength="160"></label>
@@ -761,7 +761,7 @@ __SALUS_HEADER__
 <label>Who can authorize the next step?<input id="decisionAuthority" type="text" maxlength="160" placeholder="Role or decision group; a personal name is not required"></label>
 <label>Potential investment range<select id="investmentRange"><option value="">Select</option><option>Under $10,000</option><option>$10,000–$25,000</option><option>$25,000–$75,000</option><option>$75,000–$250,000</option><option>Over $250,000</option><option>Need phased options</option><option>Not established</option><option>Prefer to discuss with Salus</option></select></label>
 <p class="muted">Do not enter passwords, financial account information, medical records, government identifiers, classified information, detailed hazardous-material inventories, access-control details, or information whose disclosure could create an immediate security risk.</p>
-<p id="draftStatus" class="muted">Changes will be saved to your Part Two account.</p><button onclick="saveDraft()">Save Progress &gt;</button><button onclick="logoutAccount()">Sign Out &gt;</button><br><button onclick="submitProfile()">Prepare My Tailored Preliminary Package &gt;</button><p id="submitError" class="error"></p></section>
+<p id="draftStatus" class="muted">Changes will be saved to your Part 2 account.</p><button onclick="saveDraft()">Save Progress &gt;</button><button onclick="logoutAccount()">Sign Out &gt;</button><br><button onclick="submitProfile()">Prepare My Tailored Preliminary Package &gt;</button><p id="submitError" class="error"></p></section>
 <section id="package" class="hidden result"></section>
 <section class="panel"><h2>Important notice</h2><p>Protection Advisor provides preliminary educational and decision-support information. It is not an emergency reporting service, completed THIRA, professional security assessment, legal or insurance advice, or guarantee against loss. Salus professionals review information, evidence, context, scope, recommendations, and pricing before issuing formal findings or proposals.</p></section>
 </main><script>
@@ -773,7 +773,7 @@ async function saveAnswer(key,state){await call("/public/protection-advisor/answ
 async function preliminaryResult(){assessmentError.textContent="";try{const data=await call("/public/protection-advisor/preliminary",{method:"POST",body:"{}"});const r=data.result;assessment.classList.add("hidden");result.classList.remove("hidden");paths.classList.remove("hidden");result.innerHTML='<p class="eyebrow">Your Anonymous Preliminary Summary</p><h2>'+r.recommendation+'</h2><p>'+r.notice+'</p><p><strong>Potential attention areas:</strong> '+r.attention_count+'. <strong>Indicated strengths:</strong> '+r.strength_count+'. <strong>Information gaps:</strong> '+r.information_gap_count+'.</p><p>'+r.manual_next_step+'</p>';result.scrollIntoView({behavior:"smooth"})}catch(x){assessmentError.textContent=x.message}}
 function showProfileAgreement(event){event.preventDefault();profileAgreement.classList.remove("hidden");profileAgreement.scrollIntoView({behavior:"smooth"})}
 function openAccountLogin(event){event.preventDefault();accountAccess.classList.remove("hidden");accountAccess.scrollIntoView({behavior:"smooth"})}
-function confirmProfile(){profileAgreementError.textContent="";if(!detailAck.checked||!identifiableConsent.checked){profileAgreementError.textContent="Both acknowledgements are required before Part Two.";return}profileAgreement.classList.add("hidden");accountAccess.classList.remove("hidden");accountAccess.scrollIntoView({behavior:"smooth"})}
+function confirmProfile(){profileAgreementError.textContent="";if(!detailAck.checked||!identifiableConsent.checked){profileAgreementError.textContent="Both acknowledgements are required before Part 2.";return}profileAgreement.classList.add("hidden");accountAccess.classList.remove("hidden");accountAccess.scrollIntoView({behavior:"smooth"})}
 function showProfileForAccount(email,draft){accountAccess.classList.add("hidden");contactEmail.value=email;contactEmail.readOnly=true;hydrateDraft(draft||{});profile.classList.remove("hidden");profile.scrollIntoView({behavior:"smooth"});enableAutosave()}
 async function createAccount(){accountError.textContent="";try{if(accountPassword.value!==accountPasswordConfirm.value)throw new Error("Passwords do not match");const data=await call("/public/protection-advisor/account",{method:"POST",body:JSON.stringify({email:accountEmail.value,password:accountPassword.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked})});showProfileForAccount(data.email,data.draft)}catch(x){accountError.textContent=x.message}}
 function packageMarkup(p){return '<h2>'+p.title+'</h2><p>'+p.rationale+'</p>'+p.services.map(s=>'<div class="package-item"><h3>'+s.title+' — Level '+s.level+'</h3><p>'+s.summary+'</p><p><strong>Why this level:</strong> '+s.why+'</p><p><strong>Core capabilities addressed:</strong> '+s.capabilities.join(", ")+'</p></div>').join("")+(p.later_phase_services.length?'<h3>Possible later-phase services</h3><p>'+p.later_phase_services.map(s=>s.title+' — Level '+s.level).join("; ")+'</p>':'')+'<p><strong>Suggested sequence:</strong> '+p.sequence.join(" → ")+'</p><p>'+p.notice+'</p><a class="action" href="https://www.salus.solutions/contact">Discuss This Package With Salus &gt;</a>'}
@@ -799,9 +799,9 @@ def _service_catalog_page() -> str:
         for _, title, summary in SERVICE_CATALOG
     )
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Individual Salus Services | Protection Advisor</title><style>{{_salus_theme_css()}}
+<title>Individual Salus Services | Protection Advisor</title><style>{_salus_theme_css()}
 .service{{padding:20px 0;border-bottom:1px solid var(--line)}}.service h2{{margin-bottom:8px}}
-</style></head><body><main>{{_salus_header()}}
+</style></head><body><main>{_salus_header()}
 <p><a href="/protection-advisor">&lt; Protection Advisor</a></p><h1>Individual Salus Services</h1>
 <p>Explore services directly without completing the confidential Organization and Service Profile. A Salus professional will confirm scope, deliverables, schedule, and pricing before any engagement.</p>
 {items}</main></body></html>"""
@@ -1025,7 +1025,7 @@ def _package_recommendation(
         "priority_capabilities": [row for row in capability_rows if row["need_score"] > 0][:8],
         "mission_area_scores": mission_scores,
         "core_capabilities_considered": len(CORE_CAPABILITIES),
-        "rationale": "This preliminary package connects the capability conditions identified in Part One with the scale, consequences, activities, dependencies, maturity, timing, and implementation context supplied in Part Two.",
+        "rationale": "This preliminary package connects the capability conditions identified in Part 1 with the scale, consequences, activities, dependencies, maturity, timing, and implementation context supplied in Part 2.",
         "notice": "Preliminary — Subject to Salus Professional Review. A Salus professional must validate the answers, capability interpretation, service selection, level, scope, evidence, specialists, deliverables, schedule, pricing, contract terms, and Protected Member eligibility.",
         "version": PACKAGE_RECOMMENDATION_VERSION,
     }
@@ -1104,11 +1104,11 @@ def _review_page(rows: list[dict[str, Any]]) -> str:
         )
     rows_html = "".join(body_rows) or "<tr><td colspan='6'>No Protection Advisor submissions yet.</td></tr>"
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Protection Advisor Review | Salus Solutions</title><style>{{_salus_theme_css()}}
+<title>Protection Advisor Review | Salus Solutions</title><style>{_salus_theme_css()}
 main{{max-width:1180px}}table{{width:100%;border-collapse:collapse}}th,td{{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}}
 th{{font:600 .85rem Arial,Helvetica,sans-serif;text-transform:uppercase}}.notice{{background:#f6f8fa;padding:14px 18px;border-left:3px solid var(--blue)}}
 @media(max-width:760px){{table,thead,tbody,tr,th,td{{display:block}}thead{{display:none}}tr{{margin:18px 0;border:1px solid var(--line)}}}}
-</style></head><body><main>{{_salus_header()}}
+</style></head><body><main>{_salus_header()}
 <h1>Protection Advisor Review</h1><p class="notice">Authorized Salus review workspace. Prospect records remain separate from Protected Member tenant records until an authorized person completes the governed intake decision.</p>
 <table><thead><tr><th>Submitted</th><th>Organization</th><th>Contact</th><th>Recommendation</th><th>Status</th><th>Notification</th></tr></thead><tbody>{rows_html}</tbody></table>
 <p><a href="/">&lt; SalCAPA Command Center</a></p></main></body></html>"""
@@ -1122,10 +1122,10 @@ def _review_detail(row: dict[str, Any]) -> str:
         for key, value in answers.items()
     )
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Protection Advisor Submission | Salus Solutions</title><style>{{_salus_theme_css()}}
+<title>Protection Advisor Submission | Salus Solutions</title><style>{_salus_theme_css()}
 main{{max-width:960px}}table{{width:100%;border-collapse:collapse}}td{{padding:11px;border-bottom:1px solid var(--line);vertical-align:top}}
 .notice{{background:#f6f8fa;padding:14px 18px;border-left:3px solid var(--blue)}}</style></head><body><main>
-{{_salus_header()}}
+{_salus_header()}
 <p><a href="/protection-advisor/review">&lt; All submissions</a></p><h1>{html.escape(row['organization_name'])}</h1>
 <p><strong>Contact:</strong> {html.escape(row['contact_name'])} · <a href="mailto:{html.escape(row['contact_email'])}">{html.escape(row['contact_email'])}</a><br>
 <strong>Submitted:</strong> {html.escape(row['created_at'])}<br><strong>Status:</strong> {html.escape(row['status'])}</p>
@@ -1263,7 +1263,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             conn.execute(
                 "INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
                 ("SPA-EVENT-" + secrets.token_hex(16).upper(), session["session_key"],
-                 "Part Two Account Created", _utc_text(now),
+                 "Part 2 Account Created", _utc_text(now),
                  _sha(_json({"account_key": account_key, "email": command.email}))),
             )
             conn.commit()
@@ -1275,7 +1275,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             delivered, delivery_error = await _send_graph_email(
                 command.email,
                 "Verify your Salus Protection Advisor account",
-                "Verify your Protection Advisor Part Two account within 24 hours:\n\n"
+                "Verify your Protection Advisor Part 2 account within 24 hours:\n\n"
                 + verification_url
                 + "\n\nIf you did not create this account, do not use this link.",
             )
@@ -1422,7 +1422,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 (account["account_key"],),
             ).fetchone()
             if not linked:
-                raise HTTPException(404, "No resumable Part Two assessment is available")
+                raise HTTPException(404, "No resumable Part 2 assessment is available")
             now = _utc_now()
             account_token = secrets.token_urlsafe(32)
             advisor_token = secrets.token_urlsafe(32)
@@ -1626,11 +1626,11 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             account = _account_session(conn, request)
             _require_account_assessment(conn, account["account_key"], session["session_key"])
             if not command.detailed_assessment_acknowledged or not command.identifiable_retention_consent:
-                raise HTTPException(400, "Part Two acknowledgement and retention consent are required")
+                raise HTTPException(400, "Part 2 acknowledgement and retention consent are required")
             if REQUIRE_EMAIL_VERIFICATION and not account["email_verified_at"]:
-                raise HTTPException(403, "Verify the Part Two account email before submitting")
+                raise HTTPException(403, "Verify the Part 2 account email before submitting")
             if command.contact_email != account["email"]:
-                raise HTTPException(400, "Contact email must match the signed-in Part Two account")
+                raise HTTPException(400, "Contact email must match the signed-in Part 2 account")
             if session["status"] != "Active":
                 raise HTTPException(409, "Assessment has already been submitted")
             questions = _questions(session["organization_type"])
