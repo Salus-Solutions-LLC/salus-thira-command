@@ -90,20 +90,20 @@ def _salcapa_operating_model_summary(conn, assessment_ids: list[int], tenant: in
     result["stages"] = [
         {"key": "see", "label": "See — SalINTEL™",
          "count": trace["qualified_signals"],
-         "description": "SalINTEL develops qualified intelligence."},
+         "description": "Red: an unverified condition requires understanding; this is not a conclusion that the organization is unsafe."},
         {"key": "decide", "label": "Decide — SalTHIRA™ and authorized people",
          "count": trace["prioritized_improvements"] + trace["executive_decisions"],
-         "description": "SalTHIRA identifies risk and establishes priorities; authorized people decide."},
+         "description": "Orange: authorized people evaluate risk and priorities and decide what should happen."},
         {"key": "coordinate", "label": "Coordinate — SalCAPA™",
          "count": coordination_count,
-         "description": "SalCAPA coordinates Protected Members, information, decisions, and action."},
+         "description": "Yellow: people, authority, resources, dependencies, and timing are being aligned."},
         {"key": "act", "label": "Act — SalOPS™",
          "count": trace["authorized_actions"],
-         "description": "SalOPS implements, sustains, and improves protective capability."},
+         "description": "Light green: approved protective action is underway but is not yet fully verified."},
         {"key": "prove", "label": "Prove — cross-cutting assurance",
          "count": trace["completed_actions"] + trace["verified_actions"]
                   + trace["released_proof_records"],
-         "description": "Evidence, accountability, results, learning, and improvement span every function."},
+         "description": "Full green: current evidence demonstrates the highest reasonably achievable protective condition within scope—not absolute safety."},
     ]
     for stage in result["stages"]:
         stage["state"] = "Active" if stage["count"] else "No records"

@@ -56,28 +56,28 @@
       name: 'SalINTEL™',
       verb: 'See',
       summary: 'Develops qualified intelligence.',
-      detail: 'SalINTEL collects, investigates, reconciles, and qualifies information while preserving sources, confidence, contradictions, gaps, and human review.'
+      detail: 'Red marks an unverified condition that requires understanding, not a conclusion that the organization is unsafe. SalINTEL collects, investigates, reconciles, and qualifies information while preserving sources, confidence, contradictions, gaps, and human review.'
     },
     {
       key: 'decide',
       name: 'SalTHIRA™',
       verb: 'Decide',
       summary: 'Identifies risk and establishes priorities; authorized people decide.',
-      detail: 'SalTHIRA turns qualified inputs into a defensible risk picture, capability gaps, and priorities. It supports decisions but never replaces the authorized decision-maker.'
+      detail: 'Orange marks leadership evaluation and authorized direction. SalTHIRA turns qualified inputs into a defensible risk picture, capability gaps, and priorities. It supports decisions but never replaces the authorized decision-maker.'
     },
     {
       key: 'coordinate',
       name: 'SalCAPA™',
       verb: 'Coordinate',
       summary: 'Coordinates Protected Members, information, decisions, and action.',
-      detail: 'SalCAPA keeps the operating picture, decisions, handoffs, requests, status, and authorized releases connected without assuming human authority.'
+      detail: 'Yellow marks alignment in progress. SalCAPA keeps the operating picture, responsibilities, resources, dependencies, decisions, handoffs, requests, status, and authorized releases connected without assuming human authority.'
     },
     {
       key: 'act',
       name: 'SalOPS™',
       verb: 'Act',
       summary: 'Implements, sustains, and improves protective capability.',
-      detail: 'SalOPS carries approved work into planning, assignments, operations, preparedness, exercises, evidence of completion, sustainment, and improvement.'
+      detail: 'Light green marks approved protection being implemented but not yet fully verified. SalOPS carries approved work into planning, assignments, operations, preparedness, exercises, evidence of completion, sustainment, and improvement.'
     }
   ];
 
@@ -212,7 +212,7 @@
         <div class="salcapa-doctrine-grid">${cards}</div>
         <article class="salcapa-prove-band">
           <strong>PROVE — Assurance &amp; Results</strong>
-          <p>Cross-cutting evidence, accountability, results, validation, traceability, learning, and improvement across See, Decide, Coordinate, and Act.</p>
+          <p>Full green represents the highest reasonably achievable, currently evidenced protective condition within the authorized scope and current operating conditions—not absolute safety.</p>
           <details><summary>What PROVE traces</summary><p>Qualified intelligence → risk and priority → authorized decision → authorized action → execution → evidence → result and validation → reassessment. Missing governed links remain visible gaps; SalCAPA never invents causality or completion.</p></details>
         </article>
       </section>`;

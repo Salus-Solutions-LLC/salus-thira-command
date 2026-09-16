@@ -54,13 +54,13 @@
 }
 .salcapa-doctrine-card h4,
 .salcapa-doctrine-card p { margin: .25rem 0; }
-.salcapa-doctrine-see { border-top: 4px solid var(--intel, #087fc0); }
-.salcapa-doctrine-decide { border-top: 4px solid var(--thira, #c18b16); }
-.salcapa-doctrine-coordinate { border-top: 4px solid var(--teal, #087b83); }
-.salcapa-doctrine-act { border-top: 4px solid var(--ops, #16846b); }
+.salcapa-doctrine-see { border-top: 4px solid var(--salcapa-stage-see); background: var(--salcapa-stage-see-soft); }
+.salcapa-doctrine-decide { border-top: 4px solid var(--salcapa-stage-decide); background: var(--salcapa-stage-decide-soft); }
+.salcapa-doctrine-coordinate { border-top: 4px solid var(--salcapa-stage-coordinate); background: var(--salcapa-stage-coordinate-soft); }
+.salcapa-doctrine-act { border-top: 4px solid var(--salcapa-stage-act); background: var(--salcapa-stage-act-soft); }
 .salcapa-prove-band {
-  background: #eef3f5;
-  border: 2px solid #536b78;
+  background: var(--salcapa-stage-prove-soft);
+  border: 2px solid var(--salcapa-stage-prove);
   border-radius: 8px;
   margin-top: .8rem;
   padding: .8rem;

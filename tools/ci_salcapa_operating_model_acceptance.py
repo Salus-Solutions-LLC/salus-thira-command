@@ -206,8 +206,12 @@ def main():
     assert readiness_response.status_code == 200
     readiness = readiness_response.json()['protective_readiness']
     assert readiness['source'] == 'persisted_server_controlled_records'
-    assert readiness['promise'] == 'See risk early. Decide with confidence. Act in time. Prove the work was done.'
-    assert [stage['key'] for stage in readiness['stages']] == ['see', 'decide', 'act', 'prove']
+    assert readiness['promise'] == 'See, Decide, Coordinate, Act, and Prove progress from an unverified condition toward demonstrated protective assurance.'
+    assert [stage['key'] for stage in readiness['stages']] == ['see', 'decide', 'coordinate', 'act', 'prove']
+    assert readiness['trace']['coordination_threads'] >= 1
+    assert 'not a conclusion that the organization is unsafe' in readiness['stages'][0]['description']
+    assert 'Light green' in readiness['stages'][3]['description']
+    assert 'not absolute safety' in readiness['stages'][4]['description']
     assert readiness['trace']['qualified_signals'] >= 1
     assert readiness['trace']['assessed_capability_gaps'] >= 1
     assert readiness['trace']['prioritized_improvements'] >= 1
@@ -270,6 +274,24 @@ def main():
     conn.close()
     assert restored == 1 and restored_reports == 1
     assert client.get('/api/salcapa/common-operating-picture', headers=auditor).status_code == 200
+    condition_css = (ROOT / 'static' / 'condition-visuals.css').read_text(encoding='utf-8')
+    guidance_css = (ROOT / 'static' / 'guidance.css').read_text(encoding='utf-8')
+    readability_css = (ROOT / 'static' / 'readability.css').read_text(encoding='utf-8')
+    contextual_css = (ROOT / 'static' / 'salcapa-contextual-guidance.css').read_text(encoding='utf-8')
+    mission_css = (ROOT / 'static' / 'mission-map.css').read_text(encoding='utf-8')
+    styles_css = (ROOT / 'static' / 'styles.css').read_text(encoding='utf-8')
+    guidance_js = (ROOT / 'static' / 'guidance.js').read_text(encoding='utf-8')
+    required_tokens = (
+        '--salcapa-stage-see', '--salcapa-stage-decide', '--salcapa-stage-coordinate',
+        '--salcapa-stage-act', '--salcapa-stage-prove',
+    )
+    assert all(token in condition_css for token in required_tokens)
+    for stylesheet in (guidance_css, readability_css, contextual_css, mission_css, styles_css):
+        assert all(f'var({token})' in stylesheet for token in required_tokens), token
+    assert 'aria-current="step"' in guidance_js
+    assert 'Light green — approved protective action is underway' in guidance_js
+    assert 'Full green — current evidence demonstrates the highest reasonably achievable protective condition within scope, not absolute safety' in guidance_js
+
     print('SALCAPA_OPERATING_MODEL_ACCEPTANCE_PASS', app.DB_BACKEND)
 
 

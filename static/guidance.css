@@ -68,10 +68,12 @@
 .lifecycle-step:hover { background: #fafbfb; }
 .lifecycle-step strong { font-size: 11px; font-weight: 700; letter-spacing: .02em; }
 .lifecycle-step span { color: var(--muted); font-size: 10px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lifecycle-step.active { background: var(--accent-soft); box-shadow: inset 0 -2px 0 var(--accent); }
-.lifecycle-step[data-stage="see"].active { background: #eef7fb; box-shadow: inset 0 -2px 0 var(--intel); }
-.lifecycle-step[data-stage="decide"].active { background: #fff7e7; box-shadow: inset 0 -2px 0 var(--thira); }
-.lifecycle-step[data-stage="act"].active { background: #eef7f3; box-shadow: inset 0 -2px 0 var(--ops); }
+.lifecycle-step[data-stage="see"] { background: var(--salcapa-stage-see-soft); box-shadow: inset 0 -3px 0 var(--salcapa-stage-see); }
+.lifecycle-step[data-stage="decide"] { background: var(--salcapa-stage-decide-soft); box-shadow: inset 0 -3px 0 var(--salcapa-stage-decide); }
+.lifecycle-step[data-stage="coordinate"] { background: var(--salcapa-stage-coordinate-soft); box-shadow: inset 0 -3px 0 var(--salcapa-stage-coordinate); }
+.lifecycle-step[data-stage="act"] { background: var(--salcapa-stage-act-soft); box-shadow: inset 0 -3px 0 var(--salcapa-stage-act); }
+.lifecycle-step[data-stage="prove"] { background: var(--salcapa-stage-prove-soft); box-shadow: inset 0 -3px 0 var(--salcapa-stage-prove); }
+.lifecycle-step.active { filter: saturate(1.12); outline: 2px solid currentColor; outline-offset: -3px; }
 .lifecycle-step:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; z-index: 2; }
 .help-dot {
   display: inline-grid;
@@ -202,6 +204,11 @@
 }
 .guidance-step-card strong { display: block; font-size: 12px; margin-bottom: 2px; }
 .guidance-step-card p { font-size: 11px; }
+.guidance-step-card.stage-see { border-left: 4px solid var(--salcapa-stage-see); background: var(--salcapa-stage-see-soft); }
+.guidance-step-card.stage-decide { border-left: 4px solid var(--salcapa-stage-decide); background: var(--salcapa-stage-decide-soft); }
+.guidance-step-card.stage-coordinate { border-left: 4px solid var(--salcapa-stage-coordinate); background: var(--salcapa-stage-coordinate-soft); }
+.guidance-step-card.stage-act { border-left: 4px solid var(--salcapa-stage-act); background: var(--salcapa-stage-act-soft); }
+.guidance-step-card.stage-prove { border-left: 4px solid var(--salcapa-stage-prove); background: var(--salcapa-stage-prove-soft); }
 .guidance-nav-help {
   width: 100%;
   margin: 10px 0 0;

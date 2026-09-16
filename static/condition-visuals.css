@@ -11,6 +11,27 @@
   --condition-amber-soft: #fff4d8;
   --condition-yellow-green-soft: #f0f5df;
   --condition-green-soft: #e9f5ef;
+
+  /* SalCAPA governed protective-assurance progression. These colors describe
+     movement from an unverified condition toward the highest reasonably
+     achievable, currently evidenced protection within the authorized scope.
+     They never mean absolute safety and are always paired with stage text. */
+  --salcapa-stage-see: #a51d2a;
+  --salcapa-stage-see-soft: #fde8ea;
+  --salcapa-stage-see-text: #86131f;
+  --salcapa-stage-decide: #cf5626;
+  --salcapa-stage-decide-soft: #fcecdf;
+  --salcapa-stage-decide-text: #8e321f;
+  --salcapa-stage-coordinate: #d5b500;
+  --salcapa-stage-coordinate-soft: #fffbd8;
+  --salcapa-stage-coordinate-text: #6d5b00;
+  --salcapa-stage-act: #74a94f;
+  --salcapa-stage-act-soft: #f2f8e8;
+  --salcapa-stage-act-text: #3e651f;
+  --salcapa-stage-prove: #237a4b;
+  --salcapa-stage-prove-soft: #e4f3e9;
+  --salcapa-stage-prove-text: #145a35;
+
   --condition-gradient: linear-gradient(90deg,
     var(--condition-red) 0%,
     var(--condition-red-orange) 20%,
@@ -112,16 +133,24 @@
   background-size: 100% 100%;
 }
 
-/* Workflow progress stays neutral/component-colored so later steps do not imply
-   that the underlying risk or readiness condition has improved. */
+/* The five-stage SalCAPA progression uses the governed colors above. It
+   communicates progress toward evidenced protective assurance, while the
+   visible stage names and descriptions carry the meaning without color. */
 .workflow-progress {
-  background: #e7ebed;
+  background: linear-gradient(90deg,
+    var(--salcapa-stage-see) 0 20%,
+    var(--salcapa-stage-decide) 20% 40%,
+    var(--salcapa-stage-coordinate) 40% 60%,
+    var(--salcapa-stage-act) 60% 80%,
+    var(--salcapa-stage-prove) 80% 100%);
   color: var(--ink);
 }
-.workflow-progress > span { background: var(--accent); }
-.workflow-progress.intel > span { background: var(--intel); }
-.workflow-progress.thira > span { background: var(--thira); }
-.workflow-progress.ops > span { background: var(--ops); }
+.workflow-progress > span { background: inherit; }
+.workflow-progress.intel > span { background: var(--salcapa-stage-see); }
+.workflow-progress.thira > span { background: var(--salcapa-stage-decide); }
+.workflow-progress.coordinate > span { background: var(--salcapa-stage-coordinate); }
+.workflow-progress.ops > span { background: var(--salcapa-stage-act); }
+.workflow-progress.prove > span { background: var(--salcapa-stage-prove); }
 
 @media print {
   .badge[class*="condition-"], .condition-indicator[class*="condition-"] {

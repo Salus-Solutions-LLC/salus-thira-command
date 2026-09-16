@@ -3218,13 +3218,14 @@ def get_salcapa_workspace(request:Request):
     require(request,'read'); return salcapa_workspace_contract(request)
 
 def _protective_readiness_summary(conn, assessment_ids:list[int], tenant:int):
-    promise='See risk early. Decide with confidence. Act in time. Prove the work was done.'
-    lifecycle='Signal or observation -> qualification -> assessment -> capability priority -> executive decision -> responsible owner -> authorized action -> completion evidence -> testing or verification -> result -> reassessment.'
+    promise='See, Decide, Coordinate, Act, and Prove progress from an unverified condition toward demonstrated protective assurance.'
+    lifecycle='Signal or observation -> qualification -> assessment -> capability priority -> executive decision -> coordination -> responsible owner -> authorized action -> completion evidence -> testing or verification -> result -> reassessment.'
     trace={
         'qualified_signals':0,
         'assessed_capability_gaps':0,
         'prioritized_improvements':0,
         'executive_decisions':0,
+        'coordination_threads':0,
         'owned_actions':0,
         'authorized_actions':0,
         'completed_actions':0,
@@ -3284,11 +3285,15 @@ def _protective_readiness_summary(conn, assessment_ids:list[int], tenant:int):
         trace['reassessment_triggers']=conn.execute(
             f"SELECT COUNT(*) c FROM reassessment_triggers WHERE assessment_id IN ({marks})",params
         ).fetchone()['c']
+    trace['coordination_threads']=conn.execute(
+        "SELECT COUNT(*) c FROM cop_coordination_threads WHERE tenant_id=?",(tenant,)
+    ).fetchone()['c']
     stages=[
-        {'key':'see','label':'See risk early','count':trace['qualified_signals']+trace['assessed_capability_gaps'],'description':'Qualified signals and assessed capability gaps.'},
-        {'key':'decide','label':'Decide with confidence','count':trace['executive_decisions'],'description':'Authority-backed executive decisions.'},
-        {'key':'act','label':'Act in time','count':trace['authorized_actions'],'description':'Authorized protective actions under accountable delivery.'},
-        {'key':'prove','label':'Prove the work was done','count':trace['completed_actions']+trace['verified_actions']+trace['released_proof_records'],'description':'Completed, verified, and released proof records.'},
+        {'key':'see','label':'See','count':trace['qualified_signals']+trace['assessed_capability_gaps'],'description':'Red: an unverified condition requires understanding; this is not a conclusion that the organization is unsafe.'},
+        {'key':'decide','label':'Decide','count':trace['executive_decisions'],'description':'Orange: authorized people evaluate risk and priorities and decide what should happen.'},
+        {'key':'coordinate','label':'Coordinate','count':trace['coordination_threads'],'description':'Yellow: people, authority, resources, dependencies, and timing are being aligned.'},
+        {'key':'act','label':'Act','count':trace['authorized_actions'],'description':'Light green: approved protective action is underway but is not yet fully verified.'},
+        {'key':'prove','label':'Prove','count':trace['completed_actions']+trace['verified_actions']+trace['released_proof_records'],'description':'Full green: current evidence demonstrates the highest reasonably achievable protective condition within scope—not absolute safety.'},
     ]
     for stage in stages: stage['state']='Active' if stage['count'] else 'No records'
     return {'source':'persisted_server_controlled_records','promise':promise,'lifecycle':lifecycle,'stages':stages,'trace':trace}

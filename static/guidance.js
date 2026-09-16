@@ -75,11 +75,11 @@
   };
 
   const stages = [
-    ['see', 'See', 'Understand what is known', 'dashboard'],
-    ['decide', 'Decide', 'Assess and prioritize', 'assessments'],
-    ['coordinate', 'Coordinate', 'Align people and authority', 'common_operating_picture'],
-    ['act', 'Act', 'Execute approved work', 'salops'],
-    ['prove', 'Prove', 'Evidence, report, reassess', 'reports']
+    ['see', 'See', 'Unverified; identify what needs attention', 'dashboard', 'Red — the condition requires understanding and may contain unknowns'],
+    ['decide', 'Decide', 'Prioritize and authorize direction', 'assessments', 'Orange — authorized people evaluate priorities and decide what should happen'],
+    ['coordinate', 'Coordinate', 'Align people, authority, and resources', 'common_operating_picture', 'Yellow — responsibilities, resources, dependencies, and timing are being aligned'],
+    ['act', 'Act', 'Implement approved protective action', 'salops', 'Light green — approved protective action is underway but is not yet fully verified'],
+    ['prove', 'Prove', 'Demonstrate the best evidenced condition in scope', 'reports', 'Full green — current evidence demonstrates the highest reasonably achievable protective condition within scope, not absolute safety']
   ];
 
   let lastFocus = null;
@@ -212,8 +212,8 @@
     const strip = document.getElementById('lifecycle-strip');
     if (strip) {
       const active = currentStage();
-      strip.innerHTML = stages.map(([key,label,description,view]) => `
-        <button type="button" class="lifecycle-step ${key === active ? 'active' : ''}" data-stage="${key}" data-view="${view}" title="${esc(description)}">
+      strip.innerHTML = stages.map(([key,label,description,view,meaning]) => `
+        <button type="button" class="lifecycle-step ${key === active ? 'active' : ''}" data-stage="${key}" data-view="${view}" title="${esc(meaning)}" aria-label="${esc(label + '. ' + meaning)}" ${key === active ? 'aria-current="step"' : ''}>
           <strong>${label}</strong><span>${description}</span>
         </button>`).join('');
       strip.querySelectorAll('button').forEach(button => button.addEventListener('click', () => go(button.dataset.view)));
@@ -309,11 +309,11 @@
         <span class="guidance-kicker">Lifecycle</span>
         <h3>See → Decide → Coordinate → Act → Prove</h3>
         <div class="guidance-steps">
-          <div class="guidance-step-card"><span>1</span><div><strong>See</strong><p>Collect observations and develop qualified intelligence with source, confidence, validation, and lifecycle context.</p></div></div>
-          <div class="guidance-step-card"><span>2</span><div><strong>Decide</strong><p>Use SalTHIRA to understand threats, hazards, vulnerabilities, dependencies, consequences, capabilities, gaps, and priorities.</p></div></div>
-          <div class="guidance-step-card"><span>3</span><div><strong>Coordinate</strong><p>Bring the right Protected Member and Salus roles together around persisted priorities, messages, requests, decisions, and authority.</p></div></div>
-          <div class="guidance-step-card"><span>4</span><div><strong>Act</strong><p>Move authorized work into SalOPS assignments, handoffs, operational support, completion evidence, and exceptions.</p></div></div>
-          <div class="guidance-step-card"><span>5</span><div><strong>Prove</strong><p>Preserve evidence, audit/version history, reports, closure, lessons learned, and reassessment triggers.</p></div></div>
+          <div class="guidance-step-card stage-see"><span>1</span><div><strong>See — needs understanding</strong><p>Red marks an unverified condition requiring attention. Collect observations and develop qualified intelligence with source, confidence, validation, and lifecycle context.</p></div></div>
+          <div class="guidance-step-card stage-decide"><span>2</span><div><strong>Decide — direction authorized</strong><p>Orange marks leadership evaluation. Use SalTHIRA to understand risk and priorities so authorized people can decide what should happen.</p></div></div>
+          <div class="guidance-step-card stage-coordinate"><span>3</span><div><strong>Coordinate — resources aligned</strong><p>Yellow marks active alignment of Protected Member and Salus roles, responsibilities, resources, dependencies, decisions, and timing.</p></div></div>
+          <div class="guidance-step-card stage-act"><span>4</span><div><strong>Act — protection being implemented</strong><p>Light green marks approved protective action underway through SalOPS assignments, handoffs, operational support, completion evidence, and exceptions.</p></div></div>
+          <div class="guidance-step-card stage-prove"><span>5</span><div><strong>Prove — protection demonstrated</strong><p>Full green marks the highest reasonably achievable, currently evidenced protective condition within the authorized scope and operating conditions—not absolute safety.</p></div></div>
         </div>
       </div>`;
   }
