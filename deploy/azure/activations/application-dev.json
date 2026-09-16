@@ -2,7 +2,6 @@
   "schema_version": 1,
   "operation": "deploy_application",
   "target_environment": "dev",
-  "repository": "salcapa",
   "location": "southcentralus",
   "unique_suffix": "b48224",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
