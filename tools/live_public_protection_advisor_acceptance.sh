@@ -90,9 +90,9 @@ STAGE="submission and notifications"
 jq -nc --arg email "$EMAIL" '{organization_name:"Salus Fictional Acceptance Organization",contact_name:"Fictional Acceptance Reviewer",contact_email:$email,detailed_assessment_acknowledged:true,identifiable_retention_consent:true,facility_scope:"Multiple facilities",facility_locations:"Fictional locations only",personnel_range:"101-500",affected_population_range:"501-2,000",annual_revenue_range:"$25M-$100M",specific_activities:["Hazardous materials, fuels, chemicals, or regulated waste","Sensitive information, technology, research, or intellectual property"],essential_functions:"Fictional essential operations",maximum_tolerable_downtime:"24 hours",existing_program_maturity:"Developing",internal_implementation_capacity:"Limited",primary_objective:"Prioritize protection improvements",external_requirements:"Contractual and regulatory requirements",recent_concerns:"Fictional acceptance concerns",desired_timing:"Within 90 days",decision_authority:"Executive leadership",investment_range:"$50,000-$150,000"}' > "$WORK/submit.json"
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
   -d @"$WORK/submit.json" "$BASE/public/protection-advisor/submit" > "$WORK/submit-result.json"
-jq -e '.submitted==true and .result.status=="Preliminary — Salus Review Required" and (.package.capabilities_considered|length)==32 and (.package.services|length)>0 and ([.notifications[].state]|all(.=="Delivered"))' "$WORK/submit-result.json" >/dev/null
+jq -e '.submitted==true and .result.status=="Preliminary — Salus Review Required" and .package.core_capabilities_considered==32 and (.package.services|length)>0 and ([.package.services[].level]|all(.>=1 and .<=3)) and ([.notifications[].state]|all(.=="Delivered"))' "$WORK/submit-result.json" >/dev/null
 
-SUMMARY="$(jq -c '{submitted,result_status:.result.status,capabilities:(.package.capabilities_considered|length),services:[.package.services[]|{title,level}],notifications}' "$WORK/submit-result.json")"
+SUMMARY="$(jq -c '{submitted,result_status:.result.status,capabilities:.package.core_capabilities_considered,services:[.package.services[]|{title,level}],notifications}' "$WORK/submit-result.json")"
 
 STAGE="test content deletion"
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
