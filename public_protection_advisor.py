@@ -178,6 +178,8 @@ class SubmitCommand(BaseModel):
     organization_name: str = Field(min_length=1, max_length=160)
     contact_name: str = Field(min_length=1, max_length=160)
     contact_email: str = Field(min_length=3, max_length=254)
+    detailed_assessment_acknowledged: bool
+    identifiable_retention_consent: bool
     facility_scope: str = Field(min_length=1, max_length=80)
     facility_locations: str = Field(default="", max_length=1500)
     personnel_range: str = Field(min_length=1, max_length=80)
