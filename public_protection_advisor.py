@@ -639,6 +639,46 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
     }
 
 
+def _salus_theme_css() -> str:
+    """Shared Salus website heading, masthead, and action-link convention."""
+    return """
+:root{--blue:#427799;--ink:#1e242e;--orange:#cf5626;--line:#d8e0e6;--soft:#f7f9fa}*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--ink);font:18px/1.55 Georgia,"Times New Roman",serif}
+main{max-width:1080px;margin:auto;padding:48px 32px 80px}
+.salus-header{margin-bottom:62px}.salus-brand{display:flex;align-items:center;gap:16px;color:#000;text-decoration:none;font:400 30px/1.35 Arial,Helvetica,sans-serif;letter-spacing:.3px}
+.salus-brand img{width:70px;height:70px;object-fit:contain}.salus-nav{display:flex;flex-wrap:wrap;gap:14px 26px;margin:28px 0 0}
+.salus-nav a{color:var(--orange);text-decoration:none;font:400 18px/1.4 Arial,Helvetica,sans-serif;letter-spacing:.08em}.salus-nav a[aria-current=page]{color:var(--ink)}
+h1,h2,h3{font-family:Arial,Helvetica,sans-serif;font-weight:300;color:var(--ink)}
+h1{font-size:56px;line-height:1;color:var(--blue);margin:0 0 26px}h2{font-size:32px;line-height:1.4;margin:36px 0 20px}h3{font-size:28px;line-height:1.4;margin:28px 0 14px}
+a{color:var(--orange)}a:hover,a:focus-visible{text-decoration:underline;text-underline-offset:4px}
+@media(max-width:700px){main{padding:30px 20px 64px}.salus-header{margin-bottom:42px}.salus-brand{font-size:27px}.salus-brand img{width:60px;height:60px}.salus-nav{gap:12px 18px;margin-top:22px}.salus-nav a{font-size:16px}h1{font-size:42px;line-height:1.08}h2{font-size:29px}h3{font-size:25px}}
+"""
+
+
+def _salus_header() -> str:
+    return """<header class="salus-header">
+<a class="salus-brand" href="https://www.salus.solutions/"><img src="/static/salus-reticle.svg" alt="Salus Solutions reticle"><span>Salus Solutions</span></a>
+<nav class="salus-nav" aria-label="Salus Solutions">
+<a href="https://www.salus.solutions/">Home</a>
+<a href="https://www.salus.solutions/how-salus-works">How Salus Works</a>
+<a href="https://www.salus.solutions/protection-advisor" aria-current="page">Protection Advisor &gt;</a>
+<a href="https://www.salus.solutions/salcapa">SalCAPA &gt;</a>
+<a href="https://www.salus.solutions/salintel">SalINTEL &gt;</a>
+<a href="https://www.salus.solutions/salthira">SalTHIRA &gt;</a>
+<a href="https://www.salus.solutions/salops">SalOPS &gt;</a>
+<a href="https://www.salus.solutions/about">About Salus</a>
+<a href="https://www.salus.solutions/contact">Contact</a>
+</nav></header>"""
+
+
+def _verification_page() -> str:
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Email Verified | Protection Advisor</title><style>{_salus_theme_css()}</style></head><body><main>{_salus_header()}
+<p class="eyebrow">Protection Advisor Account</p><h1>Email verified</h1>
+<h2>Your Part Two account is ready</h2><p>Your assessment and submitted results remain associated with your account under the consented retention policy. Security links and browser sessions expire; your retained assessment result does not expire with them.</p>
+<p><a href="/protection-advisor">Return to Protection Advisor &gt;</a></p></main></body></html>"""
+
+
 def _page() -> str:
     options = "".join(f'<option value="{html.escape(item)}">{html.escape(item)}</option>' for item in sorted(ORGANIZATION_TYPES))
     activities = "".join(
@@ -648,21 +688,16 @@ def _page() -> str:
     return """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Protection Advisor | Salus Solutions</title>
-<style>
-:root{--blue:#477d9f;--ink:#14283a;--orange:#d9571e;--line:#d8e0e6;--soft:#f7f9fa}*{box-sizing:border-box}
-body{margin:0;background:#fff;color:var(--ink);font:18px/1.55 Georgia,serif}main{max-width:980px;margin:auto;padding:48px 28px 80px}
-h1,h2,h3,button,label,select,input,textarea{font-family:Arial,sans-serif}h1{font-size:3rem;font-weight:300;color:var(--blue);margin:.2rem 0}
-h2{font-weight:400;font-size:1.9rem;margin-top:2rem}.brand{font:28px Arial,sans-serif;color:#111;margin-bottom:44px;display:flex;align-items:center;gap:14px}
-.brand img{width:58px;height:58px;object-fit:contain}.muted{color:#536675}.panel{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
-label{display:block;font-weight:600;margin:18px 0 7px}select,input[type=text],input[type=email],textarea{width:100%;font-size:1rem;padding:13px;border:1px solid #8d9aa3;border-radius:2px}
-textarea{min-height:100px}.check,.choice{display:flex;gap:12px;align-items:flex-start;font-family:Georgia,serif;font-weight:400}.check input,.choice input{margin-top:7px}
-button,.action{border:0;background:none;color:var(--orange);font:1.05rem Arial,sans-serif;padding:14px 0;cursor:pointer;text-align:left;text-decoration:none;display:inline-block;margin-right:26px}
+<style>__SALUS_THEME__
+button,label,select,input,textarea{font-family:Arial,Helvetica,sans-serif}.muted{color:#536675}.panel{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
+label{display:block;font-weight:600;margin:18px 0 7px}select,input[type=text],input[type=email],input[type=password],textarea{width:100%;font-size:1rem;padding:13px;border:1px solid #8d9aa3;border-radius:2px}
+textarea{min-height:100px}.check,.choice{display:flex;gap:12px;align-items:flex-start;font-family:Georgia,"Times New Roman",serif;font-weight:400}.check input,.choice input{margin-top:7px}
+button,.action{border:0;background:none;color:var(--orange);font:1.05rem Arial,Helvetica,sans-serif;padding:14px 0;cursor:pointer;text-align:left;text-decoration:none;display:inline-block;margin-right:26px}
 button:disabled{color:#888;cursor:not-allowed}.question{padding:20px 0;border-bottom:1px solid var(--line)}.choices{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}
 .choices label{font-weight:400;margin:0}.hidden{display:none}.error{color:#a12612}.result{background:var(--soft);padding:24px;margin-top:24px}.route{border-left:3px solid var(--blue);padding:4px 20px;margin:28px 0}
-.package-item{padding:16px 0;border-bottom:1px solid var(--line)}.eyebrow{font:700 .78rem Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
-@media(max-width:600px){body{font-size:17px}main{padding:28px 20px}h1{font-size:2.4rem}}
+.package-item{padding:16px 0;border-bottom:1px solid var(--line)}.eyebrow{font:700 .78rem Arial,Helvetica,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
 </style></head><body><main>
-<div class="brand"><img src="/static/salus-reticle.svg" alt="Salus Solutions reticle"> Salus Solutions</div>
+__SALUS_HEADER__
 <h1>Protection Advisor™</h1><p class="muted">Find Your Salus Package</p>\n<p><a class="action" href="#accountAccess" onclick="openAccountLogin(event)">Return to Your Part Two Assessment &gt;</a></p>
 <h2>Part One — Anonymous Protection Readiness Review</h2>
 <p>Learn what may deserve attention without providing your name, email address, or organization name. Your anonymous answers produce an immediate preliminary summary.</p>
@@ -754,7 +789,7 @@ async function saveDraft(){draftStatus.textContent="Saving…";try{const data=aw
 async function logoutAccount(){try{await call("/public/protection-advisor/logout",{method:"POST",body:"{}"})}finally{location.reload()}}
 async function submitProfile(){submitError.textContent="";try{const selected=[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value);const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:selected,essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value})});profile.classList.add("hidden");const p=data.package;package.classList.remove("hidden");package.innerHTML='<p class="eyebrow">Tailored Preliminary Salus Package</p>'+packageMarkup(p);package.scrollIntoView({behavior:"smooth"})}catch(x){submitError.textContent=x.message}}
 const resetToken=new URLSearchParams(location.search).get("reset_token");if(resetToken){accountAccess.classList.remove("hidden");resetPanel.classList.remove("hidden");}
-</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities)
+</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header())
 
 
 def _service_catalog_page() -> str:
@@ -764,11 +799,9 @@ def _service_catalog_page() -> str:
         for _, title, summary in SERVICE_CATALOG
     )
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Individual Salus Services | Protection Advisor</title><style>
-:root{{--blue:#477d9f;--orange:#d9571e;--ink:#14283a;--line:#d8e0e6}}*{{box-sizing:border-box}}body{{margin:0;color:var(--ink);font:18px/1.55 Georgia,serif}}
-main{{max-width:980px;margin:auto;padding:48px 28px 80px}}header{{display:flex;align-items:center;gap:14px;font:28px Arial,sans-serif;margin-bottom:42px}}header img{{width:58px;height:58px}}
-h1,h2,a{{font-family:Arial,sans-serif}}h1{{font-size:3rem;font-weight:300;color:var(--blue)}}h2{{font-weight:400}}a{{color:var(--orange);text-decoration:none}}.service{{padding:20px 0;border-bottom:1px solid var(--line)}}
-</style></head><body><main><header><img src="/static/salus-reticle.svg" alt="Salus Solutions reticle">Salus Solutions</header>
+<title>Individual Salus Services | Protection Advisor</title><style>{{_salus_theme_css()}}
+.service{{padding:20px 0;border-bottom:1px solid var(--line)}}.service h2{{margin-bottom:8px}}
+</style></head><body><main>{{_salus_header()}}
 <p><a href="/protection-advisor">&lt; Protection Advisor</a></p><h1>Individual Salus Services</h1>
 <p>Explore services directly without completing the confidential Organization and Service Profile. A Salus professional will confirm scope, deliverables, schedule, and pricing before any engagement.</p>
 {items}</main></body></html>"""
@@ -1071,13 +1104,11 @@ def _review_page(rows: list[dict[str, Any]]) -> str:
         )
     rows_html = "".join(body_rows) or "<tr><td colspan='6'>No Protection Advisor submissions yet.</td></tr>"
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Protection Advisor Review | Salus Solutions</title><style>
-:root{{--orange:#dc4f17;--blue:#477fa4;--ink:#172938;--line:#dce3e8}}*{{box-sizing:border-box}}body{{margin:0;background:#fff;color:var(--ink);font:17px/1.55 Georgia,serif}}
-main{{max-width:1180px;margin:auto;padding:44px 28px 80px}}header{{display:flex;align-items:center;gap:18px;margin-bottom:42px}}header img{{width:66px;height:66px;object-fit:contain}}
-.brand{{font:30px Arial,sans-serif;color:#111}}h1{{font:300 2.7rem Arial,sans-serif;color:var(--blue)}}table{{width:100%;border-collapse:collapse}}th,td{{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}}
-th{{font:600 .85rem Arial,sans-serif;text-transform:uppercase}}a{{color:var(--orange);text-decoration:none}}.notice{{background:#f6f8fa;padding:14px 18px;border-left:3px solid var(--blue)}}
+<title>Protection Advisor Review | Salus Solutions</title><style>{{_salus_theme_css()}}
+main{{max-width:1180px}}table{{width:100%;border-collapse:collapse}}th,td{{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}}
+th{{font:600 .85rem Arial,Helvetica,sans-serif;text-transform:uppercase}}.notice{{background:#f6f8fa;padding:14px 18px;border-left:3px solid var(--blue)}}
 @media(max-width:760px){{table,thead,tbody,tr,th,td{{display:block}}thead{{display:none}}tr{{margin:18px 0;border:1px solid var(--line)}}}}
-</style></head><body><main><header><img src="/static/salus-reticle.svg" alt="Salus Solutions reticle"><div class="brand">Salus Solutions</div></header>
+</style></head><body><main>{{_salus_header()}}
 <h1>Protection Advisor Review</h1><p class="notice">Authorized Salus review workspace. Prospect records remain separate from Protected Member tenant records until an authorized person completes the governed intake decision.</p>
 <table><thead><tr><th>Submitted</th><th>Organization</th><th>Contact</th><th>Recommendation</th><th>Status</th><th>Notification</th></tr></thead><tbody>{rows_html}</tbody></table>
 <p><a href="/">&lt; SalCAPA Command Center</a></p></main></body></html>"""
@@ -1091,16 +1122,16 @@ def _review_detail(row: dict[str, Any]) -> str:
         for key, value in answers.items()
     )
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Protection Advisor Submission | Salus Solutions</title><style>
-body{{max-width:900px;margin:auto;padding:42px 26px 80px;color:#172938;font:17px/1.55 Georgia,serif}}header{{display:flex;align-items:center;gap:16px}}header img{{width:62px;height:62px;object-fit:contain}}h1{{font:300 2.5rem Arial,sans-serif;color:#477fa4}}h2{{font:400 1.55rem Arial,sans-serif}}a,button{{color:#dc4f17}}table{{width:100%;border-collapse:collapse}}td{{padding:11px;border-bottom:1px solid #dce3e8;vertical-align:top}}
-.notice{{background:#f6f8fa;padding:14px 18px;border-left:3px solid #477fa4}}</style></head><body>
-<header><img src="/static/salus-reticle.svg" alt="Salus Solutions reticle"><strong>Salus Solutions</strong></header>
+<title>Protection Advisor Submission | Salus Solutions</title><style>{{_salus_theme_css()}}
+main{{max-width:960px}}table{{width:100%;border-collapse:collapse}}td{{padding:11px;border-bottom:1px solid var(--line);vertical-align:top}}
+.notice{{background:#f6f8fa;padding:14px 18px;border-left:3px solid var(--blue)}}</style></head><body><main>
+{{_salus_header()}}
 <p><a href="/protection-advisor/review">&lt; All submissions</a></p><h1>{html.escape(row['organization_name'])}</h1>
 <p><strong>Contact:</strong> {html.escape(row['contact_name'])} · <a href="mailto:{html.escape(row['contact_email'])}">{html.escape(row['contact_email'])}</a><br>
 <strong>Submitted:</strong> {html.escape(row['created_at'])}<br><strong>Status:</strong> {html.escape(row['status'])}</p>
 <h2>Preliminary result</h2><p class="notice"><strong>{html.escape(result.get('recommendation',''))}</strong><br>{html.escape(result.get('notice',''))}</p>
 <p>Potential attention areas: {int(result.get('attention_count',0))}. Information gaps: {int(result.get('information_gap_count',0))}.</p>
-<h2>Assessment answers</h2><table>{answer_rows}</table></body></html>"""
+<h2>Assessment answers</h2><table>{answer_rows}</table></main></body></html>"""
 
 
 def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
@@ -1288,10 +1319,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             )
             conn.commit()
             return HTMLResponse(
-                "<!doctype html><html><body><main><h1>Email verified</h1>"
-                "<p>Your Protection Advisor Part Two account is verified.</p>"
-                "<p><a href='/protection-advisor'>Return to Protection Advisor &gt;</a></p>"
-                "</main></body></html>",
+                _verification_page(),
                 headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
             )
         finally:
