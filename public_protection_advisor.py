@@ -573,6 +573,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             snapshot = {key:{"answer_state":value["answer_state"],"note":value["note"],"revision_no":value["revision_no"],"content_sha256":value["content_sha256"]} for key,value in sorted(answers.items())}
             result = _result(questions, answers)
             created = _utc_text(_utc_now())
+            submission_key = "SPA-SUBMISSION-" + secrets.token_hex(16).upper()
             conn.execute(
                 """INSERT INTO advisor_public_submissions
                 (submission_key,session_key,organization_name,contact_name,contact_email,
@@ -580,7 +581,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                  recommendation_version,consent_notice_version,retention_policy_version,
                  secondary_deidentified_consent,result_json,status,created_at)
                  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                ("SPA-SUBMISSION-"+secrets.token_hex(16).upper(),session["session_key"],
+                (submission_key,session["session_key"],
                  command.organization_name,command.contact_name,command.contact_email,
                  _json(snapshot),_sha(_json(snapshot)),QUESTIONNAIRE_VERSION,RECOMMENDATION_VERSION,
                  CONSENT_NOTICE_VERSION,RETENTION_POLICY_VERSION,
