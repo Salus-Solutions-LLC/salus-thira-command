@@ -520,7 +520,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             }
             {
               name: 'SALUS_ADVISOR_NOTIFICATION_FROM'
-              value: 'mduncan@salus.solutions'
+              value: 'protectionadvisor@salus.solutions'
             }
             {
               name: 'SALUS_ADVISOR_NOTIFICATION_TO'
