@@ -26,10 +26,11 @@ with tempfile.TemporaryDirectory() as td:
     app_module=importlib.import_module("app")
     from fastapi.testclient import TestClient
     from public_protection_advisor import (
-        CORE_CAPABILITIES, QUESTION_BLUEPRINTS, _package_recommendation,
+        CORE_CAPABILITIES, NOTIFICATION_FROM, QUESTION_BLUEPRINTS, _package_recommendation,
         _questions, _review_detail, _review_page,
     )
 
+    assert NOTIFICATION_FROM=="mduncan@salus.solutions"
     assert len(CORE_CAPABILITIES)==32
     assert {cap for row in QUESTION_BLUEPRINTS for cap in row[3]}==set(CORE_CAPABILITIES)
     assert set(area for areas in CORE_CAPABILITIES.values() for area in areas)=={
