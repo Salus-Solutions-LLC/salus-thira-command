@@ -106,6 +106,7 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import json
           import re
 
           infrastructure = '\n'.join(
@@ -444,21 +445,74 @@ jobs:
               raise SystemExit('Database-bootstrap command may not contain a long-lived credential path')
 
           application_deployment = Path('.github/workflows/azure-application-deploy.yml').read_text()
+          application_activation = json.loads(
+              Path('deploy/azure/activations/application-dev.json').read_text()
+          )
+          application_activation_keys = {
+              'activation_key',
+              'approval_record',
+              'image_digest',
+              'location',
+              'operation',
+              'rollback_commit',
+              'rollback_image_digest',
+              'rollback_release',
+              'schema_version',
+              'source_commit',
+              'source_release',
+              'target_environment',
+              'unique_suffix',
+          }
+          if set(application_activation) != application_activation_keys:
+              raise SystemExit('Azure application activation schema is not exact')
+          for key, expected in (
+              ('schema_version', 1),
+              ('operation', 'deploy_application'),
+              ('target_environment', 'dev'),
+              ('location', 'southcentralus'),
+              ('unique_suffix', 'b48224'),
+              ('approval_record', 'MD-APPROVAL-AZURE-LEAN-20260904'),
+          ):
+              if application_activation[key] != expected:
+                  raise SystemExit(
+                      f'Azure application activation has invalid {key}: '
+                      + repr(application_activation[key])
+                  )
+          release_pattern = re.compile(r'^release/v3\.[0-9]+$')
+          commit_pattern = re.compile(r'^[0-9a-f]{40}$')
+          image_pattern = re.compile(
+              r'^salcapadevb48224acr\.azurecr\.io/salcapa@sha256:[0-9a-f]{64}$'
+          )
+          for key in ('source_release', 'rollback_release'):
+              if not release_pattern.fullmatch(application_activation[key]):
+                  raise SystemExit(f'Azure application activation has invalid {key}')
+          for key in ('source_commit', 'rollback_commit'):
+              if not commit_pattern.fullmatch(application_activation[key]):
+                  raise SystemExit(f'Azure application activation has invalid {key}')
+          for key in ('image_digest', 'rollback_image_digest'):
+              if not image_pattern.fullmatch(application_activation[key]):
+                  raise SystemExit(f'Azure application activation has invalid {key}')
+          for current_key, rollback_key in (
+              ('source_release', 'rollback_release'),
+              ('source_commit', 'rollback_commit'),
+              ('image_digest', 'rollback_image_digest'),
+          ):
+              if application_activation[current_key] == application_activation[rollback_key]:
+                  raise SystemExit(
+                      f'Azure application activation must distinguish {current_key}'
+                  )
+          expected_activation_key = (
+              f"salcapa-{application_activation['source_release'].removeprefix('release/')}"
+              f"-application-{application_activation['source_commit'][:8]}"
+          )
+          if application_activation['activation_key'] != expected_activation_key:
+              raise SystemExit('Azure application activation key does not match source identity')
           application_deployment_required = [
               'deploy/azure/activations/application-dev.json',
               'environment: salcapa-dev-approval',
               'permissions: {}',
               'needs: authorize',
               'id-token: write',
-              'ref: release/v3.119',
-              'ref: release/v3.118',
-              '.source_release == "release/v3.119"',
-              '.source_commit == "3c0196150119782f8d17ba233b5e87becac766a8"',
-              '.activation_key == "salcapa-v3.119-application-3c019615"',
-              '.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:2fba5f158a1575f7e60f69d91044721203482a0b9ec8300caf43d636b45dc4f9"',
-              '.rollback_release == "release/v3.118"',
-              '.rollback_commit == "830f71688c1a1419b740e17840204ae6f37e6c72"',
-              '.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:cbd0160333c55d738281d3d1597ca18273ad0c2d4a84d9cc092e6f2e6a12eb5c"',
               'path: frozen-release',
               'path: accepted-release',
               'git -C frozen-release rev-parse HEAD',
@@ -520,6 +574,32 @@ jobs:
               'Custom DNS: not changed',
               'Public production cutover: not performed',
           ]
+          application_deployment_required.extend([
+              f"ref: {application_activation['source_release']}",
+              f"ref: {application_activation['rollback_release']}",
+              f".source_release == \"{application_activation['source_release']}\"",
+              f".source_commit == \"{application_activation['source_commit']}\"",
+              f".activation_key == \"{application_activation['activation_key']}\"",
+              f".image_digest == \"{application_activation['image_digest']}\"",
+              f".rollback_release == \"{application_activation['rollback_release']}\"",
+              f".rollback_commit == \"{application_activation['rollback_commit']}\"",
+              f".rollback_image_digest == \"{application_activation['rollback_image_digest']}\"",
+              (
+                  'Restore accepted '
+                  + application_activation['rollback_release'].removeprefix('release/')
+                  + ' if promotion verification fails'
+              ),
+              (
+                  'Accepted immutable '
+                  + application_activation['rollback_release'].removeprefix('release/')
+                  + ' image restored'
+              ),
+              (
+                  'Failed promotion did not restore the accepted '
+                  + application_activation['rollback_release'].removeprefix('release/')
+                  + ' runtime.'
+              ),
+          ])
           missing_application_deployment = [
               value for value in application_deployment_required
               if value not in application_deployment
