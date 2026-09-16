@@ -30,13 +30,13 @@ jobs:
         run: |
           set -euo pipefail
           jq -e '
-            (.activation_key == "salcapa-v3.121-application-f0cee634") and
-            (.source_release == "release/v3.121") and
-            (.source_commit == "f0cee634a93cecb4ee298b53edadcaa9c4034a6e") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:218e6bd6d3b134615e9a0df8c293435eb40fb61e980ed22ec1c053ac016bd2c6") and
-            (.rollback_release == "release/v3.120") and
-            (.rollback_commit == "feffb4644368c77c7c55ce613b1177d235474356") and
-            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:7c4759a126a57fbd8646b4e2b5b95ad73ca3c411d0dec063538ce98b8c623008")
+            (.activation_key == "salcapa-v3.122-application-e84e19d7") and
+            (.source_release == "release/v3.122") and
+            (.source_commit == "e84e19d77cef1b39d605260ae2fbe836e95888e4") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9") and
+            (.rollback_release == "release/v3.121") and
+            (.rollback_commit == "f0cee634a93cecb4ee298b53edadcaa9c4034a6e") and
+            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:218e6bd6d3b134615e9a0df8c293435eb40fb61e980ed22ec1c053ac016bd2c6")
           ' deploy/azure/activations/application-dev.json >/dev/null
 
       - name: Exercise public consent, account, resume, package, and review handoff
