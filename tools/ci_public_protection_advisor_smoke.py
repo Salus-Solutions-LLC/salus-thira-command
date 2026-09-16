@@ -32,6 +32,7 @@ with tempfile.TemporaryDirectory() as td:
     assert "Protection Advisor" in page.text
     assert "optional" in page.text.casefold()
     assert "preliminary" in page.text.casefold()
+    assert "/static/salus-reticle.svg" in page.text
 
     refused=client.post("/public/protection-advisor/session",json={
         "organization_type":"Business",
@@ -75,6 +76,11 @@ with tempfile.TemporaryDirectory() as td:
     assert result["attention_count"]==4
     assert result["information_gap_count"]==1
     assert "human-controlled" in result["manual_next_step"]
+    notifications=submitted.json()["notifications"]
+    assert len(notifications)==2
+    assert {row["audience"] for row in notifications}=={"Participant","Salus Reviewer"}
+    assert all(row["state"]=="Pending" for row in notifications)
+    assert all(row["error_code"]=="delivery_not_configured" for row in notifications)
 
     conn=sqlite3.connect(db_path)
     conn.row_factory=sqlite3.Row
@@ -87,13 +93,28 @@ with tempfile.TemporaryDirectory() as td:
     assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-1.0.0"
     assert len(submission["answer_snapshot_sha256"])==64
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_answer_revisions").fetchone()[0]==len(questions)
+    outbox=conn.execute("SELECT * FROM advisor_public_notification_outbox ORDER BY audience").fetchall()
+    assert len(outbox)==2
+    assert all(row["attempts"]==1 for row in outbox)
+    assert all("Assessment answers are intentionally not included in email." in row["body_text"] for row in outbox if row["audience"]=="Salus Reviewer")
+    submission_key=submission["submission_key"]
     conn.close()
+
+    review=client.get("/protection-advisor/review")
+    assert review.status_code==200,review.text
+    assert "Public Pilot Organization" in review.text
+    assert "/static/salus-reticle.svg" in review.text
+    detail=client.get(f"/protection-advisor/review/{submission_key}")
+    assert detail.status_code==200,detail.text
+    assert "Assessment Contact" in detail.text
+    assert "Risk List" in detail.text
 
     deleted=client.post("/public/protection-advisor/delete",headers=headers,json={})
     assert deleted.status_code==200,deleted.text
     conn=sqlite3.connect(db_path)
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_submissions").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_answer_revisions").fetchone()[0]==0
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_notification_outbox").fetchone()[0]==0
     assert conn.execute("SELECT status FROM advisor_public_sessions").fetchone()[0]=="Deleted"
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_lifecycle_events").fetchone()[0]>=3
     conn.close()
