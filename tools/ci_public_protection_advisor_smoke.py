@@ -33,6 +33,12 @@ with tempfile.TemporaryDirectory() as td:
     assert "optional" in page.text.casefold()
     assert "preliminary" in page.text.casefold()
     assert "/static/salus-reticle.svg" in page.text
+    assert "Anonymous Protection Readiness Review" in page.text
+    assert "Explore Individual Salus Services" in page.text
+    catalog=client.get("/protection-advisor/services")
+    assert catalog.status_code==200
+    assert "Salus THIRA Assessment" in catalog.text
+    assert "Business Continuity and Recovery" in catalog.text
 
     refused=client.post("/public/protection-advisor/session",json={
         "organization_type":"Business",
@@ -73,10 +79,28 @@ with tempfile.TemporaryDirectory() as td:
         })
         assert saved.status_code==200,(q,saved.text)
 
+    preliminary=client.post("/public/protection-advisor/preliminary",headers=headers,json={})
+    assert preliminary.status_code==200,preliminary.text
+    assert preliminary.json()["anonymous"] is True
+    assert preliminary.json()["result"]["attention_count"]==4
+
     submitted=client.post("/public/protection-advisor/submit",headers=headers,json={
         "organization_name":"Public Pilot Organization",
         "contact_name":"Assessment Contact",
         "contact_email":"contact@example.com",
+        "facility_scope":"Several facilities",
+        "facility_locations":"Central Texas",
+        "personnel_range":"101–500",
+        "annual_revenue_range":"$25 million–$100 million",
+        "specific_activities":[
+            "Precious metals or other high-value materials",
+            "Hazardous materials, fuels, chemicals, or regulated waste",
+        ],
+        "essential_functions":"Manufacturing and secure fulfillment",
+        "recent_concerns":"Continuity and competing resources",
+        "desired_timing":"Within 90 days",
+        "decision_authority":"Executive leadership",
+        "investment_range":"Need phased options",
     })
     assert submitted.status_code==200,submitted.text
     result=submitted.json()["result"]
@@ -84,6 +108,11 @@ with tempfile.TemporaryDirectory() as td:
     assert result["attention_count"]==4
     assert result["information_gap_count"]==1
     assert "human-controlled" in result["manual_next_step"]
+    package=submitted.json()["package"]
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-1.0.0"
+    package_keys={item["key"] for item in package["services"]}
+    assert {"salthira","facility","protective_intelligence","continuity"}.issubset(package_keys)
+    assert "Subject to Salus Professional Review" in package["notice"]
     notifications=submitted.json()["notifications"]
     assert len(notifications)==2
     assert {row["audience"] for row in notifications}=={"Participant","Salus Reviewer"}
@@ -101,6 +130,9 @@ with tempfile.TemporaryDirectory() as td:
     assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-1.1.0"
     assert len(submission["answer_snapshot_sha256"])==64
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_answer_revisions").fetchone()[0]==len(questions)
+    profile=conn.execute("SELECT * FROM advisor_public_service_profiles").fetchone()
+    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-1.0.0"
+    assert len(profile["profile_sha256"])==64
     outbox=conn.execute("SELECT * FROM advisor_public_notification_outbox ORDER BY audience").fetchall()
     assert len(outbox)==2
     assert all(row["attempts"]==1 for row in outbox)
@@ -129,6 +161,7 @@ with tempfile.TemporaryDirectory() as td:
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_submissions").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_answer_revisions").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_notification_outbox").fetchone()[0]==0
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_service_profiles").fetchone()[0]==0
     assert conn.execute("SELECT status FROM advisor_public_sessions").fetchone()[0]=="Deleted"
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_lifecycle_events").fetchone()[0]>=3
     conn.close()
