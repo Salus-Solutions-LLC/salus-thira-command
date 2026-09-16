@@ -47,7 +47,7 @@ with tempfile.TemporaryDirectory() as td:
     assert "Anonymous Protection Readiness Review" in page.text
     assert "Understand the detailed assessment" in page.text
     assert "answer truthfully from my current knowledge" in page.text
-    assert "Return to Your Part Two Assessment" in page.text
+    assert "Return to Your Part 2 Assessment" in page.text
     assert 'onchange="saveAnswer(this.name,this.value)"' in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
     assert "Level '+s.level" in page.text
