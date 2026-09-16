@@ -7,6 +7,7 @@ append-only answer lineage. Recommendations are preliminary and non-binding.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import html
 import json
 import os
@@ -173,6 +174,56 @@ class AnswerCommand(BaseModel):
         return value.strip()
 
 
+class AccountCreateCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=12, max_length=200)
+    detailed_assessment_acknowledged: bool
+    identifiable_retention_consent: bool
+
+    @field_validator("email")
+    @classmethod
+    def email_shape(cls, value: str) -> str:
+        value = value.strip().casefold()
+        if value.count("@") != 1 or "." not in value.rsplit("@", 1)[-1]:
+            raise ValueError("enter a valid email address")
+        return value
+
+
+class AccountLoginCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=12, max_length=200)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().casefold()
+
+
+class DraftCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    fields: dict[str, Any]
+
+    @field_validator("fields")
+    @classmethod
+    def valid_fields(cls, value: dict[str, Any]) -> dict[str, Any]:
+        allowed = {
+            "organization_name", "contact_name", "contact_email", "facility_scope",
+            "facility_locations", "personnel_range", "affected_population_range",
+            "annual_revenue_range", "specific_activities", "essential_functions",
+            "maximum_tolerable_downtime", "existing_program_maturity",
+            "internal_implementation_capacity", "primary_objective",
+            "external_requirements", "recent_concerns", "desired_timing",
+            "decision_authority", "investment_range",
+        }
+        if set(value) - allowed:
+            raise ValueError("unsupported draft field")
+        if len(_json(value)) > 20000:
+            raise ValueError("draft is too large")
+        return value
+
+
 class SubmitCommand(BaseModel):
     model_config = ConfigDict(extra="forbid")
     organization_name: str = Field(min_length=1, max_length=160)
@@ -243,6 +294,21 @@ def _sha(value: str) -> str:
 
 def _json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def _password_hash(password: str, salt_hex: str) -> str:
+    return hashlib.scrypt(
+        password.encode("utf-8"),
+        salt=bytes.fromhex(salt_hex),
+        n=2 ** 14,
+        r=8,
+        p=1,
+        dklen=32,
+    ).hex()
+
+
+def _password_matches(password: str, salt_hex: str, expected: str) -> bool:
+    return hmac.compare_digest(_password_hash(password, salt_hex), expected)
 
 
 STATE_NEED = {
