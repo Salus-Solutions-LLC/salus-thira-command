@@ -2,7 +2,9 @@ name: SalCAPA Demonstration Migration and Recovery Preflight
 
 on:
   push:
-    branches: [development/salcapa-platform]
+    branches:
+      - development/salcapa-platform
+      - 'candidate/**'
     paths:
       - 'tools/ci_salcapa_v336_migration_recovery_preflight.py'
       - 'tools/ci_recovery_rehearsal.py'
