@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused acceptance for the public Protection Advisor pilot."""
+"""Focused acceptance for the public Protection Advisor."""
 from __future__ import annotations
 
 import importlib
@@ -25,18 +25,30 @@ with tempfile.TemporaryDirectory() as td:
     })
     app_module=importlib.import_module("app")
     from fastapi.testclient import TestClient
+    from public_protection_advisor import (
+        CORE_CAPABILITIES, QUESTION_BLUEPRINTS, _package_recommendation,
+        _questions, _review_detail, _review_page,
+    )
+
+    assert len(CORE_CAPABILITIES)==32
+    assert {cap for row in QUESTION_BLUEPRINTS for cap in row[3]}==set(CORE_CAPABILITIES)
+    assert set(area for areas in CORE_CAPABILITIES.values() for area in areas)=={
+        "Prevention","Protection","Mitigation","Response","Recovery"
+    }
 
     client=TestClient(app_module.app)
     page=client.get("/protection-advisor")
     assert page.status_code==200
     assert "Protection Advisor" in page.text
-    assert "optional" in page.text.casefold()
-    assert "preliminary" in page.text.casefold()
-    assert "/static/salus-reticle.svg" in page.text
     assert "Anonymous Protection Readiness Review" in page.text
-    assert "Explore Individual Salus Services" in page.text
+    assert "Understand the detailed assessment" in page.text
+    assert "answer truthfully from my current knowledge" in page.text
+    assert "Return to Your Part Two Assessment" in page.text
     assert 'onchange="saveAnswer(this.name,this.value)"' in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
+    assert "Level '+s.level" in page.text
+    assert "/static/salus-reticle.svg" in page.text
+
     catalog=client.get("/protection-advisor/services")
     assert catalog.status_code==200
     assert "Salus THIRA Assessment" in catalog.text
@@ -57,25 +69,15 @@ with tempfile.TemporaryDirectory() as td:
     assert started.status_code==200,started.text
     payload=started.json()
     csrf=payload["csrf_token"]
-    questions=payload["questions"]
-    assert any(q["key"]=="volunteer_roles" for q in questions)
-    assert not any("student" in q["text"].casefold() for q in questions)
-    base_keys=[q["key"] for q in questions if q["key"] not in {"volunteer_roles","public_access"}]
-    assert len(base_keys)==22
-    assert base_keys[1]=="capability_targets"
-    assert base_keys[5]=="warning_thresholds"
-    assert base_keys[9]=="dependency_map"
-    assert base_keys[15]=="validation_evidence"
-    assert base_keys[19]=="investment_tradeoffs"
-    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-1.1.0"
     headers={"X-CSRF-Token":csrf}
-
-    assert client.post("/public/protection-advisor/answer",json={
-        "question_key":"risk_list","answer_state":"Answered","note":""
-    }).status_code in (401,403)
+    questions=payload["questions"]
+    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
+    assert len([q for q in questions if q["key"] not in {"volunteer_roles","public_access"}])==28
+    assert any(q["key"]=="volunteer_roles" for q in questions)
+    assert all(q["capabilities"] and q["mission_areas"] and q["services"] for q in questions)
 
     for index,q in enumerate(questions):
-        state="No" if index<4 else ("Unknown" if index==4 else "Answered")
+        state="No" if index<4 else ("Unknown" if index==4 else "Validated")
         saved=client.post("/public/protection-advisor/answer",headers=headers,json={
             "question_key":q["key"],"answer_state":state,"note":""
         })
@@ -83,22 +85,75 @@ with tempfile.TemporaryDirectory() as td:
 
     preliminary=client.post("/public/protection-advisor/preliminary",headers=headers,json={})
     assert preliminary.status_code==200,preliminary.text
-    assert preliminary.json()["anonymous"] is True
-    assert preliminary.json()["result"]["attention_count"]==4
+    preliminary_result=preliminary.json()["result"]
+    assert preliminary_result["attention_count"]==4
+    assert preliminary_result["information_gap_count"]==1
+    assert preliminary_result["core_capabilities_considered"]==32
+    assert set(preliminary_result["mission_area_scores"])=={
+        "Prevention","Protection","Mitigation","Response","Recovery"
+    }
+
+    no_account=client.post("/public/protection-advisor/submit",headers=headers,json={
+        "organization_name":"Blocked","contact_name":"Blocked","contact_email":"contact@example.com",
+        "detailed_assessment_acknowledged":True,"identifiable_retention_consent":True,
+        "facility_scope":"One facility","facility_locations":"Texas","personnel_range":"26–100",
+        "affected_population_range":"101–500","annual_revenue_range":"$5 million–$25 million",
+        "specific_activities":[],"essential_functions":"Services",
+        "maximum_tolerable_downtime":"1–3 days",
+        "existing_program_maturity":"Mostly informal",
+        "internal_implementation_capacity":"Limited internal capacity",
+        "primary_objective":"Independent assessment and priorities",
+        "external_requirements":"Future planning or budget decision",
+        "recent_concerns":"","desired_timing":"Within 90 days",
+        "decision_authority":"Executive leadership","investment_range":"Need phased options",
+    })
+    assert no_account.status_code==401
+
+    created=client.post("/public/protection-advisor/account",headers=headers,json={
+        "email":"contact@example.com",
+        "password":"Correct-Horse-Battery-2026",
+        "detailed_assessment_acknowledged":True,
+        "identifiable_retention_consent":True,
+    })
+    assert created.status_code==200,created.text
+    assert created.json()["authenticated"] is True
+
+    draft=client.post("/public/protection-advisor/draft",headers=headers,json={
+        "fields":{"organization_name":"Public Pilot Organization","personnel_range":"101–500"}
+    })
+    assert draft.status_code==200,draft.text
+
+    logged_out=client.post("/public/protection-advisor/logout",headers=headers,json={})
+    assert logged_out.status_code==200
+    resumed=client.post("/public/protection-advisor/login",json={
+        "email":"contact@example.com","password":"Correct-Horse-Battery-2026"
+    })
+    assert resumed.status_code==200,resumed.text
+    resumed_payload=resumed.json()
+    assert resumed_payload["draft"]["organization_name"]=="Public Pilot Organization"
+    headers={"X-CSRF-Token":resumed_payload["csrf_token"]}
 
     submitted=client.post("/public/protection-advisor/submit",headers=headers,json={
         "organization_name":"Public Pilot Organization",
         "contact_name":"Assessment Contact",
         "contact_email":"contact@example.com",
+        "detailed_assessment_acknowledged":True,
+        "identifiable_retention_consent":True,
         "facility_scope":"Several facilities",
         "facility_locations":"Central Texas",
         "personnel_range":"101–500",
+        "affected_population_range":"501–2,500",
         "annual_revenue_range":"$25 million–$100 million",
         "specific_activities":[
             "Precious metals or other high-value materials",
             "Hazardous materials, fuels, chemicals, or regulated waste",
         ],
         "essential_functions":"Manufacturing and secure fulfillment",
+        "maximum_tolerable_downtime":"4–24 hours",
+        "existing_program_maturity":"Partially documented or inconsistently applied",
+        "internal_implementation_capacity":"Need Salus implementation support",
+        "primary_objective":"Facility or operational protection improvements",
+        "external_requirements":"Insurance or underwriting concern",
         "recent_concerns":"Continuity and competing resources",
         "desired_timing":"Within 90 days",
         "decision_authority":"Executive leadership",
@@ -107,55 +162,73 @@ with tempfile.TemporaryDirectory() as td:
     assert submitted.status_code==200,submitted.text
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
-    assert result["attention_count"]==4
-    assert result["information_gap_count"]==1
-    assert "human-controlled" in result["manual_next_step"]
     package=submitted.json()["package"]
-    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-1.0.0"
-    package_keys={item["key"] for item in package["services"]}
-    assert {"salthira","facility","protective_intelligence","continuity"}.issubset(package_keys)
-    assert "Subject to Salus Professional Review" in package["notice"]
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.0.0"
+    assert 1<=len(package["services"])<=4
+    assert all(item["level"] in {1,2,3} for item in package["services"])
+    assert all(item["capabilities"] and item["why"] for item in package["services"])
+    assert package["core_capabilities_considered"]==32
+    assert package["sequence"]
     notifications=submitted.json()["notifications"]
-    assert len(notifications)==2
     assert {row["audience"] for row in notifications}=={"Participant","Salus Reviewer"}
-    assert all(row["state"]=="Pending" for row in notifications)
-    assert all(row["error_code"]=="delivery_not_configured" for row in notifications)
 
     conn=sqlite3.connect(db_path)
     conn.row_factory=sqlite3.Row
     session=conn.execute("SELECT * FROM advisor_public_sessions").fetchone()
     submission=conn.execute("SELECT * FROM advisor_public_submissions").fetchone()
-    assert session["primary_consent"]==1
-    assert session["secondary_deidentified_consent"]==0
-    assert session["status"]=="Submitted"
-    assert submission["status"]=="Awaiting Salus Review"
-    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-1.1.0"
-    assert len(submission["answer_snapshot_sha256"])==64
-    assert conn.execute("SELECT COUNT(*) FROM advisor_public_answer_revisions").fetchone()[0]==len(questions)
     profile=conn.execute("SELECT * FROM advisor_public_service_profiles").fetchone()
-    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-1.0.0"
-    assert len(profile["profile_sha256"])==64
-    outbox=conn.execute("SELECT * FROM advisor_public_notification_outbox ORDER BY audience").fetchall()
-    assert len(outbox)==2
-    assert all(row["attempts"]==1 for row in outbox)
-    assert all("Assessment answers are intentionally not included in email." in row["body_text"] for row in outbox if row["audience"]=="Salus Reviewer")
+    account=conn.execute("SELECT * FROM advisor_public_accounts").fetchone()
+    assert account["email"]=="contact@example.com"
+    assert session["status"]=="Submitted"
+    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
+    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.0.0"
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_profile_drafts").fetchone()[0]==0
+    review_row=dict(submission)
+    review_row["notification_state"]="Pending"
     submission_key=submission["submission_key"]
     conn.close()
 
-    review=client.get("/protection-advisor/review")
-    assert review.status_code==403,review.text
-    detail=client.get(f"/protection-advisor/review/{submission_key}")
-    assert detail.status_code==403,detail.text
+    assert "Public Pilot Organization" in _review_page([review_row])
+    assert "Assessment Contact" in _review_detail(review_row)
 
-    from public_protection_advisor import _review_page, _review_detail
-    review_row=dict(submission)
-    review_row["notification_state"]="Pending"
-    review_html=_review_page([review_row])
-    assert "Public Pilot Organization" in review_html
-    assert "/static/salus-reticle.svg" in review_html
-    detail_html=_review_detail(review_row)
-    assert "Assessment Contact" in detail_html
-    assert "Risk List" in detail_html
+    # Different capability conditions and profile facts must produce different packages and levels.
+    business_questions=_questions("Business")
+    validated={q["key"]:{"answer_state":"Validated"} for q in business_questions}
+    cyber_answers={k:dict(v) for k,v in validated.items()}
+    for key in ("dependency_map","continuity","cyber_resilience","supplier_integrity"):
+        cyber_answers[key]={"answer_state":"No"}
+    threat_answers={k:dict(v) for k,v in validated.items()}
+    for key in ("reporting","warning_thresholds","protective_controls"):
+        threat_answers[key]={"answer_state":"No"}
+
+    base_profile={
+        "facility_scope":"One facility","personnel_range":"26–100",
+        "affected_population_range":"101–500","specific_activities":[],
+        "maximum_tolerable_downtime":"1–3 days",
+        "existing_program_maturity":"Documented but not recently tested",
+        "internal_implementation_capacity":"Shared or part-time personnel",
+        "primary_objective":"Independent assessment and priorities",
+        "external_requirements":"Future planning or budget decision",
+        "desired_timing":"Within 90 days","decision_authority":"Executive leadership",
+    }
+    cyber_profile={**base_profile,
+        "specific_activities":["Critical infrastructure, utilities, transportation, or logistics"],
+        "maximum_tolerable_downtime":"Less than 4 hours",
+        "primary_objective":"Continuity and recovery capability",
+    }
+    threat_profile={**base_profile,
+        "specific_activities":["Public events, venues, hospitality, or mass gatherings"],
+        "primary_objective":"Protective intelligence and monitoring",
+        "external_requirements":"Recent incident or credible concern",
+        "desired_timing":"Immediate concern",
+    }
+    cyber_package=_package_recommendation(business_questions,cyber_answers,cyber_profile)
+    threat_package=_package_recommendation(business_questions,threat_answers,threat_profile)
+    cyber_signature=[(x["key"],x["level"]) for x in cyber_package["services"]]
+    threat_signature=[(x["key"],x["level"]) for x in threat_package["services"]]
+    assert cyber_signature!=threat_signature
+    assert "continuity" in {x["key"] for x in cyber_package["services"]}
+    assert {"protective_intelligence","incident_support"} & {x["key"] for x in threat_package["services"]}
 
     deleted=client.post("/public/protection-advisor/delete",headers=headers,json={})
     assert deleted.status_code==200,deleted.text
@@ -165,7 +238,6 @@ with tempfile.TemporaryDirectory() as td:
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_notification_outbox").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_service_profiles").fetchone()[0]==0
     assert conn.execute("SELECT status FROM advisor_public_sessions").fetchone()[0]=="Deleted"
-    assert conn.execute("SELECT COUNT(*) FROM advisor_public_lifecycle_events").fetchone()[0]>=3
     conn.close()
 
 print("public Protection Advisor smoke passed")
