@@ -21,47 +21,59 @@ from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-1.1.0"
-RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-1.0.0"
+QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
+RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.0.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-SPLIT-RETENTION-1.0.0"
-PACKAGE_PROFILE_VERSION = "SPA-SERVICE-PROFILE-1.0.0"
-PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-1.0.0"
+PACKAGE_PROFILE_VERSION = "SPA-SERVICE-PROFILE-2.0.0"
+PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-2.0.0"
 SESSION_HOURS = 24
 NOTIFICATION_MODE = os.getenv("SALUS_ADVISOR_NOTIFICATION_MODE", "outbox").strip().lower()
 NOTIFICATION_TO = os.getenv("SALUS_ADVISOR_NOTIFICATION_TO", "mduncan@salus.solutions").strip().lower()
 NOTIFICATION_FROM = os.getenv("SALUS_ADVISOR_NOTIFICATION_FROM", "mduncan@salus.solutions").strip().lower()
-ANSWER_STATES = {"Answered", "Partially", "No", "Unknown", "Not Applicable", "Declined"}
+ANSWER_STATES = {"Validated", "Documented", "Partially", "No", "Unknown", "Not Applicable", "Declined", "Answered"}
 ORGANIZATION_TYPES = {
     "Business", "Faith-Based Organization", "School or Educational Institution",
     "Nonprofit or Community Organization", "Healthcare or Human Services",
     "Government or Public Institution", "Property or Facility Operator",
     "Event Venue or Hospitality", "Other",
 }
-QUESTIONS = (
-    ("risk_list", "Do you maintain a current list of threats and hazards that could affect your organization?", "risk"),
-    ("capability_targets", "For priority scenarios, has your organization defined measurable capability targets across prevention, protection, mitigation, response, recovery, and continuity—including who must act, under what conditions, within what time, and to what standard?", "capability"),
-    ("consequence", "Have you assessed how serious the consequences could be for your most credible scenarios?", "risk"),
-    ("vulnerable_people", "Have capability requirements been adjusted for children, older adults, people with disabilities or access and functional needs, people in crisis, and others who may need additional assistance?", "capability"),
-    ("reporting", "Are concerns and incident reports collected in one governed place for appropriate review?", "risk"),
-    ("warning_thresholds", "Are warning indicators, escalation thresholds, and reporting paths defined so emerging concerns are distinguished from assumptions, combined with related information, and acted on while choices remain?", "intelligence"),
-    ("required_actions", "Do personnel understand what they may need to do during likely emergencies or disruptions?", "capability"),
-    ("decision_authority", "If normal leaders are unavailable, are decision authority, succession, delegation limits, and alternate coordination responsibilities documented and understood?", "governance"),
-    ("current_capability", "Has your organization compared what it can reliably do today with what it may need to do?", "capability"),
-    ("dependency_map", "Have essential functions been traced to their critical people, facilities, technology, utilities, suppliers, partners, and transportation dependencies—including shared points of failure?", "continuity"),
-    ("integrated_test", "Have plans, communications, facilities, systems, and personnel been tested together?", "capability"),
-    ("degraded_communications", "Can the organization communicate decisions and protective instructions with personnel, responders, partners, and affected people if internet, cellular service, power, or primary systems fail?", "capability"),
-    ("priority_gaps", "Can leadership identify the most important protection or readiness gaps in priority order?", "gap"),
-    ("resource_competition", "Has the organization tested whether critical personnel, responders, vendors, fuel, medical support, equipment, communications, and alternate facilities would remain available during a regional or simultaneous emergency?", "continuity"),
-    ("ownership", "Does a specific authorized person own each priority gap, with a plan and review date?", "gap"),
-    ("validation_evidence", "Is there recent evidence—not only a written plan—that each critical capability can meet its target under realistic stress, reduced staffing, and degraded conditions?", "evidence"),
-    ("training_test", "Have trained personnel demonstrated that they can perform their assigned actions?", "gap"),
-    ("recovery_targets", "Are recovery-time and service-restoration targets defined for every essential function, including minimum acceptable operations, alternate resources, and restoration priority?", "continuity"),
-    ("leadership_record", "Could leadership explain what was known, what was decided, and what action was underway?", "governance"),
-    ("investment_tradeoffs", "When choosing improvements, does leadership compare consequence reduction, cost, feasibility, dependencies, implementation time, and time to protective benefit?", "governance"),
-    ("continuity", "Can essential operations continue if facilities, utilities, technology, suppliers, or personnel are disrupted?", "continuity"),
-    ("recovery", "Are recovery priorities, alternate resources, and restoration responsibilities documented?", "continuity"),
-)
+
+CORE_CAPABILITIES = {
+    "Planning": ("Prevention", "Protection", "Mitigation", "Response", "Recovery"),
+    "Public Information and Warning": ("Prevention", "Protection", "Mitigation", "Response", "Recovery"),
+    "Operational Coordination": ("Prevention", "Protection", "Mitigation", "Response", "Recovery"),
+    "Forensics and Attribution": ("Prevention",),
+    "Intelligence and Information Sharing": ("Prevention", "Protection"),
+    "Interdiction and Disruption": ("Prevention", "Protection"),
+    "Screening, Search, and Detection": ("Prevention", "Protection"),
+    "Access Control and Identity Verification": ("Protection",),
+    "Cybersecurity": ("Protection",),
+    "Physical Protective Measures": ("Protection",),
+    "Risk Management for Protection Programs and Activities": ("Protection",),
+    "Supply Chain Integrity and Security": ("Protection",),
+    "Community Resilience": ("Mitigation",),
+    "Long-term Vulnerability Reduction": ("Mitigation",),
+    "Risk and Disaster Resilience Assessment": ("Mitigation",),
+    "Threats and Hazards Identification": ("Mitigation",),
+    "Critical Transportation": ("Response",),
+    "Environmental Response/Health and Safety": ("Response",),
+    "Fatality Management Services": ("Response",),
+    "Fire Management and Suppression": ("Response",),
+    "Infrastructure Systems": ("Response", "Recovery"),
+    "Logistics and Supply Chain Management": ("Response",),
+    "Mass Care Services": ("Response",),
+    "Mass Search and Rescue Operations": ("Response",),
+    "On-scene Security, Protection, and Law Enforcement": ("Response",),
+    "Operational Communications": ("Response",),
+    "Public Health, Healthcare, and Emergency Medical Services": ("Response",),
+    "Situational Assessment": ("Response",),
+    "Economic Recovery": ("Recovery",),
+    "Health and Social Services": ("Recovery",),
+    "Housing": ("Recovery",),
+    "Natural and Cultural Resources": ("Recovery",),
+}
+
 SERVICE_CATALOG = (
     ("salthira", "Salus THIRA Assessment", "Identify credible threats and hazards, consequences, capability targets, current capability, gaps, priorities, and defensible improvements."),
     ("facility", "Facility and Physical Security Assessment", "Examine facilities, operations, people, physical and cyber-physical dependencies, surrounding conditions, intentional threats, continuity, and recovery."),
@@ -75,6 +87,39 @@ SERVICE_CATALOG = (
     ("implementation", "Implementation and Technical Assistance", "Help leadership assign, sequence, budget, implement, document, and validate approved improvements."),
     ("monitoring", "Ongoing Monitoring and SalCAPA Support", "Maintain awareness, records, responsibilities, reassessment, notifications, and continuing improvement through SalCAPA."),
 )
+
+# key, plain-language question, domain, FEMA core capabilities, Salus services, consequence weight
+QUESTION_BLUEPRINTS = (
+    ("risk_list", "Do you maintain a current list of threats and hazards that could affect your organization?", "risk", ("Threats and Hazards Identification", "Risk and Disaster Resilience Assessment"), ("salthira", "protective_intelligence"), 1.4),
+    ("capability_targets", "For priority scenarios, has your organization defined measurable capability targets across prevention, protection, mitigation, response, recovery, and continuity—including who must act, under what conditions, within what time, and to what standard?", "capability", ("Planning", "Risk Management for Protection Programs and Activities"), ("salthira", "planning"), 1.5),
+    ("consequence", "Have you assessed how serious the consequences could be for your most credible scenarios?", "risk", ("Risk and Disaster Resilience Assessment", "Community Resilience", "Long-term Vulnerability Reduction"), ("salthira",), 1.5),
+    ("vulnerable_people", "Have capability requirements been adjusted for children, older adults, people with disabilities or access and functional needs, people in crisis, and others who may need additional assistance?", "capability", ("Mass Care Services", "Public Health, Healthcare, and Emergency Medical Services", "Health and Social Services", "Housing"), ("planning", "continuity"), 1.4),
+    ("reporting", "Are concerns and incident reports collected in one governed place for appropriate review?", "risk", ("Intelligence and Information Sharing", "Forensics and Attribution"), ("protective_intelligence", "monitoring"), 1.2),
+    ("warning_thresholds", "Are warning indicators, escalation thresholds, and reporting paths defined so emerging concerns are distinguished from assumptions, combined with related information, and acted on while choices remain?", "intelligence", ("Intelligence and Information Sharing", "Situational Assessment", "Public Information and Warning"), ("protective_intelligence", "planning", "monitoring"), 1.5),
+    ("required_actions", "Do personnel understand what they may need to do during likely emergencies or disruptions?", "capability", ("Operational Coordination", "Interdiction and Disruption", "On-scene Security, Protection, and Law Enforcement"), ("planning", "training", "protection"), 1.3),
+    ("decision_authority", "If normal leaders are unavailable, are decision authority, succession, delegation limits, and alternate coordination responsibilities documented and understood?", "governance", ("Planning", "Operational Coordination"), ("planning", "implementation"), 1.5),
+    ("current_capability", "Has your organization compared what it can reliably do today with what it may need to do?", "capability", ("Risk Management for Protection Programs and Activities", "Long-term Vulnerability Reduction"), ("salthira", "implementation"), 1.3),
+    ("dependency_map", "Have essential functions been traced to their critical people, facilities, technology, utilities, suppliers, partners, and transportation dependencies—including shared points of failure?", "continuity", ("Infrastructure Systems", "Critical Transportation", "Supply Chain Integrity and Security", "Cybersecurity"), ("continuity", "cyber_physical", "facility"), 1.6),
+    ("integrated_test", "Have plans, communications, facilities, systems, and personnel been tested together?", "evidence", ("Planning", "Operational Coordination", "Operational Communications"), ("training", "planning"), 1.5),
+    ("degraded_communications", "Can the organization communicate decisions and protective instructions with personnel, responders, partners, and affected people if internet, cellular service, power, or primary systems fail?", "response", ("Operational Communications", "Public Information and Warning"), ("planning", "cyber_physical", "continuity"), 1.6),
+    ("priority_gaps", "Can leadership identify the most important protection or readiness gaps in priority order?", "gap", ("Risk Management for Protection Programs and Activities", "Long-term Vulnerability Reduction"), ("salthira", "implementation"), 1.2),
+    ("resource_competition", "Has the organization tested whether critical personnel, responders, vendors, fuel, medical support, equipment, communications, and alternate facilities would remain available during a regional or simultaneous emergency?", "continuity", ("Logistics and Supply Chain Management", "Mass Search and Rescue Operations", "Fatality Management Services", "Environmental Response/Health and Safety"), ("continuity", "planning", "training"), 1.6),
+    ("ownership", "Does a specific authorized person own each priority gap, with a plan and review date?", "governance", ("Planning", "Operational Coordination"), ("implementation", "monitoring"), 1.2),
+    ("validation_evidence", "Is there recent evidence—not only a written plan—that each critical capability can meet its target under realistic stress, reduced staffing, and degraded conditions?", "evidence", ("Screening, Search, and Detection", "Physical Protective Measures", "Risk Management for Protection Programs and Activities"), ("training", "protection", "facility"), 1.5),
+    ("training_test", "Have trained personnel demonstrated that they can perform their assigned actions?", "evidence", ("Operational Coordination", "Fire Management and Suppression", "Public Health, Healthcare, and Emergency Medical Services"), ("training", "planning"), 1.4),
+    ("recovery_targets", "Are recovery-time and service-restoration targets defined for every essential function, including minimum acceptable operations, alternate resources, and restoration priority?", "recovery", ("Economic Recovery", "Infrastructure Systems", "Housing"), ("continuity",), 1.6),
+    ("leadership_record", "Could leadership explain what was known, what was decided, and what action was underway?", "governance", ("Situational Assessment", "Forensics and Attribution", "Public Information and Warning"), ("protective_intelligence", "planning", "monitoring"), 1.2),
+    ("investment_tradeoffs", "When choosing improvements, does leadership compare consequence reduction, cost, feasibility, dependencies, implementation time, and time to protective benefit?", "governance", ("Long-term Vulnerability Reduction", "Community Resilience"), ("implementation", "salthira"), 1.2),
+    ("continuity", "Can essential operations continue if facilities, utilities, technology, suppliers, or personnel are disrupted?", "continuity", ("Cybersecurity", "Supply Chain Integrity and Security", "Critical Transportation", "Infrastructure Systems"), ("continuity", "cyber_physical"), 1.7),
+    ("recovery", "Are recovery priorities, alternate resources, and restoration responsibilities documented?", "recovery", ("Economic Recovery", "Health and Social Services", "Housing", "Natural and Cultural Resources"), ("continuity", "planning"), 1.5),
+    ("protective_controls", "Are access controls, identity verification, physical safeguards, security staffing, and suspicious-activity procedures appropriate for the people, property, and operations being protected?", "protection", ("Access Control and Identity Verification", "Physical Protective Measures", "On-scene Security, Protection, and Law Enforcement"), ("facility", "protection"), 1.6),
+    ("cyber_resilience", "Can essential operations continue safely if information systems, operational technology, security systems, cloud services, or communications are compromised or unavailable?", "protection", ("Cybersecurity", "Infrastructure Systems"), ("cyber_physical", "continuity"), 1.7),
+    ("life_safety_response", "Are fire, medical, rescue, evacuation, shelter, accountability, and responder-coordination arrangements adequate for your likely conditions and affected population?", "response", ("Fire Management and Suppression", "Mass Search and Rescue Operations", "Public Health, Healthcare, and Emergency Medical Services", "Mass Care Services"), ("planning", "training", "facility"), 1.7),
+    ("environmental_hazards", "Can the organization recognize, isolate, report, and coordinate safely around hazardous releases, contaminated areas, unsafe conditions, or environmental consequences?", "response", ("Environmental Response/Health and Safety", "Natural and Cultural Resources"), ("facility", "planning", "incident_support"), 1.5),
+    ("supplier_integrity", "Are critical suppliers, contractors, products, transportation routes, and replacement resources evaluated for integrity, availability, concentration, and disruption risk?", "protection", ("Supply Chain Integrity and Security", "Logistics and Supply Chain Management", "Critical Transportation"), ("continuity", "protective_intelligence"), 1.5),
+    ("community_recovery", "Do recovery plans address employees and families, customers or members, health and social needs, temporary operations, economic effects, housing or relocation, and community consequences?", "recovery", ("Community Resilience", "Economic Recovery", "Health and Social Services", "Housing"), ("continuity", "planning"), 1.5),
+)
+
 ACTIVITY_OPTIONS = {
     "Precious metals or other high-value materials",
     "Hazardous materials, fuels, chemicals, or regulated waste",
@@ -88,9 +133,10 @@ ACTIVITY_OPTIONS = {
     "Government, public safety, or essential public services",
 }
 
-FAITH_QUESTION = ("volunteer_roles", "Where volunteers have protective or emergency responsibilities, are their roles current, understood, and practiced?", "capability")
-SCHOOL_QUESTION = ("reunification", "Have student accountability and family reunification procedures been tested with responsible personnel?", "capability")
-PUBLIC_QUESTION = ("public_access", "Are public access, visitor management, and concerning-behavior reporting handled consistently?", "risk")
+FAITH_QUESTION = ("volunteer_roles", "Where volunteers have protective or emergency responsibilities, are their roles current, understood, and practiced?", "capability", ("Operational Coordination", "Planning"), ("training", "planning"), 1.3)
+SCHOOL_QUESTION = ("reunification", "Have student accountability and family reunification procedures been tested with responsible personnel?", "response", ("Mass Care Services", "Operational Coordination", "Public Information and Warning"), ("planning", "training"), 1.5)
+PUBLIC_QUESTION = ("public_access", "Are public access, visitor management, and concerning-behavior reporting handled consistently?", "protection", ("Access Control and Identity Verification", "Screening, Search, and Detection", "Intelligence and Information Sharing"), ("facility", "protection", "protective_intelligence"), 1.5)
+
 
 
 class StartCommand(BaseModel):
