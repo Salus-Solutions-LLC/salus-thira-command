@@ -22,6 +22,9 @@ with tempfile.TemporaryDirectory() as td:
         "SALUS_COOKIE_SECURE":"0",
         "SALUS_RATE_LIMIT_ENABLED":"1",
         "SALUS_RATE_LIMIT_REQUESTS":"500",
+        "SALUS_ADVISOR_NOTIFICATION_MODE":"outbox",
+        "SALUS_ADVISOR_NOTIFICATION_FROM":"mduncan@salus.solutions",
+        "SALUS_ADVISOR_NOTIFICATION_TO":"mduncan@salus.solutions",
     })
     app_module=importlib.import_module("app")
     from fastapi.testclient import TestClient
