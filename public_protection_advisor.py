@@ -31,7 +31,7 @@ PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-2.0.0"
 SESSION_HOURS = 24
 NOTIFICATION_MODE = os.getenv("SALUS_ADVISOR_NOTIFICATION_MODE", "outbox").strip().lower()
 NOTIFICATION_TO = os.getenv("SALUS_ADVISOR_NOTIFICATION_TO", "mduncan@salus.solutions").strip().lower()
-NOTIFICATION_FROM = os.getenv("SALUS_ADVISOR_NOTIFICATION_FROM", "mduncan@salus.solutions").strip().lower()
+NOTIFICATION_FROM = os.getenv("SALUS_ADVISOR_NOTIFICATION_FROM", "protectionadvisor@salus.solutions").strip().lower()\nREQUIRE_EMAIL_VERIFICATION = os.getenv("SALUS_ADVISOR_REQUIRE_EMAIL_VERIFICATION", "0").strip() == "1"
 ANSWER_STATES = {"Validated", "Documented", "Partially", "No", "Unknown", "Not Applicable", "Declined", "Answered"}
 ORGANIZATION_TYPES = {
     "Business", "Faith-Based Organization", "School or Educational Institution",
@@ -199,6 +199,22 @@ class AccountLoginCommand(BaseModel):
     @classmethod
     def normalize_email(cls, value: str) -> str:
         return value.strip().casefold()
+
+
+class PasswordResetRequestCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(min_length=3, max_length=254)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().casefold()
+
+
+class PasswordResetCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(min_length=32, max_length=200)
+    new_password: str = Field(min_length=12, max_length=200)
 
 
 class DraftCommand(BaseModel):
