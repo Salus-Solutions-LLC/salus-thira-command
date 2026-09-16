@@ -497,7 +497,8 @@ def _initialize(conn: Any) -> None:
       password_hash TEXT NOT NULL,
       status TEXT NOT NULL,
       created_at TEXT NOT NULL,
-      last_login_at TEXT NOT NULL DEFAULT ''
+      last_login_at TEXT NOT NULL DEFAULT '',
+      email_verified_at TEXT NOT NULL DEFAULT ''
     );
     CREATE TABLE IF NOT EXISTS advisor_public_account_sessions (
       token_sha256 TEXT PRIMARY KEY,
@@ -509,6 +510,17 @@ def _initialize(conn: Any) -> None:
     );
     CREATE INDEX IF NOT EXISTS idx_advisor_account_sessions_account
       ON advisor_public_account_sessions(account_key,expires_at);
+    CREATE TABLE IF NOT EXISTS advisor_public_account_tokens (
+      token_sha256 TEXT PRIMARY KEY,
+      account_key TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used_at TEXT NOT NULL DEFAULT '',
+      FOREIGN KEY (account_key) REFERENCES advisor_public_accounts(account_key) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_advisor_account_tokens_account
+      ON advisor_public_account_tokens(account_key,purpose,expires_at);
     CREATE TABLE IF NOT EXISTS advisor_public_account_assessments (
       account_key TEXT NOT NULL,
       session_key TEXT NOT NULL UNIQUE,
