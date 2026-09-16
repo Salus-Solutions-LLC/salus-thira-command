@@ -437,7 +437,7 @@ def _package_recommendation(questions: list[dict[str, str]], answers: dict[str, 
     selected: list[str] = ["salthira"]
     attention_domains = {
         q["domain"] for q in questions
-        if answers.get(q["key"], {{}}).get("answer_state", "Unknown") in {{"No", "Partially", "Unknown"}}
+        if answers.get(q["key"], {}).get("answer_state", "Unknown") in {"No", "Partially", "Unknown"}
     }
     activities = set(profile.get("specific_activities", []))
     if "intelligence" in attention_domains or "risk" in attention_domains:
@@ -448,7 +448,7 @@ def _package_recommendation(questions: list[dict[str, str]], answers: dict[str, 
         selected.append("continuity")
     if "evidence" in attention_domains:
         selected.append("training")
-    if "governance" in attention_domains or profile.get("decision_authority", "").casefold() in {{"unknown", "not sure"}}:
+    if "governance" in attention_domains or profile.get("decision_authority", "").casefold() in {"unknown", "not sure"}:
         selected.append("implementation")
     if any("Hazardous" in item or "Manufacturing" in item or "Critical infrastructure" in item for item in activities):
         selected.extend(["facility", "cyber_physical", "continuity"])
@@ -458,20 +458,20 @@ def _package_recommendation(questions: list[dict[str, str]], answers: dict[str, 
         selected.extend(["planning", "training", "continuity"])
     if profile.get("desired_timing") == "Immediate concern":
         selected.insert(0, "incident_support")
-    if profile.get("facility_scope") in {{"Several facilities", "Organization-wide", "Distributed, mobile, or remote operations"}}:
+    if profile.get("facility_scope") in {"Several facilities", "Organization-wide", "Distributed, mobile, or remote operations"}:
         selected.extend(["implementation", "monitoring"])
     selected = list(dict.fromkeys(selected))
-    lookup = {{key: {{"key": key, "title": title, "summary": summary}} for key, title, summary in SERVICE_CATALOG}}
+    lookup = {key: {"key": key, "title": title, "summary": summary} for key, title, summary in SERVICE_CATALOG}
     services = [lookup[key] for key in selected if key in lookup]
     sequence = [item["title"] for item in services[:4]]
-    return {{
+    return {
         "title": "A phased Salus protection and capability program",
         "services": services,
         "sequence": sequence,
         "rationale": "This preliminary package connects the conditions identified in Part One with the scale, activities, dependencies, timing, and implementation context supplied in Part Two.",
         "notice": "Preliminary — Subject to Salus Professional Review. A Salus professional must validate scope, evidence, specialists, deliverables, schedule, pricing, contract terms, and Protected Member eligibility.",
         "version": PACKAGE_RECOMMENDATION_VERSION,
-    }}
+    }
 
 
 async def _send_graph_email(recipient: str, subject: str, body_text: str) -> tuple[bool, str]:
