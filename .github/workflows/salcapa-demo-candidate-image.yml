@@ -2,7 +2,9 @@ name: SalCAPA Demonstration Candidate Image Preflight
 
 on:
   push:
-    branches: [development/salcapa-platform]
+    branches:
+      - development/salcapa-platform
+      - 'candidate/**'
     paths:
       - 'deploy/azure/candidates/v3.109-reference-image-preflight.json'
       - 'deploy/azure/activations/image-dev.json'
