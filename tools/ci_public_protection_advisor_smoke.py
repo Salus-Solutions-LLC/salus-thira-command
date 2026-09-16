@@ -101,13 +101,19 @@ with tempfile.TemporaryDirectory() as td:
     conn.close()
 
     review=client.get("/protection-advisor/review")
-    assert review.status_code==200,review.text
-    assert "Public Pilot Organization" in review.text
-    assert "/static/salus-reticle.svg" in review.text
+    assert review.status_code==403,review.text
     detail=client.get(f"/protection-advisor/review/{submission_key}")
-    assert detail.status_code==200,detail.text
-    assert "Assessment Contact" in detail.text
-    assert "Risk List" in detail.text
+    assert detail.status_code==403,detail.text
+
+    from public_protection_advisor import _review_page, _review_detail
+    review_row=dict(submission)
+    review_row["notification_state"]="Pending"
+    review_html=_review_page([review_row])
+    assert "Public Pilot Organization" in review_html
+    assert "/static/salus-reticle.svg" in review_html
+    detail_html=_review_detail(review_row)
+    assert "Assessment Contact" in detail_html
+    assert "Risk List" in detail_html
 
     deleted=client.post("/public/protection-advisor/delete",headers=headers,json={})
     assert deleted.status_code==200,deleted.text
