@@ -90,6 +90,11 @@ jobs:
         run: python tools/ci_v116_smoke.py && python tools/ci_salcapa_smoke.py && python tools/ci_salcapa_v21_smoke.py && python tools/ci_salcapa_v22_smoke.py && python tools/ci_salcapa_v23_smoke.py && python tools/ci_salcapa_v24_smoke.py && python tools/ci_salcapa_v25_smoke.py && python tools/ci_salcapa_v26_smoke.py && python tools/ci_salcapa_v27_smoke.py && python tools/ci_salcapa_v28_smoke.py && python tools/ci_salcapa_v29_smoke.py && python tools/ci_salcapa_operating_model_acceptance.py && python tools/ci_salcapa_v33_identity_smoke.py && python tools/ci_recovery_rehearsal.py && python tools/ci_material_capability_smoke.py && python tools/ci_salintel_domain_smoke.py && python tools/ci_salintel_relationships_smoke.py && python tools/ci_salintel_research_smoke.py && python tools/ci_salintel_handoffs_smoke.py && python tools/ci_salcapa_demo_evaluator_smoke.py && python tools/ci_salus_protection_advisor_policy_models_smoke.py
       - name: Azure database bootstrap contract smoke
         run: python tools/ci_azure_database_bootstrap_smoke.py
+      - name: Early-access account administration acceptance
+        env:
+          SALUS_AUTH_MODE: prototype
+          SALUS_SEED_DEMO: "0"
+        run: python tools/ci_salcapa_early_access_accounts_smoke.py
       - name: Passwordless runtime secret-path regression smoke
         run: python tools/ci_passwordless_runtime_smoke.py
       - name: Live runtime acceptance contract smoke
