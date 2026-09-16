@@ -30,6 +30,7 @@ for value in (
     "event.key === 'Escape'",
     "lastFocus.focus()",
     "setAttribute('aria-label'",
+    'aria-current="step"',
     "button.addEventListener('click'",
     'aria-label="Breadcrumb"',
     'aria-label="SalCAPA lifecycle"',
@@ -55,7 +56,7 @@ for stage, label, view in (
     ("act", "Act", "salops"),
     ("prove", "Prove", "reports"),
 ):
-    pattern = rf"\['{stage}',\s*'{label}',\s*'[^']+',\s*'{view}'\]"
+    pattern = rf"\['{stage}',\s*'{label}',\s*'[^']+',\s*'{view}',\s*'[^']+'\]"
     if not re.search(pattern, JS):
         raise SystemExit(f"Lifecycle guidance is incomplete: {label}")
 
