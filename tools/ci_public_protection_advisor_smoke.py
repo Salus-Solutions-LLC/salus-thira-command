@@ -23,7 +23,7 @@ with tempfile.TemporaryDirectory() as td:
         "SALUS_RATE_LIMIT_ENABLED":"1",
         "SALUS_RATE_LIMIT_REQUESTS":"500",
         "SALUS_ADVISOR_NOTIFICATION_MODE":"outbox",
-        "SALUS_ADVISOR_NOTIFICATION_FROM":"mduncan@salus.solutions",
+        "SALUS_ADVISOR_NOTIFICATION_FROM":"protectionadvisor@salus.solutions",
         "SALUS_ADVISOR_NOTIFICATION_TO":"mduncan@salus.solutions",
     })
     app_module=importlib.import_module("app")
@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory() as td:
         _questions, _review_detail, _review_page,
     )
 
-    assert NOTIFICATION_FROM=="mduncan@salus.solutions"
+    assert NOTIFICATION_FROM=="protectionadvisor@salus.solutions"
     assert len(CORE_CAPABILITIES)==32
     assert {cap for row in QUESTION_BLUEPRINTS for cap in row[3]}==set(CORE_CAPABILITIES)
     assert set(area for areas in CORE_CAPABILITIES.values() for area in areas)=={
