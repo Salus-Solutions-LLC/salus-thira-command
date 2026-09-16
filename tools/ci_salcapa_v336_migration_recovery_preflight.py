@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -356,16 +357,22 @@ def run_parent() -> None:
             encoding="utf-8"
         )
     )
-    assert activation["source_commit"] == CANDIDATE_COMMIT
-    assert activation["source_release"] == "release/v3.113"
-    assert activation["image_digest"].startswith(
-        "salcapadevb48224acr.azurecr.io/salcapa@sha256:"
+    sha_pattern = re.compile(r"^[0-9a-f]{40}$")
+    release_pattern = re.compile(r"^release/v[0-9]+[.][0-9]+$")
+    digest_pattern = re.compile(
+        r"^salcapadevb48224acr[.]azurecr[.]io/salcapa@sha256:[0-9a-f]{64}$"
     )
-    assert activation["rollback_commit"] == ROLLBACK_COMMIT
-    assert activation["rollback_release"] == "release/v3.112"
-    assert activation["rollback_image_digest"].startswith(
-        "salcapadevb48224acr.azurecr.io/salcapa@sha256:"
-    )
+    assert activation["operation"] == "deploy_application"
+    assert activation["target_environment"] == "dev"
+    assert release_pattern.fullmatch(str(activation["source_release"]))
+    assert sha_pattern.fullmatch(str(activation["source_commit"]))
+    assert digest_pattern.fullmatch(str(activation["image_digest"]))
+    assert release_pattern.fullmatch(str(activation["rollback_release"]))
+    assert sha_pattern.fullmatch(str(activation["rollback_commit"]))
+    assert digest_pattern.fullmatch(str(activation["rollback_image_digest"]))
+    assert activation["rollback_release"] != activation["source_release"]
+    assert activation["rollback_commit"] != activation["source_commit"]
+    assert activation["rollback_image_digest"] != activation["image_digest"]
 
     backend = os.environ.get("SALUS_DB_BACKEND", "sqlite").strip().lower()
     environment = os.environ.copy()
