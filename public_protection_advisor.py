@@ -181,15 +181,28 @@ class SubmitCommand(BaseModel):
     facility_scope: str = Field(min_length=1, max_length=80)
     facility_locations: str = Field(default="", max_length=1500)
     personnel_range: str = Field(min_length=1, max_length=80)
+    affected_population_range: str = Field(min_length=1, max_length=80)
     annual_revenue_range: str = Field(min_length=1, max_length=80)
     specific_activities: list[str] = Field(default_factory=list, max_length=10)
     essential_functions: str = Field(default="", max_length=1200)
+    maximum_tolerable_downtime: str = Field(min_length=1, max_length=80)
+    existing_program_maturity: str = Field(min_length=1, max_length=100)
+    internal_implementation_capacity: str = Field(min_length=1, max_length=100)
+    primary_objective: str = Field(min_length=1, max_length=120)
+    external_requirements: str = Field(min_length=1, max_length=120)
     recent_concerns: str = Field(default="", max_length=1200)
     desired_timing: str = Field(min_length=1, max_length=80)
     decision_authority: str = Field(min_length=1, max_length=160)
     investment_range: str = Field(min_length=1, max_length=80)
 
-    @field_validator("organization_name", "contact_name", "contact_email", "facility_scope", "facility_locations", "personnel_range", "annual_revenue_range", "essential_functions", "recent_concerns", "desired_timing", "decision_authority", "investment_range")
+    @field_validator(
+        "organization_name", "contact_name", "contact_email", "facility_scope",
+        "facility_locations", "personnel_range", "affected_population_range",
+        "annual_revenue_range", "essential_functions", "maximum_tolerable_downtime",
+        "existing_program_maturity", "internal_implementation_capacity",
+        "primary_objective", "external_requirements", "recent_concerns",
+        "desired_timing", "decision_authority", "investment_range",
+    )
     @classmethod
     def clean(cls, value: str) -> str:
         value = value.strip()
