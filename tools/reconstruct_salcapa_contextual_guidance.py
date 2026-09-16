@@ -10,16 +10,16 @@ ARTIFACTS = (
     (
         ROOT / "source_archives/development/salcapa-contextual-guidance.js.gz",
         ROOT / "static/salcapa-contextual-guidance.js",
-        "f4d6c7f9106a7d36eb352da0b558ce4048832c144126b3a46c353458c6f77428",
-        "a4408fcf445524ba0c884e2406857402a11a2bbc6e8bab2a4ab1c220256e8e52",
-        23036,
+        "9fb063f5859577d1ef8abf3c4d77bc215c2bd4d90647eeb6a2806e54c220f50b",
+        "0fea03ce1fa911432cd11d21cca6f775c6ab2b4814036c97c757c0482de47ebb",
+        23414,
     ),
     (
         ROOT / "source_archives/development/salcapa-contextual-guidance.css.gz",
         ROOT / "static/salcapa-contextual-guidance.css",
-        "46dff681be8a03e58a0b7a36b05b04106f842a31a7690a5eedff5cf3f97ef0b3",
-        "8f0b1a889c40fbd6fc342db305972555f466292d11365541455bbf7c9f3e8963",
-        2300,
+        "bf0c5eef0de03c4b0e82bbcab107da8b1b3450ec8a30143d1c409b0085516582",
+        "a1468e25d875e004c5df60064b43f8c157dc7a3e9b61843355076702ad6bcda0",
+        2645,
     ),
     (
         ROOT / "source_archives/development/ci_salcapa_contextual_guidance_smoke.py.gz",
