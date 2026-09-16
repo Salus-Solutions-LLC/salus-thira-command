@@ -579,43 +579,213 @@ h1,h2,a{{font-family:Arial,sans-serif}}h1{{font-size:3rem;font-weight:300;color:
 {items}</main></body></html>"""
 
 
-def _package_recommendation(questions: list[dict[str, str]], answers: dict[str, dict[str, Any]], profile: dict[str, Any]) -> dict[str, Any]:
-    selected: list[str] = ["salthira"]
-    attention_domains = {
-        q["domain"] for q in questions
-        if answers.get(q["key"], {}).get("answer_state", "Unknown") in {"No", "Partially", "Unknown"}
-    }
+SERVICE_LEVEL_NAMES = {1: "Foundation", 2: "Enhanced", 3: "Comprehensive"}
+
+
+def _package_recommendation(
+    questions: list[dict[str, Any]],
+    answers: dict[str, dict[str, Any]],
+    profile: dict[str, Any],
+) -> dict[str, Any]:
+    catalog = {key: {"key": key, "title": title, "summary": summary} for key, title, summary in SERVICE_CATALOG}
+    scores = {key: 0.0 for key in catalog}
+    capabilities = {key: set() for key in catalog}
+    evidence = {key: [] for key in catalog}
+    information_gap_count = 0
+
+    for question in questions:
+        state = answers.get(question["key"], {}).get("answer_state", "Unknown")
+        need = STATE_NEED.get(state, 0.8)
+        if state in {"Unknown", "Declined"}:
+            information_gap_count += 1
+        if need <= 0:
+            continue
+        contribution = need * question["weight"]
+        for service in question["services"]:
+            scores[service] += contribution
+            capabilities[service].update(question["capabilities"])
+            evidence[service].append((contribution, state, question["domain"]))
+
+    def add(service: str, points: float, reason: str, related: tuple[str, ...] = ()) -> None:
+        scores[service] += points
+        capabilities[service].update(related)
+        evidence[service].append((points, "Profile", reason))
+
     activities = set(profile.get("specific_activities", []))
-    if "intelligence" in attention_domains or "risk" in attention_domains:
-        selected.append("protective_intelligence")
-    if "capability" in attention_domains:
-        selected.extend(["planning", "training"])
-    if "continuity" in attention_domains:
-        selected.append("continuity")
-    if "evidence" in attention_domains:
-        selected.append("training")
-    if "governance" in attention_domains or profile.get("decision_authority", "").casefold() in {"unknown", "not sure"}:
-        selected.append("implementation")
-    if any("Hazardous" in item or "Manufacturing" in item or "Critical infrastructure" in item for item in activities):
-        selected.extend(["facility", "cyber_physical", "continuity"])
-    if any("Precious metals" in item or "public events" in item.casefold() or "Government" in item for item in activities):
-        selected.extend(["facility", "protection", "protective_intelligence"])
-    if any("Healthcare" in item or "Children" in item for item in activities):
-        selected.extend(["planning", "training", "continuity"])
-    if profile.get("desired_timing") == "Immediate concern":
-        selected.insert(0, "incident_support")
-    if profile.get("facility_scope") in {"Several facilities", "Organization-wide", "Distributed, mobile, or remote operations"}:
-        selected.extend(["implementation", "monitoring"])
-    selected = list(dict.fromkeys(selected))
-    lookup = {key: {"key": key, "title": title, "summary": summary} for key, title, summary in SERVICE_CATALOG}
-    services = [lookup[key] for key in selected if key in lookup]
-    sequence = [item["title"] for item in services[:4]]
+    activity_rules = {
+        "Precious metals or other high-value materials": (
+            ("facility", 3.0), ("protection", 3.0), ("protective_intelligence", 2.0)
+        ),
+        "Hazardous materials, fuels, chemicals, or regulated waste": (
+            ("facility", 3.0), ("planning", 2.0), ("incident_support", 2.0)
+        ),
+        "Manufacturing, industrial processes, or heavy equipment": (
+            ("facility", 2.5), ("cyber_physical", 2.5), ("continuity", 2.0)
+        ),
+        "Healthcare, medical, behavioral-health, or human services": (
+            ("planning", 2.5), ("continuity", 2.0), ("training", 1.5)
+        ),
+        "Children, students, older adults, or people needing assistance": (
+            ("planning", 2.5), ("training", 2.0), ("continuity", 1.5)
+        ),
+        "Public events, venues, hospitality, or mass gatherings": (
+            ("protection", 3.0), ("planning", 2.5), ("protective_intelligence", 2.0)
+        ),
+        "Critical infrastructure, utilities, transportation, or logistics": (
+            ("continuity", 3.0), ("cyber_physical", 2.5), ("facility", 2.0)
+        ),
+        "Sensitive information, technology, research, or intellectual property": (
+            ("cyber_physical", 3.0), ("protective_intelligence", 2.0), ("continuity", 1.5)
+        ),
+        "Distributed, mobile, remote, travel, or international operations": (
+            ("protective_intelligence", 2.5), ("continuity", 2.5), ("monitoring", 2.0)
+        ),
+        "Government, public safety, or essential public services": (
+            ("planning", 2.5), ("continuity", 2.5), ("implementation", 1.5)
+        ),
+    }
+    for activity in activities:
+        for service, points in activity_rules.get(activity, ()):
+            add(service, points, activity)
+
+    scope = profile.get("facility_scope", "")
+    if scope in {"Several facilities", "Organization-wide", "Distributed, mobile, or remote operations"}:
+        add("implementation", 2.0, "multi-site or organization-wide scope")
+        add("monitoring", 2.0, "multi-site or organization-wide scope")
+        add("facility", 1.5, "multi-site or organization-wide scope")
+
+    personnel = profile.get("personnel_range", "")
+    affected = profile.get("affected_population_range", "")
+    large_ranges = {"501–2,500", "2,501–10,000", "More than 10,000", "Varies significantly"}
+    if personnel in large_ranges or affected in large_ranges:
+        add("planning", 2.0, "large or variable affected population")
+        add("training", 1.5, "large or variable affected population")
+        add("implementation", 1.0, "large or variable affected population")
+
+    downtime = profile.get("maximum_tolerable_downtime", "")
+    if downtime == "Less than 4 hours":
+        add("continuity", 4.0, "essential function tolerates less than four hours of interruption")
+        add("cyber_physical", 2.0, "essential function tolerates less than four hours of interruption")
+    elif downtime == "4–24 hours":
+        add("continuity", 2.5, "essential function has a short interruption tolerance")
+    elif downtime in {"Not established", "Not sure"}:
+        add("continuity", 1.5, "recovery tolerance requires validation")
+        add("salthira", 1.0, "recovery tolerance requires validation")
+
+    maturity = profile.get("existing_program_maturity", "")
+    if maturity == "Recently assessed, documented, and validated":
+        add("monitoring", 3.0, "a mature program needs sustainment and reassessment")
+    elif maturity == "Documented but not recently tested":
+        add("training", 3.0, "documented capabilities require validation")
+    elif maturity == "Partially documented or inconsistently applied":
+        add("planning", 2.0, "program elements are incomplete or inconsistent")
+        add("implementation", 2.0, "program elements are incomplete or inconsistent")
+    elif maturity == "Mostly informal":
+        add("salthira", 2.5, "the current program is mostly informal")
+        add("planning", 2.5, "the current program is mostly informal")
+        add("implementation", 2.0, "the current program is mostly informal")
+    elif maturity == "Little or no current program":
+        add("salthira", 4.0, "little or no current program was identified")
+        add("planning", 3.0, "little or no current program was identified")
+        add("implementation", 3.0, "little or no current program was identified")
+
+    capacity = profile.get("internal_implementation_capacity", "")
+    if capacity == "Limited internal capacity":
+        add("implementation", 2.5, "internal implementation capacity is limited")
+    elif capacity == "Need Salus implementation support":
+        add("implementation", 4.0, "Salus implementation support is requested")
+        add("monitoring", 2.0, "continuing support may be needed")
+
+    objective_rules = {
+        "Independent assessment and priorities": "salthira",
+        "Plans, procedures, and decision support": "planning",
+        "Facility or operational protection improvements": "facility",
+        "Training and exercises": "training",
+        "Continuity and recovery capability": "continuity",
+        "Protective intelligence and monitoring": "protective_intelligence",
+        "Implementation assistance": "implementation",
+        "Immediate incident or crisis support": "incident_support",
+        "Comprehensive protection program": "implementation",
+    }
+    objective = profile.get("primary_objective", "")
+    if objective in objective_rules:
+        add(objective_rules[objective], 4.0, f"stated primary objective: {objective}")
+    if objective == "Comprehensive protection program":
+        add("salthira", 2.0, "comprehensive program requested")
+        add("monitoring", 2.0, "comprehensive program requested")
+
+    timing = profile.get("desired_timing", "")
+    if timing == "Immediate concern":
+        add("incident_support", 6.0, "immediate concern")
+        add("protective_intelligence", 2.0, "immediate concern")
+    elif timing == "Within 30 days":
+        add("implementation", 2.0, "near-term delivery requirement")
+
+    external = profile.get("external_requirements", "")
+    if external in {
+        "Regulatory or statutory requirement",
+        "Contract or customer requirement",
+        "Insurance or underwriting concern",
+        "Board, executive, or governance requirement",
+    }:
+        add("salthira", 1.5, external)
+        add("implementation", 1.5, external)
+    elif external == "Recent incident or credible concern":
+        add("protective_intelligence", 2.5, external)
+        add("incident_support", 2.0, external)
+
+    if profile.get("decision_authority", "").casefold() in {"unknown", "not sure"}:
+        add("implementation", 1.0, "decision authority requires clarification")
+    if information_gap_count >= max(5, len(questions) // 4):
+        add("salthira", 3.0, "material information gaps require structured discovery")
+
+    ranked = sorted(scores, key=lambda key: (-scores[key], key))
+    qualified = [key for key in ranked if scores[key] >= 3.0]
+    if not qualified:
+        qualified = ["monitoring"] if maturity == "Recently assessed, documented, and validated" else ["salthira"]
+        add(qualified[0], 1.0, "focused professional confirmation is appropriate")
+    primary_keys = qualified[:4]
+    later_keys = qualified[4:7]
+
+    def service_row(key: str) -> dict[str, Any]:
+        score = scores[key]
+        level = 3 if score >= 12.0 else 2 if score >= 6.0 else 1
+        level_name = SERVICE_LEVEL_NAMES[level]
+        relevant_capabilities = sorted(capabilities[key])[:6]
+        if relevant_capabilities:
+            why = (
+                f"{level_name} service is indicated by needs involving "
+                + ", ".join(relevant_capabilities[:3])
+                + "."
+            )
+        else:
+            why = f"{level_name} service is indicated by the organization and service profile."
+        return {
+            **catalog[key],
+            "level": level,
+            "level_name": level_name,
+            "capabilities": relevant_capabilities,
+            "why": why,
+            "basis": [
+                {"weight": round(item[0], 2), "state": item[1], "factor": item[2]}
+                for item in sorted(evidence[key], key=lambda item: -item[0])[:5]
+            ],
+        }
+
+    services = [service_row(key) for key in primary_keys]
+    later_services = [service_row(key) for key in later_keys]
+    capability_rows, mission_scores = _capability_results(questions, answers)
     return {
-        "title": "A phased Salus protection and capability program",
+        "title": f"{services[0]['title']}-led protection package",
+        "primary_service": services[0],
         "services": services,
-        "sequence": sequence,
-        "rationale": "This preliminary package connects the conditions identified in Part One with the scale, activities, dependencies, timing, and implementation context supplied in Part Two.",
-        "notice": "Preliminary — Subject to Salus Professional Review. A Salus professional must validate scope, evidence, specialists, deliverables, schedule, pricing, contract terms, and Protected Member eligibility.",
+        "later_phase_services": later_services,
+        "sequence": [f"{item['title']} — Level {item['level']}" for item in services],
+        "priority_capabilities": [row for row in capability_rows if row["need_score"] > 0][:8],
+        "mission_area_scores": mission_scores,
+        "core_capabilities_considered": len(CORE_CAPABILITIES),
+        "rationale": "This preliminary package connects the capability conditions identified in Part One with the scale, consequences, activities, dependencies, maturity, timing, and implementation context supplied in Part Two.",
+        "notice": "Preliminary — Subject to Salus Professional Review. A Salus professional must validate the answers, capability interpretation, service selection, level, scope, evidence, specialists, deliverables, schedule, pricing, contract terms, and Protected Member eligibility.",
         "version": PACKAGE_RECOMMENDATION_VERSION,
     }
 
