@@ -2,10 +2,10 @@
   "schema_version": 1,
   "mode": "persistent-supervisor",
   "authoritative_branch": "development/salcapa-platform",
-  "active_issue": 360,
-  "next_priority": "Continue Issue #360 Phase 2 one-page/one-job workflow simplification from the accepted task-oriented navigation checkpoint; apply Issue #368 focused validation and Issue #369 lean-work controls to each bounded increment.",
-  "last_verified_head": "1e21b4f1eeab012c67a2157c68dd8f43c269afa8",
-  "worker_status": "ready_for_next_increment",
-  "last_transition": "2026-09-15T03:16:00Z",
-  "notes": "Controlled validation PR #378 closed without merge after exact path-scoped CI, PostgreSQL 16, production-container, contextual-intake, and local CodeQL success. Exact green head advanced by non-force fast-forward. No secrets or Protected Member data permitted in this file."
+  "active_issue": 370,
+  "next_priority": "Complete controlled live Part Two Protection Advisor acceptance for account creation and email verification, logout/login, save/resume, detailed submission, differentiated Level 1/2/3 package output, staff review visibility, and recovery evidence; then resume Issue #360 Phase 3 governed information reuse under Issue #368 focused validation and Issue #369 lean-work controls.",
+  "last_verified_head": "38d10b7e3c2289731e64cdd135c0abea6749e6df",
+  "worker_status": "live_part_two_acceptance_pending",
+  "last_transition": "2026-09-16T13:24:00Z",
+  "notes": "Release v3.120 is frozen at feffb4644368c77c7c55ce613b1177d235474356 and deployed publicly. Graph mail from ProtectionAdvisor@Salus.Solutions was recipient-confirmed. Live anonymous Part One and direct-services acceptance passed, including all 32 core capabilities across five mission areas; the synthetic anonymous record was deleted. Controlled PR #427 passed 8/8, closed without merge, and exact green head advanced by non-force fast-forward. No secrets or Protected Member data are permitted in this file."
 }
