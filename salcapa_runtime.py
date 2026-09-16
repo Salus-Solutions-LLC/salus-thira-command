@@ -285,3 +285,4 @@ def salcapa_system_mode():
 
 
 app = core.app
+# The UI consumes the shared stage color tokens; runtime text remains the authoritative non-color meaning.

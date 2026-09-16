@@ -41,3 +41,4 @@
   .mission-print-governance{border-left:3px solid #456b73;padding:.04in .12in;margin:.12in 0}.mission-print-governance h2,.mission-print-report section>h2{font-size:12pt;margin:.06in 0}.mission-print-governance p{margin:.04in 0}
   .mission-print-report table{width:100%;border-collapse:collapse;table-layout:fixed}.mission-print-report th,.mission-print-report td{border:1px solid #8d9aa3;padding:.06in;vertical-align:top;overflow-wrap:break-word;word-break:normal}.mission-print-report th{background:#e9eef1;text-align:left;font-size:7.5pt}.mission-print-report td{font-size:7.5pt}.mission-print-report small{font-size:6.8pt;color:#40515c}.mission-print-report tr{break-inside:avoid}
 }
+/* Mission Map routes consume the shared SalCAPA protective-assurance stage tokens. */

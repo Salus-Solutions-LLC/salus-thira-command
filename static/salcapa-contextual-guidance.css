@@ -76,3 +76,4 @@
   .salcapa-context-detail summary { color: #000; }
   .salcapa-context-detail[open] > * { display: block; }
 }
+/* Contextual doctrine cards consume the shared SalCAPA protective-assurance stage tokens. */
