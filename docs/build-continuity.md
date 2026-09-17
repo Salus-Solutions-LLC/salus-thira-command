@@ -11,11 +11,11 @@ active_build_system_issue: 370
 active_increment: issue_128_v3124_governed_m365_intake
 last_completed_increment: issue_290_v3123_controlled_deployment_and_live_acceptance
 candidate_release: v3.124
-validation_pr: pending
+validation_pr: 454
 validation_branch: development/governed-m365-v3124-final
 validation_base: main
 validation_head: pending
-validation_gate_state: local_verified_github_pending
+validation_gate_state: github_validation_running
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: v3123_is_accepted_and_m365_connector_requires_distinct_successor_release
