@@ -455,8 +455,8 @@ function renderIdentity(){
 
 function showLogin(message=''){
   if(systemMode.auth_mode==='oidc'){
-    $('#content').innerHTML=`<div class="card" style="max-width:520px;margin:60px auto"><h2>SalCAPA</h2><p class="subtle">Enterprise identity sign-in is required.</p>${message?`<div class="notice">${esc(message)}</div>`:''}<div class="form-actions"><button class="btn" id="oidc-login">Sign in with SSO</button></div></div>`;
-    $('#oidc-login').onclick=()=>location.href='/api/auth/oidc/start'; return;
+    $('#content').innerHTML=`<div class="card" style="max-width:520px;margin:60px auto"><h2>SalCAPA</h2><p class="subtle">Enterprise identity sign-in is required.</p>${message?`<div class="notice">${esc(message)}</div>`:''}<div class="form-actions"><a class="btn" id="oidc-login" href="/api/auth/oidc/start">Sign in with SSO</a></div></div>`;
+    return;
   }
   $('#content').innerHTML=`<div class="card" style="max-width:520px;margin:60px auto"><h2>SalCAPA</h2><p class="subtle">Authenticated session required.</p>${message?`<div class="notice">${esc(message)}</div>`:''}<form id="login-form"><label>Username<input name="username" autocomplete="username" required></label><label style="margin-top:12px">Password<input name="password" type="password" autocomplete="current-password" required></label><div class="form-actions"><button class="btn">Sign In</button></div></form></div>`;
   $('#login-form').onsubmit=async e=>{e.preventDefault();const d={};new FormData(e.target).forEach((v,k)=>d[k]=v);const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});if(!r.ok){showLogin('Invalid username or password.');return}await initialize();};
