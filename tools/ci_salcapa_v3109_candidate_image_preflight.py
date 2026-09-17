@@ -133,9 +133,20 @@ if published_version == accepted_version:
     # frozen source and will additionally bind the exact immutable digest.
     assert image_publication["source_commit"] == accepted_application["source_commit"]
 else:
-    # Publication-staged: the next image is the immediate successor while the
-    # currently accepted application remains unchanged.
-    assert published_version == (accepted_version[0], accepted_version[1] + 1)
+    # Publication-staged: ordinarily the next image is the immediate successor.
+    # A one-release skip is allowed only when the intervening frozen release is
+    # explicitly recorded as superseded before publication by a blocking repair.
+    immediate_successor = (accepted_version[0], accepted_version[1] + 1)
+    superseding_successor = (accepted_version[0], accepted_version[1] + 2)
+    if published_version == superseding_successor:
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        skipped = f"v{immediate_successor[0]}.{immediate_successor[1]}"
+        published = f"v{published_version[0]}.{published_version[1]}"
+        assert f"current_frozen_release: {skipped}" in continuity
+        assert f"candidate_release: {published}" in continuity
+        assert f"{skipped.replace('.', '')}_superseded_before_publication" in continuity
+    else:
+        assert published_version == immediate_successor
     assert image_publication["source_commit"] != accepted_application["source_commit"]
 
 # The current accepted activation must itself retain a distinct, structurally
