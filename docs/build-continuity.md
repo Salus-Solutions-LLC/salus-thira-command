@@ -11,7 +11,7 @@ active_build_system_issue: 370
 active_increment: issue_128_v3124_immutable_image_publication
 last_completed_increment: issue_128_v3124_governed_m365_intake_freeze
 candidate_release: v3.124
-validation_pr: pending
+validation_pr: 455
 validation_branch: release-activation/v3.124-image
 validation_base: main
 validation_head: pending
