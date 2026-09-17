@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory() as td:
     from fastapi.testclient import TestClient
     from public_protection_advisor import (
         CORE_CAPABILITIES, NOTIFICATION_FROM, QUESTION_BLUEPRINTS, _package_recommendation,
-        _questions, _review_detail, _review_page,
+        _questions, _review_detail, _review_page, _verification_page,
     )
 
     assert NOTIFICATION_FROM=="protectionadvisor@salus.solutions"
@@ -47,16 +47,28 @@ with tempfile.TemporaryDirectory() as td:
     assert "Anonymous Protection Readiness Review" in page.text
     assert "Understand the detailed assessment" in page.text
     assert "answer truthfully from my current knowledge" in page.text
-    assert "Return to Your Part Two Assessment" in page.text
+    assert "Return to Your Part 2 Assessment" in page.text
     assert 'onchange="saveAnswer(this.name,this.value)"' in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
     assert "Level '+s.level" in page.text
     assert "/static/salus-reticle.svg" in page.text
+    assert '<header class="salus-header">' in page.text
+    assert "font-size:56px" in page.text
+    assert "font-size:32px" in page.text
+    assert "font-size:28px" in page.text
+    assert 'aria-current="page">Protection Advisor &gt;' in page.text
 
     catalog=client.get("/protection-advisor/services")
     assert catalog.status_code==200
     assert "Salus THIRA Assessment" in catalog.text
     assert "Business Continuity and Recovery" in catalog.text
+    assert '<header class="salus-header">' in catalog.text
+    assert "font-size:56px" in catalog.text
+
+    verification_html=_verification_page()
+    assert '<header class="salus-header">' in verification_html
+    assert "<h1>Email verified</h1>" in verification_html
+    assert "retained assessment result does not expire" in verification_html
 
     refused=client.post("/public/protection-advisor/session",json={
         "organization_type":"Business",
@@ -212,8 +224,14 @@ with tempfile.TemporaryDirectory() as td:
     submission_key=submission["submission_key"]
     conn.close()
 
-    assert "Public Pilot Organization" in _review_page([review_row])
-    assert "Assessment Contact" in _review_detail(review_row)
+    review_page_html=_review_page([review_row])
+    review_detail_html=_review_detail(review_row)
+    assert "Public Pilot Organization" in review_page_html
+    assert "Assessment Contact" in review_detail_html
+    assert '<header class="salus-header">' in review_page_html
+    assert '<header class="salus-header">' in review_detail_html
+    assert "font-size:56px" in review_page_html
+    assert "font-size:56px" in review_detail_html
 
     # Different capability conditions and profile facts must produce different packages and levels.
     business_questions=_questions("Business")
