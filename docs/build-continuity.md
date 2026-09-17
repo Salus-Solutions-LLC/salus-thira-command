@@ -62,7 +62,7 @@ A missing, split, duplicated, or partially displayed conversation is not a build
 1. Compare this record with the exact development head, open validation pull requests, frozen release branches, activation records, and relevant Actions results.
 2. Record the exact candidate PR/head, base, gate state, and first/root failing gate.
 3. Preserve the distinction among current development, frozen release, published immutable image, deployed runtime, accepted stable release, and rollback baseline.
-4. Close a controlled validation pull request without merge only after every required gate is green, then advance only the exact verified head through a non-force fast-forward.
+4. After every required gate is green, close the controlled validation pull request without merge, then advance only the exact verified head through a non-force fast-forward.
 5. A failed or inconsistent gate fails closed. Never weaken a security, privacy, accessibility, abuse, recovery, rollback, identity, tenant, disclosure, provenance, or human-authority control to make a release pass.
 
 ## Standing controls
