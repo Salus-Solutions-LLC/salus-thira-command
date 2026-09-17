@@ -37,10 +37,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Checkout exact frozen v3.123 source
+      - name: Checkout exact frozen v3.124 source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.123
+          ref: release/v3.124
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -59,10 +59,10 @@ jobs:
             (.location == "southcentralus") and
             (.unique_suffix == "b48224") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.123") and
-            (.source_commit == "4b976032fe2b8420ca2ec652ae7a7bfc5b130d87") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be") and
-            (.deployment_workflow_run == 35186525899) and
+            (.source_release == "release/v3.124") and
+            (.source_commit == "602b672828f2f6a1d24fc5b1e32cc36766d79ca8") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519") and
+            (.deployment_workflow_run == 35190102432) and
             (.postgres_server == "salcapa-dev-b48224-pg") and
             (.write_fictional_fixtures == true) and
             (.real_data_authorized == false) and
@@ -71,7 +71,7 @@ jobs:
             (.fixture_authority == "ISSUE-124") and
             (.demonstration_acknowledgement == "FICTIONAL DEMONSTRATION DATA ONLY") and
             (.acceptance_revision == 1) and
-            (.activation_key == "salcapa-v3.123-live-demo-20260917-r1") and
+            (.activation_key == "salcapa-v3.124-live-demo-20260917-r1") and
             ((keys - [
               "acceptance_revision", "activation_key", "approval_record",
               "demonstration_acknowledgement", "deployment_workflow_run",
@@ -82,12 +82,12 @@ jobs:
               "unique_suffix", "write_fictional_fixtures"
             ]) | length == 0)
           ' "$ACTIVATION_FILE" >/dev/null
-          test "$(git -C frozen-release rev-parse HEAD)" = "4b976032fe2b8420ca2ec652ae7a7bfc5b130d87"
-          git merge-base --is-ancestor "4b976032fe2b8420ca2ec652ae7a7bfc5b130d87" "$GITHUB_SHA"
+          test "$(git -C frozen-release rev-parse HEAD)" = "602b672828f2f6a1d24fc5b1e32cc36766d79ca8"
+          git merge-base --is-ancestor "602b672828f2f6a1d24fc5b1e32cc36766d79ca8" "$GITHUB_SHA"
           jq -e '
-            .source_release == "release/v3.123" and
-            .source_commit == "4b976032fe2b8420ca2ec652ae7a7bfc5b130d87" and
-            .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be"
+            .source_release == "release/v3.124" and
+            .source_commit == "602b672828f2f6a1d24fc5b1e32cc36766d79ca8" and
+            .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519"
           ' deploy/azure/activations/application-dev.json >/dev/null
           echo "image_digest=$(jq -r '.image_digest' "$ACTIVATION_FILE")" >> "$GITHUB_OUTPUT"
 
@@ -199,8 +199,8 @@ jobs:
           DIGEST="${IMAGE_DIGEST##*@}"
           test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@$DIGEST" --query digest --output tsv)" = "$DIGEST"
           az bicep build --file infra/azure/live-demo-acceptance.bicep --stdout > /tmp/live-demo-acceptance-arm.json
-          DEPLOYMENT_NAME="salcapa-v3123-live-demo-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          az deployment group create             --name "$DEPLOYMENT_NAME"             --resource-group "$RESOURCE_GROUP"             --template-file infra/azure/live-demo-acceptance.bicep             --parameters location=southcentralus environmentName=dev uniqueSuffix=b48224               imageDigest="$IMAGE_DIGEST"               sourceCommit=4b976032fe2b8420ca2ec652ae7a7bfc5b130d87               approvalRecord=MD-APPROVAL-AZURE-LEAN-20260904               postgresHost="$POSTGRES_HOST"             --output none
+          DEPLOYMENT_NAME="salcapa-v3124-live-demo-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          az deployment group create             --name "$DEPLOYMENT_NAME"             --resource-group "$RESOURCE_GROUP"             --template-file infra/azure/live-demo-acceptance.bicep             --parameters location=southcentralus environmentName=dev uniqueSuffix=b48224               imageDigest="$IMAGE_DIGEST"               sourceCommit=602b672828f2f6a1d24fc5b1e32cc36766d79ca8               approvalRecord=MD-APPROVAL-AZURE-LEAN-20260904               postgresHost="$POSTGRES_HOST"             --output none
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/acceptance-job.json
           jq -e --arg image "$IMAGE_DIGEST" --arg host "$POSTGRES_HOST" '
             def env_value($name):
@@ -280,9 +280,9 @@ jobs:
           [[ "$OIDC_LOCATION" == "https://login.microsoftonline.com/$EXPECTED_TENANT_ID/oauth2/v2.0/authorize"* ]]
 
           {
-            echo "### SalCAPA v3.123 live demonstration acceptance"
+            echo "### SalCAPA v3.124 live demonstration acceptance"
             echo ""
-            echo "- Runtime: exact frozen v3.123 immutable image"
+            echo "- Runtime: exact frozen v3.124 immutable image"
             echo "- Environments: Aster Ridge, Cedar Vale, and Northstar; fictional demonstration only"
             echo "- Personas: 24 non-authenticating fixture identities"
             echo "- Journeys: SalINTEL, SalTHIRA, SalCAPA coordination, SalOPS, and PROVE evidence verified"
