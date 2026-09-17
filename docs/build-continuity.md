@@ -1,29 +1,29 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 17 September 2026 13:55 CDT
-current_frozen_release: v3.127
-current_frozen_commit: f6afc7cc827e1e9697502a43bf3f5b31b6ec4d61
+last_verified_at: 17 September 2026 14:45 CDT
+current_frozen_release: v3.128
+current_frozen_commit: 5fbd01ab2dc34179a44c8f4fef94bcc4054c4123
 active_development_branch: development/salcapa-platform
-current_development_head: 645939f0c49484c889aca91567fcc17b128cffd8
-active_product_milestone: issue_370_v3128_advisor_embedded_flow
+current_development_head: 78615955680086d23389f61f42e6939b41016632
+active_product_milestone: issue_370_v3129_advisor_scroll_reset
 active_build_system_issue: 370
-active_increment: issue_370_v3128_advisor_embedded_flow_release
-last_completed_increment: issue_370_v3127_canonical_wix_shell_release
-candidate_release: v3.128
-validation_pr: 475
-validation_branch: candidate/v3128-advisor-step-flow
+active_increment: issue_370_v3129_advisor_scroll_reset_release
+last_completed_increment: issue_370_v3128_advisor_embedded_flow_release
+candidate_release: v3.129
+validation_pr: pending
+validation_branch: candidate/v3129-advisor-scroll-reset
 validation_base: main
-validation_head: 9fffa1399382d6cd7bcda3facd025fb910cb07f2
+validation_head: pending
 validation_gate_state: github_validation_running
 failed_workflows: none
 first_root_failing_gate: none
-root_cause: expanded_assessment_height_exceeded_fixed_wix_iframe_height
-repair_head: 9fffa1399382d6cd7bcda3facd025fb910cb07f2
-repair_summary: present_anonymous_review_as_bounded_one_question_flow
-genuine_blockers: v3127_demo_acceptance_superseded_by_v3128_advisor_flow
-next_authorized_step: validate_freeze_publish_deploy_and_live_verify_v3128
-deployed_demo_release: v3.127
+root_cause: embedded_document_retained_internal_scroll_position_between_questions
+repair_head: pending
+repair_summary: reset_embedded_document_to_top_after_each_question_transition
+genuine_blockers: v3128_demo_acceptance_superseded_by_v3129_advisor_scroll_reset
+next_authorized_step: validate_freeze_publish_deploy_and_live_verify_v3129
+deployed_demo_release: v3.128
 deployed_demo_state: full_demonstration_accepted
 ---
 
@@ -39,7 +39,8 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **Permanent hostname restored:** `salcapa.salus.solutions` now has one SNI binding and an Azure-managed certificate; both the public root and readiness endpoint are healthy. DNS and the deployed v3.124 image were unchanged.
 - **v3.125 is frozen but was superseded before image publication.** It repairs FastAPI binding for the administrator-only Microsoft 365 status and exact-folder listing routes; those changes carry forward into v3.126. Tenant-consented Graph access remains least-privilege and read-only.
 - **v3.127 is frozen, published, deployed, and live accepted.** It preserves the permanent OIDC callback and custom hostname, keeps Wix authoritative for the Protection Advisor shell, redirects the legacy application route to the canonical Wix page, and preserves the dedicated embed surface. All governed deployment and live identity checks passed.
-- **v3.128 candidate:** replaces the expanding 28-question embedded page with a bounded one-question-at-a-time flow so Wix and the embedded assessment no longer create competing scroll positions. No identity, permission, retention, or tenant boundary changes.
+- **v3.128 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `5fbd01ab2dc34179a44c8f4fef94bcc4054c4123`; the immutable image is `sha256:81b0fa2f1419a6c72ff5891aad81633dae08d640f63f928546189d473fe2a194`. It replaces the expanding assessment with a bounded one-question-at-a-time flow.
+- **v3.129 candidate:** resets the embedded document to its own top after assessment start and every question transition so later questions are not clipped inside the Wix iframe. No identity, permission, retention, or tenant boundary changes.
 - **v3.123 is the rollback release** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`.
 
 ## Source precedence
