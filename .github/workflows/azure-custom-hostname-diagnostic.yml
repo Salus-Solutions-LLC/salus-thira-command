@@ -78,13 +78,22 @@ jobs:
           CUSTOM_A="$(dig +short A "$CUSTOM_HOST" | head -n 1)"
           FQDN_A="$(dig +short A "$FQDN" | head -n 1)"
 
-          test -n "$FQDN"
-          test -n "$LATEST_READY_REVISION"
-          test "$TRAFFIC_TOTAL" = "100"
-          test "$BINDING_COUNT" = "1"
-          test "$BINDING_TYPE" = "SniEnabled"
-          test -n "$CERTIFICATE_ID"
-          test "$CERTIFICATE_MATCHES" = "1"
+          CONFIGURATION_CLASSIFICATION=healthy
+          if [ -z "$FQDN" ]; then
+            CONFIGURATION_CLASSIFICATION=missing_native_fqdn
+          elif [ -z "$LATEST_READY_REVISION" ]; then
+            CONFIGURATION_CLASSIFICATION=missing_ready_revision
+          elif [ "$TRAFFIC_TOTAL" != "100" ]; then
+            CONFIGURATION_CLASSIFICATION=invalid_traffic_weight
+          elif [ "$BINDING_COUNT" != "1" ]; then
+            CONFIGURATION_CLASSIFICATION=custom_hostname_binding_count_mismatch
+          elif [ "$BINDING_TYPE" != "SniEnabled" ]; then
+            CONFIGURATION_CLASSIFICATION=custom_hostname_binding_not_sni
+          elif [ -z "$CERTIFICATE_ID" ]; then
+            CONFIGURATION_CLASSIFICATION=custom_hostname_certificate_missing
+          elif [ "$CERTIFICATE_MATCHES" != "1" ]; then
+            CONFIGURATION_CLASSIFICATION=custom_hostname_certificate_reference_invalid
+          fi
 
           request_status() {
             local url="$1"
@@ -102,15 +111,20 @@ jobs:
             printf '%s' "$status"
           }
 
-          NATIVE_STATUS="$(request_status "https://$FQDN/health/ready")"
+          NATIVE_STATUS=000
+          if [ -n "$FQDN" ]; then
+            NATIVE_STATUS="$(request_status "https://$FQDN/health/ready")"
+          fi
           CUSTOM_STATUS="$(request_status "https://$CUSTOM_HOST/health/ready")"
           DIRECT_STATUS=000
           if [ -n "$FQDN_A" ]; then
             DIRECT_STATUS="$(request_status "https://$CUSTOM_HOST/health/ready" "$CUSTOM_HOST:443:$FQDN_A")"
           fi
 
-          CLASSIFICATION=healthy
-          if [ "$NATIVE_STATUS" != "200" ]; then
+          CLASSIFICATION="$CONFIGURATION_CLASSIFICATION"
+          if [ "$CLASSIFICATION" != "healthy" ]; then
+            :
+          elif [ "$NATIVE_STATUS" != "200" ]; then
             CLASSIFICATION=runtime_ingress_unhealthy
           elif [ -n "$CNAME" ] && [ "$CNAME" != "$FQDN" ]; then
             CLASSIFICATION=dns_cname_mismatch
@@ -127,11 +141,15 @@ jobs:
             echo ""
             echo "- Application: $APP_NAME"
             echo "- Azure-native FQDN: $FQDN"
-            echo "- Latest ready revision present: yes"
+            echo "- Latest ready revision: ${LATEST_READY_REVISION:-none}"
             echo "- Ingress traffic weight: $TRAFFIC_TOTAL"
             echo "- Custom hostname: $CUSTOM_HOST"
-            echo "- Binding: $BINDING_TYPE"
-            echo "- Certificate: $CERTIFICATE_NAME"
+            echo "- Binding count: $BINDING_COUNT"
+            echo "- Binding: ${BINDING_TYPE:-none}"
+            echo "- Certificate ID: ${CERTIFICATE_ID:-none}"
+            echo "- Certificate: ${CERTIFICATE_NAME:-none}"
+            echo "- Certificate reference matches: $CERTIFICATE_MATCHES"
+            echo "- Configuration classification: $CONFIGURATION_CLASSIFICATION"
             echo "- DNS CNAME: ${CNAME:-none}"
             echo "- DNS A: ${CUSTOM_A:-none}"
             echo "- Environment ingress IP: ${ENVIRONMENT_IP:-none}"
