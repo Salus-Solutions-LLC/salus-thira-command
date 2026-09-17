@@ -63,7 +63,7 @@ jobs:
             (.hostname == "salcapa.salus.solutions") and
             (.validation_method == "CNAME") and
             (.expected_native_fqdn == "salcapa-dev-b48224.ashycoast-29444a28.southcentralus.azurecontainerapps.io") and
-            (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
+            (.approval_record == "MARC-APPROVAL-CUSTOM-HOSTNAME-20260917") and
             ((keys - [
               "activation_key",
               "approval_record",
