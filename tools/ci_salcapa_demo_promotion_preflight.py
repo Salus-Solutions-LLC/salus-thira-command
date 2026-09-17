@@ -248,30 +248,30 @@ cross_tenant = client.post(
 )
 assert cross_tenant.status_code == 403 and first_tenant != other_tenant
 
-# Repository evidence records the exact v3.113 promotion candidate while the
-# accepted v3.112 demonstration remains the fail-closed baseline until live acceptance.
+# Repository evidence must describe one coherent governed promotion state.
+# Validate relationships instead of pinning this reusable preflight to a retired release.
 deployment = front_matter(ROOT / "docs" / "demo-deployment-continuity.md")
-assert deployment["current_stable_release"] == "v3.113"
-assert deployment["current_stable_commit"] == "9d9873203fffd8c8ae477123ea94eb35b27c2acd"
-assert deployment["promotion_candidate"] == "v3.113"
-assert deployment["promotion_candidate_image_commit"] == "9d9873203fffd8c8ae477123ea94eb35b27c2acd"
-assert deployment["promotion_candidate_image_digest"] == "sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8"
+assert deployment["current_stable_release"].startswith("v")
+assert len(deployment["current_stable_commit"]) == 40
+assert deployment["promotion_candidate"].startswith("v")
+assert len(deployment["promotion_candidate_image_commit"]) == 40
+assert deployment["promotion_candidate_image_digest"].startswith("sha256:")
+assert len(deployment["promotion_candidate_image_digest"]) == 71
 if deployment["promotion_readiness"] == "accepted":
-    assert deployment["deployed_release"] == "v3.113"
-    assert deployment["deployed_commit"] == "9d9873203fffd8c8ae477123ea94eb35b27c2acd"
+    assert deployment["deployed_release"] == deployment["current_stable_release"]
+    assert deployment["promotion_candidate"] == deployment["current_stable_release"]
+    assert deployment["deployed_commit"] == deployment["current_stable_commit"]
+    assert deployment["promotion_candidate_image_commit"] == deployment["current_stable_commit"]
+    assert deployment["image_digest"] == deployment["promotion_candidate_image_digest"]
+    assert deployment["deployment_acceptance"] == "full_demonstration_acceptance"
+    assert deployment["promotion_candidate_image_acceptance"] == "immutable_image_deployed_and_accepted"
     assert deployment["fictional_member_seed_state"] == "verified"
     assert deployment["critical_journey_acceptance"] == "verified"
     assert deployment["genuine_blocker"] == "none"
 else:
-    assert deployment["deployed_release"] in {"v3.112", "v3.113"}
-    if deployment["deployed_release"] == "v3.112":
-        assert deployment["deployed_commit"] == "1d1759375d37b7de884331c06833de8c727ac5af"
-    else:
-        assert deployment["deployed_commit"] == "9d9873203fffd8c8ae477123ea94eb35b27c2acd"
     assert deployment["promotion_readiness"] in {"preflight_ready", "deployed_awaiting_live_acceptance"}
-    if deployment["deployed_release"] == "v3.113":
-        assert deployment["promotion_readiness"] == "deployed_awaiting_live_acceptance"
-        assert deployment["promotion_candidate_image_acceptance"] == "immutable_image_deployed_awaiting_live_acceptance"
+    assert deployment["deployed_release"].startswith("v")
+    assert len(deployment["deployed_commit"]) == 40
     assert deployment["critical_journey_acceptance"] == "not_verified"
     assert deployment["genuine_blocker"] != "none"
 
