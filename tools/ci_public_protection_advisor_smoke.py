@@ -59,6 +59,8 @@ with tempfile.TemporaryDirectory() as td:
     assert 'id="reviewResults"' in page.text
     assert 'questions.map((q,i)=>' not in page.text
     assert 'const q=questions[questionIndex]' in page.text
+    assert "requestAnimationFrame(()=>window.scrollTo(0,0))" in page.text
+    assert "assessment.scrollIntoView" not in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
     assert "Level '+s.level" in page.text
     shell_html=_page()
