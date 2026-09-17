@@ -667,7 +667,11 @@ def _salus_header() -> str:
 <a href="https://www.salus.solutions/salthira">SalTHIRA &gt;</a>
 <a href="https://www.salus.solutions/salops">SalOPS &gt;</a>
 <a href="https://www.salus.solutions/about">About Salus</a>
+<a href="https://www.salus.solutions/industries">Industries</a>
+<a href="https://www.salus.solutions/insights">Insights and Library</a>
+<a href="https://www.salus.solutions/payments">Payments</a>
 <a href="https://www.salus.solutions/contact">Contact</a>
+<a href="https://salcapa.salus.solutions/">Protected Member Login &gt;</a>
 </nav></header>"""
 
 
