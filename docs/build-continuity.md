@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 16 September 2026 13:24 UTC
-current_frozen_release: v3.120
-current_frozen_commit: feffb4644368c77c7c55ce613b1177d235474356
+last_verified_at: 16 September 2026 23:55 CDT
+current_frozen_release: v3.122
+current_frozen_commit: e84e19d77cef1b39d605260ae2fbe836e95888e4
 active_development_branch: development/salcapa-platform
-current_development_head: 38d10b7e3c2289731e64cdd135c0abea6749e6df
-active_product_milestone: issue_290_public_protection_advisor
+current_development_head: 4b976032fe2b8420ca2ec652ae7a7bfc5b130d87
+active_product_milestone: issue_128_governed_microsoft_365_intake
 active_build_system_issue: 370
-active_increment: issue_290_v3120_live_part_two_acceptance
-last_completed_increment: issue_290_v3120_graph_mail_and_anonymous_live_acceptance
-candidate_release: none
-validation_pr: pending
-validation_branch: candidate/salcapa-v3120-continuity-reconciliation
-validation_base: development/salcapa-platform
+active_increment: issue_128_v3123_governed_m365_intake
+last_completed_increment: issue_290_v3122_controlled_early_access_launch
+candidate_release: v3.123
+validation_pr: 449
+validation_branch: development/governed-m365-intake
+validation_base: main
 validation_head: pending
-validation_gate_state: continuity_reconciliation
+validation_gate_state: github_validation_running
 failed_workflows: none
 first_root_failing_gate: none
-root_cause: stale_continuity_metadata
-repair_head: eec827f7aca1f1b287569a0756c89206ab87ac4b
-repair_summary: reconcile_release_deployment_mail_and_live_anonymous_acceptance
-genuine_blockers: controlled_part_two_test_identity_required
-next_authorized_step: validate_continuity_then_complete_controlled_live_part_two_acceptance
-deployed_demo_release: v3.120
-deployed_demo_state: public_protection_advisor_live
+root_cause: reconciled_from_authoritative_github_v3122_checkpoint
+repair_head: 52307b322606119d9d0ca993280787eb9a747d9e
+repair_summary: add_least_privilege_governed_m365_folder_intake
+genuine_blockers: none
+next_authorized_step: complete_exact_candidate_validation_then_close_pr_without_merge_and_fast_forward_development
+deployed_demo_release: v3.122
+deployed_demo_state: controlled_early_access_live
 ---
 
 # SalCAPA build continuity
@@ -33,7 +33,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current verified checkpoint
 
-- **v3.120 is frozen** at exact commit `feffb4644368c77c7c55ce613b1177d235474356` on `release/v3.120` and is the deployed public Protection Advisor release. Microsoft Graph mail from `ProtectionAdvisor@Salus.Solutions` returned 202 Accepted and the intended recipient confirmed receipt. Live anonymous Part One acceptance returned HTTP 200 with hardened headers, presented 28 adaptive questions spanning all 32 core capabilities and five mission areas, produced differentiated mission-area and capability results, verified the direct individual-services path, and deleted the synthetic anonymous validation record. Controlled validation PR #427 then passed all eight required checks, closed without merge, and exact head `38d10b7e3c2289731e64cdd135c0abea6749e6df` advanced to development by non-force fast-forward. Remaining live acceptance is the controlled Part Two account/save/resume/submission/recommendation/reviewer/recovery lifecycle.
+- **v3.122 is frozen** at exact commit `e84e19d77cef1b39d605260ae2fbe836e95888e4` on `release/v3.122` and is the accepted controlled early-access SalCAPA release. Governed application deployment run `35133097177`, Protection Advisor acceptance run `35133825434`, CI run `35133825454`, and CodeQL run `35133825787` passed. Immutable image `salcapadevb48224acr.azurecr.io/salcapa@sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9` is deployed; v3.121 remains the accepted rollback point. Development head `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` is the authoritative continuation base. The v3.123 candidate adds read-only, exact-folder Microsoft 365 intake under PR #448 and validation-only PR #449; it is not frozen or deployed.
 
 - **v3.113 is frozen** at exact commit `9d9873203fffd8c8ae477123ea94eb35b27c2acd` on `release/v3.113`; controlled validation PR #373 passed all 20 required workflow families and closed without merge.
 - [Immutable-image publication workflow 34908424307](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34908424307) published that exact frozen source as `salcapadevb48224acr.azurecr.io/salcapa@sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8` on 14 September 2026 at 18:22 CDT.
