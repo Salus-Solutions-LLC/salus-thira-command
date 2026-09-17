@@ -1,29 +1,29 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 17 September 2026 02:10 CDT
+last_verified_at: 17 September 2026 01:47 CDT
 current_frozen_release: v3.124
 current_frozen_commit: 602b672828f2f6a1d24fc5b1e32cc36766d79ca8
 active_development_branch: development/salcapa-platform
-current_development_head: 65ab7854c10dae50dd28440908525f56019e1948
+current_development_head: b17f418af1532dfe609410ad56085e8d5adfcd91
 active_product_milestone: issue_128_governed_microsoft_365_intake
 active_build_system_issue: 370
-active_increment: issue_128_v3124_live_evaluator_acceptance
-last_completed_increment: issue_128_v3124_application_promotion
-candidate_release: v3.124
-validation_pr: 457
-validation_branch: release-activation/v3.124-live-acceptance
+active_increment: issue_128_v3124_m365_intake_acceptance
+last_completed_increment: issue_128_v3124_live_evaluator_acceptance
+candidate_release: none
+validation_pr: none
+validation_branch: continuity/v3.124-accepted
 validation_base: main
-validation_head: eb409f06a41d361c026470ea20761a27c2715a6c
-validation_gate_state: controlled_validation_in_progress
+validation_head: pending
+validation_gate_state: all_required_gates_green
 failed_workflows: none
 first_root_failing_gate: none
-root_cause: exact_v3124_deployment_passed_and_requires_separate_live_acceptance
-repair_head: e66291c1b744afec0f1d10fc7c6d113ec5ee9673
-repair_summary: activate_bounded_v3124_live_demonstration_acceptance
-genuine_blockers: v3124_live_acceptance_not_yet_executed
-next_authorized_step: validate_activation_then_close_pr_without_merge_and_fast_forward_development_to_trigger_live_acceptance
-deployed_demo_release: v3.123
+root_cause: none
+repair_head: b17f418af1532dfe609410ad56085e8d5adfcd91
+repair_summary: record_exact_v3124_accepted_checkpoint
+genuine_blockers: none
+next_authorized_step: validate_and_record_live_m365_read_only_status_and_exact_folder_listing
+deployed_demo_release: v3.124
 deployed_demo_state: full_demonstration_accepted
 ---
 
@@ -33,10 +33,10 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current verified checkpoint
 
-- **v3.124 is frozen, published, and deployed, and is awaiting its separate live demonstration acceptance.** Frozen source is exact commit `602b672828f2f6a1d24fc5b1e32cc36766d79ca8`; the immutable image is `sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519`. Publication run `35189223604` and deployment run `35190102432` passed.
-- The v3.124 capability is a least-privilege Microsoft 365 intake connector: read-only, fixed to the authorized drive and folder, size bounded, rejecting arbitrary item identifiers, and preserving metadata/content length agreement. Administrative status and listing use existing administrator authorization. Workload identity is used without a client secret.
-- **v3.123 remains the accepted stable demonstration and rollback release** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`. Publication run `35185662854`, deployment run `35186525899`, and live acceptance run `35187593491` passed.
-- The current activation runs only the bounded fictional-data v3.124 live evaluator and preserves deployed application configuration. It does not broaden Microsoft 365 scope, add write authority, publish reports, change DNS, or authorize production cutover.
+- **v3.124 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `602b672828f2f6a1d24fc5b1e32cc36766d79ca8`; the immutable image is `sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519`. Publication run `35189223604`, deployment run `35190102432`, and live acceptance run `35191132113` passed.
+- Live acceptance verified the bounded fictional demonstration, server-controlled role and tenant boundaries, governed journeys, persistence, application-configuration preservation, and temporary-resource cleanup. All 21 validation workflow families passed on exact activation head `b17f418af1532dfe609410ad56085e8d5adfcd91`.
+- The v3.124 Microsoft 365 intake connector remains read-only, fixed to the authorized drive and folder, size bounded, rejecting arbitrary item identifiers, and using workload identity without a client secret.
+- **v3.123 is the rollback release** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`.
 
 ## Source precedence
 
