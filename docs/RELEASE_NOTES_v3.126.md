@@ -10,7 +10,8 @@ Restore reliable Microsoft Entra single sign-on at the permanent SalCAPA address
 - Keeps the Azure-native callback path available in Microsoft Entra as a rollback route.
 - Renders “Sign in with SSO” as a direct navigation link instead of relying on a JavaScript click handler.
 - Adds regression checks for the callback and login link.
-- Refreshes the hosted Protection Advisor menu to match the current Wix top-level navigation, including Industries, Insights and Library, Payments, and Protected Member Login.
+- Adds a Wix-embeddable Protection Advisor surface so Wix remains the single live source for the header, menu, and footer; future Wix shell changes require no SalCAPA navigation release.
+- Refreshes the standalone fallback menu to the current Wix top-level navigation.
 - Carries forward the governed Microsoft 365 intake correction validated for v3.125.
 
 ## Security and authority
