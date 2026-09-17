@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 16 September 2026 13:18 CDT
+last_verified_at: 17 September 2026 00:27 CDT
 environment: azure_development_demonstration
 deployed_release: v3.122
 deployed_commit: e84e19d77cef1b39d605260ae2fbe836e95888e4
@@ -9,20 +9,20 @@ image_digest: sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f
 deployed_at: 16 September 2026 13:18 CDT
 deployment_workflow_run: 35133097177
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.122
-current_stable_commit: e84e19d77cef1b39d605260ae2fbe836e95888e4
-promotion_candidate: v3.122
-promotion_candidate_image_commit: e84e19d77cef1b39d605260ae2fbe836e95888e4
-promotion_candidate_image_digest: sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9
-promotion_candidate_image_published_at: 16 September 2026 13:18 CDT
-promotion_candidate_image_workflow_run: 35133097177
-promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
-promotion_readiness: accepted
-fictional_member_seed_state: verified
-critical_journey_acceptance: verified
-rollback_baseline: v3.121
-genuine_blocker: none
+current_stable_release: v3.123
+current_stable_commit: 4b976032fe2b8420ca2ec652ae7a7bfc5b130d87
+promotion_candidate: v3.123
+promotion_candidate_image_commit: 4b976032fe2b8420ca2ec652ae7a7bfc5b130d87
+promotion_candidate_image_digest: sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be
+promotion_candidate_image_published_at: 17 September 2026 00:27 CDT
+promotion_candidate_image_workflow_run: 35185662854
+promotion_candidate_image_acceptance: immutable_image_published_not_deployed
+promotion_readiness: preflight_ready
+fictional_member_seed_state: candidate_image_boundary_verified_not_deployed
+critical_journey_acceptance: not_verified
+rollback_baseline: v3.122
+genuine_blocker: v3123_not_yet_deployed_and_live_accepted
 ---
 
 # SalCAPA development demonstration continuity
@@ -31,6 +31,7 @@ This non-sensitive engineering record identifies the last verifiable Azure devel
 
 ## Last verifiable deployment
 
+- [Immutable-image publication workflow 35185662854](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35185662854) published exact frozen **v3.123** commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be` on **17 September 2026 at 00:27 CDT**. Exact source identity, runtime release identity, workload identity, scoped registry authority, immutable labels, and non-root execution passed. v3.122 remains deployed and accepted until the separately governed application-deployment and live-acceptance gates pass.
 - [Governed application-deployment workflow 35133097177](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133097177) deployed exact frozen **v3.122** commit `e84e19d77cef1b39d605260ae2fbe836e95888e4` and immutable image digest `sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9` on **16 September 2026 at 13:18 CDT**.
 - The deployment workflow revalidated that exact immutable image before deployment and verified managed identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, readiness, required Azure dependencies, and the Entra sign-in contract.
 - [Post-deployment Protection Advisor acceptance 35133825434](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133825434), [final CI 35133825454](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133825454), and [final CodeQL 35133825787](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133825787) passed. Public consent, account creation, resume, recommendation, submission, Salus human-review handoff, and controlled early-access identity administration were accepted.
