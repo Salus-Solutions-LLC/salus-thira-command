@@ -53,6 +53,12 @@ with tempfile.TemporaryDirectory() as td:
     assert "answer truthfully from my current knowledge" in page.text
     assert "Return to Your Part 2 Assessment" in page.text
     assert 'onchange="saveAnswer(this.name,this.value)"' in page.text
+    assert 'id="questionProgress"' in page.text
+    assert 'id="previousQuestion"' in page.text
+    assert 'id="nextQuestion"' in page.text
+    assert 'id="reviewResults"' in page.text
+    assert 'questions.map((q,i)=>' not in page.text
+    assert 'const q=questions[questionIndex]' in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
     assert "Level '+s.level" in page.text
     shell_html=_page()
