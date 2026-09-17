@@ -1,6 +1,6 @@
 """Least-privilege Microsoft 365 intake for the governed SalCAPA folder.
 
-The runtime managed identity is used only as a federated client assertion.  The
+The runtime managed identity is used only as a short-lived federated client assertion.  The
 resulting Microsoft Graph token represents the configured SalCAPA application,
 which must have an explicit permission on the configured drive folder.
 """
