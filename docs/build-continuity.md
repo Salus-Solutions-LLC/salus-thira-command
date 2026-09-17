@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 16 September 2026 23:55 CDT
-current_frozen_release: v3.122
-current_frozen_commit: e84e19d77cef1b39d605260ae2fbe836e95888e4
+last_verified_at: 17 September 2026 00:18 CDT
+current_frozen_release: v3.123
+current_frozen_commit: 4b976032fe2b8420ca2ec652ae7a7bfc5b130d87
 active_development_branch: development/salcapa-platform
-current_development_head: 4b976032fe2b8420ca2ec652ae7a7bfc5b130d87
-active_product_milestone: issue_128_governed_microsoft_365_intake
+current_development_head: 6fddc6c6e83503b1eecd4972a6c5f88835dba1a6
+active_product_milestone: issue_290_v3123_governed_publication
 active_build_system_issue: 370
-active_increment: issue_128_v3123_governed_m365_intake
-last_completed_increment: issue_290_v3122_controlled_early_access_launch
+active_increment: issue_290_v3123_immutable_image_publication
+last_completed_increment: issue_290_v3123_header_and_part_terminology_freeze
 candidate_release: v3.123
-validation_pr: 449
-validation_branch: development/governed-m365-intake
+validation_pr: pending
+validation_branch: release-activation/v3.123-image
 validation_base: main
 validation_head: pending
-validation_gate_state: github_validation_running
+validation_gate_state: controlled_validation_in_progress
 failed_workflows: none
 first_root_failing_gate: none
-root_cause: reconciled_from_authoritative_github_v3122_checkpoint
-repair_head: 52307b322606119d9d0ca993280787eb9a747d9e
-repair_summary: add_least_privilege_governed_m365_folder_intake
-genuine_blockers: none
-next_authorized_step: complete_exact_candidate_validation_then_close_pr_without_merge_and_fast_forward_development
+root_cause: v3123_frozen_release_requires_immutable_publication_before_v3124_validation
+repair_head: d25d7b4909a183d13d98673291c3d1fefa63f3a9
+repair_summary: activate_exact_frozen_v3123_immutable_image_publication
+genuine_blockers: immutable_v3123_image_not_yet_published
+next_authorized_step: validate_activation_then_close_pr_without_merge_and_fast_forward_development_to_trigger_publication
 deployed_demo_release: v3.122
 deployed_demo_state: controlled_early_access_live
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: controlled_early_access_live
 This non-sensitive engineering record is the restart point for the unified SalCAPA build. GitHub branches, commits, frozen releases, pull requests, workflow results, issues, and closed acceptance records control whenever they disagree with this file.
 
 ## Current verified checkpoint
+
+- **v3.123 is frozen** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` on `release/v3.123`. This activation publishes that exact immutable source before any v3.124 integration proceeds. v3.122 remains deployed and is the rollback baseline during publication.
 
 - **v3.122 is frozen** at exact commit `e84e19d77cef1b39d605260ae2fbe836e95888e4` on `release/v3.122` and is the accepted controlled early-access SalCAPA release. Governed application deployment run `35133097177`, Protection Advisor acceptance run `35133825434`, CI run `35133825454`, and CodeQL run `35133825787` passed. Immutable image `salcapadevb48224acr.azurecr.io/salcapa@sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9` is deployed; v3.121 remains the accepted rollback point. Development head `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` is the authoritative continuation base. The v3.123 candidate adds read-only, exact-folder Microsoft 365 intake under PR #448 and validation-only PR #449; it is not frozen or deployed.
 
