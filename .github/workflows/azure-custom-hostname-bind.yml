@@ -1,0 +1,150 @@
+name: SalCAPA governed custom hostname binding
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - 'deploy/azure/activations/custom-hostname-dev.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-custom-hostname-binding-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - name: Record protected custom-hostname approval gate passage
+        run: echo "Protected SalCAPA development custom-hostname gate passed."
+
+  bind:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate exact governed activation
+        env:
+          ACTIVATION_FILE: deploy/azure/activations/custom-hostname-dev.json
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+        run: |
+          set -euo pipefail
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_RESOURCE_GROUP AZURE_LOCATION; do
+            test -n "${!name}" || { echo "Missing repository variable: $name" >&2; exit 1; }
+          done
+          test "$AZURE_RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$AZURE_LOCATION" = "southcentralus"
+          jq -e '
+            type == "object" and
+            (.schema_version == 1) and
+            (.activation_key == "salcapa-custom-hostname-bind-20260917") and
+            (.operation == "bind_custom_hostname") and
+            (.target_environment == "dev") and
+            (.resource_group == "rg-salcapa-dev") and
+            (.container_app == "salcapa-dev-b48224") and
+            (.container_environment == "salcapa-dev-b48224-aca-env") and
+            (.hostname == "salcapa.salus.solutions") and
+            (.validation_method == "CNAME") and
+            (.expected_native_fqdn == "salcapa-dev-b48224.ashycoast-29444a28.southcentralus.azurecontainerapps.io") and
+            (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
+            ((keys - [
+              "activation_key",
+              "approval_record",
+              "container_app",
+              "container_environment",
+              "expected_native_fqdn",
+              "hostname",
+              "operation",
+              "resource_group",
+              "schema_version",
+              "target_environment",
+              "validation_method"
+            ]) | length == 0)
+          ' "$ACTIVATION_FILE" >/dev/null
+
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Add hostname and bind Azure managed certificate
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          APP_NAME=salcapa-dev-b48224
+          ENVIRONMENT_NAME=salcapa-dev-b48224-aca-env
+          CUSTOM_HOST=salcapa.salus.solutions
+          EXPECTED_FQDN=salcapa-dev-b48224.ashycoast-29444a28.southcentralus.azurecontainerapps.io
+
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+
+          FQDN="$(az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --query properties.configuration.ingress.fqdn --output tsv)"
+          test "$FQDN" = "$EXPECTED_FQDN"
+          CNAME="$(dig +short CNAME "$CUSTOM_HOST" | sed 's/[.]$//' | head -n 1)"
+          test "$CNAME" = "$EXPECTED_FQDN"
+          test "$(curl --connect-timeout 5 --max-time 20 --silent --show-error --output /tmp/native-ready.json --write-out '%{http_code}' "https://$FQDN/health/ready")" = "200"
+
+          BINDING_COUNT="$(az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --query "[length(properties.configuration.ingress.customDomains[?name=='$CUSTOM_HOST'])]" --output tsv)"
+          if [ "$BINDING_COUNT" = "0" ]; then
+            az containerapp hostname add --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --hostname "$CUSTOM_HOST" --only-show-errors --output none
+          fi
+
+          az containerapp hostname bind             --resource-group "$RESOURCE_GROUP"             --name "$APP_NAME"             --hostname "$CUSTOM_HOST"             --environment "$ENVIRONMENT_NAME"             --validation-method CNAME             --only-show-errors             --output none
+
+          HEALTHY=false
+          STATUS=000
+          for attempt in $(seq 1 30); do
+            STATUS="$(curl --connect-timeout 5 --max-time 20 --silent --show-error --output /tmp/custom-ready.json --write-out '%{http_code}' "https://$CUSTOM_HOST/health/ready" || true)"
+            if [ "$STATUS" = "200" ]; then
+              HEALTHY=true
+              break
+            fi
+            sleep 10
+          done
+
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --output json > /tmp/application.json
+          BINDING_COUNT="$(jq --arg host "$CUSTOM_HOST" '[.properties.configuration.ingress.customDomains[]? | select(.name == $host)] | length' /tmp/application.json)"
+          BINDING_TYPE="$(jq -r --arg host "$CUSTOM_HOST" 'first(.properties.configuration.ingress.customDomains[]? | select(.name == $host) | .bindingType) // ""' /tmp/application.json)"
+          CERTIFICATE_ID="$(jq -r --arg host "$CUSTOM_HOST" 'first(.properties.configuration.ingress.customDomains[]? | select(.name == $host) | .certificateId) // ""' /tmp/application.json)"
+
+          {
+            echo "### SalCAPA governed custom-hostname binding"
+            echo ""
+            echo "- Application: $APP_NAME"
+            echo "- Hostname: $CUSTOM_HOST"
+            echo "- DNS CNAME: $CNAME"
+            echo "- Binding count: $BINDING_COUNT"
+            echo "- Binding type: ${BINDING_TYPE:-none}"
+            echo "- Managed certificate attached: $([ -n "$CERTIFICATE_ID" ] && echo yes || echo no)"
+            echo "- Custom readiness HTTP status: $STATUS"
+            echo "- DNS mutation: none"
+            echo "- Application image mutation: none"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          test "$BINDING_COUNT" = "1"
+          test "$BINDING_TYPE" = "SniEnabled"
+          test -n "$CERTIFICATE_ID"
+          test "$HEALTHY" = "true"
