@@ -1,29 +1,29 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 17 September 2026 15:30 CDT
-current_frozen_release: v3.129
-current_frozen_commit: 278f6f9c3ff1f558e124b47fdb54df70f4e249ca
+last_verified_at: 17 September 2026 16:55 CDT
+current_frozen_release: v3.130
+current_frozen_commit: bc3444144da628bdc578b63af84a531325bb3704
 active_development_branch: development/salcapa-platform
-current_development_head: bc0a30ce9fa1f3b7543779f464a854afb8ca906d
-active_product_milestone: issue_370_v3130_embed_title_deduplication
+current_development_head: 5315086419ffe923dccb7d1d072a3d34cbe87b38
+active_product_milestone: issue_370_v3131_scrollable_sidebar
 active_build_system_issue: 370
-active_increment: issue_370_v3130_embed_title_deduplication_release
-last_completed_increment: issue_370_v3129_advisor_scroll_reset_release
-candidate_release: v3.130
-validation_pr: 481
-validation_branch: candidate/v3130-embed-title-deduplication
+active_increment: issue_370_v3131_scrollable_sidebar_release
+last_completed_increment: issue_370_v3130_embed_title_deduplication_release
+candidate_release: v3.131
+validation_pr: pending
+validation_branch: candidate/v3131-scrollable-sidebar
 validation_base: main
-validation_head: 4680d4a631686fb67ed71361cf8d18854b49def5
+validation_head: pending
 validation_gate_state: github_validation_running
 failed_workflows: none
 first_root_failing_gate: none
-root_cause: wix_and_embedded_documents_both_rendered_visible_advisor_title
-repair_head: 4680d4a631686fb67ed71361cf8d18854b49def5
-repair_summary: retain_visible_title_in_wix_and_accessible_hidden_heading_in_embed
-genuine_blockers: v3129_demo_acceptance_superseded_by_v3130_embed_title_deduplication
-next_authorized_step: validate_freeze_publish_deploy_and_live_verify_v3130
-deployed_demo_release: v3.129
+root_cause: fixed_height_sidebar_did_not_expose_vertical_overflow
+repair_head: pending
+repair_summary: add_independent_contained_vertical_sidebar_scrolling
+genuine_blockers: v3130_demo_acceptance_superseded_by_v3131_scrollable_sidebar
+next_authorized_step: validate_freeze_publish_deploy_and_live_verify_v3131
+deployed_demo_release: v3.130
 deployed_demo_state: full_demonstration_accepted
 ---
 
@@ -41,7 +41,8 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **v3.127 is frozen, published, deployed, and live accepted.** It preserves the permanent OIDC callback and custom hostname, keeps Wix authoritative for the Protection Advisor shell, redirects the legacy application route to the canonical Wix page, and preserves the dedicated embed surface. All governed deployment and live identity checks passed.
 - **v3.128 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `5fbd01ab2dc34179a44c8f4fef94bcc4054c4123`; the immutable image is `sha256:81b0fa2f1419a6c72ff5891aad81633dae08d640f63f928546189d473fe2a194`. It replaces the expanding assessment with a bounded one-question-at-a-time flow.
 - **v3.129 is frozen, published, deployed, and live accepted.** It resets the embedded document to its own top after assessment start and every question transition so later questions are not clipped inside the Wix iframe.
-- **v3.130 candidate:** removes the duplicate visible Protection Advisor title from the embedded document while retaining an accessible hidden heading and the authoritative Wix title. No identity, permission, retention, or tenant boundary changes.
+- **v3.130 is frozen, published, deployed, and live accepted.** It removes the duplicate visible Protection Advisor title from the embedded document while retaining an accessible hidden heading and the authoritative Wix title.
+- **v3.131 candidate:** makes the fixed workspace sidebar independently scrollable so all authorized work areas remain reachable on shorter displays. No identity, permission, retention, or tenant boundary changes.
 - **v3.123 is the rollback release** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`.
 
 ## Source precedence
