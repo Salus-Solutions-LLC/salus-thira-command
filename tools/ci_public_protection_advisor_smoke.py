@@ -57,6 +57,13 @@ with tempfile.TemporaryDirectory() as td:
     assert "font-size:32px" in page.text
     assert "font-size:28px" in page.text
     assert 'aria-current="page">Protection Advisor &gt;' in page.text
+    for label, href in (
+        ("Industries", "https://www.salus.solutions/industries"),
+        ("Insights and Library", "https://www.salus.solutions/insights"),
+        ("Payments", "https://www.salus.solutions/payments"),
+        ("Protected Member Login &gt;", "https://salcapa.salus.solutions/"),
+    ):
+        assert f'<a href="{href}">{label}</a>' in page.text
 
     catalog=client.get("/protection-advisor/services")
     assert catalog.status_code==200
