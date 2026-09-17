@@ -531,6 +531,18 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
               value: '0'
             }
             {
+              name: 'SALUS_M365_INTAKE_DRIVE_ID'
+              value: 'b!nLoH4rpIs0Ko75C0IRSSqNFy_EdwB-BMgQS848yr84pGrXen1bnSR6zYkxtw-PFF'
+            }
+            {
+              name: 'SALUS_M365_INTAKE_FOLDER_ITEM_ID'
+              value: '01DBTAFUO2ZTFI6EP7Q5GZZHXQV435DDBJ'
+            }
+            {
+              name: 'SALUS_M365_INTAKE_MAX_FILE_BYTES'
+              value: '26214400'
+            }
+            {
               name: 'SALUS_ALLOW_RESTORE'
               value: '0'
             }
