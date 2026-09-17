@@ -54,7 +54,7 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-custom-hostname-bind-20260917") and
+            (.activation_key == "salcapa-custom-hostname-bind-retry-20260917") and
             (.operation == "bind_custom_hostname") and
             (.target_environment == "dev") and
             (.resource_group == "rg-salcapa-dev") and
@@ -105,9 +105,19 @@ jobs:
           test "$FQDN" = "$EXPECTED_FQDN"
           CNAME="$(dig +short CNAME "$CUSTOM_HOST" | sed 's/[.]$//' | head -n 1)"
           test "$CNAME" = "$EXPECTED_FQDN"
-          test "$(curl --connect-timeout 5 --max-time 20 --silent --show-error --output /tmp/native-ready.json --write-out '%{http_code}' "https://$FQDN/health/ready")" = "200"
+          NATIVE_HEALTHY=false
+          for attempt in $(seq 1 12); do
+            NATIVE_STATUS="$(curl --connect-timeout 5 --max-time 20 --silent --show-error --output /tmp/native-ready.json --write-out '%{http_code}' "https://$FQDN/health/ready" || true)"
+            if [ "$NATIVE_STATUS" = "200" ]; then
+              NATIVE_HEALTHY=true
+              break
+            fi
+            sleep 10
+          done
+          test "$NATIVE_HEALTHY" = "true"
 
-          BINDING_COUNT="$(az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --query "[length(properties.configuration.ingress.customDomains[?name=='$CUSTOM_HOST'])]" --output tsv)"
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --output json > /tmp/application-before.json
+          BINDING_COUNT="$(jq --arg host "$CUSTOM_HOST" '[.properties.configuration.ingress.customDomains[]? | select(.name == $host)] | length' /tmp/application-before.json)"
           if [ "$BINDING_COUNT" = "0" ]; then
             az containerapp hostname add --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --hostname "$CUSTOM_HOST" --only-show-errors --output none
           fi
