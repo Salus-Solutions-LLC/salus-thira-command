@@ -81,6 +81,9 @@ with tempfile.TemporaryDirectory() as td:
     embedded=client.get("/protection-advisor/embed")
     assert embedded.status_code==200
     assert '<header class="salus-header">' not in embedded.text
+    assert '<h1>Protection Advisor™</h1>' not in embedded.text
+    assert '<h1 class="visually-hidden">Protection Advisor</h1>' in embedded.text
+    assert "main{padding-top:8px}" in embedded.text
     assert "salus-protection-advisor-height" in embedded.text
     assert "frame-ancestors https://www.salus.solutions https://salus.solutions" in embedded.headers["content-security-policy"]
     assert "x-frame-options" not in embedded.headers
