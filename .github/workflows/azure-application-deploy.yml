@@ -62,7 +62,7 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.126-application-5857321c") and
+            (.activation_key == "salcapa-v3.126-application-5857321c-hostname-recovery-1") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
@@ -209,6 +209,18 @@ jobs:
             --template-file frozen-release/infra/azure/main.bicep \
             --parameters "${PARAMETERS[@]}" \
             --output json > /tmp/salcapa-application-deployment.json
+
+          # Bicep replaces the ingress object, so restore the governed custom
+          # hostname binding after every deployment. With the existing CNAME,
+          # Azure reuses or creates the managed certificate automatically.
+          az containerapp hostname bind \
+            --name salcapa-dev-b48224 \
+            --resource-group "$RESOURCE_GROUP" \
+            --hostname salcapa.salus.solutions \
+            --environment salcapa-dev-b48224-aca-env \
+            --validation-method CNAME \
+            --only-show-errors \
+            --output none
 
       - name: Verify live runtime, identity, ingress, and sign-in contract
         env:
