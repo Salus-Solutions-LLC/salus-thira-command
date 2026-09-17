@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.126
+          ref: release/v3.127
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -48,7 +48,7 @@ jobs:
       - name: Checkout accepted rollback source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.124
+          ref: release/v3.126
           path: accepted-release
           fetch-depth: 1
           persist-credentials: false
@@ -62,18 +62,18 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.126-application-5857321c") and
+            (.activation_key == "salcapa-v3.127-application-f6afc7cc") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.126") and
-            (.source_commit == "5857321cc0416974b92204d0d9a3f27f55a2288e") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:faaba3f39ff7567f3fc4368b8f451e6f35581860230620aced02f76cb1ea9940") and
-            (.rollback_release == "release/v3.124") and
-            (.rollback_commit == "602b672828f2f6a1d24fc5b1e32cc36766d79ca8") and
-            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519") and
+            (.source_release == "release/v3.127") and
+            (.source_commit == "f6afc7cc827e1e9697502a43bf3f5b31b6ec4d61") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:38d8ef7b73472d6159e319b0f6eda37394df4c9a91a01dfbdff9c18d44b55006") and
+            (.rollback_release == "release/v3.126") and
+            (.rollback_commit == "5857321cc0416974b92204d0d9a3f27f55a2288e") and
+            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:faaba3f39ff7567f3fc4368b8f451e6f35581860230620aced02f76cb1ea9940") and
             ((keys - [
               "activation_key",
               "approval_record",
