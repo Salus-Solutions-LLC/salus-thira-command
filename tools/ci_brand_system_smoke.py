@@ -7,6 +7,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 CSS = (ROOT / "static" / "styles.css").read_text(encoding="utf-8")
 HTML = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+APP = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
 
 
 def require(value: str, source: str, label: str) -> None:
@@ -63,6 +64,7 @@ if not logo_match:
 if "style=" in logo_match.group(0).lower():
     raise SystemExit("Navigation logo styling must remain in the shared stylesheet")
 require("SalCAPA™", HTML, "SalCAPA trademark label")
+require('<button class="btn" id="logout-btn">&lt; Sign Out</button>', APP, "Salus-orange sign-out action")
 
 for view in (
     "dashboard",
