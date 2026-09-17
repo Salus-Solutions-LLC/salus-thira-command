@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 17 September 2026 02:05 CDT
+last_verified_at: 17 September 2026 10:20 CDT
 environment: azure_development_demonstration
 deployed_release: v3.124
 deployed_commit: 602b672828f2f6a1d24fc5b1e32cc36766d79ca8
@@ -34,7 +34,8 @@ This non-sensitive engineering record identifies the current accepted Azure deve
 - [Immutable-image publication workflow 35189223604](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35189223604) published exact frozen **v3.124** commit `602b672828f2f6a1d24fc5b1e32cc36766d79ca8` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519`. Exact source identity, runtime release identity, workload identity, scoped registry authority, immutable labels, and non-root execution passed.
 - [Governed application-deployment workflow 35190102432](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35190102432) deployed that exact frozen source and immutable image. Workload identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, required dependencies, runtime readiness, and the sign-in contract passed. Rollback was not invoked.
 - [Live demonstration acceptance workflow 35191132113](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35191132113) accepted exact deployed **v3.124**. Aster Ridge, Cedar Vale, and Northstar, 24 non-authenticating fictional personas, server-controlled role and tenant boundaries, cross-tenant denial, governed SalINTEL/SalTHIRA/SalCAPA/SalOPS/PROVE journeys, PostgreSQL persistence, application-configuration preservation, and temporary-job cleanup passed.
-- **Permanent-hostname blocker:** the Azure-native endpoint is healthy and reports v3.124, and Azure reports the `salcapa.salus.solutions` binding as secured, but the custom hostname returns `502 Bad Gateway`. The accepted evaluator result is preserved, but the custom hostname fails closed and live administrator Microsoft 365 verification is not yet accepted.\n- All seeded records remain clearly labeled **FICTIONAL DEMONSTRATION**. No real Protected Member information or human approval, decision, validation, or release is represented.
+- **Permanent hostname restored:** `salcapa.salus.solutions` has one SNI binding and an Azure-managed certificate. The public root and readiness endpoint are healthy, while the accepted v3.124 application image and DNS record remain unchanged.
+- All seeded records remain clearly labeled **FICTIONAL DEMONSTRATION**. No real Protected Member information or human approval, decision, validation, or release is represented.
 
 ## Recovery and rollback
 
@@ -62,4 +63,4 @@ Before any successor release is promoted, all required gates must pass on its ex
 
 ## Next authorized work
 
-Preserve exact accepted v3.124 and its v3.123 rollback while repairing the custom-hostname ingress path, then verify the deployed connector's administrative read-only status and exact-folder listing. Any additional source, write, report-publication, or production capability requires a separately governed successor.
+Preserve exact accepted v3.124 and its v3.123 rollback while validating, freezing, publishing, and deploying v3.125, then verify the connector's administrative read-only status and exact-folder listing through the restored permanent hostname. Any additional source, write, report-publication, or production capability requires a separately governed successor.
