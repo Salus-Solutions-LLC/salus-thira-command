@@ -48,7 +48,7 @@ jobs:
       - name: Checkout accepted rollback source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.126
+          ref: release/v3.124
           path: accepted-release
           fetch-depth: 1
           persist-credentials: false
@@ -341,7 +341,7 @@ jobs:
             echo "- Public production cutover: not performed"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Restore accepted v3.123 if promotion verification fails
+      - name: Restore accepted v3.124 if promotion verification fails
         if: failure() && steps.deployment.outcome == 'success'
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
@@ -364,7 +364,7 @@ jobs:
               {
                 echo "### SalCAPA failed promotion rollback"
                 echo ""
-                echo "- Accepted immutable v3.123 image restored"
+                echo "- Accepted immutable v3.124 image restored"
                 echo "- Live readiness restored"
                 echo "- DNS unchanged"
                 echo "- Client secret not used"
@@ -374,5 +374,5 @@ jobs:
             fi
             sleep 10
           done
-          echo "Failed promotion did not restore the accepted v3.123 runtime." >&2
+          echo "Failed promotion did not restore the accepted v3.124 runtime." >&2
           exit 1
