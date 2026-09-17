@@ -1,0 +1,145 @@
+name: SalCAPA custom hostname diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-custom-hostname-diagnostic.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: salcapa-custom-hostname-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate exact governed target
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+        run: |
+          set -euo pipefail
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_RESOURCE_GROUP AZURE_LOCATION; do
+            test -n "${!name}" || { echo "Missing repository variable: $name" >&2; exit 1; }
+          done
+          test "$AZURE_RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$AZURE_LOCATION" = "southcentralus"
+
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Diagnose custom hostname without mutation
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          APP_NAME=salcapa-dev-b48224
+          ENVIRONMENT_NAME=salcapa-dev-b48224-aca-env
+          CUSTOM_HOST=salcapa.salus.solutions
+
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+
+          az containerapp show             --resource-group "$RESOURCE_GROUP"             --name "$APP_NAME"             --output json > /tmp/application.json
+          az containerapp env show             --resource-group "$RESOURCE_GROUP"             --name "$ENVIRONMENT_NAME"             --output json > /tmp/environment.json
+          az containerapp env certificate list             --resource-group "$RESOURCE_GROUP"             --name "$ENVIRONMENT_NAME"             --output json > /tmp/certificates.json
+
+          FQDN="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/application.json)"
+          LATEST_READY_REVISION="$(jq -r '.properties.latestReadyRevisionName // ""' /tmp/application.json)"
+          TRAFFIC_TOTAL="$(jq '[.properties.configuration.ingress.traffic[]?.weight // 0] | add // 0' /tmp/application.json)"
+          BINDING_COUNT="$(jq --arg host "$CUSTOM_HOST" '[.properties.configuration.ingress.customDomains[]? | select(.name == $host)] | length' /tmp/application.json)"
+          BINDING_TYPE="$(jq -r --arg host "$CUSTOM_HOST" 'first(.properties.configuration.ingress.customDomains[]? | select(.name == $host) | .bindingType) // ""' /tmp/application.json)"
+          CERTIFICATE_ID="$(jq -r --arg host "$CUSTOM_HOST" 'first(.properties.configuration.ingress.customDomains[]? | select(.name == $host) | .certificateId) // ""' /tmp/application.json)"
+          CERTIFICATE_NAME="${CERTIFICATE_ID##*/}"
+          CERTIFICATE_MATCHES="$(jq --arg id "$CERTIFICATE_ID" '[.[] | select((.id | ascii_downcase) == ($id | ascii_downcase))] | length' /tmp/certificates.json)"
+          ENVIRONMENT_IP="$(jq -r '.properties.staticIp // ""' /tmp/environment.json)"
+          CNAME="$(dig +short CNAME "$CUSTOM_HOST" | sed 's/[.]$//' | head -n 1)"
+          CUSTOM_A="$(dig +short A "$CUSTOM_HOST" | head -n 1)"
+          FQDN_A="$(dig +short A "$FQDN" | head -n 1)"
+
+          test -n "$FQDN"
+          test -n "$LATEST_READY_REVISION"
+          test "$TRAFFIC_TOTAL" = "100"
+          test "$BINDING_COUNT" = "1"
+          test "$BINDING_TYPE" = "SniEnabled"
+          test -n "$CERTIFICATE_ID"
+          test "$CERTIFICATE_MATCHES" = "1"
+
+          request_status() {
+            local url="$1"
+            local resolve_arg="${2:-}"
+            local status=000
+            for attempt in $(seq 1 12); do
+              if [ -n "$resolve_arg" ]; then
+                status="$(curl --resolve "$resolve_arg" --connect-timeout 5 --max-time 20 --silent --show-error --output /tmp/response-body --write-out '%{http_code}' "$url" || true)"
+              else
+                status="$(curl --connect-timeout 5 --max-time 20 --silent --show-error --output /tmp/response-body --write-out '%{http_code}' "$url" || true)"
+              fi
+              [ "$status" = "200" ] && break
+              sleep 10
+            done
+            printf '%s' "$status"
+          }
+
+          NATIVE_STATUS="$(request_status "https://$FQDN/health/ready")"
+          CUSTOM_STATUS="$(request_status "https://$CUSTOM_HOST/health/ready")"
+          DIRECT_STATUS=000
+          if [ -n "$FQDN_A" ]; then
+            DIRECT_STATUS="$(request_status "https://$CUSTOM_HOST/health/ready" "$CUSTOM_HOST:443:$FQDN_A")"
+          fi
+
+          CLASSIFICATION=healthy
+          if [ "$NATIVE_STATUS" != "200" ]; then
+            CLASSIFICATION=runtime_ingress_unhealthy
+          elif [ -n "$CNAME" ] && [ "$CNAME" != "$FQDN" ]; then
+            CLASSIFICATION=dns_cname_mismatch
+          elif [ -z "$CNAME" ] && [ "$CUSTOM_A" != "$ENVIRONMENT_IP" ]; then
+            CLASSIFICATION=dns_address_mismatch
+          elif [ "$CUSTOM_STATUS" != "200" ] && [ "$DIRECT_STATUS" = "200" ]; then
+            CLASSIFICATION=dns_routing_fault
+          elif [ "$CUSTOM_STATUS" != "200" ]; then
+            CLASSIFICATION=azure_custom_hostname_routing_fault
+          fi
+
+          {
+            echo "### SalCAPA custom-hostname diagnostic"
+            echo ""
+            echo "- Application: $APP_NAME"
+            echo "- Azure-native FQDN: $FQDN"
+            echo "- Latest ready revision present: yes"
+            echo "- Ingress traffic weight: $TRAFFIC_TOTAL"
+            echo "- Custom hostname: $CUSTOM_HOST"
+            echo "- Binding: $BINDING_TYPE"
+            echo "- Certificate: $CERTIFICATE_NAME"
+            echo "- DNS CNAME: ${CNAME:-none}"
+            echo "- DNS A: ${CUSTOM_A:-none}"
+            echo "- Environment ingress IP: ${ENVIRONMENT_IP:-none}"
+            echo "- Native readiness HTTP status: $NATIVE_STATUS"
+            echo "- Custom readiness HTTP status: $CUSTOM_STATUS"
+            echo "- Direct-ingress custom-host readiness HTTP status: $DIRECT_STATUS"
+            echo "- Classification: $CLASSIFICATION"
+            echo "- Azure mutation: none"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          test "$CLASSIFICATION" = "healthy"
