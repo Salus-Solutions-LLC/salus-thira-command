@@ -76,6 +76,7 @@ var registryName = replace('${stem}acr', '-', '')
 var databaseName = 'salcapa'
 var postgresServerName = '${stem}-pg'
 var workloadIdentityName = '${stem}-identity'
+var runtimeRedirectUri = environmentName == 'dev' ? 'https://salcapa.salus.solutions/api/auth/oidc/callback' : 'https://${stem}.${containerAppsEnvironment.properties.defaultDomain}/api/auth/oidc/callback'
 var commonTags = {
   system: 'SalCAPA'
   environment: environmentName
@@ -500,7 +501,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             }
             {
               name: 'SALUS_OIDC_REDIRECT_URI'
-              value: 'https://${stem}.${containerAppsEnvironment.properties.defaultDomain}/api/auth/oidc/callback'
+              value: runtimeRedirectUri
             }
             {
               name: 'SALUS_OIDC_PROVIDER_NAME'
@@ -644,7 +645,7 @@ output managedIdentityClientId string = workloadIdentity.properties.clientId
 output federatedCredentialIssuer string = 'https://login.microsoftonline.com/${entraTenantId}/v2.0'
 output federatedCredentialSubject string = workloadIdentity.properties.principalId
 output federatedCredentialAudience string = 'api://AzureADTokenExchange'
-output runtimeRedirectUri string = 'https://${stem}.${containerAppsEnvironment.properties.defaultDomain}/api/auth/oidc/callback'
+output runtimeRedirectUri string = runtimeRedirectUri
 output entraRuntimeClientId string = entraRuntimeClientId
 output storageAccountName string = storage.name
 output keyVaultName string = keyVault.name
