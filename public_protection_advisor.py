@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
@@ -1166,9 +1166,13 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
     def protection_advisor_embed() -> HTMLResponse:
         return HTMLResponse(_page(include_shell=False), headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors https://www.salus.solutions https://salus.solutions; base-uri 'none'; form-action 'self'"})
 
-    @app.get("/protection-advisor", response_class=HTMLResponse)
-    def protection_advisor_page() -> HTMLResponse:
-        return HTMLResponse(_page(), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"})
+    @app.get("/protection-advisor")
+    def protection_advisor_page() -> RedirectResponse:
+        return RedirectResponse(
+            "https://www.salus.solutions/protection-advisor",
+            status_code=307,
+            headers={"Cache-Control": "no-store"},
+        )
 
     @app.get("/protection-advisor/review", response_class=HTMLResponse)
     def protection_advisor_review(request: Request) -> HTMLResponse:
