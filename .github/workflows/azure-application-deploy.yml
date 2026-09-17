@@ -62,7 +62,7 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.126-application-5857321c-hostname-recovery-1") and
+            (.activation_key == "salcapa-v3.126-application-5857321c") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
