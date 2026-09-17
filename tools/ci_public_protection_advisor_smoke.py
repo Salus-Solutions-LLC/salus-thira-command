@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory() as td:
     from fastapi.testclient import TestClient
     from public_protection_advisor import (
         CORE_CAPABILITIES, NOTIFICATION_FROM, QUESTION_BLUEPRINTS, _package_recommendation,
-        _questions, _review_detail, _review_page, _verification_page,
+        _page, _questions, _review_detail, _review_page, _verification_page,
     )
 
     assert NOTIFICATION_FROM=="protectionadvisor@salus.solutions"
@@ -55,19 +55,20 @@ with tempfile.TemporaryDirectory() as td:
     assert 'onchange="saveAnswer(this.name,this.value)"' in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
     assert "Level '+s.level" in page.text
-    assert "/static/salus-reticle.svg" in page.text
-    assert '<header class="salus-header">' in page.text
-    assert "font-size:56px" in page.text
-    assert "font-size:32px" in page.text
-    assert "font-size:28px" in page.text
-    assert 'aria-current="page">Protection Advisor &gt;' in page.text
+    shell_html=_page()
+    assert "/static/salus-reticle.svg" in shell_html
+    assert '<header class="salus-header">' in shell_html
+    assert "font-size:56px" in shell_html
+    assert "font-size:32px" in shell_html
+    assert "font-size:28px" in shell_html
+    assert 'aria-current="page">Protection Advisor &gt;' in shell_html
     for label, href in (
         ("Industries", "https://www.salus.solutions/industries"),
         ("Insights and Library", "https://www.salus.solutions/insights"),
         ("Payments", "https://www.salus.solutions/payments"),
         ("Protected Member Login &gt;", "https://salcapa.salus.solutions/"),
     ):
-        assert f'<a href="{href}">{label}</a>' in page.text
+        assert f'<a href="{href}">{label}</a>' in shell_html
 
     embedded=client.get("/protection-advisor/embed")
     assert embedded.status_code==200
