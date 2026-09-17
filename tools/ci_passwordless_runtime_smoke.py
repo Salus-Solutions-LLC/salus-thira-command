@@ -66,6 +66,12 @@ def main() -> None:
     infrastructure_source = Path("infra/azure/main.bicep").read_text()
     assert "name: 'AZURE_CLIENT_ID'" in infrastructure_source
     assert "value: workloadIdentity.properties.clientId" in infrastructure_source
+    assert "var runtimeRedirectUri = environmentName == 'dev' ? 'https://salcapa.salus.solutions/api/auth/oidc/callback'" in infrastructure_source
+    assert "value: runtimeRedirectUri" in infrastructure_source
+    assert "output runtimeRedirectUri string = runtimeRedirectUri" in infrastructure_source
+    app_ui_source = Path("static/app.js").read_text()
+    assert '<a class="btn" id="oidc-login" href="/api/auth/oidc/start">Sign in with SSO</a>' in app_ui_source
+    assert "$('#oidc-login').onclick" not in app_ui_source
     print("PASSWORDLESS_RUNTIME_SECRET_PATHS_PASS")
 
 
