@@ -2,14 +2,14 @@
 schema_version: 1
 record_kind: salcapa_build_continuity
 last_verified_at: 17 September 2026 11:26 CDT
-current_frozen_release: v3.124
-current_frozen_commit: 602b672828f2f6a1d24fc5b1e32cc36766d79ca8
+current_frozen_release: v3.125
+current_frozen_commit: ebf26805966892f0afe86f39de920a91c5dd7fd3
 active_development_branch: development/salcapa-platform
 current_development_head: df7dad6909b9588a072f7137310e5dcb0244b4ea
 active_product_milestone: issue_370_v3126_sso_and_wix_shell_repair
 active_build_system_issue: 370
 active_increment: issue_370_v3126_sso_wix_shell_release
-last_completed_increment: issue_128_v3124_custom_domain_recovery
+last_completed_increment: issue_128_v3125_m365_route_release
 candidate_release: v3.126
 validation_pr: 468
 validation_branch: candidate/v3126-release
@@ -37,7 +37,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - Live acceptance verified the bounded fictional demonstration, server-controlled role and tenant boundaries, governed journeys, persistence, application-configuration preservation, and temporary-resource cleanup. All 21 validation workflow families passed on exact activation head `b17f418af1532dfe609410ad56085e8d5adfcd91`.
 - The v3.124 Microsoft 365 intake connector remains read-only, fixed to the authorized drive and folder, size bounded, rejecting arbitrary item identifiers, and using workload identity without a client secret.
 - **Permanent hostname restored:** `salcapa.salus.solutions` now has one SNI binding and an Azure-managed certificate; both the public root and readiness endpoint are healthy. DNS and the deployed v3.124 image were unchanged.
-- **v3.125 candidate:** repairs FastAPI binding for the administrator-only Microsoft 365 status and exact-folder listing routes and adds deterministic regression coverage. Tenant-consented Graph access remains least-privilege and read-only; live verification follows deployment.
+- **v3.125 is frozen but was superseded before image publication.** It repairs FastAPI binding for the administrator-only Microsoft 365 status and exact-folder listing routes; those changes carry forward into v3.126. Tenant-consented Graph access remains least-privilege and read-only.
 - **v3.126 candidate:** carries forward the v3.125 intake repair, restores the permanent OIDC callback and direct SSO navigation, and adds a Wix-embeddable Protection Advisor surface so Wix owns the live header, menu, and footer. No Entra or Graph permission expansion.
 - **v3.123 is the rollback release** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`.
 
