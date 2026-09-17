@@ -40,7 +40,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.124
+          ref: release/v3.126
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -48,7 +48,7 @@ jobs:
       - name: Checkout accepted rollback source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.123
+          ref: release/v3.126
           path: accepted-release
           fetch-depth: 1
           persist-credentials: false
@@ -62,18 +62,18 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.124-application-602b6728") and
+            (.activation_key == "salcapa-v3.126-application-5857321c") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.124") and
-            (.source_commit == "602b672828f2f6a1d24fc5b1e32cc36766d79ca8") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519") and
-            (.rollback_release == "release/v3.123") and
-            (.rollback_commit == "4b976032fe2b8420ca2ec652ae7a7bfc5b130d87") and
-            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be") and
+            (.source_release == "release/v3.126") and
+            (.source_commit == "5857321cc0416974b92204d0d9a3f27f55a2288e") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:faaba3f39ff7567f3fc4368b8f451e6f35581860230620aced02f76cb1ea9940") and
+            (.rollback_release == "release/v3.124") and
+            (.rollback_commit == "602b672828f2f6a1d24fc5b1e32cc36766d79ca8") and
+            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519") and
             ((keys - [
               "activation_key",
               "approval_record",
@@ -238,7 +238,8 @@ jobs:
             env_value("SALUS_STORAGE_BACKEND") == "azure" and
             env_value("SALUS_TELEMETRY_BACKEND") == "azure_monitor" and
             env_value("SALUS_AUTH_MODE") == "oidc" and
-            env_value("SALUS_OIDC_CLIENT_AUTH_METHOD") == "managed_identity"
+            env_value("SALUS_OIDC_CLIENT_AUTH_METHOD") == "managed_identity" and
+            env_value("SALUS_OIDC_REDIRECT_URI") == "https://salcapa.salus.solutions/api/auth/oidc/callback"
           ' /tmp/salcapa-app.json >/dev/null
           FQDN="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/salcapa-app.json)"
           [[ "$FQDN" == salcapa-dev-b48224.*.southcentralus.azurecontainerapps.io ]]
@@ -317,6 +318,12 @@ jobs:
           curl --connect-timeout 5 --max-time 15 --silent --show-error --dump-header /tmp/salcapa-oidc.headers --output /dev/null "$URL/api/auth/oidc/start"
           OIDC_LOCATION="$(awk 'BEGIN{IGNORECASE=1} /^location:/{sub(/^[^:]+:[[:space:]]*/,""); sub(/\r$/,""); print; exit}' /tmp/salcapa-oidc.headers)"
           [[ "$OIDC_LOCATION" == "https://login.microsoftonline.com/$EXPECTED_TENANT_ID/oauth2/v2.0/authorize"* ]]
+          python - "$OIDC_LOCATION" <<'PY'
+          import sys
+          from urllib.parse import parse_qs, urlparse
+          params = parse_qs(urlparse(sys.argv[1]).query)
+          assert params.get("redirect_uri") == ["https://salcapa.salus.solutions/api/auth/oidc/callback"]
+          PY
 
           {
             echo "### SalCAPA development application"
