@@ -22,7 +22,7 @@ promotion_readiness: accepted
 fictional_member_seed_state: verified
 critical_journey_acceptance: verified
 rollback_baseline: v3.123
-genuine_blocker: custom_salcapa_hostname_returns_502_while_azure_native_endpoint_is_healthy
+genuine_blocker: none
 ---
 
 # SalCAPA development demonstration continuity
