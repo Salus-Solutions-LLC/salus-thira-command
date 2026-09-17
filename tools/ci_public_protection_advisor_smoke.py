@@ -65,6 +65,13 @@ with tempfile.TemporaryDirectory() as td:
     ):
         assert f'<a href="{href}">{label}</a>' in page.text
 
+    embedded=client.get("/protection-advisor/embed")
+    assert embedded.status_code==200
+    assert '<header class="salus-header">' not in embedded.text
+    assert "salus-protection-advisor-height" in embedded.text
+    assert "frame-ancestors https://www.salus.solutions https://salus.solutions" in embedded.headers["content-security-policy"]
+    assert "x-frame-options" not in embedded.headers
+
     catalog=client.get("/protection-advisor/services")
     assert catalog.status_code==200
     assert "Salus THIRA Assessment" in catalog.text
