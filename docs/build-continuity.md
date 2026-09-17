@@ -11,7 +11,7 @@ active_build_system_issue: 370
 active_increment: issue_290_v3123_application_promotion
 last_completed_increment: issue_290_v3123_immutable_image_publication
 candidate_release: v3.123
-validation_pr: pending
+validation_pr: 452
 validation_branch: release-activation/v3.123-application
 validation_base: main
 validation_head: pending
