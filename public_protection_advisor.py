@@ -683,7 +683,7 @@ def _verification_page() -> str:
 <p><a href="/protection-advisor">Return to Protection Advisor &gt;</a></p></main></body></html>"""
 
 
-def _page() -> str:
+def _page(include_shell: bool = True) -> str:
     options = "".join(f'<option value="{html.escape(item)}">{html.escape(item)}</option>' for item in sorted(ORGANIZATION_TYPES))
     activities = "".join(
         f'<label class="choice"><input type="checkbox" name="activity" value="{html.escape(item)}"> {html.escape(item)}</label>'
@@ -793,7 +793,11 @@ async function saveDraft(){draftStatus.textContent="Saving…";try{const data=aw
 async function logoutAccount(){try{await call("/public/protection-advisor/logout",{method:"POST",body:"{}"})}finally{location.reload()}}
 async function submitProfile(){submitError.textContent="";try{const selected=[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value);const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:selected,essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value})});profile.classList.add("hidden");const p=data.package;package.classList.remove("hidden");package.innerHTML='<p class="eyebrow">Tailored Preliminary Salus Package</p>'+packageMarkup(p);package.scrollIntoView({behavior:"smooth"})}catch(x){submitError.textContent=x.message}}
 const resetToken=new URLSearchParams(location.search).get("reset_token");if(resetToken){accountAccess.classList.remove("hidden");resetPanel.classList.remove("hidden");}
-</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header())
+</script><script>
+const reportProtectionAdvisorHeight=()=>window.parent.postMessage({type:"salus-protection-advisor-height",height:document.documentElement.scrollHeight},"https://www.salus.solutions");
+new ResizeObserver(reportProtectionAdvisorHeight).observe(document.documentElement);
+window.addEventListener("load",reportProtectionAdvisorHeight);
+</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header() if include_shell else "")
 
 
 def _service_catalog_page() -> str:
@@ -1157,6 +1161,10 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
     @app.get("/protection-advisor/services", response_class=HTMLResponse)
     def protection_advisor_services() -> HTMLResponse:
         return HTMLResponse(_service_catalog_page(), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer"})
+
+    @app.get("/protection-advisor/embed", response_class=HTMLResponse)
+    def protection_advisor_embed() -> HTMLResponse:
+        return HTMLResponse(_page(include_shell=False), headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors https://www.salus.solutions https://salus.solutions; base-uri 'none'; form-action 'self'"})
 
     @app.get("/protection-advisor", response_class=HTMLResponse)
     def protection_advisor_page() -> HTMLResponse:
