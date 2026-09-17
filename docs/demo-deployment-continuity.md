@@ -1,13 +1,13 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 17 September 2026 00:27 CDT
+last_verified_at: 17 September 2026 00:58 CDT
 environment: azure_development_demonstration
-deployed_release: v3.122
-deployed_commit: e84e19d77cef1b39d605260ae2fbe836e95888e4
-image_digest: sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9
-deployed_at: 16 September 2026 13:18 CDT
-deployment_workflow_run: 35133097177
+deployed_release: v3.123
+deployed_commit: 4b976032fe2b8420ca2ec652ae7a7bfc5b130d87
+image_digest: sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be
+deployed_at: 17 September 2026 00:42 CDT
+deployment_workflow_run: 35186525899
 deployment_acceptance: full_demonstration_acceptance
 current_stable_release: v3.123
 current_stable_commit: 4b976032fe2b8420ca2ec652ae7a7bfc5b130d87
@@ -17,94 +17,49 @@ promotion_candidate_image_digest: sha256:33b17998643d102b02dc998c409d96f743ec7d5
 promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be
 promotion_candidate_image_published_at: 17 September 2026 00:27 CDT
 promotion_candidate_image_workflow_run: 35185662854
-promotion_candidate_image_acceptance: immutable_image_published_not_deployed
-promotion_readiness: preflight_ready
-fictional_member_seed_state: candidate_image_boundary_verified_not_deployed
-critical_journey_acceptance: not_verified
+promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
+promotion_readiness: accepted
+fictional_member_seed_state: verified
+critical_journey_acceptance: verified
 rollback_baseline: v3.122
-genuine_blocker: v3123_not_yet_deployed_and_live_accepted
+genuine_blocker: none
 ---
 
 # SalCAPA development demonstration continuity
 
-This non-sensitive engineering record identifies the last verifiable Azure development demonstration deployment and the gates that control its next promotion. GitHub deployment records and successful workflow evidence control this record; conversation history does not.
+This non-sensitive engineering record identifies the current accepted Azure development demonstration and its verified rollback. GitHub release branches, exact commits, immutable image digests, protected workflow results, and closed validation records control whenever another source disagrees.
 
-## Last verifiable deployment
+## Current accepted deployment
 
-- [Immutable-image publication workflow 35185662854](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35185662854) published exact frozen **v3.123** commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be` on **17 September 2026 at 00:27 CDT**. Exact source identity, runtime release identity, workload identity, scoped registry authority, immutable labels, and non-root execution passed. v3.122 remains deployed and accepted until the separately governed application-deployment and live-acceptance gates pass.
-- [Governed application-deployment workflow 35133097177](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133097177) deployed exact frozen **v3.122** commit `e84e19d77cef1b39d605260ae2fbe836e95888e4` and immutable image digest `sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9` on **16 September 2026 at 13:18 CDT**.
-- The deployment workflow revalidated that exact immutable image before deployment and verified managed identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, readiness, required Azure dependencies, and the Entra sign-in contract.
-- [Post-deployment Protection Advisor acceptance 35133825434](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133825434), [final CI 35133825454](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133825454), and [final CodeQL 35133825787](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133825787) passed. Public consent, account creation, resume, recommendation, submission, Salus human-review handoff, and controlled early-access identity administration were accepted.
-- Exact accepted **v3.121** remains the fail-closed rollback baseline. No production DNS, tenant-isolation, human-authority, recovery, or rollback control was weakened.
+- [Immutable-image publication workflow 35185662854](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35185662854) published exact frozen **v3.123** commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be` on **17 September 2026 at 00:27 CDT**. Exact source identity, runtime release identity, workload identity, scoped registry authority, immutable labels, and non-root execution passed.
+- [Governed application-deployment workflow 35186525899](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35186525899) deployed that exact frozen source and immutable image digest on **17 September 2026 at 00:42 CDT**. Workload identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, required dependencies, runtime readiness, and the sign-in contract passed. Rollback was not invoked.
+- [Live demonstration acceptance workflow 35187593491](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35187593491) accepted exact deployed **v3.123** on **17 September 2026 at 00:58 CDT**. Aster Ridge, Cedar Vale, and Northstar, 24 non-authenticating fictional personas, server-controlled role and tenant boundaries, cross-tenant denial, governed SalINTEL/SalTHIRA/SalCAPA/SalOPS/PROVE journeys, PostgreSQL persistence, application-configuration preservation, and temporary-job cleanup passed.
+- All seeded records remain clearly labeled **FICTIONAL DEMONSTRATION**. No real Protected Member information or human approval, decision, validation, or release is represented.
 
-## Stable-release comparison
+## Recovery and rollback
 
-The current stable product is frozen **v3.122** at [`e84e19d`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/e84e19d77cef1b39d605260ae2fbe836e95888e4), and the maintained Azure development demonstration runs and has accepted that exact release. Exact accepted v3.121 remains available as the verified rollback baseline. Every frozen release remains unchanged.
+Exact accepted **v3.122** commit `e84e19d77cef1b39d605260ae2fbe836e95888e4` and immutable image `salcapadevb48224acr.azurecr.io/salcapa@sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9` remain the fail-closed rollback baseline.
 
-The deterministic fixture foundation, bounded cross-functional records, repository role/tenant preflight, live-copy migration, reporting, Entra and tenant isolation, recovery, rollback, deployment, and live three-member acceptance are verified. The live acceptance prepared only clearly labeled fictional demonstration records through the governed fixture interface. It did not represent human review, authorization, approval, release, or a production cutover.
-
-The exact v3.109 source and image-packaging boundary is also verified. Frozen v3.109 does not contain the deterministic fixture capability, so that image remains a stable packaging reference rather than the complete Issue #124 promotion candidate. The successor work is now frozen as v3.110 after all 20 required workflow families passed on the exact release commit.
-
-The immutable-image publication workflow is release-driven and fail-closed. It requires a separately governed activation whose release branch, exact commit, derived activation key, runtime release identity, immutable labels and non-root runtime agree before a push is permitted. [Validation PR #267](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/267) passed all 20 required workflow families on the exact v3.110 activation and was closed without merge.
-
-[Publication workflow run 34536243545](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34536243545) then published exact frozen v3.110 as `salcapadevb48224acr.azurecr.io/salcapa@sha256:c5f7b097a12589d3799205fa60e275afd020c4c41ec975eb175d54d04d4d7b44` on 10 September 2026 at 17:14 CDT. It used workload identity and verified scoped registry authority. It created no mutable tag and performed no Container App deployment. Migration of an independently restored copy of the live accepted-v3.36 database, Microsoft Entra identity and tenant isolation, live reporting, Azure recovery, and Azure rollback acceptance remain required. The last accepted v3.36 deployment remains unchanged while those gaps are closed.
-
-[Live-copy migration workflow run 34545773447](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34545773447) completed successfully on 10 September 2026 at 19:29 CDT. It restored a 15-minute point-in-time copy of the accepted v3.36 PostgreSQL database, ran exact frozen v3.110 from the published immutable digest, applied additive migration and deterministic fictional fixtures, and verified three fictional environments, 24 governed personas, three Draft baseline assessments, and three cross-functional journey records. It proved that the source database and running application configuration were unchanged, then removed the temporary Container Apps job and restored database. This acceptance does not constitute deployment or traffic change. Microsoft Entra identity and tenant isolation, live reporting, Azure recovery, and Azure rollback acceptance remain required.
-
-The next live-reporting gate correctly stopped promotion after proving that Protected Member roles could retrieve Draft report snapshots and mutable internal report previews. Frozen v3.110 and its published image remain unchanged and must not be promoted. The bounded v3.111 successor candidate makes report discovery and delivery release-gated: before release, Protected Members receive no report; after authorized release, JSON, CSV, and printable HTML are derived from the same immutable, hash-verified snapshot. Internal Salus previews remain available for review work. The accepted v3.36 application, traffic, and database remain unchanged.
-
-All 20 required workflow families passed for the repair on exact candidate commit [`1582ae3`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1582ae3898fd59d961d0494192e040828903107b), including the accepted-v3.36 migration rehearsal on SQLite, PostgreSQL 16, and the production container. [Validation PR #274](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/274) was closed without merge. All 20 families then passed again on final checkpoint commit [`8bf4614`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/8bf4614ec79a27641c40dc1a21e1790746a08604), and [checkpoint PR #275](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/275) was closed without merge. That exact checkpoint is frozen as v3.111 and is not deployed.
-
-[Publication workflow run 34553461921](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34553461921) published exact frozen v3.111 as `salcapadevb48224acr.azurecr.io/salcapa@sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311` on 10 September 2026 at 21:10 CDT. Workload identity, scoped registry authority, exact frozen source, runtime release identity, non-root execution, and immutable digest checks passed. [Validation PR #276](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/276) passed all 20 required workflow families and was closed without merge before its exact head advanced to development. The workflow created no mutable tag, performed no Container App deployment, and changed no traffic or database state.
-
-[Live-copy migration workflow run 34557442913](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34557442913) completed successfully on 10 September 2026 at 22:24 CDT. It restored a 15-minute point-in-time copy of the accepted v3.36 PostgreSQL database, ran exact frozen v3.111 from the published immutable digest, applied additive migration and deterministic fictional fixtures, and verified three fictional environments, 24 governed personas, three Draft baseline assessments, and three cross-functional journey records. Source-database and running-application configuration hashes remained unchanged, and the temporary Container Apps job and restored database were removed. [Validation PR #277](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/277) passed all 20 required workflow families on exact head [`e94ffd9`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/e94ffd9d55708df9513c4545227ed56dddc5c364) and was closed without merge before that commit advanced to development. This acceptance does not constitute application deployment, traffic change, identity acceptance, or release authority.
-
-[Live-reporting workflow run 34605204344](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34605204344) completed successfully on 11 September 2026 at 08:49 CDT. Exact frozen v3.111 and its immutable image passed the report-release boundary against an isolated restore of the accepted v3.36 database: three fictional environments only, JSON/CSV/printable-HTML delivery, Draft exclusion, cross-member denial, immutable released snapshots, tamper rejection, workload identity, registry digest, accepted-database preservation, and running-application preservation. Temporary resources were removed. This establishes live reporting acceptance without deploying v3.111 or changing traffic.
-
-[Microsoft Entra and tenant-isolation workflow run 34613330596](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34613330596) completed successfully on 11 September 2026 at 10:01 CDT. It verified the accepted v3.36 demonstration's tenant-specific Entra discovery, exact redirect, passwordless managed-identity client authentication, no-runtime-secret configuration, and anonymous-session denial. Exact frozen v3.111 and its immutable image then passed an isolated three-fictional-tenant exercise proving server-derived tenant, role, and clearance; cross-tenant audit isolation; and denial of unknown, disabled, foreign-tenant, invalid-issuer, invalid-audience, and replay cases. No interactive human login was represented. The accepted application, database, and traffic remained unchanged, and the temporary consumption job was removed. [Controlled validation PR #288](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/288) passed all 20 required workflow families on exact head [`22de9cc`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/22de9cc1841a136ce75acdb436fb7fb99b67ca36) and was closed without merge before that exact commit advanced to development.
-
-[Azure recovery workflow run 34615239853](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34615239853) completed successfully on 11 September 2026 at 10:18 CDT. It bound the successful governed 15-minute point-in-time restore and exact-v3.111 migration evidence from run 34557442913 to fresh read-only verification of PostgreSQL recovery availability, versioned evidence retention, monitoring, budget controls, the accepted v3.36 application state, and the published immutable v3.111 image. It used workload identity, provisioned no resources, repeated no restore, and changed no accepted application, database, DNS, or traffic state. [Controlled validation PR #289](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/289) passed all 20 required workflow families on exact head [`aa1d008`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/aa1d0085ddff836ca9391d1fdefb585584f3d48a) and was closed without merge before that exact commit advanced to development. Recovery is accepted.
-
-[Azure rollback workflow run 34617040315](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34617040315) completed successfully on 11 September 2026 at 10:48 CDT. Exact frozen v3.111 and its immutable image migrated an isolated 15-minute restore and established all three fictional environments. The temporary job was then replaced with exact frozen v3.36 and the accepted immutable image; that runtime successfully read the candidate-migrated database. Source-database and accepted-application state hashes remained unchanged, and the temporary job and restored database were removed. [Controlled validation PR #291](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/291) passed all 20 required workflow families on exact head [`a90c445`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/a90c445c594cb7ff68a66c4ebb11f6107af01ed0) and was closed without merge before that exact commit advanced to development. Every pre-promotion gate is accepted.
-
-[Governed application-deployment workflow 34621973343](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34621973343) promoted exact frozen v3.111 on 11 September 2026 at 11:31 CDT after [controlled validation PR #293](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/293) passed all 20 required workflow families and closed without merge. Its post-deployment checks verified runtime readiness, identity, ingress, dependencies, immutable image, and fail-closed v3.36 rollback authority.
-
-[Live demonstration acceptance workflow 34654142382](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34654142382) passed on 11 September 2026 at 17:32 CDT. Exact frozen v3.111 prepared Aster Ridge, Cedar Vale, and Northstar on the live PostgreSQL database; verified 24 non-authenticating fictional personas, tenant-scoped portable records, role-aware SalINTEL/SalTHIRA/SalCAPA/SalOPS/PROVE journeys, internal-versus-member disclosure, viewer and contributor write denial, and cross-tenant decision denial; preserved the deployed application configuration; and removed the temporary consumption job. The first attempt had already completed the substantive walkthrough but timed out during one scale-to-zero readiness request. [Controlled validation PR #295](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/295) passed all 20 required families and closed without merge before the bounded readiness retry succeeded. No real data or human approval, decision, validation, or release is represented by the fixture states.
-
-[Immutable-image publication workflow 34670976390](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34670976390) published exact frozen v3.112 commit [`1d1759375d37b7de884331c06833de8c727ac5af`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/1d1759375d37b7de884331c06833de8c727ac5af) as `salcapadevb48224acr.azurecr.io/salcapa@sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce` on **11 September 2026 at 22:42 CDT**. Workload identity, exact frozen source, runtime release identity, scoped registry authority, immutable labels, and non-root execution passed. No application, traffic, DNS, database, or recurring-cost configuration changed. The accepted v3.111 demonstration remains the rollback baseline.
-
-[Governed application-deployment workflow 34672016498](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34672016498) deployed exact frozen v3.112 and immutable digest `sha256:605822c4f48a82ac9823a2f80e846c0cc6b9ac944afe20c95240cae854e549ce` on **11 September 2026 at 23:08 CDT**. Workload identity, Entra-only PostgreSQL authentication, immutable image identity, HTTPS ingress, bounded scale, runtime readiness, required dependencies, and Entra sign-in redirect passed. Accepted v3.111 was retained as the fail-closed rollback baseline. Full acceptance remains pending until the ordinary read-only evaluator path proves Aster Ridge, Cedar Vale, and Northstar live without weakening tenant isolation or representing fictional authority.
-
-[Live acceptance workflow 34673592500](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34673592500) failed closed on **11 September 2026 at 23:43 CDT**. The temporary job was removed and the deployed v3.112 application remained unchanged. The harness had searched for an obsolete success marker and had not yet required the dedicated evaluator-route test. The corrected retry now requires both the governed promotion preflight and the read-only evaluator acceptance marker from exact frozen v3.112.
-
-[Live acceptance workflow 34674570520](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34674570520) passed on **12 September 2026 at 00:06 CDT**. Exact frozen v3.112 verified Aster Ridge, Cedar Vale, and Northstar through the ordinary read-only Demonstration Environments route, all governed SalINTEL/SalTHIRA/SalCAPA/SalOPS/PROVE journeys, role restrictions, server-controlled tenant state, cross-tenant denial, and PostgreSQL persistence. The bounded temporary job was removed, and application image, identity, ingress, traffic, DNS, scale, and secret configuration remained unchanged. No real data or human approval, decision, validation, or release is represented.
-
-[Immutable-image publication workflow 34908424307](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34908424307) published exact frozen v3.113 commit [`9d9873203fffd8c8ae477123ea94eb35b27c2acd`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/9d9873203fffd8c8ae477123ea94eb35b27c2acd) as `salcapadevb48224acr.azurecr.io/salcapa@sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8` on **14 September 2026 at 18:22 CDT**. Exact frozen source, runtime release identity, non-root execution, workload identity, scoped registry authority, and immutable labels passed. No application, traffic, DNS, database, mutable tag, or public-production state changed; accepted v3.112 remains live and is the rollback baseline.
-
-[Governed application-deployment workflow 34915370013](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34915370013) deployed exact frozen v3.113 and immutable digest `sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8` on **14 September 2026 at 20:03 CDT**. Workload identity, Entra-only PostgreSQL authentication, immutable image identity, HTTPS ingress, bounded scale, runtime readiness, required Azure dependencies, and Entra sign-in redirect passed. The rollback path was not invoked and exact accepted v3.112 remains available as the fail-closed baseline. Full three-environment live acceptance followed through the separately protected gate.
-
-[Live demonstration acceptance workflow 34921297674](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34921297674) passed on **14 September 2026 at 21:31 CDT**. Exact frozen v3.113 verified Aster Ridge, Cedar Vale, and Northstar through the ordinary read-only Demonstration Environments route, all governed SalINTEL/SalTHIRA/SalCAPA/SalOPS/PROVE journeys, role restrictions, server-controlled tenant state, cross-tenant denial, and PostgreSQL persistence. The bounded temporary job was removed, and application image, identity, ingress, traffic, DNS, scale, and secret configuration remained unchanged. No real data or human approval, decision, validation, or release is represented.
+Database rollback uses an independently validated restore, not destructive in-place reversal. A failed preflight, deployment, live acceptance, cleanup, readiness, identity, or tenant-isolation check fails closed and must preserve or restore the last accepted state.
 
 ## Promotion gates
 
-Before any newer milestone is promoted, all of the following must be verified on the exact frozen candidate and immutable image digest:
+Before any successor release is promoted, all required gates must pass on its exact frozen commit and immutable image digest:
 
-1. Forward schema migration from the accepted demonstration database and preservation of governed records.
-2. Deterministic seed/reseed compatibility for Aster Ridge International Airport, Cedar Vale Energy Systems, and Northstar Applied Technologies, each visibly marked **FICTIONAL DEMONSTRATION**.
-3. Microsoft Entra identity mapping, server-controlled role and tenant authority, disabled/unknown-user denial, and cross-tenant isolation.
-4. Critical SalINTEL, SalTHIRA, SalCAPA, SalOPS, and cross-cutting PROVE journeys, including reports, exports, audit/version history, and reassessment.
-5. Backup, recovery, and rollback rehearsal that preserves or restores the last accepted demonstration state if promotion fails.
-6. Left-margin release display, day-month-year dates, 24-hour times, visual doctrine, Human-First Communications, Human Trust & Comprehension, and demonstration-only labeling.
-7. A deployment record containing the promoted release, commit, immutable image digest, deployment time, workflow run, and acceptance result.
+1. Forward schema migration and preservation of governed records.
+2. Deterministic fictional-fixture compatibility.
+3. Microsoft Entra identity mapping, server-controlled tenant and role authority, unknown or disabled user denial, and cross-tenant isolation.
+4. Critical SalINTEL, SalTHIRA, SalCAPA, SalOPS, PROVE, reporting, export, audit, and reassessment journeys.
+5. Backup, recovery, rollback, and temporary-resource cleanup.
+6. Accessibility, security, privacy, abuse resistance, Human-First Communications, and Human Trust & Comprehension checks.
+7. A deployment record with the exact release, commit, immutable digest, workflow run, time, and acceptance result.
 
-## Safety and authority boundaries
+## Authority boundaries
 
-- Never place real Protected Member, employee, protectee, investigation, credential, or operational information in the demonstration.
-- Seed and reseed operations must use normal application/domain rules or a separately governed fixture interface. They must not forge server-controlled lifecycle, provenance, approval, release, disclosure, audit, handoff, tenant, or calculated state.
-- A failed preflight or promotion fails closed. It must not shift traffic away from the last accepted release or erase the accepted database.
-- Reconfirm that the v3.36 immutable image remains available before relying on it for rollback. Database rollback uses an independently validated restore, not destructive in-place reversal.
-- Promotion of the development demonstration does not authorize production cutover, DNS changes, new recurring cost, a higher Azure cost ceiling, or relaxed identity controls.
+- Never place credentials, secrets, real Protected Member, employee, protectee, investigation, or operational information in this record or the fictional demonstration.
+- The application remains passwordless, uses managed identity, preserves bounded scale and the approved Azure cost ceiling, and changes no custom DNS.
+- Acceptance of this Azure development demonstration does not authorize production cutover, public-data migration, expanded Microsoft 365 scope, or weakened identity, privacy, recovery, rollback, disclosure, provenance, or human-authority controls.
 
 ## Next authorized work
 
-Exact frozen v3.113 and its immutable image are deployed and accepted in the Azure development demonstration. Preserve exact accepted v3.112 as the verified rollback baseline and retain the no-DNS, no-public-production, approved-cost, and fictional-data boundaries while proceeding to the next authorized Issue #360 work and deferred Issue #368 orchestration hardening.
+Preserve exact accepted v3.123 and its v3.122 rollback while validating the distinct v3.124 least-privilege Microsoft 365 intake candidate. The v3.124 connector remains read-only and exact-folder scoped until a separately governed successor authorizes any additional source, write, report-publication, or production capability.
