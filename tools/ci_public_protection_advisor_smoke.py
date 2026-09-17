@@ -41,7 +41,11 @@ with tempfile.TemporaryDirectory() as td:
     }
 
     client=TestClient(app_module.app)
-    page=client.get("/protection-advisor")
+    canonical=client.get("/protection-advisor",follow_redirects=False)
+    assert canonical.status_code==307
+    assert canonical.headers["location"]=="https://www.salus.solutions/protection-advisor"
+    assert canonical.headers["cache-control"]=="no-store"
+    page=client.get("/protection-advisor/embed")
     assert page.status_code==200
     assert "Protection Advisor" in page.text
     assert "Anonymous Protection Readiness Review" in page.text
