@@ -313,6 +313,7 @@ textarea { min-height: 84px; resize: vertical; }
 .danger-text { color: var(--danger); }
 
 .identity-box { display: flex; align-items: center; gap: 8px; }
+#logout-btn { flex: 0 0 auto; min-width: max-content; white-space: nowrap; }
 .identity-box input, .identity-box select { width: auto; min-width: 130px; background: #fff; }
 .identity-box input { max-width: 150px; }
 .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
