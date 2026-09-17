@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 17 September 2026 02:05 CDT
+last_verified_at: 17 September 2026 10:20 CDT
 current_frozen_release: v3.124
 current_frozen_commit: 602b672828f2f6a1d24fc5b1e32cc36766d79ca8
 active_development_branch: development/salcapa-platform
-current_development_head: b34b7ef9b63b347788299f617f88ad0e5aec149f
+current_development_head: candidate_pending_validation
 active_product_milestone: issue_128_governed_microsoft_365_intake
 active_build_system_issue: 370
-active_increment: issue_128_v3124_custom_domain_recovery
-last_completed_increment: issue_128_v3124_accepted_continuity
-candidate_release: none
+active_increment: issue_128_v3125_m365_route_release
+last_completed_increment: issue_128_v3124_custom_domain_recovery
+candidate_release: v3.125
 validation_pr: none
-validation_branch: continuity/v3.124-custom-domain-blocker
+validation_branch: candidate/v3125-m365-route-release
 validation_base: main
 validation_head: pending
-validation_gate_state: all_required_gates_green
+validation_gate_state: pending
 failed_workflows: none
 first_root_failing_gate: none
-root_cause: custom_hostname_path_returns_502_while_azure_native_endpoint_is_healthy
-repair_head: b34b7ef9b63b347788299f617f88ad0e5aec149f
-repair_summary: record_fail_closed_custom_domain_blocker
-genuine_blockers: salcapa_custom_hostname_returns_502_and_blocks_live_m365_administrator_verification
-next_authorized_step: diagnose_and_repair_custom_domain_ingress_then_verify_live_m365_read_only_status_and_exact_folder_listing
+root_cause: fastapi_postponed_local_request_annotation_was_bound_as_query_parameter
+repair_head: bcfc1b84f72d59bb5acb990fa42852af5fc5309a
+repair_summary: custom_hostname_restored_and_m365_route_binding_repaired
+genuine_blockers: none
+next_authorized_step: validate_freeze_publish_deploy_and_verify_v3125_m365_read_only_status
 deployed_demo_release: v3.124
 deployed_demo_state: full_demonstration_accepted
 ---
@@ -36,7 +36,9 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **v3.124 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `602b672828f2f6a1d24fc5b1e32cc36766d79ca8`; the immutable image is `sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519`. Publication run `35189223604`, deployment run `35190102432`, and live acceptance run `35191132113` passed.
 - Live acceptance verified the bounded fictional demonstration, server-controlled role and tenant boundaries, governed journeys, persistence, application-configuration preservation, and temporary-resource cleanup. All 21 validation workflow families passed on exact activation head `b17f418af1532dfe609410ad56085e8d5adfcd91`.
 - The v3.124 Microsoft 365 intake connector remains read-only, fixed to the authorized drive and folder, size bounded, rejecting arbitrary item identifiers, and using workload identity without a client secret.
-- **Permanent-hostname blocker:** the Azure-native endpoint is healthy and identifies v3.124, and Azure reports the custom binding as secured, but `salcapa.salus.solutions` returns `502 Bad Gateway`. Live Microsoft 365 administrator verification remains blocked until that path is repaired.\n- **v3.123 is the rollback release** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`.
+- **Permanent hostname restored:** `salcapa.salus.solutions` now has one SNI binding and an Azure-managed certificate; both the public root and readiness endpoint are healthy. DNS and the deployed v3.124 image were unchanged.
+- **v3.125 candidate:** repairs FastAPI binding for the administrator-only Microsoft 365 status and exact-folder listing routes and adds deterministic regression coverage. Tenant-consented Graph access remains least-privilege and read-only; live verification follows deployment.
+- **v3.123 is the rollback release** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`.
 
 ## Source precedence
 
