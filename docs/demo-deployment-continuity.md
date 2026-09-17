@@ -1,27 +1,27 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 15 September 2026 22:55 CDT
+last_verified_at: 16 September 2026 13:18 CDT
 environment: azure_development_demonstration
-deployed_release: v3.115
-deployed_commit: e35ae8ce7488e6b4d23d86c1579e6d462c5f2b1c
-image_digest: sha256:2cf997f1a14dbe1dabe181df164aac2bebc5c7d256dfb7891403bef38f9ea11e
-deployed_at: 15 September 2026 21:40 CDT
-deployment_workflow_run: 35048559773
+deployed_release: v3.122
+deployed_commit: e84e19d77cef1b39d605260ae2fbe836e95888e4
+image_digest: sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9
+deployed_at: 16 September 2026 13:18 CDT
+deployment_workflow_run: 35133097177
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.115
-current_stable_commit: e35ae8ce7488e6b4d23d86c1579e6d462c5f2b1c
-promotion_candidate: v3.115
-promotion_candidate_image_commit: e35ae8ce7488e6b4d23d86c1579e6d462c5f2b1c
-promotion_candidate_image_digest: sha256:2cf997f1a14dbe1dabe181df164aac2bebc5c7d256dfb7891403bef38f9ea11e
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:2cf997f1a14dbe1dabe181df164aac2bebc5c7d256dfb7891403bef38f9ea11e
-promotion_candidate_image_published_at: 15 September 2026 21:31 CDT
-promotion_candidate_image_workflow_run: 35048147720
+current_stable_release: v3.122
+current_stable_commit: e84e19d77cef1b39d605260ae2fbe836e95888e4
+promotion_candidate: v3.122
+promotion_candidate_image_commit: e84e19d77cef1b39d605260ae2fbe836e95888e4
+promotion_candidate_image_digest: sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9
+promotion_candidate_image_published_at: 16 September 2026 13:18 CDT
+promotion_candidate_image_workflow_run: 35133097177
 promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
 promotion_readiness: accepted
 fictional_member_seed_state: verified
 critical_journey_acceptance: verified
-rollback_baseline: v3.114
+rollback_baseline: v3.121
 genuine_blocker: none
 ---
 
@@ -31,14 +31,14 @@ This non-sensitive engineering record identifies the last verifiable Azure devel
 
 ## Last verifiable deployment
 
-- The most recent successful governed application deployment is [workflow run 34915370013](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34915370013), completed on **14 September 2026 at 20:03 CDT**.
-- The live runtime uses frozen **v3.113** commit [`9d9873203fffd8c8ae477123ea94eb35b27c2acd`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/9d9873203fffd8c8ae477123ea94eb35b27c2acd) and immutable image digest `sha256:84fe4ca875ec1d8478aa617fcd873adcf62c5eba78134ea4575de8471bfd9eb8`.
-- The deployment workflow verified the immutable image, managed identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, readiness endpoint, required Azure dependencies, and Entra sign-in redirect. Exact accepted v3.112 remains the fail-closed rollback baseline.
-- [Live demonstration acceptance workflow 34921297674](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/34921297674) completed on **14 September 2026 at 21:31 CDT** and accepted all three governed fictional Protected Member environments and bounded cross-functional journeys. No real data, DNS, public-production state, or standing temporary resource changed.
+- [Governed application-deployment workflow 35133097177](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133097177) deployed exact frozen **v3.122** commit `e84e19d77cef1b39d605260ae2fbe836e95888e4` and immutable image digest `sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9` on **16 September 2026 at 13:18 CDT**.
+- The deployment workflow revalidated that exact immutable image before deployment and verified managed identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, readiness, required Azure dependencies, and the Entra sign-in contract.
+- [Post-deployment Protection Advisor acceptance 35133825434](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133825434), [final CI 35133825454](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133825454), and [final CodeQL 35133825787](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35133825787) passed. Public consent, account creation, resume, recommendation, submission, Salus human-review handoff, and controlled early-access identity administration were accepted.
+- Exact accepted **v3.121** remains the fail-closed rollback baseline. No production DNS, tenant-isolation, human-authority, recovery, or rollback control was weakened.
 
 ## Stable-release comparison
 
-The current stable product is frozen **v3.113** at [`9d98732`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/9d9873203fffd8c8ae477123ea94eb35b27c2acd), and the maintained Azure development demonstration now runs and has accepted that exact release. Exact accepted v3.112 remains available as the verified rollback baseline. Every frozen release remains unchanged.
+The current stable product is frozen **v3.122** at [`e84e19d`](https://github.com/Salus-Solutions-LLC/salus-thira-command/commit/e84e19d77cef1b39d605260ae2fbe836e95888e4), and the maintained Azure development demonstration runs and has accepted that exact release. Exact accepted v3.121 remains available as the verified rollback baseline. Every frozen release remains unchanged.
 
 The deterministic fixture foundation, bounded cross-functional records, repository role/tenant preflight, live-copy migration, reporting, Entra and tenant isolation, recovery, rollback, deployment, and live three-member acceptance are verified. The live acceptance prepared only clearly labeled fictional demonstration records through the governed fixture interface. It did not represent human review, authorization, approval, release, or a production cutover.
 
