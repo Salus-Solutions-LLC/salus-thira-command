@@ -117,7 +117,12 @@ def main() -> None:
     if values["current_stable_release"] == build["current_frozen_release"]:
         assert values["current_stable_commit"] == build["current_frozen_commit"]
     else:
-        assert build["candidate_release"] == build["current_frozen_release"]
+        frozen = version(build["current_frozen_release"])
+        candidate = version(build["candidate_release"])
+        assert candidate in {frozen, (frozen[0], frozen[1] + 1)}
+        if candidate != frozen:
+            assert "superseded" in build["genuine_blockers"]
+            assert f"v{frozen[0]}{frozen[1]}" in build["last_completed_increment"]
         assert build["validation_pr"].isdigit()
         assert build["genuine_blockers"] != "none"
     assert version(values["promotion_candidate"]) <= version(values["current_stable_release"])
