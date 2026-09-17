@@ -178,8 +178,7 @@ def register_m365_intake(app, namespace: dict[str, Any]) -> None:
             raise HTTPException(403, "System Administrator authority is required")
         return context
 
-    @app.get("/api/integrations/m365/intake/status", include_in_schema=False)
-    def m365_intake_status(request: Request):
+    def m365_intake_status(request):
         require_admin(request)
         status = readiness()
         if not status["configured"]:
@@ -190,11 +189,23 @@ def register_m365_intake(app, namespace: dict[str, Any]) -> None:
         except Exception:
             return status | {"accessible": False, "file_count": 0}
 
-    @app.get("/api/integrations/m365/intake/files", include_in_schema=False)
-    def m365_intake_files(request: Request):
+    # Request is supplied by the host application. Bind the concrete class
+    # before FastAPI inspects the route; postponed annotations cannot resolve a
+    # function-local alias and otherwise expose request as a query field.
+    m365_intake_status.__annotations__["request"] = Request
+    app.get("/api/integrations/m365/intake/status", include_in_schema=False)(
+        m365_intake_status
+    )
+
+    def m365_intake_files(request):
         require_admin(request)
         try:
             files = GovernedM365Intake(GovernedM365Config.from_environment()).list_files()
         except Exception as exc:
             raise HTTPException(503, "Governed Microsoft 365 intake is unavailable") from exc
         return {"items": files, "count": len(files), "read_only": True}
+
+    m365_intake_files.__annotations__["request"] = Request
+    app.get("/api/integrations/m365/intake/files", include_in_schema=False)(
+        m365_intake_files
+    )
