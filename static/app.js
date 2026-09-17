@@ -442,7 +442,7 @@ function renderIdentity(){
   const box=document.createElement('div'); box.id='identity-box'; box.className='identity-box';
   if(['session','oidc'].includes(systemMode.auth_mode) && accessState){
     currentUser=accessState.user; currentRole=accessState.role;
-    box.innerHTML=`<div class="status-pill">${esc(accessState.user)} · ${esc(accessState.role)} · ${esc(accessState.clearance||'Standard')}</div><button class="btn secondary" id="logout-btn">Sign Out</button>`;
+    box.innerHTML=`<div class="status-pill">${esc(accessState.user)} · ${esc(accessState.role)} · ${esc(accessState.clearance||'Standard')}</div><button class="btn" id="logout-btn">&lt; Sign Out</button>`;
     host.appendChild(box); $('#logout-btn').onclick=logoutSession;
   }else{
     box.innerHTML=`<input id="user-name" value="${esc(currentUser)}" aria-label="User name"/><select id="role-select" aria-label="Role">${['System Administrator','Assessment Director','Lead Assessor','SME Assessor','Client Executive','Program Owner','Contributor','Auditor'].map(r=>`<option ${r===currentRole?'selected':''}>${r}</option>`).join('')}</select><div class="status-pill">Private workspace</div>`;
