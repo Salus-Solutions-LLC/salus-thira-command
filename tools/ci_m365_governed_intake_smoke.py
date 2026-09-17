@@ -30,7 +30,12 @@ except ImportError:
     sys.modules["azure"] = azure
     sys.modules["azure.identity"] = identity
 
-from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake, M365IntakeError
+from salcapa_m365_intake import (
+    GovernedM365Config,
+    GovernedM365Intake,
+    M365IntakeError,
+    register_m365_intake,
+)
 
 
 class Token:
@@ -106,6 +111,37 @@ def main():
         pass
     else:
         raise AssertionError("Invalid identifiers were accepted")
+
+    class Request:
+        pass
+
+    class HTTPException(Exception):
+        pass
+
+    class App:
+        def __init__(self):
+            self.routes = {}
+
+        def get(self, path, **kwargs):
+            def decorator(function):
+                self.routes[path] = function
+                return function
+            return decorator
+
+    app = App()
+    register_m365_intake(app, {
+        "Request": Request,
+        "HTTPException": HTTPException,
+        "auth_context": lambda request: {"role": "System Administrator"},
+    })
+    assert set(app.routes) == {
+        "/api/integrations/m365/intake/status",
+        "/api/integrations/m365/intake/files",
+    }
+    assert all(
+        route.__annotations__.get("request") is Request
+        for route in app.routes.values()
+    )
     print("M365_GOVERNED_INTAKE_PASS")
 
 
