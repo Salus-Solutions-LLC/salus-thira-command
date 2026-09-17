@@ -333,6 +333,15 @@ textarea { min-height: 84px; resize: vertical; }
 .stage-heading h2, .stage-heading h3 { margin: 0; font-weight: 600; letter-spacing: -.012em; }
 .stage-heading p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
 .stage-heading .btn { margin-left: auto; }
+.stage-guidance {
+  display: block;
+  width: 100%;
+  margin: -4px 0 12px 44px;
+  max-width: calc(100% - 44px);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .component { font-size: 10px; font-weight: 700; padding: 4px 7px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--ink); background: #fff; letter-spacing: .025em; }
 .component.intel { color: #0f688a; border-color: #acd5e4; }
 .component.thira { color: #7c5719; border-color: #e5cc9f; }
