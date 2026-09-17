@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "activation_key": "salcapa-custom-hostname-bind-20260917",
+  "activation_key": "salcapa-custom-hostname-bind-retry-20260917",
   "operation": "bind_custom_hostname",
   "target_environment": "dev",
   "resource_group": "rg-salcapa-dev",
