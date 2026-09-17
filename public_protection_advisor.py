@@ -684,6 +684,8 @@ def _verification_page() -> str:
 
 
 def _page(include_shell: bool = True) -> str:
+    page_intro = ('<h1>Protection Advisor™</h1><p class="muted">Find Your Salus Package</p>' if include_shell else '<h1 class="visually-hidden">Protection Advisor</h1>')
+    embed_css = "" if include_shell else "main{padding-top:8px}"
     options = "".join(f'<option value="{html.escape(item)}">{html.escape(item)}</option>' for item in sorted(ORGANIZATION_TYPES))
     activities = "".join(
         f'<label class="choice"><input type="checkbox" name="activity" value="{html.escape(item)}"> {html.escape(item)}</label>'
@@ -700,9 +702,10 @@ button,.action{border:0;background:none;color:var(--orange);font:1.05rem Arial,H
 button:disabled{color:#888;cursor:not-allowed}.question{padding:20px 0;border-bottom:1px solid var(--line)}.choices{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}
 .choices label{font-weight:400;margin:0}.question-progress{font:700 .8rem Arial,Helvetica,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin:18px 0 8px}.question-nav{display:flex;gap:28px;align-items:center;flex-wrap:wrap;margin-top:18px}.question-nav button{margin:0}.hidden{display:none}.error{color:#a12612}.result{background:var(--soft);padding:24px;margin-top:24px}.route{border-left:3px solid var(--blue);padding:4px 20px;margin:28px 0}
 .package-item{padding:16px 0;border-bottom:1px solid var(--line)}.eyebrow{font:700 .78rem Arial,Helvetica,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}__EMBED_CSS__
 </style></head><body><main>
 __SALUS_HEADER__
-<h1>Protection Advisor™</h1><p class="muted">Find Your Salus Package</p>\n<p><a class="action" href="#accountAccess" onclick="openAccountLogin(event)">Return to Your Part 2 Assessment &gt;</a></p>
+__PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountLogin(event)">Return to Your Part 2 Assessment &gt;</a></p>
 <h2>Part 1 — Anonymous Protection Readiness Review</h2>
 <p>Learn what may deserve attention without providing your name, email address, or organization name. Your anonymous answers produce an immediate preliminary summary.</p>
 <section id="start" class="panel">
@@ -799,7 +802,7 @@ const resetToken=new URLSearchParams(location.search).get("reset_token");if(rese
 const reportProtectionAdvisorHeight=()=>window.parent.postMessage({type:"salus-protection-advisor-height",height:document.documentElement.scrollHeight},"https://www.salus.solutions");
 new ResizeObserver(reportProtectionAdvisorHeight).observe(document.documentElement);
 window.addEventListener("load",reportProtectionAdvisorHeight);
-</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header() if include_shell else "")
+</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header() if include_shell else "").replace("__PAGE_INTRO__", page_intro).replace("__EMBED_CSS__", embed_css)
 
 
 def _service_catalog_page() -> str:
