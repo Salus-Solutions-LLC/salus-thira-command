@@ -11,10 +11,10 @@ active_build_system_issue: 370
 active_increment: issue_128_v3124_live_evaluator_acceptance
 last_completed_increment: issue_128_v3124_application_promotion
 candidate_release: v3.124
-validation_pr: pending
+validation_pr: 457
 validation_branch: release-activation/v3.124-live-acceptance
 validation_base: main
-validation_head: pending
+validation_head: eb409f06a41d361c026470ea20761a27c2715a6c
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none
 first_root_failing_gate: none
