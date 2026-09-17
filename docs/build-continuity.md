@@ -11,7 +11,7 @@ active_build_system_issue: 370
 active_increment: issue_290_v3123_immutable_image_publication
 last_completed_increment: issue_290_v3123_header_and_part_terminology_freeze
 candidate_release: v3.123
-validation_pr: pending
+validation_pr: 451
 validation_branch: release-activation/v3.123-image
 validation_base: main
 validation_head: pending
