@@ -42,6 +42,9 @@ for required in (
     "@media (max-width: 760px)",
     "@media print",
     ".brand-logo {",
+    "overflow-y: auto;",
+    "overscroll-behavior: contain;",
+    "scrollbar-gutter: stable;",
 ):
     require(required, CSS, required)
 
