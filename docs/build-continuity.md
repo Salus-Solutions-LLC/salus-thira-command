@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 17 September 2026 01:11 CDT
+last_verified_at: 17 September 2026 01:21 CDT
 current_frozen_release: v3.124
 current_frozen_commit: 602b672828f2f6a1d24fc5b1e32cc36766d79ca8
 active_development_branch: development/salcapa-platform
-current_development_head: 602b672828f2f6a1d24fc5b1e32cc36766d79ca8
+current_development_head: 77bcbe70d1e45475224a34123d7366c932ad0d1d
 active_product_milestone: issue_128_governed_microsoft_365_intake
 active_build_system_issue: 370
-active_increment: issue_128_v3124_immutable_image_publication
-last_completed_increment: issue_128_v3124_governed_m365_intake_freeze
+active_increment: issue_128_v3124_application_promotion
+last_completed_increment: issue_128_v3124_immutable_image_publication
 candidate_release: v3.124
-validation_pr: 455
-validation_branch: release-activation/v3.124-image
+validation_pr: pending
+validation_branch: release-activation/v3.124-application
 validation_base: main
 validation_head: pending
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none
 first_root_failing_gate: none
-root_cause: exact_v3124_candidate_is_frozen_and_requires_immutable_publication
-repair_head: 0fda41c024530a13eaad06352006c91eb9b25e38
-repair_summary: activate_exact_frozen_v3124_immutable_image_publication
-genuine_blockers: immutable_v3124_image_not_yet_published
-next_authorized_step: validate_activation_then_close_pr_without_merge_and_fast_forward_development_to_trigger_publication
+root_cause: exact_v3124_image_is_published_and_ready_for_governed_deployment
+repair_head: 83e15cdfa0bb4f64291bd3e2917868427ee2471d
+repair_summary: activate_exact_v3124_digest_with_v3123_rollback
+genuine_blockers: v3124_application_not_yet_deployed_and_live_accepted
+next_authorized_step: validate_activation_then_close_pr_without_merge_and_fast_forward_development_to_trigger_governed_deployment
 deployed_demo_release: v3.123
 deployed_demo_state: full_demonstration_accepted
 ---
@@ -33,11 +33,11 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current verified checkpoint
 
-- **v3.124 is frozen** at exact commit `602b672828f2f6a1d24fc5b1e32cc36766d79ca8` on `release/v3.124` after [validation PR #454](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/454) passed all 21 required workflow families and closed without merge.
+- **v3.124 is frozen and its image is published** as `sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519` by run `35189223604`; it is not yet deployed. The frozen source remains at exact commit `602b672828f2f6a1d24fc5b1e32cc36766d79ca8` on `release/v3.124` after [validation PR #454](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/454) passed all 21 required workflow families and closed without merge.
 - The v3.124 capability is a least-privilege Microsoft 365 intake connector: read-only, fixed to the authorized OneDrive drive and folder, size bounded, rejecting arbitrary item identifiers, and preserving metadata/content length agreement. Administrative status and listing use existing administrator authorization. Workload identity is used without a client secret.
 - **v3.123 remains deployed and accepted** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`. Publication run `35185662854`, deployment run `35186525899`, and live acceptance run `35187593491` passed.
 - Exact accepted **v3.122** commit `e84e19d77cef1b39d605260ae2fbe836e95888e4` and image `sha256:7088640e7b42a2005f01000f04bf004b241e7e045b11414adbdb53d725f65ef9` remain the rollback baseline.
-- The current activation publishes only exact frozen v3.124. It does not deploy, change traffic, broaden Microsoft 365 scope, add write authority, publish reports, change DNS, or authorize production cutover.
+- The current activation deploys only exact frozen v3.124 and that immutable digest, with exact accepted v3.123 as rollback. It does not broaden Microsoft 365 scope, add write authority, publish reports, change DNS, or authorize production cutover.
 
 ## Source precedence
 
