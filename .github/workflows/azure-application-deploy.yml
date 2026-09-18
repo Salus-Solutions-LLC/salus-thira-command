@@ -369,11 +369,20 @@ jobs:
           set -euo pipefail
           SCRIPT_B64="$(base64 -w0 tools/live_m365_intake_acceptance.py)"
           COMMAND="python -c \"import base64;exec(compile(base64.b64decode('$SCRIPT_B64'),'<m365-intake-live-acceptance>','exec'))\""
+          REVISION="$(az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --query properties.latestRevisionName --output tsv --only-show-errors)"
+          test -n "$REVISION"
           ACCEPTED=false
           for attempt in $(seq 1 6); do
+            REPLICA="$(az containerapp replica list --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --revision "$REVISION" --query '[0].name' --output tsv --only-show-errors)"
+            if [ -z "$REPLICA" ]; then
+              sleep 15
+              continue
+            fi
             if az containerapp exec \
               --resource-group "$RESOURCE_GROUP" \
               --name salcapa-dev-b48224 \
+              --revision "$REVISION" \
+              --replica "$REPLICA" \
               --container salcapa \
               --command "$COMMAND" \
               --only-show-errors 2>&1 | tee /tmp/m365-intake-acceptance.log \
