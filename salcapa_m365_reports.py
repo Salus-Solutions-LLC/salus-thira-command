@@ -14,7 +14,7 @@ import re
 import time
 from dataclasses import dataclass
 from typing import Any, Callable
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import httpx
 from azure.identity import ManagedIdentityCredential
@@ -144,6 +144,16 @@ class GovernedM365Reports:
 
     def read(self, filename: str) -> bytes:
         response = self._request("GET", self._content_url(filename))
+        if response.status_code in (302, 303, 307, 308):
+            location = response.headers.get("Location", "")
+            parsed = urlparse(location)
+            hostname = (parsed.hostname or "").lower()
+            if parsed.scheme != "https" or not hostname.endswith(".sharepoint.com"):
+                raise M365ReportError("Microsoft 365 returned an untrusted report download location")
+            try:
+                response = self.client.get(location, headers={"Accept": "application/octet-stream"})
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                raise M365ReportError("Microsoft 365 report download failed") from exc
         if response.status_code == 404:
             raise M365ReportError("Released report artifact was not found")
         if response.status_code != 200:
