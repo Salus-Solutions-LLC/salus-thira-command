@@ -10,7 +10,7 @@ WORK="$(mktemp -d)"
 COOKIE="$WORK/cookies.txt"
 PASSWORD="Pa!$(openssl rand -hex 18)"
 RUN_KEY="${GITHUB_RUN_ID:-$(date -u +%Y%m%d%H%M%S)}"
-EMAIL="mduncan+pa-v3121-${RUN_KEY}@salus.solutions"
+EMAIL="mduncan+pa-v3132-${RUN_KEY}@salus.solutions"
 DELETED=0
 cleanup() {
   if [ "$DELETED" = "0" ] && [ -n "${CSRF:-}" ] && [ -s "$COOKIE" ]; then
@@ -25,10 +25,11 @@ trap cleanup EXIT
 STAGE="public page"
 trap 'printf "Acceptance failed during: %s\n" "$STAGE" >&2' ERR
 
-curl -fsS -D "$WORK/page.headers" -o "$WORK/page.html" "$BASE/protection-advisor"
+curl -fsS -D "$WORK/page.headers" -o "$WORK/page.html" "$BASE/protection-advisor/embed"
 grep -qi '^content-security-policy:' "$WORK/page.headers"
-grep -qi '^x-frame-options: DENY' "$WORK/page.headers"
-grep -q 'Protection Advisor' "$WORK/page.html"
+grep -qi 'frame-ancestors https://www.salus.solutions https://salus.solutions' "$WORK/page.headers"
+! grep -qi '^x-frame-options:' "$WORK/page.headers"
+grep -q 'Part 1 — Anonymous Protection Readiness Review' "$WORK/page.html"
 
 STAGE="session and consent"
 jq -nc '{organization_type:"Business",primary_consent:true,secondary_deidentified_consent:false}' > "$WORK/start.json"
