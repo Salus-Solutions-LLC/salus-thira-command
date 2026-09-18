@@ -64,7 +64,7 @@ if not logo_match:
 if "style=" in logo_match.group(0).lower():
     raise SystemExit("Navigation logo styling must remain in the shared stylesheet")
 require("SalCAPA™", HTML, "SalCAPA trademark label")
-require('<button class="btn" id="logout-btn">&lt; Sign Out</button>', APP, "Salus-orange sign-out action")
+require('<button class="btn" id="logout-btn">&lt; Sign Out</button>', APP, "Salus-orange sign-out action")\nrequire("#logout-btn { flex: 0 0 auto; min-width: max-content; white-space: nowrap; }", CSS, "single-line sign-out action")
 
 for view in (
     "dashboard",
