@@ -102,3 +102,35 @@ def test_invalid_filename_is_denied():
         pass
     else:
         raise AssertionError("path traversal filename was accepted")
+
+
+def test_read_follows_only_trusted_sharepoint_download():
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        if request.url.host == "graph.microsoft.com":
+            return httpx.Response(302, headers={"Location": "https://tenant.sharepoint.com/download/report"})
+        assert "Authorization" not in request.headers
+        return httpx.Response(200, content=b'{"released":true}')
+
+    store = GovernedM365Reports(
+        config(), credential=Credential(), client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    assert store.read("report.json") == b'{"released":true}'
+    assert len(seen) == 2
+
+
+def test_read_rejects_untrusted_download_redirect():
+    def handler(request):
+        return httpx.Response(302, headers={"Location": "https://malicious.example/report"})
+
+    store = GovernedM365Reports(
+        config(), credential=Credential(), client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    try:
+        store.read("report.json")
+    except M365ReportError as exc:
+        assert "untrusted" in str(exc).lower()
+    else:
+        raise AssertionError("untrusted report redirect was accepted")
