@@ -1,0 +1,64 @@
+name: Protection Advisor cold-start and responsive acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/protection-advisor-cold-start-acceptance.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Wait for scale-to-zero and measure the first assessment response
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          APP=salcapa-dev-b48224
+          SCALED_TO_ZERO=false
+          for attempt in $(seq 1 75); do
+            REPLICAS="$(az containerapp revision list --resource-group "$RESOURCE_GROUP" --name "$APP" --query '[?properties.active].properties.replicas | sum(@)' --output tsv)"
+            if [ "${REPLICAS:-0}" = "0" ]; then
+              SCALED_TO_ZERO=true
+              break
+            fi
+            sleep 10
+          done
+          test "$SCALED_TO_ZERO" = "true"
+
+          URL=https://salcapa-dev-b48224.ashycoast-29444a28.southcentralus.azurecontainerapps.io/protection-advisor/embed
+          read -r STATUS START TOTAL < <(curl --connect-timeout 10 --max-time 120 --silent --show-error --output /tmp/advisor.html --write-out '%{http_code} %{time_starttransfer} %{time_total}\n' "$URL")
+          test "$STATUS" = "200"
+          awk -v total="$TOTAL" 'BEGIN { exit !(total <= 90) }'
+          grep -q 'Part 1 — Anonymous Protection Readiness Review' /tmp/advisor.html
+          grep -q 'Return to Your Part 2 Assessment' /tmp/advisor.html
+          grep -q 'name="viewport" content="width=device-width,initial-scale=1"' /tmp/advisor.html
+          grep -q '@media(max-width:700px)' /tmp/advisor.html
+          {
+            echo "### Protection Advisor cold-start and responsive acceptance"
+            echo ""
+            echo "- Scale-to-zero observed before request: yes"
+            echo "- HTTP status: $STATUS"
+            echo "- Time to first byte: ${START}s"
+            echo "- Total cold response: ${TOTAL}s"
+            echo "- Part 1 entry: present"
+            echo "- Part 2 entry: present"
+            echo "- Mobile viewport contract: present"
+            echo "- Compact-width CSS contract: present"
+          } >> "$GITHUB_STEP_SUMMARY"
