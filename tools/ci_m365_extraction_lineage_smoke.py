@@ -174,7 +174,7 @@ def main():
             assert derivative["source_sha256"] == captured["sha256"]
             assert derivative["review_status"] == "Awaiting Human Review"
             assert derivative["confidence_status"] == "Derived — Unverified"
-            assert "Approved source statement" in derivative["content_text"]
+            assert "Approved source statement" in derivative["content_preview"]
 
             conn = db()
             material = conn.execute(
