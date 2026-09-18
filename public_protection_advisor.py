@@ -19,8 +19,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from telemetry import emit as emit_telemetry
 
 QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.0.0"
@@ -34,6 +35,12 @@ NOTIFICATION_TO = os.getenv("SALUS_ADVISOR_NOTIFICATION_TO", "mduncan@salus.solu
 NOTIFICATION_FROM = os.getenv("SALUS_ADVISOR_NOTIFICATION_FROM", "protectionadvisor@salus.solutions").strip().lower()
 REQUIRE_EMAIL_VERIFICATION = os.getenv("SALUS_ADVISOR_REQUIRE_EMAIL_VERIFICATION", "0").strip() == "1"
 ANSWER_STATES = {"Validated", "Documented", "Partially", "No", "Unknown", "Not Applicable", "Declined", "Answered"}
+class AdvisorPerformanceEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    duration_ms: int = Field(ge=0, le=120000)
+    navigation_type: str = Field(default="navigate", pattern=r"^(navigate|reload|back_forward|prerender)$")
+
+
 ORGANIZATION_TYPES = {
     "Business", "Faith-Based Organization", "School or Educational Institution",
     "Nonprofit or Community Organization", "Healthcare or Human Services",
@@ -800,8 +807,16 @@ async function submitProfile(){submitError.textContent="";try{const selected=[..
 const resetToken=new URLSearchParams(location.search).get("reset_token");if(resetToken){accountAccess.classList.remove("hidden");resetPanel.classList.remove("hidden");}
 </script><script>
 const reportProtectionAdvisorHeight=()=>window.parent.postMessage({type:"salus-protection-advisor-height",height:document.documentElement.scrollHeight},"https://www.salus.solutions");
+const reportProtectionAdvisorLoad=()=>setTimeout(()=>{
+  const nav=performance.getEntriesByType("navigation")[0];
+  const payload=JSON.stringify({duration_ms:Math.max(0,Math.round((nav&&nav.loadEventEnd)||performance.now())),navigation_type:(nav&&nav.type)||"navigate"});
+  const blob=new Blob([payload],{type:"application/json"});
+  if(!navigator.sendBeacon("/public/protection-advisor/performance",blob)){
+    fetch("/public/protection-advisor/performance",{method:"POST",headers:{"Content-Type":"application/json"},body:payload,keepalive:true}).catch(()=>{});
+  }
+},0);
 new ResizeObserver(reportProtectionAdvisorHeight).observe(document.documentElement);
-window.addEventListener("load",reportProtectionAdvisorHeight);
+window.addEventListener("load",()=>{reportProtectionAdvisorHeight();reportProtectionAdvisorLoad()});
 </script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header() if include_shell else "").replace("__PAGE_INTRO__", page_intro).replace("__EMBED_CSS__", embed_css)
 
 
@@ -1162,6 +1177,17 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
         allowed, _, retry = limiter.allow(key)
         if not allowed:
             raise HTTPException(429, f"Please wait {retry} seconds before trying again")
+
+    @app.post("/public/protection-advisor/performance", status_code=204)
+    def protection_advisor_performance(request: Request, event: AdvisorPerformanceEvent) -> Response:
+        limited(request)
+        emit_telemetry(
+            "protection_advisor_page_load",
+            duration_ms=event.duration_ms,
+            navigation_type=event.navigation_type,
+            embedded=True,
+        )
+        return Response(status_code=204)
 
     @app.get("/protection-advisor/services", response_class=HTMLResponse)
     def protection_advisor_services() -> HTMLResponse:
