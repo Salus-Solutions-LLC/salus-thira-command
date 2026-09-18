@@ -19,6 +19,8 @@ try:
 except ImportError:
     httpx = types.ModuleType("httpx")
     httpx.Client = lambda *args, **kwargs: None
+    httpx.TimeoutException = OSError
+    httpx.TransportError = OSError
     sys.modules["httpx"] = httpx
 try:
     from azure.identity import ManagedIdentityCredential  # noqa: F401
@@ -50,10 +52,11 @@ class Credential:
 
 
 class Response:
-    def __init__(self, status, payload=None, content=b""):
+    def __init__(self, status, payload=None, content=b"", headers=None):
         self.status_code = status
         self._payload = payload or {}
         self.content = content
+        self.headers = headers or {}
 
     def json(self):
         return self._payload
@@ -71,8 +74,12 @@ class Client:
         return Response(200, {"access_token": "graph-token", "expires_in": 3600})
 
     def get(self, url, headers, params=None):
-        assert headers["Authorization"] == "Bearer graph-token"
         self.gets.append(url)
+        if url.startswith("https://salussolutions.sharepoint.com/"):
+            assert "Authorization" not in headers
+            assert headers["Accept"] == "application/octet-stream"
+            return Response(200, content=b"safe")
+        assert headers["Authorization"] == "Bearer graph-token"
         if url.endswith("/children"):
             return Response(200, {"value": [
                 {"id": "01DBTAFUVALIDFILE01", "name": "governed.pdf", "size": 4,
@@ -81,7 +88,15 @@ class Client:
                 {"id": "01DBTAFUTOOLARGE001", "name": "large.bin", "size": 11, "file": {"mimeType": "application/octet-stream"}},
             ]})
         if url.endswith("/01DBTAFUVALIDFILE01/content"):
-            return Response(200, content=b"safe")
+            return Response(
+                302,
+                headers={
+                    "Location": (
+                        "https://salussolutions.sharepoint.com/"
+                        "_layouts/15/download.aspx?UniqueId=test"
+                    )
+                },
+            )
         return Response(404)
 
 
@@ -98,6 +113,26 @@ def main():
     intake = GovernedM365Intake(config, credential=Credential(), client=client)
     assert [x["name"] for x in intake.list_files()] == ["governed.pdf"]
     assert intake.read_file("01DBTAFUVALIDFILE01") == b"safe"
+    assert client.gets[-1].startswith("https://salussolutions.sharepoint.com/")
+
+    class UntrustedRedirectClient(Client):
+        def get(self, url, headers, params=None):
+            if url.endswith("/children"):
+                return super().get(url, headers, params)
+            if url.endswith("/01DBTAFUVALIDFILE01/content"):
+                return Response(302, headers={"Location": "https://malicious.example/report"})
+            raise AssertionError("An untrusted redirect was followed")
+
+    try:
+        GovernedM365Intake(
+            config,
+            credential=Credential(),
+            client=UntrustedRedirectClient(),
+        ).read_file("01DBTAFUVALIDFILE01")
+    except M365IntakeError as exc:
+        assert "untrusted" in str(exc).lower()
+    else:
+        raise AssertionError("An untrusted intake redirect was accepted")
     try:
         intake.read_file("01DBTAFUOUTSIDE0001")
     except M365IntakeError:

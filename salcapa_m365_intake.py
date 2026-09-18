@@ -150,6 +150,26 @@ class GovernedM365Intake:
             f"{GRAPH_ROOT}/drives/{self.config.drive_id}/items/{item_id}/content",
             headers={"Authorization": f"Bearer {self._graph_token()}"},
         )
+        if response.status_code in (302, 303, 307, 308):
+            location = response.headers.get("Location", "")
+            parsed = urlparse(location)
+            hostname = (parsed.hostname or "").lower()
+            if (
+                parsed.scheme != "https"
+                or parsed.username is not None
+                or parsed.password is not None
+                or not hostname.endswith(".sharepoint.com")
+            ):
+                raise M365IntakeError(
+                    "Microsoft 365 returned an untrusted intake download location"
+                )
+            try:
+                response = self.client.get(
+                    location,
+                    headers={"Accept": "application/octet-stream"},
+                )
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                raise M365IntakeError("Microsoft 365 intake download failed") from exc
         if response.status_code != 200:
             raise M365IntakeError("Governed Microsoft 365 item could not be read")
         if len(response.content) != item["size"] or len(response.content) > self.config.max_file_bytes:
@@ -209,3 +229,4 @@ def register_m365_intake(app, namespace: dict[str, Any]) -> None:
     app.get("/api/integrations/m365/intake/files", include_in_schema=False)(
         m365_intake_files
     )
+
