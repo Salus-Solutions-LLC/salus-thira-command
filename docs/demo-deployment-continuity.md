@@ -1,27 +1,27 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 17 September 2026 10:20 CDT
+last_verified_at: 18 September 2026 15:53 CDT
 environment: azure_development_demonstration
-deployed_release: v3.124
-deployed_commit: 602b672828f2f6a1d24fc5b1e32cc36766d79ca8
-image_digest: sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519
-deployed_at: 17 September 2026 01:34 CDT
-deployment_workflow_run: 35190102432
+deployed_release: v3.136
+deployed_commit: 0eee07661658f229544317670c635568ce649bef
+image_digest: sha256:e7a1a14af003806fa19875cb6ce13cef9e51c6c1f48338939ef7b174e39bc3a9
+deployed_at: 18 September 2026 15:53 CDT
+deployment_workflow_run: 35393259967
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.124
-current_stable_commit: 602b672828f2f6a1d24fc5b1e32cc36766d79ca8
-promotion_candidate: v3.124
-promotion_candidate_image_commit: 602b672828f2f6a1d24fc5b1e32cc36766d79ca8
-promotion_candidate_image_digest: sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519
-promotion_candidate_image_published_at: 17 September 2026 01:18 CDT
-promotion_candidate_image_workflow_run: 35189223604
+current_stable_release: v3.136
+current_stable_commit: 0eee07661658f229544317670c635568ce649bef
+promotion_candidate: v3.136
+promotion_candidate_image_commit: 0eee07661658f229544317670c635568ce649bef
+promotion_candidate_image_digest: sha256:e7a1a14af003806fa19875cb6ce13cef9e51c6c1f48338939ef7b174e39bc3a9
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:e7a1a14af003806fa19875cb6ce13cef9e51c6c1f48338939ef7b174e39bc3a9
+promotion_candidate_image_published_at: 18 September 2026 15:53 CDT
+promotion_candidate_image_workflow_run: 35393259967
 promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
 promotion_readiness: accepted
 fictional_member_seed_state: verified
 critical_journey_acceptance: verified
-rollback_baseline: v3.123
+rollback_baseline: v3.135
 genuine_blocker: none
 ---
 
@@ -31,15 +31,15 @@ This non-sensitive engineering record identifies the current accepted Azure deve
 
 ## Current accepted deployment
 
-- [Immutable-image publication workflow 35189223604](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35189223604) published exact frozen **v3.124** commit `602b672828f2f6a1d24fc5b1e32cc36766d79ca8` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:aaba6235b95f129ea8500bcb3f7a5e35bf576515794f5f2d7328bb82021d6519`. Exact source identity, runtime release identity, workload identity, scoped registry authority, immutable labels, and non-root execution passed.
-- [Governed application-deployment workflow 35190102432](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35190102432) deployed that exact frozen source and immutable image. Workload identity, Entra-only PostgreSQL authentication, HTTPS ingress, bounded scale, required dependencies, runtime readiness, and the sign-in contract passed. Rollback was not invoked.
-- [Live demonstration acceptance workflow 35191132113](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35191132113) accepted exact deployed **v3.124**. Aster Ridge, Cedar Vale, and Northstar, 24 non-authenticating fictional personas, server-controlled role and tenant boundaries, cross-tenant denial, governed SalINTEL/SalTHIRA/SalCAPA/SalOPS/PROVE journeys, PostgreSQL persistence, application-configuration preservation, and temporary-job cleanup passed.
-- **Permanent hostname restored:** `salcapa.salus.solutions` has one SNI binding and an Azure-managed certificate. The public root and readiness endpoint are healthy, while the accepted v3.124 application image and DNS record remain unchanged.
+- [Governed deployment and live acceptance workflow 35393259967](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35393259967) deployed and accepted exact frozen **v3.136** commit `0eee07661658f229544317670c635568ce649bef` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:e7a1a14af003806fa19875cb6ce13cef9e51c6c1f48338939ef7b174e39bc3a9`.
+- Runtime readiness, immutable image identity, workload identity, Entra/OIDC, PostgreSQL, Key Vault, storage, telemetry, HTTPS, and exact-folder Microsoft 365 intake passed.
+- The isolated Microsoft 365 acceptance execution succeeded. Its temporary Azure Container Apps job was deleted after acceptance and verified absent.
+- Server-controlled role and tenant boundaries, cross-tenant denial, governed journeys, persistence, configuration preservation, and cleanup remain required controls.
 - All seeded records remain clearly labeled **FICTIONAL DEMONSTRATION**. No real Protected Member information or human approval, decision, validation, or release is represented.
 
 ## Recovery and rollback
 
-Exact accepted **v3.123** commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `salcapadevb48224acr.azurecr.io/salcapa@sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be` remain the fail-closed rollback baseline.
+Accepted **v3.135** remains the fail-closed rollback baseline recorded by the v3.136 release acceptance.
 
 Database rollback uses an independently validated restore, not destructive in-place reversal. A failed preflight, deployment, live acceptance, cleanup, readiness, identity, or tenant-isolation check fails closed and must preserve or restore the last accepted state.
 
