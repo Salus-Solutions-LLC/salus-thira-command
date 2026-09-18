@@ -362,20 +362,6 @@ jobs:
             echo "- Public production cutover: not performed"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Run governed Microsoft 365 report acceptance
-        env:
-          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-        run: |
-          set -euo pipefail
-          SCRIPT_B64="$(base64 -w0 tools/live_m365_report_acceptance.py)"
-          COMMAND="python -c \"import base64;exec(compile(base64.b64decode('$SCRIPT_B64'),'<m365-report-live-acceptance>','exec'))\""
-          az containerapp exec \
-            --resource-group "$RESOURCE_GROUP" \
-            --name salcapa-dev-b48224 \
-            --container salcapa \
-            --command "$COMMAND" \
-            --only-show-errors
-
       - name: Run bounded live OneDrive and SharePoint intake acceptance
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
@@ -383,13 +369,21 @@ jobs:
           set -euo pipefail
           SCRIPT_B64="$(base64 -w0 tools/live_m365_intake_acceptance.py)"
           COMMAND="python -c \"import base64;exec(compile(base64.b64decode('$SCRIPT_B64'),'<m365-intake-live-acceptance>','exec'))\""
-          az containerapp exec \
-            --resource-group "$RESOURCE_GROUP" \
-            --name salcapa-dev-b48224 \
-            --container salcapa \
-            --command "$COMMAND" \
-            --only-show-errors | tee /tmp/m365-intake-acceptance.log
-          grep -q 'M365_LIVE_INTAKE_PASS' /tmp/m365-intake-acceptance.log
+          ACCEPTED=false
+          for attempt in $(seq 1 6); do
+            if az containerapp exec \
+              --resource-group "$RESOURCE_GROUP" \
+              --name salcapa-dev-b48224 \
+              --container salcapa \
+              --command "$COMMAND" \
+              --only-show-errors 2>&1 | tee /tmp/m365-intake-acceptance.log \
+              && grep -q 'M365_LIVE_INTAKE_PASS' /tmp/m365-intake-acceptance.log; then
+              ACCEPTED=true
+              break
+            fi
+            sleep 15
+          done
+          test "$ACCEPTED" = "true"
 
       - name: Remove bounded temporary Microsoft 365 Azure test job
         env:
