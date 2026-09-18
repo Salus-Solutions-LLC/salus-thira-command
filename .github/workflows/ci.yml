@@ -102,6 +102,9 @@ jobs:
 
       - name: Governed M365 material persistence regression
         run: python tools/ci_m365_material_ingestion_smoke.py
+      - name: Governed M365 extraction lineage and human review
+        run: python tools/ci_m365_extraction_lineage_smoke.py
+
       - name: Governed Microsoft 365 report-storage regression smoke
         run: python tools/ci_m365_governed_reports_smoke.py
       - name: Live runtime acceptance contract smoke
