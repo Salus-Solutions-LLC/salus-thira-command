@@ -1,0 +1,37 @@
+name: SalCAPA Microsoft 365 report live acceptance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  accept:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: salcapa-dev-approval
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Run isolated acceptance inside the live Container App
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          SCRIPT_B64="$(base64 -w0 tools/live_m365_report_acceptance.py)"
+          COMMAND="python -c \"import base64;exec(compile(base64.b64decode('$SCRIPT_B64'),'<m365-live-acceptance>','exec'))\""
+          az containerapp exec \
+            --resource-group "$RESOURCE_GROUP" \
+            --name salcapa-dev-b48224 \
+            --container salcapa \
+            --command "$COMMAND" \
+            --only-show-errors
