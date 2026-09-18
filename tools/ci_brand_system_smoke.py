@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CSS = (ROOT / "static" / "styles.css").read_text(encoding="utf-8")
 HTML = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
 APP = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+ADVISOR = (ROOT / "public_protection_advisor.py").read_text(encoding="utf-8")
 
 
 def require(value: str, source: str, label: str) -> None:
@@ -66,6 +67,9 @@ if "style=" in logo_match.group(0).lower():
 require("SalCAPA™", HTML, "SalCAPA trademark label")
 require('<button class="btn" id="logout-btn">&lt; Sign Out</button>', APP, "Salus-orange sign-out action")
 require("#logout-btn { flex: 0 0 auto; min-width: max-content; white-space: nowrap; }", CSS, "single-line sign-out action")
+require('@app.post("/public/protection-advisor/performance", status_code=204)', ADVISOR, "Protection Advisor load telemetry endpoint")
+require('"protection_advisor_page_load"', ADVISOR, "Protection Advisor load telemetry event")
+require('navigator.sendBeacon("/public/protection-advisor/performance",blob)', ADVISOR, "Protection Advisor browser timing beacon")
 
 for view in (
     "dashboard",
