@@ -221,6 +221,10 @@ def register_m365_material_ingestion(app: Any, namespace: dict[str, Any]) -> Non
                 "disclosure_status": "Salus Internal",
                 "immutable_original": True,
                 "duplicate_of_material_id": duplicate_id,
+                "processing_endpoint": f"/api/materials/{material_id}/safe-text-processing",
+                "human_review_required": True,
+                "indexing_status": "Not Indexed",
+                "finding_status": "None Created",
             }
         except HTTPException:
             conn.rollback()
