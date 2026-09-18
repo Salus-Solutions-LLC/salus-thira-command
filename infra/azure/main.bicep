@@ -29,12 +29,10 @@ param entraTenantId string
 @description('Client ID of the SalCAPA Microsoft Entra application registration used for interactive runtime sign-in. May be empty for foundation-only provisioning; deployment requires an exact UUID.')
 param entraRuntimeClientId string = ''
 
-@description('Microsoft 365 drive ID containing the dedicated generated-report folder.')
-@minLength(8)
+@description('Microsoft 365 drive ID containing the dedicated generated-report folder. Empty for foundation-only provisioning.')
 param m365ReportDriveId string = ''
 
-@description('Microsoft 365 folder item ID for generated SalCAPA reports.')
-@minLength(8)
+@description('Microsoft 365 folder item ID for generated SalCAPA reports. Empty for foundation-only provisioning.')
 param m365ReportFolderItemId string = ''
 
 @description('Immutable object ID of the approved PostgreSQL Microsoft Entra administrator.')
