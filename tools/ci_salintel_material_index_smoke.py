@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
 import tempfile
 from datetime import datetime, timezone
@@ -228,7 +229,8 @@ def main():
             result = results["items"][0]
             assert result["derivative_id"] == derivative["id"]
             assert result["source_attribution"]["source_sha256"] == captured["sha256"]
-            assert result["source_attribution"]["item_id"] if False else True
+            locator = json.loads(result["source_attribution"]["source_locator"])
+            assert locator["item_id"] == "01APPROVEDTEXT"
             assert result["finding_status"] == "None Created"
             assert result["salthira_routing_status"] == "Not Routed"
 
