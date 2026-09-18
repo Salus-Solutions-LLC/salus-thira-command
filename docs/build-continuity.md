@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 17 September 2026 20:18 CDT
-current_frozen_release: v3.131
-current_frozen_commit: c6df4fc72faad59e671c45a3002e7bc7eea26aaa
+last_verified_at: 18 September 2026 17:42 CDT
+current_frozen_release: v3.136
+current_frozen_commit: 0eee07661658f229544317670c635568ce649bef
 active_development_branch: development/salcapa-platform
-current_development_head: fc5d4e3367eb447569d394c72fd847b19587db45
-active_product_milestone: issue_370_v3132_signout_single_line
+current_development_head: 2b6bb8e5c0dc4358627abe4228600062c95b57b6
+active_product_milestone: issue_370_governed_document_ingestion
 active_build_system_issue: 370
-active_increment: issue_370_v3132_signout_single_line_release
-last_completed_increment: issue_370_v3131_scrollable_sidebar_release
-candidate_release: v3.132
-validation_pr: 488
-validation_branch: candidate/v3132-signout-nowrap
-validation_base: main
-validation_head: 3c9cb1af6889ad8654e644206d8b3f6885c5863f
-validation_gate_state: github_validation_running
+active_increment: issue_370_m365_material_persistence
+last_completed_increment: issue_370_m365_provenance_envelope
+candidate_release: none
+validation_pr: none
+validation_branch: candidate/m365-material-persistence
+validation_base: development/salcapa-platform
+validation_head: 2b6bb8e5c0dc4358627abe4228600062c95b57b6
+validation_gate_state: all_required_gates_green
 failed_workflows: none
 first_root_failing_gate: none
-root_cause: flexible_topbar_compressed_sign_out_control_and_wrapped_its_label
-repair_head: 3c9cb1af6889ad8654e644206d8b3f6885c5863f
-repair_summary: give_sign_out_intrinsic_minimum_width_and_prevent_label_wrapping
-genuine_blockers: v3131_demo_acceptance_superseded_by_v3132_signout_single_line
-next_authorized_step: validate_freeze_publish_deploy_and_live_verify_v3132
-deployed_demo_release: v3.131
-deployed_demo_state: full_demonstration_accepted
+root_cause: none
+repair_head: none
+repair_summary: persist_approved_exact_folder_m365_sources_as_immutable_tenant_scoped_materials
+genuine_blockers: none
+next_authorized_step: extract_and_index_approved_material_with_human_review
+deployed_demo_release: v3.136
+deployed_demo_state: full_m365_intake_acceptance_passed_and_temporary_job_deleted
 ---
 
 # SalCAPA build continuity
@@ -42,7 +42,9 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **v3.128 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `5fbd01ab2dc34179a44c8f4fef94bcc4054c4123`; the immutable image is `sha256:81b0fa2f1419a6c72ff5891aad81633dae08d640f63f928546189d473fe2a194`. It replaces the expanding assessment with a bounded one-question-at-a-time flow.
 - **v3.129 is frozen, published, deployed, and live accepted.** It resets the embedded document to its own top after assessment start and every question transition so later questions are not clipped inside the Wix iframe.
 - **v3.130 is frozen, published, deployed, and live accepted.** It removes the duplicate visible Protection Advisor title from the embedded document while retaining an accessible hidden heading and the authoritative Wix title.
-- **v3.131 is frozen, published, deployed, and live accepted.** It makes the fixed workspace sidebar independently scrollable and presents the session action as the orange `< Sign Out` control.\n- **v3.132 candidate:** prevents flex compression from wrapping the `< Sign Out` label onto multiple lines. No identity, permission, retention, or tenant boundary changes.
+- **v3.131 is frozen, published, deployed, and live accepted.** It makes the fixed workspace sidebar independently scrollable and presents the session action as the orange `< Sign Out` control.
+- **v3.136 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `0eee07661658f229544317670c635568ce649bef`; the immutable image is `sha256:e7a1a14af003806fa19875cb6ce13cef9e51c6c1f48338939ef7b174e39bc3a9`. Live OneDrive/SharePoint intake acceptance passed and the temporary Azure test job was deleted and verified absent.
+- The development head now persists administrator-approved, exact-folder Microsoft 365 sources as immutable tenant-scoped materials with source version, timestamp, owner, SHA-256 integrity, classification, audit history, and human-review status. It does not automatically index, create findings, or disclose content.
 - **v3.123 is the rollback release** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`.
 
 ## Source precedence
