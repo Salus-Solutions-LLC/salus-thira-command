@@ -434,7 +434,7 @@ jobs:
             --query "[?name == '$SALUS_M365_ACCEPTANCE_JOB'] | length(@)" \
             --output tsv --only-show-errors)" = "0"
 
-      - name: Restore accepted v3.133 if promotion verification fails
+      - name: Restore accepted v3.135 if promotion verification fails
         if: failure() && steps.deployment.outcome == 'success'
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
@@ -457,7 +457,7 @@ jobs:
               {
                 echo "### SalCAPA failed promotion rollback"
                 echo ""
-                echo "- Accepted immutable v3.133 image restored"
+                echo "- Accepted immutable v3.135 image restored"
                 echo "- Live readiness restored"
                 echo "- DNS unchanged"
                 echo "- Client secret not used"
@@ -467,5 +467,5 @@ jobs:
             fi
             sleep 10
           done
-          echo "Failed promotion did not restore the accepted v3.132 runtime." >&2
+          echo "Failed promotion did not restore the accepted v3.135 runtime." >&2
           exit 1
