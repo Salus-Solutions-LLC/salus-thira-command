@@ -49,7 +49,8 @@ for required in (
 ):
     require(required, CSS, required)
 
-combined = (CSS + "\n" + HTML).lower()
+combined = (CSS + "
+" + HTML).lower()
 for forbidden in ("@font-face", "fonts.googleapis.com", "fonts.gstatic.com"):
     if forbidden in combined:
         raise SystemExit("External or bundled proprietary font path is not permitted")
