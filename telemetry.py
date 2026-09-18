@@ -25,6 +25,9 @@ def configure_telemetry():
         from azure.monitor.opentelemetry import configure_azure_monitor
         configure_azure_monitor(connection_string=conn)
         _AZURE_CONFIGURED=True
+        # Preserve the structured stdout record and also pass it to the root
+        # OpenTelemetry handler installed by configure_azure_monitor().
+        LOGGER.propagate=True
     except Exception:
         _AZURE_ERROR='Azure Monitor initialization failed'
 
