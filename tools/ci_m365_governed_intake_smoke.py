@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import hashlib
 from pathlib import Path
 import sys
 import types
@@ -83,11 +84,16 @@ class Client:
         if url.endswith("/children"):
             return Response(200, {"value": [
                 {"id": "01DBTAFUVALIDFILE01", "name": "governed.pdf", "size": 4,
-                 "file": {"mimeType": "application/pdf"}, "lastModifiedDateTime": "2026-09-17T00:00:00Z", "eTag": "etag"},
+                 "file": {"mimeType": "application/pdf"}, "lastModifiedDateTime": "2026-09-17T00:00:00Z",
+                 "eTag": "etag-v1", "cTag": "ctag-v1",
+                 "createdBy": {"user": {"email": "owner@salus.solutions", "id": "owner-id"}},
+                 "lastModifiedBy": {"user": {"displayName": "Approved Owner", "id": "owner-id"}},
+                 "webUrl": "https://salussolutions.sharepoint.com/sites/approved/governed.pdf"},
                 {"id": "01DBTAFUFOLDER0001", "name": "nested", "size": 0, "folder": {"childCount": 1}},
                 {"id": "01DBTAFUTOOLARGE001", "name": "large.bin", "size": 11, "file": {"mimeType": "application/octet-stream"}},
             ]})
         if url.endswith("/01DBTAFUVALIDFILE01/content"):
+            assert headers["If-Match"] == "etag-v1"
             return Response(
                 302,
                 headers={
@@ -114,6 +120,27 @@ def main():
     assert [x["name"] for x in intake.list_files()] == ["governed.pdf"]
     assert intake.read_file("01DBTAFUVALIDFILE01") == b"safe"
     assert client.gets[-1].startswith("https://salussolutions.sharepoint.com/")
+    document = intake.read_document(
+        "01DBTAFUVALIDFILE01", access_classification="Restricted"
+    )
+    assert document.name == "governed.pdf"
+    assert document.sha256 == hashlib.sha256(b"safe").hexdigest()
+    assert document.etag == "etag-v1"
+    assert document.ctag == "ctag-v1"
+    assert document.last_modified == "2026-09-17T00:00:00Z"
+    assert document.source_owner == "owner@salus.solutions"
+    assert document.source_owner_id == "owner-id"
+    assert document.last_modified_by == "Approved Owner"
+    assert document.web_url.startswith("https://salussolutions.sharepoint.com/")
+    assert document.access_classification == "Restricted"
+    try:
+        intake.read_document(
+            "01DBTAFUVALIDFILE01", access_classification="Public"
+        )
+    except M365IntakeError as exc:
+        assert "classification" in str(exc).lower()
+    else:
+        raise AssertionError("An unsupported intake classification was accepted")
 
     class UntrustedRedirectClient(Client):
         def get(self, url, headers, params=None):
