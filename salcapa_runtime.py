@@ -29,6 +29,7 @@ from salcapa_handwriting_ocr_processing import register_salcapa_handwriting_ocr_
 from salcapa_pdf_page_rendering import register_salcapa_pdf_page_rendering
 from salcapa_m365_intake import register_m365_intake
 from salcapa_m365_material_ingestion import register_m365_material_ingestion
+from salintel_material_index import register_salintel_material_index
 from salcapa_demo_fixtures import register_demo_fixture_contract
 from salcapa_demo_evaluator import register_demo_evaluator
 from mission_map import register_mission_map
@@ -69,6 +70,7 @@ register_salcapa_handwriting_ocr_processing(core.app, core.__dict__)
 register_salcapa_pdf_page_rendering(core.app, core.__dict__)
 register_m365_intake(core.app, core.__dict__)
 register_m365_material_ingestion(core.app, core.__dict__)
+register_salintel_material_index(core.app, core.__dict__)
 register_demo_fixture_contract(core)
 register_demo_evaluator(core)
 register_mission_map(core.app, core.__dict__)
