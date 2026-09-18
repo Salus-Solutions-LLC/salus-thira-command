@@ -42,12 +42,14 @@ jobs:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         run: |
           set -euo pipefail
-          APP=salcapa-dev-b48224-appinsights
-          QUERY='traces | where timestamp > ago(60m) | where message has "\"event_type\":\"protection_advisor_page_load\"" | project timestamp, message | order by timestamp desc | take 20'
+          WORKSPACE=salcapa-dev-b48224-logs
+          WORKSPACE_ID="$(az monitor log-analytics workspace show --resource-group "$RESOURCE_GROUP" --workspace-name "$WORKSPACE" --query customerId --output tsv)"
+          test -n "$WORKSPACE_ID"
+          QUERY='ContainerAppConsoleLogs_CL | where TimeGenerated > ago(60m) | where ContainerAppName_s == "salcapa-dev-b48224" | where Log_s has "\"event_type\":\"protection_advisor_page_load\"" | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20'
           FOUND=false
           for attempt in $(seq 1 12); do
-            az monitor app-insights query --resource-group "$RESOURCE_GROUP" --app "$APP" --analytics-query "$QUERY" --output json > /tmp/query.json
-            ROWS="$(jq '.tables[0].rows | length' /tmp/query.json)"
+            az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "$QUERY" --output json > /tmp/query.json
+            ROWS="$(jq '. | length' /tmp/query.json)"
             if [ "$ROWS" -gt 0 ]; then
               FOUND=true
               break
@@ -55,7 +57,7 @@ jobs:
             sleep 15
           done
           test "$FOUND" = "true"
-          jq -r '.tables[0].rows[0][1]' /tmp/query.json > /tmp/event.json
+          jq -r '.[0].Log_s' /tmp/query.json > /tmp/event.json
           jq -e '
             .event_type == "protection_advisor_page_load" and
             .severity == "Info" and
