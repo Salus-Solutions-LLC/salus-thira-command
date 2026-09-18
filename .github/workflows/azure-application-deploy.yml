@@ -362,62 +362,64 @@ jobs:
             echo "- Public production cutover: not performed"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Run bounded live OneDrive and SharePoint intake acceptance
+      - name: Run temporary Microsoft 365 intake acceptance job
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-        run: |
-          set -euo pipefail
-          SCRIPT_B64="$(base64 -w0 tools/live_m365_intake_acceptance.py)"
-          COMMAND="python -c \"import base64;exec(compile(base64.b64decode('$SCRIPT_B64'),'<m365-intake-live-acceptance>','exec'))\""
-          REVISION="$(az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --query properties.latestRevisionName --output tsv --only-show-errors)"
-          test -n "$REVISION"
-          ACCEPTED=false
-          for attempt in $(seq 1 6); do
-            REPLICA="$(az containerapp replica list --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --revision "$REVISION" --query '[0].name' --output tsv --only-show-errors)"
-            if [ -z "$REPLICA" ]; then
-              sleep 15
-              continue
-            fi
-            if az containerapp exec \
-              --resource-group "$RESOURCE_GROUP" \
-              --name salcapa-dev-b48224 \
-              --revision "$REVISION" \
-              --replica "$REPLICA" \
-              --container salcapa \
-              --command "$COMMAND" \
-              --only-show-errors 2>&1 | tee /tmp/m365-intake-acceptance.log \
-              && grep -q 'M365_LIVE_INTAKE_PASS' /tmp/m365-intake-acceptance.log; then
-              ACCEPTED=true
-              break
-            fi
-            sleep 15
-          done
-          test "$ACCEPTED" = "true"
-
-      - name: Remove bounded temporary Microsoft 365 Azure test job
-        env:
-          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          EXPECTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:e7a1a14af003806fa19875cb6ce13cef9e51c6c1f48338939ef7b174e39bc3a9
         run: |
           set -euo pipefail
           mapfile -t CANDIDATES < <(
             az containerapp job list --resource-group "$RESOURCE_GROUP" \
-              --query "[?contains(name, 'm365') && (contains(name, 'test') || contains(name, 'accept'))].name" \
+              --query "[?contains(name, 'm365') || contains(name, 'sharepoint') || contains(name, 'onedrive')].name" \
               --output tsv --only-show-errors
           )
-          if [ "${#CANDIDATES[@]}" -gt 1 ]; then
-            echo "Multiple Microsoft 365 test jobs matched; refusing broad cleanup." >&2
-            exit 1
-          fi
-          if [ "${#CANDIDATES[@]}" -eq 1 ]; then
-            az containerapp job delete \
+          test "${#CANDIDATES[@]}" = "1"
+          JOB_NAME="${CANDIDATES[0]}"
+          az containerapp job update \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" \
+            --image "$EXPECTED_IMAGE" \
+            --output none --only-show-errors
+          EXECUTION_NAME="$(az containerapp job start \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" \
+            --query name --output tsv --only-show-errors)"
+          test -n "$EXECUTION_NAME"
+          SUCCEEDED=false
+          for attempt in $(seq 1 60); do
+            STATUS="$(az containerapp job execution show \
               --resource-group "$RESOURCE_GROUP" \
-              --name "${CANDIDATES[0]}" \
-              --yes --only-show-errors
-          fi
-          REMAINING="$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
-            --query "[?contains(name, 'm365') && (contains(name, 'test') || contains(name, 'accept'))] | length(@)" \
-            --output tsv --only-show-errors)"
-          test "$REMAINING" = "0"
+              --name "$JOB_NAME" \
+              --job-execution-name "$EXECUTION_NAME" \
+              --query properties.status --output tsv --only-show-errors)"
+            if [ "$STATUS" = "Succeeded" ]; then
+              SUCCEEDED=true
+              break
+            fi
+            if [ "$STATUS" = "Failed" ]; then
+              break
+            fi
+            sleep 10
+          done
+          test "$SUCCEEDED" = "true"
+          {
+            echo "SALUS_M365_ACCEPTANCE_JOB=$JOB_NAME"
+            echo "SALUS_M365_ACCEPTANCE_EXECUTION=$EXECUTION_NAME"
+          } >> "$GITHUB_ENV"
+
+      - name: Remove accepted temporary Microsoft 365 Azure test job
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test -n "$SALUS_M365_ACCEPTANCE_JOB"
+          az containerapp job delete \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$SALUS_M365_ACCEPTANCE_JOB" \
+            --yes --only-show-errors
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
+            --query "[?name == '$SALUS_M365_ACCEPTANCE_JOB'] | length(@)" \
+            --output tsv --only-show-errors)" = "0"
 
       - name: Restore accepted v3.133 if promotion verification fails
         if: failure() && steps.deployment.outcome == 'success'
