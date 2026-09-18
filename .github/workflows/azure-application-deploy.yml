@@ -6,6 +6,8 @@ on:
       - development/salcapa-platform
     paths:
       - 'deploy/azure/activations/application-dev.json'
+      - '.github/workflows/azure-application-deploy.yml'
+      - 'tools/live_m365_intake_acceptance.py'
 
 permissions:
   contents: read
@@ -359,6 +361,60 @@ jobs:
             echo "- Custom DNS: not changed"
             echo "- Public production cutover: not performed"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run governed Microsoft 365 report acceptance
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          SCRIPT_B64="$(base64 -w0 tools/live_m365_report_acceptance.py)"
+          COMMAND="python -c \"import base64;exec(compile(base64.b64decode('$SCRIPT_B64'),'<m365-report-live-acceptance>','exec'))\""
+          az containerapp exec \
+            --resource-group "$RESOURCE_GROUP" \
+            --name salcapa-dev-b48224 \
+            --container salcapa \
+            --command "$COMMAND" \
+            --only-show-errors
+
+      - name: Run bounded live OneDrive and SharePoint intake acceptance
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          SCRIPT_B64="$(base64 -w0 tools/live_m365_intake_acceptance.py)"
+          COMMAND="python -c \"import base64;exec(compile(base64.b64decode('$SCRIPT_B64'),'<m365-intake-live-acceptance>','exec'))\""
+          az containerapp exec \
+            --resource-group "$RESOURCE_GROUP" \
+            --name salcapa-dev-b48224 \
+            --container salcapa \
+            --command "$COMMAND" \
+            --only-show-errors | tee /tmp/m365-intake-acceptance.log
+          grep -q 'M365_LIVE_INTAKE_PASS' /tmp/m365-intake-acceptance.log
+
+      - name: Remove bounded temporary Microsoft 365 Azure test job
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          mapfile -t CANDIDATES < <(
+            az containerapp job list --resource-group "$RESOURCE_GROUP" \
+              --query "[?contains(name, 'm365') && (contains(name, 'test') || contains(name, 'accept'))].name" \
+              --output tsv --only-show-errors
+          )
+          if [ "${#CANDIDATES[@]}" -gt 1 ]; then
+            echo "Multiple Microsoft 365 test jobs matched; refusing broad cleanup." >&2
+            exit 1
+          fi
+          if [ "${#CANDIDATES[@]}" -eq 1 ]; then
+            az containerapp job delete \
+              --resource-group "$RESOURCE_GROUP" \
+              --name "${CANDIDATES[0]}" \
+              --yes --only-show-errors
+          fi
+          REMAINING="$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
+            --query "[?contains(name, 'm365') && (contains(name, 'test') || contains(name, 'accept'))] | length(@)" \
+            --output tsv --only-show-errors)"
+          test "$REMAINING" = "0"
 
       - name: Restore accepted v3.133 if promotion verification fails
         if: failure() && steps.deployment.outcome == 'success'
