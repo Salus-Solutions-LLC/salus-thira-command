@@ -1,5 +1,5 @@
 name: SalCAPA custom hostname diagnostic
-# Diagnostic trigger: v3.132 post-deployment verification 2026-09-18
+# Diagnostic trigger: v3.133 post-deployment verification 2026-09-18
 
 on:
   workflow_dispatch:
