@@ -115,17 +115,12 @@ def main():
 
         storage = Storage()
         app = App()
-        clock = iter([
-            "2026-09-18T22:01:00Z", "2026-09-18T22:02:00Z",
-            "2026-09-18T22:03:00Z", "2026-09-18T22:04:00Z",
-            "2026-09-18T22:05:00Z", "2026-09-18T22:06:00Z",
-        ])
         core = {
             "db": db,
             "storage": storage,
             "scan_bytes": lambda content, name: {"ok": True, "status": "Clean", "detail": "passed"},
             "safe_filename": lambda name: name,
-            "now": lambda: next(clock),
+            "now": lambda: "2026-09-18T22:01:00Z",
             "actor": lambda request: request.user,
             "role": lambda request: request.role,
             "tenant_id": lambda request: 41,
