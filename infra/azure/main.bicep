@@ -615,7 +615,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
         }
       ]
       scale: {
-        minReplicas: 1
+        minReplicas: 0
         maxReplicas: 1
         rules: [
           {
