@@ -29,6 +29,14 @@ param entraTenantId string
 @description('Client ID of the SalCAPA Microsoft Entra application registration used for interactive runtime sign-in. May be empty for foundation-only provisioning; deployment requires an exact UUID.')
 param entraRuntimeClientId string = ''
 
+@description('Microsoft 365 drive ID containing the dedicated generated-report folder.')
+@minLength(8)
+param m365ReportDriveId string = ''
+
+@description('Microsoft 365 folder item ID for generated SalCAPA reports.')
+@minLength(8)
+param m365ReportFolderItemId string = ''
+
 @description('Immutable object ID of the approved PostgreSQL Microsoft Entra administrator.')
 param postgresAdminObjectId string
 
@@ -542,6 +550,22 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             {
               name: 'SALUS_M365_INTAKE_MAX_FILE_BYTES'
               value: '26214400'
+            }
+            {
+              name: 'SALUS_M365_REPORT_DRIVE_ID'
+              value: m365ReportDriveId
+            }
+            {
+              name: 'SALUS_M365_REPORT_FOLDER_ITEM_ID'
+              value: m365ReportFolderItemId
+            }
+            {
+              name: 'SALUS_M365_REPORT_MAX_FILE_BYTES'
+              value: '26214400'
+            }
+            {
+              name: 'SALUS_M365_REPORT_RETRIES'
+              value: '3'
             }
             {
               name: 'SALUS_ALLOW_RESTORE'
