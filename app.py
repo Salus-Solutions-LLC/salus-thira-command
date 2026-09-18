@@ -5309,6 +5309,14 @@ def transition_report_version(report_id:int,p:ReportTransitionIn,request:Request
     if allowed.get(row['status'])!=p.status: conn.close(); raise HTTPException(409,f'Report transition must follow Draft → Reviewed → Approved → Released; current status is {row["status"]}.')
     transition_roles={'Reviewed':{'Assessment Director','Lead Assessor'},'Approved':{'System Administrator','Assessment Director','Client Executive'},'Released':{'System Administrator','Assessment Director'}}
     if role(request) not in transition_roles[p.status]: conn.close(); raise HTTPException(403,f'{role(request)} cannot record the {p.status} report authority gate.')
+    if p.status=='Released':
+        from salcapa_m365_reports import publish_member_safe_report, readiness as m365_report_readiness
+        if m365_report_readiness()['configured']:
+            try:
+                publish_member_safe_report(dict(row),_member_assessment_view)
+            except Exception as exc:
+                error_id=secrets.token_hex(8); record_internal_failure('m365_report_publish',error_id,exc); conn.close()
+                raise HTTPException(503,f'Governed Microsoft 365 report storage is unavailable. Reference: {error_id}') from exc
     ts=now(); field={'Reviewed':'reviewed','Approved':'approved','Released':'released'}[p.status]
     conn.execute(f'UPDATE report_versions SET status=?,{field}_by=?,{field}_at=?,transition_reason=? WHERE id=?',(p.status,who,ts,p.reason,report_id)); audit(conn,'REPORT_TRANSITION','report_version',report_id,f'{row["status"]} -> {p.status}: {p.reason}',who); conn.commit(); result=dict(conn.execute('SELECT * FROM report_versions WHERE id=?',(report_id,)).fetchone()); conn.close(); return result
 
@@ -5529,3 +5537,10 @@ register_salintel_domain_capability(app, globals())
 # Register the isolated public Protection Advisor prospect boundary.
 from public_protection_advisor import register_public_protection_advisor
 register_public_protection_advisor(app, globals())
+
+# Register folder-selected Microsoft 365 intake and released-report storage.
+from salcapa_m365_intake import register_m365_intake
+register_m365_intake(app, globals())
+
+from salcapa_m365_reports import register_m365_reports
+register_m365_reports(app, globals())
