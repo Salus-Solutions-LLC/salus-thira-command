@@ -8,6 +8,7 @@ on:
       - 'deploy/azure/activations/application-dev.json'
       - '.github/workflows/azure-application-deploy.yml'
       - 'tools/live_m365_intake_acceptance.py'
+      - 'infra/azure/m365-intake-acceptance-job.bicep'
 
 permissions:
   contents: read
@@ -362,24 +363,36 @@ jobs:
             echo "- Public production cutover: not performed"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Run temporary Microsoft 365 intake acceptance job
+      - name: Create and run isolated Microsoft 365 intake acceptance job
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           EXPECTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:e7a1a14af003806fa19875cb6ce13cef9e51c6c1f48338939ef7b174e39bc3a9
         run: |
           set -euo pipefail
-          mapfile -t CANDIDATES < <(
-            az containerapp job list --resource-group "$RESOURCE_GROUP" \
-              --query "[?contains(name, 'm365') || contains(name, 'sharepoint') || contains(name, 'onedrive')].name" \
-              --output tsv --only-show-errors
-          )
-          test "${#CANDIDATES[@]}" = "1"
-          JOB_NAME="${CANDIDATES[0]}"
-          az containerapp job update \
+          env_value() {
+            jq -r --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/salcapa-app.json
+          }
+          IDENTITY_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query id --output tsv --only-show-errors)"
+          ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors)"
+          REGISTRY_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query loginServer --output tsv --only-show-errors)"
+          SCRIPT_B64="$(base64 -w0 tools/live_m365_intake_acceptance.py)"
+          az deployment group create \
+            --name "salcapa-m365-acceptance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
             --resource-group "$RESOURCE_GROUP" \
-            --name "$JOB_NAME" \
-            --image "$EXPECTED_IMAGE" \
+            --template-file infra/azure/m365-intake-acceptance-job.bicep \
+            --parameters \
+              environmentId="$ENVIRONMENT_ID" \
+              identityId="$IDENTITY_ID" \
+              registryServer="$REGISTRY_SERVER" \
+              imageDigest="$EXPECTED_IMAGE" \
+              tenantId="$(env_value SALUS_OIDC_TENANT_ID)" \
+              applicationClientId="$(env_value SALUS_OIDC_CLIENT_ID)" \
+              managedIdentityClientId="$(env_value SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID)" \
+              driveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" \
+              folderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" \
+              acceptanceScriptBase64="$SCRIPT_B64" \
             --output none --only-show-errors
+          JOB_NAME=salcapa-m365-acceptance-b48224
           EXECUTION_NAME="$(az containerapp job start \
             --resource-group "$RESOURCE_GROUP" \
             --name "$JOB_NAME" \
@@ -412,7 +425,7 @@ jobs:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         run: |
           set -euo pipefail
-          test -n "$SALUS_M365_ACCEPTANCE_JOB"
+          test "$SALUS_M365_ACCEPTANCE_JOB" = "salcapa-m365-acceptance-b48224"
           az containerapp job delete \
             --resource-group "$RESOURCE_GROUP" \
             --name "$SALUS_M365_ACCEPTANCE_JOB" \
