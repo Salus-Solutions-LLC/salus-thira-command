@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import re
 import time
+import hashlib
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
@@ -22,6 +23,9 @@ GRAPH_ROOT = "https://graph.microsoft.com/v1.0"
 ASSERTION_SCOPE = "api://AzureADTokenExchange/.default"
 ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
+_ACCESS_CLASSIFICATIONS = {
+    "Salus Internal", "Standard", "Restricted", "Sensitive", "Highly Sensitive",
+}
 
 
 class M365IntakeError(RuntimeError):
@@ -60,6 +64,26 @@ class GovernedM365Config:
             raise M365IntakeError("Microsoft 365 intake identifiers are incomplete or invalid")
         if not 1 <= self.max_file_bytes <= 100 * 1024 * 1024:
             raise M365IntakeError("Microsoft 365 intake size limit is invalid")
+
+
+@dataclass(frozen=True)
+class GovernedM365Document:
+    """Exact source bytes bound to governed Microsoft 365 provenance."""
+
+    item_id: str
+    name: str
+    content: bytes
+    size: int
+    mime_type: str
+    sha256: str
+    etag: str
+    ctag: str
+    last_modified: str
+    source_owner: str
+    source_owner_id: str
+    last_modified_by: str
+    web_url: str
+    access_classification: str
 
 
 class GovernedM365Intake:
@@ -103,13 +127,43 @@ class GovernedM365Intake:
     def _headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self._graph_token()}", "Accept": "application/json"}
 
+    @staticmethod
+    def _identity(value: Any) -> tuple[str, str]:
+        if not isinstance(value, dict):
+            return "", ""
+        principal = value.get("user") or value.get("application") or {}
+        if not isinstance(principal, dict):
+            return "", ""
+        label = str(principal.get("email") or principal.get("displayName") or "")[:320]
+        identifier = str(principal.get("id") or "")[:256]
+        return label, identifier
+
+    @staticmethod
+    def _trusted_source_url(value: Any) -> str:
+        url = str(value or "")[:2048]
+        if not url:
+            return ""
+        parsed = urlparse(url)
+        hostname = (parsed.hostname or "").lower()
+        if (
+            parsed.scheme != "https"
+            or parsed.username is not None
+            or parsed.password is not None
+            or not hostname.endswith(".sharepoint.com")
+        ):
+            raise M365IntakeError("Microsoft 365 returned an untrusted source location")
+        return url
+
     def list_files(self) -> list[dict[str, Any]]:
         url = (
             f"{GRAPH_ROOT}/drives/{self.config.drive_id}/items/"
             f"{self.config.folder_item_id}/children"
         )
         params = {
-            "$select": "id,name,size,file,folder,lastModifiedDateTime,eTag,parentReference",
+            "$select": (
+                "id,name,size,file,folder,lastModifiedDateTime,eTag,cTag,createdBy,"
+                "lastModifiedBy,webUrl,parentReference"
+            ),
             "$top": "200",
         }
         response = self.client.get(url, headers=self._headers(), params=params)
@@ -131,13 +185,24 @@ class GovernedM365Intake:
             size = int(item.get("size", -1))
             if size < 0 or size > self.config.max_file_bytes:
                 continue
+            etag = str(item.get("eTag", ""))[:512]
+            last_modified = str(item.get("lastModifiedDateTime", ""))[:64]
+            if not etag or not last_modified:
+                raise M365IntakeError("Governed Microsoft 365 item provenance was incomplete")
+            source_owner, source_owner_id = self._identity(item.get("createdBy"))
+            last_modified_by, _ = self._identity(item.get("lastModifiedBy"))
             result.append({
                 "id": item_id,
                 "name": str(item.get("name", ""))[:512],
                 "size": size,
                 "mime_type": str(item.get("file", {}).get("mimeType", ""))[:255],
-                "last_modified": str(item.get("lastModifiedDateTime", ""))[:64],
-                "etag": str(item.get("eTag", ""))[:512],
+                "last_modified": last_modified,
+                "etag": etag,
+                "ctag": str(item.get("cTag", ""))[:512],
+                "source_owner": source_owner,
+                "source_owner_id": source_owner_id,
+                "last_modified_by": last_modified_by,
+                "web_url": self._trusted_source_url(item.get("webUrl")),
             })
         return result
 
@@ -146,9 +211,16 @@ class GovernedM365Intake:
         item = allowed.get(item_id)
         if item is None:
             raise M365IntakeError("Microsoft 365 item is outside the governed intake folder")
+        return self._read_allowed_item(item)
+
+    def _read_allowed_item(self, item: dict[str, Any]) -> bytes:
+        item_id = item["id"]
         response = self.client.get(
             f"{GRAPH_ROOT}/drives/{self.config.drive_id}/items/{item_id}/content",
-            headers={"Authorization": f"Bearer {self._graph_token()}"},
+            headers={
+                "Authorization": f"Bearer {self._graph_token()}",
+                "If-Match": item["etag"],
+            },
         )
         if response.status_code in (302, 303, 307, 308):
             location = response.headers.get("Location", "")
@@ -175,6 +247,34 @@ class GovernedM365Intake:
         if len(response.content) != item["size"] or len(response.content) > self.config.max_file_bytes:
             raise M365IntakeError("Governed Microsoft 365 item size did not match metadata")
         return bytes(response.content)
+
+    def read_document(
+        self, item_id: str, *, access_classification: str
+    ) -> GovernedM365Document:
+        """Read one exact-folder file and bind its bytes to source provenance."""
+        if access_classification not in _ACCESS_CLASSIFICATIONS:
+            raise M365IntakeError("Microsoft 365 intake access classification is invalid")
+        allowed = {item["id"]: item for item in self.list_files()}
+        item = allowed.get(item_id)
+        if item is None:
+            raise M365IntakeError("Microsoft 365 item is outside the governed intake folder")
+        content = self._read_allowed_item(item)
+        return GovernedM365Document(
+            item_id=item_id,
+            name=item["name"],
+            content=content,
+            size=item["size"],
+            mime_type=item["mime_type"],
+            sha256=hashlib.sha256(content).hexdigest(),
+            etag=item["etag"],
+            ctag=item["ctag"],
+            last_modified=item["last_modified"],
+            source_owner=item["source_owner"],
+            source_owner_id=item["source_owner_id"],
+            last_modified_by=item["last_modified_by"],
+            web_url=item["web_url"],
+            access_classification=access_classification,
+        )
 
 
 def readiness() -> dict[str, Any]:
@@ -229,4 +329,3 @@ def register_m365_intake(app, namespace: dict[str, Any]) -> None:
     app.get("/api/integrations/m365/intake/files", include_in_schema=False)(
         m365_intake_files
     )
-
