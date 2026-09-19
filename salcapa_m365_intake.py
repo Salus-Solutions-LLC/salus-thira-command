@@ -74,7 +74,6 @@ class GovernedM365Document:
 
     item_id: str
     name: str
-    relative_path: str
     content: bytes
     size: int
     mime_type: str
@@ -87,6 +86,7 @@ class GovernedM365Document:
     last_modified_by: str
     web_url: str
     access_classification: str
+    relative_path: str = ""
 
 
 class GovernedM365Intake:
