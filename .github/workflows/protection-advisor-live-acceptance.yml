@@ -37,12 +37,12 @@ jobs:
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release | test("^release/v3\\\\.[0-9]+$")) and
+            (.source_release | test("^release/v3\\.[0-9]+$")) and
             (.source_commit | test("^[0-9a-f]{40}$")) and
-            (.image_digest | test("^salcapadevb48224acr\\\\.azurecr\\\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
-            (.rollback_release | test("^release/v3\\\\.[0-9]+$")) and
+            (.image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
+            (.rollback_release | test("^release/v3\\.[0-9]+$")) and
             (.rollback_commit | test("^[0-9a-f]{40}$")) and
-            (.rollback_image_digest | test("^salcapadevb48224acr\\\\.azurecr\\\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
+            (.rollback_image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
             (.source_release != .rollback_release) and
             (.source_commit != .rollback_commit) and
             (.image_digest != .rollback_image_digest)
