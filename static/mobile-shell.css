@@ -1,0 +1,279 @@
+/*
+ * Mobile application shell.
+ * Loaded after feature styles so every SalCAPA workspace receives the same
+ * phone navigation, touch sizing, safe-area spacing, and overflow behavior.
+ */
+.mobile-nav-toggle,
+.mobile-nav-backdrop {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body.mobile-nav-open {
+    overflow: hidden;
+  }
+
+  .app-shell {
+    display: block;
+    min-height: 100dvh;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    width: min(88vw, 340px);
+    height: 100dvh;
+    padding: calc(18px + env(safe-area-inset-top)) 18px
+      calc(18px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: #fff;
+    box-shadow: 12px 0 36px rgba(14, 31, 43, .2);
+    transform: translateX(-105%);
+    transition: transform .2s ease;
+  }
+
+  body.mobile-nav-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .mobile-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    padding: 0;
+    background: rgba(8, 22, 39, .48);
+    cursor: pointer;
+  }
+
+  body.mobile-nav-open .mobile-nav-backdrop {
+    display: block;
+  }
+
+  .mobile-nav-toggle {
+    display: inline-flex;
+    grid-column: 1;
+    grid-row: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 76px;
+    min-height: 44px;
+    border: 1px solid var(--line-strong);
+    border-radius: 2px;
+    padding: 9px 11px;
+    background: #fff;
+    color: var(--salus-blue-strong);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .mobile-nav-toggle::before {
+    content: "☰";
+    color: var(--salus-orange);
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .main {
+    width: 100%;
+    max-width: none;
+    padding: 0 14px calc(40px + env(safe-area-inset-bottom));
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 8px 12px;
+    margin: 0 -14px 16px;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 12px;
+    background: rgba(255, 255, 255, .98);
+  }
+
+  .topbar > div:first-of-type {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .topbar h1 {
+    font-size: clamp(26px, 8vw, 34px);
+    overflow-wrap: anywhere;
+  }
+
+  .topbar p {
+    margin-top: 4px;
+    font-size: 14px;
+  }
+
+  .topbar .status-pill,
+  .topbar .identity-box,
+  .topbar .intake-topbar-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .topbar .status-pill {
+    justify-self: start;
+    width: auto;
+  }
+
+  .identity-box,
+  .intake-topbar-actions {
+    justify-content: stretch;
+  }
+
+  .identity-box input,
+  .identity-box select,
+  .identity-box .btn,
+  .intake-topbar-actions .btn {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .card,
+  .cop-hero,
+  .workspace-handoff {
+    padding: 18px;
+  }
+
+  .section-title,
+  .stage-heading,
+  .facility-hero,
+  .personnel-hero,
+  .salintel-domain-hero,
+  .mission-route-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .section-title .btn,
+  .stage-heading .btn,
+  .form-actions .btn,
+  .wide-actions .btn,
+  .row-actions .btn,
+  .mission-actions .btn,
+  .mission-filter-actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .form-actions,
+  .wide-actions,
+  .row-actions,
+  .mission-actions,
+  .mission-filter-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .table-wrap,
+  .facility-imagery-table-wrap,
+  .prep-table-wrap,
+  .mission-route {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrap table,
+  .facility-imagery-table,
+  .prep-table-wrap table {
+    min-width: 640px;
+  }
+
+  .stage-guidance {
+    margin-left: 0;
+    max-width: 100%;
+  }
+
+  .intake-dialog {
+    inset: 0;
+    width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .intake-dialog-header,
+  .intake-panel {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .intake-tabs {
+    max-width: 100%;
+    padding-left: 16px;
+    padding-right: 16px;
+    overflow-x: auto;
+  }
+
+  .intake-tab {
+    min-height: 44px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 420px) {
+  .main {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .topbar {
+    margin-left: -10px;
+    margin-right: -10px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .card,
+  .cop-hero,
+  .workspace-handoff {
+    padding: 15px;
+  }
+
+  .personnel-status-grid,
+  .salintel-status-grid,
+  .research-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+}
+
+@media print {
+  .mobile-nav-toggle,
+  .mobile-nav-backdrop {
+    display: none !important;
+  }
+}
