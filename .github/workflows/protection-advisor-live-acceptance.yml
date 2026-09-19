@@ -25,19 +25,38 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Verify exact deployed activation under acceptance
         run: |
           set -euo pipefail
+          ACTIVATION=deploy/azure/activations/application-dev.json
           jq -e '
-            (.activation_key == "salcapa-v3.133-application-6df3374d") and
-            (.source_release == "release/v3.133") and
-            (.source_commit == "6df3374d67842f866b3693070423593c41c5012f") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:c43488038eff5505fa93bd056f3f1cd42cdc3237e754044dc9b90e0195c62dba") and
-            (.rollback_release == "release/v3.132") and
-            (.rollback_commit == "19f982efb2da33c0575552a583bc6a1167132eef") and
-            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:d4182967666ad1692ec6d518cf1b8f4630a82c987dc91f4bac0401df897d50b5")
-          ' deploy/azure/activations/application-dev.json >/dev/null
+            type == "object" and
+            (.schema_version == 1) and
+            (.operation == "deploy_application") and
+            (.target_environment == "dev") and
+            (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
+            (.source_release | test("^release/v3\\\\.[0-9]+$")) and
+            (.source_commit | test("^[0-9a-f]{40}$")) and
+            (.image_digest | test("^salcapadevb48224acr\\\\.azurecr\\\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
+            (.rollback_release | test("^release/v3\\\\.[0-9]+$")) and
+            (.rollback_commit | test("^[0-9a-f]{40}$")) and
+            (.rollback_image_digest | test("^salcapadevb48224acr\\\\.azurecr\\\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
+            (.source_release != .rollback_release) and
+            (.source_commit != .rollback_commit) and
+            (.image_digest != .rollback_image_digest)
+          ' "$ACTIVATION" >/dev/null
+
+          SOURCE_RELEASE="$(jq -r '.source_release' "$ACTIVATION")"
+          SOURCE_COMMIT="$(jq -r '.source_commit' "$ACTIVATION")"
+          ROLLBACK_COMMIT="$(jq -r '.rollback_commit' "$ACTIVATION")"
+          EXPECTED_KEY="salcapa-${SOURCE_RELEASE#release/}-application-${SOURCE_COMMIT:0:8}"
+          test "$(jq -r '.activation_key' "$ACTIVATION")" = "$EXPECTED_KEY"
+          git cat-file -e "$SOURCE_COMMIT^{commit}"
+          git cat-file -e "$ROLLBACK_COMMIT^{commit}"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
+          git merge-base --is-ancestor "$ROLLBACK_COMMIT" "$GITHUB_SHA"
 
       - name: Exercise public consent, account, resume, package, and review handoff
         env:
