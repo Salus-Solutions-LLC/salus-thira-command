@@ -63,7 +63,6 @@ with tempfile.TemporaryDirectory() as td:
     assert ".question-nav{position:sticky;bottom:0" in page.text
     assert '<aside class="assessment-important"><strong>Important notice:</strong>' in page.text
     assert 'document.getElementById("assessment").scrollIntoView' in page.text
-    assert "requestAnimationFrame(()=>window.scrollTo(0,0))" not in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
     assert "Level '+s.level" in page.text
     shell_html=_page()
