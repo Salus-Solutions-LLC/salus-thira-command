@@ -89,7 +89,9 @@ def main() -> None:
         text, method, _truncated, processor, processor_version = _decode_image(
             document.content, document.name, document.mime_type
         )
-        if not text.strip() or not method or not processor or not processor_version:
+        if not method or not processor or not processor_version:
+            raise RuntimeError(f"M365_{family.upper()}_EXTRACTION_INCOMPLETE")
+        if family != "image" and not text.strip():
             raise RuntimeError(f"M365_{family.upper()}_EXTRACTION_EMPTY")
         accepted.append(
             f"{family}:{len(document.content)}:{hashlib.sha256(text.encode('utf-8')).hexdigest()}"
