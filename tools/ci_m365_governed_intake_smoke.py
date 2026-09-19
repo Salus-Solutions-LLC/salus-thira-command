@@ -81,6 +81,20 @@ class Client:
             assert headers["Accept"] == "application/octet-stream"
             return Response(200, content=b"safe")
         assert headers["Authorization"] == "Bearer graph-token"
+        if url.endswith("/01DBTAFUFOLDER0001/children"):
+            return Response(200, {"value": [
+                {"id": "01DBTAFUNESTEDFILE1", "name": "nested.docx", "size": 4,
+                 "file": {"mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+                 "lastModifiedDateTime": "2026-09-18T00:00:00Z",
+                 "eTag": "etag-nested-v1", "cTag": "ctag-nested-v1",
+                 "createdBy": {"user": {"email": "owner@salus.solutions", "id": "owner-id"}},
+                 "lastModifiedBy": {"user": {"displayName": "Approved Owner", "id": "owner-id"}},
+                 "webUrl": "https://salussolutions.sharepoint.com/sites/approved/nested/nested.docx"},
+                {"id": "01DBTAFUDEEPFOLDER1", "name": "deeper", "size": 0,
+                 "folder": {"childCount": 0}},
+            ]})
+        if url.endswith("/01DBTAFUDEEPFOLDER1/children"):
+            return Response(200, {"value": []})
         if url.endswith("/children"):
             return Response(200, {"value": [
                 {"id": "01DBTAFUVALIDFILE01", "name": "governed.pdf", "size": 4,
@@ -89,19 +103,27 @@ class Client:
                  "createdBy": {"user": {"email": "owner@salus.solutions", "id": "owner-id"}},
                  "lastModifiedBy": {"user": {"displayName": "Approved Owner", "id": "owner-id"}},
                  "webUrl": "https://salussolutions.sharepoint.com/sites/approved/governed.pdf"},
-                {"id": "01DBTAFUFOLDER0001", "name": "nested", "size": 0, "folder": {"childCount": 1}},
-                {"id": "01DBTAFUTOOLARGE001", "name": "large.bin", "size": 11, "file": {"mimeType": "application/octet-stream"}},
+                {"id": "01DBTAFUFOLDER0001", "name": "nested", "size": 0, "folder": {"childCount": 2}},
+                {"id": "01DBTAFUTOOLARGE001", "name": "large.bin", "size": 11,
+                 "file": {"mimeType": "application/octet-stream"}},
             ]})
         if url.endswith("/01DBTAFUVALIDFILE01/content"):
             assert headers["If-Match"] == "etag-v1"
             return Response(
                 302,
-                headers={
-                    "Location": (
-                        "https://salussolutions.sharepoint.com/"
-                        "_layouts/15/download.aspx?UniqueId=test"
-                    )
-                },
+                headers={"Location": (
+                    "https://salussolutions.sharepoint.com/"
+                    "_layouts/15/download.aspx?UniqueId=test"
+                )},
+            )
+        if url.endswith("/01DBTAFUNESTEDFILE1/content"):
+            assert headers["If-Match"] == "etag-nested-v1"
+            return Response(
+                302,
+                headers={"Location": (
+                    "https://salussolutions.sharepoint.com/"
+                    "_layouts/15/download.aspx?UniqueId=nested"
+                )},
             )
         return Response(404)
 
@@ -117,13 +139,19 @@ def main():
     )
     client = Client()
     intake = GovernedM365Intake(config, credential=Credential(), client=client)
-    assert [x["name"] for x in intake.list_files()] == ["governed.pdf"]
+    files = intake.list_files()
+    assert [x["name"] for x in files] == ["governed.pdf", "nested.docx"]
+    assert [x["relative_path"] for x in files] == [
+        "governed.pdf", "nested/nested.docx",
+    ]
+    assert intake.read_file("01DBTAFUNESTEDFILE1") == b"safe"
     assert intake.read_file("01DBTAFUVALIDFILE01") == b"safe"
     assert client.gets[-1].startswith("https://salussolutions.sharepoint.com/")
     document = intake.read_document(
         "01DBTAFUVALIDFILE01", access_classification="Restricted"
     )
     assert document.name == "governed.pdf"
+    assert document.relative_path == "governed.pdf"
     assert document.sha256 == hashlib.sha256(b"safe").hexdigest()
     assert document.etag == "etag-v1"
     assert document.ctag == "ctag-v1"
@@ -167,6 +195,26 @@ def main():
     else:
         raise AssertionError("An item outside the governed folder was accepted")
     assert all("OUTSIDE" not in url for url in client.gets)
+
+    class ShortcutClient(Client):
+        def get(self, url, headers, params=None):
+            if url.endswith("/children"):
+                return Response(200, {"value": [{
+                    "id": "01DBTAFUSHORTCUT001",
+                    "name": "outside-shortcut",
+                    "remoteItem": {"id": "01OUTSIDE"},
+                    "folder": {"childCount": 1},
+                }]})
+            return super().get(url, headers, params)
+
+    try:
+        GovernedM365Intake(
+            config, credential=Credential(), client=ShortcutClient()
+        ).list_files()
+    except M365IntakeError as exc:
+        assert "shortcut" in str(exc).lower()
+    else:
+        raise AssertionError("A shortcut outside the governed tree was followed")
     try:
         GovernedM365Config("bad/tenant", "a", "b", "c", "d").validate()
     except M365IntakeError:
