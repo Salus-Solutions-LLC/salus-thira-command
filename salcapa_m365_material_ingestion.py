@@ -20,6 +20,8 @@ class M365MaterialIngestCommand(BaseModel):
     purpose_tags: list[str] = Field(default_factory=lambda: ["SalINTEL research"], max_length=20)
     description: str = Field(default="", max_length=6000)
     recording_authority_basis: str = Field(min_length=1, max_length=2000)
+    supersedes_material_id: int | None = Field(default=None, gt=0)
+    reprocessing_authorization_id: int | None = Field(default=None, gt=0)
 
     @field_validator("sensitivity")
     @classmethod
@@ -141,6 +143,60 @@ def register_m365_material_ingestion(app: Any, namespace: dict[str, Any]) -> Non
             ).fetchone()
             if existing_version:
                 raise HTTPException(409, "This Microsoft 365 source version is already ingested")
+            prior = None
+            for candidate in conn.execute(
+                "SELECT id,source_locator,processing_status FROM materials "
+                "WHERE tenant_id=? AND source_origin='Microsoft 365 governed intake' "
+                "AND disposition_status='Active' ORDER BY id DESC",
+                (tid,),
+            ):
+                try:
+                    candidate_locator = json.loads(candidate["source_locator"])
+                except (TypeError, ValueError):
+                    continue
+                if (
+                    isinstance(candidate_locator, dict)
+                    and candidate_locator.get("drive_id") == config.drive_id
+                    and candidate_locator.get("folder_item_id") == config.folder_item_id
+                    and candidate_locator.get("item_id") == source.item_id
+                ):
+                    prior = candidate
+                    break
+            authorization = None
+            if prior is not None:
+                if (
+                    command.supersedes_material_id != int(prior["id"])
+                    or command.reprocessing_authorization_id is None
+                ):
+                    raise HTTPException(
+                        409,
+                        "A changed Microsoft 365 source requires explicit reprocessing authorization",
+                    )
+                try:
+                    authorization = conn.execute(
+                        "SELECT * FROM m365_material_reprocessing_authorizations "
+                        "WHERE id=? AND tenant_id=? AND prior_material_id=? AND item_id=? "
+                        "AND authorized_etag=? AND status='Authorized'",
+                        (
+                            command.reprocessing_authorization_id, tid, int(prior["id"]),
+                            source.item_id, source.etag,
+                        ),
+                    ).fetchone()
+                except Exception as exc:
+                    raise HTTPException(
+                        409, "Microsoft 365 reprocessing authorization is unavailable",
+                    ) from exc
+                if not authorization:
+                    raise HTTPException(
+                        409, "Microsoft 365 reprocessing authorization is invalid or stale",
+                    )
+            elif (
+                command.supersedes_material_id is not None
+                or command.reprocessing_authorization_id is not None
+            ):
+                raise HTTPException(
+                    409, "Reprocessing authorization does not match an earlier source version",
+                )
             duplicate = conn.execute(
                 "SELECT id,stored_name FROM materials WHERE tenant_id=? AND sha256=? "
                 "AND stored_name<>'' AND disposition_status='Active' ORDER BY id LIMIT 1",
@@ -177,12 +233,35 @@ def register_m365_material_ingestion(app: Any, namespace: dict[str, Any]) -> Non
                     command.sensitivity, json.dumps(command.purpose_tags, separators=(",", ":")),
                     command.description.strip(), provenance, "Submitted", "Ready for Processing",
                     str(scan.get("status", "")), str(scan.get("detail", ""))[:1000], created,
-                    retention_until, 0, "Active", "Salus Internal", 1, None, "", "", "", "",
+                    retention_until, 0, "Active", "Salus Internal", 1,
+                    int(prior["id"]) if prior is not None else None,
+                    "M365 Source Version" if prior is not None else "", "", "", "",
                     duplicate_id, created, created,
                 ),
             )
             material_id = int(cur.lastrowid)
             row = conn.execute("SELECT * FROM materials WHERE id=?", (material_id,)).fetchone()
+            if authorization is not None:
+                conn.execute(
+                    "UPDATE m365_material_reprocessing_authorizations "
+                    "SET status='Consumed',consumed_at=?,new_material_id=? WHERE id=?",
+                    (created, material_id, int(authorization["id"])),
+                )
+                prior_row = conn.execute(
+                    "SELECT * FROM materials WHERE id=?", (int(prior["id"]),)
+                ).fetchone()
+                conn.execute(
+                    "INSERT INTO material_events(tenant_id,material_id,event_type,"
+                    "from_status,to_status,reason,snapshot_json,changed_by,changed_by_role,"
+                    "created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    (
+                        tid, int(prior["id"]), "M365_SOURCE_VERSION_SUPERSEDED",
+                        prior["processing_status"], prior["processing_status"],
+                        f"Authorized successor material {material_id} captured for eTag {source.etag}.",
+                        json.dumps(dict(prior_row), sort_keys=True, default=str),
+                        actor(request), context.get("role", "System Administrator"), created,
+                    ),
+                )
             conn.execute(
                 "INSERT INTO material_events(tenant_id,material_id,event_type,from_status,to_status,"
                 "reason,snapshot_json,changed_by,changed_by_role,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
@@ -221,6 +300,8 @@ def register_m365_material_ingestion(app: Any, namespace: dict[str, Any]) -> Non
                 "disclosure_status": "Salus Internal",
                 "immutable_original": True,
                 "duplicate_of_material_id": duplicate_id,
+                "supersedes_material_id": int(prior["id"]) if prior is not None else None,
+                "source_version_status": "Authorized New Version" if prior is not None else "Initial Version",
                 "processing_endpoint": f"/api/materials/{material_id}/safe-text-processing",
                 "human_review_required": True,
                 "indexing_status": "Not Indexed",
