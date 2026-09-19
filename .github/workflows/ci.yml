@@ -114,6 +114,9 @@ jobs:
       - name: Governed M365 source change and reprocessing
         run: python tools/ci_m365_source_change_reprocessing_smoke.py
 
+      - name: Representative M365 multi-format governed-ingestion acceptance
+        run: python tools/ci_m365_multiformat_ingestion_acceptance.py
+
       - name: Governed Microsoft 365 report-storage regression smoke
         run: python tools/ci_m365_governed_reports_smoke.py
       - name: Live runtime acceptance contract smoke
