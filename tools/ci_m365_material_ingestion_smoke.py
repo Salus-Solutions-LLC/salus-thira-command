@@ -77,6 +77,7 @@ class Intake:
             last_modified_by="Approved Owner",
             web_url="https://salussolutions.sharepoint.com/sites/approved/approved.docx",
             access_classification=access_classification,
+            relative_path="Northwestern Medical/approved.docx",
         )
 
 
@@ -140,9 +141,11 @@ def main():
             assert row["immutable_original"] == 1
             assert locator["drive_id"] == Config.drive_id
             assert locator["folder_item_id"] == Config.folder_item_id
+            assert locator["relative_path"] == "Northwestern Medical/approved.docx"
             assert locator["item_id"] == "01APPROVEDFILE"
             assert locator["etag"] == "etag-v7"
             assert provenance["source_owner"] == "owner@salus.solutions"
+            assert provenance["relative_path"] == "Northwestern Medical/approved.docx"
             assert conn.execute("SELECT COUNT(*) FROM material_events").fetchone()[0] == 1
             assert conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] == 1
             conn.close()
