@@ -543,7 +543,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             }
             {
               name: 'SALUS_M365_INTAKE_FOLDER_ITEM_ID'
-              value: '01DBTAFUO2ZTFI6EP7Q5GZZHXQV435DDBJ'
+              value: '01DBTAFUKSE2CSFDDEING2AAXOVQQEYNNL'
             }
             {
               name: 'SALUS_M365_INTAKE_MAX_FILE_BYTES'
