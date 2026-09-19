@@ -547,7 +547,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             }
             {
               name: 'SALUS_M365_INTAKE_MAX_FILE_BYTES'
-              value: '26214400'
+              value: '104857600'
             }
             {
               name: 'SALUS_M365_REPORT_DRIVE_ID'

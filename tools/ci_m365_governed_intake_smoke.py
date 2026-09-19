@@ -237,6 +237,29 @@ def main():
         assert "shortcut" in str(exc).lower()
     else:
         raise AssertionError("A shortcut outside the governed tree was followed")
+    maximum_config = GovernedM365Config(
+        tenant_id="11111111-1111-1111-1111-111111111111",
+        application_client_id="22222222-2222-2222-2222-222222222222",
+        managed_identity_client_id="33333333-3333-3333-3333-333333333333",
+        drive_id="b!nLoH4rpIs0Ko75C0IRSSqNFy_EdwB-BMgQS848yr84pGrXen1bnSR6zYkxtw-PFF",
+        folder_item_id="01DBTAFUO2ZTFI6EP7Q5GZZHXQV435DDBJ",
+        max_file_bytes=100 * 1024 * 1024,
+    )
+    maximum_config.validate()
+    try:
+        GovernedM365Config(
+            tenant_id=maximum_config.tenant_id,
+            application_client_id=maximum_config.application_client_id,
+            managed_identity_client_id=maximum_config.managed_identity_client_id,
+            drive_id=maximum_config.drive_id,
+            folder_item_id=maximum_config.folder_item_id,
+            max_file_bytes=(100 * 1024 * 1024) + 1,
+        ).validate()
+    except M365IntakeError as exc:
+        assert "size limit" in str(exc).lower()
+    else:
+        raise AssertionError("An intake file limit above 100 MB was accepted")
+
     try:
         GovernedM365Config("bad/tenant", "a", "b", "c", "d").validate()
     except M365IntakeError:

@@ -54,7 +54,7 @@ resource acceptanceJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID', value: managedIdentityClientId }
             { name: 'SALUS_M365_INTAKE_DRIVE_ID', value: driveId }
             { name: 'SALUS_M365_INTAKE_FOLDER_ITEM_ID', value: folderItemId }
-            { name: 'SALUS_M365_INTAKE_MAX_FILE_BYTES', value: '26214400' }
+            { name: 'SALUS_M365_INTAKE_MAX_FILE_BYTES', value: '104857600' }
           ]
           resources: {
             cpu: json('0.25')

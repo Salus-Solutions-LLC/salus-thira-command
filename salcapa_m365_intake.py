@@ -28,6 +28,8 @@ _ACCESS_CLASSIFICATIONS = {
 }
 _MAX_FOLDER_DEPTH = 20
 _MAX_DISCOVERED_ITEMS = 2000
+_DEFAULT_MAX_FILE_BYTES = 100 * 1024 * 1024
+_MAX_FILE_BYTES = 100 * 1024 * 1024
 
 
 class M365IntakeError(RuntimeError):
@@ -41,7 +43,7 @@ class GovernedM365Config:
     managed_identity_client_id: str
     drive_id: str
     folder_item_id: str
-    max_file_bytes: int = 25 * 1024 * 1024
+    max_file_bytes: int = _DEFAULT_MAX_FILE_BYTES
 
     @classmethod
     def from_environment(cls) -> "GovernedM365Config":
@@ -51,7 +53,7 @@ class GovernedM365Config:
             managed_identity_client_id=os.getenv("SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID", "").strip(),
             drive_id=os.getenv("SALUS_M365_INTAKE_DRIVE_ID", "").strip(),
             folder_item_id=os.getenv("SALUS_M365_INTAKE_FOLDER_ITEM_ID", "").strip(),
-            max_file_bytes=int(os.getenv("SALUS_M365_INTAKE_MAX_FILE_BYTES", str(25 * 1024 * 1024))),
+            max_file_bytes=int(os.getenv("SALUS_M365_INTAKE_MAX_FILE_BYTES", str(_DEFAULT_MAX_FILE_BYTES))),
         )
 
     def validate(self) -> None:
@@ -64,7 +66,7 @@ class GovernedM365Config:
         }
         if any(not _IDENTIFIER.fullmatch(value) for value in values.values()):
             raise M365IntakeError("Microsoft 365 intake identifiers are incomplete or invalid")
-        if not 1 <= self.max_file_bytes <= 100 * 1024 * 1024:
+        if not 1 <= self.max_file_bytes <= _MAX_FILE_BYTES:
             raise M365IntakeError("Microsoft 365 intake size limit is invalid")
 
 
