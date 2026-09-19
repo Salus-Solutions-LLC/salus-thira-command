@@ -410,6 +410,15 @@ jobs:
               break
             fi
             if [ "$STATUS" = "Failed" ]; then
+              echo "Microsoft 365 acceptance execution failed; bounded container logs follow." >&2
+              az containerapp job logs show \
+                --resource-group "$RESOURCE_GROUP" \
+                --name "$JOB_NAME" \
+                --execution "$EXECUTION_NAME" \
+                --container salcapa-m365-acceptance \
+                --tail 200 --format text --only-show-errors 2>&1 \
+                | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED]/Ig' >&2 \
+                || true
               break
             fi
             sleep 10
@@ -420,18 +429,21 @@ jobs:
             echo "SALUS_M365_ACCEPTANCE_EXECUTION=$EXECUTION_NAME"
           } >> "$GITHUB_ENV"
 
-      - name: Remove accepted temporary Microsoft 365 Azure test job
+      - name: Remove temporary Microsoft 365 Azure test job
+        if: always()
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         run: |
           set -euo pipefail
-          test "$SALUS_M365_ACCEPTANCE_JOB" = "salcapa-m365-acceptance-b48224"
-          az containerapp job delete \
-            --resource-group "$RESOURCE_GROUP" \
-            --name "$SALUS_M365_ACCEPTANCE_JOB" \
-            --yes --only-show-errors
+          JOB_NAME=salcapa-m365-acceptance-b48224
+          if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --only-show-errors >/dev/null 2>&1; then
+            az containerapp job delete \
+              --resource-group "$RESOURCE_GROUP" \
+              --name "$JOB_NAME" \
+              --yes --only-show-errors
+          fi
           test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
-            --query "[?name == '$SALUS_M365_ACCEPTANCE_JOB'] | length(@)" \
+            --query "[?name == '$JOB_NAME'] | length(@)" \
             --output tsv --only-show-errors)" = "0"
 
       - name: Restore accepted v3.140 if promotion verification fails
