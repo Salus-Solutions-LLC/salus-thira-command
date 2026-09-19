@@ -26,6 +26,8 @@ _IDENTIFIER = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
 _ACCESS_CLASSIFICATIONS = {
     "Salus Internal", "Standard", "Restricted", "Sensitive", "Highly Sensitive",
 }
+_MAX_FOLDER_DEPTH = 20
+_MAX_DISCOVERED_ITEMS = 2000
 
 
 class M365IntakeError(RuntimeError):
@@ -72,6 +74,7 @@ class GovernedM365Document:
 
     item_id: str
     name: str
+    relative_path: str
     content: bytes
     size: int
     mime_type: str
@@ -154,56 +157,122 @@ class GovernedM365Intake:
             raise M365IntakeError("Microsoft 365 returned an untrusted source location")
         return url
 
+    @staticmethod
+    def _safe_path_component(value: Any) -> str:
+        name = str(value or "")[:512]
+        if not name or name in {".", ".."} or "/" in name or "\\" in name:
+            raise M365IntakeError(
+                "Governed Microsoft 365 response contained an invalid path component"
+            )
+        return name
+
     def list_files(self) -> list[dict[str, Any]]:
-        url = (
-            f"{GRAPH_ROOT}/drives/{self.config.drive_id}/items/"
-            f"{self.config.folder_item_id}/children"
+        """List bounded files anywhere beneath the configured intake root."""
+        select = (
+            "id,name,size,file,folder,remoteItem,lastModifiedDateTime,eTag,cTag,"
+            "createdBy,lastModifiedBy,webUrl,parentReference"
         )
-        params = {
-            "$select": (
-                "id,name,size,file,folder,lastModifiedDateTime,eTag,cTag,createdBy,"
-                "lastModifiedBy,webUrl,parentReference"
-            ),
-            "$top": "200",
-        }
-        response = self.client.get(url, headers=self._headers(), params=params)
-        if response.status_code != 200:
-            raise M365IntakeError("Governed Microsoft 365 folder could not be read")
-        payload = response.json()
-        if payload.get("@odata.nextLink"):
-            raise M365IntakeError("Governed Microsoft 365 folder exceeds the bounded intake page")
-        values = payload.get("value")
-        if not isinstance(values, list):
-            raise M365IntakeError("Governed Microsoft 365 response was incomplete")
-        result = []
-        for item in values:
-            if not isinstance(item, dict) or "file" not in item or "folder" in item:
-                continue
-            item_id = str(item.get("id", ""))
-            if not _IDENTIFIER.fullmatch(item_id):
-                raise M365IntakeError("Governed Microsoft 365 response contained an invalid item")
-            size = int(item.get("size", -1))
-            if size < 0 or size > self.config.max_file_bytes:
-                continue
-            etag = str(item.get("eTag", ""))[:512]
-            last_modified = str(item.get("lastModifiedDateTime", ""))[:64]
-            if not etag or not last_modified:
-                raise M365IntakeError("Governed Microsoft 365 item provenance was incomplete")
-            source_owner, source_owner_id = self._identity(item.get("createdBy"))
-            last_modified_by, _ = self._identity(item.get("lastModifiedBy"))
-            result.append({
-                "id": item_id,
-                "name": str(item.get("name", ""))[:512],
-                "size": size,
-                "mime_type": str(item.get("file", {}).get("mimeType", ""))[:255],
-                "last_modified": last_modified,
-                "etag": etag,
-                "ctag": str(item.get("cTag", ""))[:512],
-                "source_owner": source_owner,
-                "source_owner_id": source_owner_id,
-                "last_modified_by": last_modified_by,
-                "web_url": self._trusted_source_url(item.get("webUrl")),
-            })
+        folders: list[tuple[str, str, int]] = [
+            (self.config.folder_item_id, "", 0)
+        ]
+        visited_folders: set[str] = set()
+        visited_items: set[str] = set()
+        result: list[dict[str, Any]] = []
+        discovered = 0
+
+        while folders:
+            folder_id, folder_path, depth = folders.pop(0)
+            if folder_id in visited_folders:
+                raise M365IntakeError(
+                    "Governed Microsoft 365 folder traversal contained a cycle"
+                )
+            visited_folders.add(folder_id)
+            url = (
+                f"{GRAPH_ROOT}/drives/{self.config.drive_id}/items/"
+                f"{folder_id}/children"
+            )
+            response = self.client.get(
+                url,
+                headers=self._headers(),
+                params={"$select": select, "$top": "200"},
+            )
+            if response.status_code != 200:
+                raise M365IntakeError(
+                    "Governed Microsoft 365 folder could not be read"
+                )
+            payload = response.json()
+            if payload.get("@odata.nextLink"):
+                raise M365IntakeError(
+                    "Governed Microsoft 365 folder exceeds the bounded intake page"
+                )
+            values = payload.get("value")
+            if not isinstance(values, list):
+                raise M365IntakeError(
+                    "Governed Microsoft 365 response was incomplete"
+                )
+
+            for item in values:
+                discovered += 1
+                if discovered > _MAX_DISCOVERED_ITEMS:
+                    raise M365IntakeError(
+                        "Governed Microsoft 365 intake exceeds the traversal limit"
+                    )
+                if not isinstance(item, dict):
+                    raise M365IntakeError(
+                        "Governed Microsoft 365 response contained an invalid item"
+                    )
+                if "remoteItem" in item:
+                    raise M365IntakeError(
+                        "Governed Microsoft 365 intake cannot follow shortcuts"
+                    )
+                item_id = str(item.get("id", ""))
+                if not _IDENTIFIER.fullmatch(item_id) or item_id in visited_items:
+                    raise M365IntakeError(
+                        "Governed Microsoft 365 response contained an invalid item"
+                    )
+                visited_items.add(item_id)
+                name = self._safe_path_component(item.get("name"))
+                relative_path = f"{folder_path}/{name}" if folder_path else name
+
+                if "folder" in item:
+                    if "file" in item or not isinstance(item.get("folder"), dict):
+                        raise M365IntakeError(
+                            "Governed Microsoft 365 response contained an invalid folder"
+                        )
+                    if depth >= _MAX_FOLDER_DEPTH:
+                        raise M365IntakeError(
+                            "Governed Microsoft 365 intake exceeds the folder depth limit"
+                        )
+                    folders.append((item_id, relative_path, depth + 1))
+                    continue
+                if "file" not in item:
+                    continue
+
+                size = int(item.get("size", -1))
+                if size < 0 or size > self.config.max_file_bytes:
+                    continue
+                etag = str(item.get("eTag", ""))[:512]
+                last_modified = str(item.get("lastModifiedDateTime", ""))[:64]
+                if not etag or not last_modified:
+                    raise M365IntakeError(
+                        "Governed Microsoft 365 item provenance was incomplete"
+                    )
+                source_owner, source_owner_id = self._identity(item.get("createdBy"))
+                last_modified_by, _ = self._identity(item.get("lastModifiedBy"))
+                result.append({
+                    "id": item_id,
+                    "name": name,
+                    "relative_path": relative_path,
+                    "size": size,
+                    "mime_type": str(item.get("file", {}).get("mimeType", ""))[:255],
+                    "last_modified": last_modified,
+                    "etag": etag,
+                    "ctag": str(item.get("cTag", ""))[:512],
+                    "source_owner": source_owner,
+                    "source_owner_id": source_owner_id,
+                    "last_modified_by": last_modified_by,
+                    "web_url": self._trusted_source_url(item.get("webUrl")),
+                })
         return result
 
     def read_file(self, item_id: str) -> bytes:
@@ -251,7 +320,7 @@ class GovernedM365Intake:
     def read_document(
         self, item_id: str, *, access_classification: str
     ) -> GovernedM365Document:
-        """Read one exact-folder file and bind its bytes to source provenance."""
+        """Read one governed-subtree file and bind its bytes to source provenance."""
         if access_classification not in _ACCESS_CLASSIFICATIONS:
             raise M365IntakeError("Microsoft 365 intake access classification is invalid")
         allowed = {item["id"]: item for item in self.list_files()}
@@ -262,6 +331,7 @@ class GovernedM365Intake:
         return GovernedM365Document(
             item_id=item_id,
             name=item["name"],
+            relative_path=item["relative_path"],
             content=content,
             size=item["size"],
             mime_type=item["mime_type"],
