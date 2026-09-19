@@ -91,10 +91,18 @@ class Client:
                  "lastModifiedBy": {"user": {"displayName": "Approved Owner", "id": "owner-id"}},
                  "webUrl": "https://salussolutions.sharepoint.com/sites/approved/nested/nested.docx"},
                 {"id": "01DBTAFUDEEPFOLDER1", "name": "deeper", "size": 0,
-                 "folder": {"childCount": 0}},
+                 "folder": {"childCount": 1}},
             ]})
         if url.endswith("/01DBTAFUDEEPFOLDER1/children"):
-            return Response(200, {"value": []})
+            return Response(200, {"value": [
+                {"id": "01DBTAFUDEEPFILE001", "name": "deep.pdf", "size": 4,
+                 "file": {"mimeType": "application/pdf"},
+                 "lastModifiedDateTime": "2026-09-19T00:00:00Z",
+                 "eTag": "etag-deep-v1", "cTag": "ctag-deep-v1",
+                 "createdBy": {"user": {"email": "owner@salus.solutions", "id": "owner-id"}},
+                 "lastModifiedBy": {"user": {"displayName": "Approved Owner", "id": "owner-id"}},
+                 "webUrl": "https://salussolutions.sharepoint.com/sites/approved/nested/deeper/deep.pdf"},
+            ]})
         if url.endswith("/children"):
             return Response(200, {"value": [
                 {"id": "01DBTAFUVALIDFILE01", "name": "governed.pdf", "size": 4,
@@ -114,6 +122,15 @@ class Client:
                 headers={"Location": (
                     "https://salussolutions.sharepoint.com/"
                     "_layouts/15/download.aspx?UniqueId=test"
+                )},
+            )
+        if url.endswith("/01DBTAFUDEEPFILE001/content"):
+            assert headers["If-Match"] == "etag-deep-v1"
+            return Response(
+                302,
+                headers={"Location": (
+                    "https://salussolutions.sharepoint.com/"
+                    "_layouts/15/download.aspx?UniqueId=deep"
                 )},
             )
         if url.endswith("/01DBTAFUNESTEDFILE1/content"):
@@ -140,11 +157,16 @@ def main():
     client = Client()
     intake = GovernedM365Intake(config, credential=Credential(), client=client)
     files = intake.list_files()
-    assert [x["name"] for x in files] == ["governed.pdf", "nested.docx"]
+    assert [x["name"] for x in files] == [
+        "governed.pdf", "nested.docx", "deep.pdf",
+    ]
     assert [x["relative_path"] for x in files] == [
-        "governed.pdf", "nested/nested.docx",
+        "governed.pdf",
+        "nested/nested.docx",
+        "nested/deeper/deep.pdf",
     ]
     assert intake.read_file("01DBTAFUNESTEDFILE1") == b"safe"
+    assert intake.read_file("01DBTAFUDEEPFILE001") == b"safe"
     assert intake.read_file("01DBTAFUVALIDFILE01") == b"safe"
     assert client.gets[-1].startswith("https://salussolutions.sharepoint.com/")
     document = intake.read_document(
