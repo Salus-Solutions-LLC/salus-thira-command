@@ -114,9 +114,6 @@ jobs:
       - name: Governed M365 source change and reprocessing
         run: python tools/ci_m365_source_change_reprocessing_smoke.py
 
-      - name: Representative M365 multi-format governed-ingestion acceptance
-        run: python tools/ci_m365_multiformat_ingestion_acceptance.py
-
       - name: Governed Microsoft 365 report-storage regression smoke
         run: python tools/ci_m365_governed_reports_smoke.py
       - name: Live runtime acceptance contract smoke
@@ -221,6 +218,8 @@ jobs:
         run: |
           test "$(docker run --rm salcapa:ci id -u)" = "10001"
           docker run --rm salcapa:ci python tools/verify_v343_source.py
+      - name: Representative M365 multi-format governed-ingestion acceptance
+        run: docker run --rm salcapa:ci python tools/ci_m365_multiformat_ingestion_acceptance.py
       - name: SQLite lifecycle smoke inside container
         run: |
           docker run --rm \
