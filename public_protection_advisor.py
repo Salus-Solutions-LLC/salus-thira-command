@@ -726,7 +726,7 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <section id="paths" class="hidden panel"><h2>Choose what happens next</h2>
 <p>Your anonymous review is complete. Continue for a tailored preliminary package or browse individual Salus services without identifying yourself.</p>
 <div class="route"><a class="action" href="#profileAgreement" onclick="showProfileAgreement(event)">Continue to Your Tailored Salus Package &gt;</a><br>
-<a class="action" href="/protection-advisor/services">Explore Individual Salus Services &gt;</a></div></section>
+<a class="action" href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer">Explore Individual Salus Services &gt;</a></div></section>
 <section id="profileAgreement" class="hidden panel"><p class="eyebrow">Before Part 2</p>
 <h2>Understand the detailed assessment</h2>
 <p>Part 2 asks more detailed and sometimes difficult questions about your organization, operations, capabilities, concerns, and priorities. Accurate answers are necessary for a useful preliminary package recommendation.</p>
