@@ -8,6 +8,7 @@ from pathlib import PurePosixPath
 from urllib.parse import urlparse
 
 from salcapa_image_ocr_processing import _decode_image
+from salcapa_material_processing import ProcessingFailure
 from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake, GRAPH_ROOT
 
 
@@ -86,15 +87,24 @@ def main() -> None:
             raise RuntimeError("M365_INTAKE_HASH_MISMATCH")
         if not document.etag or not document.last_modified or not document.web_url:
             raise RuntimeError("M365_INTAKE_PROVENANCE_INCOMPLETE")
-        text, method, _truncated, processor, processor_version = _decode_image(
-            document.content, document.name, document.mime_type
-        )
+        try:
+            text, method, _truncated, processor, processor_version = _decode_image(
+                document.content, document.name, document.mime_type
+            )
+        except ProcessingFailure as exc:
+            # A supported source may contain active content, annotations, encryption,
+            # unsafe expansion, or another governed condition. Preserving the original
+            # and requiring human review is an accepted fail-closed outcome.
+            accepted.append(
+                f"{family}:blocked:{hashlib.sha256(str(exc).encode('utf-8')).hexdigest()}"
+            )
+            continue
         if not method or not processor or not processor_version:
             raise RuntimeError(f"M365_{family.upper()}_EXTRACTION_INCOMPLETE")
         if family != "image" and not text.strip():
             raise RuntimeError(f"M365_{family.upper()}_EXTRACTION_EMPTY")
         accepted.append(
-            f"{family}:{len(document.content)}:{hashlib.sha256(text.encode('utf-8')).hexdigest()}"
+            f"{family}:extracted:{hashlib.sha256(text.encode('utf-8')).hexdigest()}"
         )
 
     sample = min(files, key=lambda item: (item["size"] == 0, item["size"], item["id"]))
