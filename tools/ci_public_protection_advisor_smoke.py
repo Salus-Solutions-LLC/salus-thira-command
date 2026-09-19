@@ -59,8 +59,11 @@ with tempfile.TemporaryDirectory() as td:
     assert 'id="reviewResults"' in page.text
     assert 'questions.map((q,i)=>' not in page.text
     assert 'const q=questions[questionIndex]' in page.text
-    assert "requestAnimationFrame(()=>window.scrollTo(0,0))" in page.text
-    assert "assessment.scrollIntoView" not in page.text
+    assert 'class="question-nav"' in page.text
+    assert ".question-nav{position:sticky;bottom:0" in page.text
+    assert '<aside class="assessment-important"><strong>Important notice:</strong>' in page.text
+    assert 'document.getElementById("assessment").scrollIntoView' in page.text
+    assert "requestAnimationFrame(()=>window.scrollTo(0,0))" not in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
     assert "Level '+s.level" in page.text
     shell_html=_page()
@@ -85,6 +88,7 @@ with tempfile.TemporaryDirectory() as td:
     assert '<h1 class="visually-hidden">Protection Advisor</h1>' in embedded.text
     assert "main{padding-top:8px}" in embedded.text
     assert "salus-protection-advisor-height" in embedded.text
+    assert 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' in embedded.text
     assert "frame-ancestors https://www.salus.solutions https://salus.solutions" in embedded.headers["content-security-policy"]
     assert "x-frame-options" not in embedded.headers
 
