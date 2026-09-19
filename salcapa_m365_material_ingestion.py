@@ -63,7 +63,7 @@ def _material_kind(name: str) -> str:
 
 
 def register_m365_material_ingestion(app: Any, namespace: dict[str, Any]) -> None:
-    """Register an administrator-only exact-folder material capture route."""
+    """Register an administrator-only governed-subtree material capture route."""
     required_names = (
         "db", "storage", "scan_bytes", "safe_filename", "now", "actor",
         "tenant_id", "auth_context", "RETENTION_DEFAULT_DAYS", "_iso_now_dt",
@@ -121,6 +121,7 @@ def register_m365_material_ingestion(app: Any, namespace: dict[str, Any]) -> Non
             "provider": "Microsoft 365",
             "drive_id": config.drive_id,
             "folder_item_id": config.folder_item_id,
+            "relative_path": source.relative_path or source.name,
             "item_id": source.item_id,
             "etag": source.etag,
             "ctag": source.ctag,
@@ -131,6 +132,7 @@ def register_m365_material_ingestion(app: Any, namespace: dict[str, Any]) -> Non
             "source_owner": source.source_owner,
             "source_owner_id": source.source_owner_id,
             "last_modified_by": source.last_modified_by,
+            "relative_path": source.relative_path or source.name,
         }, sort_keys=True, separators=(",", ":"))
         conn = db()
         wrote_object = False
