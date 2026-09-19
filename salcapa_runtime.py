@@ -79,7 +79,7 @@ register_demo_fixture_contract(core)
 register_demo_evaluator(core)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.139"
+SALCAPA_RELEASE_VERSION = "3.140"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 
