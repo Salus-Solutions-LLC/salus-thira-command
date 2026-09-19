@@ -85,7 +85,7 @@ with tempfile.TemporaryDirectory() as td:
     assert '<header class="salus-header">' not in embedded.text
     assert '<h1>Protection Advisor™</h1>' not in embedded.text
     assert '<h1 class="visually-hidden">Protection Advisor</h1>' in embedded.text
-    assert "main{padding-top:8px}" in embedded.text
+    assert "main{padding-top:8px;padding-bottom:18px}" in embedded.text
     assert "salus-protection-advisor-height" in embedded.text
     assert 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' in embedded.text
     assert "frame-ancestors https://www.salus.solutions https://salus.solutions" in embedded.headers["content-security-policy"]
