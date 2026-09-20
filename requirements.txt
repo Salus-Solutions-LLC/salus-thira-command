@@ -17,3 +17,4 @@ psycopg[binary]==3.3.4
 redis==8.1.0
 # Optional centralized telemetry when SALUS_TELEMETRY_BACKEND=azure_monitor
 azure-monitor-opentelemetry==1.8.9
+python-docx==1.1.2
