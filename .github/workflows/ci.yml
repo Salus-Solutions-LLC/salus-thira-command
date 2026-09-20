@@ -58,7 +58,7 @@ jobs:
       - name: Compile Python
         run: python -m py_compile app.py salus_protection_advisor.py salcapa_runtime.py salcapa_m365_intake.py salcapa_m365_material_ingestion.py salcapa_m365_source_change.py salintel_material_index.py salthira_material_evidence_routing.py salcapa_m365_reports.py salcapa_demo_evaluator.py material_capability.py salintel_domains.py salops_preparedness.py personnel_assessment.py salintel_relationships.py salintel_research.py salintel_handoffs.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
       - name: Validate JavaScript syntax
-        run: node --check static/product-branding.js && node --check static/product-version.js && node --check static/app.js && node --check static/demo-environments.js && node --check static/guidance.js && node --check static/condition-visuals.js && node --check static/intake-capture.js && node --check static/salintel-domains.js && node --check static/personnel-assessment.js && node --check static/salintel-relationships.js && node --check static/salintel-research.js && node --check static/salintel-handoffs.js
+        run: node --check static/product-branding.js && node --check static/product-version.js && node --check static/app.js && node --check static/demo-environments.js && node --check static/guidance.js && node --check static/condition-visuals.js && node --check static/intake-capture.js && node --check static/salintel-domains.js && node --check static/personnel-assessment.js && node --check static/salintel-relationships.js && node --check static/salintel-research.js && node --check static/salintel-handoffs.js && node --check static/salcapa-intake-review.js
       - name: Salus brand system acceptance
         run: python tools/ci_brand_system_smoke.py
       - name: Trademark-first product navigation acceptance
@@ -113,6 +113,9 @@ jobs:
 
       - name: Governed M365 source change and reprocessing
         run: python tools/ci_m365_source_change_reprocessing_smoke.py
+
+      - name: Governed M365 administrator intake review workspace
+        run: python tools/ci_m365_intake_review_ui_smoke.py
 
       - name: Governed Microsoft 365 report-storage regression smoke
         run: python tools/ci_m365_governed_reports_smoke.py
