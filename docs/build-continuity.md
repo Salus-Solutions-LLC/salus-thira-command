@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 19 September 2026 21:45 CDT
+last_verified_at: 19 September 2026 22:02 CDT
 current_frozen_release: v3.143
 current_frozen_commit: 51370189b2518bb8fdf6614d34b593eb3d0fc989
 active_development_branch: development/salcapa-platform
-current_development_head: ca3ea96f051bd8cd2cea29928ac82f813798f936
+current_development_head: 26d9a9dfc50d3eb45969c235047e6ef407a73a00
 active_product_milestone: issue_370_governed_document_ingestion
 active_build_system_issue: 370
-active_increment: issue_370_governed_document_ingestion_next
+active_increment: issue_370_v3144_nested_source_reconciliation
 last_completed_increment: issue_370_v3143_protection_advisor_ui_live_acceptance
-candidate_release: none
+candidate_release: v3.144
 validation_pr: none
-validation_branch: none
+validation_branch: release/v3.144
 validation_base: development/salcapa-platform
-validation_head: 51370189b2518bb8fdf6614d34b593eb3d0fc989
-validation_gate_state: all_required_gates_green
+validation_head: 26d9a9dfc50d3eb45969c235047e6ef407a73a00
+validation_gate_state: github_validation_running
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: keep_navigation_notice_and_services_route_visible_in_bounded_wix_embed
+repair_summary: classify_new_unchanged_changed_and_missing_nested_m365_sources_without_automatic_processing
 genuine_blockers: none
-next_authorized_step: continue_governed_document_ingestion_and_reprocessing_controls
+next_authorized_step: freeze_publish_deploy_and_live_accept_v3144_after_required_gates
 deployed_demo_release: v3.143
 deployed_demo_state: protection_advisor_and_nested_m365_live_acceptance_passed_and_temporary_job_deleted
 ---
