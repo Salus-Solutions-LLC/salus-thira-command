@@ -10,6 +10,7 @@ from fastapi import HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake, M365IntakeError
+from salcapa_m365_material_ingestion import M365MaterialIngestCommand
 
 
 SCHEMA = """
@@ -74,6 +75,37 @@ CREATE TABLE IF NOT EXISTS m365_intake_review_decisions (
 );
 CREATE INDEX IF NOT EXISTS idx_m365_intake_review_queue
   ON m365_intake_review_decisions(tenant_id,item_id,version_etag,id);
+
+CREATE TABLE IF NOT EXISTS m365_batch_capture_executions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tenant_id INTEGER NOT NULL,
+  execution_key TEXT NOT NULL UNIQUE,
+  requested_count INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  sensitivity TEXT NOT NULL,
+  authority_basis TEXT NOT NULL,
+  started_by TEXT NOT NULL,
+  started_by_role TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  completed_at TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS m365_batch_capture_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tenant_id INTEGER NOT NULL,
+  execution_id INTEGER NOT NULL,
+  decision_id INTEGER NOT NULL,
+  item_id TEXT NOT NULL,
+  source_status TEXT NOT NULL,
+  status TEXT NOT NULL,
+  material_id INTEGER,
+  detail TEXT NOT NULL,
+  completed_at TEXT NOT NULL,
+  FOREIGN KEY (execution_id) REFERENCES m365_batch_capture_executions(id) ON DELETE RESTRICT,
+  FOREIGN KEY (decision_id) REFERENCES m365_intake_review_decisions(id) ON DELETE RESTRICT,
+  FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_m365_batch_capture_items
+  ON m365_batch_capture_items(tenant_id,execution_id,id);
 """
 
 
@@ -117,6 +149,38 @@ class M365BatchReviewDecisionIn(BaseModel):
         value = value.strip()
         if not value:
             raise ValueError("A documented review reason is required")
+        return value
+
+
+
+class M365ApprovedBatchCaptureIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    decision_ids: list[int] = Field(min_length=1, max_length=25)
+    sensitivity: Literal["Standard", "Restricted", "Sensitive", "Highly Sensitive"] = "Restricted"
+    purpose_tags: list[str] = Field(default_factory=lambda: ["SalINTEL research"], max_length=20)
+    description: str = Field(default="", max_length=6000)
+    recording_authority_basis: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("decision_ids")
+    @classmethod
+    def normalize_decision_ids(cls, values: list[int]) -> list[int]:
+        result: list[int] = []
+        for value in values:
+            decision_id = int(value)
+            if decision_id <= 0:
+                raise ValueError("decision identifiers must be positive")
+            if decision_id not in result:
+                result.append(decision_id)
+        if not result:
+            raise ValueError("at least one decision identifier is required")
+        return result
+
+    @field_validator("recording_authority_basis")
+    @classmethod
+    def normalize_capture_authority(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("A recording authority basis is required")
         return value
 
 
@@ -475,6 +539,193 @@ def register_m365_source_change_control(app: Any, core: dict[str, Any]) -> None:
                     else "No capture or reprocessing action was authorized."
                 ),
                 "decided_at": decided,
+            }
+        except HTTPException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    @app.post(
+        "/api/integrations/m365/intake/review-queue/execute-approved",
+        include_in_schema=False,
+    )
+    def execute_approved_batch(
+        payload: M365ApprovedBatchCaptureIn, request: Request,
+    ) -> dict[str, Any]:
+        """Execute a bounded approved batch with isolated per-item results."""
+        require_admin(request)
+        capture = getattr(app.state, "m365_governed_capture", None)
+        if capture is None:
+            raise HTTPException(503, "Governed Microsoft 365 capture is unavailable")
+        tid = int(tenant_id(request))
+        reconciliation = reconcile_source_versions(request)
+        current = {item["item_id"]: item for item in reconciliation["items"]}
+        conn = db()
+        try:
+            decisions = []
+            for decision_id in payload.decision_ids:
+                row = conn.execute(
+                    "SELECT * FROM m365_intake_review_decisions WHERE id=?",
+                    (decision_id,),
+                ).fetchone()
+                if not row:
+                    raise HTTPException(404, "Review decision not found")
+                if int(row["tenant_id"]) != tid:
+                    security_event(
+                        request, "M365_BATCH_TENANT_BOUNDARY_VIOLATION", "High",
+                        f"decision_id={decision_id}",
+                    )
+                    raise HTTPException(403, "Tenant boundary violation")
+                latest = conn.execute(
+                    "SELECT id FROM m365_intake_review_decisions WHERE tenant_id=? "
+                    "AND item_id=? AND version_etag=? ORDER BY id DESC LIMIT 1",
+                    (tid, row["item_id"], row["version_etag"]),
+                ).fetchone()
+                if (
+                    row["decision"] != "Approve"
+                    or not latest
+                    or int(latest["id"]) != int(row["id"])
+                ):
+                    raise HTTPException(409, "A selected approval is not current")
+                prior_success = conn.execute(
+                    "SELECT id FROM m365_batch_capture_items WHERE tenant_id=? "
+                    "AND decision_id=? AND status='Succeeded' LIMIT 1",
+                    (tid, decision_id),
+                ).fetchone()
+                if prior_success:
+                    raise HTTPException(409, "An approved source was already captured")
+                item = current.get(row["item_id"])
+                if (
+                    not item
+                    or item["status"] != row["source_status"]
+                    or item["version_etag"] != row["version_etag"]
+                ):
+                    raise HTTPException(
+                        409, "A selected source changed after approval; reconcile again",
+                    )
+                decisions.append(row)
+            started = now()
+            cur = conn.execute(
+                "INSERT INTO m365_batch_capture_executions(tenant_id,execution_key,"
+                "requested_count,status,sensitivity,authority_basis,started_by,"
+                "started_by_role,started_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                (
+                    tid, "MBE-" + uuid.uuid4().hex, len(decisions), "Running",
+                    payload.sensitivity, payload.recording_authority_basis,
+                    actor(request), role(request), started,
+                ),
+            )
+            execution_id = int(cur.lastrowid)
+            conn.commit()
+
+            results = []
+            for decision in decisions:
+                material_id = None
+                status = "Failed"
+                detail = ""
+                try:
+                    if decision["source_status"] == "Missing":
+                        raise HTTPException(
+                            409, "A missing source cannot be captured",
+                        )
+                    supersedes = None
+                    authorization_id = None
+                    if decision["source_status"] == "Changed":
+                        check = check_source_version(
+                            int(decision["material_id"]), request,
+                        )
+                        if (
+                            check["status"] != "Changed"
+                            or check["observed_etag"] != decision["version_etag"]
+                        ):
+                            raise HTTPException(
+                                409, "Changed source no longer matches its approval",
+                            )
+                        authorization = authorize_reprocessing(
+                            int(check["check_id"]),
+                            M365ReprocessingAuthorizationIn(
+                                reason=payload.recording_authority_basis,
+                            ),
+                            request,
+                        )
+                        supersedes = int(decision["material_id"])
+                        authorization_id = int(authorization["authorization_id"])
+                    captured = capture(
+                        str(decision["item_id"]),
+                        M365MaterialIngestCommand(
+                            sensitivity=payload.sensitivity,
+                            purpose_tags=payload.purpose_tags,
+                            description=payload.description,
+                            recording_authority_basis=payload.recording_authority_basis,
+                            supersedes_material_id=supersedes,
+                            reprocessing_authorization_id=authorization_id,
+                        ),
+                        request,
+                    )
+                    material_id = int(captured["material_id"])
+                    status = "Succeeded"
+                    detail = "Governed immutable source captured for human review."
+                except HTTPException as exc:
+                    detail = str(exc.detail)[:1000]
+                except Exception:
+                    detail = "Governed source capture failed safely."
+                completed = now()
+                conn.execute(
+                    "INSERT INTO m365_batch_capture_items(tenant_id,execution_id,"
+                    "decision_id,item_id,source_status,status,material_id,detail,"
+                    "completed_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                    (
+                        tid, execution_id, int(decision["id"]), decision["item_id"],
+                        decision["source_status"], status, material_id, detail, completed,
+                    ),
+                )
+                conn.commit()
+                results.append({
+                    "decision_id": int(decision["id"]),
+                    "item_id": decision["item_id"],
+                    "source_status": decision["source_status"],
+                    "status": status,
+                    "material_id": material_id,
+                    "detail": detail,
+                })
+
+            succeeded = sum(item["status"] == "Succeeded" for item in results)
+            final_status = (
+                "Completed" if succeeded == len(results)
+                else "Failed" if succeeded == 0
+                else "Partial"
+            )
+            completed = now()
+            conn.execute(
+                "UPDATE m365_batch_capture_executions SET status=?,completed_at=? "
+                "WHERE id=?",
+                (final_status, completed, execution_id),
+            )
+            conn.execute(
+                "INSERT INTO audit_log(ts,user_name,action,entity_type,entity_id,detail,"
+                "tenant_id) VALUES(?,?,?,?,?,?,?)",
+                (
+                    completed, actor(request), "M365_APPROVED_BATCH_EXECUTED",
+                    "m365_batch_capture_execution", execution_id,
+                    f"status={final_status}; requested={len(results)}; "
+                    f"succeeded={succeeded}; failed={len(results)-succeeded}",
+                    tid,
+                ),
+            )
+            conn.commit()
+            return {
+                "execution_id": execution_id,
+                "status": final_status,
+                "requested": len(results),
+                "succeeded": succeeded,
+                "failed": len(results) - succeeded,
+                "items": results,
+                "batch_limit": 25,
+                "human_review_required": True,
+                "automatic_indexing": False,
+                "automatic_finding_creation": False,
+                "completed_at": completed,
             }
         except HTTPException:
             conn.rollback()
