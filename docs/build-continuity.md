@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 19 September 2026 22:02 CDT
-current_frozen_release: v3.143
-current_frozen_commit: 51370189b2518bb8fdf6614d34b593eb3d0fc989
+last_verified_at: 19 September 2026 22:18 CDT
+current_frozen_release: v3.144
+current_frozen_commit: f7ebc34f56237797ff45282112307c384bb880d6
 active_development_branch: development/salcapa-platform
 current_development_head: 26d9a9dfc50d3eb45969c235047e6ef407a73a00
 active_product_milestone: issue_370_governed_document_ingestion
 active_build_system_issue: 370
-active_increment: issue_370_v3144_nested_source_reconciliation
-last_completed_increment: issue_370_v3143_protection_advisor_ui_live_acceptance
-candidate_release: v3.144
+active_increment: issue_370_governed_ingestion_next
+last_completed_increment: issue_370_v3144_nested_source_reconciliation_live_acceptance
+candidate_release: none
 validation_pr: none
-validation_branch: release/v3.144
+validation_branch: none
 validation_base: development/salcapa-platform
 validation_head: 26d9a9dfc50d3eb45969c235047e6ef407a73a00
-validation_gate_state: github_validation_running
+validation_gate_state: all_required_gates_green
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
 repair_summary: classify_new_unchanged_changed_and_missing_nested_m365_sources_without_automatic_processing
 genuine_blockers: none
-next_authorized_step: freeze_publish_deploy_and_live_accept_v3144_after_required_gates
-deployed_demo_release: v3.143
-deployed_demo_state: protection_advisor_and_nested_m365_live_acceptance_passed_and_temporary_job_deleted
+next_authorized_step: add_operator_review_queue_and_bounded_batch_ingestion_controls
+deployed_demo_release: v3.144
+deployed_demo_state: nested_source_reconciliation_and_multiformat_m365_live_acceptance_passed_and_temporary_job_deleted
 ---
 
 # SalCAPA build continuity
@@ -46,6 +46,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **v3.136 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `0eee07661658f229544317670c635568ce649bef`; the immutable image is `sha256:e7a1a14af003806fa19875cb6ce13cef9e51c6c1f48338939ef7b174e39bc3a9`. Live OneDrive/SharePoint intake acceptance passed and the temporary Azure test job was deleted and verified absent.
 - **v3.142 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `451ebbaa94429ce50db5d721b7cb73c67c8be9c9`; the immutable image is `sha256:092c8506ac490dde32d5885b799fefb446e5fb7ed76dbe003002c5ee5728f290`. Acceptance used the correct `SalCAPA Intake` folder, exercised nested content, preserved governed fail-closed extraction outcomes for human review, and deleted the temporary Azure test job.
 - **v3.143 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `51370189b2518bb8fdf6614d34b593eb3d0fc989`; the immutable image is `sha256:ee8ed8282c19473fa2a87d3526b61f7a2c6bd3f186e22f5e3c4f620cc5e8606b`. Live acceptance verified visible sticky assessment navigation, the in-assessment Important Notice, external services navigation, runtime identity and readiness, correct-folder nested Microsoft 365 intake, and temporary-job deletion.
+- **v3.144 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `f7ebc34f56237797ff45282112307c384bb880d6`; the immutable image is `sha256:ca0d0f15a559e000de8367b5ab42a57c89d2f6cdedd4164fef79f91baee1cfcc`. It adds audited administrator reconciliation of new, unchanged, changed, and missing sources across the authorized nested Microsoft 365 tree without automatic ingestion or reprocessing. Live multiformat intake acceptance and temporary-job deletion passed.
 - The development head now persists administrator-approved, exact-folder Microsoft 365 sources as immutable tenant-scoped materials with source version, timestamp, owner, SHA-256 integrity, classification, audit history, and human-review status. It does not automatically index, create findings, or disclose content.
 - **v3.123 is the rollback release** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`.
 
