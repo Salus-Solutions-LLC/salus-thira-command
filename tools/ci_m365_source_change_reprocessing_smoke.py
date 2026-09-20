@@ -68,6 +68,8 @@ class Config:
 
 class Intake:
     version = 1
+    include_new = False
+    visible_versioned = True
 
     def __init__(self, config):
         assert config.folder_item_id == Config.folder_item_id
@@ -93,7 +95,23 @@ class Intake:
         return f"Approved source version {cls.version}\n".encode()
 
     def list_files(self):
-        return [self.metadata()]
+        items = [self.metadata()] if self.visible_versioned else []
+        if self.include_new:
+            items.append({
+                "id": "01NEWFILE",
+                "name": "new.pdf",
+                "size": 321,
+                "mime_type": "application/pdf",
+                "last_modified": "2026-09-19T09:00:00Z",
+                "etag": "etag-new",
+                "ctag": "ctag-new",
+                "source_owner": "owner@salus.solutions",
+                "source_owner_id": "owner-id",
+                "last_modified_by": "Approved Owner",
+                "web_url": "https://salussolutions.sharepoint.com/sites/approved/new.pdf",
+                "relative_path": "Operations/Nested/new.pdf",
+            })
+        return items
 
     def read_document(self, item_id, *, access_classification):
         item = self.metadata()
@@ -184,7 +202,40 @@ def main():
             assert unchanged["status"] == "Unchanged"
             assert unchanged["reprocessing_required"] is False
 
+            reconcile = app.routes[(
+                "POST",
+                "/api/integrations/m365/intake/reconcile-source-versions",
+            )]
+            baseline = reconcile(Request())
+            assert baseline["scope"] == "Authorized folder and all nested folders"
+            assert baseline["counts"] == {
+                "New": 0, "Unchanged": 1, "Changed": 0, "Missing": 0,
+            }
+            assert baseline["automatic_ingestion"] is False
+            assert baseline["automatic_reprocessing"] is False
+
+            Intake.include_new = True
+            with_new = reconcile(Request())
+            assert with_new["counts"]["New"] == 1
+            assert with_new["counts"]["Unchanged"] == 1
+            new_item = next(item for item in with_new["items"] if item["status"] == "New")
+            assert new_item["relative_path"] == "Operations/Nested/new.pdf"
+            assert new_item["human_review_required"] is True
+
             Intake.version = 2
+            changed_tree = reconcile(Request())
+            assert changed_tree["counts"]["Changed"] == 1
+            assert changed_tree["counts"]["New"] == 1
+            assert next(
+                item for item in changed_tree["items"] if item["item_id"] == "01VERSIONEDFILE"
+            )["automatic_reprocessing"] is False
+
+            Intake.visible_versioned = False
+            missing_tree = reconcile(Request())
+            assert missing_tree["counts"]["Missing"] == 1
+            assert missing_tree["counts"]["New"] == 1
+            Intake.visible_versioned = True
+
             changed = check(first["material_id"], Request())
             assert changed["status"] == "Changed"
             assert changed["recorded_etag"] == "etag-v1"
