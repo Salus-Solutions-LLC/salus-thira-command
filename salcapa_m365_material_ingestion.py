@@ -322,3 +322,5 @@ def register_m365_material_ingestion(app: Any, namespace: dict[str, Any]) -> Non
             raise HTTPException(503, "Governed material intake could not be recorded") from exc
         finally:
             conn.close()
+
+    app.state.m365_governed_capture = ingest_m365_material
