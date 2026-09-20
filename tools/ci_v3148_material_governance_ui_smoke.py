@@ -12,7 +12,7 @@ def main() -> None:
         'Index for SalINTEL research',
         'Route to active SalTHIRA assessment',
         'does not establish source truth',
-        'Pending SalTHIRA Evidence Verification',
+        'No finding, risk conclusion',
     ):
         assert marker in ui, marker
     assert 'def material_index_status(' in index
