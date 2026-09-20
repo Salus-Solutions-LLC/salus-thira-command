@@ -323,4 +323,5 @@ def register_m365_material_ingestion(app: Any, namespace: dict[str, Any]) -> Non
         finally:
             conn.close()
 
-    app.state.m365_governed_capture = ingest_m365_material
+    if hasattr(app, "state"):
+        app.state.m365_governed_capture = ingest_m365_material
