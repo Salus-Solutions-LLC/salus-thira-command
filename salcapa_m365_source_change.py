@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -56,6 +56,24 @@ CREATE TABLE IF NOT EXISTS m365_material_reprocessing_authorizations (
 );
 CREATE INDEX IF NOT EXISTS idx_m365_reprocessing_material
   ON m365_material_reprocessing_authorizations(tenant_id,prior_material_id,status,id);
+
+CREATE TABLE IF NOT EXISTS m365_intake_review_decisions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tenant_id INTEGER NOT NULL,
+  decision_key TEXT NOT NULL UNIQUE,
+  item_id TEXT NOT NULL,
+  material_id INTEGER,
+  version_etag TEXT NOT NULL,
+  source_status TEXT NOT NULL,
+  decision TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  decided_by TEXT NOT NULL,
+  decided_by_role TEXT NOT NULL,
+  decided_at TEXT NOT NULL,
+  FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_m365_intake_review_queue
+  ON m365_intake_review_decisions(tenant_id,item_id,version_etag,id);
 """
 
 
@@ -69,6 +87,36 @@ class M365ReprocessingAuthorizationIn(BaseModel):
         value = value.strip()
         if not value:
             raise ValueError("A documented reprocessing reason is required")
+        return value
+
+
+
+class M365BatchReviewDecisionIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    item_ids: list[str] = Field(min_length=1, max_length=50)
+    decision: Literal["Approve", "Defer", "Dismiss"]
+    reason: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("item_ids")
+    @classmethod
+    def normalize_item_ids(cls, values: list[str]) -> list[str]:
+        result: list[str] = []
+        for value in values:
+            item_id = str(value).strip()
+            if not item_id or len(item_id) > 240:
+                raise ValueError("item identifiers must contain 1 to 240 characters")
+            if item_id not in result:
+                result.append(item_id)
+        if not result:
+            raise ValueError("at least one item identifier is required")
+        return result
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_batch_reason(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("A documented review reason is required")
         return value
 
 
@@ -288,6 +336,15 @@ def register_m365_source_change_control(app: Any, core: dict[str, Any]) -> None:
                     else:
                         status = "Changed"
                 counts[status] += 1
+                version_etag = (
+                    str((observed or {}).get("etag", "")) or recorded_etag
+                )
+                decision_row = conn.execute(
+                    "SELECT decision,reason,decided_by,decided_by_role,decided_at "
+                    "FROM m365_intake_review_decisions WHERE tenant_id=? "
+                    "AND item_id=? AND version_etag=? ORDER BY id DESC LIMIT 1",
+                    (tid, item_id, version_etag),
+                ).fetchone()
                 items.append({
                     "item_id": item_id,
                     "material_id": material_id,
@@ -303,6 +360,11 @@ def register_m365_source_change_control(app: Any, core: dict[str, Any]) -> None:
                     "automatic_ingestion": False,
                     "automatic_reprocessing": False,
                     "human_review_required": status in {"New", "Changed", "Missing"},
+                    "review_decision": decision_row["decision"] if decision_row else "Pending",
+                    "review_reason": decision_row["reason"] if decision_row else "",
+                    "reviewed_by": decision_row["decided_by"] if decision_row else "",
+                    "reviewed_at": decision_row["decided_at"] if decision_row else "",
+                    "version_etag": version_etag,
                 })
 
             reconciled = now()
@@ -329,6 +391,90 @@ def register_m365_source_change_control(app: Any, core: dict[str, Any]) -> None:
                 "automatic_reprocessing": False,
                 "human_authorization_required": True,
                 "reconciled_at": reconciled,
+            }
+        except HTTPException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    @app.post(
+        "/api/integrations/m365/intake/review-queue/batch-decision",
+        include_in_schema=False,
+    )
+    def record_batch_review_decision(
+        payload: M365BatchReviewDecisionIn, request: Request,
+    ) -> dict[str, Any]:
+        """Record a bounded human decision only after revalidating current source state."""
+        require_admin(request)
+        reconciliation = reconcile_source_versions(request)
+        current = {
+            item["item_id"]: item
+            for item in reconciliation["items"]
+            if item["status"] in {"New", "Changed", "Missing"}
+        }
+        missing = [item_id for item_id in payload.item_ids if item_id not in current]
+        if missing:
+            raise HTTPException(
+                409,
+                "One or more selected sources are unchanged, unavailable, or stale; "
+                "run reconciliation again",
+            )
+
+        tid = int(tenant_id(request))
+        decided = now()
+        conn = db()
+        try:
+            decisions = []
+            for item_id in payload.item_ids:
+                item = current[item_id]
+                cur = conn.execute(
+                    "INSERT INTO m365_intake_review_decisions(tenant_id,decision_key,"
+                    "item_id,material_id,version_etag,source_status,decision,reason,"
+                    "decided_by,decided_by_role,decided_at) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    (
+                        tid, "MRD-" + uuid.uuid4().hex, item_id, item["material_id"],
+                        item["version_etag"], item["status"], payload.decision,
+                        payload.reason, actor(request), role(request), decided,
+                    ),
+                )
+                decision_id = int(cur.lastrowid)
+                decisions.append({
+                    "decision_id": decision_id,
+                    "item_id": item_id,
+                    "material_id": item["material_id"],
+                    "version_etag": item["version_etag"],
+                    "source_status": item["status"],
+                    "decision": payload.decision,
+                })
+            conn.execute(
+                "INSERT INTO audit_log(ts,user_name,action,entity_type,entity_id,detail,"
+                "tenant_id) VALUES(?,?,?,?,?,?,?)",
+                (
+                    decided, actor(request), "M365_BATCH_REVIEW_DECIDED",
+                    "m365_intake_review_decision", decisions[0]["decision_id"],
+                    f"decision={payload.decision}; count={len(decisions)}; "
+                    f"ids={','.join(payload.item_ids)}",
+                    tid,
+                ),
+            )
+            conn.commit()
+            return {
+                "decision": payload.decision,
+                "reason": payload.reason,
+                "count": len(decisions),
+                "items": decisions,
+                "batch_limit": 50,
+                "automatic_ingestion": False,
+                "automatic_reprocessing": False,
+                "next_step": (
+                    "Approved items require an explicit governed capture or "
+                    "reprocessing command."
+                    if payload.decision == "Approve"
+                    else "No capture or reprocessing action was authorized."
+                ),
+                "decided_at": decided,
             }
         except HTTPException:
             conn.rollback()
