@@ -220,6 +220,123 @@ def register_m365_source_change_control(app: Any, core: dict[str, Any]) -> None:
             conn.close()
 
     @app.post(
+        "/api/integrations/m365/intake/reconcile-source-versions",
+        include_in_schema=False,
+    )
+    def reconcile_source_versions(request: Request) -> dict[str, Any]:
+        """Compare the authorized nested intake tree with latest active captured versions."""
+        require_admin(request)
+        tid = int(tenant_id(request))
+        config = GovernedM365Config.from_environment()
+        try:
+            observed_items = GovernedM365Intake(config).list_files()
+        except M365IntakeError as exc:
+            raise HTTPException(
+                503, "Governed Microsoft 365 reconciliation is unavailable",
+            ) from exc
+
+        observed_by_id = {
+            str(item.get("id", "")): item
+            for item in observed_items
+            if str(item.get("id", ""))
+        }
+        conn = db()
+        try:
+            latest_by_id: dict[str, tuple[Any, dict[str, Any]]] = {}
+            rows = conn.execute(
+                "SELECT * FROM materials WHERE tenant_id=? "
+                "AND source_origin='Microsoft 365 governed intake' "
+                "AND disposition_status='Active' ORDER BY id DESC",
+                (tid,),
+            )
+            for row in rows:
+                try:
+                    locator = _locator(row)
+                except HTTPException:
+                    continue
+                if (
+                    locator.get("drive_id") != config.drive_id
+                    or locator.get("folder_item_id") != config.folder_item_id
+                ):
+                    continue
+                item_id = str(locator.get("item_id", ""))
+                if item_id and item_id not in latest_by_id:
+                    latest_by_id[item_id] = (row, locator)
+
+            items: list[dict[str, Any]] = []
+            counts = {"New": 0, "Unchanged": 0, "Changed": 0, "Missing": 0}
+            for item_id in sorted(set(observed_by_id) | set(latest_by_id)):
+                observed = observed_by_id.get(item_id)
+                captured = latest_by_id.get(item_id)
+                if captured is None:
+                    status = "New"
+                    material_id = None
+                    recorded_etag = ""
+                    recorded_ctag = ""
+                else:
+                    material, locator = captured
+                    material_id = int(material["id"])
+                    recorded_etag = str(locator.get("etag", ""))
+                    recorded_ctag = str(locator.get("ctag", ""))
+                    if observed is None:
+                        status = "Missing"
+                    elif (
+                        str(observed.get("etag", "")) == recorded_etag
+                        and str(observed.get("ctag", "")) == recorded_ctag
+                    ):
+                        status = "Unchanged"
+                    else:
+                        status = "Changed"
+                counts[status] += 1
+                items.append({
+                    "item_id": item_id,
+                    "material_id": material_id,
+                    "status": status,
+                    "name": str((observed or {}).get("name", "")),
+                    "relative_path": str((observed or {}).get("relative_path", "")),
+                    "size": int((observed or {}).get("size", 0)),
+                    "recorded_etag": recorded_etag,
+                    "observed_etag": str((observed or {}).get("etag", "")),
+                    "recorded_ctag": recorded_ctag,
+                    "observed_ctag": str((observed or {}).get("ctag", "")),
+                    "last_modified": str((observed or {}).get("last_modified", "")),
+                    "automatic_ingestion": False,
+                    "automatic_reprocessing": False,
+                    "human_review_required": status in {"New", "Changed", "Missing"},
+                })
+
+            reconciled = now()
+            conn.execute(
+                "INSERT INTO audit_log(ts,user_name,action,entity_type,entity_id,detail,"
+                "tenant_id) VALUES(?,?,?,?,?,?,?)",
+                (
+                    reconciled, actor(request), "M365_SOURCE_TREE_RECONCILED",
+                    "m365_intake_reconciliation", 0,
+                    "new={New}; unchanged={Unchanged}; changed={Changed}; missing={Missing}".format(
+                        **counts
+                    ),
+                    tid,
+                ),
+            )
+            conn.commit()
+            return {
+                "drive_id": config.drive_id,
+                "folder_item_id": config.folder_item_id,
+                "scope": "Authorized folder and all nested folders",
+                "counts": counts,
+                "items": items,
+                "automatic_ingestion": False,
+                "automatic_reprocessing": False,
+                "human_authorization_required": True,
+                "reconciled_at": reconciled,
+            }
+        except HTTPException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    @app.post(
         "/api/integrations/m365/intake/source-checks/{check_id}/authorize-reprocessing",
         include_in_schema=False,
     )
