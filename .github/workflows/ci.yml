@@ -61,6 +61,8 @@ jobs:
         run: node --check static/product-branding.js && node --check static/product-version.js && node --check static/app.js && node --check static/demo-environments.js && node --check static/guidance.js && node --check static/condition-visuals.js && node --check static/intake-capture.js && node --check static/salintel-domains.js && node --check static/personnel-assessment.js && node --check static/salintel-relationships.js && node --check static/salintel-research.js && node --check static/salintel-handoffs.js && node --check static/salcapa-intake-review.js
       - name: Salus brand system acceptance
         run: python tools/ci_brand_system_smoke.py
+      - name: Protection Advisor report contract acceptance
+        run: python tools/ci_protection_advisor_report_contract_smoke.py
       - name: Trademark-first product navigation acceptance
         run: python tools/ci_product_branding_smoke.py
       - name: Contextual guidance accessibility acceptance
