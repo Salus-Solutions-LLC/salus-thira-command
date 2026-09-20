@@ -15,7 +15,7 @@ validation_pr: none
 validation_branch: release/v3.147
 validation_base: development/salcapa-platform
 validation_head: pending
-validation_gate_state: candidate_implementation
+validation_gate_state: github_validation_running
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
