@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 def main() -> None:
@@ -17,7 +18,8 @@ def main() -> None:
         assert marker in ui, marker
     assert 'def material_index_status(' in index
     assert 'require_sensitivity(request, row["sensitivity"])' in index
-    assert 'SALCAPA_RELEASE_VERSION = "3.148"' in runtime
+    version = re.search(r'SALCAPA_RELEASE_VERSION = "(\d+)\.(\d+)"', runtime)
+    assert version and tuple(map(int, version.groups())) >= (3, 148)
     print('V3148_MATERIAL_GOVERNANCE_UI_PASS')
 
 
