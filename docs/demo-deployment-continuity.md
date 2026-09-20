@@ -1,27 +1,27 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 19 September 2026 15:31 CDT
+last_verified_at: 19 September 2026 21:45 CDT
 environment: azure_development_demonstration
-deployed_release: v3.142
-deployed_commit: 451ebbaa94429ce50db5d721b7cb73c67c8be9c9
-image_digest: sha256:092c8506ac490dde32d5885b799fefb446e5fb7ed76dbe003002c5ee5728f290
-deployed_at: 19 September 2026 15:31 CDT
-deployment_workflow_run: 35467279447
+deployed_release: v3.143
+deployed_commit: 51370189b2518bb8fdf6614d34b593eb3d0fc989
+image_digest: sha256:ee8ed8282c19473fa2a87d3526b61f7a2c6bd3f186e22f5e3c4f620cc5e8606b
+deployed_at: 19 September 2026 21:43 CDT
+deployment_workflow_run: 35484439351
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.142
-current_stable_commit: 451ebbaa94429ce50db5d721b7cb73c67c8be9c9
-promotion_candidate: v3.142
-promotion_candidate_image_commit: 451ebbaa94429ce50db5d721b7cb73c67c8be9c9
-promotion_candidate_image_digest: sha256:092c8506ac490dde32d5885b799fefb446e5fb7ed76dbe003002c5ee5728f290
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:092c8506ac490dde32d5885b799fefb446e5fb7ed76dbe003002c5ee5728f290
-promotion_candidate_image_published_at: 19 September 2026 15:31 CDT
-promotion_candidate_image_workflow_run: 35467279447
+current_stable_release: v3.143
+current_stable_commit: 51370189b2518bb8fdf6614d34b593eb3d0fc989
+promotion_candidate: v3.143
+promotion_candidate_image_commit: 51370189b2518bb8fdf6614d34b593eb3d0fc989
+promotion_candidate_image_digest: sha256:ee8ed8282c19473fa2a87d3526b61f7a2c6bd3f186e22f5e3c4f620cc5e8606b
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:ee8ed8282c19473fa2a87d3526b61f7a2c6bd3f186e22f5e3c4f620cc5e8606b
+promotion_candidate_image_published_at: 19 September 2026 21:33 CDT
+promotion_candidate_image_workflow_run: 35484193467
 promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
 promotion_readiness: accepted
 fictional_member_seed_state: verified
 critical_journey_acceptance: verified
-rollback_baseline: v3.140
+rollback_baseline: v3.142
 genuine_blocker: none
 ---
 
@@ -31,7 +31,8 @@ This non-sensitive engineering record identifies the current accepted Azure deve
 
 ## Current accepted deployment
 
-- [Governed deployment and live acceptance workflow 35467279447](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35467279447) deployed and accepted exact frozen **v3.142** commit `451ebbaa94429ce50db5d721b7cb73c67c8be9c9` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:092c8506ac490dde32d5885b799fefb446e5fb7ed76dbe003002c5ee5728f290`.
+- [Governed deployment and live acceptance workflow 35484439351](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35484439351) deployed and accepted exact frozen **v3.143** commit `51370189b2518bb8fdf6614d34b593eb3d0fc989` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:ee8ed8282c19473fa2a87d3526b61f7a2c6bd3f186e22f5e3c4f620cc5e8606b`.
+- [Protection Advisor live acceptance workflow 35484772421](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35484772421) verified the bounded Wix embed controls, visible Important Notice, and external Salus services navigation against the deployed runtime.
 - Runtime readiness, immutable image identity, workload identity, Entra/OIDC, PostgreSQL, Key Vault, storage, telemetry, HTTPS, and correct-folder nested Microsoft 365 intake passed.
 - Governed fail-closed extraction outcomes were preserved for human review. The isolated Microsoft 365 acceptance execution succeeded, and its temporary Azure Container Apps job was deleted and verified absent.
 - Server-controlled role and tenant boundaries, cross-tenant denial, governed journeys, persistence, configuration preservation, and cleanup remain required controls.
@@ -39,7 +40,7 @@ This non-sensitive engineering record identifies the current accepted Azure deve
 
 ## Recovery and rollback
 
-Accepted **v3.140** remains the fail-closed rollback baseline recorded by the v3.142 release acceptance.
+Accepted **v3.142** remains the fail-closed rollback baseline recorded by the v3.143 release acceptance.
 
 Database rollback uses an independently validated restore, not destructive in-place reversal. A failed preflight, deployment, live acceptance, cleanup, readiness, identity, or tenant-isolation check fails closed and must preserve or restore the last accepted state.
 
@@ -63,4 +64,4 @@ Before any successor release is promoted, all required gates must pass on its ex
 
 ## Next authorized work
 
-Validate, freeze, publish, deploy, and live-accept v3.143 with the bounded Wix Protection Advisor layout and external Salus services navigation. Preserve v3.142 until every successor gate passes. Any additional source, write, report-publication, or production capability requires a separately governed successor.
+Continue governed document ingestion, human review, change detection, and reprocessing controls while preserving v3.143 as the accepted rollback-safe baseline. Any additional source, write, report-publication, or production capability requires a separately governed successor.
