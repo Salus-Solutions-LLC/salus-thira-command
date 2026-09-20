@@ -90,6 +90,10 @@ with tempfile.TemporaryDirectory() as td:
     assert "preferred_min_height:900" in embedded.text
     assert "Print or Save Preliminary Summary" in embedded.text
     assert "Print or Save Detailed Results" in embedded.text
+    assert 'onclick="printAdvisor(&quot;part1&quot;)"' in embedded.text
+    assert embedded.text.count('onclick="printAdvisor(&quot;part2&quot;)"') == 2
+    assert "onclick=\"printAdvisor('part1')\"" not in embedded.text
+    assert "onclick=\"printAdvisor('part2')\"" not in embedded.text
     assert "print-part1" in embedded.text and "print-part2" in embedded.text
     assert "CONFIDENTIAL" in embedded.text
     assert 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' in embedded.text
