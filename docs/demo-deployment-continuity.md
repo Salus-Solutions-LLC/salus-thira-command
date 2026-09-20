@@ -1,27 +1,27 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 20 September 2026 10:20 CDT
+last_verified_at: 20 September 2026 12:20 CDT
 environment: azure_development_demonstration
-deployed_release: v3.148
-deployed_commit: ba0cab61717b8ccf897069b557de9a891bde69f4
-image_digest: sha256:7a3ca46743716e3a9e25cb2547eb2ae2c488dfa595f5268cde253c739c79229d
-deployed_at: 20 September 2026 10:20 CDT
-deployment_workflow_run: 35518422910
+deployed_release: v3.149
+deployed_commit: 0da52e530304aba7c71ce8922009beb39c67ca2c
+image_digest: sha256:4a63c11a05ac85006dadb8aa21e8b6aab32a35863eb880a0afe21be5937912d0
+deployed_at: 20 September 2026 12:20 CDT
+deployment_workflow_run: 35525121006
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.148
-current_stable_commit: ba0cab61717b8ccf897069b557de9a891bde69f4
-promotion_candidate: v3.148
-promotion_candidate_image_commit: ba0cab61717b8ccf897069b557de9a891bde69f4
-promotion_candidate_image_digest: sha256:7a3ca46743716e3a9e25cb2547eb2ae2c488dfa595f5268cde253c739c79229d
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:7a3ca46743716e3a9e25cb2547eb2ae2c488dfa595f5268cde253c739c79229d
-promotion_candidate_image_published_at: 20 September 2026 09:17 CDT
-promotion_candidate_image_workflow_run: 35518188644
+current_stable_release: v3.149
+current_stable_commit: 0da52e530304aba7c71ce8922009beb39c67ca2c
+promotion_candidate: v3.149
+promotion_candidate_image_commit: 0da52e530304aba7c71ce8922009beb39c67ca2c
+promotion_candidate_image_digest: sha256:4a63c11a05ac85006dadb8aa21e8b6aab32a35863eb880a0afe21be5937912d0
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:4a63c11a05ac85006dadb8aa21e8b6aab32a35863eb880a0afe21be5937912d0
+promotion_candidate_image_published_at: 20 September 2026 10:53 CDT
+promotion_candidate_image_workflow_run: 35520889601
 promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
 promotion_readiness: accepted
 fictional_member_seed_state: verified
 critical_journey_acceptance: verified
-rollback_baseline: v3.147
+rollback_baseline: v3.148
 genuine_blocker: none
 ---
 
@@ -31,7 +31,7 @@ This non-sensitive engineering record identifies the current accepted Azure deve
 
 ## Current accepted deployment
 
-- [Governed deployment and live acceptance workflow 35484439351](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35484439351) deployed and accepted exact frozen **v3.143** commit `51370189b2518bb8fdf6614d34b593eb3d0fc989` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:ee8ed8282c19473fa2a87d3526b61f7a2c6bd3f186e22f5e3c4f620cc5e8606b`.
+- [Governed deployment workflow 35525121006](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35525121006) deployed and accepted exact frozen **v3.149** commit `0da52e530304aba7c71ce8922009beb39c67ca2c` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:4a63c11a05ac85006dadb8aa21e8b6aab32a35863eb880a0afe21be5937912d0`; Protection Advisor live acceptance run `35525121029` attempt 2 passed, Microsoft 365 acceptance passed, and the temporary Azure test job was deleted.\n- [Governed deployment and live acceptance workflow 35484439351](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35484439351) deployed and accepted exact frozen **v3.143** commit `51370189b2518bb8fdf6614d34b593eb3d0fc989` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:ee8ed8282c19473fa2a87d3526b61f7a2c6bd3f186e22f5e3c4f620cc5e8606b`.
 - [Protection Advisor live acceptance workflow 35484772421](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35484772421) verified the bounded Wix embed controls, visible Important Notice, and external Salus services navigation against the deployed runtime.
 - Runtime readiness, immutable image identity, workload identity, Entra/OIDC, PostgreSQL, Key Vault, storage, telemetry, HTTPS, and correct-folder nested Microsoft 365 intake passed.
 - Governed fail-closed extraction outcomes were preserved for human review. The isolated Microsoft 365 acceptance execution succeeded, and its temporary Azure Container Apps job was deleted and verified absent.
@@ -40,7 +40,7 @@ This non-sensitive engineering record identifies the current accepted Azure deve
 
 ## Recovery and rollback
 
-Accepted **v3.147** remains the fail-closed rollback baseline recorded by the v3.148 release acceptance.
+Accepted **v3.148** remains the fail-closed rollback baseline recorded by the v3.149 release acceptance.
 
 Database rollback uses an independently validated restore, not destructive in-place reversal. A failed preflight, deployment, live acceptance, cleanup, readiness, identity, or tenant-isolation check fails closed and must preserve or restore the last accepted state.
 
@@ -64,4 +64,4 @@ Before any successor release is promoted, all required gates must pass on its ex
 
 ## Next authorized work
 
-Continue with governed human review and separately authorized SalINTEL indexing and SalTHIRA evidence routing. Preserve v3.146 as the accepted rollback-safe baseline. Any expanded source, write, report-publication, or production capability requires a separately governed successor.
+Continue Issue #370 governed document ingestion and Protection Advisor usability work. Preserve v3.148 as the accepted rollback-safe baseline. Any expanded source, write, report-publication, or production capability requires a separately governed successor.
