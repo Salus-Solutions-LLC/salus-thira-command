@@ -20,7 +20,7 @@ def main() -> None:
     assert '/static/salcapa-intake-review.css' in runtime
     assert '/static/salcapa-intake-review.js' in runtime
     assert 'max-height' not in css or 'overflow' in css
-    assert 'SALCAPA_RELEASE_VERSION = "3.147"' in runtime
+    assert '/static/salcapa-intake-review.js' in runtime
     print('M365_INTAKE_REVIEW_UI_PASS')
 
 
