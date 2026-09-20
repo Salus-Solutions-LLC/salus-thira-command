@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 20 September 2026 10:20 CDT
+last_verified_at: 20 September 2026 10:45 CDT
 current_frozen_release: v3.148
 current_frozen_commit: ba0cab61717b8ccf897069b557de9a891bde69f4
 active_development_branch: development/salcapa-platform
-current_development_head: 179ddc0246bb87c9579997711c3a077869210dd7
+current_development_head: pending
 active_product_milestone: issue_370_governed_document_ingestion
 active_build_system_issue: 370
-active_increment: issue_370_v3148_human_review_indexing_and_evidence_routing_workspace_live_accepted
+active_increment: protection_advisor_v3149_responsive_embed_and_print_results
 last_completed_increment: issue_370_v3148_human_review_indexing_and_evidence_routing_workspace_live_acceptance
-candidate_release: none
+candidate_release: v3.149
 validation_pr: none
-validation_branch: release/v3.148
+validation_branch: release/v3.149
 validation_base: development/salcapa-platform
-validation_head: ba0cab61717b8ccf897069b557de9a891bde69f4
-validation_gate_state: all_required_gates_green
+validation_head: pending
+validation_gate_state: github_validation_running
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: none
+repair_summary: responsive_wix_embed_and_printable_part1_part2_results
 genuine_blockers: none
-next_authorized_step: representative_operator_acceptance_and_usability_refinement
+next_authorized_step: validate_in_wix_freeze_publish_deploy_and_live_accept_v3149
 deployed_demo_release: v3.148
 deployed_demo_state: governed_review_indexing_routing_and_nested_m365_live_acceptance_passed_and_temporary_job_deleted
 ---
