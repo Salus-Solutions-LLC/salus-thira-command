@@ -33,8 +33,8 @@ CONSENT_PURPOSE = (
     "Retain the fictional Advisor recommendation and fictional contact details "
     "for an internal Salus review."
 )
-PROSPECT_RETENTION_DAYS = 30
-PROSPECT_RETENTION_POLICY = "SPA-FICTIONAL-PROSPECT-RETENTION-1.0.0"
+PROSPECT_RETENTION_DAYS = None
+PROSPECT_RETENTION_POLICY = "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
 CONSENTED_FIELDS = (
     "organization_display_name",
     "contact_name",
