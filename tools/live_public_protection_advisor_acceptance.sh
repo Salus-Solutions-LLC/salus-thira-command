@@ -10,7 +10,7 @@ WORK="$(mktemp -d)"
 COOKIE="$WORK/cookies.txt"
 PASSWORD="Pa!$(openssl rand -hex 18)"
 RUN_KEY="${GITHUB_RUN_ID:-$(date -u +%Y%m%d%H%M%S)}"
-EMAIL="mduncan+pa-v3132-${RUN_KEY}@salus.solutions"
+EMAIL="mduncan+pa-v3143-${RUN_KEY}@salus.solutions"
 DELETED=0
 cleanup() {
   if [ "$DELETED" = "0" ] && [ -n "${CSRF:-}" ] && [ -s "$COOKIE" ]; then
@@ -30,6 +30,11 @@ grep -qi '^content-security-policy:' "$WORK/page.headers"
 grep -qi 'frame-ancestors https://www.salus.solutions https://salus.solutions' "$WORK/page.headers"
 ! grep -qi '^x-frame-options:' "$WORK/page.headers"
 grep -q 'Part 1 — Anonymous Protection Readiness Review' "$WORK/page.html"
+grep -q 'class="question-nav"' "$WORK/page.html"
+grep -q '.question-nav{position:sticky;bottom:0' "$WORK/page.html"
+grep -q '<aside class="assessment-important"><strong>Important notice:</strong>' "$WORK/page.html"
+grep -q 'document.getElementById("assessment").scrollIntoView' "$WORK/page.html"
+grep -q 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' "$WORK/page.html"
 
 STAGE="session and consent"
 jq -nc '{organization_type:"Business",primary_consent:true,secondary_deidentified_consent:false}' > "$WORK/start.json"
