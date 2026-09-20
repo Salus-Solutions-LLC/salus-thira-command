@@ -11,7 +11,7 @@ active_build_system_issue: 370
 active_increment: issue_370_governed_document_ingestion_continuation
 last_completed_increment: protection_advisor_v3149_responsive_embed_print_results_wix_mobile_desktop_and_live_acceptance
 candidate_release: none
-validation_pr: none
+validation_pr: pending
 validation_branch: release/v3.149
 validation_base: development/salcapa-platform
 validation_head: 0da52e530304aba7c71ce8922009beb39c67ca2c
