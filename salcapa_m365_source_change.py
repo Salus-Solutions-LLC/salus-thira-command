@@ -404,7 +404,7 @@ def register_m365_source_change_control(app: Any, core: dict[str, Any]) -> None:
                     str((observed or {}).get("etag", "")) or recorded_etag
                 )
                 decision_row = conn.execute(
-                    "SELECT decision,reason,decided_by,decided_by_role,decided_at "
+                    "SELECT id,decision,reason,decided_by,decided_by_role,decided_at "
                     "FROM m365_intake_review_decisions WHERE tenant_id=? "
                     "AND item_id=? AND version_etag=? ORDER BY id DESC LIMIT 1",
                     (tid, item_id, version_etag),
@@ -424,6 +424,7 @@ def register_m365_source_change_control(app: Any, core: dict[str, Any]) -> None:
                     "automatic_ingestion": False,
                     "automatic_reprocessing": False,
                     "human_review_required": status in {"New", "Changed", "Missing"},
+                    "review_decision_id": int(decision_row["id"]) if decision_row else None,
                     "review_decision": decision_row["decision"] if decision_row else "Pending",
                     "review_reason": decision_row["reason"] if decision_row else "",
                     "reviewed_by": decision_row["decided_by"] if decision_row else "",

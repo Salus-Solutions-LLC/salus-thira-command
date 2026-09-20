@@ -3,25 +3,25 @@ schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
 last_verified_at: 19 September 2026 23:00 CDT
 environment: azure_development_demonstration
-deployed_release: v3.145
-deployed_commit: 5dd740bcaf279e1af9e3bc3885b305a424857b73
-image_digest: sha256:4f523e7c2668f5a82fb4b08e28138b03457000b64e00e8899a7ca65d80a7888b
+deployed_release: v3.146
+deployed_commit: 063878408a68e8d5c25de26768c157c0eeca99fe
+image_digest: sha256:3e13f793e7438dd0b4c5c0a9558aaedca79c15d557b678c17fd76a97e1ee1061
 deployed_at: 19 September 2026 21:43 CDT
-deployment_workflow_run: 35487542487
+deployment_workflow_run: 35489092343
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.145
-current_stable_commit: 5dd740bcaf279e1af9e3bc3885b305a424857b73
-promotion_candidate: v3.145
-promotion_candidate_image_commit: 5dd740bcaf279e1af9e3bc3885b305a424857b73
-promotion_candidate_image_digest: sha256:4f523e7c2668f5a82fb4b08e28138b03457000b64e00e8899a7ca65d80a7888b
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:4f523e7c2668f5a82fb4b08e28138b03457000b64e00e8899a7ca65d80a7888b
+current_stable_release: v3.146
+current_stable_commit: 063878408a68e8d5c25de26768c157c0eeca99fe
+promotion_candidate: v3.146
+promotion_candidate_image_commit: 063878408a68e8d5c25de26768c157c0eeca99fe
+promotion_candidate_image_digest: sha256:3e13f793e7438dd0b4c5c0a9558aaedca79c15d557b678c17fd76a97e1ee1061
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:3e13f793e7438dd0b4c5c0a9558aaedca79c15d557b678c17fd76a97e1ee1061
 promotion_candidate_image_published_at: 19 September 2026 21:33 CDT
-promotion_candidate_image_workflow_run: 35487386254
+promotion_candidate_image_workflow_run: 35489092343
 promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
 promotion_readiness: accepted
 fictional_member_seed_state: verified
 critical_journey_acceptance: verified
-rollback_baseline: v3.144
+rollback_baseline: v3.145
 genuine_blocker: none
 ---
 
@@ -64,4 +64,4 @@ Before any successor release is promoted, all required gates must pass on its ex
 
 ## Next authorized work
 
-Continue governed document ingestion with an operator review queue and bounded batch controls while preserving v3.144 as the accepted rollback-safe baseline. Any additional source, write, report-publication, or production capability requires a separately governed successor.
+Continue governed document ingestion with the v3.147 administrator Intake Review workspace while preserving v3.145 as the accepted rollback-safe baseline. Any additional source, write, report-publication, or production capability requires a separately governed successor.

@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 19 September 2026 23:15 CDT
-current_frozen_release: v3.145
-current_frozen_commit: 5dd740bcaf279e1af9e3bc3885b305a424857b73
+last_verified_at: 20 September 2026
+current_frozen_release: v3.146
+current_frozen_commit: 063878408a68e8d5c25de26768c157c0eeca99fe
 active_development_branch: development/salcapa-platform
 current_development_head: 8bb34b0f79def672b18d5c06ad872dbc34146e64
 active_product_milestone: issue_370_governed_document_ingestion
 active_build_system_issue: 370
-active_increment: issue_370_v3146_approved_batch_execution
-last_completed_increment: issue_370_v3145_operator_review_queue_live_acceptance
-candidate_release: v3.146
+active_increment: issue_370_v3147_administrator_intake_review_workspace
+last_completed_increment: issue_370_v3146_approved_batch_execution_live_acceptance
+candidate_release: v3.147
 validation_pr: none
-validation_branch: release/v3.146
+validation_branch: release/v3.147
 validation_base: development/salcapa-platform
-validation_head: 8bb34b0f79def672b18d5c06ad872dbc34146e64
-validation_gate_state: github_validation_running
+validation_head: pending
+validation_gate_state: candidate_implementation
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: execute_approved_batches_with_per_file_partial_failure_isolation
+repair_summary: administrator_intake_review_workspace
 genuine_blockers: none
-next_authorized_step: freeze_publish_deploy_and_live_accept_v3146_after_required_gates
-deployed_demo_release: v3.145
-deployed_demo_state: operator_review_queue_and_multiformat_m365_live_acceptance_passed_and_temporary_job_deleted
+next_authorized_step: validate_freeze_publish_deploy_and_live_accept_v3147
+deployed_demo_release: v3.146
+deployed_demo_state: approved_batch_execution_and_multiformat_m365_live_acceptance_passed_and_temporary_job_deleted
 ---
 
 # SalCAPA build continuity
@@ -44,6 +44,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **v3.130 is frozen, published, deployed, and live accepted.** It removes the duplicate visible Protection Advisor title from the embedded document while retaining an accessible hidden heading and the authoritative Wix title.
 - **v3.131 is frozen, published, deployed, and live accepted.** It makes the fixed workspace sidebar independently scrollable and presents the session action as the orange `< Sign Out` control.
 - **v3.136 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `0eee07661658f229544317670c635568ce649bef`; the immutable image is `sha256:e7a1a14af003806fa19875cb6ce13cef9e51c6c1f48338939ef7b174e39bc3a9`. Live OneDrive/SharePoint intake acceptance passed and the temporary Azure test job was deleted and verified absent.
+- **v3.146 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `063878408a68e8d5c25de26768c157c0eeca99fe`; the immutable image is `sha256:3e13f793e7438dd0b4c5c0a9558aaedca79c15d557b678c17fd76a97e1ee1061`. Governed deployment workflow `35489092343`, live multiformat nested-folder Microsoft 365 acceptance, and temporary Azure test-job deletion passed. v3.145 remains the rollback baseline.
 - **v3.142 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `451ebbaa94429ce50db5d721b7cb73c67c8be9c9`; the immutable image is `sha256:092c8506ac490dde32d5885b799fefb446e5fb7ed76dbe003002c5ee5728f290`. Acceptance used the correct `SalCAPA Intake` folder, exercised nested content, preserved governed fail-closed extraction outcomes for human review, and deleted the temporary Azure test job.
 - **v3.143 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `51370189b2518bb8fdf6614d34b593eb3d0fc989`; the immutable image is `sha256:ee8ed8282c19473fa2a87d3526b61f7a2c6bd3f186e22f5e3c4f620cc5e8606b`. Live acceptance verified visible sticky assessment navigation, the in-assessment Important Notice, external services navigation, runtime identity and readiness, correct-folder nested Microsoft 365 intake, and temporary-job deletion.
 - **v3.144 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `f7ebc34f56237797ff45282112307c384bb880d6`; the immutable image is `sha256:ca0d0f15a559e000de8367b5ab42a57c89d2f6cdedd4164fef79f91baee1cfcc`. It adds audited administrator reconciliation of new, unchanged, changed, and missing sources across the authorized nested Microsoft 365 tree without automatic ingestion or reprocessing. Live multiformat intake acceptance and temporary-job deletion passed.

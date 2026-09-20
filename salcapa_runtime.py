@@ -79,7 +79,7 @@ register_demo_fixture_contract(core)
 register_demo_evaluator(core)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.146"
+SALCAPA_RELEASE_VERSION = "3.147"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 
@@ -179,6 +179,9 @@ def _preparedness_index() -> str:
         ('<link rel="stylesheet" href="/static/salcapa-contextual-intake.css" />',
          '<link rel="stylesheet" href="/static/salcapa-contextual-intake.css" />\n<link rel="stylesheet" href="/static/salcapa-material-review.css" />',
          '/static/salcapa-material-review.css'),
+        ('<link rel="stylesheet" href="/static/salcapa-contextual-intake.css" />',
+         '<link rel="stylesheet" href="/static/salcapa-contextual-intake.css" />\n<link rel="stylesheet" href="/static/salcapa-intake-review.css" />',
+         '/static/salcapa-intake-review.css'),
         ('<link rel="stylesheet" href="/static/salcapa-material-review.css" />',
          '<link rel="stylesheet" href="/static/salcapa-material-review.css" />\n<link rel="stylesheet" href="/static/salcapa-material-suggestions.css" />',
          '/static/salcapa-material-suggestions.css'),
@@ -233,6 +236,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salcapa-contextual-intake.js"></script>',
          '<script src="/static/salcapa-contextual-intake.js"></script>\n<script src="/static/salcapa-material-review.js"></script>',
          '/static/salcapa-material-review.js'),
+        ('<script src="/static/salcapa-contextual-intake.js"></script>',
+         '<script src="/static/salcapa-contextual-intake.js"></script>\n<script src="/static/salcapa-intake-review.js"></script>',
+         '/static/salcapa-intake-review.js'),
         ('<script src="/static/salcapa-material-review.js"></script>',
          '<script src="/static/salcapa-material-review.js"></script>\n<script src="/static/salcapa-material-suggestions.js"></script>',
          '/static/salcapa-material-suggestions.js'),
