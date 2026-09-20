@@ -43,7 +43,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.142
+          ref: release/v3.143
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -51,7 +51,7 @@ jobs:
       - name: Checkout accepted rollback source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.140
+          ref: release/v3.142
           path: accepted-release
           fetch-depth: 1
           persist-credentials: false
@@ -65,18 +65,18 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.142-application-451ebbaa") and
+            (.activation_key == "salcapa-v3.143-application-51370189") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.142") and
-            (.source_commit == "451ebbaa94429ce50db5d721b7cb73c67c8be9c9") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:092c8506ac490dde32d5885b799fefb446e5fb7ed76dbe003002c5ee5728f290") and
-            (.rollback_release == "release/v3.140") and
-            (.rollback_commit == "69232b50dcfec7c353093b36bc564c6692cfecf0") and
-            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:5355c9c09886f0d8902730c04a538a5c86ee29a87add37eddb7ad3a3b5006738") and
+            (.source_release == "release/v3.143") and
+            (.source_commit == "51370189b2518bb8fdf6614d34b593eb3d0fc989") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:ee8ed8282c19473fa2a87d3526b61f7a2c6bd3f186e22f5e3c4f620cc5e8606b") and
+            (.rollback_release == "release/v3.142") and
+            (.rollback_commit == "451ebbaa94429ce50db5d721b7cb73c67c8be9c9") and
+            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:092c8506ac490dde32d5885b799fefb446e5fb7ed76dbe003002c5ee5728f290") and
             ((keys - [
               "activation_key",
               "approval_record",
@@ -436,6 +436,10 @@ jobs:
         run: |
           set -euo pipefail
           JOB_NAME=salcapa-m365-acceptance-b48224
+          if ! az account show --only-show-errors >/dev/null 2>&1; then
+            echo "Azure login was not reached; no temporary acceptance job was created."
+            exit 0
+          fi
           if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --only-show-errors >/dev/null 2>&1; then
             az containerapp job delete \
               --resource-group "$RESOURCE_GROUP" \
@@ -446,7 +450,7 @@ jobs:
             --query "[?name == '$JOB_NAME'] | length(@)" \
             --output tsv --only-show-errors)" = "0"
 
-      - name: Restore accepted v3.140 if promotion verification fails
+      - name: Restore accepted v3.142 if promotion verification fails
         if: failure() && steps.deployment.outcome == 'success'
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
@@ -469,7 +473,7 @@ jobs:
               {
                 echo "### SalCAPA failed promotion rollback"
                 echo ""
-                echo "- Accepted immutable v3.140 image restored"
+                echo "- Accepted immutable v3.142 image restored"
                 echo "- Live readiness restored"
                 echo "- DNS unchanged"
                 echo "- Client secret not used"
@@ -479,5 +483,5 @@ jobs:
             fi
             sleep 10
           done
-          echo "Failed promotion did not restore the accepted v3.140 runtime." >&2
+          echo "Failed promotion did not restore the accepted v3.142 runtime." >&2
           exit 1
