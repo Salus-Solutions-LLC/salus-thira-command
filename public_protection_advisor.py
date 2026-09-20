@@ -27,6 +27,12 @@ QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.0.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-SPLIT-RETENTION-1.0.0"
+REPORT_TEMPLATE_VERSION = "SPA-REPORT-TEMPLATE-1.0.0"
+HANDLING_PROFILES = {
+    "Commercial Confidential", "Government Sensitive", "Federal CUI",
+    "Government Contractor CUI", "Specialized Regulated Information",
+}
+HANDLING_REVIEW_REQUIRED = HANDLING_PROFILES - {"Commercial Confidential"}
 PACKAGE_PROFILE_VERSION = "SPA-SERVICE-PROFILE-2.0.0"
 PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-2.0.0"
 SESSION_HOURS = 24  # Browser authentication lifetime only; retained records do not expire here.
@@ -240,6 +246,9 @@ class DraftCommand(BaseModel):
             "internal_implementation_capacity", "primary_objective",
             "external_requirements", "recent_concerns", "desired_timing",
             "decision_authority", "investment_range",
+            "protected_member_code_name", "project_code_name", "handling_profile",
+            "handling_authority", "designating_agency", "contract_reference",
+            "dissemination_controls",
         }
         if set(value) - allowed:
             raise ValueError("unsupported draft field")
@@ -250,6 +259,13 @@ class DraftCommand(BaseModel):
 
 class SubmitCommand(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    protected_member_code_name: str = Field(min_length=2, max_length=80)
+    project_code_name: str = Field(min_length=2, max_length=80)
+    handling_profile: str = Field(min_length=1, max_length=80)
+    handling_authority: str = Field(default="", max_length=240)
+    designating_agency: str = Field(default="", max_length=160)
+    contract_reference: str = Field(default="", max_length=160)
+    dissemination_controls: str = Field(default="", max_length=240)
     organization_name: str = Field(min_length=1, max_length=160)
     contact_name: str = Field(min_length=1, max_length=160)
     contact_email: str = Field(min_length=3, max_length=254)
@@ -273,7 +289,9 @@ class SubmitCommand(BaseModel):
     investment_range: str = Field(min_length=1, max_length=80)
 
     @field_validator(
-        "organization_name", "contact_name", "contact_email", "facility_scope",
+        "protected_member_code_name", "project_code_name", "handling_profile",
+        "handling_authority", "designating_agency", "contract_reference",
+        "dissemination_controls", "organization_name", "contact_name", "contact_email", "facility_scope",
         "facility_locations", "personnel_range", "affected_population_range",
         "annual_revenue_range", "essential_functions", "maximum_tolerable_downtime",
         "existing_program_maturity", "internal_implementation_capacity",
@@ -295,12 +313,81 @@ class SubmitCommand(BaseModel):
             raise ValueError("unsupported activity")
         return cleaned
 
+    @field_validator("handling_profile")
+    @classmethod
+    def valid_handling_profile(cls, value: str) -> str:
+        if value not in HANDLING_PROFILES:
+            raise ValueError("unsupported handling profile")
+        return value
+
+    @field_validator("protected_member_code_name", "project_code_name")
+    @classmethod
+    def valid_code_name(cls, value: str) -> str:
+        if "@" in value or any(ch in value for ch in "/\\"):
+            raise ValueError("code names must not contain email addresses or path separators")
+        return value
+
     @field_validator("contact_email")
     @classmethod
     def email_shape(cls, value: str) -> str:
         value = value.casefold()
         if value.count("@") != 1 or "." not in value.rsplit("@", 1)[-1]:
             raise ValueError("enter a valid email address")
+        return value
+
+
+class ReportIdentityCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    protected_member_code_name: str = Field(min_length=2, max_length=80)
+    project_code_name: str = Field(min_length=2, max_length=80)
+    handling_profile: str = Field(min_length=1, max_length=80)
+    handling_authority: str = Field(default="", max_length=240)
+    designating_agency: str = Field(default="", max_length=160)
+    contract_reference: str = Field(default="", max_length=160)
+    dissemination_controls: str = Field(default="", max_length=240)
+
+    @field_validator(
+        "protected_member_code_name", "project_code_name", "handling_profile",
+        "handling_authority", "designating_agency", "contract_reference",
+        "dissemination_controls",
+    )
+    @classmethod
+    def clean(cls, value: str) -> str:
+        value = value.strip()
+        if any(ch in value for ch in "\r\n"):
+            raise ValueError("line breaks are not permitted")
+        return value
+
+    @field_validator("handling_profile")
+    @classmethod
+    def valid_handling_profile(cls, value: str) -> str:
+        if value not in HANDLING_PROFILES:
+            raise ValueError("unsupported handling profile")
+        return value
+
+    @field_validator("protected_member_code_name", "project_code_name")
+    @classmethod
+    def valid_code_name(cls, value: str) -> str:
+        if "@" in value or any(ch in value for ch in "/\\"):
+            raise ValueError("code names must not contain email addresses or path separators")
+        return value
+
+
+class HandlingDecisionCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    decision: str = Field(pattern=r"^(Approved|Rejected)$")
+    handling_profile: str = Field(min_length=1, max_length=80)
+    handling_authority: str = Field(default="", max_length=240)
+    designating_agency: str = Field(default="", max_length=160)
+    contract_reference: str = Field(default="", max_length=160)
+    dissemination_controls: str = Field(default="", max_length=240)
+    decision_note: str = Field(default="", max_length=500)
+
+    @field_validator("handling_profile")
+    @classmethod
+    def valid_handling_profile(cls, value: str) -> str:
+        if value not in HANDLING_PROFILES:
+            raise ValueError("unsupported handling profile")
         return value
 
 
@@ -546,6 +633,29 @@ def _initialize(conn: Any) -> None:
       FOREIGN KEY (session_key) REFERENCES advisor_public_sessions(session_key) ON DELETE CASCADE,
       FOREIGN KEY (account_key) REFERENCES advisor_public_accounts(account_key) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS advisor_public_report_identity_revisions (
+      revision_key TEXT PRIMARY KEY,
+      account_key TEXT NOT NULL,
+      session_key TEXT NOT NULL,
+      revision_no INTEGER NOT NULL,
+      protected_member_code_name TEXT NOT NULL,
+      project_code_name TEXT NOT NULL,
+      handling_profile TEXT NOT NULL,
+      handling_status TEXT NOT NULL,
+      handling_authority TEXT NOT NULL DEFAULT '',
+      designating_agency TEXT NOT NULL DEFAULT '',
+      contract_reference TEXT NOT NULL DEFAULT '',
+      dissemination_controls TEXT NOT NULL DEFAULT '',
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      decision_note TEXT NOT NULL DEFAULT '',
+      content_sha256 TEXT NOT NULL,
+      FOREIGN KEY (account_key) REFERENCES advisor_public_accounts(account_key) ON DELETE CASCADE,
+      FOREIGN KEY (session_key) REFERENCES advisor_public_sessions(session_key) ON DELETE CASCADE,
+      UNIQUE(session_key,revision_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_advisor_report_identity_session
+      ON advisor_public_report_identity_revisions(session_key,revision_no);
     """)
 
 
@@ -606,6 +716,65 @@ def _current_answers(conn: Any, session_key: str) -> dict[str, dict[str, Any]]:
         (session_key, session_key),
     ).fetchall()
     return {row["question_key"]: dict(row) for row in rows}
+
+
+def _handling_status(profile: str) -> str:
+    return "Pending Salus Review" if profile in HANDLING_REVIEW_REQUIRED else "Approved by Default Policy"
+
+
+def _latest_report_identity(conn: Any, session_key: str) -> dict[str, Any] | None:
+    row = conn.execute(
+        """SELECT * FROM advisor_public_report_identity_revisions
+            WHERE session_key=? ORDER BY revision_no DESC LIMIT 1""",
+        (session_key,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def _insert_report_identity(
+    conn: Any,
+    *,
+    account_key: str,
+    session_key: str,
+    values: dict[str, Any],
+    created_by: str,
+    handling_status: str | None = None,
+    decision_note: str = "",
+) -> dict[str, Any]:
+    latest = _latest_report_identity(conn, session_key)
+    revision_no = int(latest["revision_no"]) + 1 if latest else 1
+    payload = {
+        "protected_member_code_name": values["protected_member_code_name"],
+        "project_code_name": values["project_code_name"],
+        "handling_profile": values["handling_profile"],
+        "handling_status": handling_status or _handling_status(values["handling_profile"]),
+        "handling_authority": values.get("handling_authority", ""),
+        "designating_agency": values.get("designating_agency", ""),
+        "contract_reference": values.get("contract_reference", ""),
+        "dissemination_controls": values.get("dissemination_controls", ""),
+        "revision_no": revision_no,
+        "created_by": created_by,
+        "created_at": _utc_text(_utc_now()),
+        "decision_note": decision_note,
+        "report_template_version": REPORT_TEMPLATE_VERSION,
+    }
+    conn.execute(
+        """INSERT INTO advisor_public_report_identity_revisions
+           (revision_key,account_key,session_key,revision_no,protected_member_code_name,
+            project_code_name,handling_profile,handling_status,handling_authority,
+            designating_agency,contract_reference,dissemination_controls,created_by,
+            created_at,decision_note,content_sha256)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            "SPA-IDENTITY-" + secrets.token_hex(16).upper(), account_key, session_key,
+            revision_no, payload["protected_member_code_name"], payload["project_code_name"],
+            payload["handling_profile"], payload["handling_status"],
+            payload["handling_authority"], payload["designating_agency"],
+            payload["contract_reference"], payload["dissemination_controls"],
+            created_by, payload["created_at"], decision_note, _sha(_json(payload)),
+        ),
+    )
+    return payload
 
 
 def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -709,7 +878,7 @@ button,.action{border:0;background:none;color:var(--orange);font:1.05rem Arial,H
 button:disabled{color:#888;cursor:not-allowed}.question{padding:20px 0;border-bottom:1px solid var(--line)}.choices{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}
 .choices label{font-weight:400;margin:0}.question-progress{font:700 .8rem Arial,Helvetica,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin:18px 0 8px}.question-nav{display:flex;gap:28px;align-items:center;flex-wrap:wrap;margin-top:18px}.question-nav button{margin:0}.hidden{display:none}.error{color:#a12612}.result{background:var(--soft);padding:24px;margin-top:24px}.route{border-left:3px solid var(--blue);padding:4px 20px;margin:28px 0}
 .package-item{padding:16px 0;border-bottom:1px solid var(--line)}.eyebrow{font:700 .78rem Arial,Helvetica,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
-.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}.print-actions{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}.print-meta{font:400 .82rem Arial,Helvetica,sans-serif;color:#536675;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:18px}.print-confidential{font-weight:700;color:#7b2d20}@media(max-width:700px){.question-nav{gap:12px}.question-nav button{flex:1 1 150px}.print-actions button{width:100%;margin-right:0}}@media print{@page{margin:.6in}.salus-header,.print-actions,.route,.action,body.print-part1 main>*:not(#result),body.print-part2 main>*:not(#package){display:none!important}body.print-part1 #result,body.print-part2 #package{display:block!important;background:#fff!important;padding:0!important;margin:0!important;color:#111!important}.package-item{break-inside:avoid}a{color:#111!important;text-decoration:none!important}}__EMBED_CSS__
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}.handling-fields{border-left:3px solid var(--blue);padding-left:18px;margin:20px 0}.print-actions{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}.print-meta{font:400 .82rem Arial,Helvetica,sans-serif;color:#536675;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:18px}.print-brand{display:flex;align-items:center;gap:12px;margin-bottom:18px;color:#000;font:400 24px Arial,Helvetica,sans-serif}.print-brand img{width:52px;height:52px}.print-report-title{font:300 28px Arial,Helvetica,sans-serif;color:var(--blue);margin:10px 0}.print-identifiers{font:400 14px/1.45 Arial,Helvetica,sans-serif}.print-classification{font-weight:700;color:#7b2d20}.print-watermark{display:none}.print-footer{font:400 11px Arial,Helvetica,sans-serif;border-top:1px solid #777;margin-top:28px;padding-top:8px;display:flex;justify-content:space-between;gap:12px}.print-confidential{font-weight:700;color:#7b2d20}@media(max-width:700px){.question-nav{gap:12px}.question-nav button{flex:1 1 150px}.print-actions button{width:100%;margin-right:0}}@media print{@page{size:letter;margin:.65in}.salus-header,.print-actions,.route,.action,body.print-part1 main>*:not(#result),body.print-part2 main>*:not(#package){display:none!important}body.print-part1 #result,body.print-part2 #package{display:block!important;background:#fff!important;padding:0!important;margin:0!important;color:#111!important}.print-watermark{display:block;position:fixed;top:38%;left:12%;transform:rotate(-48deg);font:700 76px Arial,Helvetica,sans-serif;color:rgba(90,90,90,.12);z-index:-1}.print-brand,.print-identifiers,.print-footer{break-inside:avoid}.package-item{break-inside:avoid}a{color:#111!important;text-decoration:none!important}}__EMBED_CSS__
 </style></head><body><main>
 __SALUS_HEADER__
 __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountLogin(event)">Return to Your Part 2 Assessment &gt;</a></p>
@@ -755,6 +924,16 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <section id="profile" class="hidden panel"><p class="eyebrow">Part 2 — Confidential Organization and Service Profile</p>
 <h2>Help us prepare your tailored preliminary package</h2>
 <p>These candid questions help Salus understand scale, complexity, priorities, timing, and likely services. Identifying information is requested only because you elected to continue.</p>
+<div class="handling-fields"><h3>Protected Member and project code names</h3>
+<p>Create code names that do not disclose the Protected Member’s legal identity, a person’s name, an email address, or sensitive operational details. These names will appear on Part 2 results and remain in effect until an authorized account user changes them. The immutable report reference will not change.</p>
+<label>Protected Member Code Name<input id="protectedMemberCodeName" type="text" minlength="2" maxlength="80" autocomplete="off"></label>
+<label>Project Code Name<input id="projectCodeName" type="text" minlength="2" maxlength="80" autocomplete="off"></label>
+<label>Requested report-handling profile<select id="handlingProfile"><option value="">Select</option><option>Commercial Confidential</option><option>Government Sensitive</option><option>Federal CUI</option><option>Government Contractor CUI</option><option>Specialized Regulated Information</option></select></label>
+<p class="muted">Selecting a government or regulated profile does not itself designate the report as CUI or another controlled category. Salus must review the stated authority before controlled markings are applied.</p>
+<label>Handling authority or requirement<input id="handlingAuthority" type="text" maxlength="240" placeholder="Law, regulation, policy, contract clause, or other stated basis"></label>
+<label>Designating or information-owning agency<input id="designatingAgency" type="text" maxlength="160"></label>
+<label>Contract or task-order reference<input id="contractReference" type="text" maxlength="160"></label>
+<label>Requested dissemination controls<input id="disseminationControls" type="text" maxlength="240" placeholder="Enter only authorized handling instructions"></label></div>
 <label>Organization name<input id="organizationName" type="text" maxlength="160"></label>
 <label>Your name<input id="contactName" type="text" maxlength="160"></label>
 <label>Email address<input id="contactEmail" type="email" maxlength="254"></label>
@@ -779,33 +958,37 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <section id="package" class="hidden result"></section>
 <section class="panel"><h2>Important notice</h2><p>Protection Advisor provides preliminary educational and decision-support information. It is not an emergency reporting service, completed THIRA, professional security assessment, legal or insurance advice, or guarantee against loss. Salus professionals review information, evidence, context, scope, recommendations, and pricing before issuing formal findings or proposals.</p></section>
 </main><script>
-let csrf="",questions=[],questionIndex=0,answerStates={},advisorResultReference="";
+let csrf="",questions=[],questionIndex=0,answerStates={},advisorResultReference="",reportIdentity={};
 async function call(path,opts={}){opts.headers={"Content-Type":"application/json",...(csrf?{"X-CSRF-Token":csrf}:{}),...(opts.headers||{})};const r=await fetch(path,opts);const data=await r.json().catch(()=>({detail:"Request failed"}));if(!r.ok){const detail=data.detail;const message=Array.isArray(detail)?detail.map(item=>item.msg||"Invalid value").join(" "):(typeof detail==="string"?detail:"Request failed");throw new Error(message)}return data}
 async function startAssessment(){startError.textContent="";try{const data=await call("/public/protection-advisor/session",{method:"POST",body:JSON.stringify({organization_type:orgType.value,primary_consent:primary.checked,secondary_deidentified_consent:secondary.checked})});csrf=data.csrf_token;questions=data.questions;questionIndex=0;answerStates={};start.classList.add("hidden");assessment.classList.remove("hidden");renderQuestions();requestAnimationFrame(()=>window.scrollTo(0,0))}catch(x){startError.textContent=x.message}}
 function answerLabel(s){return s==="Validated"?"Yes — documented and recently validated":s==="Documented"?"Yes — documented but not recently tested":s==="Unknown"?"Not Sure":s==="Declined"?"Prefer Not to Answer":s}
 function renderQuestions(){if(!questions.length)return;const q=questions[questionIndex];questionProgress.textContent="Question "+(questionIndex+1)+" of "+questions.length;document.getElementById("questions").innerHTML='<div class="question"><strong>'+(questionIndex+1)+'. '+q.text+'</strong><div class="choices">'+["Validated","Documented","Partially","No","Unknown","Not Applicable","Declined"].map(s=>'<label><input type="radio" name="'+q.key+'" value="'+s+'" '+(answerStates[q.key]===s?"checked":"")+' onchange="saveAnswer(this.name,this.value)"> '+answerLabel(s)+'</label>').join("")+'</div></div>';previousQuestion.disabled=questionIndex===0;nextQuestion.classList.toggle("hidden",questionIndex===questions.length-1);reviewResults.classList.toggle("hidden",questionIndex!==questions.length-1)}
 function moveQuestion(delta){questionIndex=Math.max(0,Math.min(questions.length-1,questionIndex+delta));renderQuestions();requestAnimationFrame(()=>document.getElementById("assessment").scrollIntoView({block:"start",behavior:"smooth"}))}
 async function saveAnswer(key,state){assessmentError.textContent="";answerStates[key]=state;try{await call("/public/protection-advisor/answer",{method:"POST",body:JSON.stringify({question_key:key,answer_state:state,note:""})})}catch(x){assessmentError.textContent=x.message}}
-function advisorPrintMeta(part,reference,confidential){return '<div class="print-meta"><strong>Salus Solutions Protection Advisor — '+part+'</strong><br>Prepared '+new Date().toLocaleString()+'. Reference: '+reference+'.'+(confidential?'<br><span class="print-confidential">CONFIDENTIAL — Handle according to your organization’s information-protection requirements.</span>':'<br>Anonymous preliminary summary; no name, email address, or organization name is included.')+'<br>This preliminary educational output is not an emergency report, completed THIRA, professional certification, legal or insurance advice, or guarantee of safety.</div>'}
+function escapeAdvisorHtml(value){return String(value||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
+function handlingPresentation(identity){if(!identity||!identity.handling_profile)return {banner:"CONFIDENTIAL — SALUS PROTECTED INFORMATION",watermark:"CONFIDENTIAL",note:""};if(identity.handling_status==="Approved"||identity.handling_status==="Approved by Default Policy"){const cui=identity.handling_profile.includes("CUI");return {banner:cui?"CONTROLLED UNCLASSIFIED INFORMATION (CUI)":identity.handling_profile.toUpperCase(),watermark:cui?"CUI":"CONFIDENTIAL",note:""};}return {banner:"CONFIDENTIAL — SALUS PROTECTED INFORMATION",watermark:"CONFIDENTIAL",note:"Requested handling profile: "+identity.handling_profile+" — awaiting authorized Salus review."}}
+function advisorPrintMeta(part,reference,confidential,identity={}){const handling=handlingPresentation(identity);const prepared=new Date().toLocaleString();const identifiers=confidential?'<div class="print-identifiers"><strong>Protected Member:</strong> '+escapeAdvisorHtml(identity.protected_member_code_name)+'<br><strong>Project:</strong> '+escapeAdvisorHtml(identity.project_code_name)+'<br><strong>Report Reference:</strong> '+escapeAdvisorHtml(reference)+'<br><strong>Prepared:</strong> '+escapeAdvisorHtml(prepared)+'<br><strong>Report Template:</strong> SPA-REPORT-TEMPLATE-1.0.0<br><span class="print-classification">'+escapeAdvisorHtml(handling.banner)+'</span>'+(handling.note?'<br>'+escapeAdvisorHtml(handling.note):'')+'</div>':'<div class="print-identifiers"><strong>Anonymous Report Reference:</strong> '+escapeAdvisorHtml(reference)+'<br><strong>Prepared:</strong> '+escapeAdvisorHtml(prepared)+'<br><strong>ANONYMOUS PRELIMINARY SUMMARY</strong></div>';return '<div class="print-meta"><div class="print-watermark">'+escapeAdvisorHtml(confidential?handling.watermark:"ANONYMOUS")+'</div><div class="print-brand"><img src="/static/salus-reticle.svg" alt=""><span>Salus Solutions</span></div><div class="print-report-title">Protection Advisor™ Assessment</div><strong>'+escapeAdvisorHtml(part)+'</strong>'+identifiers+'<p>This preliminary educational and decision-support output is not an emergency report, completed SalTHIRA™, professional certification, legal or insurance advice, or guarantee of safety.</p></div>'}
 function printAdvisor(scope){document.body.classList.remove("print-part1","print-part2");document.body.classList.add(scope==="part1"?"print-part1":"print-part2");window.print();setTimeout(()=>document.body.classList.remove("print-part1","print-part2"),0)}
-async function preliminaryResult(){assessmentError.textContent="";try{const data=await call("/public/protection-advisor/preliminary",{method:"POST",body:"{}"});const r=data.result;advisorResultReference=data.result_reference;assessment.classList.add("hidden");result.classList.remove("hidden");paths.classList.remove("hidden");result.innerHTML=advisorPrintMeta("Part 1 — Anonymous Preliminary Summary",advisorResultReference,false)+'<p class="eyebrow">Your Anonymous Preliminary Summary</p><h2>'+r.recommendation+'</h2><p>'+r.notice+'</p><p><strong>Potential attention areas:</strong> '+r.attention_count+'. <strong>Indicated strengths:</strong> '+r.strength_count+'. <strong>Information gaps:</strong> '+r.information_gap_count+'.</p><p>'+r.manual_next_step+'</p><div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part1&quot;)">Print or Save Preliminary Summary &gt;</button></div>';result.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}catch(x){assessmentError.textContent=x.message}}
+async function preliminaryResult(){assessmentError.textContent="";try{const data=await call("/public/protection-advisor/preliminary",{method:"POST",body:"{}"});const r=data.result;advisorResultReference=data.result_reference;assessment.classList.add("hidden");result.classList.remove("hidden");paths.classList.remove("hidden");result.innerHTML=advisorPrintMeta("Part 1 — Anonymous Preliminary Summary",advisorResultReference,false)+'<p class="eyebrow">Your Anonymous Preliminary Summary</p><h2>'+r.recommendation+'</h2><p>'+r.notice+'</p><p><strong>Potential attention areas:</strong> '+r.attention_count+'. <strong>Indicated strengths:</strong> '+r.strength_count+'. <strong>Information gaps:</strong> '+r.information_gap_count+'.</p><p>'+r.manual_next_step+'</p><div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part1&quot;)">Print or Save Preliminary Summary &gt;</button></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';result.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}catch(x){assessmentError.textContent=x.message}}
 function showProfileAgreement(event){event.preventDefault();profileAgreement.classList.remove("hidden");profileAgreement.scrollIntoView({behavior:"smooth"})}
 function openAccountLogin(event){event.preventDefault();accountAccess.classList.remove("hidden");accountAccess.scrollIntoView({behavior:"smooth"})}
 function confirmProfile(){profileAgreementError.textContent="";if(!detailAck.checked||!identifiableConsent.checked){profileAgreementError.textContent="Both acknowledgements are required before Part 2.";return}profileAgreement.classList.add("hidden");accountAccess.classList.remove("hidden");accountAccess.scrollIntoView({behavior:"smooth"})}
 function showProfileForAccount(email,draft){accountAccess.classList.add("hidden");contactEmail.value=email;contactEmail.readOnly=true;hydrateDraft(draft||{});profile.classList.remove("hidden");profile.scrollIntoView({behavior:"smooth"});enableAutosave()}
 async function createAccount(){accountError.textContent="";try{if(accountPassword.value!==accountPasswordConfirm.value)throw new Error("Passwords do not match");const data=await call("/public/protection-advisor/account",{method:"POST",body:JSON.stringify({email:accountEmail.value,password:accountPassword.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked})});showProfileForAccount(data.email,data.draft)}catch(x){accountError.textContent=x.message}}
 function packageMarkup(p){return '<h2>'+p.title+'</h2><p>'+p.rationale+'</p>'+p.services.map(s=>'<div class="package-item"><h3>'+s.title+' — Level '+s.level+'</h3><p>'+s.summary+'</p><p><strong>Why this level:</strong> '+s.why+'</p><p><strong>Core capabilities addressed:</strong> '+s.capabilities.join(", ")+'</p></div>').join("")+(p.later_phase_services.length?'<h3>Possible later-phase services</h3><p>'+p.later_phase_services.map(s=>s.title+' — Level '+s.level).join("; ")+'</p>':'')+'<p><strong>Suggested sequence:</strong> '+p.sequence.join(" → ")+'</p><p>'+p.notice+'</p><a class="action" href="https://www.salus.solutions/contact">Discuss This Package With Salus &gt;</a>'}
-function showRetainedResults(data){accountAccess.classList.add("hidden");profile.classList.add("hidden");const r=data.result,p=data.package;advisorResultReference=data.result_reference;package.classList.remove("hidden");package.innerHTML=advisorPrintMeta("Part 2 — Detailed Results and Preliminary Package",advisorResultReference,true)+'<p class="eyebrow">Your Retained Protection Advisor Results</p><p class="muted">Submitted '+new Date(data.submitted_at).toLocaleString()+'. Sign in whenever you need to review this retained record.</p><p><strong>'+r.recommendation+'</strong></p><p>Potential attention areas: '+r.attention_count+'. Indicated strengths: '+r.strength_count+'. Information gaps: '+r.information_gap_count+'.</p>'+packageMarkup(p)+'<div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part2&quot;)">Print or Save Detailed Results &gt;</button></div>';package.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}
+function identityEditorMarkup(i){return '<details class="notice"><summary><strong>Update report code names or requested handling</strong></summary><p class="muted">Changes create a new immutable revision. A controlled-information request remains Confidential unless an authorized Salus reviewer approves the marking.</p><label>Protected Member Code Name<input id="retainedMemberCode" value="'+escapeAdvisorHtml(i.protected_member_code_name||"")+'" maxlength="80"></label><label>Project Code Name<input id="retainedProjectCode" value="'+escapeAdvisorHtml(i.project_code_name||"")+'" maxlength="80"></label><label>Requested report-handling profile<select id="retainedHandlingProfile">'+["Commercial Confidential","Government Sensitive","Federal CUI","Government Contractor CUI","Specialized Regulated Information"].map(v=>'<option'+(v===i.handling_profile?' selected':'')+'>'+v+'</option>').join("")+'</select></label><label>Handling authority<input id="retainedHandlingAuthority" value="'+escapeAdvisorHtml(i.handling_authority||"")+'" maxlength="240"></label><label>Designating agency<input id="retainedDesignatingAgency" value="'+escapeAdvisorHtml(i.designating_agency||"")+'" maxlength="160"></label><label>Contract or task-order reference<input id="retainedContractReference" value="'+escapeAdvisorHtml(i.contract_reference||"")+'" maxlength="160"></label><label>Dissemination controls<input id="retainedDisseminationControls" value="'+escapeAdvisorHtml(i.dissemination_controls||"")+'" maxlength="240"></label><button type="button" onclick="updateReportIdentity()">Save New Revision &gt;</button><p id="identityUpdateStatus" class="muted"></p></details>'}
+async function updateReportIdentity(){const status=document.getElementById("identityUpdateStatus");status.textContent="Saving…";try{const data=await call("/public/protection-advisor/report-identity",{method:"POST",body:JSON.stringify({protected_member_code_name:retainedMemberCode.value,project_code_name:retainedProjectCode.value,handling_profile:retainedHandlingProfile.value,handling_authority:retainedHandlingAuthority.value,designating_agency:retainedDesignatingAgency.value,contract_reference:retainedContractReference.value,dissemination_controls:retainedDisseminationControls.value})});reportIdentity=data.report_identity;status.textContent="Revision "+reportIdentity.revision_no+" saved. Reloading the protected report.";setTimeout(()=>location.reload(),500)}catch(x){status.textContent=x.message}}
+function showRetainedResults(data){accountAccess.classList.add("hidden");profile.classList.add("hidden");const r=data.result,p=data.package;advisorResultReference=data.result_reference;reportIdentity=data.report_identity||{};package.classList.remove("hidden");package.innerHTML=advisorPrintMeta("Part 2 — Detailed Results and Preliminary Package",advisorResultReference,true,reportIdentity)+'<p class="eyebrow">Your Retained Protection Advisor Results</p><p class="muted">Submitted '+new Date(data.submitted_at).toLocaleString()+'. Sign in whenever you need to review this retained record.</p><p><strong>'+escapeAdvisorHtml(r.recommendation)+'</strong></p><p>Potential attention areas: '+r.attention_count+'. Indicated strengths: '+r.strength_count+'. Information gaps: '+r.information_gap_count+'.</p>'+identityEditorMarkup(reportIdentity)+packageMarkup(p)+'<div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part2&quot;)">Print or Save Detailed Results &gt;</button></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';package.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}
 async function loginAccount(){accountError.textContent="";try{const data=await call("/public/protection-advisor/login",{method:"POST",body:JSON.stringify({email:loginEmail.value,password:loginPassword.value})});csrf=data.csrf_token;questions=data.questions||[];if(data.assessment_status==="Submitted"){showRetainedResults(data)}else{showProfileForAccount(data.email,data.draft)}}catch(x){accountError.textContent=x.message}}
 async function requestPasswordReset(){accountError.textContent="";try{await call("/public/protection-advisor/password-reset-request",{method:"POST",body:JSON.stringify({email:loginEmail.value})});accountError.textContent="If the account exists, a password-reset message has been requested."}catch(x){accountError.textContent=x.message}}
 async function resetAccountPassword(){accountError.textContent="";try{const token=new URLSearchParams(location.search).get("reset_token")||"";await call("/public/protection-advisor/password-reset",{method:"POST",body:JSON.stringify({token:token,new_password:resetPassword.value})});accountError.textContent="Password reset. Sign in with the new password.";resetPanel.classList.add("hidden")}catch(x){accountError.textContent=x.message}}
-function draftFields(){return {organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value),essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value}}
-function hydrateDraft(d){const ids={organization_name:"organizationName",contact_name:"contactName",facility_scope:"facilityScope",facility_locations:"facilityLocations",personnel_range:"personnelRange",affected_population_range:"affectedPopulationRange",annual_revenue_range:"revenueRange",essential_functions:"essentialFunctions",maximum_tolerable_downtime:"maximumTolerableDowntime",existing_program_maturity:"existingProgramMaturity",internal_implementation_capacity:"internalImplementationCapacity",primary_objective:"primaryObjective",external_requirements:"externalRequirements",recent_concerns:"recentConcerns",desired_timing:"desiredTiming",decision_authority:"decisionAuthority",investment_range:"investmentRange"};Object.entries(ids).forEach(([k,id])=>{if(d[k]!==undefined)document.getElementById(id).value=d[k]});(d.specific_activities||[]).forEach(v=>{const el=[...document.querySelectorAll('input[name="activity"]')].find(x=>x.value===v);if(el)el.checked=true})}
+function draftFields(){return {protected_member_code_name:protectedMemberCode.value,project_code_name:projectCode.value,handling_profile:handlingProfile.value,handling_authority:handlingAuthority.value,designating_agency:designatingAgency.value,contract_reference:contractReference.value,dissemination_controls:disseminationControls.value,organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value),essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value}}
+function hydrateDraft(d){const ids={protected_member_code_name:"protectedMemberCode",project_code_name:"projectCode",handling_profile:"handlingProfile",handling_authority:"handlingAuthority",designating_agency:"designatingAgency",contract_reference:"contractReference",dissemination_controls:"disseminationControls",organization_name:"organizationName",contact_name:"contactName",facility_scope:"facilityScope",facility_locations:"facilityLocations",personnel_range:"personnelRange",affected_population_range:"affectedPopulationRange",annual_revenue_range:"revenueRange",essential_functions:"essentialFunctions",maximum_tolerable_downtime:"maximumTolerableDowntime",existing_program_maturity:"existingProgramMaturity",internal_implementation_capacity:"internalImplementationCapacity",primary_objective:"primaryObjective",external_requirements:"externalRequirements",recent_concerns:"recentConcerns",desired_timing:"desiredTiming",decision_authority:"decisionAuthority",investment_range:"investmentRange"};Object.entries(ids).forEach(([k,id])=>{if(d[k]!==undefined)document.getElementById(id).value=d[k]});(d.specific_activities||[]).forEach(v=>{const el=[...document.querySelectorAll('input[name="activity"]')].find(x=>x.value===v);if(el)el.checked=true})}
 let draftTimer=null;
 function enableAutosave(){profile.querySelectorAll("input,select,textarea").forEach(el=>el.addEventListener("change",()=>{clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,500)}))}
 async function saveDraft(){draftStatus.textContent="Saving…";try{const data=await call("/public/protection-advisor/draft",{method:"POST",body:JSON.stringify({fields:draftFields()})});draftStatus.textContent="Saved "+new Date(data.updated_at).toLocaleString()}catch(x){draftStatus.textContent="Draft not saved: "+x.message}}
 async function logoutAccount(){try{await call("/public/protection-advisor/logout",{method:"POST",body:"{}"})}finally{location.reload()}}
-async function submitProfile(){submitError.textContent="";try{const selected=[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value);const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:selected,essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value})});profile.classList.add("hidden");const p=data.package;advisorResultReference=data.result_reference;package.classList.remove("hidden");package.innerHTML=advisorPrintMeta("Part 2 — Detailed Results and Preliminary Package",advisorResultReference,true)+'<p class="eyebrow">Tailored Preliminary Salus Package</p>'+packageMarkup(p)+'<div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part2&quot;)">Print or Save Detailed Results &gt;</button></div>';package.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}catch(x){submitError.textContent=x.message}}
+async function submitProfile(){submitError.textContent="";try{const selected=[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value);const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({protected_member_code_name:protectedMemberCode.value,project_code_name:projectCode.value,handling_profile:handlingProfile.value,handling_authority:handlingAuthority.value,designating_agency:designatingAgency.value,contract_reference:contractReference.value,dissemination_controls:disseminationControls.value,organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:selected,essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value})});profile.classList.add("hidden");const p=data.package;advisorResultReference=data.result_reference;reportIdentity=data.report_identity||{};package.classList.remove("hidden");package.innerHTML=advisorPrintMeta("Part 2 — Detailed Results and Preliminary Package",advisorResultReference,true,reportIdentity)+'<p class="eyebrow">Tailored Preliminary Salus Package</p>'+packageMarkup(p)+'<div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part2&quot;)">Print or Save Detailed Results &gt;</button></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';package.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}catch(x){submitError.textContent=x.message}}
 const resetToken=new URLSearchParams(location.search).get("reset_token");if(resetToken){accountAccess.classList.remove("hidden");resetPanel.classList.remove("hidden");}
 </script><script>
 const reportProtectionAdvisorHeight=()=>{const height=Math.max(900,document.documentElement.scrollHeight,document.body.scrollHeight);window.parent.postMessage({type:"salus-protection-advisor-height",height:height,preferred_min_height:900,source:"protection-advisor"},"https://www.salus.solutions")};
@@ -1144,8 +1327,17 @@ th{{font:600 .85rem Arial,Helvetica,sans-serif;text-transform:uppercase}}.notice
 <p><a href="/">&lt; SalCAPA Command Center</a></p></main></body></html>"""
 
 
-def _review_detail(row: dict[str, Any]) -> str:
+def _review_detail(row: dict[str, Any], identity: dict[str, Any] | None = None) -> str:
     result = json.loads(row["result_json"])
+    identity = identity or {}
+    identity_html = (
+        "<h2>Report identity and handling</h2><p class='notice'>"
+        f"<strong>Protected Member:</strong> {html.escape(identity.get('protected_member_code_name','Not assigned'))}<br>"
+        f"<strong>Project:</strong> {html.escape(identity.get('project_code_name','Not assigned'))}<br>"
+        f"<strong>Requested profile:</strong> {html.escape(identity.get('handling_profile','Not assigned'))}<br>"
+        f"<strong>Review status:</strong> {html.escape(identity.get('handling_status','Not assigned'))}<br>"
+        f"<strong>Revision:</strong> {int(identity.get('revision_no',0))}</p>"
+    )
     answers = json.loads(row["answer_snapshot_json"])
     answer_rows = "".join(
         f"<tr><td>{html.escape(key.replace('_',' ').title())}</td><td>{html.escape(str(value.get('answer_state','')))}</td></tr>"
@@ -1159,6 +1351,7 @@ main{{max-width:960px}}table{{width:100%;border-collapse:collapse}}td{{padding:1
 <p><a href="/protection-advisor/review">&lt; All submissions</a></p><h1>{html.escape(row['organization_name'])}</h1>
 <p><strong>Contact:</strong> {html.escape(row['contact_name'])} · <a href="mailto:{html.escape(row['contact_email'])}">{html.escape(row['contact_email'])}</a><br>
 <strong>Submitted:</strong> {html.escape(row['created_at'])}<br><strong>Status:</strong> {html.escape(row['status'])}</p>
+{identity_html}
 <h2>Preliminary result</h2><p class="notice"><strong>{html.escape(result.get('recommendation',''))}</strong><br>{html.escape(result.get('notice',''))}</p>
 <p>Potential attention areas: {int(result.get('attention_count',0))}. Information gaps: {int(result.get('information_gap_count',0))}.</p>
 <h2>Assessment answers</h2><table>{answer_rows}</table></main></body></html>"""
@@ -1239,7 +1432,53 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             ).fetchone()
             if not row:
                 raise HTTPException(404, "Submission not found")
-            return HTMLResponse(_review_detail(dict(row)), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY"})
+            identity = _latest_report_identity(conn, row["session_key"])
+            return HTMLResponse(_review_detail(dict(row), identity), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY"})
+        finally:
+            conn.close()
+
+    @app.post("/api/protection-advisor/review/{submission_key}/handling")
+    def decide_protection_advisor_handling(
+        submission_key: str, command: HandlingDecisionCommand, request: Request
+    ) -> dict[str, Any]:
+        ctx["require"](request, "admin")
+        conn = ctx["db"]()
+        try:
+            submission = conn.execute(
+                "SELECT session_key FROM advisor_public_submissions WHERE submission_key=?",
+                (submission_key,),
+            ).fetchone()
+            if not submission:
+                raise HTTPException(404, "Submission not found")
+            latest = _latest_report_identity(conn, submission["session_key"])
+            if not latest:
+                raise HTTPException(409, "Report identity is unavailable")
+            if (
+                command.decision == "Approved"
+                and command.handling_profile in {"Federal CUI", "Government Contractor CUI"}
+                and (not command.handling_authority or not command.designating_agency)
+            ):
+                raise HTTPException(400, "Approved CUI handling requires an authority and designating agency")
+            values = dict(latest)
+            values.update(command.model_dump())
+            status = "Approved" if command.decision == "Approved" else "Rejected"
+            report_identity = _insert_report_identity(
+                conn,
+                account_key=latest["account_key"],
+                session_key=submission["session_key"],
+                values=values,
+                created_by="Salus Reviewer",
+                handling_status=status,
+                decision_note=command.decision_note,
+            )
+            conn.execute(
+                "INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
+                ("SPA-EVENT-"+secrets.token_hex(16).upper(), submission["session_key"],
+                 "Report Handling "+status, report_identity["created_at"],
+                 _sha(_json({"revision_no": report_identity["revision_no"], "profile": report_identity["handling_profile"]}))),
+            )
+            conn.commit()
+            return {"report_identity": report_identity}
         finally:
             conn.close()
 
@@ -1527,6 +1766,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                     "package": json.loads(retained["package_json"]),
                     "submitted_at": retained["created_at"],
                     "result_reference": retained["submission_key"],
+                    "report_identity": _latest_report_identity(conn, linked["session_key"]) or {},
                 })
             else:
                 payload.update({
@@ -1691,6 +1931,13 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             snapshot = {key:{"answer_state":value["answer_state"],"note":value["note"],"revision_no":value["revision_no"],"content_sha256":value["content_sha256"]} for key,value in sorted(answers.items())}
             result = _result(questions, answers)
             profile = {
+                "protected_member_code_name": command.protected_member_code_name,
+                "project_code_name": command.project_code_name,
+                "handling_profile": command.handling_profile,
+                "handling_authority": command.handling_authority,
+                "designating_agency": command.designating_agency,
+                "contract_reference": command.contract_reference,
+                "dissemination_controls": command.dissemination_controls,
                 "facility_scope": command.facility_scope,
                 "facility_locations": command.facility_locations,
                 "personnel_range": command.personnel_range,
@@ -1733,6 +1980,13 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 ("SPA-PROFILE-"+secrets.token_hex(16).upper(),submission_key,PACKAGE_PROFILE_VERSION,
                  _json(profile),_sha(_json(profile)),PACKAGE_RECOMMENDATION_VERSION,_json(package),created),
             )
+            report_identity = _insert_report_identity(
+                conn,
+                account_key=account["account_key"],
+                session_key=session["session_key"],
+                values=command.model_dump(),
+                created_by="Protected Member Account",
+            )
             conn.execute("UPDATE advisor_public_sessions SET status='Submitted',submitted_at=? WHERE session_key=?",(created,session["session_key"]))
             conn.execute("DELETE FROM advisor_public_profile_drafts WHERE session_key=?", (session["session_key"],))
             conn.execute("INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
@@ -1744,9 +1998,9 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             participant_key = "SPA-NOTIFY-" + secrets.token_hex(16).upper()
             internal_body = (
                 "A new Protection Advisor assessment is awaiting Salus review.\n\n"
-                f"Organization: {command.organization_name}\n"
-                f"Contact: {command.contact_name}\n"
-                f"Email: {command.contact_email}\n"
+                f"Protected Member code: {command.protected_member_code_name}\n"
+                f"Project code: {command.project_code_name}\n"
+                f"Requested handling: {command.handling_profile} ({report_identity['handling_status']})\n"
                 f"Preliminary recommendation: {result['recommendation']}\n"
                 f"Attention areas: {result['attention_count']}\n"
                 f"Information gaps: {result['information_gap_count']}\n\n"
@@ -1756,6 +2010,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             participant_body = (
                 f"Hello {command.contact_name},\n\n"
                 "Salus Solutions received your Protection Advisor assessment.\n\n"
+                f"Project code: {command.project_code_name}\n"
                 f"Preliminary recommendation: {result['recommendation']}\n"
                 f"Potential attention areas: {result['attention_count']}\n"
                 f"Information gaps: {result['information_gap_count']}\n\n"
@@ -1768,7 +2023,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             conn.execute(
                 "INSERT INTO advisor_public_notification_outbox VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
                 (internal_key,submission_key,"Salus Reviewer",NOTIFICATION_TO,
-                 f"Protection Advisor submission: {command.organization_name}",internal_body,
+                 f"Protection Advisor submission: {command.project_code_name}",internal_body,
                  "Pending",0,"","","",outbox_created),
             )
             conn.execute(
@@ -1789,8 +2044,37 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 "result_reference": submission_key,
                 "result": result,
                 "package": package,
+                "report_identity": report_identity,
                 "notifications": [dict(row) for row in notification_rows],
             }
+        finally:
+            conn.close()
+
+    @app.post("/public/protection-advisor/report-identity")
+    async def revise_public_report_identity(command: ReportIdentityCommand, request: Request) -> dict[str, Any]:
+        limited(request, request.cookies.get("salus_advisor_session", ""))
+        conn = ctx["db"]()
+        try:
+            session, _ = _session(conn, request)
+            account = _account_session(conn, request)
+            _require_account_assessment(conn, account["account_key"], session["session_key"])
+            if session["status"] != "Submitted":
+                raise HTTPException(409, "Report identity can be revised after submission")
+            report_identity = _insert_report_identity(
+                conn,
+                account_key=account["account_key"],
+                session_key=session["session_key"],
+                values=command.model_dump(),
+                created_by="Protected Member Account",
+            )
+            conn.execute(
+                "INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
+                ("SPA-EVENT-"+secrets.token_hex(16).upper(), session["session_key"],
+                 "Report Identity Revised", report_identity["created_at"],
+                 _sha(_json({"revision_no": report_identity["revision_no"]}))),
+            )
+            conn.commit()
+            return {"report_identity": report_identity}
         finally:
             conn.close()
 

@@ -96,6 +96,10 @@ with tempfile.TemporaryDirectory() as td:
     assert "onclick=\"printAdvisor('part2')\"" not in embedded.text
     assert "print-part1" in embedded.text and "print-part2" in embedded.text
     assert "CONFIDENTIAL" in embedded.text
+    assert "Protected Member Code Name" in embedded.text
+    assert "Requested report-handling profile" in embedded.text
+    assert "SPA-REPORT-TEMPLATE-1.0.0" in embedded.text
+    assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in embedded.text
     assert 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' in embedded.text
     assert "frame-ancestors https://www.salus.solutions https://salus.solutions" in embedded.headers["content-security-policy"]
     assert "x-frame-options" not in embedded.headers
@@ -152,6 +156,8 @@ with tempfile.TemporaryDirectory() as td:
     }
 
     no_account=client.post("/public/protection-advisor/submit",headers=headers,json={
+        "protected_member_code_name":"Blocked Member","project_code_name":"Blocked Project",
+        "handling_profile":"Commercial Confidential",
         "organization_name":"Blocked","contact_name":"Blocked","contact_email":"contact@example.com",
         "detailed_assessment_acknowledged":True,"identifiable_retention_consent":True,
         "facility_scope":"One facility","facility_locations":"Texas","personnel_range":"26–100",
@@ -177,7 +183,11 @@ with tempfile.TemporaryDirectory() as td:
     assert created.json()["authenticated"] is True
 
     draft=client.post("/public/protection-advisor/draft",headers=headers,json={
-        "fields":{"organization_name":"Public Pilot Organization","personnel_range":"101–500"}
+        "fields":{"protected_member_code_name":"Blue Lantern","project_code_name":"Steady Harbor",
+                  "handling_profile":"Federal CUI","handling_authority":"Federal contract clause",
+                  "designating_agency":"Example Federal Agency","contract_reference":"TASK-TEST-001",
+                  "dissemination_controls":"Authorized recipients only",
+                  "organization_name":"Public Pilot Organization","personnel_range":"101–500"}
     })
     assert draft.status_code==200,draft.text
 
@@ -189,9 +199,18 @@ with tempfile.TemporaryDirectory() as td:
     assert resumed.status_code==200,resumed.text
     resumed_payload=resumed.json()
     assert resumed_payload["draft"]["organization_name"]=="Public Pilot Organization"
+    assert resumed_payload["draft"]["protected_member_code_name"]=="Blue Lantern"
+    assert resumed_payload["draft"]["project_code_name"]=="Steady Harbor"
     headers={"X-CSRF-Token":resumed_payload["csrf_token"]}
 
     submitted=client.post("/public/protection-advisor/submit",headers=headers,json={
+        "protected_member_code_name":"Blue Lantern",
+        "project_code_name":"Steady Harbor",
+        "handling_profile":"Federal CUI",
+        "handling_authority":"Federal contract clause",
+        "designating_agency":"Example Federal Agency",
+        "contract_reference":"TASK-TEST-001",
+        "dissemination_controls":"Authorized recipients only",
         "organization_name":"Public Pilot Organization",
         "contact_name":"Assessment Contact",
         "contact_email":"contact@example.com",
@@ -227,6 +246,12 @@ with tempfile.TemporaryDirectory() as td:
     assert all(item["capabilities"] and item["why"] for item in package["services"])
     assert package["core_capabilities_considered"]==32
     assert package["sequence"]
+    identity=submitted.json()["report_identity"]
+    assert identity["protected_member_code_name"]=="Blue Lantern"
+    assert identity["project_code_name"]=="Steady Harbor"
+    assert identity["handling_profile"]=="Federal CUI"
+    assert identity["handling_status"]=="Pending Salus Review"
+    assert identity["revision_no"]==1
     notifications=submitted.json()["notifications"]
     assert {row["audience"] for row in notifications}=={"Participant","Salus Reviewer"}
 
@@ -248,7 +273,21 @@ with tempfile.TemporaryDirectory() as td:
     assert retained_payload["result"]==result
     assert retained_payload["package"]==package
     assert retained_payload["submitted_at"]
+    assert retained_payload["report_identity"]["project_code_name"]=="Steady Harbor"
     headers={"X-CSRF-Token":retained_payload["csrf_token"]}
+
+    revised=client.post("/public/protection-advisor/report-identity",headers=headers,json={
+        "protected_member_code_name":"Blue Lantern",
+        "project_code_name":"Steady Harbor Two",
+        "handling_profile":"Commercial Confidential",
+        "handling_authority":"","designating_agency":"","contract_reference":"",
+        "dissemination_controls":"Authorized recipients only",
+    })
+    assert revised.status_code==200,revised.text
+    revised_identity=revised.json()["report_identity"]
+    assert revised_identity["revision_no"]==2
+    assert revised_identity["project_code_name"]=="Steady Harbor Two"
+    assert revised_identity["handling_status"]=="Approved by Default Policy"
 
     conn=sqlite3.connect(db_path)
     conn.row_factory=sqlite3.Row
@@ -261,15 +300,22 @@ with tempfile.TemporaryDirectory() as td:
     assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
     assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.0.0"
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_profile_drafts").fetchone()[0]==0
+    identity_rows=conn.execute("SELECT * FROM advisor_public_report_identity_revisions ORDER BY revision_no").fetchall()
+    assert len(identity_rows)==2
+    assert identity_rows[0]["project_code_name"]=="Steady Harbor"
+    assert identity_rows[1]["project_code_name"]=="Steady Harbor Two"
+    assert identity_rows[0]["content_sha256"]
     review_row=dict(submission)
     review_row["notification_state"]="Pending"
     submission_key=submission["submission_key"]
     conn.close()
 
     review_page_html=_review_page([review_row])
-    review_detail_html=_review_detail(review_row)
+    review_detail_html=_review_detail(review_row,dict(identity_rows[-1]))
     assert "Public Pilot Organization" in review_page_html
     assert "Assessment Contact" in review_detail_html
+    assert "Steady Harbor Two" in review_detail_html
+    assert "Commercial Confidential" in review_detail_html
     assert '<header class="salus-header">' in review_page_html
     assert '<header class="salus-header">' in review_detail_html
     assert "font-size:56px" in review_page_html
