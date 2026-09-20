@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 20 September 2026 09:30 CDT
+last_verified_at: 20 September 2026 09:55 CDT
 current_frozen_release: v3.147
 current_frozen_commit: cc39bcd58dd043aaf839a5d41c2902e4e9678457
 active_development_branch: development/salcapa-platform
-current_development_head: be2658ed67e61f0f53aa935471499134952a21c8
+current_development_head: pending
 active_product_milestone: issue_370_governed_document_ingestion
 active_build_system_issue: 370
-active_increment: issue_370_v3147_administrator_intake_review_workspace_live_accepted
+active_increment: issue_370_v3148_human_review_indexing_and_evidence_routing_workspace
 last_completed_increment: issue_370_v3147_administrator_intake_review_workspace_live_acceptance
-candidate_release: none
+candidate_release: v3.148
 validation_pr: none
-validation_branch: release/v3.147
+validation_branch: release/v3.148
 validation_base: development/salcapa-platform
-validation_head: cc39bcd58dd043aaf839a5d41c2902e4e9678457
-validation_gate_state: all_required_gates_green
+validation_head: pending
+validation_gate_state: github_validation_running
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
-repair_summary: none
+repair_summary: governed_post_capture_review_indexing_and_evidence_routing_workspace
 genuine_blockers: none
-next_authorized_step: governed_human_review_and_indexing_workspace_acceptance
+next_authorized_step: validate_freeze_publish_deploy_and_live_accept_v3148
 deployed_demo_release: v3.147
 deployed_demo_state: administrator_intake_review_workspace_and_nested_m365_live_acceptance_passed_and_temporary_job_deleted
 ---

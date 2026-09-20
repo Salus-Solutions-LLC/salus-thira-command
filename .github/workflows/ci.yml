@@ -117,6 +117,9 @@ jobs:
       - name: Governed M365 administrator intake review workspace
         run: python tools/ci_m365_intake_review_ui_smoke.py
 
+      - name: Governed post-capture review, indexing, and routing workspace
+        run: python tools/ci_v3148_material_governance_ui_smoke.py
+
       - name: Governed Microsoft 365 report-storage regression smoke
         run: python tools/ci_m365_governed_reports_smoke.py
       - name: Live runtime acceptance contract smoke

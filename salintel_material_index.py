@@ -216,6 +216,87 @@ def register_salintel_material_index(app: Any, core: dict[str, Any]) -> None:
         finally:
             conn.close()
 
+    @app.get(
+        "/api/salintel/research/material-derivatives/{derivative_id}/index-status",
+        include_in_schema=False,
+    )
+    def material_index_status(
+        derivative_id: int, request: Request,
+    ) -> dict[str, Any]:
+        internal_request(request)
+        tid = int(tenant_id(request))
+        conn = db()
+        try:
+            row = conn.execute(
+                "SELECT d.id derivative_id,d.tenant_id,d.review_status,"
+                "m.sensitivity,m.disposition_status,m.immutable_original,"
+                "i.id index_id,i.index_key,i.evidence_status,i.status index_status,"
+                "i.indexed_by,i.indexed_at "
+                "FROM material_derivatives d "
+                "JOIN materials m ON m.id=d.source_material_id "
+                "LEFT JOIN salintel_material_index i ON i.derivative_id=d.id "
+                "WHERE d.id=?",
+                (derivative_id,),
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "Material derivative not found")
+            if int(row["tenant_id"]) != tid:
+                security_event(
+                    request, "SALINTEL_INDEX_STATUS_TENANT_BOUNDARY_VIOLATION", "High",
+                    f"derivative_id={derivative_id}",
+                )
+                raise HTTPException(403, "Tenant boundary violation")
+            require_sensitivity(request, row["sensitivity"])
+            routes = []
+            if row["index_id"] is not None:
+                try:
+                    routes = [
+                        {
+                            "route_id": route["id"],
+                            "route_key": route["route_key"],
+                            "assessment_id": route["assessment_id"],
+                            "evidence_id": route["evidence_id"],
+                            "evidence_status": route["evidence_status"],
+                            "routed_at": route["routed_at"],
+                            "status": route["status"],
+                        }
+                        for route in conn.execute(
+                            "SELECT id,route_key,assessment_id,evidence_id,"
+                            "evidence_status,routed_at,status "
+                            "FROM salthira_material_evidence_routes "
+                            "WHERE tenant_id=? AND material_index_id=? ORDER BY id DESC",
+                            (tid, int(row["index_id"])),
+                        )
+                    ]
+                except Exception:
+                    routes = []
+            return {
+                "derivative_id": derivative_id,
+                "review_status": row["review_status"],
+                "eligible_for_indexing": (
+                    row["review_status"] == "Human Reviewed"
+                    and row["disposition_status"] == "Active"
+                    and bool(row["immutable_original"])
+                    and row["index_id"] is None
+                ),
+                "indexed": row["index_id"] is not None,
+                "index_id": int(row["index_id"]) if row["index_id"] is not None else None,
+                "index_key": row["index_key"] or "",
+                "index_status": row["index_status"] or "Not Indexed",
+                "evidence_status": row["evidence_status"] or "Not Indexed",
+                "indexed_by": row["indexed_by"] or "",
+                "indexed_at": row["indexed_at"] or "",
+                "routes": routes,
+                "authority_note": (
+                    "Indexing and routing are separate human-authorized actions. "
+                    "Neither action establishes source truth or creates a finding, "
+                    "risk conclusion, recommendation, decision, operational authority, "
+                    "or disclosure approval."
+                ),
+            }
+        finally:
+            conn.close()
+
     @app.get("/api/salintel/research/material-index", include_in_schema=False)
     def search_material_index(
         request: Request,
