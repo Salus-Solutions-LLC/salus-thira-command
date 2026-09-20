@@ -114,6 +114,26 @@ class Intake:
         return items
 
     def read_document(self, item_id, *, access_classification):
+        if item_id == "01NEWFILE" and self.include_new:
+            item = next(row for row in self.list_files() if row["id"] == item_id)
+            content = b"%PDF-1.4 governed fictional test"
+            return GovernedM365Document(
+                item_id=item_id,
+                name=item["name"],
+                content=content,
+                size=len(content),
+                mime_type=item["mime_type"],
+                sha256=hashlib.sha256(content).hexdigest(),
+                etag=item["etag"],
+                ctag=item["ctag"],
+                last_modified=item["last_modified"],
+                source_owner=item["source_owner"],
+                source_owner_id=item["source_owner_id"],
+                last_modified_by=item["last_modified_by"],
+                web_url=item["web_url"],
+                access_classification=access_classification,
+                relative_path=item["relative_path"],
+            )
         item = self.metadata()
         assert item_id == item["id"]
         content = self.content()
@@ -251,6 +271,53 @@ def main():
             assert decision["batch_limit"] == 50
             assert decision["automatic_ingestion"] is False
             assert decision["automatic_reprocessing"] is False
+
+            execute = app.routes[(
+                "POST",
+                "/api/integrations/m365/intake/review-queue/execute-approved",
+            )]
+            executed = execute(
+                changes.M365ApprovedBatchCaptureIn(
+                    decision_ids=[
+                        item["decision_id"] for item in decision["items"]
+                    ],
+                    sensitivity="Restricted",
+                    purpose_tags=["SalINTEL research"],
+                    description="Bounded batch regression.",
+                    recording_authority_basis=(
+                        "Administrator approved current sources for governed capture."
+                    ),
+                ),
+                Request(),
+            )
+            assert executed["status"] == "Partial"
+            assert executed["requested"] == 2
+            assert executed["succeeded"] == 1
+            assert executed["failed"] == 1
+            assert executed["batch_limit"] == 25
+            assert executed["automatic_indexing"] is False
+            assert executed["automatic_finding_creation"] is False
+            new_result = next(
+                item for item in executed["items"] if item["item_id"] == "01NEWFILE"
+            )
+            missing_result = next(
+                item for item in executed["items"]
+                if item["item_id"] == "01VERSIONEDFILE"
+            )
+            assert new_result["status"] == "Succeeded"
+            assert new_result["material_id"] is not None
+            assert missing_result["status"] == "Failed"
+            assert "missing source" in missing_result["detail"].lower()
+
+            try:
+                changes.M365ApprovedBatchCaptureIn(
+                    decision_ids=list(range(1, 27)),
+                    recording_authority_basis="Bounded execution test.",
+                )
+            except Exception as exc:
+                assert "25" in str(exc)
+            else:
+                raise AssertionError("An execution batch exceeded the 25-item limit")
 
             reviewed = reconcile(Request())
             assert {
