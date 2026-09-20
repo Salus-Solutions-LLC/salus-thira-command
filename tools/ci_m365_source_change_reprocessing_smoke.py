@@ -234,7 +234,65 @@ def main():
             missing_tree = reconcile(Request())
             assert missing_tree["counts"]["Missing"] == 1
             assert missing_tree["counts"]["New"] == 1
+
+            batch_decide = app.routes[(
+                "POST",
+                "/api/integrations/m365/intake/review-queue/batch-decision",
+            )]
+            decision = batch_decide(
+                changes.M365BatchReviewDecisionIn(
+                    item_ids=["01VERSIONEDFILE", "01NEWFILE"],
+                    decision="Approve",
+                    reason="Administrator approved these current reconciliation items.",
+                ),
+                Request(),
+            )
+            assert decision["count"] == 2
+            assert decision["batch_limit"] == 50
+            assert decision["automatic_ingestion"] is False
+            assert decision["automatic_reprocessing"] is False
+
+            reviewed = reconcile(Request())
+            assert {
+                item["review_decision"] for item in reviewed["items"]
+                if item["item_id"] in {"01VERSIONEDFILE", "01NEWFILE"}
+            } == {"Approve"}
+
+            denied = Request()
+            denied.role = "Protected Member"
+            try:
+                batch_decide(
+                    changes.M365BatchReviewDecisionIn(
+                        item_ids=["01NEWFILE"],
+                        decision="Defer",
+                        reason="Unauthorized role test.",
+                    ),
+                    denied,
+                )
+            except HTTPException as exc:
+                assert exc.status_code == 403
+            else:
+                raise AssertionError("A non-administrator recorded a batch review decision")
+
+            try:
+                changes.M365BatchReviewDecisionIn(
+                    item_ids=[f"ITEM-{index}" for index in range(51)],
+                    decision="Approve",
+                    reason="Bounded batch test.",
+                )
+            except Exception as exc:
+                assert "50" in str(exc)
+            else:
+                raise AssertionError("A review batch exceeded the 50-item limit")
+
             Intake.visible_versioned = True
+            stale_review = reconcile(Request())
+            versioned = next(
+                item for item in stale_review["items"]
+                if item["item_id"] == "01VERSIONEDFILE"
+            )
+            assert versioned["status"] == "Changed"
+            assert versioned["review_decision"] == "Pending"
 
             changed = check(first["material_id"], Request())
             assert changed["status"] == "Changed"
