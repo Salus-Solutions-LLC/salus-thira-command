@@ -1,27 +1,27 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 19 September 2026 23:00 CDT
+last_verified_at: 20 September 2026 09:30 CDT
 environment: azure_development_demonstration
-deployed_release: v3.146
-deployed_commit: 063878408a68e8d5c25de26768c157c0eeca99fe
-image_digest: sha256:3e13f793e7438dd0b4c5c0a9558aaedca79c15d557b678c17fd76a97e1ee1061
-deployed_at: 19 September 2026 21:43 CDT
-deployment_workflow_run: 35489092343
+deployed_release: v3.147
+deployed_commit: cc39bcd58dd043aaf839a5d41c2902e4e9678457
+image_digest: sha256:4f03401ed545b7181b4be0c28b3f3557fa2c6ba9222b2ca61d07a694ee2b16d7
+deployed_at: 20 September 2026 09:30 CDT
+deployment_workflow_run: 35516139983
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.146
-current_stable_commit: 063878408a68e8d5c25de26768c157c0eeca99fe
-promotion_candidate: v3.146
-promotion_candidate_image_commit: 063878408a68e8d5c25de26768c157c0eeca99fe
-promotion_candidate_image_digest: sha256:3e13f793e7438dd0b4c5c0a9558aaedca79c15d557b678c17fd76a97e1ee1061
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:3e13f793e7438dd0b4c5c0a9558aaedca79c15d557b678c17fd76a97e1ee1061
-promotion_candidate_image_published_at: 19 September 2026 21:33 CDT
-promotion_candidate_image_workflow_run: 35489092343
+current_stable_release: v3.147
+current_stable_commit: cc39bcd58dd043aaf839a5d41c2902e4e9678457
+promotion_candidate: v3.147
+promotion_candidate_image_commit: cc39bcd58dd043aaf839a5d41c2902e4e9678457
+promotion_candidate_image_digest: sha256:4f03401ed545b7181b4be0c28b3f3557fa2c6ba9222b2ca61d07a694ee2b16d7
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:4f03401ed545b7181b4be0c28b3f3557fa2c6ba9222b2ca61d07a694ee2b16d7
+promotion_candidate_image_published_at: 20 September 2026 09:17 CDT
+promotion_candidate_image_workflow_run: 35515912887
 promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
 promotion_readiness: accepted
 fictional_member_seed_state: verified
 critical_journey_acceptance: verified
-rollback_baseline: v3.145
+rollback_baseline: v3.146
 genuine_blocker: none
 ---
 
@@ -40,7 +40,7 @@ This non-sensitive engineering record identifies the current accepted Azure deve
 
 ## Recovery and rollback
 
-Accepted **v3.144** remains the fail-closed rollback baseline recorded by the v3.145 release acceptance.
+Accepted **v3.146** remains the fail-closed rollback baseline recorded by the v3.147 release acceptance.
 
 Database rollback uses an independently validated restore, not destructive in-place reversal. A failed preflight, deployment, live acceptance, cleanup, readiness, identity, or tenant-isolation check fails closed and must preserve or restore the last accepted state.
 
@@ -64,4 +64,4 @@ Before any successor release is promoted, all required gates must pass on its ex
 
 ## Next authorized work
 
-Continue governed document ingestion with the v3.147 administrator Intake Review workspace while preserving v3.145 as the accepted rollback-safe baseline. Any additional source, write, report-publication, or production capability requires a separately governed successor.
+Continue with governed human review and separately authorized SalINTEL indexing and SalTHIRA evidence routing. Preserve v3.146 as the accepted rollback-safe baseline. Any expanded source, write, report-publication, or production capability requires a separately governed successor.
