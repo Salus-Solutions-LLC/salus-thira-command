@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 18 September 2026 17:42 CDT
-current_frozen_release: v3.136
-current_frozen_commit: 0eee07661658f229544317670c635568ce649bef
+last_verified_at: 19 September 2026 21:25 CDT
+current_frozen_release: v3.142
+current_frozen_commit: 451ebbaa94429ce50db5d721b7cb73c67c8be9c9
 active_development_branch: development/salcapa-platform
-current_development_head: 2b6bb8e5c0dc4358627abe4228600062c95b57b6
+current_development_head: 19115ede0d7e3da06c6f5aeb0b43ebce5f18b925
 active_product_milestone: issue_370_governed_document_ingestion
 active_build_system_issue: 370
-active_increment: issue_370_m365_material_persistence
-last_completed_increment: issue_370_m365_provenance_envelope
-candidate_release: none
+active_increment: issue_370_v3143_protection_advisor_ui_release
+last_completed_increment: issue_370_v3142_nested_m365_intake_acceptance
+candidate_release: v3.143
 validation_pr: none
-validation_branch: candidate/m365-material-persistence
+validation_branch: release/v3.143
 validation_base: development/salcapa-platform
-validation_head: 2b6bb8e5c0dc4358627abe4228600062c95b57b6
-validation_gate_state: all_required_gates_green
-failed_workflows: none
-first_root_failing_gate: none
-root_cause: none
-repair_head: none
-repair_summary: persist_approved_exact_folder_m365_sources_as_immutable_tenant_scoped_materials
+validation_head: 19115ede0d7e3da06c6f5aeb0b43ebce5f18b925
+validation_gate_state: github_validation_running
+failed_workflows: build_continuity_stale_checkpoint
+first_root_failing_gate: build_continuity_runtime_candidate_mismatch
+root_cause: continuity_record_preceded_v3142_live_acceptance_and_v3143_candidate
+repair_head: 19115ede0d7e3da06c6f5aeb0b43ebce5f18b925
+repair_summary: reconcile_v3142_acceptance_and_stage_tested_protection_advisor_embed_fixes_for_v3143
 genuine_blockers: none
-next_authorized_step: extract_and_index_approved_material_with_human_review
-deployed_demo_release: v3.136
-deployed_demo_state: full_m365_intake_acceptance_passed_and_temporary_job_deleted
+next_authorized_step: freeze_and_publish_v3143_after_all_required_gates_green
+deployed_demo_release: v3.142
+deployed_demo_state: nested_m365_intake_acceptance_passed_and_temporary_job_deleted
 ---
 
 # SalCAPA build continuity
@@ -44,6 +44,8 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **v3.130 is frozen, published, deployed, and live accepted.** It removes the duplicate visible Protection Advisor title from the embedded document while retaining an accessible hidden heading and the authoritative Wix title.
 - **v3.131 is frozen, published, deployed, and live accepted.** It makes the fixed workspace sidebar independently scrollable and presents the session action as the orange `< Sign Out` control.
 - **v3.136 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `0eee07661658f229544317670c635568ce649bef`; the immutable image is `sha256:e7a1a14af003806fa19875cb6ce13cef9e51c6c1f48338939ef7b174e39bc3a9`. Live OneDrive/SharePoint intake acceptance passed and the temporary Azure test job was deleted and verified absent.
+- **v3.142 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `451ebbaa94429ce50db5d721b7cb73c67c8be9c9`; the immutable image is `sha256:092c8506ac490dde32d5885b799fefb446e5fb7ed76dbe003002c5ee5728f290`. Acceptance used the correct `SalCAPA Intake` folder, exercised nested content, preserved governed fail-closed extraction outcomes for human review, and deleted the temporary Azure test job.
+- **v3.143 is the active candidate.** It keeps assessment navigation visible in the bounded Wix embed, places the Important Notice in the active assessment, and opens the Salus services catalog outside the Wix frame. Public Protection Advisor, CI, CodeQL, and contextual-intake checks passed on the functional change head; the versioned candidate is undergoing full validation.
 - The development head now persists administrator-approved, exact-folder Microsoft 365 sources as immutable tenant-scoped materials with source version, timestamp, owner, SHA-256 integrity, classification, audit history, and human-review status. It does not automatically index, create findings, or disclose content.
 - **v3.123 is the rollback release** at exact commit `4b976032fe2b8420ca2ec652ae7a7bfc5b130d87` and immutable image `sha256:33b17998643d102b02dc998c409d96f743ec7d5bd8928f05efa999cf8c59b3be`.
 
