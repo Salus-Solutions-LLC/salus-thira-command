@@ -35,6 +35,8 @@ CONSENT_PURPOSE = (
 )
 PROSPECT_RETENTION_DAYS = None
 PROSPECT_RETENTION_POLICY = "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
+# Database schemas retain a non-null sentinel while lifecycle state remains indefinite.
+INDEFINITE_RETENTION_EXPIRY = "9999-12-31T23:59:59Z"
 CONSENTED_FIELDS = (
     "organization_display_name",
     "contact_name",
@@ -2477,7 +2479,7 @@ def record_fictional_consent_and_prospect(
         raise PolicyIntegrityError("consent does not cover the current fictional evaluation")
 
     at_text = _utc_text(at)
-    expires_at = _utc_text(at + timedelta(days=PROSPECT_RETENTION_DAYS))
+    expires_at = INDEFINITE_RETENTION_EXPIRY
     status = (
         "Saved — Fictional"
         if submission.action == "Save for Later"
