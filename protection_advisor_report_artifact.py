@@ -55,6 +55,6 @@ def prepare_review_artifact(
         "status": "Prepared for Salus Review",
         "review_required": True,
         "report_reference": report_reference,
-        "template_version": "SPA-REPORT-TEMPLATE-1.0.0",
+        "template_version": "SPA-REPORT-TEMPLATE-1.1.0",
         "retention_policy_version": context.retention_policy_version,
     }

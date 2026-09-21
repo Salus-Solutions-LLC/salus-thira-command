@@ -1,7 +1,11 @@
 """Separate governed Microsoft 365 storage for Protection Advisor prospect reports."""
 from __future__ import annotations
 import os
+import hashlib
 from pathlib import Path
+from urllib.parse import quote, urlparse
+
+import httpx
 from salcapa_m365_reports import GovernedM365ReportConfig, GovernedM365Reports, M365ReportError
 
 def publish_advisor_docx(path: str, report_reference: str) -> dict:
@@ -35,5 +39,52 @@ def publish_advisor_docx(path: str, report_reference: str) -> dict:
     item_id = str(payload.get("id",""))
     if not item_id:
         raise M365ReportError("Microsoft 365 returned invalid Protection Advisor report metadata")
-    import hashlib
-    return {"status":"Stored for Salus Review","item_id":item_id,"name":str(payload.get("name",name))[:256],"size":len(content),"sha256":hashlib.sha256(content).hexdigest(),"review_required":True}
+
+    conversion_url = (
+        f"https://graph.microsoft.com/v1.0/drives/{quote(config.drive_id, safe='')}/"
+        f"items/{quote(item_id, safe='')}/content?format=pdf"
+    )
+    pdf_response = client._request("GET", conversion_url, headers={"Accept": "application/pdf"})
+    if pdf_response.status_code in (302, 303, 307, 308):
+        location = pdf_response.headers.get("Location", "")
+        parsed = urlparse(location)
+        if parsed.scheme != "https" or not (parsed.hostname or "").lower().endswith(".sharepoint.com"):
+            raise M365ReportError("Microsoft 365 returned an untrusted Advisor PDF location")
+        try:
+            pdf_response = client.client.get(location, headers={"Accept": "application/pdf"})
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            raise M365ReportError("Microsoft 365 Advisor PDF conversion download failed") from exc
+    if pdf_response.status_code != 200:
+        raise M365ReportError("Microsoft 365 could not convert the Advisor DOCX to PDF")
+    pdf_content = bytes(pdf_response.content)
+    if not pdf_content.startswith(b"%PDF") or len(pdf_content) > config.max_file_bytes:
+        raise M365ReportError("Microsoft 365 returned an invalid Advisor PDF")
+
+    pdf_name = f"Salus-Protection-Advisor-{report_reference}.pdf"
+    pdf_upload = client._request(
+        "PUT",
+        client._content_url(pdf_name),
+        headers={"Content-Type": "application/pdf"},
+        content=pdf_content,
+    )
+    if pdf_upload.status_code not in (200, 201):
+        raise M365ReportError("Microsoft 365 rejected the Protection Advisor PDF")
+    pdf_payload = pdf_upload.json()
+    pdf_item_id = str(pdf_payload.get("id", ""))
+    if not pdf_item_id:
+        raise M365ReportError("Microsoft 365 returned invalid Protection Advisor PDF metadata")
+
+    return {
+        "status": "Stored for Salus Review",
+        "item_id": item_id,
+        "name": str(payload.get("name", name))[:256],
+        "size": len(content),
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "pdf": {
+            "item_id": pdf_item_id,
+            "name": str(pdf_payload.get("name", pdf_name))[:256],
+            "size": len(pdf_content),
+            "sha256": hashlib.sha256(pdf_content).hexdigest(),
+        },
+        "review_required": True,
+    }
