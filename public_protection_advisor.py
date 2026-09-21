@@ -23,6 +23,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from telemetry import emit as emit_telemetry
 from protection_advisor_report_artifact import prepare_review_artifact
+from salcapa_m365_advisor_reports import publish_advisor_docx
 
 QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.0.0"
@@ -1525,7 +1526,17 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 report_reference="SPA-REPORT-" + submission_key.removeprefix("SPA-SUBMISSION-"),
                 generated_at=_utc_now(),
             )
-            return {"submission_key": submission_key, "artifact": artifact}
+            storage = {"status": "Not Configured", "review_required": True}
+            if artifact.get("status") == "Prepared for Salus Review":
+                artifact_path = os.path.join(
+                    os.getenv("SALUS_ADVISOR_REPORT_OUTPUT_DIR", ""),
+                    "SPA-REPORT-" + submission_key.removeprefix("SPA-SUBMISSION-") + ".docx",
+                )
+                storage = publish_advisor_docx(
+                    artifact_path,
+                    "SPA-REPORT-" + submission_key.removeprefix("SPA-SUBMISSION-"),
+                )
+            return {"submission_key": submission_key, "artifact": artifact, "storage": storage}
         finally:
             conn.close()
 
