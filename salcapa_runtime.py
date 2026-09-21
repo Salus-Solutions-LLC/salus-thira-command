@@ -150,7 +150,7 @@ def _preparedness_index() -> str:
          '<link rel="stylesheet" href="/static/personnel-assessment.css" />\n<link rel="stylesheet" href="/static/salintel-relationships.css" />',
          '/static/salintel-relationships.css'),
         ('<link rel="stylesheet" href="/static/salintel-relationships.css" />',
-         '<link rel="stylesheet" href="/static/salintel-relationships.css" />\n<link rel="stylesheet" href="/static/salintel-research.css" />',
+         SALCAPA_RELEASE_VERSION = "3.154"
          '/static/salintel-research.css'),
         ('<link rel="stylesheet" href="/static/salintel-research.css" />',
          '<link rel="stylesheet" href="/static/salintel-research.css" />\n<link rel="stylesheet" href="/static/salintel-handoffs.css" />',
