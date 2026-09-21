@@ -153,7 +153,9 @@ def render_protection_advisor_docx(
     cover_footer = deepcopy(cover_section.footer._element)
 
     blank_section = document.add_section(WD_SECTION.CONTINUOUS)
-    _clear_story(blank_section.header)
+    # The intentionally blank second page retains only the template's light
+    # CONFIDENTIAL watermark; it has no visible header text or footer.
+    _replace_story(blank_section.header, cover_header, cover_section.header.part)
     _clear_story(blank_section.footer)
 
     results_section = document.add_section(WD_SECTION.NEW_PAGE)
