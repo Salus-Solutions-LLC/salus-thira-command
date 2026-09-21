@@ -55,3 +55,14 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **v3.129 is frozen, published, deployed, and live accepted.** It resets the embedded document to its own top after assessment start and every question transition so later questions are not clipped inside the Wix iframe.
 - **v3.130 is frozen, published, deployed, and live accepted.** It removes the duplicate visible Protection Advisor title from the embedded document while retaining an accessible hidden heading and the authoritative Wix title.
 - **v3.131 is frozen, published, deployed, and live accepted.** It makes the fixed workspace sidebar independently scrollable and presents the session action as the orange `< Sign Out` control.
+
+
+## Required continuity controls
+
+A missing, split, duplicated, or partially displayed conversation is not a build blocker and must not cause completed work to be recreated.
+
+After every required gate is green, close the controlled validation pull request without merge, then advance only the exact verified head through a non-force fast-forward.
+
+Human-First Communications and Human Trust & Comprehension doctrine remain in force.
+
+Never place credentials, confidential Protected Member information, personal information, investigation content, secrets, or unnecessary financial data in this file.
