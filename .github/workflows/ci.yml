@@ -67,6 +67,8 @@ jobs:
         run: PYTHONPATH=. python tools/ci_protection_advisor_docx_report_smoke.py
       - name: Protection Advisor review artifact acceptance
         run: PYTHONPATH=. python tools/ci_protection_advisor_report_artifact_smoke.py
+      - name: Protection Advisor Microsoft 365 DOCX and PDF acceptance
+        run: PYTHONPATH=. python tools/ci_protection_advisor_m365_reports_smoke.py
       - name: Protection Advisor report readiness acceptance
         run: PYTHONPATH=. python tools/ci_advisor_report_config_smoke.py
       - name: Trademark-first product navigation acceptance
