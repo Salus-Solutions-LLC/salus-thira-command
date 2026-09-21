@@ -62,13 +62,13 @@ jobs:
       - name: Salus brand system acceptance
         run: python tools/ci_brand_system_smoke.py
       - name: Protection Advisor report contract acceptance
-        run: python tools/ci_protection_advisor_report_contract_smoke.py
+        run: PYTHONPATH=. python tools/ci_protection_advisor_report_contract_smoke.py
       - name: Protection Advisor DOCX report acceptance
-        run: python tools/ci_protection_advisor_docx_report_smoke.py
+        run: PYTHONPATH=. python tools/ci_protection_advisor_docx_report_smoke.py
       - name: Protection Advisor review artifact acceptance
-        run: python tools/ci_protection_advisor_report_artifact_smoke.py
+        run: PYTHONPATH=. python tools/ci_protection_advisor_report_artifact_smoke.py
       - name: Protection Advisor report readiness acceptance
-        run: python tools/ci_advisor_report_config_smoke.py
+        run: PYTHONPATH=. python tools/ci_advisor_report_config_smoke.py
       - name: Trademark-first product navigation acceptance
         run: python tools/ci_product_branding_smoke.py
       - name: Contextual guidance accessibility acceptance
