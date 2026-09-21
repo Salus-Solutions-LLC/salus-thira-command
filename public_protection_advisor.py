@@ -1522,7 +1522,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 assessment_authority=str(profile.get("decision_authority") or "Not provided"),
                 part1_text=json.dumps(result, sort_keys=True, indent=2),
                 part2_text=json.dumps(package, sort_keys=True, indent=2),
-                report_reference=submission_key,
+                report_reference="SPA-REPORT-" + submission_key.removeprefix("SPA-SUBMISSION-"),
                 generated_at=_utc_now(),
             )
             return {"submission_key": submission_key, "artifact": artifact}
