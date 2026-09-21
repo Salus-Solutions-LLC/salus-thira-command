@@ -558,6 +558,18 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
               value: m365ReportFolderItemId
             }
             {
+              name: 'SALUS_M365_ADVISOR_REPORT_FOLDER_ITEM_ID'
+              value: m365ReportFolderItemId
+            }
+            {
+              name: 'SALUS_ADVISOR_DOCX_TEMPLATE_PATH'
+              value: '/app/Protection Advisor Report Template.docx'
+            }
+            {
+              name: 'SALUS_ADVISOR_REPORT_OUTPUT_DIR'
+              value: '/app/data/advisor-reports'
+            }
+            {
               name: 'SALUS_M365_REPORT_MAX_FILE_BYTES'
               value: '26214400'
             }
