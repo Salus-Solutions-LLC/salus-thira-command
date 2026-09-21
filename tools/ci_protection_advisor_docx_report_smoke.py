@@ -1,25 +1,19 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from datetime import datetime, timezone
-from docx import Document
-from protection_advisor_report_contract import build_report_context
-from protection_advisor_docx_report import render_protection_advisor_docx
 
-TEMPLATE = """Client: (place client code name here)
-Client Tasking: (place project code name here)
-Day Month Year Time (DTG): (place date and time here)
-Report Reference: (place system-generated immutable reference here)
-Information Classification / Handling: (insert client-designated handling, sensitivity, disclosure, records, or distribution restrictions here; do not place classified or otherwise restricted information in this report unless Salus has expressly authorized and established the required handling environment.)
-(insert Protective Advisor report part 1 and protective advisor report part 2 here)
-"""
+from docx import Document
+from docx.enum.section import WD_SECTION
+
+from protection_advisor_docx_report import render_protection_advisor_docx
+from protection_advisor_report_contract import build_report_context
+
+
+template = Path("Protection Advisor Report Template.docx")
+assert template.is_file(), "approved Protection Advisor DOCX template is missing"
 
 with TemporaryDirectory() as tmp:
-    template = Path(tmp) / "template.docx"
     output = Path(tmp) / "rendered.docx"
-    doc = Document()
-    for line in TEMPLATE.splitlines():
-        doc.add_paragraph(line)
-    doc.save(template)
     context = build_report_context(
         client_code_name="CLIENT-FOX",
         project_code_name="PROJECT-ADVISOR-01",
@@ -37,11 +31,21 @@ with TemporaryDirectory() as tmp:
         part1_text="Preliminary Part 1 summary.",
         part2_text="Preliminary Part 2 package recommendation.",
     )
-    text = "\n".join(p.text for p in Document(output).paragraphs)
+
+    rendered = Document(output)
+    text = "\n".join(p.text for p in rendered.paragraphs)
     assert "CLIENT-FOX" in text
     assert "PROJECT-ADVISOR-01" in text
     assert "20-09-2026 14:30 UTC" in text
     assert "SPA-REPORT-0001" in text
     assert "CUI" in text
+    assert "Preliminary Part 1 summary." in text
     assert "Preliminary Part 2 package recommendation." in text
-print("Protection Advisor DOCX renderer smoke passed")
+    assert "This report has been prepared to assess" not in text
+    assert len(rendered.sections) == 3
+    assert rendered.sections[1].start_type == WD_SECTION.CONTINUOUS
+    assert rendered.sections[2].start_type == WD_SECTION.NEW_PAGE
+    assert not any(p.text.strip() for p in rendered.sections[1].header.paragraphs)
+    assert not any(p.text.strip() for p in rendered.sections[1].footer.paragraphs)
+
+print("Protection Advisor DOCX three-page renderer smoke passed")
