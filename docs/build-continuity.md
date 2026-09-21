@@ -21,11 +21,15 @@ first_root_failing_gate: none
 root_cause: none
 repair_head: ecfa9b10c514b42eab8850dd3041a008e2658cce
 repair_summary: protection_advisor_report_contract_compatibility_repair
-genuine_blockers: none
+genuine_blockers: deployment_continuity_superseded_pending_v3154_validation
 next_authorized_step: complete_v3154_validation_then_publish_and_deploy
 deployed_demo_release: v3.150
 deployed_demo_state: protection_advisor_anonymous_review_button_repaired_live_verified_and_nested_m365_acceptance_passed_with_temporary_job_deleted
 ---
+
+
+
+
 
 
 
@@ -35,12 +39,24 @@ deployed_demo_state: protection_advisor_anonymous_review_button_repaired_live_ve
 
 
 
+
+
+
+
 This non-sensitive engineering record is the restart point for the unified SalCAPA build. GitHub branches, commits, frozen releases, pull requests, workflow results, issues, and closed acceptance records. Those records control whenever they disagree with this file.
 
 
 
 
+
+
+
+
 ## Current verified checkpoint
+
+
+
+
 
 
 
@@ -53,16 +69,3 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **v3.127 is frozen, published, deployed, and live accepted.** It preserves the permanent OIDC callback and custom hostname, keeps Wix authoritative for the Protection Advisor shell, redirects the legacy application route to the canonical Wix page, and preserves the dedicated embed surface. All governed deployment and live identity checks passed.
 - **v3.128 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `5fbd01ab2dc34179a44c8f4fef94bcc4054c4123`; the immutable image is `sha256:81b0fa2f1419a6c72ff5891aad81633dae08d640f63f928546189d473fe2a194`. It replaces the expanding assessment with a bounded one-question-at-a-time flow.
 - **v3.129 is frozen, published, deployed, and live accepted.** It resets the embedded document to its own top after assessment start and every question transition so later questions are not clipped inside the Wix iframe.
-- **v3.130 is frozen, published, deployed, and live accepted.** It removes the duplicate visible Protection Advisor title from the embedded document while retaining an accessible hidden heading and the authoritative Wix title.
-- **v3.131 is frozen, published, deployed, and live accepted.** It makes the fixed workspace sidebar independently scrollable and presents the session action as the orange `< Sign Out` control.
-
-
-## Required continuity controls
-
-A missing, split, duplicated, or partially displayed conversation is not a build blocker and must not cause completed work to be recreated.
-
-After every required gate is green, close the controlled validation pull request without merge, then advance only the exact verified head through a non-force fast-forward.
-
-Human-First Communications and Human Trust & Comprehension doctrine remain in force.
-
-Never place credentials, confidential Protected Member information, personal information, investigation content, secrets, or unnecessary financial data in this file.
