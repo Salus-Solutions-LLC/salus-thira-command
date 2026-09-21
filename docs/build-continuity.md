@@ -11,10 +11,10 @@ active_build_system_issue: 370
 active_increment: protection_advisor_report_contract_compatibility
 last_completed_increment: protection_advisor_v3153_report_generation_acceptance
 candidate_release: v3.154
-validation_pr: pending
-validation_branch: release/v3.154
-validation_base: development/salcapa-platform
-validation_head: ecfa9b10c514b42eab8850dd3041a008e2658cce
+validation_pr: 513
+validation_branch: validation/v3.154
+validation_base: release/v3.154
+validation_head: b86edad70b207cd78fb332db8c110ab63369c1ad
 validation_gate_state: preflight
 failed_workflows: none
 first_root_failing_gate: none
@@ -34,7 +34,23 @@ deployed_demo_state: protection_advisor_anonymous_review_button_repaired_live_ve
 
 
 
+
+
+
+
+
+
+
+
 # SalCAPA build continuity
+
+
+
+
+
+
+
+
 
 
 
@@ -52,7 +68,23 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 
 
+
+
+
+
+
+
+
+
 ## Current verified checkpoint
+
+
+
+
+
+
+
+
 
 
 
@@ -67,5 +99,3 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 - **Permanent hostname restored:** `salcapa.salus.solutions` now has one SNI binding and an Azure-managed certificate; both the public root and readiness endpoint are healthy. DNS and the deployed v3.124 image were unchanged.
 - **v3.125 is frozen but was superseded before image publication.** It repairs FastAPI binding for the administrator-only Microsoft 365 status and exact-folder listing routes; those changes carry forward into v3.126. Tenant-consented Graph access remains least-privilege and read-only.
 - **v3.127 is frozen, published, deployed, and live accepted.** It preserves the permanent OIDC callback and custom hostname, keeps Wix authoritative for the Protection Advisor shell, redirects the legacy application route to the canonical Wix page, and preserves the dedicated embed surface. All governed deployment and live identity checks passed.
-- **v3.128 is frozen, published, deployed, and live accepted.** Frozen source is exact commit `5fbd01ab2dc34179a44c8f4fef94bcc4054c4123`; the immutable image is `sha256:81b0fa2f1419a6c72ff5891aad81633dae08d640f63f928546189d473fe2a194`. It replaces the expanding assessment with a bounded one-question-at-a-time flow.
-- **v3.129 is frozen, published, deployed, and live accepted.** It resets the embedded document to its own top after assessment start and every question transition so later questions are not clipped inside the Wix iframe.
