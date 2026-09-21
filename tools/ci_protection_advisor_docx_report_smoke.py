@@ -45,7 +45,11 @@ with TemporaryDirectory() as tmp:
     assert len(rendered.sections) == 3
     assert rendered.sections[1].start_type == WD_SECTION.CONTINUOUS
     assert rendered.sections[2].start_type == WD_SECTION.NEW_PAGE
-    assert not any(p.text.strip() for p in rendered.sections[1].header.paragraphs)
+    for section in rendered.sections:
+        header_xml = section.header._element.xml
+        assert "CONFIDENTIAL" in header_xml
+        assert "#bfbfbf" in header_xml.lower(), "watermark must remain light gray"
+        assert "z-index:-251658240" in header_xml, "watermark must remain behind readable content"
     assert not any(p.text.strip() for p in rendered.sections[1].footer.paragraphs)
 
 print("Protection Advisor DOCX three-page renderer smoke passed")
