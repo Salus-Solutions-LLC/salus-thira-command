@@ -47,7 +47,8 @@ def main() -> None:
         assert notice["content_sha256"] == repeated_notice["content_sha256"]
         assert notice["notice_version"] == advisor.CONSENT_NOTICE_VERSION
         assert notice["authorized_fields"] == list(advisor.CONSENTED_FIELDS)
-        assert notice["retention_days"] is None\n    assert notice["retention_policy_version"] == "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
+        assert notice["retention_days"] is None
+        assert notice["retention_policy_version"] == "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
         assert all(notice[flag] is False for flag in (
             "creates_charge", "creates_contract", "creates_membership",
             "creates_protected_member", "creates_disclosure",
