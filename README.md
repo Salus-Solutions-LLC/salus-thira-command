@@ -55,3 +55,14 @@ python tools/ci_salcapa_v33_identity_smoke.py
 ```
 
 Production is prepared for Microsoft Azure with passwordless GitHub deployment identity and passwordless Microsoft Entra runtime authentication through the Container App managed identity. No Azure deployment is automatic; billable infrastructure and production activation require explicit approval.
+## Protection Advisor report artifact handoff
+
+The authenticated Salus review route can prepare the approved branded DOCX report only after report handling is approved. The artifact remains preliminary and review-gated. Configure these deployment values before enabling Microsoft 365 storage:
+
+- `SALUS_ADVISOR_DOCX_TEMPLATE_PATH`: absolute path to the approved Protection Advisor DOCX template;
+- `SALUS_ADVISOR_REPORT_OUTPUT_DIR`: controlled writable staging directory for generated DOCX artifacts;
+- `SALUS_M365_ADVISOR_REPORT_FOLDER_ITEM_ID`: separate Microsoft 365 folder item ID for Protection Advisor reports;
+- existing `SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID`, `SALUS_M365_REPORT_DRIVE_ID`, and report size/retry settings.
+
+The Advisor folder must remain separate from Protected Member report storage. The upload path does not release a report, create a contract, create an invoice, or grant Protected Member access. CUI or other controlled handling remains subject to the approved authority and Salus human review.
+
