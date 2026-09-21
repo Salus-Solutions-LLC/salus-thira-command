@@ -22,6 +22,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from telemetry import emit as emit_telemetry
+from protection_advisor_report_artifact import prepare_review_artifact
 
 QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.0.0"
@@ -1479,6 +1480,52 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             )
             conn.commit()
             return {"report_identity": report_identity}
+        finally:
+            conn.close()
+
+    @app.post("/api/protection-advisor/review/{submission_key}/report")
+    def prepare_protection_advisor_review_report(submission_key: str, request: Request) -> dict[str, Any]:
+        """Prepare the branded DOCX only for an authenticated Salus reviewer."""
+        ctx["require"](request, "admin")
+        if not submission_key.startswith("SPA-SUBMISSION-"):
+            raise HTTPException(404, "Submission not found")
+        conn = ctx["db"]()
+        try:
+            row = conn.execute(
+                "SELECT * FROM advisor_public_submissions WHERE submission_key=?",
+                (submission_key,),
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "Submission not found")
+            identity = _latest_report_identity(conn, row["session_key"])
+            if not identity or identity.get("handling_status") != "Approved":
+                raise HTTPException(409, "Report handling must be approved before DOCX preparation")
+            session = conn.execute(
+                "SELECT organization_type FROM advisor_public_sessions WHERE session_key=?",
+                (row["session_key"],),
+            ).fetchone()
+            profile_row = conn.execute(
+                "SELECT profile_json, package_json FROM advisor_public_service_profiles WHERE submission_key=?",
+                (submission_key,),
+            ).fetchone()
+            if not session or not profile_row:
+                raise HTTPException(409, "Assessment profile is unavailable")
+            profile = json.loads(profile_row["profile_json"])
+            package = json.loads(profile_row["package_json"])
+            result = json.loads(row["result_json"])
+            artifact = prepare_review_artifact(
+                template_path=None,
+                output_dir=None,
+                identity=dict(identity),
+                organization_type=session["organization_type"],
+                public_service_role=str(profile.get("external_requirements") or "Not provided"),
+                assessment_authority=str(profile.get("decision_authority") or "Not provided"),
+                part1_text=json.dumps(result, sort_keys=True, indent=2),
+                part2_text=json.dumps(package, sort_keys=True, indent=2),
+                report_reference=submission_key,
+                generated_at=_utc_now(),
+            )
+            return {"submission_key": submission_key, "artifact": artifact}
         finally:
             conn.close()
 
