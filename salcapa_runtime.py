@@ -79,7 +79,7 @@ register_demo_fixture_contract(core)
 register_demo_evaluator(core)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.153"
+SALCAPA_RELEASE_VERSION = "3.154"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 
@@ -150,7 +150,7 @@ def _preparedness_index() -> str:
          '<link rel="stylesheet" href="/static/personnel-assessment.css" />\n<link rel="stylesheet" href="/static/salintel-relationships.css" />',
          '/static/salintel-relationships.css'),
         ('<link rel="stylesheet" href="/static/salintel-relationships.css" />',
-         SALCAPA_RELEASE_VERSION = "3.154"
+         '<link rel="stylesheet" href="/static/salintel-relationships.css" />\n<link rel="stylesheet" href="/static/salintel-research.css" />',
          '/static/salintel-research.css'),
         ('<link rel="stylesheet" href="/static/salintel-research.css" />',
          '<link rel="stylesheet" href="/static/salintel-research.css" />\n<link rel="stylesheet" href="/static/salintel-handoffs.css" />',
