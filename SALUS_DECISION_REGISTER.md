@@ -21,7 +21,7 @@
 | SAL-D017 | Use day-month-year dates and 24-hour time in SalCAPA. | Approved |
 | SAL-D018 | Default operating model is Chat first; use Work/Codex for executable software and deployments by exception. | Approved |
 | SAL-D019 | Approved artifacts must be inspected directly and must not be reconstructed from chat memory. | Approved 22 September 2026 |
-| SAL-D020 | OneDrive `SalCAPA Intake / 10 Pending Classification` is the governed staging queue. SalCAPA may automatically capture and inventory candidates, but promotion into SharePoint `Salus Knowledge Sources` requires human classification approval, destination verification, provenance retention, and duplicate controls. Source removal occurs only after verified promotion and separate retained authorization. | Approved 22 September 2026 |
+| SAL-D020 | OneDrive `SalCAPA Intake / 10 Pending Classification` is the governed staging queue. SalCAPA may automatically capture and inventory candidates, but promotion into SharePoint `Salus Knowledge Sources` requires human classification approval, destination verification, provenance retention, and duplicate controls. Source removal occurs only after verified promotion and separate retained authorization. | Superseded by SAL-D021 on 22 September 2026 |\n| SAL-D021 | SalCAPA automatically classifies and promotes low-risk, high-confidence knowledge after destination upload and SHA-256 verification. Sensitive, duplicate, conflicting, unsupported, superseded, restricted, or low-confidence material requires human exception review. Verified sources move to `90 Processed Intake` and are not deleted. | Approved 22 September 2026 |
 
 ## Register maintenance rule
 
