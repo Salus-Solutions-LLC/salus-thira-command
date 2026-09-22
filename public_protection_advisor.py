@@ -24,6 +24,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from telemetry import emit as emit_telemetry
 from protection_advisor_report_artifact import prepare_review_artifact
 from protection_advisor_docx_report import render_protection_advisor_pdf
+from protection_advisor_engagements import (
+    create_assessment_scope,
+    initialize_engagement_schema,
+    list_account_assessments,
+)
 from protection_advisor_report_contract import build_report_context
 from salcapa_m365_advisor_reports import publish_advisor_docx
 
@@ -217,6 +222,24 @@ class AccountLoginCommand(BaseModel):
     @classmethod
     def normalize_email(cls, value: str) -> str:
         return value.strip().casefold()
+
+
+class NewAccountAssessmentCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    organization_type: str
+
+    @field_validator("organization_type")
+    @classmethod
+    def valid_org_type(cls, value: str) -> str:
+        value = value.strip()
+        if value not in ORGANIZATION_TYPES:
+            raise ValueError("unsupported organization type")
+        return value
+
+
+class SelectAccountAssessmentCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    session_key: str = Field(pattern=r"^SPA-SESSION-[A-F0-9]{32}$")
 
 
 class PasswordResetRequestCommand(BaseModel):
@@ -661,6 +684,7 @@ def _initialize(conn: Any) -> None:
     CREATE INDEX IF NOT EXISTS idx_advisor_report_identity_session
       ON advisor_public_report_identity_revisions(session_key,revision_no);
     """)
+    initialize_engagement_schema(conn)
 
 
 def _session(conn: Any, request: Request) -> tuple[Any, str]:
@@ -708,6 +732,48 @@ def _require_account_assessment(conn: Any, account_key: str, session_key: str) -
     if not row or not row["detailed_assessment_acknowledged"] or not row["identifiable_retention_consent"]:
         raise HTTPException(403, "Part 2 acknowledgement and identifiable-information consent are required")
     return row
+
+
+def _account_assessment_payload(conn: Any, account: Any, session: Any, csrf: str) -> dict[str, Any]:
+    """Return one account-owned assessment without exposing another account's records."""
+    _require_account_assessment(conn, account["account_key"], session["session_key"])
+    payload: dict[str, Any] = {
+        "authenticated": True,
+        "email": account["email"],
+        "csrf_token": csrf,
+        "assessment_status": session["status"],
+        "session_key": session["session_key"],
+        "assessments": list_account_assessments(conn, account["account_key"]),
+    }
+    if session["status"] == "Submitted":
+        retained = conn.execute(
+            """SELECT s.submission_key,s.result_json,s.created_at,p.package_json
+                 FROM advisor_public_submissions s
+                 JOIN advisor_public_service_profiles p ON p.submission_key=s.submission_key
+                WHERE s.session_key=?""",
+            (session["session_key"],),
+        ).fetchone()
+        if not retained:
+            raise HTTPException(409, "Submitted assessment results are unavailable")
+        payload.update({
+            "result": json.loads(retained["result_json"]),
+            "package": json.loads(retained["package_json"]),
+            "submitted_at": retained["created_at"],
+            "result_reference": retained["submission_key"],
+            "report_identity": _latest_report_identity(conn, session["session_key"]) or {},
+        })
+    else:
+        draft = conn.execute(
+            "SELECT draft_json FROM advisor_public_profile_drafts WHERE session_key=?",
+            (session["session_key"],),
+        ).fetchone()
+        answers = _current_answers(conn, session["session_key"])
+        payload.update({
+            "questions": _questions(session["organization_type"]),
+            "answers": {key: row["answer_state"] for key, row in answers.items()},
+            "draft": json.loads(draft["draft_json"]) if draft else {},
+        })
+    return payload
 
 
 def _current_answers(conn: Any, session_key: str) -> dict[str, dict[str, Any]]:
@@ -925,6 +991,14 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <label>New password<input id="resetPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password"></label>
 <button onclick="resetAccountPassword()">Reset Password &gt;</button></div>
 <p id="accountError" class="error"></p></section>
+<section id="relationshipWorkspace" class="hidden panel"><p class="eyebrow">Protected Member Relationship</p>
+<h2>Your assessments and engagements</h2>
+<p>Manage separate assessments for different organizations, locations, projects, and functional areas under one Salus relationship. Each submitted assessment receives its own governed engagement and scope.</p>
+<div id="assessmentList"></div>
+<h3>Start another assessment</h3>
+<label>Organization type<select id="additionalOrganizationType"><option value="">Select your organization type</option>__OPTIONS__</select></label>
+<button type="button" onclick="startAdditionalAssessment()">Start New Assessment &gt;</button>
+<p id="workspaceStatus" class="muted"></p></section>
 <section id="profile" class="hidden panel"><p class="eyebrow">Part 2 — Confidential Organization and Service Profile</p>
 <h2>Help us prepare your tailored preliminary package</h2>
 <p>These candid questions help Salus understand scale, complexity, priorities, timing, and likely services. Identifying information is requested only because you elected to continue.</p>
@@ -962,7 +1036,7 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <section id="package" class="hidden result"></section>
 <section class="panel"><h2>Important notice</h2><p>Protection Advisor provides preliminary educational and decision-support information. It is not an emergency reporting service, completed THIRA, professional security assessment, legal or insurance advice, or guarantee against loss. Salus professionals review information, evidence, context, scope, recommendations, and pricing before issuing formal findings or proposals.</p></section>
 </main><script>
-let csrf="",questions=[],questionIndex=0,answerStates={},advisorResultReference="",reportIdentity={};
+let csrf="",questions=[],questionIndex=0,answerStates={},advisorResultReference="",reportIdentity={},accountEmailCurrent="";
 async function call(path,opts={}){opts.headers={"Content-Type":"application/json",...(csrf?{"X-CSRF-Token":csrf}:{}),...(opts.headers||{})};const r=await fetch(path,opts);const data=await r.json().catch(()=>({detail:"Request failed"}));if(!r.ok){const detail=data.detail;const message=Array.isArray(detail)?detail.map(item=>item.msg||"Invalid value").join(" "):(typeof detail==="string"?detail:"Request failed");throw new Error(message)}return data}
 async function startAssessment(){startError.textContent="";try{const data=await call("/public/protection-advisor/session",{method:"POST",body:JSON.stringify({organization_type:orgType.value,primary_consent:primary.checked,secondary_deidentified_consent:secondary.checked})});csrf=data.csrf_token;questions=data.questions;questionIndex=0;answerStates={};start.classList.add("hidden");assessment.classList.remove("hidden");renderQuestions();requestAnimationFrame(()=>window.scrollTo(0,0))}catch(x){startError.textContent=x.message}}
 function answerLabel(s){return s==="Validated"?"Yes — documented and recently validated":s==="Documented"?"Yes — documented but not recently tested":s==="Unknown"?"Not Sure":s==="Declined"?"Prefer Not to Answer":s}
@@ -974,17 +1048,21 @@ function handlingPresentation(identity){if(!identity||!identity.handling_profile
 function advisorPrintMeta(part,reference,confidential,identity={}){const handling=handlingPresentation(identity);const prepared=new Date().toLocaleString();const identifiers=confidential?'<div class="print-identifiers"><strong>Protected Member:</strong> '+escapeAdvisorHtml(identity.protected_member_code_name)+'<br><strong>Project:</strong> '+escapeAdvisorHtml(identity.project_code_name)+'<br><strong>Report Reference:</strong> '+escapeAdvisorHtml(reference)+'<br><strong>Prepared:</strong> '+escapeAdvisorHtml(prepared)+'<br><strong>Report Template:</strong> SPA-REPORT-TEMPLATE-1.1.0<br><span class="print-classification">'+escapeAdvisorHtml(handling.banner)+'</span>'+(handling.note?'<br>'+escapeAdvisorHtml(handling.note):'')+'</div>':'<div class="print-identifiers"><strong>Anonymous Report Reference:</strong> '+escapeAdvisorHtml(reference)+'<br><strong>Prepared:</strong> '+escapeAdvisorHtml(prepared)+'<br><strong>ANONYMOUS PRELIMINARY SUMMARY</strong></div>';return '<div class="print-meta"><div class="print-watermark">'+escapeAdvisorHtml(confidential?handling.watermark:"ANONYMOUS")+'</div><div class="print-brand"><img src="/static/salus-reticle.svg" alt=""><span>Salus Solutions</span></div><div class="print-report-title">Protection Advisor™ Assessment</div><strong>'+escapeAdvisorHtml(part)+'</strong>'+identifiers+'<p>This preliminary educational and decision-support output is not an emergency report, completed SalTHIRA™, professional certification, legal or insurance advice, or guarantee of safety.</p></div>'}
 async function downloadAdvisorReport(){const status=document.getElementById("detailedReportStatus");if(status)status.textContent="Preparing your professional PDF…";try{const response=await fetch("/public/protection-advisor/report.pdf",{method:"GET",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});if(!response.ok){let message="Professional report download failed";try{const error=await response.json();if(error.detail)message=error.detail}catch(_){}throw new Error(message)}const blob=await response.blob();if(blob.type&&blob.type!=="application/pdf")throw new Error("The report service did not return a PDF");const disposition=response.headers.get("content-disposition")||"";const match=disposition.match(/filename="?([^";]+)"?/i);const filename=match?match[1]:"Salus-Protection-Advisor-Report.pdf";const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);if(status)status.textContent="Professional PDF downloaded."}catch(error){if(status)status.textContent=error.message||"Professional report download failed"}}
 function printAdvisor(scope){if(scope==="part2"){downloadAdvisorReport();return}document.body.classList.remove("print-part1","print-part2");document.body.classList.add("print-part1");window.print();setTimeout(()=>document.body.classList.remove("print-part1"),0)}
-async function preliminaryResult(){assessmentError.textContent="";try{const data=await call("/public/protection-advisor/preliminary",{method:"POST",body:"{}"});const r=data.result;advisorResultReference=data.result_reference;assessment.classList.add("hidden");result.classList.remove("hidden");paths.classList.remove("hidden");result.innerHTML=advisorPrintMeta("Part 1 — Anonymous Preliminary Summary",advisorResultReference,false)+'<p class="eyebrow">Your Anonymous Preliminary Summary</p><h2>'+r.recommendation+'</h2><p>'+r.notice+'</p><p><strong>Potential attention areas:</strong> '+r.attention_count+'. <strong>Indicated strengths:</strong> '+r.strength_count+'. <strong>Information gaps:</strong> '+r.information_gap_count+'.</p><p>'+r.manual_next_step+'</p><div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part1&quot;)">Print or Save Preliminary Summary &gt;</button></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';result.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}catch(x){assessmentError.textContent=x.message}}
+async function preliminaryResult(){assessmentError.textContent="";try{const data=await call("/public/protection-advisor/preliminary",{method:"POST",body:"{}"});const r=data.result;advisorResultReference=data.result_reference;assessment.classList.add("hidden");result.classList.remove("hidden");paths.classList.toggle("hidden",Boolean(accountEmailCurrent));result.innerHTML=advisorPrintMeta("Part 1 — Anonymous Preliminary Summary",advisorResultReference,false)+'<p class="eyebrow">Your Anonymous Preliminary Summary</p><h2>'+r.recommendation+'</h2><p>'+r.notice+'</p><p><strong>Potential attention areas:</strong> '+r.attention_count+'. <strong>Indicated strengths:</strong> '+r.strength_count+'. <strong>Information gaps:</strong> '+r.information_gap_count+'.</p><p>'+r.manual_next_step+'</p><div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part1&quot;)">Print or Save Preliminary Summary &gt;</button></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';if(accountEmailCurrent){showProfileForAccount(accountEmailCurrent,{})}else{result.scrollIntoView({behavior:"smooth"})}reportProtectionAdvisorHeight()}catch(x){assessmentError.textContent=x.message}}
 function showProfileAgreement(event){event.preventDefault();profileAgreement.classList.remove("hidden");profileAgreement.scrollIntoView({behavior:"smooth"})}
 function openAccountLogin(event){event.preventDefault();accountAccess.classList.remove("hidden");accountAccess.scrollIntoView({behavior:"smooth"})}
 function confirmProfile(){profileAgreementError.textContent="";if(!detailAck.checked||!identifiableConsent.checked){profileAgreementError.textContent="Both acknowledgements are required before Part 2.";return}profileAgreement.classList.add("hidden");accountAccess.classList.remove("hidden");accountAccess.scrollIntoView({behavior:"smooth"})}
-function showProfileForAccount(email,draft){accountAccess.classList.add("hidden");contactEmail.value=email;contactEmail.readOnly=true;hydrateDraft(draft||{});profile.classList.remove("hidden");profile.scrollIntoView({behavior:"smooth"});enableAutosave()}
+function showProfileForAccount(email,draft){accountEmailCurrent=email;detailAck.checked=true;identifiableConsent.checked=true;accountAccess.classList.add("hidden");contactEmail.value=email;contactEmail.readOnly=true;hydrateDraft(draft||{});profile.classList.remove("hidden");profile.scrollIntoView({behavior:"smooth"});enableAutosave()}
 async function createAccount(){accountError.textContent="";try{if(accountPassword.value!==accountPasswordConfirm.value)throw new Error("Passwords do not match");const data=await call("/public/protection-advisor/account",{method:"POST",body:JSON.stringify({email:accountEmail.value,password:accountPassword.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked})});showProfileForAccount(data.email,data.draft)}catch(x){accountError.textContent=x.message}}
 function packageMarkup(p){return '<h2>'+p.title+'</h2><p>'+p.rationale+'</p>'+p.services.map(s=>'<div class="package-item"><h3>'+s.title+' — Level '+s.level+'</h3><p>'+s.summary+'</p><p><strong>Why this level:</strong> '+s.why+'</p><p><strong>Core capabilities addressed:</strong> '+s.capabilities.join(", ")+'</p></div>').join("")+(p.later_phase_services.length?'<h3>Possible later-phase services</h3><p>'+p.later_phase_services.map(s=>s.title+' — Level '+s.level).join("; ")+'</p>':'')+'<p><strong>Suggested sequence:</strong> '+p.sequence.join(" → ")+'</p><p>'+p.notice+'</p><a class="action" href="https://www.salus.solutions/contact">Discuss This Package With Salus &gt;</a>'}
 function identityEditorMarkup(i){return '<details class="notice"><summary><strong>Update report code names or requested handling</strong></summary><p class="muted">Changes create a new immutable revision. A controlled-information request remains Confidential unless an authorized Salus reviewer approves the marking.</p><label>Protected Member Code Name<input id="retainedMemberCode" value="'+escapeAdvisorHtml(i.protected_member_code_name||"")+'" maxlength="80"></label><label>Project Code Name<input id="retainedProjectCode" value="'+escapeAdvisorHtml(i.project_code_name||"")+'" maxlength="80"></label><label>Requested report-handling profile<select id="retainedHandlingProfile">'+["Commercial Confidential","Government Sensitive","Federal CUI","Government Contractor CUI","Specialized Regulated Information"].map(v=>'<option'+(v===i.handling_profile?' selected':'')+'>'+v+'</option>').join("")+'</select></label><label>Handling authority<input id="retainedHandlingAuthority" value="'+escapeAdvisorHtml(i.handling_authority||"")+'" maxlength="240"></label><label>Designating agency<input id="retainedDesignatingAgency" value="'+escapeAdvisorHtml(i.designating_agency||"")+'" maxlength="160"></label><label>Contract or task-order reference<input id="retainedContractReference" value="'+escapeAdvisorHtml(i.contract_reference||"")+'" maxlength="160"></label><label>Dissemination controls<input id="retainedDisseminationControls" value="'+escapeAdvisorHtml(i.dissemination_controls||"")+'" maxlength="240"></label><button type="button" onclick="updateReportIdentity()">Save New Revision &gt;</button><p id="identityUpdateStatus" class="muted"></p></details>'}
 async function updateReportIdentity(){const status=document.getElementById("identityUpdateStatus");status.textContent="Saving…";try{const data=await call("/public/protection-advisor/report-identity",{method:"POST",body:JSON.stringify({protected_member_code_name:retainedMemberCode.value,project_code_name:retainedProjectCode.value,handling_profile:retainedHandlingProfile.value,handling_authority:retainedHandlingAuthority.value,designating_agency:retainedDesignatingAgency.value,contract_reference:retainedContractReference.value,dissemination_controls:retainedDisseminationControls.value})});reportIdentity=data.report_identity;status.textContent="Revision "+reportIdentity.revision_no+" saved. Reloading the protected report.";setTimeout(()=>location.reload(),500)}catch(x){status.textContent=x.message}}
 function showRetainedResults(data){accountAccess.classList.add("hidden");profile.classList.add("hidden");const r=data.result,p=data.package;advisorResultReference=data.result_reference;reportIdentity=data.report_identity||{};package.classList.remove("hidden");package.innerHTML=advisorPrintMeta("Part 2 — Detailed Results and Preliminary Package",advisorResultReference,true,reportIdentity)+'<p class="eyebrow">Your Retained Protection Advisor Results</p><p class="muted">Submitted '+new Date(data.submitted_at).toLocaleString()+'. Sign in whenever you need to review this retained record.</p><p><strong>'+escapeAdvisorHtml(r.recommendation)+'</strong></p><p>Potential attention areas: '+r.attention_count+'. Indicated strengths: '+r.strength_count+'. Information gaps: '+r.information_gap_count+'.</p>'+identityEditorMarkup(reportIdentity)+packageMarkup(p)+'<div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part2&quot;)">Download Professional Detailed Report &gt;</button><p id="detailedReportStatus" class="muted" role="status" aria-live="polite"></p></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';package.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}
-async function loginAccount(){accountError.textContent="";try{const data=await call("/public/protection-advisor/login",{method:"POST",body:JSON.stringify({email:loginEmail.value,password:loginPassword.value})});csrf=data.csrf_token;questions=data.questions||[];if(data.assessment_status==="Submitted"){showRetainedResults(data)}else{showProfileForAccount(data.email,data.draft)}}catch(x){accountError.textContent=x.message}}
+function renderRelationshipWorkspace(data){accountEmailCurrent=data.email||accountEmailCurrent;relationshipWorkspace.classList.remove("hidden");const rows=data.assessments||[];assessmentList.innerHTML=rows.length?rows.map(a=>'<div class="package-item"><strong>'+escapeAdvisorHtml(a.engagement_name)+'</strong><br>'+escapeAdvisorHtml(a.organization_name)+' · '+escapeAdvisorHtml(a.functional_area)+'<br><span class="muted">'+escapeAdvisorHtml(a.organization_type)+' · '+escapeAdvisorHtml(a.status)+'</span><br><button type="button" data-session="'+escapeAdvisorHtml(a.session_key)+'" onclick="selectAccountAssessment(this.dataset.session)">Open This Assessment &gt;</button></div>').join(""):'<p>No assessments are available.</p>';reportProtectionAdvisorHeight()}
+function showSelectedAssessment(data){csrf=data.csrf_token;questions=data.questions||[];answerStates=data.answers||{};questionIndex=0;detailAck.checked=true;identifiableConsent.checked=true;profile.classList.add("hidden");package.classList.add("hidden");assessment.classList.add("hidden");if(data.assessment_status==="Submitted"){showRetainedResults(data)}else if(questions.length){assessment.classList.remove("hidden");renderQuestions();assessment.scrollIntoView({behavior:"smooth"})}}
+async function selectAccountAssessment(sessionKey){workspaceStatus.textContent="Opening assessment…";try{const data=await call("/public/protection-advisor/assessments/select",{method:"POST",body:JSON.stringify({session_key:sessionKey})});renderRelationshipWorkspace(data);showSelectedAssessment(data);workspaceStatus.textContent=""}catch(x){workspaceStatus.textContent=x.message}}
+async function startAdditionalAssessment(){workspaceStatus.textContent="";if(!additionalOrganizationType.value){workspaceStatus.textContent="Select an organization type.";return}try{const data=await call("/public/protection-advisor/assessments",{method:"POST",body:JSON.stringify({organization_type:additionalOrganizationType.value})});renderRelationshipWorkspace(data);showSelectedAssessment(data);workspaceStatus.textContent="New assessment started. Its organization, locations, functional area, and engagement will be confirmed before submission."}catch(x){workspaceStatus.textContent=x.message}}
+async function loginAccount(){accountError.textContent="";try{const data=await call("/public/protection-advisor/login",{method:"POST",body:JSON.stringify({email:loginEmail.value,password:loginPassword.value})});accountAccess.classList.add("hidden");accountEmailCurrent=data.email;renderRelationshipWorkspace(data);showSelectedAssessment(data)}catch(x){accountError.textContent=x.message}}
 async function requestPasswordReset(){accountError.textContent="";try{await call("/public/protection-advisor/password-reset-request",{method:"POST",body:JSON.stringify({email:loginEmail.value})});accountError.textContent="If the account exists, a password-reset message has been requested."}catch(x){accountError.textContent=x.message}}
 async function resetAccountPassword(){accountError.textContent="";try{const token=new URLSearchParams(location.search).get("reset_token")||"";await call("/public/protection-advisor/password-reset",{method:"POST",body:JSON.stringify({token:token,new_password:resetPassword.value})});accountError.textContent="Password reset. Sign in with the new password.";resetPanel.classList.add("hidden")}catch(x){accountError.textContent=x.message}}
 function draftFields(){return {protected_member_code_name:protectedMemberCode.value,project_code_name:projectCode.value,handling_profile:handlingProfile.value,handling_authority:handlingAuthority.value,designating_agency:designatingAgency.value,contract_reference:contractReference.value,dissemination_controls:disseminationControls.value,organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,facility_scope:facilityScope.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value),essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value}}
@@ -1871,6 +1949,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 "email": account["email"],
                 "csrf_token": csrf,
                 "assessment_status": linked["status"],
+                "assessments": list_account_assessments(conn, account["account_key"]),
             }
             if retained:
                 payload.update({
@@ -1892,6 +1971,114 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 secure=ctx.get("COOKIE_SECURE", True), samesite="strict",
                 max_age=30 * 24 * 3600, path="/",
             )
+            response.set_cookie(
+                "salus_advisor_session", advisor_token, httponly=True,
+                secure=ctx.get("COOKIE_SECURE", True), samesite="strict",
+                max_age=SESSION_HOURS * 3600, path="/",
+            )
+            return response
+        finally:
+            conn.close()
+
+    @app.get("/public/protection-advisor/assessments")
+    async def list_protection_advisor_assessments(request: Request) -> dict[str, Any]:
+        limited(request, request.cookies.get("salus_advisor_account", ""))
+        conn = ctx["db"]()
+        try:
+            _initialize(conn)
+            account = _account_session(conn, request)
+            return {"assessments": list_account_assessments(conn, account["account_key"])}
+        finally:
+            conn.close()
+
+    @app.post("/public/protection-advisor/assessments")
+    async def create_protection_advisor_assessment(
+        command: NewAccountAssessmentCommand, request: Request
+    ) -> JSONResponse:
+        """Start another assessment under the signed-in prospective relationship."""
+        limited(request, request.cookies.get("salus_advisor_account", ""))
+        conn = ctx["db"]()
+        try:
+            _initialize(conn)
+            account = _account_session(conn, request)
+            current_session, _ = _session(conn, request)
+            _require_account_assessment(
+                conn, account["account_key"], current_session["session_key"]
+            )
+            now = _utc_now()
+            session_key = "SPA-SESSION-" + secrets.token_hex(16).upper()
+            advisor_token = secrets.token_urlsafe(32)
+            csrf = secrets.token_urlsafe(24)
+            conn.execute(
+                """INSERT INTO advisor_public_sessions
+                (session_key,token_sha256,csrf_sha256,organization_type,primary_consent,
+                 secondary_deidentified_consent,consent_notice_version,retention_policy_version,
+                 questionnaire_version,status,created_at,expires_at)
+                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (session_key, _sha(advisor_token), _sha(csrf), command.organization_type, 1, 0,
+                 CONSENT_NOTICE_VERSION, RETENTION_POLICY_VERSION, QUESTIONNAIRE_VERSION,
+                 "Active", _utc_text(now), _utc_text(now + timedelta(hours=SESSION_HOURS))),
+            )
+            conn.execute(
+                """INSERT INTO advisor_public_account_assessments
+                   (account_key,session_key,detailed_assessment_acknowledged,
+                    identifiable_retention_consent,acknowledged_at)
+                   VALUES(?,?,?,?,?)""",
+                (account["account_key"], session_key, 1, 1, _utc_text(now)),
+            )
+            conn.execute(
+                "INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
+                ("SPA-EVENT-" + secrets.token_hex(16).upper(), session_key,
+                 "Additional Assessment Started", _utc_text(now),
+                 _sha(_json({"organization_type": command.organization_type}))),
+            )
+            session = conn.execute(
+                "SELECT * FROM advisor_public_sessions WHERE session_key=?", (session_key,)
+            ).fetchone()
+            conn.commit()
+            response = JSONResponse(_account_assessment_payload(conn, account, session, csrf))
+            response.set_cookie(
+                "salus_advisor_session", advisor_token, httponly=True,
+                secure=ctx.get("COOKIE_SECURE", True), samesite="strict",
+                max_age=SESSION_HOURS * 3600, path="/",
+            )
+            return response
+        finally:
+            conn.close()
+
+    @app.post("/public/protection-advisor/assessments/select")
+    async def select_protection_advisor_assessment(
+        command: SelectAccountAssessmentCommand, request: Request
+    ) -> JSONResponse:
+        """Select one account-owned assessment and rotate its browser credentials."""
+        limited(request, request.cookies.get("salus_advisor_account", ""))
+        conn = ctx["db"]()
+        try:
+            _initialize(conn)
+            account = _account_session(conn, request)
+            current_session, _ = _session(conn, request)
+            _require_account_assessment(
+                conn, account["account_key"], current_session["session_key"]
+            )
+            _require_account_assessment(conn, account["account_key"], command.session_key)
+            session = conn.execute(
+                """SELECT * FROM advisor_public_sessions
+                    WHERE session_key=? AND status IN ('Active','Submitted') AND deleted_at=''""",
+                (command.session_key,),
+            ).fetchone()
+            if not session:
+                raise HTTPException(404, "Assessment is unavailable")
+            now = _utc_now()
+            advisor_token = secrets.token_urlsafe(32)
+            csrf = secrets.token_urlsafe(24)
+            conn.execute(
+                """UPDATE advisor_public_sessions SET token_sha256=?,csrf_sha256=?,expires_at=?
+                    WHERE session_key=?""",
+                (_sha(advisor_token), _sha(csrf), _utc_text(now + timedelta(hours=SESSION_HOURS)),
+                 command.session_key),
+            )
+            conn.commit()
+            response = JSONResponse(_account_assessment_payload(conn, account, session, csrf))
             response.set_cookie(
                 "salus_advisor_session", advisor_token, httponly=True,
                 secure=ctx.get("COOKIE_SECURE", True), samesite="strict",
@@ -2099,6 +2286,25 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 values=command.model_dump(),
                 created_by="Protected Member Account",
             )
+            engagement_scope = create_assessment_scope(
+                conn,
+                account_key=account["account_key"],
+                session_key=session["session_key"],
+                organization_name=command.organization_name,
+                organization_type=session["organization_type"],
+                project_name=command.project_code_name,
+                location_description=command.facility_locations or command.facility_scope,
+                functional_area=command.primary_objective,
+                objective=command.primary_objective,
+                created_at=created,
+            )
+            profile["organization_name"] = command.organization_name
+            profile["engagement_scope"] = engagement_scope
+            conn.execute(
+                """UPDATE advisor_public_service_profiles
+                      SET profile_json=?,profile_sha256=? WHERE submission_key=?""",
+                (_json(profile), _sha(_json(profile)), submission_key),
+            )
             conn.execute("UPDATE advisor_public_sessions SET status='Submitted',submitted_at=? WHERE session_key=?",(created,session["session_key"]))
             conn.execute("DELETE FROM advisor_public_profile_drafts WHERE session_key=?", (session["session_key"],))
             conn.execute("INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
@@ -2112,6 +2318,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 "A new Protection Advisor assessment is awaiting Salus review.\n\n"
                 f"Protected Member code: {command.protected_member_code_name}\n"
                 f"Project code: {command.project_code_name}\n"
+                f"Engagement: {engagement_scope['engagement_key']}\n"
                 f"Requested handling: {command.handling_profile} ({report_identity['handling_status']})\n"
                 f"Preliminary recommendation: {result['recommendation']}\n"
                 f"Attention areas: {result['attention_count']}\n"
@@ -2157,6 +2364,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 "result": result,
                 "package": package,
                 "report_identity": report_identity,
+                "engagement_scope": engagement_scope,
                 "notifications": [dict(row) for row in notification_rows],
             }
         finally:
