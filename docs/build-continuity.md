@@ -1,20 +1,20 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 21 September 2026 18:30 CDT
-current_frozen_release: v3.155
-current_frozen_commit: 1a3cc437971aa10600d22885727158ad7fac35c8
+last_verified_at: 21 September 2026 21:55 CDT
+current_frozen_release: v3.156
+current_frozen_commit: 6c0f6e46b390ebf3114b826192984df25c2a8c80
 active_development_branch: development/salcapa-platform
-current_development_head: 1a3cc437971aa10600d22885727158ad7fac35c8
+current_development_head: 8c159f6a790786eebf726d7f2a83e5a0013b9fce
 active_product_milestone: issue_370_governed_document_ingestion
 active_build_system_issue: 370
-active_increment: protection_advisor_v3155_https_sso
-last_completed_increment: protection_advisor_v3154_report_contract_compatibility
-candidate_release: v3.156
+active_increment: protection_advisor_v3157_handling_approval
+last_completed_increment: protection_advisor_v3156_governed_report_generation
+candidate_release: v3.157
 validation_pr: 514
-validation_branch: release/v3.156
+validation_branch: release/v3.157
 validation_base: development/salcapa-platform
-validation_head: a743f6c43bd2624bf4a266cd07d337800df23682
+validation_head: 8c159f6a790786eebf726d7f2a83e5a0013b9fce
 validation_gate_state: preflight
 failed_workflows: none
 first_root_failing_gate: none
