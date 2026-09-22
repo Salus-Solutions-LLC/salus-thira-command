@@ -370,4 +370,36 @@ with tempfile.TemporaryDirectory() as td:
     assert conn.execute("SELECT status FROM advisor_public_sessions").fetchone()[0]=="Deleted"
     conn.close()
 
+
+# Exercise the repository's approved Word template through the production renderer.
+# This guards against template page boundaries that are represented as Word
+# section breaks rather than explicit page-break runs.
+from protection_advisor_docx_report import render_protection_advisor_docx
+from protection_advisor_report_contract import build_report_context
+from docx import Document
+
+with tempfile.TemporaryDirectory() as report_td:
+    report_path = Path(report_td) / "acceptance.docx"
+    render_protection_advisor_docx(
+        template_path=ROOT / "Protection Advisor Report Template.docx",
+        output_path=report_path,
+        context=build_report_context(
+            client_code_name="Acceptance Member",
+            project_code_name="Acceptance Project",
+            organization_type="Business",
+            government_or_public_service_role="Not provided",
+            assessment_authority_or_sponsor="Salus reviewer",
+            information_handling="Confidential",
+            report_reference="SPA-REPORT-CI-ACCEPTANCE",
+            generated_at=datetime.now(timezone.utc),
+        ),
+        part1_text="Part 1 acceptance content",
+        part2_text="Part 2 acceptance content",
+    )
+    rendered = Document(report_path)
+    assert len(rendered.sections) >= 3
+    assert "Protection Advisor Assessment Results" in "\n".join(
+        paragraph.text for paragraph in rendered.paragraphs
+    )
+
 print("public Protection Advisor smoke passed")
