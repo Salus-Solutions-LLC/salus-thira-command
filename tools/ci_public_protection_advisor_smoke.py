@@ -101,6 +101,12 @@ with tempfile.TemporaryDirectory() as td:
     assert "URL.createObjectURL(blob)" in embedded.text
     assert "link.download=filename" in embedded.text
     assert 'window.location.assign("/public/protection-advisor/report.pdf")' not in embedded.text
+    assert 'id="relationshipWorkspace"' in embedded.text
+    assert "Your assessments and engagements" in embedded.text
+    assert "Start New Assessment" in embedded.text
+    assert 'fetch("/public/protection-advisor/assessments"' not in embedded.text
+    assert 'call("/public/protection-advisor/assessments"' in embedded.text
+    assert 'call("/public/protection-advisor/assessments/select"' in embedded.text
     assert "onclick=\"printAdvisor('part1')\"" not in embedded.text
     assert "onclick=\"printAdvisor('part2')\"" not in embedded.text
     assert "print-part1" in embedded.text and "print-part2" in embedded.text
@@ -263,6 +269,10 @@ with tempfile.TemporaryDirectory() as td:
     assert identity["revision_no"]==1
     notifications=submitted.json()["notifications"]
     assert {row["audience"] for row in notifications}=={"Participant","Salus Reviewer"}
+    engagement_scope=submitted.json()["engagement_scope"]
+    assert engagement_scope["organization_name"]=="Public Pilot Organization"
+    assert engagement_scope["engagement_name"]=="Steady Harbor"
+    assert engagement_scope["functional_area"]=="Facility or operational protection improvements"
 
     # The 24-hour advisor token is a security credential, not a result-retention limit.
     # Even after that token's stored expiry, a fresh account login must recover the
@@ -283,7 +293,40 @@ with tempfile.TemporaryDirectory() as td:
     assert retained_payload["package"]==package
     assert retained_payload["submitted_at"]
     assert retained_payload["report_identity"]["project_code_name"]=="Steady Harbor"
+    assert len(retained_payload["assessments"])==1
+    original_session=retained_payload["assessments"][0]["session_key"]
+    assert retained_payload["assessments"][0]["engagement_name"]=="Steady Harbor"
     headers={"X-CSRF-Token":retained_payload["csrf_token"]}
+
+    refused_additional=client.post(
+        "/public/protection-advisor/assessments",
+        headers={"X-CSRF-Token":"wrong"},
+        json={"organization_type":"Business"},
+    )
+    assert refused_additional.status_code==403
+    additional=client.post(
+        "/public/protection-advisor/assessments",
+        headers=headers,
+        json={"organization_type":"Business"},
+    )
+    assert additional.status_code==200,additional.text
+    additional_payload=additional.json()
+    assert additional_payload["assessment_status"]=="Active"
+    assert len(additional_payload["assessments"])==2
+    assert additional_payload["session_key"]!=original_session
+    headers={"X-CSRF-Token":additional_payload["csrf_token"]}
+
+    reopened=client.post(
+        "/public/protection-advisor/assessments/select",
+        headers=headers,
+        json={"session_key":original_session},
+    )
+    assert reopened.status_code==200,reopened.text
+    reopened_payload=reopened.json()
+    assert reopened_payload["assessment_status"]=="Submitted"
+    assert reopened_payload["result"]==result
+    assert len(reopened_payload["assessments"])==2
+    headers={"X-CSRF-Token":reopened_payload["csrf_token"]}
 
     revised=client.post("/public/protection-advisor/report-identity",headers=headers,json={
         "protected_member_code_name":"Blue Lantern",
@@ -309,6 +352,9 @@ with tempfile.TemporaryDirectory() as td:
     assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
     assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.0.0"
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_profile_drafts").fetchone()[0]==0
+    assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_portfolios").fetchone()[0]==1
+    assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_engagements").fetchone()[0]==1
+    assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_assessments").fetchone()[0]==1
     identity_rows=conn.execute("SELECT * FROM advisor_public_report_identity_revisions ORDER BY revision_no").fetchall()
     assert len(identity_rows)==2
     assert identity_rows[0]["project_code_name"]=="Steady Harbor"
