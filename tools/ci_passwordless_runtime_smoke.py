@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Regression checks for passwordless runtime initialization."""
 
+
 from __future__ import annotations
+
 
 import importlib
 import os
@@ -9,14 +11,19 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
+
+
 def reset(name: str):
     sys.modules.pop(name, None)
     return importlib.import_module(name)
+
+
 
 
 def main() -> None:
@@ -37,13 +44,16 @@ def main() -> None:
     for name in ("SALUS_DATABASE_URL", "SALUS_POSTGRES_DSN", "SALUS_AZURE_STORAGE_CONNECTION_STRING", "SALUS_OIDC_CLIENT_SECRET"):
         os.environ.pop(name, None)
 
+
     with patch("secret_provider.secret", side_effect=AssertionError("PostgreSQL Entra path requested a DSN secret")):
         database = reset("database")
     assert database.DATABASE_URL == ""
 
+
     managed_database = reset("managed_database")
     with patch.object(managed_database, "secret", side_effect=AssertionError("Managed database Entra path requested a DSN secret")):
         assert managed_database._postgres_dsn() == ""
+
 
     storage = reset("storage")
     with (
@@ -56,6 +66,7 @@ def main() -> None:
         "evidence",
         "https://salcapaexample.blob.core.windows.net/",
     )
+
 
     app_source = Path("app.py").read_text()
     method_line = "OIDC_CLIENT_AUTH_METHOD = os.getenv('SALUS_OIDC_CLIENT_AUTH_METHOD','client_secret').strip().lower()"
@@ -70,10 +81,13 @@ def main() -> None:
     assert "value: runtimeRedirectUri" in infrastructure_source
     assert "output runtimeRedirectUri string = runtimeRedirectUri" in infrastructure_source
     app_ui_source = Path("static/app.js").read_text()
-    assert '<a class="btn" id="oidc-login" href="/api/auth/oidc/start">Sign in with SSO</a>' in app_ui_source
+    assert '<a class="btn" id="oidc-login" href="https://salcapa.salus.solutions/api/auth/oidc/start">Sign in with SSO</a>' in app_ui_source
     assert "$('#oidc-login').onclick" not in app_ui_source
     print("PASSWORDLESS_RUNTIME_SECRET_PATHS_PASS")
 
 
+
+
 if __name__ == "__main__":
     main()
+
