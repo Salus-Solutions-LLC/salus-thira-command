@@ -1340,6 +1340,14 @@ def _review_detail(row: dict[str, Any], identity: dict[str, Any] | None = None) 
         f"<strong>Review status:</strong> {html.escape(identity.get('handling_status','Not assigned'))}<br>"
         f"<strong>Revision:</strong> {int(identity.get('revision_no',0))}</p>"
     )
+    report_action_html = (
+        "<h2>Governed report artifact</h2>"
+        "<form method='post' action='/api/protection-advisor/review/"
+        + html.escape(str(row["submission_key"]))
+        + "/report'><button type='submit'>Generate governed DOCX and PDF in SharePoint</button></form>"
+        if identity.get("handling_status") == "Approved"
+        else "<h2>Governed report artifact</h2><p class='notice'>Approve report handling before generating the governed DOCX and PDF.</p>"
+    )
     answers = json.loads(row["answer_snapshot_json"])
     answer_rows = "".join(
         f"<tr><td>{html.escape(key.replace('_',' ').title())}</td><td>{html.escape(str(value.get('answer_state','')))}</td></tr>"
@@ -1354,6 +1362,7 @@ main{{max-width:960px}}table{{width:100%;border-collapse:collapse}}td{{padding:1
 <p><strong>Contact:</strong> {html.escape(row['contact_name'])} · <a href="mailto:{html.escape(row['contact_email'])}">{html.escape(row['contact_email'])}</a><br>
 <strong>Submitted:</strong> {html.escape(row['created_at'])}<br><strong>Status:</strong> {html.escape(row['status'])}</p>
 {identity_html}
+{report_action_html}
 <h2>Preliminary result</h2><p class="notice"><strong>{html.escape(result.get('recommendation',''))}</strong><br>{html.escape(result.get('notice',''))}</p>
 <p>Potential attention areas: {int(result.get('attention_count',0))}. Information gaps: {int(result.get('information_gap_count',0))}.</p>
 <h2>Assessment answers</h2><table>{answer_rows}</table></main></body></html>"""
