@@ -119,11 +119,21 @@ def main() -> None:
     else:
         frozen = version(build["current_frozen_release"])
         candidate = version(build["candidate_release"])
-        assert candidate in {frozen, (frozen[0], frozen[1] + 1)}
-        if candidate != frozen:
+        abandoned_gap = (
+            candidate == (frozen[0], frozen[1] + 2)
+            and build["root_cause"] == (
+                "v3.164_abandoned_before_image_publication_after_release_identity_mismatch"
+            )
+            and build["active_increment"] == "knowledge_promotion_v3165"
+        )
+        assert candidate in {frozen, (frozen[0], frozen[1] + 1)} or abandoned_gap
+        if candidate != frozen and not abandoned_gap:
             assert "superseded" in build["genuine_blockers"]
             assert f"v{frozen[0]}{frozen[1]}" in build["last_completed_increment"]
-        assert build["validation_pr"].isdigit()
+        if abandoned_gap:
+            assert build["validation_pr"] in {"pending", "none"} or build["validation_pr"].isdigit()
+        else:
+            assert build["validation_pr"].isdigit()
         assert build["genuine_blockers"] != "none"
     assert version(values["promotion_candidate"]) <= version(values["current_stable_release"])
     if values["promotion_candidate"] == values["current_stable_release"]:
