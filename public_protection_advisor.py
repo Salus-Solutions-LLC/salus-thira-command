@@ -19,10 +19,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from telemetry import emit as emit_telemetry
 from protection_advisor_report_artifact import prepare_review_artifact
+from protection_advisor_docx_report import render_protection_advisor_pdf
+from protection_advisor_report_contract import build_report_context
 from salcapa_m365_advisor_reports import publish_advisor_docx
 
 QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
@@ -970,7 +972,7 @@ async function saveAnswer(key,state){assessmentError.textContent="";answerStates
 function escapeAdvisorHtml(value){return String(value||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
 function handlingPresentation(identity){if(!identity||!identity.handling_profile)return {banner:"CONFIDENTIAL — SALUS PROTECTED INFORMATION",watermark:"CONFIDENTIAL",note:""};if(identity.handling_status==="Approved"||identity.handling_status==="Approved by Default Policy"){const cui=identity.handling_profile.includes("CUI");return {banner:cui?"CONTROLLED UNCLASSIFIED INFORMATION (CUI)":identity.handling_profile.toUpperCase(),watermark:cui?"CUI":"CONFIDENTIAL",note:""};}return {banner:"CONFIDENTIAL — SALUS PROTECTED INFORMATION",watermark:"CONFIDENTIAL",note:"Requested handling profile: "+identity.handling_profile+" — awaiting authorized Salus review."}}
 function advisorPrintMeta(part,reference,confidential,identity={}){const handling=handlingPresentation(identity);const prepared=new Date().toLocaleString();const identifiers=confidential?'<div class="print-identifiers"><strong>Protected Member:</strong> '+escapeAdvisorHtml(identity.protected_member_code_name)+'<br><strong>Project:</strong> '+escapeAdvisorHtml(identity.project_code_name)+'<br><strong>Report Reference:</strong> '+escapeAdvisorHtml(reference)+'<br><strong>Prepared:</strong> '+escapeAdvisorHtml(prepared)+'<br><strong>Report Template:</strong> SPA-REPORT-TEMPLATE-1.1.0<br><span class="print-classification">'+escapeAdvisorHtml(handling.banner)+'</span>'+(handling.note?'<br>'+escapeAdvisorHtml(handling.note):'')+'</div>':'<div class="print-identifiers"><strong>Anonymous Report Reference:</strong> '+escapeAdvisorHtml(reference)+'<br><strong>Prepared:</strong> '+escapeAdvisorHtml(prepared)+'<br><strong>ANONYMOUS PRELIMINARY SUMMARY</strong></div>';return '<div class="print-meta"><div class="print-watermark">'+escapeAdvisorHtml(confidential?handling.watermark:"ANONYMOUS")+'</div><div class="print-brand"><img src="/static/salus-reticle.svg" alt=""><span>Salus Solutions</span></div><div class="print-report-title">Protection Advisor™ Assessment</div><strong>'+escapeAdvisorHtml(part)+'</strong>'+identifiers+'<p>This preliminary educational and decision-support output is not an emergency report, completed SalTHIRA™, professional certification, legal or insurance advice, or guarantee of safety.</p></div>'}
-function printAdvisor(scope){document.body.classList.remove("print-part1","print-part2");document.body.classList.add(scope==="part1"?"print-part1":"print-part2");window.print();setTimeout(()=>document.body.classList.remove("print-part1","print-part2"),0)}
+function printAdvisor(scope){if(scope==="part2"){window.location.assign("/public/protection-advisor/report.pdf");return}document.body.classList.remove("print-part1","print-part2");document.body.classList.add("print-part1");window.print();setTimeout(()=>document.body.classList.remove("print-part1"),0)}
 async function preliminaryResult(){assessmentError.textContent="";try{const data=await call("/public/protection-advisor/preliminary",{method:"POST",body:"{}"});const r=data.result;advisorResultReference=data.result_reference;assessment.classList.add("hidden");result.classList.remove("hidden");paths.classList.remove("hidden");result.innerHTML=advisorPrintMeta("Part 1 — Anonymous Preliminary Summary",advisorResultReference,false)+'<p class="eyebrow">Your Anonymous Preliminary Summary</p><h2>'+r.recommendation+'</h2><p>'+r.notice+'</p><p><strong>Potential attention areas:</strong> '+r.attention_count+'. <strong>Indicated strengths:</strong> '+r.strength_count+'. <strong>Information gaps:</strong> '+r.information_gap_count+'.</p><p>'+r.manual_next_step+'</p><div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part1&quot;)">Print or Save Preliminary Summary &gt;</button></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';result.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}catch(x){assessmentError.textContent=x.message}}
 function showProfileAgreement(event){event.preventDefault();profileAgreement.classList.remove("hidden");profileAgreement.scrollIntoView({behavior:"smooth"})}
 function openAccountLogin(event){event.preventDefault();accountAccess.classList.remove("hidden");accountAccess.scrollIntoView({behavior:"smooth"})}
@@ -2184,6 +2186,72 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             )
             conn.commit()
             return {"report_identity": report_identity}
+        finally:
+            conn.close()
+
+    @app.get("/public/protection-advisor/report.pdf")
+    def download_public_protection_advisor_report(request: Request) -> FileResponse:
+        """Return the professional preliminary report only to its linked Part 2 account."""
+        limited(request, request.cookies.get("salus_advisor_account", ""))
+        conn = ctx["db"]()
+        try:
+            session, _ = _session(conn, request)
+            account = _account_session(conn, request)
+            _require_account_assessment(conn, account["account_key"], session["session_key"])
+            if session["status"] != "Submitted":
+                raise HTTPException(409, "Submit Part 2 before downloading the detailed report")
+            row = conn.execute(
+                """SELECT s.submission_key,s.result_json,p.profile_json,p.package_json
+                     FROM advisor_public_submissions s
+                     JOIN advisor_public_service_profiles p ON p.submission_key=s.submission_key
+                    WHERE s.session_key=?""",
+                (session["session_key"],),
+            ).fetchone()
+            identity = _latest_report_identity(conn, session["session_key"])
+            if not row or not identity:
+                raise HTTPException(409, "Submitted assessment report is unavailable")
+            output_dir = os.getenv("SALUS_ADVISOR_REPORT_OUTPUT_DIR", "").strip()
+            if not output_dir:
+                raise HTTPException(503, "Report delivery is temporarily unavailable")
+            result = json.loads(row["result_json"])
+            profile = json.loads(row["profile_json"])
+            package = json.loads(row["package_json"])
+            report_reference = "SPA-REPORT-" + row["submission_key"].removeprefix("SPA-SUBMISSION-")
+            handling = "CUI" if (
+                identity.get("handling_status") == "Approved"
+                and "CUI" in str(identity.get("handling_profile", ""))
+            ) else "Confidential"
+            context = build_report_context(
+                client_code_name=str(identity["protected_member_code_name"]),
+                project_code_name=str(identity["project_code_name"]),
+                organization_type=session["organization_type"],
+                government_or_public_service_role=str(profile.get("external_requirements") or "Not provided"),
+                assessment_authority_or_sponsor=str(profile.get("decision_authority") or "Not provided"),
+                information_handling=handling,
+                report_reference=report_reference,
+                generated_at=_utc_now(),
+            )
+            path = os.path.join(output_dir, report_reference + "-participant.pdf")
+            render_protection_advisor_pdf(
+                output_path=path,
+                context=context,
+                result=result,
+                package=package,
+            )
+            created = _utc_text(_utc_now())
+            conn.execute(
+                "INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
+                ("SPA-EVENT-" + secrets.token_hex(16).upper(), session["session_key"],
+                 "Participant Report Downloaded", created,
+                 _sha(_json({"report_reference": report_reference, "format": "PDF"}))),
+            )
+            conn.commit()
+            return FileResponse(
+                path,
+                media_type="application/pdf",
+                filename=f"Salus-Protection-Advisor-{report_reference}.pdf",
+                headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+            )
         finally:
             conn.close()
 
