@@ -408,4 +408,16 @@ with tempfile.TemporaryDirectory() as report_td:
         paragraph.text for paragraph in rendered.paragraphs
     )
 
+    results_footer = rendered.sections[-1].footer
+    image_relationships = [
+        relationship
+        for relationship in results_footer.part.rels.values()
+        if relationship.reltype.endswith("/image")
+    ]
+    assert image_relationships, "results footer lost the template logo relationship"
+    embedded_ids = set(results_footer._element.xpath(".//@r:embed"))
+    assert embedded_ids <= set(results_footer.part.rels), (
+        "results footer contains an unresolved embedded-image relationship"
+    )
+
 print("public Protection Advisor smoke passed")
