@@ -33,7 +33,7 @@ with TemporaryDirectory() as tmp:
     )
 
     rendered = Document(output)
-    text = "\n".join(p.text for p in rendered.paragraphs)
+    text = "\n".join(\n        [p.text for p in rendered.paragraphs]\n        + [cell.text for table in rendered.tables for row in table.rows for cell in row.cells]\n    )
     assert "CLIENT-FOX" in text
     assert "PROJECT-ADVISOR-01" in text
     assert "20-09-2026 14:30 UTC" in text
