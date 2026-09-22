@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 22 September 2026 17:05 CDT
-current_frozen_release: v3.163
-current_frozen_commit: 71102b0091a18b790a02b7e30997f5a2e3dea146
+last_verified_at: 22 September 2026 17:52 CDT
+current_frozen_release: v3.165
+current_frozen_commit: 213e64b75301a2d623cbaa72a12f2fc87a58006a
 active_development_branch: development/salcapa-platform
-current_development_head: 69742409f713d0e090a77df2758f91b595a399d3
+current_development_head: a0eb75edceb4bfbe2dc1bed4dab9bbd3fed179fd
 active_product_milestone: issue_370_governed_knowledge_promotion
 active_build_system_issue: 370
-active_increment: knowledge_promotion_v3165
-last_completed_increment: protection_advisor_v3163_secure_report_download
-candidate_release: v3.165
+active_increment: processed_intake_archive_v3166
+last_completed_increment: knowledge_promotion_v3165
+candidate_release: v3.166
 validation_pr: pending
-validation_branch: release/v3.165
+validation_branch: release/v3.166
 validation_base: development/salcapa-platform
-validation_head: 69742409f713d0e090a77df2758f91b595a399d3
+validation_head: a0eb75edceb4bfbe2dc1bed4dab9bbd3fed179fd
 validation_gate_state: repair_validation_pending
-failed_workflows: immutable_image_publication_and_build_continuity
-first_root_failing_gate: frozen_runtime_release_identity
-root_cause: v3.164_abandoned_before_image_publication_after_release_identity_mismatch
-repair_head: 69742409f713d0e090a77df2758f91b595a399d3
-repair_summary: align_version_runtime_and_record_single_abandoned_candidate_gap
-genuine_blockers: v3165_full_validation_pending
-next_authorized_step: validate_freeze_publish_and_deploy_v3165
-deployed_demo_release: v3.163
-deployed_demo_state: accepted_stable_runtime_with_v3162_rollback
+failed_workflows: none
+first_root_failing_gate: none
+root_cause: none
+repair_head: none
+repair_summary: none
+genuine_blockers: v3166_full_validation_pending
+next_authorized_step: validate_freeze_publish_and_deploy_v3166
+deployed_demo_release: v3.165
+deployed_demo_state: accepted_stable_runtime_with_v3163_rollback
 ---
 
 # SalCAPA build continuity
@@ -33,7 +33,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current controlled checkpoint
 
-Release v3.162 at exact commit `731d2b320d0f237562a5ef5ecd9cee3d86a31dd9` is the accepted runtime and rollback baseline. Release v3.163 is the controlled Protection Advisor secure professional-report download candidate. Freeze only the exact all-green candidate commit as `release/v3.163`, publish its immutable image, and deploy it through the governed activation records.
+Release v3.165 at exact commit `213e64b75301a2d623cbaa72a12f2fc87a58006a` is the accepted runtime, with v3.163 retained as the rollback baseline. Release v3.166 is the controlled verified-intake archival candidate. Freeze only the exact all-green candidate commit as `release/v3.166`, publish its immutable image, and deploy it through the governed activation records.
 
 ## Source precedence
 
