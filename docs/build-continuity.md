@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 21 September 2026 23:54 CDT
-current_frozen_release: v3.160
-current_frozen_commit: 9929d23d6cc546d908169eef8a981a1f5e69b0aa
+last_verified_at: 22 September 2026 13:08 CDT
+current_frozen_release: v3.161
+current_frozen_commit: f48b80fd5ca026969949b64155ecb42a487aafa9
 active_development_branch: development/salcapa-platform
-current_development_head: bb7a00386de18c3f48d3cbe4db5ae236136e24ce
+current_development_head: 862d87a969e44377d5648ed5abf17839ffc3aed9
 active_product_milestone: issue_370_governed_document_ingestion
 active_build_system_issue: 370
-active_increment: protection_advisor_v3161_footer_image_relationships
-last_completed_increment: protection_advisor_v3160_pdf_conversion_redirect
-candidate_release: v3.161
-validation_pr: 514
-validation_branch: release/v3.161
+active_increment: protection_advisor_v3162_professional_report
+last_completed_increment: protection_advisor_v3161_footer_image_relationships
+candidate_release: v3.162
+validation_pr: pending
+validation_branch: release/v3.162
 validation_base: development/salcapa-platform
-validation_head: bb7a00386de18c3f48d3cbe4db5ae236136e24ce
+validation_head: 862d87a969e44377d5648ed5abf17839ffc3aed9
 validation_gate_state: preflight
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
-repair_head: 1a3cc437971aa10600d22885727158ad7fac35c8
-repair_summary: protection_advisor_https_sso_target
-genuine_blockers: deployment_continuity_superseded_pending_v3156_validation
-next_authorized_step: validate_publish_and_deploy_v3155
-deployed_demo_release: v3.150
-deployed_demo_state: protection_advisor_anonymous_review_button_repaired_live_verified_and_nested_m365_acceptance_passed_with_temporary_job_deleted
+repair_head: b8620a18bff65af4c305ce82b1668807ae20d7d5
+repair_summary: protection_advisor_professional_report_renderer_and_smoke_validation
+genuine_blockers: github_candidate_validation_pending
+next_authorized_step: freeze_publish_and_deploy_v3162
+deployed_demo_release: v3.161
+deployed_demo_state: accepted_stable_runtime_with_v3160_rollback
 ---
 
 # SalCAPA build continuity
@@ -33,7 +33,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current controlled checkpoint
 
-Release v3.153 is the current frozen release at exact commit `a0fc3244203e51ad524683fb7e63868de876f4ce`. Release v3.154 is the controlled validation candidate for the Protection Advisor report-contract compatibility repair. Pull request 514 validates `validation/v3.154` against `development/salcapa-platform` and must be closed without merge after all required gates pass.
+Release v3.161 at exact commit `f48b80fd5ca026969949b64155ecb42a487aafa9` is the accepted runtime and rollback baseline. Release v3.162 is the controlled Protection Advisor professional-report candidate. Freeze only the exact all-green candidate commit as `release/v3.162`, publish its immutable image, and deploy it through the governed activation records.
 
 ## Source precedence
 
