@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 22 September 2026 14:05 CDT
-current_frozen_release: v3.162
-current_frozen_commit: 731d2b320d0f237562a5ef5ecd9cee3d86a31dd9
+last_verified_at: 22 September 2026 17:05 CDT
+current_frozen_release: v3.163
+current_frozen_commit: 71102b0091a18b790a02b7e30997f5a2e3dea146
 active_development_branch: development/salcapa-platform
-current_development_head: 14325f63ad7d3de513c53fe1b624d405b0c89f91
-active_product_milestone: issue_370_governed_document_ingestion
+current_development_head: 69742409f713d0e090a77df2758f91b595a399d3
+active_product_milestone: issue_370_governed_knowledge_promotion
 active_build_system_issue: 370
-active_increment: protection_advisor_v3163_secure_report_download
-last_completed_increment: protection_advisor_v3162_professional_report
-candidate_release: v3.163
-validation_pr: 514
-validation_branch: release/v3.163
+active_increment: knowledge_promotion_v3165
+last_completed_increment: protection_advisor_v3163_secure_report_download
+candidate_release: v3.165
+validation_pr: pending
+validation_branch: release/v3.165
 validation_base: development/salcapa-platform
-validation_head: 14325f63ad7d3de513c53fe1b624d405b0c89f91
-validation_gate_state: preflight
-failed_workflows: none
-first_root_failing_gate: none
-root_cause: none
-repair_head: 499da6d404bf261ffa09f5bd63a37ac3526fd9e4
-repair_summary: protection_advisor_csrf_authenticated_pdf_download
-genuine_blockers: deployment_continuity_superseded_pending_v3163_validation
-next_authorized_step: freeze_publish_and_deploy_v3163
-deployed_demo_release: v3.162
-deployed_demo_state: accepted_stable_runtime_with_v3161_rollback
+validation_head: 69742409f713d0e090a77df2758f91b595a399d3
+validation_gate_state: repair_validation_pending
+failed_workflows: immutable_image_publication_and_build_continuity
+first_root_failing_gate: frozen_runtime_release_identity
+root_cause: v3.164_abandoned_before_image_publication_after_release_identity_mismatch
+repair_head: 69742409f713d0e090a77df2758f91b595a399d3
+repair_summary: align_version_runtime_and_record_single_abandoned_candidate_gap
+genuine_blockers: v3165_full_validation_pending
+next_authorized_step: validate_freeze_publish_and_deploy_v3165
+deployed_demo_release: v3.163
+deployed_demo_state: accepted_stable_runtime_with_v3162_rollback
 ---
 
 # SalCAPA build continuity

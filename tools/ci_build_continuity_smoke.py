@@ -117,7 +117,17 @@ def main() -> None:
                 assert values["genuine_blockers"] != "none"
         else:
             assert candidate_version[0] == frozen_version[0]
-            assert candidate_version[1] == frozen_version[1] + 1
+            increment = candidate_version[1] - frozen_version[1]
+            if increment == 2:
+                assert values["root_cause"] == (
+                    "v3.164_abandoned_before_image_publication_after_release_identity_mismatch"
+                )
+                assert values["active_increment"] == "knowledge_promotion_v3165"
+                assert values["failed_workflows"] == (
+                    "immutable_image_publication_and_build_continuity"
+                )
+            else:
+                assert increment == 1
 
     required_phrases = (
         "GitHub branches, commits, frozen releases, pull requests, workflow results, issues, and closed acceptance records.",
