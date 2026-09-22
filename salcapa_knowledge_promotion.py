@@ -40,7 +40,7 @@ TARGETS = {
 }
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
 _AUTO_ACTOR = "SalCAPA Policy Engine"
-_AUTO_EXTENSIONS = {".csv", ".docx", ".pdf", ".pptx", ".txt", ".xlsx"}
+_AUTO_EXTENSIONS = {".csv", ".txt"}
 _EXCEPTION_MARKERS = {
     "attorney-client", "confidential", "draft", "employee", "export controlled",
     "legal hold", "medical record", "patient", "personnel", "privileged",
@@ -81,7 +81,12 @@ def automatic_classification(document, *, duplicate: bool) -> tuple[dict[str, An
     if extension not in _AUTO_EXTENSIONS:
         return None, "unsupported_or_unapproved_format"
     normalized = re.sub(r"[^a-z0-9]+", " ", document.name.lower()).strip()
-    marker = next((value for value in sorted(_EXCEPTION_MARKERS) if value in normalized), "")
+    inspectable_text = document.content.decode("utf-8", errors="ignore").lower()
+    inspection_scope = normalized + " " + inspectable_text
+    marker = next(
+        (value for value in sorted(_EXCEPTION_MARKERS) if value in inspection_scope),
+        "",
+    )
     if marker:
         return None, f"sensitivity_marker:{marker}"
     matches = [

@@ -27,23 +27,35 @@ def main():
     assert approved.decision == "Approved"
     assert approved.permit_products == ["ChatGPT", "SalCAPA", "SalINTEL"]
     assessment = SimpleNamespace(
-        name="Strategic Assessment_ ISIS-K Threat to U.S. Hospitals - 19 March 2025.pdf"
+        name="Strategic assessment research.txt",
+        content=b"Approved internal reference material.",
     )
     automated, reason = automatic_classification(assessment, duplicate=False)
     assert reason == ""
     assert automated["target_folder"] == "05 Research and Reference"
     assert automated["permit_products"] == ["SalCAPA", "SalINTEL", "SalTHIRA"]
     sensitive, reason = automatic_classification(
-        SimpleNamespace(name="Confidential personnel assessment.pdf"),
+        SimpleNamespace(
+            name="personnel assessment.txt",
+            content=b"CONFIDENTIAL personnel material",
+        ),
         duplicate=False,
     )
     assert sensitive is None and reason.startswith("sensitivity_marker:")
     ambiguous, reason = automatic_classification(
-        SimpleNamespace(name="document.pdf"), duplicate=False
+        SimpleNamespace(name="document.txt", content=b"routine material"), duplicate=False
     )
     assert ambiguous is None and reason == "classification_confidence_below_threshold"
     duplicate, reason = automatic_classification(assessment, duplicate=True)
     assert duplicate is None and reason == "duplicate_requires_human_resolution"
+    binary, reason = automatic_classification(
+        SimpleNamespace(
+            name="Strategic Assessment_ ISIS-K Threat to U.S. Hospitals - 19 March 2025.pdf",
+            content=b"CONFIDENTIAL",
+        ),
+        duplicate=False,
+    )
+    assert binary is None and reason == "unsupported_or_unapproved_format"
     destination = KnowledgeDestinationConfig("12345678", "abcdefgh", "archive12")
     destination.validate()
     assert destination.processed_folder_item_id == "archive12"
