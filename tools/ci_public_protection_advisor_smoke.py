@@ -420,7 +420,7 @@ with tempfile.TemporaryDirectory() as report_td:
         for cell in row.cells
         for paragraph in cell.paragraphs
     )
-    assert "Protection Advisor Assessment Results" in "\n".join(rendered_text)
+    assert "Protection Advisor Assessment Report" in "\n".join(rendered_text)
 
     results_footer = rendered.sections[-1].footer
     image_relationships = [
