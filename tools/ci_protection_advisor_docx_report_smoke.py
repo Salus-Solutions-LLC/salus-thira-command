@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 from docx import Document
 from docx.enum.section import WD_SECTION
 
-from protection_advisor_docx_report import render_protection_advisor_docx
+from protection_advisor_docx_report import render_protection_advisor_docx, render_protection_advisor_pdf
 from protection_advisor_report_contract import build_report_context
 
 
@@ -56,3 +56,48 @@ with TemporaryDirectory() as tmp:
     assert not any(p.text.strip() for p in rendered.sections[1].footer.paragraphs)
 
 print("Protection Advisor DOCX three-page renderer smoke passed")
+
+with TemporaryDirectory() as tmp:
+    output = Path(tmp) / "rendered.pdf"
+    context = build_report_context(
+        client_code_name="CLIENT-FOX",
+        project_code_name="PROJECT-ADVISOR-01",
+        organization_type="Federal Government",
+        government_or_public_service_role="Public safety mission",
+        assessment_authority_or_sponsor="Authorized sponsor",
+        information_handling="CUI",
+        report_reference="SPA-REPORT-0001",
+        generated_at=datetime(2026, 9, 20, 14, 30, tzinfo=timezone.utc),
+    )
+    render_protection_advisor_pdf(
+        output_path=output,
+        context=context,
+        result={
+            "recommendation": "Comprehensive review recommended",
+            "strength_count": 6,
+            "attention_count": 16,
+            "information_gap_count": 5,
+            "core_capabilities_considered": 32,
+            "mission_area_scores": {area: 50 for area in ("Prevention", "Protection", "Mitigation", "Response", "Recovery")},
+            "priority_capabilities": [{
+                "capability": "Operational Communications and Coordination",
+                "need_score": 92,
+                "mission_areas": ["Protection", "Response"],
+                "information_gap": True,
+            }],
+            "attention_topics": ["Validate communications."],
+            "information_gaps": ["Current evidence unavailable."],
+        },
+        package={
+            "primary_service": {"title": "Emergency Planning", "level": 2, "level_name": "Focused Review", "summary": "Validate priority capabilities.", "why": "Connected planning needs."},
+            "sequence": ["Emergency Planning", "Continuity Program"],
+            "later_phase_services": [],
+            "services": [{"title": "Emergency Planning", "level": 2, "why": "Validate communications."}],
+            "rationale": "Services are sequenced by assessed need.",
+        },
+    )
+    pdf = output.read_bytes()
+    assert pdf.startswith(b"%PDF-")
+    assert len(pdf) > 10_000
+
+print("Protection Advisor PDF table-layout smoke passed")
