@@ -1,0 +1,339 @@
+"""Governed promotion from OneDrive pending classification to SharePoint knowledge."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import time
+from dataclasses import dataclass
+from typing import Any
+from urllib.parse import quote, urlparse
+
+import httpx
+from azure.identity import ManagedIdentityCredential
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from salcapa_m365_intake import (
+    ASSERTION_SCOPE,
+    ASSERTION_TYPE,
+    GRAPH_ROOT,
+    GovernedM365Config,
+    GovernedM365Intake,
+    M365IntakeError,
+)
+
+PENDING_PREFIX = "10 Pending Classification/"
+DECISIONS = {"Approved", "Deferred", "Duplicate", "Unsupported", "Sensitive", "Excluded"}
+TARGETS = {
+    "01 Salus Doctrine and Methodologies",
+    "02 Service Capabilities",
+    "03 Assessment Standards and Templates",
+    "04 Approved Examples",
+    "05 Research and Reference",
+    "06 Policies and SOPs",
+    "07 Training and Exercises",
+    "08 Visual Media",
+    "09 Historical Material",
+    "99 Superseded and Retained",
+}
+_IDENTIFIER = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
+
+
+class KnowledgePromotionError(RuntimeError):
+    """Fail-closed error safe for internal workflow handling."""
+
+
+@dataclass(frozen=True)
+class KnowledgeDestinationConfig:
+    drive_id: str
+    root_folder_item_id: str
+    remove_verified_source: bool = False
+
+    @classmethod
+    def from_environment(cls) -> "KnowledgeDestinationConfig":
+        return cls(
+            drive_id=os.getenv("SALUS_M365_KNOWLEDGE_DRIVE_ID", "").strip(),
+            root_folder_item_id=os.getenv("SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID", "").strip(),
+            remove_verified_source=os.getenv(
+                "SALUS_M365_KNOWLEDGE_REMOVE_VERIFIED_SOURCE", "0"
+            ).lower() in {"1", "true", "yes"},
+        )
+
+    def validate(self) -> None:
+        if not _IDENTIFIER.fullmatch(self.drive_id) or not _IDENTIFIER.fullmatch(
+            self.root_folder_item_id
+        ):
+            raise KnowledgePromotionError("Knowledge destination is incomplete or invalid")
+
+
+class ClassificationCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    decision: str
+    target_folder: str = ""
+    knowledge_domain: str = Field(default="", max_length=120)
+    document_type: str = Field(default="", max_length=120)
+    sensitivity: str = Field(default="Salus Internal", max_length=80)
+    rationale: str = Field(min_length=10, max_length=2000)
+    permit_products: list[str] = Field(default_factory=list, max_length=5)
+
+    @field_validator("decision")
+    @classmethod
+    def valid_decision(cls, value: str) -> str:
+        if value not in DECISIONS:
+            raise ValueError("unsupported classification decision")
+        return value
+
+    @field_validator("target_folder")
+    @classmethod
+    def valid_target(cls, value: str) -> str:
+        if value and value not in TARGETS:
+            raise ValueError("unsupported knowledge destination")
+        return value
+
+    @field_validator("permit_products")
+    @classmethod
+    def valid_products(cls, values: list[str]) -> list[str]:
+        allowed = {"ChatGPT", "SalCAPA", "SalINTEL", "SalTHIRA", "SalOPS"}
+        if any(value not in allowed for value in values):
+            raise ValueError("unsupported permitted product")
+        return list(dict.fromkeys(values))
+
+
+class GraphKnowledgeWriter:
+    def __init__(self, intake_config, destination, *, credential=None, client=None):
+        destination.validate()
+        self.intake_config = intake_config
+        self.destination = destination
+        self.credential = credential or ManagedIdentityCredential(
+            client_id=intake_config.managed_identity_client_id
+        )
+        self.client = client or httpx.Client(timeout=30.0, follow_redirects=False)
+        self._token: tuple[str, int] | None = None
+
+    def _headers(self) -> dict[str, str]:
+        now = int(time.time())
+        if not self._token or self._token[1] <= now + 60:
+            assertion = self.credential.get_token(ASSERTION_SCOPE)
+            response = self.client.post(
+                f"https://login.microsoftonline.com/{self.intake_config.tenant_id}/oauth2/v2.0/token",
+                data={
+                    "client_id": self.intake_config.application_client_id,
+                    "scope": "https://graph.microsoft.com/.default",
+                    "grant_type": "client_credentials",
+                    "client_assertion_type": ASSERTION_TYPE,
+                    "client_assertion": str(assertion.token),
+                },
+            )
+            if response.status_code != 200 or not response.json().get("access_token"):
+                raise KnowledgePromotionError("Microsoft 365 token exchange was rejected")
+            self._token = (
+                str(response.json()["access_token"]),
+                now + min(int(response.json().get("expires_in", 300)), 3600),
+            )
+        return {"Authorization": f"Bearer {self._token[0]}"}
+
+    def _resolve_folder(self, folder_name: str) -> str:
+        response = self.client.get(
+            f"{GRAPH_ROOT}/drives/{self.destination.drive_id}/items/"
+            f"{self.destination.root_folder_item_id}/children",
+            headers=self._headers() | {"Accept": "application/json"},
+            params={"$select": "id,name,folder", "$top": "200"},
+        )
+        if response.status_code != 200:
+            raise KnowledgePromotionError("Knowledge destination could not be read")
+        matches = [
+            row for row in response.json().get("value", [])
+            if row.get("name") == folder_name and isinstance(row.get("folder"), dict)
+        ]
+        if len(matches) != 1 or not _IDENTIFIER.fullmatch(str(matches[0].get("id", ""))):
+            raise KnowledgePromotionError("Approved knowledge folder was not uniquely resolved")
+        return str(matches[0]["id"])
+
+    def put_verified(self, folder_name: str, name: str, content: bytes, sha256: str) -> dict[str, Any]:
+        folder_id = self._resolve_folder(folder_name)
+        safe_name = quote(name, safe="")
+        response = self.client.put(
+            f"{GRAPH_ROOT}/drives/{self.destination.drive_id}/items/{folder_id}:/{safe_name}:/content",
+            headers=self._headers() | {"Content-Type": "application/octet-stream"},
+            content=content,
+        )
+        if response.status_code not in {200, 201}:
+            raise KnowledgePromotionError("Approved knowledge file could not be written")
+        item = response.json()
+        item_id = str(item.get("id", ""))
+        if not _IDENTIFIER.fullmatch(item_id):
+            raise KnowledgePromotionError("Knowledge destination identity was incomplete")
+        verify = self.client.get(
+            f"{GRAPH_ROOT}/drives/{self.destination.drive_id}/items/{item_id}/content",
+            headers=self._headers() | {"Accept": "application/octet-stream"},
+        )
+        if verify.status_code != 200 or hashlib.sha256(verify.content).hexdigest() != sha256:
+            raise KnowledgePromotionError("Knowledge destination verification failed")
+        web_url = str(item.get("webUrl", ""))
+        parsed = urlparse(web_url)
+        if parsed.scheme != "https" or not (parsed.hostname or "").endswith(".sharepoint.com"):
+            raise KnowledgePromotionError("Knowledge destination returned an untrusted location")
+        return {"item_id": item_id, "web_url": web_url, "etag": str(item.get("eTag", ""))[:512]}
+
+    def delete_source(self, item_id: str, etag: str) -> None:
+        if not self.destination.remove_verified_source:
+            return
+        response = self.client.delete(
+            f"{GRAPH_ROOT}/drives/{self.intake_config.drive_id}/items/{item_id}",
+            headers=self._headers() | {"If-Match": etag},
+        )
+        if response.status_code != 204:
+            raise KnowledgePromotionError("Verified intake source could not be removed")
+
+
+def _init_tables(conn) -> None:
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS m365_knowledge_candidates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_drive_id TEXT NOT NULL, source_item_id TEXT NOT NULL,
+      source_name TEXT NOT NULL, source_relative_path TEXT NOT NULL,
+      source_etag TEXT NOT NULL, source_sha256 TEXT NOT NULL,
+      source_size INTEGER NOT NULL, source_modified_at TEXT NOT NULL,
+      source_owner TEXT NOT NULL DEFAULT '', discovered_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Pending Review',
+      decision TEXT NOT NULL DEFAULT '', target_folder TEXT NOT NULL DEFAULT '',
+      classification_json TEXT NOT NULL DEFAULT '{}', reviewed_by TEXT NOT NULL DEFAULT '',
+      reviewed_at TEXT NOT NULL DEFAULT '', review_rationale TEXT NOT NULL DEFAULT '',
+      destination_drive_id TEXT NOT NULL DEFAULT '', destination_item_id TEXT NOT NULL DEFAULT '',
+      destination_web_url TEXT NOT NULL DEFAULT '', destination_etag TEXT NOT NULL DEFAULT '',
+      promoted_at TEXT NOT NULL DEFAULT '', source_removed_at TEXT NOT NULL DEFAULT '',
+      UNIQUE(source_drive_id, source_item_id, source_etag)
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_m365_knowledge_sha_destination
+      ON m365_knowledge_candidates(source_sha256, target_folder)
+      WHERE status IN ('Promoted','Source Retained','Source Removed');
+    CREATE TABLE IF NOT EXISTS m365_knowledge_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, candidate_id INTEGER NOT NULL,
+      event_type TEXT NOT NULL, actor TEXT NOT NULL, detail_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(candidate_id) REFERENCES m365_knowledge_candidates(id) ON DELETE CASCADE
+    );
+    """)
+
+
+def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
+    Request = namespace["Request"]
+    HTTPException = namespace["HTTPException"]
+    db = namespace["db"]
+    now = namespace["now"]
+    auth_context = namespace["auth_context"]
+
+    def authority(request):
+        context = auth_context(request)
+        if context.get("role") not in {"System Administrator", "Reviewer", "Approver"}:
+            raise HTTPException(403, "Knowledge-review authority is required")
+        return context
+
+    def actor(context):
+        return str(context.get("username") or context.get("display_name") or "authorized-user")[:240]
+
+    def scan(request):
+        context = authority(request)
+        try:
+            intake_config = GovernedM365Config.from_environment()
+            intake = GovernedM365Intake(intake_config)
+            files = [row for row in intake.list_files() if row["relative_path"].startswith(PENDING_PREFIX)]
+            conn = db(); _init_tables(conn); created = 0
+            for row in files:
+                document = intake.read_document(row["id"], access_classification="Salus Internal")
+                existing = conn.execute(
+                    "SELECT id FROM m365_knowledge_candidates WHERE source_drive_id=? AND source_item_id=? AND source_etag=?",
+                    (intake_config.drive_id, document.item_id, document.etag),
+                ).fetchone()
+                if existing: continue
+                duplicate = conn.execute(
+                    "SELECT id FROM m365_knowledge_candidates WHERE source_sha256=? AND status IN ('Promoted','Source Retained','Source Removed')",
+                    (document.sha256,),
+                ).fetchone()
+                status = "Duplicate Review" if duplicate else "Pending Review"
+                cursor = conn.execute(
+                    """INSERT INTO m365_knowledge_candidates
+                    (source_drive_id,source_item_id,source_name,source_relative_path,source_etag,
+                     source_sha256,source_size,source_modified_at,source_owner,discovered_at,status)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                    (intake_config.drive_id,document.item_id,document.name,document.relative_path,
+                     document.etag,document.sha256,document.size,document.last_modified,
+                     document.source_owner,now(),status),
+                )
+                candidate_id = cursor.lastrowid; created += 1
+                conn.execute(
+                    "INSERT INTO m365_knowledge_events(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+                    (candidate_id,"Captured",actor(context),json.dumps({"sha256":document.sha256,"etag":document.etag}),now()),
+                )
+            conn.commit(); total = conn.execute("SELECT COUNT(*) FROM m365_knowledge_candidates").fetchone()[0]; conn.close()
+            return {"discovered": len(files), "created": created, "candidate_count": total}
+        except M365IntakeError as exc:
+            raise HTTPException(503, "Governed Microsoft 365 intake is unavailable") from exc
+
+    scan.__annotations__["request"] = Request
+    app.post("/api/integrations/m365/knowledge/scan", include_in_schema=False)(scan)
+
+    def list_candidates(request):
+        authority(request); conn = db(); _init_tables(conn)
+        rows = [dict(row) for row in conn.execute("SELECT * FROM m365_knowledge_candidates ORDER BY id DESC").fetchall()]
+        conn.close(); return {"items": rows, "count": len(rows)}
+
+    list_candidates.__annotations__["request"] = Request
+    app.get("/api/integrations/m365/knowledge/candidates", include_in_schema=False)(list_candidates)
+
+    def classify(candidate_id: int, command: ClassificationCommand, request):
+        context = authority(request); conn = db(); _init_tables(conn)
+        row = conn.execute("SELECT * FROM m365_knowledge_candidates WHERE id=?", (candidate_id,)).fetchone()
+        if not row: conn.close(); raise HTTPException(404, "Knowledge candidate was not found")
+        if row["status"] not in {"Pending Review", "Duplicate Review", "Deferred"}:
+            conn.close(); raise HTTPException(409, "Knowledge candidate is not reviewable")
+        if command.decision == "Approved" and (not command.target_folder or not command.permit_products):
+            conn.close(); raise HTTPException(422, "Approved knowledge requires a destination and permitted products")
+        payload = command.model_dump()
+        conn.execute(
+            """UPDATE m365_knowledge_candidates SET status=?,decision=?,target_folder=?,
+            classification_json=?,reviewed_by=?,reviewed_at=?,review_rationale=? WHERE id=?""",
+            ("Approved for Promotion" if command.decision == "Approved" else command.decision,
+             command.decision,command.target_folder,json.dumps(payload,sort_keys=True),actor(context),now(),command.rationale,candidate_id),
+        )
+        conn.execute(
+            "INSERT INTO m365_knowledge_events(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+            (candidate_id,"Classified",actor(context),json.dumps(payload,sort_keys=True),now()),
+        )
+        conn.commit(); result = dict(conn.execute("SELECT * FROM m365_knowledge_candidates WHERE id=?",(candidate_id,)).fetchone()); conn.close(); return result
+
+    classify.__annotations__["request"] = Request
+    app.post("/api/integrations/m365/knowledge/candidates/{candidate_id}/classify", include_in_schema=False)(classify)
+
+    def promote(candidate_id: int, request):
+        context = authority(request); conn = db(); _init_tables(conn)
+        row = conn.execute("SELECT * FROM m365_knowledge_candidates WHERE id=?",(candidate_id,)).fetchone()
+        if not row: conn.close(); raise HTTPException(404, "Knowledge candidate was not found")
+        if row["status"] != "Approved for Promotion": conn.close(); raise HTTPException(409, "Human approval is required before promotion")
+        intake_config = GovernedM365Config.from_environment(); intake = GovernedM365Intake(intake_config)
+        document = intake.read_document(row["source_item_id"], access_classification="Salus Internal")
+        if document.etag != row["source_etag"] or document.sha256 != row["source_sha256"]:
+            conn.execute("UPDATE m365_knowledge_candidates SET status='Changed - Re-review Required' WHERE id=?",(candidate_id,)); conn.commit(); conn.close()
+            raise HTTPException(409, "The source changed after approval and requires re-review")
+        writer = GraphKnowledgeWriter(intake_config, KnowledgeDestinationConfig.from_environment())
+        destination = writer.put_verified(row["target_folder"], document.name, document.content, document.sha256)
+        writer.delete_source(document.item_id, document.etag)
+        removed = writer.destination.remove_verified_source
+        status = "Source Removed" if removed else "Source Retained"
+        timestamp = now()
+        conn.execute(
+            """UPDATE m365_knowledge_candidates SET status=?,destination_drive_id=?,destination_item_id=?,
+            destination_web_url=?,destination_etag=?,promoted_at=?,source_removed_at=? WHERE id=?""",
+            (status,writer.destination.drive_id,destination["item_id"],destination["web_url"],destination["etag"],timestamp,timestamp if removed else "",candidate_id),
+        )
+        conn.execute(
+            "INSERT INTO m365_knowledge_events(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+            (candidate_id,"PromotedAndVerified",actor(context),json.dumps({"destination_item_id":destination["item_id"],"source_removed":removed}),timestamp),
+        )
+        conn.commit(); result = dict(conn.execute("SELECT * FROM m365_knowledge_candidates WHERE id=?",(candidate_id,)).fetchone()); conn.close(); return result
+
+    promote.__annotations__["request"] = Request
+    app.post("/api/integrations/m365/knowledge/candidates/{candidate_id}/promote", include_in_schema=False)(promote)
+

@@ -5544,3 +5544,6 @@ register_m365_intake(app, globals())
 
 from salcapa_m365_reports import register_m365_reports
 register_m365_reports(app, globals())
+
+from salcapa_knowledge_promotion import register_knowledge_promotion
+register_knowledge_promotion(app, globals())

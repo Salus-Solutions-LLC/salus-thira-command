@@ -1,0 +1,28 @@
+# Salus Solutions — Decision Register
+
+| ID | Decision | Status |
+|---|---|---|
+| SAL-D001 | GitHub is the authoritative technical source of truth. | Approved |
+| SAL-D002 | The program architecture is Protected Members, SalCAPA, SalINTEL, SalTHIRA, and SalOPS. | Approved |
+| SAL-D003 | The client term is “Protected Members.” | Approved |
+| SAL-D004 | Salus THIRA uses the approved six-step method in the Program Charter. | Approved |
+| SAL-D005 | Protection Advisor uses a two-part structure: anonymous Part 1 and authenticated detailed Part 2. | Approved |
+| SAL-D006 | Protection Advisor information is retained indefinitely under the approved policy. | Approved |
+| SAL-D007 | Protection Advisor scoring reflects the five mission areas and 32 core capabilities. | Approved |
+| SAL-D008 | Service recommendations vary by answers and use Levels 1, 2, and 3. | Approved |
+| SAL-D009 | Assessments define bounded Initial Pass, Focused Assessment, and Deep Dive levels. | Approved |
+| SAL-D010 | The polished Protection Advisor example report is the reporting design and content authority. | Approved 22 September 2026 |
+| SAL-D011 | The public Print or Save action, governed DOCX, and governed PDF must carry substantively consistent professional report content. | Approved 22 September 2026 |
+| SAL-D012 | Raw questionnaire dumps, browser printouts, JSON, and internal report-contract material are not client reports. | Approved 22 September 2026 |
+| SAL-D013 | Governed Protection Advisor reports are stored in SharePoint under Protected Member Reports / SalCAPA Generated Reports. | Approved |
+| SAL-D014 | Existing governed report filenames should be overwritten when regenerating the same report; do not create duplicates. | Approved |
+| SAL-D015 | Protective Intelligence updates occur on the tenth day of each month. | Approved |
+| SAL-D016 | Use “See, Decide, Coordinate, Act, Prove” in the SalCAPA top bar. | Approved |
+| SAL-D017 | Use day-month-year dates and 24-hour time in SalCAPA. | Approved |
+| SAL-D018 | Default operating model is Chat first; use Work/Codex for executable software and deployments by exception. | Approved |
+| SAL-D019 | Approved artifacts must be inspected directly and must not be reconstructed from chat memory. | Approved 22 September 2026 |
+| SAL-D020 | OneDrive `SalCAPA Intake / 10 Pending Classification` is the governed staging queue. SalCAPA may automatically capture and inventory candidates, but promotion into SharePoint `Salus Knowledge Sources` requires human classification approval, destination verification, provenance retention, and duplicate controls. Source removal occurs only after verified promotion and separate retained authorization. | Approved 22 September 2026 |
+
+## Register maintenance rule
+
+Add a dated entry whenever Marc approves a material change to terminology, architecture, methodology, governance, report design, data handling, release policy, or customer experience. Never silently replace an approved decision; mark it superseded and reference the new decision.
