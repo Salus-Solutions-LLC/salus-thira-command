@@ -2,11 +2,21 @@
 from __future__ import annotations
 import os
 import hashlib
+import re
 from pathlib import Path
 from urllib.parse import quote, urlparse
 
 import httpx
 from salcapa_m365_reports import GovernedM365ReportConfig, GovernedM365Reports, M365ReportError
+
+def _trusted_pdf_conversion_url(location: str) -> bool:
+    parsed = urlparse(location)
+    hostname = (parsed.hostname or "").lower()
+    return parsed.scheme == "https" and (
+        hostname.endswith(".sharepoint.com")
+        or bool(re.fullmatch(r"[a-z0-9-]+-mediap\.svc\.ms", hostname))
+    )
+
 
 def publish_advisor_docx(path: str, report_reference: str) -> dict:
     folder = os.getenv("SALUS_M365_ADVISOR_REPORT_FOLDER_ITEM_ID", "").strip()
@@ -47,8 +57,7 @@ def publish_advisor_docx(path: str, report_reference: str) -> dict:
     pdf_response = client._request("GET", conversion_url, headers={"Accept": "application/pdf"})
     if pdf_response.status_code in (302, 303, 307, 308):
         location = pdf_response.headers.get("Location", "")
-        parsed = urlparse(location)
-        if parsed.scheme != "https" or not (parsed.hostname or "").lower().endswith(".sharepoint.com"):
+        if not _trusted_pdf_conversion_url(location):
             raise M365ReportError("Microsoft 365 returned an untrusted Advisor PDF location")
         try:
             pdf_response = client.client.get(location, headers={"Accept": "application/pdf"})
