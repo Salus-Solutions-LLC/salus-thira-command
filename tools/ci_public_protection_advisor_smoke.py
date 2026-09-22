@@ -412,9 +412,15 @@ with tempfile.TemporaryDirectory() as report_td:
     )
     rendered = Document(report_path)
     assert len(rendered.sections) >= 3
-    assert "Protection Advisor Assessment Results" in "\n".join(
-        paragraph.text for paragraph in rendered.paragraphs
+    rendered_text = [paragraph.text for paragraph in rendered.paragraphs]
+    rendered_text.extend(
+        paragraph.text
+        for table in rendered.tables
+        for row in table.rows
+        for cell in row.cells
+        for paragraph in cell.paragraphs
     )
+    assert "Protection Advisor Assessment Results" in "\n".join(rendered_text)
 
     results_footer = rendered.sections[-1].footer
     image_relationships = [
