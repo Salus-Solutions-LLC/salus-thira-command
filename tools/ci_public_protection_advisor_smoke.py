@@ -376,8 +376,13 @@ with tempfile.TemporaryDirectory() as td:
 # This guards against template page boundaries that are represented as Word
 # section breaks rather than explicit page-break runs.
 from protection_advisor_docx_report import render_protection_advisor_docx
+from salcapa_m365_advisor_reports import _trusted_pdf_conversion_url
 from protection_advisor_report_contract import build_report_context
 from docx import Document
+
+assert _trusted_pdf_conversion_url("https://eastus1-mediap.svc.ms/transform/pdf?provider=spo")
+assert _trusted_pdf_conversion_url("https://salussolutions.sharepoint.com/download/report.pdf")
+assert not _trusted_pdf_conversion_url("https://example.com/report.pdf")
 
 with tempfile.TemporaryDirectory() as report_td:
     report_path = Path(report_td) / "acceptance.docx"
