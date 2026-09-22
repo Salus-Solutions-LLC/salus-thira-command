@@ -98,7 +98,7 @@ with tempfile.TemporaryDirectory() as td:
     assert "CONFIDENTIAL" in embedded.text
     assert "Protected Member Code Name" in embedded.text
     assert "Requested report-handling profile" in embedded.text
-    assert "SPA-REPORT-TEMPLATE-1.0.0" in embedded.text
+    assert "SPA-REPORT-TEMPLATE-1.1.0" in embedded.text
     assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in embedded.text
     assert 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' in embedded.text
     assert "frame-ancestors https://www.salus.solutions https://salus.solutions" in embedded.headers["content-security-policy"]
