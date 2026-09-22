@@ -49,23 +49,25 @@ class KnowledgePromotionError(RuntimeError):
 class KnowledgeDestinationConfig:
     drive_id: str
     root_folder_item_id: str
-    remove_verified_source: bool = False
+    processed_folder_item_id: str
 
     @classmethod
     def from_environment(cls) -> "KnowledgeDestinationConfig":
         return cls(
             drive_id=os.getenv("SALUS_M365_KNOWLEDGE_DRIVE_ID", "").strip(),
             root_folder_item_id=os.getenv("SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID", "").strip(),
-            remove_verified_source=os.getenv(
-                "SALUS_M365_KNOWLEDGE_REMOVE_VERIFIED_SOURCE", "0"
-            ).lower() in {"1", "true", "yes"},
+            processed_folder_item_id=os.getenv(
+                "SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID", ""
+            ).strip(),
         )
 
     def validate(self) -> None:
-        if not _IDENTIFIER.fullmatch(self.drive_id) or not _IDENTIFIER.fullmatch(
-            self.root_folder_item_id
+        if (
+            not _IDENTIFIER.fullmatch(self.drive_id)
+            or not _IDENTIFIER.fullmatch(self.root_folder_item_id)
+            or not _IDENTIFIER.fullmatch(self.processed_folder_item_id)
         ):
-            raise KnowledgePromotionError("Knowledge destination is incomplete or invalid")
+            raise KnowledgePromotionError("Knowledge destination or processed archive is incomplete or invalid")
 
 
 class ClassificationCommand(BaseModel):
@@ -192,15 +194,29 @@ class GraphKnowledgeWriter:
             raise KnowledgePromotionError("Knowledge destination returned an untrusted location")
         return {"item_id": item_id, "web_url": web_url, "etag": str(item.get("eTag", ""))[:512]}
 
-    def delete_source(self, item_id: str, etag: str) -> None:
-        if not self.destination.remove_verified_source:
-            return
-        response = self.client.delete(
+    def archive_verified_source(self, item_id: str, etag: str) -> dict[str, str]:
+        response = self.client.patch(
             f"{GRAPH_ROOT}/drives/{self.intake_config.drive_id}/items/{item_id}",
-            headers=self._headers() | {"If-Match": etag},
+            headers=self._headers() | {
+                "If-Match": etag,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json={"parentReference": {"id": self.destination.processed_folder_item_id}},
         )
-        if response.status_code != 204:
-            raise KnowledgePromotionError("Verified intake source could not be removed")
+        if response.status_code != 200:
+            raise KnowledgePromotionError(
+                "Verified intake source could not be archived; source remains pending"
+            )
+        item = response.json()
+        parent_id = str((item.get("parentReference") or {}).get("id", ""))
+        if str(item.get("id", "")) != item_id or parent_id != self.destination.processed_folder_item_id:
+            raise KnowledgePromotionError("Processed intake archive could not be verified")
+        web_url = str(item.get("webUrl", ""))
+        parsed = urlparse(web_url)
+        if parsed.scheme != "https" or not (parsed.hostname or "").endswith(".sharepoint.com"):
+            raise KnowledgePromotionError("Processed intake archive returned an untrusted location")
+        return {"item_id": item_id, "web_url": web_url, "etag": str(item.get("eTag", ""))[:512]}
 
 
 def _init_tables(conn) -> None:
@@ -219,11 +235,13 @@ def _init_tables(conn) -> None:
       destination_drive_id TEXT NOT NULL DEFAULT '', destination_item_id TEXT NOT NULL DEFAULT '',
       destination_web_url TEXT NOT NULL DEFAULT '', destination_etag TEXT NOT NULL DEFAULT '',
       promoted_at TEXT NOT NULL DEFAULT '', source_removed_at TEXT NOT NULL DEFAULT '',
+      source_archived_at TEXT NOT NULL DEFAULT '', source_archive_item_id TEXT NOT NULL DEFAULT '',
+      source_archive_web_url TEXT NOT NULL DEFAULT '', source_archive_etag TEXT NOT NULL DEFAULT '',
       UNIQUE(source_drive_id, source_item_id, source_etag)
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_m365_knowledge_sha_destination
       ON m365_knowledge_candidates(source_sha256, target_folder)
-      WHERE status IN ('Promoted','Source Retained','Source Removed');
+      WHERE status IN ('Promoted','Source Retained','Source Removed','Ingested and Verified');
     CREATE TABLE IF NOT EXISTS m365_knowledge_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT, candidate_id INTEGER NOT NULL,
       event_type TEXT NOT NULL, actor TEXT NOT NULL, detail_json TEXT NOT NULL,
@@ -333,19 +351,30 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             conn.execute("UPDATE m365_knowledge_candidates SET status='Changed - Re-review Required' WHERE id=?",(candidate_id,)); conn.commit(); conn.close()
             raise HTTPException(409, "The source changed after approval and requires re-review")
         writer = GraphKnowledgeWriter(intake_config, KnowledgeDestinationConfig.from_environment())
-        destination = writer.put_verified(row["target_folder"], document.name, document.content, document.sha256)
-        writer.delete_source(document.item_id, document.etag)
-        removed = writer.destination.remove_verified_source
-        status = "Source Removed" if removed else "Source Retained"
+        destination = writer.put_verified(
+            row["target_folder"], document.name, document.content, document.sha256
+        )
+        archived = writer.archive_verified_source(document.item_id, document.etag)
         timestamp = now()
         conn.execute(
-            """UPDATE m365_knowledge_candidates SET status=?,destination_drive_id=?,destination_item_id=?,
-            destination_web_url=?,destination_etag=?,promoted_at=?,source_removed_at=? WHERE id=?""",
-            (status,writer.destination.drive_id,destination["item_id"],destination["web_url"],destination["etag"],timestamp,timestamp if removed else "",candidate_id),
+            """UPDATE m365_knowledge_candidates SET status='Ingested and Verified',
+            destination_drive_id=?,destination_item_id=?,destination_web_url=?,destination_etag=?,
+            promoted_at=?,source_archived_at=?,source_archive_item_id=?,source_archive_web_url=?,
+            source_archive_etag=? WHERE id=?""",
+            (writer.destination.drive_id,destination["item_id"],destination["web_url"],
+             destination["etag"],timestamp,timestamp,archived["item_id"],archived["web_url"],
+             archived["etag"],candidate_id),
         )
         conn.execute(
             "INSERT INTO m365_knowledge_events(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
-            (candidate_id,"PromotedAndVerified",actor(context),json.dumps({"destination_item_id":destination["item_id"],"source_removed":removed}),timestamp),
+            (candidate_id,"PromotedVerifiedAndArchived",actor(context),json.dumps({
+                "destination_item_id": destination["item_id"],
+                "source_archive_item_id": archived["item_id"],
+                "source_archive_folder_item_id": writer.destination.processed_folder_item_id,
+                "approved_by": row["reviewed_by"],
+                "approved_at": row["reviewed_at"],
+                "verified_and_archived_by": actor(context),
+            },sort_keys=True),timestamp),
         )
         conn.commit(); result = dict(conn.execute("SELECT * FROM m365_knowledge_candidates WHERE id=?",(candidate_id,)).fetchone()); conn.close(); return result
 

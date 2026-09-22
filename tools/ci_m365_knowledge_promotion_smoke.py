@@ -25,7 +25,9 @@ def main():
     )
     assert approved.decision == "Approved"
     assert approved.permit_products == ["ChatGPT", "SalCAPA", "SalINTEL"]
-    assert KnowledgeDestinationConfig("12345678", "abcdefgh").remove_verified_source is False
+    destination = KnowledgeDestinationConfig("12345678", "abcdefgh", "archive12")
+    destination.validate()
+    assert destination.processed_folder_item_id == "archive12"
     try:
         ClassificationCommand(decision="Approved", target_folder="Uncontrolled", rationale="This must be rejected.")
     except Exception:
@@ -40,7 +42,10 @@ def main():
     assert "Knowledge destination verification failed" in module
     assert "untrusted verification location" in module
     assert "endswith(\".sharepoint.com\")" in module
-    assert "SALUS_M365_KNOWLEDGE_REMOVE_VERIFIED_SOURCE" in module
+    assert "SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID" in module
+    assert "archive_verified_source" in module
+    assert "Ingested and Verified" in module
+    assert ".delete(" not in module
     assert "If-Match" in module
     assert "m365_knowledge_events" in module
     print("M365_KNOWLEDGE_PROMOTION_PASS")
