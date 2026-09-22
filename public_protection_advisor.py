@@ -29,7 +29,7 @@ QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.0.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
-REPORT_TEMPLATE_VERSION = "SPA-REPORT-TEMPLATE-1.1.0"
+REPORT_TEMPLATE_VERSION = "SPA-REPORT-TEMPLATE-1.0.0"
 HANDLING_PROFILES = {
     "Commercial Confidential", "Government Sensitive", "Federal CUI",
     "Government Contractor CUI", "Specialized Regulated Information",
@@ -1321,7 +1321,7 @@ def _review_page(rows: list[dict[str, Any]]) -> str:
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Protection Advisor Review | Salus Solutions</title><style>{_salus_theme_css()}
 main{{max-width:1180px}}table{{width:100%;border-collapse:collapse}}th,td{{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}}
-th{{font:600 .85rem Arial,Helvetica,sans-serif;text-transform:uppercase}}.notice{{background:#f6f8fa;padding:14px 18px;border-left:3px solid var(--blue)}}
+th{{font:600 .85rem Arial,Helvetica,sans-serif;text-transform:uppercase}}.notice{{background:#f6f8fa;padding:14px 18px;border-left:3px solid var(--blue)}} .review-form label{{display:block;margin:12px 0;font-weight:600}} .review-form input,.review-form select,.review-form textarea{{display:block;width:100%;max-width:720px;margin-top:5px;padding:10px;border:1px solid var(--line);font:inherit}} .review-form span{{font-weight:400;color:#555}}
 @media(max-width:760px){{table,thead,tbody,tr,th,td{{display:block}}thead{{display:none}}tr{{margin:18px 0;border:1px solid var(--line)}}}}
 </style></head><body><main>{_salus_header()}
 <h1>Protection Advisor Review</h1><p class="notice">Authorized Salus review workspace. Prospect records remain separate from Protected Member tenant records until an authorized person completes the governed intake decision.</p>
@@ -1340,6 +1340,47 @@ def _review_detail(row: dict[str, Any], identity: dict[str, Any] | None = None) 
         f"<strong>Review status:</strong> {html.escape(identity.get('handling_status','Not assigned'))}<br>"
         f"<strong>Revision:</strong> {int(identity.get('revision_no',0))}</p>"
     )
+    profile_options = "".join(
+        f"<option value='{html.escape(profile)}' "
+        + ("selected" if profile == identity.get("handling_profile") else "")
+        + f">{html.escape(profile)}</option>"
+        for profile in sorted(HANDLING_PROFILES)
+    )
+    handling_action_html = ""
+    if identity.get("handling_status") != "Approved":
+        handling_action_html = f"""
+        <h2>Approve report handling</h2>
+        <form id="handling-form" class="review-form">
+          <label>Handling profile<select name="handling_profile">{profile_options}</select></label>
+          <label>Handling authority <span>(required for CUI)</span><input name="handling_authority" value="{html.escape(str(identity.get('handling_authority') or ''))}"></label>
+          <label>Designating agency <span>(required for CUI)</span><input name="designating_agency" value="{html.escape(str(identity.get('designating_agency') or ''))}"></label>
+          <label>Contract reference<input name="contract_reference" value="{html.escape(str(identity.get('contract_reference') or ''))}"></label>
+          <label>Dissemination controls<input name="dissemination_controls" value="{html.escape(str(identity.get('dissemination_controls') or ''))}"></label>
+          <label>Decision note<textarea name="decision_note"></textarea></label>
+          <input type="hidden" name="decision" value="Approved">
+          <button type="submit">Approve report handling</button>
+        </form>
+        <p id="handling-status" role="status"></p>
+        <script>
+        document.getElementById("handling-form").addEventListener("submit", async (event) => {{
+          event.preventDefault();
+          const form = event.currentTarget;
+          const status = document.getElementById("handling-status");
+          status.textContent = "Saving approval...";
+          const response = await fetch("/api/protection-advisor/review/{html.escape(str(row['submission_key']))}/handling", {{
+            method: "POST",
+            headers: {{"Content-Type": "application/json"}},
+            body: JSON.stringify(Object.fromEntries(new FormData(form))),
+          }});
+          if (!response.ok) {{
+            status.textContent = "Approval failed: " + await response.text();
+            return;
+          }}
+          location.reload();
+        }});
+        </script>
+        """
+
     report_action_html = (
         "<h2>Governed report artifact</h2>"
         "<form method='post' action='/api/protection-advisor/review/"
@@ -1362,6 +1403,7 @@ main{{max-width:960px}}table{{width:100%;border-collapse:collapse}}td{{padding:1
 <p><strong>Contact:</strong> {html.escape(row['contact_name'])} · <a href="mailto:{html.escape(row['contact_email'])}">{html.escape(row['contact_email'])}</a><br>
 <strong>Submitted:</strong> {html.escape(row['created_at'])}<br><strong>Status:</strong> {html.escape(row['status'])}</p>
 {identity_html}
+{handling_action_html}
 {report_action_html}
 <h2>Preliminary result</h2><p class="notice"><strong>{html.escape(result.get('recommendation',''))}</strong><br>{html.escape(result.get('notice',''))}</p>
 <p>Potential attention areas: {int(result.get('attention_count',0))}. Information gaps: {int(result.get('information_gap_count',0))}.</p>
