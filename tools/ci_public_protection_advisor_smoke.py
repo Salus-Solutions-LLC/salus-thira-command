@@ -93,6 +93,14 @@ with tempfile.TemporaryDirectory() as td:
     assert "Print or Save Detailed Results" in embedded.text
     assert 'onclick="printAdvisor(&quot;part1&quot;)"' in embedded.text
     assert embedded.text.count('onclick="printAdvisor(&quot;part2&quot;)"') == 2
+    assert embedded.text.count("Download Professional Detailed Report") == 2
+    assert 'fetch("/public/protection-advisor/report.pdf"' in embedded.text
+    assert 'credentials:"same-origin"' in embedded.text
+    assert 'headers:{"X-CSRF-Token":csrf}' in embedded.text
+    assert "response.blob()" in embedded.text
+    assert "URL.createObjectURL(blob)" in embedded.text
+    assert "link.download=filename" in embedded.text
+    assert 'window.location.assign("/public/protection-advisor/report.pdf")' not in embedded.text
     assert "onclick=\"printAdvisor('part1')\"" not in embedded.text
     assert "onclick=\"printAdvisor('part2')\"" not in embedded.text
     assert "print-part1" in embedded.text and "print-part2" in embedded.text
