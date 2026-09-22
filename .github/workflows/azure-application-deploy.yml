@@ -72,11 +72,11 @@ jobs:
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
             (.source_release == "release/v3.157") and
-            (.source_commit == "6c0f6e46b390ebf3114b826192984df25c2a8c80") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:4643b75a925dbfd1ff426acb188e31a780a8f4be2441e18e4be6a08eb5fc54ec") and
+            (.source_commit == "e5e4e77e1bbf7ea6fe38a7f2a7888da65eb1e77e") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:a19aa385920013b2e73326232e2293bfadcb2d580b554be4a2b433c4c03e1fb4") and
             (.rollback_release == "release/v3.156") and
-            (.rollback_commit == "9f537f518109bec067a8e6bbe92c97415fa4fa32") and
-            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:74e9b5ac9c8d03052c6ed972d2c6b2274fe5d8e241d3e4361860bd2263aabcc1") and
+            (.rollback_commit == "6c0f6e46b390ebf3114b826192984df25c2a8c80") and
+            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:4643b75a925dbfd1ff426acb188e31a780a8f4be2441e18e4be6a08eb5fc54ec") and
             ((keys - [
               "activation_key",
               "approval_record",
