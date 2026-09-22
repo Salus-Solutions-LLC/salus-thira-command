@@ -481,7 +481,7 @@ def render_protection_advisor_pdf(
     """Render the participant PDF from the same governed assessment objects."""
     try:
         from reportlab.lib import colors
-        from reportlab.lib.enums import TA_CENTER
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
         from reportlab.lib.pagesizes import letter
         from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
         from reportlab.lib.units import inch
@@ -501,25 +501,38 @@ def render_protection_advisor_pdf(
     h2 = ParagraphStyle("SalusH2", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=11.5, leading=14, textColor=colors.black, spaceBefore=7, spaceAfter=5)
     title = ParagraphStyle("SalusTitle", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=22, leading=26, alignment=TA_CENTER, textColor=colors.black)
     subtitle = ParagraphStyle("SalusSubtitle", parent=body, fontSize=11, leading=14, alignment=TA_CENTER, textColor=colors.HexColor("#2F75B5"))
-    small = ParagraphStyle("SalusSmall", parent=body, fontSize=8.5, leading=11)
+    small = ParagraphStyle("SalusSmall", parent=body, fontSize=8.5, leading=10.5, spaceAfter=0)
+    table_header = ParagraphStyle(
+        "SalusTableHeader", parent=small, fontName="Helvetica-Bold",
+        fontSize=8, leading=9.25, textColor=colors.white, alignment=TA_LEFT,
+    )
 
     def P(text, style=body):
         return Paragraph(str(text or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), style)
 
-    def T(headers, rows, widths):
-        data = [[P(value, small) for value in headers]] + [[P(value, small) for value in row] for row in rows]
+    def T(headers, rows, widths, *, centered_columns=()):
+        """Build a compact table with semantic alignment and stable header spacing."""
+        data = [[P(value, table_header) for value in headers]] + [[P(value, small) for value in row] for row in rows]
         table = Table(data, colWidths=widths, repeatRows=1, hAlign="CENTER")
-        table.setStyle(TableStyle([
+        commands = [
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#17365D")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+            ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
+            ("VALIGN", (0, 1), (-1, -1), "TOP"),
             ("GRID", (0, 0), (-1, -1), .35, colors.HexColor("#D9E1E8")),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), (colors.white, colors.HexColor("#F5F8FA"))),
-            ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-            ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ]))
+            ("LEFTPADDING", (0, 0), (-1, -1), 5), ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, 0), 5), ("BOTTOMPADDING", (0, 0), (-1, 0), 5),
+            ("TOPPADDING", (0, 1), (-1, -1), 4), ("BOTTOMPADDING", (0, 1), (-1, -1), 4),
+        ]
+        for column in centered_columns:
+            commands.append(("ALIGN", (column, 0), (column, -1), "CENTER"))
+            data[0][column].style = ParagraphStyle(
+                f"SalusTableHeaderCenter{column}", parent=table_header, alignment=TA_CENTER
+            )
+        table.setStyle(TableStyle(commands))
         return table
 
     def bullets(items):
@@ -584,21 +597,21 @@ def render_protection_advisor_pdf(
                   ("Conditions requiring attention", result.get("attention_count", 0), "Potential gaps or unvalidated capability"),
                   ("Information gaps", result.get("information_gap_count", 0), "Unknowns that could change conclusions"),
                   ("Core capabilities", result.get("core_capabilities_considered", 32), "Evaluated across five mission areas"),
-              ), (1.7 * inch, 1.55 * inch, 2.85 * inch)),
+              ), (1.75 * inch, 1.45 * inch, 2.9 * inch), centered_columns=(1,)),
               P("Mission Area Profile", h1),
-              T(("Mission area", "Score", "Preliminary interpretation"), tuple((a, f"{int(scores.get(a, 0))} / 100", "Relative strength" if int(scores.get(a, 0)) >= 60 else "Moderate concern" if int(scores.get(a, 0)) >= 50 else "Priority concern") for a in ("Prevention", "Protection", "Mitigation", "Response", "Recovery")), (1.8 * inch, 1.3 * inch, 3.0 * inch)),
+              T(("Mission area", "Score", "Preliminary interpretation"), tuple((a, f"{int(scores.get(a, 0))} / 100", "Relative strength" if int(scores.get(a, 0)) >= 60 else "Moderate concern" if int(scores.get(a, 0)) >= 50 else "Priority concern") for a in ("Prevention", "Protection", "Mitigation", "Response", "Recovery")), (1.8 * inch, 1.15 * inch, 3.15 * inch), centered_columns=(1,)),
               P("Primary Conclusions", h1)]
     story += bullets(("Treat protection, emergency planning, continuity, and capability validation as one integrated program.", "Test reported capability against current evidence and performance under realistic stress.", "Validate authority, succession, escalation, dependencies, and alternate arrangements.", "Require authorized Salus review before final scope, price, or assurance statements."))
     story += [PageBreak(), P("Priority Capability Findings", h1),
-              T(("Priority", "Capability", "Need", "Mission areas", "Basis"), tuple((i, x.get("capability", ""), x.get("need_score", ""), ", ".join(x.get("mission_areas") or []), "Information incomplete" if x.get("information_gap") else "Reported need") for i, x in enumerate(capabilities, 1)), (.55 * inch, 2.0 * inch, .55 * inch, 1.75 * inch, 1.25 * inch)),
+              T(("Priority", "Capability", "Need", "Mission areas", "Basis"), tuple((i, x.get("capability", ""), x.get("need_score", ""), ", ".join(x.get("mission_areas") or []), "Information incomplete" if x.get("information_gap") else "Reported need") for i, x in enumerate(capabilities, 1)), (.65 * inch, 1.9 * inch, .55 * inch, 1.7 * inch, 1.3 * inch), centered_columns=(0, 2)),
               P("Need scores rank review urgency within this submission. They are not probability estimates, compliance findings, or final measures of readiness."), P("Conditions Requiring Attention", h1)]
     story += bullets(result.get("attention_topics") or ("No specific attention topic was preserved in this preliminary record.",))
     story += [PageBreak(), P("Information Gaps", h1), P("These issues could materially change the assessment and should be resolved before a final opinion, scope, or price is issued.")]
     story += bullets(result.get("information_gaps") or ("Professional validation remains required.",))
     story += [P("Evidence Needed", h1)] + bullets(("Current emergency, continuity, communications, security, and recovery plans.", "Authority, succession, delegation, notification, and escalation records.", "Essential-function, dependency, vendor, utility, and restoration-priority information.", "Training, exercise, incident, corrective-action, maintenance, and inspection records.", "Relevant interviews, demonstrations, observations, and current performance evidence."))
-    story += [PageBreak(), P("Recommended Protection Package", h1), P(f"The preliminary lead engagement is {primary.get('title', 'Professional Review')} - Level {primary.get('level', '')} {primary.get('level_name', '')}. {primary.get('summary', '')}"), P("Why this leads the package. " + str(primary.get("why", ""))), P("Recommended Sequence", h1), T(("Phase", "Service", "Purpose"), tuple((i, x, "Validate, implement, and document the next connected capability step.") for i, x in enumerate(package.get("sequence") or [], 1)), (.55 * inch, 2.55 * inch, 3.0 * inch)), P("Additional Later Phase Services", h1)]
+    story += [PageBreak(), P("Recommended Protection Package", h1), P(f"The preliminary lead engagement is {primary.get('title', 'Professional Review')} - Level {primary.get('level', '')} {primary.get('level_name', '')}. {primary.get('summary', '')}"), P("Why this leads the package. " + str(primary.get("why", ""))), P("Recommended Sequence", h1), T(("Phase", "Service", "Purpose"), tuple((i, x, "Validate, implement, and document the next connected capability step.") for i, x in enumerate(package.get("sequence") or [], 1)), (.65 * inch, 2.45 * inch, 3.0 * inch), centered_columns=(0,)), P("Additional Later Phase Services", h1)]
     for service in package.get("later_phase_services") or []:
         story.append(P(f"{service.get('title', 'Service')} - Level {service.get('level', '')} {service.get('level_name', '')}. {service.get('summary', '')}"))
-    story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Deliverables", h1), T(("Deliverable", "Purpose"), (("Validated assessment record", "Separates verified facts, reported conditions, inferences, and unknowns"), ("Capability and dependency map", "Shows essential functions, supporting resources, failure points, and alternates"), ("Prioritized improvement plan", "Identifies actions, owners, sequence, dependencies, and completion measures"), ("Exercise and validation plan", "Tests priority capabilities and creates defensible evidence"), ("Executive briefing", "Presents decisions, risks, resource implications, and next steps")), (2.2 * inch, 3.9 * inch)), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor screens reported conditions against 32 core capabilities across Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize professional review; they do not independently establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Screening indicator; not an audit grade"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Service level", "Preliminary engagement depth; subject to human review")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Recommended service", "Level", "Preliminary rationale"), tuple((x.get("title", "Service"), f"Level {x.get('level', '')}", x.get("why", "")) for x in package.get("services") or []), (2.0 * inch, .7 * inch, 3.4 * inch)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
+    story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Deliverables", h1), T(("Deliverable", "Purpose"), (("Validated assessment record", "Separates verified facts, reported conditions, inferences, and unknowns"), ("Capability and dependency map", "Shows essential functions, supporting resources, failure points, and alternates"), ("Prioritized improvement plan", "Identifies actions, owners, sequence, dependencies, and completion measures"), ("Exercise and validation plan", "Tests priority capabilities and creates defensible evidence"), ("Executive briefing", "Presents decisions, risks, resource implications, and next steps")), (2.2 * inch, 3.9 * inch)), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor screens reported conditions against 32 core capabilities across Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize professional review; they do not independently establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Screening indicator; not an audit grade"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Service level", "Preliminary engagement depth; subject to human review")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Recommended service", "Level", "Preliminary rationale"), tuple((x.get("title", "Service"), f"Level {x.get('level', '')}", x.get("why", "")) for x in package.get("services") or []), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
     doc.build(story)
     return destination
