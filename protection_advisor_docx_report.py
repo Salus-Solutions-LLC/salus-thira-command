@@ -15,8 +15,11 @@ _INSERT_MARKER = "(insert Protective Advisor report part 1 and protective adviso
 
 def _add_bullets(document, items) -> None:
     for item in items:
-        paragraph = document.add_paragraph(style="List Bullet")
-        paragraph.add_run(str(item))
+        # The approved production template may not define Word's built-in
+        # "List Bullet" style. Use a plain paragraph with an explicit bullet so
+        # rendering remains deterministic across approved and smoke templates.
+        paragraph = document.add_paragraph()
+        paragraph.add_run("\u2022 " + str(item))
 
 
 def _add_table(document, headers, rows, widths=None):
