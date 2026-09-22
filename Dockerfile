@@ -29,6 +29,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN useradd --create-home --uid 10001 salus
 COPY --from=whisper-assets /opt/whisper /opt/whisper
 COPY . .
+RUN test -f "/app/Protection Advisor Report Template.docx"
 RUN python tools/reconstruct_v343_source.py && python tools/verify_v343_source.py
 RUN python tools/reconstruct_salops_preparedness.py
 RUN python tools/reconstruct_personnel_assessment.py
