@@ -43,7 +43,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.155
+          ref: release/v3.156
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -65,18 +65,18 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.155-application-9f537f51") and
+            (.activation_key == "salcapa-v3.156-application-6c0f6e46") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.155") and
-            (.source_commit == "9f537f518109bec067a8e6bbe92c97415fa4fa32") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:74e9b5ac9c8d03052c6ed972d2c6b2274fe5d8e241d3e4361860bd2263aabcc1") and
-            (.rollback_release == "release/v3.154") and
-            (.rollback_commit == "1a3cc437971aa10600d22885727158ad7fac35c8") and
-            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:609b620bc718606c7617bb9c99c18f13e0e75181ee708f554ded80eef6092bef") and
+            (.source_release == "release/v3.156") and
+            (.source_commit == "6c0f6e46b390ebf3114b826192984df25c2a8c80") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:4643b75a925dbfd1ff426acb188e31a780a8f4be2441e18e4be6a08eb5fc54ec") and
+            (.rollback_release == "release/v3.155") and
+            (.rollback_commit == "9f537f518109bec067a8e6bbe92c97415fa4fa32") and
+            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:74e9b5ac9c8d03052c6ed972d2c6b2274fe5d8e241d3e4361860bd2263aabcc1") and
             ((keys - [
               "activation_key",
               "approval_record",
@@ -450,7 +450,7 @@ jobs:
             --query "[?name == '$JOB_NAME'] | length(@)" \
             --output tsv --only-show-errors)" = "0"
 
-      - name: Restore accepted v3.154 if promotion verification fails
+      - name: Restore accepted v3.155 if promotion verification fails
         if: failure() && steps.deployment.outcome == 'success'
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
