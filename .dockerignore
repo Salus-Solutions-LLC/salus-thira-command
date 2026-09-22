@@ -29,6 +29,7 @@ person-records/
 *.doc
 *.docm
 *.docx
+!Protection Advisor Report Template.docx
 *.xls
 *.xlsm
 *.xlsx
