@@ -11,7 +11,7 @@ active_build_system_issue: 370
 active_increment: protection_advisor_v3162_professional_report
 last_completed_increment: protection_advisor_v3161_footer_image_relationships
 candidate_release: v3.162
-validation_pr: pending
+validation_pr: 514
 validation_branch: release/v3.162
 validation_base: development/salcapa-platform
 validation_head: 862d87a969e44377d5648ed5abf17839ffc3aed9
@@ -21,7 +21,7 @@ first_root_failing_gate: none
 root_cause: none
 repair_head: b8620a18bff65af4c305ce82b1668807ae20d7d5
 repair_summary: protection_advisor_professional_report_renderer_and_smoke_validation
-genuine_blockers: github_candidate_validation_pending
+genuine_blockers: deployment_continuity_superseded_pending_v3162_validation
 next_authorized_step: freeze_publish_and_deploy_v3162
 deployed_demo_release: v3.161
 deployed_demo_state: accepted_stable_runtime_with_v3160_rollback
