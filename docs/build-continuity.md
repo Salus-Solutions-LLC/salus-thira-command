@@ -2,7 +2,7 @@
 schema_version: 1
 record_kind: salcapa_build_continuity
 last_verified_at: 21 September 2026 18:30 CDT
-current_frozen_release: v3.154
+current_frozen_release: v3.155
 current_frozen_commit: 1a3cc437971aa10600d22885727158ad7fac35c8
 active_development_branch: development/salcapa-platform
 current_development_head: 1a3cc437971aa10600d22885727158ad7fac35c8
@@ -10,9 +10,9 @@ active_product_milestone: issue_370_governed_document_ingestion
 active_build_system_issue: 370
 active_increment: protection_advisor_v3155_https_sso
 last_completed_increment: protection_advisor_v3154_report_contract_compatibility
-candidate_release: v3.155
+candidate_release: v3.156
 validation_pr: 514
-validation_branch: release/v3.155
+validation_branch: release/v3.156
 validation_base: development/salcapa-platform
 validation_head: a743f6c43bd2624bf4a266cd07d337800df23682
 validation_gate_state: preflight
@@ -21,7 +21,7 @@ first_root_failing_gate: none
 root_cause: none
 repair_head: 1a3cc437971aa10600d22885727158ad7fac35c8
 repair_summary: protection_advisor_https_sso_target
-genuine_blockers: deployment_continuity_superseded_pending_v3155_validation
+genuine_blockers: deployment_continuity_superseded_pending_v3156_validation
 next_authorized_step: validate_publish_and_deploy_v3155
 deployed_demo_release: v3.150
 deployed_demo_state: protection_advisor_anonymous_review_button_repaired_live_verified_and_nested_m365_acceptance_passed_with_temporary_job_deleted
