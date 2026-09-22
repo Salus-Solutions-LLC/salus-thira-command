@@ -35,13 +35,14 @@ Build the governed knowledge-promotion workflow from **OneDrive → SalCAPA Inta
 - Continuity records were recovered from the project Library after they were found absent from the Git branch.
 - The recovered 3.161 handoff was reconciled to the verified 3.163 production state.
 - A local implementation provides candidate capture, classification, promotion, destination verification, source-change invalidation, event history, and default source retention.
-- A regression smoke test and syntax validation are complete locally.
+- Development commit `3470ad100ab495eba23e7f0fe7ed64058bd7780f` contains the restored continuity records, approved architecture, workflow implementation, application registration, environment contract, and CI gate.
+- CI, the production-container build, PostgreSQL validation, CodeQL, contextual intake, and Protection Advisor regression all passed on that exact commit.
 - No Microsoft 365 business content has been moved, copied, or deleted by this implementation.
 - No release or production deployment has been made for this workflow.
 
 ## Exact next action
 
-Restore these continuity records and commit the knowledge-promotion implementation to `development/salcapa-platform`, register it with the SalCAPA application, add its CI gate and environment contract, then require the full governed validation set before any release or live pilot.
+Resolve and verify the production **Salus Knowledge Sources** drive and root-folder identifiers and the application's least-privilege destination permission. Then add reviewer workflow acceptance, run a non-sensitive representative-file pilot with source removal disabled, and only afterward prepare a governed release candidate.
 
 ## Acceptance criteria
 
