@@ -9,7 +9,11 @@ BASE="${PROTECTION_ADVISOR_BASE_URL:-https://salcapa-dev-b48224.ashycoast-29444a
 WORK="$(mktemp -d)"
 COOKIE="$WORK/cookies.txt"
 PASSWORD="Pa!$(openssl rand -hex 18)"
-RUN_KEY="${GITHUB_RUN_ID:-$(date -u +%Y%m%d%H%M%S)}"
+if [ -n "${GITHUB_RUN_ID:-}" ]; then
+  RUN_KEY="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT:-1}"
+else
+  RUN_KEY="$(date -u +%Y%m%d%H%M%S)-$"
+fi
 EMAIL="mduncan+pa-v3143-${RUN_KEY}@salus.solutions"
 DELETED=0
 cleanup() {
