@@ -61,10 +61,10 @@ def _trim_after_cover_page(document) -> None:
         if page_break_seen:
             body.remove(child)
             continue
-        if child.xpath('.//w:br[@w:type="page"]'):
+        if child.xpath('.//w:br[@w:type="page"]') or child.xpath('.//w:pPr/w:sectPr'):
             page_break_seen = True
     if not page_break_seen:
-        raise ValueError("template cover-page break was not found")
+        raise ValueError("template cover-page boundary was not found")
 
 
 def _replace_story(target, source_xml, source_part) -> None:
