@@ -149,18 +149,24 @@ def render_protection_advisor_docx(
     _trim_after_cover_page(document)
 
     cover_section = document.sections[0]
+    # Capture the source story parts before creating any new section. Accessing a
+    # new section's linked header/footer can change which part python-docx
+    # resolves for earlier sections; retaining these handles preserves embedded
+    # image relationships when the template footer is copied.
+    cover_header_part = cover_section.header.part
+    cover_footer_part = cover_section.footer.part
     cover_header = deepcopy(cover_section.header._element)
     cover_footer = deepcopy(cover_section.footer._element)
 
     blank_section = document.add_section(WD_SECTION.CONTINUOUS)
     # The intentionally blank second page retains only the template's light
     # CONFIDENTIAL watermark; it has no visible header text or footer.
-    _replace_story(blank_section.header, cover_header, cover_section.header.part)
+    _replace_story(blank_section.header, cover_header, cover_header_part)
     _clear_story(blank_section.footer)
 
     results_section = document.add_section(WD_SECTION.NEW_PAGE)
-    _replace_story(results_section.header, cover_header, cover_section.header.part)
-    _replace_story(results_section.footer, cover_footer, cover_section.footer.part)
+    _replace_story(results_section.header, cover_header, cover_header_part)
+    _replace_story(results_section.footer, cover_footer, cover_footer_part)
 
     document.add_heading("Protection Advisor Assessment Results", level=1)
     identity_lines = (
