@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 22 September 2026 18:20 CDT
-current_frozen_release: v3.166
-current_frozen_commit: 1afbd4679317a91781c1c3f249570d64c07b19e5
+last_verified_at: 22 September 2026 18:55 CDT
+current_frozen_release: v3.167
+current_frozen_commit: 6571591a0cfa4b4125a06452ba214decb855862c
 active_development_branch: development/salcapa-platform
-current_development_head: 1985cd4fa3214bf9e1c215123902dc11b47b21cd
+current_development_head: 2a10d8cef94263b7bd7e3d73ebd09c47aa8656fe
 active_product_milestone: issue_370_governed_knowledge_promotion
 active_build_system_issue: 370
-active_increment: risk_based_automatic_knowledge_promotion_v3167
-last_completed_increment: processed_intake_archive_v3166
-candidate_release: v3.167
+active_increment: content_inspection_fail_closed_v3168
+last_completed_increment: risk_based_automatic_knowledge_promotion_v3167
+candidate_release: v3.168
 validation_pr: pending
-validation_branch: release/v3.167
+validation_branch: release/v3.168
 validation_base: development/salcapa-platform
-validation_head: 1985cd4fa3214bf9e1c215123902dc11b47b21cd
+validation_head: 2a10d8cef94263b7bd7e3d73ebd09c47aa8656fe
 validation_gate_state: repair_validation_pending
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
 repair_summary: none
-genuine_blockers: v3167_full_validation_pending
-next_authorized_step: validate_freeze_publish_and_deploy_v3167
-deployed_demo_release: v3.166
-deployed_demo_state: accepted_stable_runtime_with_v3165_rollback
+genuine_blockers: v3168_full_validation_pending
+next_authorized_step: validate_freeze_publish_and_deploy_v3168
+deployed_demo_release: v3.167
+deployed_demo_state: accepted_stable_runtime_with_v3166_rollback
 ---
 
 # SalCAPA build continuity
@@ -33,7 +33,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current controlled checkpoint
 
-Release v3.166 at exact commit `1afbd4679317a91781c1c3f249570d64c07b19e5` is the accepted runtime, with v3.165 retained as the rollback baseline. Release v3.167 is the controlled risk-based automatic knowledge-promotion candidate. Freeze only the exact all-green candidate commit as `release/v3.167`, publish its immutable image, and deploy it through the governed activation records.
+Release v3.167 at exact commit `6571591a0cfa4b4125a06452ba214decb855862c` is the accepted runtime, with v3.166 retained as the rollback baseline. Release v3.168 is the controlled fail-closed content-inspection candidate. Freeze only the exact all-green candidate commit as `release/v3.168`, publish its immutable image, and deploy it through the governed activation records.
 
 ## Source precedence
 
