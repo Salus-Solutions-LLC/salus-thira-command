@@ -51,7 +51,7 @@ jobs:
       - name: Checkout accepted rollback source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.154
+          ref: release/v3.155
           path: accepted-release
           fetch-depth: 1
           persist-credentials: false
