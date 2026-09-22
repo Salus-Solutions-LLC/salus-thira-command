@@ -90,7 +90,7 @@ with tempfile.TemporaryDirectory() as td:
     assert "salus-protection-advisor-height" in embedded.text
     assert "preferred_min_height:900" in embedded.text
     assert "Print or Save Preliminary Summary" in embedded.text
-    assert "Print or Save Detailed Results" in embedded.text
+    assert "Download Professional Detailed Report" in embedded.text
     assert 'onclick="printAdvisor(&quot;part1&quot;)"' in embedded.text
     assert embedded.text.count('onclick="printAdvisor(&quot;part2&quot;)"') == 2
     assert embedded.text.count("Download Professional Detailed Report") == 2
