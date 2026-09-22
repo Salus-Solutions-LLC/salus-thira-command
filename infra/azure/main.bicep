@@ -550,6 +550,18 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
               value: '104857600'
             }
             {
+              name: 'SALUS_M365_KNOWLEDGE_DRIVE_ID'
+              value: 'b!mn-UaUzJ6UOGBLc9xcQ2DYwuRoUBrB9KtakxYIYG5o1riGTeQsB8T4jy0ttFW_fN'
+            }
+            {
+              name: 'SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID'
+              value: '01WETF6P56Y2GOVW7725BZO354PWSELRRZ'
+            }
+            {
+              name: 'SALUS_M365_KNOWLEDGE_REMOVE_VERIFIED_SOURCE'
+              value: '0'
+            }
+            {
               name: 'SALUS_M365_REPORT_DRIVE_ID'
               value: m365ReportDriveId
             }

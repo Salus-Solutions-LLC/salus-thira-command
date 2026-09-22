@@ -38,6 +38,8 @@ def main():
     assert "Human approval is required before promotion" in module
     assert "Changed - Re-review Required" in module
     assert "Knowledge destination verification failed" in module
+    assert "untrusted verification location" in module
+    assert "endswith(\".sharepoint.com\")" in module
     assert "SALUS_M365_KNOWLEDGE_REMOVE_VERIFIED_SOURCE" in module
     assert "If-Match" in module
     assert "m365_knowledge_events" in module

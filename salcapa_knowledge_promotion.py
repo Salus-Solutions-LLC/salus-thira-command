@@ -169,6 +169,21 @@ class GraphKnowledgeWriter:
             f"{GRAPH_ROOT}/drives/{self.destination.drive_id}/items/{item_id}/content",
             headers=self._headers() | {"Accept": "application/octet-stream"},
         )
+        if verify.status_code in {302, 303, 307, 308}:
+            location = str(verify.headers.get("Location", ""))
+            parsed_location = urlparse(location)
+            if (
+                parsed_location.scheme != "https"
+                or parsed_location.username is not None
+                or parsed_location.password is not None
+                or not (parsed_location.hostname or "").lower().endswith(".sharepoint.com")
+            ):
+                raise KnowledgePromotionError(
+                    "Knowledge destination returned an untrusted verification location"
+                )
+            verify = self.client.get(
+                location, headers={"Accept": "application/octet-stream"}
+            )
         if verify.status_code != 200 or hashlib.sha256(verify.content).hexdigest() != sha256:
             raise KnowledgePromotionError("Knowledge destination verification failed")
         web_url = str(item.get("webUrl", ""))
@@ -336,4 +351,3 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
 
     promote.__annotations__["request"] = Request
     app.post("/api/integrations/m365/knowledge/candidates/{candidate_id}/promote", include_in_schema=False)(promote)
-
