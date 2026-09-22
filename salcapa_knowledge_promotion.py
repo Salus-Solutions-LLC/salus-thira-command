@@ -39,6 +39,76 @@ TARGETS = {
     "99 Superseded and Retained",
 }
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
+_AUTO_ACTOR = "SalCAPA Policy Engine"
+_AUTO_EXTENSIONS = {".csv", ".docx", ".pdf", ".pptx", ".txt", ".xlsx"}
+_EXCEPTION_MARKERS = {
+    "attorney-client", "confidential", "draft", "employee", "export controlled",
+    "legal hold", "medical record", "patient", "personnel", "privileged",
+    "protected member", "restricted", "ssn",
+}
+_AUTO_TARGET_RULES = (
+    ("06 Policies and SOPs", ("policy", "procedure", "sop")),
+    ("01 Salus Doctrine and Methodologies", ("doctrine", "methodology")),
+    ("03 Assessment Standards and Templates", ("checklist", "standard", "template")),
+    ("07 Training and Exercises", ("exercise", "training")),
+    ("08 Visual Media", ("image", "photo", "video")),
+    ("09 Historical Material", ("archive", "historical")),
+    ("04 Approved Examples", ("example", "sample")),
+    ("02 Service Capabilities", ("capability", "service")),
+    (
+        "05 Research and Reference",
+        ("analysis", "assessment", "intelligence", "reference", "report", "research", "strategic"),
+    ),
+)
+_AUTO_PRODUCTS = {
+    "01 Salus Doctrine and Methodologies": ["SalCAPA", "SalINTEL", "SalTHIRA", "SalOPS"],
+    "02 Service Capabilities": ["SalCAPA", "SalOPS"],
+    "03 Assessment Standards and Templates": ["SalCAPA", "SalINTEL", "SalTHIRA"],
+    "04 Approved Examples": ["SalCAPA", "SalINTEL", "SalTHIRA", "SalOPS"],
+    "05 Research and Reference": ["SalCAPA", "SalINTEL", "SalTHIRA"],
+    "06 Policies and SOPs": ["SalCAPA", "SalOPS"],
+    "07 Training and Exercises": ["SalCAPA", "SalOPS"],
+    "08 Visual Media": ["SalCAPA", "SalINTEL", "SalTHIRA", "SalOPS"],
+    "09 Historical Material": ["SalCAPA"],
+}
+
+
+def automatic_classification(document, *, duplicate: bool) -> tuple[dict[str, Any] | None, str]:
+    """Return a bounded automatic classification or a fail-closed exception reason."""
+    if duplicate:
+        return None, "duplicate_requires_human_resolution"
+    extension = os.path.splitext(document.name)[1].lower()
+    if extension not in _AUTO_EXTENSIONS:
+        return None, "unsupported_or_unapproved_format"
+    normalized = re.sub(r"[^a-z0-9]+", " ", document.name.lower()).strip()
+    marker = next((value for value in sorted(_EXCEPTION_MARKERS) if value in normalized), "")
+    if marker:
+        return None, f"sensitivity_marker:{marker}"
+    matches = [
+        target
+        for target, keywords in _AUTO_TARGET_RULES
+        if any(keyword in normalized for keyword in keywords)
+    ]
+    if len(matches) != 1:
+        return None, "classification_confidence_below_threshold"
+    target = matches[0]
+    return {
+        "decision": "Approved",
+        "target_folder": target,
+        "knowledge_domain": "Enterprise Reference",
+        "document_type": "Reference Material",
+        "sensitivity": "Salus Internal",
+        "rationale": (
+            "Automatically classified under the approved low-risk, high-confidence "
+            "knowledge-promotion policy."
+        ),
+        "permit_products": _AUTO_PRODUCTS[target],
+        "automation": {
+            "policy": "low-risk-high-confidence-v1",
+            "confidence": "high",
+            "exception_checks": "passed",
+        },
+    }, ""
 
 
 class KnowledgePromotionError(RuntimeError):
@@ -272,38 +342,169 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         try:
             intake_config = GovernedM365Config.from_environment()
             intake = GovernedM365Intake(intake_config)
-            files = [row for row in intake.list_files() if row["relative_path"].startswith(PENDING_PREFIX)]
-            conn = db(); _init_tables(conn); created = 0
+            files = [
+                row for row in intake.list_files()
+                if row["relative_path"].startswith(PENDING_PREFIX)
+            ]
+            conn = db()
+            _init_tables(conn)
+            created = 0
+            automatically_promoted = 0
+            exception_review = 0
+            writer = None
             for row in files:
-                document = intake.read_document(row["id"], access_classification="Salus Internal")
+                document = intake.read_document(
+                    row["id"], access_classification="Salus Internal"
+                )
                 existing = conn.execute(
-                    "SELECT id FROM m365_knowledge_candidates WHERE source_drive_id=? AND source_item_id=? AND source_etag=?",
+                    "SELECT id FROM m365_knowledge_candidates "
+                    "WHERE source_drive_id=? AND source_item_id=? AND source_etag=?",
                     (intake_config.drive_id, document.item_id, document.etag),
                 ).fetchone()
-                if existing: continue
+                if existing:
+                    continue
                 duplicate = conn.execute(
-                    "SELECT id FROM m365_knowledge_candidates WHERE source_sha256=? AND status IN ('Promoted','Source Retained','Source Removed')",
+                    "SELECT id FROM m365_knowledge_candidates WHERE source_sha256=? "
+                    "AND status IN ('Promoted','Source Retained','Source Removed',"
+                    "'Ingested and Verified')",
                     (document.sha256,),
                 ).fetchone()
-                status = "Duplicate Review" if duplicate else "Pending Review"
+                classification, exception_reason = automatic_classification(
+                    document, duplicate=bool(duplicate)
+                )
+                initial_status = (
+                    "Approved for Promotion" if classification else "Exception Review"
+                )
+                timestamp = now()
                 cursor = conn.execute(
                     """INSERT INTO m365_knowledge_candidates
                     (source_drive_id,source_item_id,source_name,source_relative_path,source_etag,
-                     source_sha256,source_size,source_modified_at,source_owner,discovered_at,status)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
-                    (intake_config.drive_id,document.item_id,document.name,document.relative_path,
-                     document.etag,document.sha256,document.size,document.last_modified,
-                     document.source_owner,now(),status),
+                     source_sha256,source_size,source_modified_at,source_owner,discovered_at,status,
+                     decision,target_folder,classification_json,reviewed_by,reviewed_at,
+                     review_rationale)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        intake_config.drive_id,document.item_id,document.name,
+                        document.relative_path,document.etag,document.sha256,document.size,
+                        document.last_modified,document.source_owner,timestamp,initial_status,
+                        "Approved" if classification else "Deferred",
+                        classification["target_folder"] if classification else "",
+                        json.dumps(classification or {
+                            "decision": "Deferred",
+                            "automation": {
+                                "policy": "low-risk-high-confidence-v1",
+                                "exception_reason": exception_reason,
+                            },
+                        },sort_keys=True),
+                        _AUTO_ACTOR,timestamp,
+                        classification["rationale"] if classification else exception_reason,
+                    ),
                 )
-                candidate_id = cursor.lastrowid; created += 1
+                candidate_id = cursor.lastrowid
+                created += 1
                 conn.execute(
-                    "INSERT INTO m365_knowledge_events(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
-                    (candidate_id,"Captured",actor(context),json.dumps({"sha256":document.sha256,"etag":document.etag}),now()),
+                    "INSERT INTO m365_knowledge_events"
+                    "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+                    (
+                        candidate_id,"Captured",actor(context),
+                        json.dumps({"sha256":document.sha256,"etag":document.etag}),timestamp,
+                    ),
                 )
-            conn.commit(); total = conn.execute("SELECT COUNT(*) FROM m365_knowledge_candidates").fetchone()[0]; conn.close()
-            return {"discovered": len(files), "created": created, "candidate_count": total}
+                if not classification:
+                    exception_review += 1
+                    conn.execute(
+                        "INSERT INTO m365_knowledge_events"
+                        "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+                        (
+                            candidate_id,"RoutedToExceptionReview",_AUTO_ACTOR,
+                            json.dumps({"reason":exception_reason},sort_keys=True),timestamp,
+                        ),
+                    )
+                    conn.commit()
+                    continue
+                conn.execute(
+                    "INSERT INTO m365_knowledge_events"
+                    "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+                    (
+                        candidate_id,"AutomaticallyClassified",_AUTO_ACTOR,
+                        json.dumps(classification,sort_keys=True),timestamp,
+                    ),
+                )
+                conn.commit()
+                try:
+                    if writer is None:
+                        writer = GraphKnowledgeWriter(
+                            intake_config,
+                            KnowledgeDestinationConfig.from_environment(),
+                        )
+                    destination = writer.put_verified(
+                        classification["target_folder"],
+                        document.name,
+                        document.content,
+                        document.sha256,
+                    )
+                    archived = writer.archive_verified_source(
+                        document.item_id, document.etag
+                    )
+                    completed_at = now()
+                    conn.execute(
+                        """UPDATE m365_knowledge_candidates
+                        SET status='Ingested and Verified',destination_drive_id=?,
+                        destination_item_id=?,destination_web_url=?,destination_etag=?,
+                        promoted_at=?,source_archived_at=?,source_archive_item_id=?,
+                        source_archive_web_url=?,source_archive_etag=? WHERE id=?""",
+                        (
+                            writer.destination.drive_id,destination["item_id"],
+                            destination["web_url"],destination["etag"],completed_at,
+                            completed_at,archived["item_id"],archived["web_url"],
+                            archived["etag"],candidate_id,
+                        ),
+                    )
+                    conn.execute(
+                        "INSERT INTO m365_knowledge_events"
+                        "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+                        (
+                            candidate_id,"AutomaticallyPromotedVerifiedAndArchived",
+                            _AUTO_ACTOR,json.dumps({
+                                "destination_item_id":destination["item_id"],
+                                "source_archive_item_id":archived["item_id"],
+                                "target_folder":classification["target_folder"],
+                                "permit_products":classification["permit_products"],
+                            },sort_keys=True),completed_at,
+                        ),
+                    )
+                    automatically_promoted += 1
+                except KnowledgePromotionError as exc:
+                    exception_review += 1
+                    conn.execute(
+                        "UPDATE m365_knowledge_candidates "
+                        "SET status='Exception Review',review_rationale=? WHERE id=?",
+                        (str(exc),candidate_id),
+                    )
+                    conn.execute(
+                        "INSERT INTO m365_knowledge_events"
+                        "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+                        (
+                            candidate_id,"AutomaticPromotionFailed",_AUTO_ACTOR,
+                            json.dumps({"reason":str(exc)},sort_keys=True),now(),
+                        ),
+                    )
+                conn.commit()
+            total = conn.execute(
+                "SELECT COUNT(*) FROM m365_knowledge_candidates"
+            ).fetchone()[0]
+            conn.close()
+            return {
+                "discovered": len(files),
+                "created": created,
+                "automatically_promoted": automatically_promoted,
+                "exception_review": exception_review,
+                "candidate_count": total,
+            }
         except M365IntakeError as exc:
-            raise HTTPException(503, "Governed Microsoft 365 intake is unavailable") from exc
+            raise HTTPException(
+                503, "Governed Microsoft 365 intake is unavailable"
+            ) from exc
 
     scan.__annotations__["request"] = Request
     app.post("/api/integrations/m365/knowledge/scan", include_in_schema=False)(scan)

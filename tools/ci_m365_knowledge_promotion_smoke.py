@@ -5,12 +5,13 @@ import hashlib
 import sqlite3
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from salcapa_knowledge_promotion import (
     ClassificationCommand, KnowledgeDestinationConfig, GraphKnowledgeWriter,
-    PENDING_PREFIX, TARGETS,
+    PENDING_PREFIX, TARGETS, automatic_classification,
 )
 
 
@@ -25,6 +26,24 @@ def main():
     )
     assert approved.decision == "Approved"
     assert approved.permit_products == ["ChatGPT", "SalCAPA", "SalINTEL"]
+    assessment = SimpleNamespace(
+        name="Strategic Assessment_ ISIS-K Threat to U.S. Hospitals - 19 March 2025.pdf"
+    )
+    automated, reason = automatic_classification(assessment, duplicate=False)
+    assert reason == ""
+    assert automated["target_folder"] == "05 Research and Reference"
+    assert automated["permit_products"] == ["SalCAPA", "SalINTEL", "SalTHIRA"]
+    sensitive, reason = automatic_classification(
+        SimpleNamespace(name="Confidential personnel assessment.pdf"),
+        duplicate=False,
+    )
+    assert sensitive is None and reason.startswith("sensitivity_marker:")
+    ambiguous, reason = automatic_classification(
+        SimpleNamespace(name="document.pdf"), duplicate=False
+    )
+    assert ambiguous is None and reason == "classification_confidence_below_threshold"
+    duplicate, reason = automatic_classification(assessment, duplicate=True)
+    assert duplicate is None and reason == "duplicate_requires_human_resolution"
     destination = KnowledgeDestinationConfig("12345678", "abcdefgh", "archive12")
     destination.validate()
     assert destination.processed_folder_item_id == "archive12"
@@ -44,6 +63,8 @@ def main():
     assert "endswith(\".sharepoint.com\")" in module
     assert "SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID" in module
     assert "archive_verified_source" in module
+    assert "AutomaticallyPromotedVerifiedAndArchived" in module
+    assert "RoutedToExceptionReview" in module
     assert "Ingested and Verified" in module
     assert ".delete(" not in module
     assert "If-Match" in module
