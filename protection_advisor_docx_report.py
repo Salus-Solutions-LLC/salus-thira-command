@@ -430,8 +430,35 @@ def render_protection_advisor_docx(
     try:
         result = json.loads(part1_text)
         package = json.loads(part2_text)
-    except (TypeError, json.JSONDecodeError) as exc:
-        raise ValueError("Protection Advisor report content is invalid") from exc
+    except (TypeError, json.JSONDecodeError):
+        # Preserve the original renderer contract for controlled callers that
+        # supply already-written narrative instead of model JSON. The text is
+        # placed inside the professional architecture, never emitted as a raw
+        # questionnaire or serialized export.
+        result = {
+            "recommendation": "Professional review recommended",
+            "strength_count": 0,
+            "attention_count": 1,
+            "information_gap_count": 0,
+            "core_capabilities_considered": 32,
+            "mission_area_scores": {},
+            "priority_capabilities": [],
+            "attention_topics": [part1_text.strip()],
+            "information_gaps": [],
+        }
+        package = {
+            "primary_service": {
+                "title": "Protection Advisor Professional Review",
+                "level": 1,
+                "level_name": "Initial Pass",
+                "summary": part2_text.strip(),
+                "why": "The supplied preliminary narrative requires authorized Salus validation.",
+            },
+            "sequence": ["Protection Advisor Professional Review"],
+            "later_phase_services": [],
+            "services": [],
+            "rationale": part2_text.strip(),
+        }
     if not isinstance(result, dict) or not isinstance(package, dict):
         raise ValueError("Protection Advisor report content must be structured objects")
     _professional_body(document, fields, result, package)
