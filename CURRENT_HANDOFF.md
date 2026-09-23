@@ -1,25 +1,30 @@
 # Salus Solutions — Current Handoff
 
 **Updated:** 23 September 2026
-**Active Azure development demonstration release:** SalCAPA 3.174
-**Frozen source:** `release/v3.174` at `a3b9abece87d328ebb272e8c15065c25f41a57ba`
-**Activation:** `568acd07dae508c0df0e7c82977bee25adc14706`
-**Immutable running image:** `salcapadevb48224acr.azurecr.io/salcapa@sha256:d9067d74d7a4f7a1bd62138329362e1cde9928c95b14ff54ae7ef08197628291`
-**Rollback:** SalCAPA 3.173
+**Active Azure development demonstration release:** SalCAPA 3.175
+**Frozen source:** `release/v3.175` at `62b3fbc5089b237ee6aee044de84ace699b08d66`
+**Immutable running image:** `salcapadevb48224acr.azurecr.io/salcapa@sha256:3c51917d148a231f91a0722b5704fd10b038925da66c32ccce051988c9553a50`
+**Rollback:** SalCAPA 3.174, source `a3b9abece87d328ebb272e8c15065c25f41a57ba`, image `sha256:d9067d74d7a4f7a1bd62138329362e1cde9928c95b14ff54ae7ef08197628291`
 **Authoritative repository:** `Salus-Solutions-LLC/salus-thira-command`
-**Development branch after diagnostic source edit:** `7b247d5072d3fae0f09b71e39f576789c38c5e34`
+**Working branch:** `development/salcapa-platform`
 
-## Current objective and evidence
+## Objective and accepted work
 
-Complete automatic processing, destination verification, and archival of both real files under OneDrive `SalCAPA Intake / 10 Pending Classification`. The governed 3.174 deployment run `35815980228` succeeded, including readiness, sign-in, isolated Microsoft 365 acceptance, and temporary job cleanup. The 3.174 code preserves originals and retry obligations when extraction cannot finish; its PDF worker accepts empty annotation arrays and still blocks actual active features. No new application image has been deployed since 3.174.
+Finish automatic processing, hash-verified promotion to SharePoint `Salus Knowledge Sources`, and movement into OneDrive `SalCAPA Intake / 90 Processed Intake` for the two real files still under `10 Pending Classification`. SAL-D022 governs no-exception intake, retention of originals and citation metadata, automatic retries, and human authority for consequential use.
 
-The scoped live diagnostic run `35817510244` found two pending files and zero promotions. DOCX extraction completed. PDF extraction still reports `PDF_ACTIVE_CONTENT`; direct worker diagnostic classified its reason as `other`, so the precise live PDF feature is unresolved. The application identity read the knowledge destination successfully but a harmless write to `Salus Knowledge Sources / 05 Research and Reference` returned Graph HTTP 403 `accessDenied`. The diagnostic job was removed.
+The 3.174 build reconstruction silently overwrote the reviewed PDF worker and its regression test with older archived source. The 3.175 build verifies the reviewed worker and test bytes and runs the PDF active-feature regression inside the production image. CI run `35820421893` passed general validation, PostgreSQL, and container runtime on the exact frozen commit. Image publication run `35820754625` succeeded. Governed application deployment run `35821037619` passed the exact digest, live readiness, identity/sign-in, isolated Microsoft 365 intake acceptance, and cleanup. Activation commit `433e177595587f60315bc5e220f6da5bdc3dbfb6` was followed by workflow pin correction `c468081f45f63f5a154c93f88962f510ed0905df`; only the latter deployment run succeeded. The first deployment attempt failed its pre-Azure activation check and did not change the running app.
 
-A source-only diagnostic commit `7b247d5` added bounded structural flags for the PDF; it did not change the running 3.174 image. Its triggered run `35819127268` completed and removed the temporary diagnostic job. The workflow's existing log filter did not include the new flags, so this run cannot establish their values. Automatic approval review rejected the proposed workflow edit to print those flags because the workflow would launch a managed-identity job that reads internal documents and attempts a Graph write/delete. Do not bypass that rejection. No SharePoint site permission has been changed, and no real file has been verified in the knowledge destination or processed archive.
+Live scoped diagnostic run `35821550222` used the running 3.175 image. It found both pending files; DOCX and PDF each reported `Complete` extraction. The PDF worker reported no active-feature rejection. The destination read returned HTTP 200, while a harmless write to `05 Research and Reference` returned Graph HTTP 403 `accessDenied`. The processor readiness state reported two discovered, zero promoted, and only `destination_write_denied` retries. The temporary diagnostic job was removed. Neither real file has been verified in the knowledge destination or processed archive.
+
+## Remaining access action
+
+The target site is `salussolutions.sharepoint.com,69947f9a-c94c-43e9-8604-b73dc5c4360d,85462e8c-ac01-4a1f-b5a9-31608606e68d` (`https://salussolutions.sharepoint.com/sites/SalusKnowledgeSources`). SalCAPA's Graph application client ID is `c2fc227a-7ba4-467d-a6c6-8a0f9b813aee`. A protected read-only inspection by the Azure deployment identity returned HTTP 401 from Graph on `/sites/{site-id}/permissions`, so that identity cannot inspect or grant this permission. No site grant was changed. Use an authorized Microsoft 365/SharePoint administrator to inspect existing application grants and, if `write` is absent, grant `write` to this exact application on this exact site under the existing Sites.Selected model. Do not grant tenant-wide write or duplicate an existing site grant.
+
+The browser control capability was unavailable in this workspace because its required module could not be loaded. The SharePoint connector does not expose application site-grant operations. The Microsoft 365 administrator action is currently the dependency.
 
 ## Single best next action
 
-Obtain explicit approval for the bounded live workflow change after reviewing its cloud-side effects, then identify the PDF structure from allowlisted diagnostic output. Separately, use an authorized Microsoft 365 administrator to verify the SalCAPA application's site-scoped role on the exact `Salus Knowledge Sources` site and apply the narrow write grant only if missing; verify a harmless write and cleanup before retrying the two real files. Do not infer the exact permission fault solely from HTTP 403.
+After the narrow site grant is made, verify a harmless application-identity write and cleanup, then let SalCAPA retry both real files. Confirm each exact original and citation record, destination SHA-256 verification, no duplicate destination, and movement to `90 Processed Intake`; confirm the pending queue is clear and retain the 3.174 rollback.
 
 ---
 
