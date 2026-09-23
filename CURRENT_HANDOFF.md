@@ -46,7 +46,7 @@ SAL-D022 supersedes SAL-D021. Every file is automatically captured, hash-bound, 
 
 ## Remaining operational confirmation
 
-The live check found `Executive Protection.docx` still in `10 Pending Classification`. Diagnosis identified that the PostgreSQL adapter did not treat `m365_knowledge_candidates` and `m365_knowledge_events` as identity tables, so the candidate insert did not return an ID and the first audit-event insert failed. SalCAPA 3.170 adds both tables to the governed PostgreSQL identity-table registry and adds a regression assertion. After deployment, confirm the candidate reaches `Ingested and Verified`, appears in `05 Research and Reference`, and is moved to `90 Processed Intake` only after destination hash verification.
+The live check found `Executive Protection.docx` still in `10 Pending Classification`. Diagnosis identified that the PostgreSQL insert path did not return the new knowledge-candidate ID, so the first audit-event insert failed. SalCAPA 3.170 uses an explicit cross-database `RETURNING id` clause, fails closed if no identity is returned, and adds regression assertions. After deployment, confirm the candidate reaches `Ingested and Verified`, appears in `05 Research and Reference`, and is moved to `90 Processed Intake` only after destination hash verification.
 
 ## Known constraints
 
