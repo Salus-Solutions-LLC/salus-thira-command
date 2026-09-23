@@ -359,6 +359,11 @@ class GraphKnowledgeWriter:
         return str(matches[0]["id"])
 
     def put_verified(self, folder_name: str, name: str, content: bytes, sha256: str) -> dict[str, Any]:
+        return self._put_verified_once(folder_name, name, content, sha256, office_fallback=True)
+
+    def _put_verified_once(
+        self, folder_name: str, name: str, content: bytes, sha256: str, *, office_fallback: bool
+    ) -> dict[str, Any]:
         folder_id = self._resolve_folder(folder_name)
         safe_name = quote(name, safe="")
         response = self.client.put(
@@ -391,7 +396,17 @@ class GraphKnowledgeWriter:
             verify = self.client.get(
                 location, headers={"Accept": "application/octet-stream"}
             )
-        if verify.status_code != 200 or hashlib.sha256(verify.content).hexdigest() != sha256:
+        if verify.status_code != 200:
+            raise KnowledgePromotionError("Knowledge destination verification failed")
+        if hashlib.sha256(verify.content).hexdigest() != sha256:
+            # SharePoint can rewrite Office package metadata after upload. Keep a
+            # byte-exact, hash-bound original under an opaque extension while
+            # leaving the Office rendering available for ordinary reading.
+            if office_fallback and name.lower().endswith((".docx", ".xlsx", ".pptx")):
+                original_name = f"{name}.{sha256[:16]}.original.bin"
+                return self._put_verified_once(
+                    folder_name, original_name, content, sha256, office_fallback=False
+                )
             raise KnowledgePromotionError("Knowledge destination verification failed")
         web_url = str(item.get("webUrl", ""))
         parsed = urlparse(web_url)
