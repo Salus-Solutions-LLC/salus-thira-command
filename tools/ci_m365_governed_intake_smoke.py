@@ -266,6 +266,48 @@ def main():
     ]
     assert len(archive_client.gets) == 2
 
+    class HugePendingClient(Client):
+        def get(self, url, headers, params=None):
+            self.gets.append(url)
+            if url.endswith(f"/items/{config.folder_item_id}/children"):
+                return Response(200, {"value": [
+                    {"id": "01DBTAFUPENDINGFOLDER1",
+                     "name": "10 Pending Classification", "folder": {}},
+                ]})
+            if url.endswith("/01DBTAFUPENDINGFOLDER1/children"):
+                return Response(200, {"value": [
+                    {"id": f"folder{n:08d}", "name": f"case{n:04d}",
+                     "folder": {}} for n in range(150)
+                ]})
+            for n in range(150):
+                if url.endswith(f"/folder{n:08d}/children"):
+                    return Response(200, {"value": [
+                        {"id": f"doc{n:04d}{i:04d}", "name": f"doc{i:04d}.txt",
+                         "size": 2, "file": {"mimeType": "text/plain"},
+                         "eTag": "etag",
+                         "lastModifiedDateTime": "2026-09-23T00:00:00Z"}
+                        for i in range(200)
+                    ]})
+            raise AssertionError("Bounded listing traversed beyond the batch window")
+
+    huge_client = HugePendingClient()
+    huge_listing = GovernedM365Intake(
+        config, credential=Credential(), client=huge_client
+    ).list_files(pending_only=True, max_files=500)
+    assert len(huge_listing) == 500
+    assert len(huge_client.gets) == 5
+    assert huge_listing[-1]["relative_path"].startswith(
+        "10 Pending Classification/case0002/"
+    )
+    try:
+        GovernedM365Intake(
+            config, credential=Credential(), client=HugePendingClient()
+        ).list_files(max_files=500)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Windowed listing escaped pending-only scope")
+
     maximum_config = GovernedM365Config(
         tenant_id="11111111-1111-1111-1111-111111111111",
         application_client_id="22222222-2222-2222-2222-222222222222",
