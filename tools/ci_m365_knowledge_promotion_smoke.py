@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from database import ID_TABLES
 from salcapa_knowledge_promotion import (
     ClassificationCommand, KnowledgeDestinationConfig, GraphKnowledgeWriter,
     PENDING_PREFIX, TARGETS, automatic_classification,
@@ -16,6 +17,8 @@ from salcapa_knowledge_promotion import (
 
 
 def main():
+    assert "m365_knowledge_candidates" in ID_TABLES
+    assert "m365_knowledge_events" in ID_TABLES
     assert PENDING_PREFIX == "10 Pending Classification/"
     assert "01 Salus Doctrine and Methodologies" in TARGETS
     approved = ClassificationCommand(
