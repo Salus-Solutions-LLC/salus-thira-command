@@ -81,8 +81,26 @@ register_demo_fixture_contract(core)
 register_demo_evaluator(core)
 register_mission_map(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.171"
+SALCAPA_RELEASE_VERSION = "3.172"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
+
+_base_production_readiness = core.production_readiness
+
+
+def _production_readiness_with_knowledge_processor():
+    result = _base_production_readiness()
+    status = dict(getattr(core.app.state, "knowledge_processing", {}) or {})
+    result["knowledge_processing"] = {
+        key: status.get(key)
+        for key in (
+            "state", "last_discovered", "last_promoted",
+            "last_retry_required", "last_error_code",
+        )
+    }
+    return result
+
+
+core.production_readiness = _production_readiness_with_knowledge_processor
 
 
 _base_protective_readiness_summary = core._protective_readiness_summary
