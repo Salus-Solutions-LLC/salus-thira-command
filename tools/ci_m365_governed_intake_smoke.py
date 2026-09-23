@@ -297,6 +297,61 @@ def main():
         route.__annotations__.get("request") is Request
         for route in app.routes.values()
     )
+    # Graph continuation pages may repeat an item while another worker moves it.
+    base_url = (
+        f"https://graph.microsoft.com/v1.0/drives/{maximum_config.drive_id}"
+        f"/items/{maximum_config.folder_item_id}/children"
+    )
+    continuation = base_url + "?$skiptoken=bounded"
+
+    def page_item(number):
+        return {
+            "id": f"item{number:08d}", "name": f"doc{number}.txt",
+            "size": 2, "file": {"mimeType": "text/plain"},
+            "eTag": "etag", "lastModifiedDateTime": "2026-09-23T00:00:00Z",
+        }
+
+    pages = {
+        base_url: {"value": [page_item(n) for n in range(200)],
+                   "@odata.nextLink": continuation},
+        continuation: {"value": [page_item(199), page_item(200)]},
+    }
+
+    class PageClient(Client):
+        def get(self, url, headers, params=None):
+            assert url in pages
+            if url == continuation:
+                assert params is None
+            return Response(200, pages[url])
+
+    page_intake = GovernedM365Intake(
+        maximum_config, credential=Credential(), client=PageClient()
+    )
+    assert len(page_intake.list_files()) == 201
+    pages[base_url]["@odata.nextLink"] = "https://elsewhere.example/children"
+    try:
+        page_intake.list_files()
+    except M365IntakeError as exc:
+        assert "pagination link was invalid" in str(exc)
+    else:
+        raise AssertionError("Cross-origin Graph continuation was accepted")
+    pages[base_url]["@odata.nextLink"] = continuation
+    pages[continuation]["@odata.nextLink"] = continuation
+    try:
+        page_intake.list_files()
+    except M365IntakeError as exc:
+        assert "pagination contained a cycle" in str(exc)
+    else:
+        raise AssertionError("Cyclic Graph continuation was accepted")
+    del pages[continuation]["@odata.nextLink"]
+    pages[continuation]["value"] = [{"id": "bad/id", "file": {}}]
+    try:
+        page_intake.list_files()
+    except M365IntakeError as exc:
+        assert "invalid item" in str(exc)
+    else:
+        raise AssertionError("Malformed Graph item was accepted")
+
     print("M365_GOVERNED_INTAKE_PASS")
 
 
