@@ -135,7 +135,14 @@ def main() -> None:
         if candidate != frozen and not abandoned_gap and not failed_job_rollout:
             assert "superseded" in build["genuine_blockers"]
             assert f"v{frozen[0]}{frozen[1]}" in build["last_completed_increment"]
-        if abandoned_gap or failed_job_rollout:
+        failed_worker_auth = (
+            frozen == (3, 184)
+            and candidate == (3, 185)
+            and version(values["current_stable_release"]) == (3, 182)
+            and build["root_cause"] == "v3.184_abandoned_after_worker_secret_lookup"
+            and build["failed_workflows"] == "v3.184_live_worker_secret_lookup_failed"
+        )
+        if abandoned_gap or failed_job_rollout or failed_worker_auth:
             assert build["validation_pr"] in {"pending", "none"} or build["validation_pr"].isdigit()
         else:
             assert build["validation_pr"].isdigit()
