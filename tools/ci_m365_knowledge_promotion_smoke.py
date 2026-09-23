@@ -111,6 +111,8 @@ def main():
     assert "register_knowledge_promotion(core.app, core.__dict__)" in runtime
     assert "knowledge_processing" in runtime
     assert "last_error_code" in module
+    assert "destination_write_denied" in module
+    assert "last_retry_codes" in module
     print("M365_KNOWLEDGE_PROMOTION_PASS")
 
 
