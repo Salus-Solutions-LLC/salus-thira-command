@@ -84,6 +84,7 @@ jobs:
           test "$RESOURCE_GROUP" = "rg-salcapa-dev"
           az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-diagnostic-app.json
           EXPECTED_IMAGE=salcapadevb48224acr.azurecr.io/salcapa@sha256:3600b915aa95d5390b54a6554d7f4b247b8a196bbb2377ba3db4c0d3943357f8
+          echo "ACTUAL_APP_IMAGE=$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-diagnostic-app.json)"
           test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-diagnostic-app.json)" = "$EXPECTED_IMAGE"
           env_value() {
             jq -r --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/salcapa-diagnostic-app.json
