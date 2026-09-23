@@ -1,8 +1,8 @@
 # Salus Solutions — Current Handoff
 
 **Handoff date:** 23 September 2026  
-**Current production release:** SalCAPA 3.169  
-**Release in preparation:** SalCAPA 3.170 PostgreSQL ingestion hotfix  
+**Current production release:** SalCAPA 3.170  
+**Release in preparation:** SalCAPA 3.171 runtime-registration hotfix  
 **Accepted source commit:** `729a48c3ec45a6ae98a57f9de8bc18d2d8a68b40`  
 **Activation commit:** `0932fff09f0606576ee728dae5191339ee2e1e77`  
 **Immutable image:** `salcapadevb48224acr.azurecr.io/salcapa@sha256:6b1693aa6321b9abcc8983d79b3e701ee112e29432c600357978c33f62de708f`  
@@ -46,7 +46,7 @@ SAL-D022 supersedes SAL-D021. Every file is automatically captured, hash-bound, 
 
 ## Remaining operational confirmation
 
-The live check found `Executive Protection.docx` still in `10 Pending Classification`. Diagnosis identified that the PostgreSQL insert path did not return the new knowledge-candidate ID, so the first audit-event insert failed. SalCAPA 3.170 uses an explicit cross-database `RETURNING id` clause, fails closed if no identity is returned, and adds regression assertions. After deployment, confirm the candidate reaches `Ingested and Verified`, appears in `05 Research and Reference`, and is moved to `90 Processed Intake` only after destination hash verification.
+The live check after v3.170 found `Executive Protection.docx` still in `10 Pending Classification`. v3.170 corrected the PostgreSQL identity-return defect, but the second live check established that `register_knowledge_promotion` was not imported or invoked by `salcapa_runtime.py`; therefore the routes and scheduled startup processor were absent. SalCAPA 3.171 registers the processor with the live FastAPI application and adds runtime-composition regression assertions. After deployment, confirm the candidate reaches `Ingested and Verified`, appears in `05 Research and Reference`, and is moved to `90 Processed Intake` only after destination hash verification.
 
 ## Known constraints
 
@@ -56,4 +56,4 @@ The live check found `Executive Protection.docx` still in `10 Pending Classifica
 
 ## Single best next action
 
-Validate and deploy the v3.170 PostgreSQL ingestion hotfix, then confirm the live candidate record and destination/archive locations for `Executive Protection.docx`.
+Validate and deploy the v3.171 runtime-registration hotfix, then confirm the live candidate record and destination/archive locations for `Executive Protection.docx`.
