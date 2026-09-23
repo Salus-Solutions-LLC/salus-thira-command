@@ -125,6 +125,18 @@ jobs:
           if any(re.search(pattern, infrastructure, re.IGNORECASE) for pattern in forbidden):
               raise SystemExit('Azure infrastructure contains a forbidden cost, runtime, mutable-image, or secret pattern')
 
+          main_template = Path('infra/azure/main.bicep').read_text()
+          worker_template = main_template.split("resource knowledgeScanJob ", 1)[1]
+          if len('salcapa-dev-b48224-kb-scan') > 32 or "name: '${stem}-kb-scan'" not in worker_template:
+              raise SystemExit('Scheduled worker job name exceeds the Azure 32-character limit')
+          for required in (
+              "{ name: 'SALUS_OIDC_CLIENT_AUTH_METHOD', value: 'managed_identity' }",
+              "{ name: 'SALUS_SEED_DEMO', value: '0' }",
+              "{ name: 'SALUS_DB_BACKEND', value: 'postgres' }",
+          ):
+              if required not in worker_template:
+                  raise SystemExit('Scheduled worker lacks a governed runtime setting')
+
           infrastructure_required = [
               '@maxLength(6)',
               'Microsoft.ContainerRegistry/registries@2023-07-01',
