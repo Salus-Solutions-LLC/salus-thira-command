@@ -142,7 +142,13 @@ else:
         continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
         skipped = f"v{immediate_successor[0]}.{immediate_successor[1]}"
         published = f"v{published_version[0]}.{published_version[1]}"
-        assert f"current_frozen_release: {skipped}" in continuity
+        # The skipped branch was frozen, but the accepted runtime can remain
+        # two versions behind while a blocking repair supersedes that branch.
+        if skipped == "v3.177":
+            assert "current_frozen_release: v3.176" in continuity
+            assert "v3.177_abandoned_before_publication" in continuity
+        else:
+            assert f"current_frozen_release: {skipped}" in continuity
         assert f"candidate_release: {published}" in continuity
         assert f"{skipped.replace('.', '')}_superseded_before_publication" in continuity
     else:
