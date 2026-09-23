@@ -1,4 +1,5 @@
 name: SalCAPA knowledge processor safe diagnostics
+# Operational recheck for newly pending intake files, 23 September 2026.
 
 on:
   workflow_dispatch:
