@@ -100,6 +100,8 @@ class GovernedM365Intake:
         )
         self.client = client or httpx.Client(timeout=15.0, follow_redirects=False)
         self._token: tuple[str, int] | None = None
+        self._listed_folder_ids: set[str] = set()
+        self._listed_items: dict[str, dict[str, Any]] = {}
 
     def _graph_token(self) -> str:
         now = int(time.time())
@@ -295,7 +297,47 @@ class GovernedM365Intake:
                     "last_modified_by": last_modified_by,
                     "web_url": self._trusted_source_url(item.get("webUrl")),
                 })
+        self._listed_folder_ids = visited_folders
+        self._listed_items = {row["id"]: row.copy() for row in result}
         return result
+
+    def read_listed_document(
+        self, item: dict[str, Any], *, access_classification: str
+    ) -> GovernedM365Document:
+        """Read an item from a governed listing after verifying its current parent."""
+        if access_classification not in _ACCESS_CLASSIFICATIONS:
+            raise M365IntakeError("Microsoft 365 intake access classification is invalid")
+        item_id = str(item.get("id", ""))
+        if not _IDENTIFIER.fullmatch(item_id):
+            raise M365IntakeError("Governed Microsoft 365 response contained an invalid item")
+        response = self.client.get(
+            f"{GRAPH_ROOT}/drives/{self.config.drive_id}/items/{item_id}",
+            headers=self._headers(),
+            params={"$select": "id,name,size,eTag,parentReference,file"},
+        )
+        if response.status_code != 200:
+            raise M365IntakeError("Governed Microsoft 365 item could not be read")
+        current = response.json()
+        parent = current.get("parentReference") or {}
+        if (
+            current.get("id") != item_id
+            or current.get("name") != item["name"]
+            or current.get("eTag") != item["etag"]
+            or current.get("size") != item["size"]
+            or parent.get("id") not in self._listed_folder_ids
+            or self._listed_items.get(item_id) != item
+        ):
+            raise M365IntakeError("Governed Microsoft 365 item changed after listing")
+        content = self._read_allowed_item(item)
+        return GovernedM365Document(
+            item_id=item_id, name=item["name"], relative_path=item["relative_path"],
+            content=content, size=item["size"], mime_type=item["mime_type"],
+            sha256=hashlib.sha256(content).hexdigest(), etag=item["etag"],
+            ctag=item["ctag"], last_modified=item["last_modified"],
+            source_owner=item["source_owner"], source_owner_id=item["source_owner_id"],
+            last_modified_by=item["last_modified_by"], web_url=item["web_url"],
+            access_classification=access_classification,
+        )
 
     def read_file(self, item_id: str) -> bytes:
         allowed = {item["id"]: item for item in self.list_files()}
