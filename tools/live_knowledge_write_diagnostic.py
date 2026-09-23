@@ -32,13 +32,13 @@ def safe_code(response) -> str:
 def main() -> None:
     intake_config = GovernedM365Config.from_environment()
     intake = GovernedM365Intake(intake_config)
-    files = [row for row in intake.list_files()
+    listed = intake.list_files()
+    files = [row for row in listed
              if row["relative_path"].startswith(PENDING_PREFIX)]
-    if len(files) > 20:
-        raise RuntimeError("Pending sample exceeds diagnostic bound")
-    processed_names = {row["name"].casefold() for row in intake.list_files() if row["relative_path"].startswith("90 Processed Intake/")}
+    print(f"PENDING_COUNT={len(files)}", flush=True)
+    processed_names = {row["name"].casefold() for row in listed if row["relative_path"].startswith("90 Processed Intake/")}
     pending = []
-    for row in files:
+    for row in files[:5]:
         document = intake.read_document(row["id"], access_classification="Salus Internal")
         extraction = _extract_all_accessible_content(document)
         extension = document.name.rsplit(".", 1)[-1].lower() if "." in document.name else "none"
