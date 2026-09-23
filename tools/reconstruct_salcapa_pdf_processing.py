@@ -15,20 +15,15 @@ ARTIFACTS = (
         "f22e668dac095ab03b3d75863aabd52aaa2a1dd5aa0b9e80eea273313375e255",
         7864,
     ),
-    (
-        ROOT / "source_archives/development/salcapa_pdf_worker.py.gz",
-        ROOT / "tools/salcapa_pdf_worker.py",
-        "e1a72fdd248f32d4c7f18ac733d187af0eae77300c5d0243d41de74927e47f63",
-        "7215431ab29e3290a353be0194788bfd05ec12383412719f67018bc872d5360b",
-        10584,
-    ),
-    (
-        ROOT / "source_archives/development/ci_salcapa_pdf_processing_smoke.py.gz",
-        ROOT / "tools/ci_salcapa_pdf_processing_smoke.py",
-        "406080aa817c6acbc76a24683d66bb581334e4072f2dc68804a59c3698a64858",
-        "277ca74129d168cc9fa2f591e3f94dd9b3d2e45a2844fcf5c0d02c5c26eb7d09",
-        11030,
-    ),
+)
+
+# These files now have reviewed source changes beyond their historical archives.
+# Verify the checked-in versions before the container can compile or ship them.
+CURRENT_SOURCES = (
+    (ROOT / "tools/salcapa_pdf_worker.py",
+     "5c3d29a5fb5396af3659f2eaadf0cdaf65922b0a291c04e0d127878ae184088b", 11325),
+    (ROOT / "tools/ci_salcapa_pdf_processing_smoke.py",
+     "42e2a7f85392c99550e6d81c815ba0f1a71c1e36d1aa1177ee8ddca4f64613ae", 12186),
 )
 
 for archive, target, archive_sha, target_sha, target_size in ARTIFACTS:
@@ -40,4 +35,8 @@ for archive, target, archive_sha, target_sha, target_size in ARTIFACTS:
         raise SystemExit(f"Invalid reconstructed source: {target.name}")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(content)
+for target, expected_sha, expected_size in CURRENT_SOURCES:
+    content = target.read_bytes()
+    if len(content) != expected_size or hashlib.sha256(content).hexdigest() != expected_sha:
+        raise SystemExit(f"Invalid current PDF source: {target.name}")
 print("SALCAPA_PDF_PROCESSING_RECONSTRUCTION_PASS")
