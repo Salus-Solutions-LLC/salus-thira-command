@@ -118,6 +118,44 @@ def main():
         raise AssertionError("An uncontrolled destination was accepted")
     source = b"governed-knowledge"
     assert len(hashlib.sha256(source).hexdigest()) == 64
+    original = b"office-original-byte-stream"
+    original_hash = hashlib.sha256(original).hexdigest()
+
+    class Response:
+        def __init__(self, status, *, payload=None, content=b"", headers=None):
+            self.status_code = status
+            self._payload = payload or {}
+            self.content = content
+            self.headers = headers or {}
+
+        def json(self):
+            return self._payload
+
+    class MutatingOfficeClient:
+        def __init__(self):
+            self.uploaded = []
+
+        def get(self, url, **kwargs):
+            if url.endswith("/children"):
+                return Response(200, payload={"value": [{"id": "folder123", "name": "05 Research and Reference", "folder": {}}]})
+            if url.endswith("/content"):
+                return Response(302, headers={"Location": "https://tenant.sharepoint.com/download"})
+            return Response(200, content=original if self.uploaded[-1].endswith(".original.bin") else original + b"changed")
+
+        def put(self, url, **kwargs):
+            self.uploaded.append(url.rsplit("/items/folder123:/", 1)[1].removesuffix(":/content"))
+            return Response(201, payload={"id": "item12345", "webUrl": "https://tenant.sharepoint.com/doc", "eTag": "etag"})
+
+    fake_client = MutatingOfficeClient()
+    writer = GraphKnowledgeWriter(
+        SimpleNamespace(managed_identity_client_id="unused"), destination,
+        credential=object(), client=fake_client,
+    )
+    writer._headers = lambda: {}
+    verified = writer.put_verified("05 Research and Reference", "example.docx", original, original_hash)
+    assert verified["item_id"] == "item12345"
+    assert len(fake_client.uploaded) == 2
+    assert fake_client.uploaded[-1].endswith(f"example.docx.{original_hash[:16]}.original.bin")
     module = open("salcapa_knowledge_promotion.py", encoding="utf-8").read()
     assert "Human approval is required before promotion" not in module
     assert "Changed - Re-review Required" not in module
