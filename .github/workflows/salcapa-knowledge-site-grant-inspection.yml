@@ -1,0 +1,67 @@
+name: SalCAPA knowledge site grant inspection
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/salcapa-knowledge-site-grant-inspection.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: salcapa-dev-approval
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Inspect exact knowledge-site application grant
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-app.json
+          APP_ID="$(jq -r 'first(.properties.template.containers[0].env[] | select(.name == "SALUS_OIDC_CLIENT_ID") | .value)' /tmp/salcapa-app.json)"
+          test -n "$APP_ID"
+          test "$APP_ID" != "null"
+          export APP_ID
+          GRAPH_TOKEN="$(az account get-access-token --resource https://graph.microsoft.com --query accessToken --output tsv)"
+          test -n "$GRAPH_TOKEN"
+          export GRAPH_TOKEN
+          python - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          site = "salussolutions.sharepoint.com,69947f9a-c94c-43e9-8604-b73dc5c4360d,85462e8c-ac01-4a1f-b5a9-31608606e68d"
+          url = f"https://graph.microsoft.com/v1.0/sites/{site}/permissions"
+          request = urllib.request.Request(url, headers={
+              "Authorization": f"Bearer {os.environ['GRAPH_TOKEN']}",
+              "Accept": "application/json",
+          })
+          try:
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  payload = json.load(response)
+                  print(f"KNOWLEDGE_SITE_PERMISSIONS_READ_HTTP={response.status}")
+          except urllib.error.HTTPError as exc:
+              print(f"KNOWLEDGE_SITE_PERMISSIONS_READ_HTTP={exc.code}")
+              raise SystemExit(0)
+          target = os.environ["APP_ID"].lower()
+          matching = []
+          for item in payload.get("value", []):
+              identities = item.get("grantedToIdentitiesV2") or item.get("grantedToIdentities") or []
+              for identity in identities:
+                  application = identity.get("application") or {}
+                  if str(application.get("id", "")).lower() == target:
+                      matching.extend(str(role) for role in item.get("roles", []))
+          print("SALCAPA_APP_SITE_ROLES=" + ",".join(sorted(set(matching))) if matching else "SALCAPA_APP_SITE_ROLES=none")
+          PY
