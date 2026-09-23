@@ -170,8 +170,10 @@ class GovernedM365Intake:
             )
         return name
 
-    def list_files(self, *, pending_only: bool = False, processed_only: bool = False) -> list[dict[str, Any]]:
-        """List bounded files; optionally restrict descent to pending intake."""
+    def list_files(self, *, pending_only: bool = False, processed_only: bool = False, max_files: int | None = None) -> list[dict[str, Any]]:
+        """List bounded files; optionally select a finite pending batch window."""
+        if max_files is not None and (not pending_only or not isinstance(max_files, int) or not 1 <= max_files <= 1000):
+            raise ValueError("A bounded file window requires pending-only intake")
         if pending_only and processed_only:
             raise ValueError("Only one intake subtree can be selected")
         select = (
@@ -304,6 +306,9 @@ class GovernedM365Intake:
                     "last_modified_by": last_modified_by,
                     "web_url": self._trusted_source_url(item.get("webUrl")),
                 })
+                if max_files is not None and len(result) >= max_files:
+                    folders.clear()
+                    break
         self._listed_folder_ids = visited_folders
         self._listed_items = {row["id"]: row.copy() for row in result}
         return result
