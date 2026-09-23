@@ -566,6 +566,10 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
               value: '60'
             }
             {
+              name: 'SALUS_KNOWLEDGE_BACKGROUND_SCAN'
+              value: '0'
+            }
+            {
               name: 'SALUS_M365_REPORT_DRIVE_ID'
               value: m365ReportDriveId
             }
