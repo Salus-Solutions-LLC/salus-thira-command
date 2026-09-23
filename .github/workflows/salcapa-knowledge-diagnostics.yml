@@ -123,7 +123,7 @@ jobs:
             --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
             --execution "$EXECUTION_NAME" --container salcapa-m365-acceptance \
             --tail 100 --format text --only-show-errors 2>&1 \
-            | grep -E 'PENDING_EXTRACTION|PENDING_PDF_WORKER_REASON|KNOWLEDGE_DESTINATION|KNOWLEDGE_DIAGNOSTIC_CLEANUP' \
+            | grep -E 'PENDING_EXTRACTION|PENDING_PDF_WORKER_REASON|PENDING_PDF_WORKER_CODE|KNOWLEDGE_DESTINATION|KNOWLEDGE_DIAGNOSTIC_CLEANUP' \
             || true
           test "$SUCCEEDED" = "true"
       - name: Remove isolated diagnostic job
