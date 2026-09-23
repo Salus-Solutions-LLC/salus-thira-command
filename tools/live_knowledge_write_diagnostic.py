@@ -210,5 +210,19 @@ if __name__ == "__main__":
         main()
     except Exception as exc:
         # Type only: names, paths, and document contents must stay out of Actions logs.
+        if isinstance(exc, M365IntakeError):
+            safe_errors = {
+                "Governed Microsoft 365 folder exceeds the bounded intake page": "FOLDER_PAGE_LIMIT",
+                "Governed Microsoft 365 intake exceeds the traversal limit": "TRAVERSAL_LIMIT",
+                "Governed Microsoft 365 folder could not be read": "FOLDER_READ",
+                "Governed Microsoft 365 item could not be read": "ITEM_READ",
+                "Microsoft 365 token exchange was rejected": "TOKEN_EXCHANGE",
+            }
+            print("SAFE_DIAGNOSTIC_ERROR_CODE=" + safe_errors.get(str(exc), "OTHER_INTAKE"), flush=True)
+        elif isinstance(exc, RuntimeError):
+            safe_errors = {
+                "Pending sample exceeds diagnostic bound": "PENDING_SAMPLE_LIMIT",
+            }
+            print("SAFE_DIAGNOSTIC_ERROR_CODE=" + safe_errors.get(str(exc), "OTHER_RUNTIME"), flush=True)
         print(f"SAFE_DIAGNOSTIC_ERROR_TYPE={type(exc).__name__}", flush=True)
         raise SystemExit(1) from None
