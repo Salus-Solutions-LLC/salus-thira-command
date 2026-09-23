@@ -505,7 +505,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                          source_sha256,source_size,source_modified_at,source_owner,discovered_at,status,
                          decision,target_folder,classification_json,reviewed_by,reviewed_at,
                          review_rationale)
-                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
                         (
                             intake_config.drive_id,document.item_id,document.name,
                             document.relative_path,document.etag,document.sha256,document.size,
@@ -515,7 +515,12 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                             classification["rationale"],
                         ),
                     )
-                    candidate_id = cursor.lastrowid
+                    inserted = cursor.fetchone()
+                    if inserted is None:
+                        raise KnowledgePromotionError(
+                            "Automatic knowledge candidate identity was not returned"
+                        )
+                    candidate_id = inserted[0]
                     created += 1
                     conn.execute(
                         "INSERT INTO m365_knowledge_events"
