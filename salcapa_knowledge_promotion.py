@@ -779,7 +779,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 current["last_error_code"] = (
                     "knowledge_promotion_error"
                     if isinstance(exc, KnowledgePromotionError)
-                    else "unexpected_processing_error"
+                    else "unexpected_" + type(exc).__name__
                 )
                 app.state.knowledge_processing = current
                 # The next bounded interval retries automatically. Detailed item
