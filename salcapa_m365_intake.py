@@ -244,10 +244,14 @@ class GovernedM365Intake:
                         "Governed Microsoft 365 intake cannot follow shortcuts"
                     )
                 item_id = str(item.get("id", ""))
-                if not _IDENTIFIER.fullmatch(item_id) or item_id in visited_items:
+                if not _IDENTIFIER.fullmatch(item_id):
                     raise M365IntakeError(
                         "Governed Microsoft 365 response contained an invalid item"
                     )
+                # Concurrent moves can repeat an item at a Graph page boundary.
+                # Keep one occurrence; the next scan and If-Match reconcile moves.
+                if item_id in visited_items:
+                    continue
                 visited_items.add(item_id)
                 name = self._safe_path_component(item.get("name"))
                 relative_path = f"{folder_path}/{name}" if folder_path else name
