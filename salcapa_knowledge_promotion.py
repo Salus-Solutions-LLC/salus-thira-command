@@ -359,7 +359,14 @@ class GraphKnowledgeWriter:
         return str(matches[0]["id"])
 
     def put_verified(self, folder_name: str, name: str, content: bytes, sha256: str) -> dict[str, Any]:
-        return self._put_verified_once(folder_name, name, content, sha256, office_fallback=True)
+        # Keep the visible source title in candidate metadata while giving distinct
+        # same-title documents separate destination paths.
+        stem, separator, extension = name.rpartition(".")
+        if not stem:
+            stem, separator, extension = name, "", ""
+        suffix = f".{sha256[:24]}" + (f".{extension}" if separator else "")
+        unique_name = stem[:max(1, 240 - len(suffix))] + suffix
+        return self._put_verified_once(folder_name, unique_name, content, sha256, office_fallback=True)
 
     def _put_verified_once(
         self, folder_name: str, name: str, content: bytes, sha256: str, *, office_fallback: bool
@@ -414,30 +421,47 @@ class GraphKnowledgeWriter:
             raise KnowledgePromotionError("Knowledge destination returned an untrusted location")
         return {"item_id": item_id, "web_url": web_url, "etag": str(item.get("eTag", ""))[:512]}
 
-    def archive_verified_source(self, item_id: str, etag: str) -> dict[str, str]:
-        response = self.client.patch(
-            f"{GRAPH_ROOT}/drives/{self.intake_config.drive_id}/items/{item_id}",
-            headers=self._headers() | {
-                "If-Match": etag,
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            json={"parentReference": {"id": self.destination.processed_folder_item_id}},
-        )
+    def archive_verified_source(
+        self, item_id: str, etag: str, name: str, sha256: str
+    ) -> dict[str, str]:
+        url = f"{GRAPH_ROOT}/drives/{self.intake_config.drive_id}/items/{item_id}"
+        headers = self._headers() | {
+            "If-Match": etag,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        body = {"parentReference": {"id": self.destination.processed_folder_item_id}}
+        response = self.client.patch(url, headers=headers, json=body)
+        archive_name = name
+        if response.status_code == 409:
+            # A sibling already has this name. Rename this same source item as
+            # part of the move; never replace or delete the existing sibling.
+            stem, separator, extension = name.rpartition(".")
+            if not stem:
+                stem, separator, extension = name, "", ""
+            suffix = (
+                f".{sha256[:16]}-{hashlib.sha256(item_id.encode()).hexdigest()[:12]}"
+                + (f".{extension}" if separator else "")
+            )
+            archive_name = stem[:max(1, 240 - len(suffix))] + suffix
+            response = self.client.patch(
+                url, headers=headers, json=body | {"name": archive_name}
+            )
         if response.status_code != 200:
             raise KnowledgePromotionError(
-                "Verified intake source could not be archived; source remains pending"
+                f"Verified intake source could not be archived (HTTP {response.status_code}); source remains pending"
             )
         item = response.json()
         parent_id = str((item.get("parentReference") or {}).get("id", ""))
         if str(item.get("id", "")) != item_id or parent_id != self.destination.processed_folder_item_id:
             raise KnowledgePromotionError("Processed intake archive could not be verified")
+        if archive_name != name and str(item.get("name", "")) != archive_name:
+            raise KnowledgePromotionError("Processed intake archive rename could not be verified")
         web_url = str(item.get("webUrl", ""))
         parsed = urlparse(web_url)
         if parsed.scheme != "https" or not (parsed.hostname or "").endswith(".sharepoint.com"):
             raise KnowledgePromotionError("Processed intake archive returned an untrusted location")
         return {"item_id": item_id, "web_url": web_url, "etag": str(item.get("eTag", ""))[:512]}
-
 
 def _init_tables(conn) -> None:
     conn.executescript("""
@@ -638,7 +662,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         document.sha256,
                     )
                     archived = writer.archive_verified_source(
-                        document.item_id, document.etag
+                        document.item_id, document.etag, document.name, document.sha256
                     )
                     completed_at = now()
                     conn.execute(
@@ -847,7 +871,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         destination = writer.put_verified(
             row["target_folder"], document.name, document.content, document.sha256
         )
-        archived = writer.archive_verified_source(document.item_id, document.etag)
+        archived = writer.archive_verified_source(document.item_id, document.etag, document.name, document.sha256)
         timestamp = now()
         conn.execute(
             """UPDATE m365_knowledge_candidates SET status='Ingested and Verified',
