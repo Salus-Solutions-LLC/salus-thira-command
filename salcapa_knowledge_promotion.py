@@ -861,6 +861,8 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
 
     @app.on_event("startup")
     def start_scheduled_knowledge_processing() -> None:
+        if os.getenv("SALUS_KNOWLEDGE_BACKGROUND_SCAN", "1") == "0":
+            return
         required = (
             "SALUS_M365_INTAKE_DRIVE_ID", "SALUS_M365_INTAKE_FOLDER_ITEM_ID",
             "SALUS_M365_KNOWLEDGE_DRIVE_ID", "SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID",
