@@ -85,7 +85,7 @@ jobs:
           set -euo pipefail
           test "$RESOURCE_GROUP" = "rg-salcapa-dev"
           az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-diagnostic-app.json
-          EXPECTED_IMAGE=salcapadevb48224acr.azurecr.io/salcapa@sha256:2ec053859dace6d222cf645c8671880d7091c964e6fc94a24b7e25c1e630ee0e
+          EXPECTED_IMAGE=salcapadevb48224acr.azurecr.io/salcapa@sha256:4547d9895ff780ba4cc8671314b9eb37f8cd3af90347e99f52197215c128cdd0
           test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-diagnostic-app.json)" = "$EXPECTED_IMAGE"
           env_value() {
             jq -r --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/salcapa-diagnostic-app.json
@@ -129,7 +129,7 @@ jobs:
             --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
             --execution "$EXECUTION_NAME" --container salcapa-m365-acceptance \
             --tail 100 --format text --only-show-errors 2>&1 \
-            | grep -E 'PENDING_EXTRACTION|PENDING_CLASSIFICATION|PENDING_SOURCE_VERSION|PENDING_ARCHIVE_NAME_CONFLICT|PENDING_PDF_WORKER_REASON|PENDING_PDF_WORKER_CODE|PENDING_PDF_ACTIVE_FLAGS|DESTINATION_READBACK|DESTINATION_BYTES|KNOWLEDGE_DESTINATION|KNOWLEDGE_DIAGNOSTIC_CLEANUP|SOURCE_DIAGNOSTIC|SAFE_DIAGNOSTIC_ERROR_TYPE|SAFE_DIAGNOSTIC_ERROR_CODE' \
+            | grep -E 'PENDING_COUNT|PENDING_EXTRACTION|PENDING_CLASSIFICATION|PENDING_SOURCE_VERSION|PENDING_ARCHIVE_NAME_CONFLICT|PENDING_PDF_WORKER_REASON|PENDING_PDF_WORKER_CODE|PENDING_PDF_ACTIVE_FLAGS|DESTINATION_READBACK|DESTINATION_BYTES|KNOWLEDGE_DESTINATION|KNOWLEDGE_DIAGNOSTIC_CLEANUP|SOURCE_DIAGNOSTIC|SAFE_DIAGNOSTIC_ERROR_TYPE|SAFE_DIAGNOSTIC_ERROR_CODE' \
             || true
           test "$SUCCEEDED" = "true"
       - name: Remove isolated diagnostic job
