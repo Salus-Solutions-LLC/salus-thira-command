@@ -36,6 +36,7 @@ def main() -> None:
     files = [row for row in listed
              if row["relative_path"].startswith(PENDING_PREFIX)]
     print(f"PENDING_COUNT={len(files)}", flush=True)
+    return  # Temporary read-only backlog count; no source or destination changes.
     processed_names = {row["name"].casefold() for row in listed if row["relative_path"].startswith("90 Processed Intake/")}
     pending = []
     for row in files[:5]:
