@@ -119,13 +119,23 @@ def main() -> None:
             assert candidate_version[0] == frozen_version[0]
             increment = candidate_version[1] - frozen_version[1]
             if increment == 2:
-                assert values["root_cause"] == (
-                    "v3.164_abandoned_before_image_publication_after_release_identity_mismatch"
-                )
-                assert values["active_increment"] == "knowledge_promotion_v3165"
-                assert values["failed_workflows"] == (
-                    "immutable_image_publication_and_build_continuity"
-                )
+                approved_skips = {
+                    (
+                        "v3.164_abandoned_before_image_publication_after_release_identity_mismatch",
+                        "knowledge_promotion_v3165",
+                        "immutable_image_publication_and_build_continuity",
+                    ),
+                    (
+                        "v3.177_abandoned_before_publication_after_identical_content_provenance_gap",
+                        "protection_advisor_knowledge_visibility_and_duplicate_safe_intake_v3178",
+                        "v3.177_image_publication_cancelled_and_v3.178_build_continuity",
+                    ),
+                }
+                assert (
+                    values["root_cause"],
+                    values["active_increment"],
+                    values["failed_workflows"],
+                ) in approved_skips
             else:
                 assert increment == 1
 
