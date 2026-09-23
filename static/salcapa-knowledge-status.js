@@ -49,7 +49,13 @@ async function knowledgeStatusView() {
     return;
   }
   $('#content').innerHTML = '<section class="card"><h2>Knowledge Documents</h2><p>Checking automatically processed uploads…</p></section>';
-  const data = await api('/api/integrations/m365/knowledge/candidates');
+  let data;
+  try {
+    data = await api('/api/integrations/m365/knowledge/candidates');
+  } catch (_) {
+    $('#content').innerHTML = '<div class="notice" role="alert">Knowledge document status is unavailable right now. Please try again later.</div>';
+    return;
+  }
   const items = data.items || [];
   $('#content').innerHTML = `<section class="card knowledge-hero"><h2>Knowledge Documents</h2>
     <p>See what has been received, processed, verified, and archived. Processing retries automatically when it cannot complete.</p>
@@ -60,8 +66,9 @@ async function knowledgeStatusView() {
   const show = () => {
     const q = filter.value.trim().toLocaleLowerCase();
     const visible = items.filter(row => `${row.source_name || ''} ${row.target_folder || ''}`.toLocaleLowerCase().includes(q));
-    $('#knowledge-count').textContent = `${visible.length} document${visible.length === 1 ? '' : 's'} shown`;
-    $('#knowledge-list').innerHTML = visible.length ? visible.map(knowledgeStatusRow).join('')
+    const page = visible.slice(0, 100);
+    $('#knowledge-count').textContent = `${page.length} of ${visible.length} matching document${visible.length === 1 ? '' : 's'} shown${visible.length > 100 ? ' · refine the search to find older items' : ''}`;
+    $('#knowledge-list').innerHTML = visible.length ? page.map(knowledgeStatusRow).join('')
       : '<div class="card">No documents match this name or category.</div>';
   };
   filter.addEventListener('input', show);
