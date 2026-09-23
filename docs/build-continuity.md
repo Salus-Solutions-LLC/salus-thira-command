@@ -8,9 +8,9 @@ active_development_branch: development/salcapa-platform
 current_development_head: 21a4ce9c1d8e62743f9fd8c545285dea49e8eabd
 active_product_milestone: issue_370_governed_knowledge_promotion
 active_build_system_issue: 370
-active_increment: protection_advisor_knowledge_visibility_v3177
+active_increment: protection_advisor_knowledge_visibility_and_duplicate_safe_intake_v3178
 last_completed_increment: byte_preserving_knowledge_promotion_v3176
-candidate_release: v3.177
+candidate_release: v3.178
 validation_pr: none
 validation_branch: none
 validation_base: development/salcapa-platform
@@ -22,7 +22,7 @@ root_cause: none
 repair_head: none
 repair_summary: none
 genuine_blockers: none
-next_authorized_step: validate_v3177_candidate_then_freeze_and_publish
+next_authorized_step: validate_v3178_candidate_then_freeze_and_publish
 deployed_demo_release: v3.176
 deployed_demo_state: accepted_stable_runtime_with_v3175_rollback
 ---
