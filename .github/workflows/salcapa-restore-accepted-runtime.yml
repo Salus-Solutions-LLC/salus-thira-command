@@ -47,6 +47,7 @@ jobs:
           else
             test "$CURRENT" = "$ACCEPTED_IMAGE"
           fi
+          az containerapp hostname bind --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --hostname salcapa.salus.solutions --environment salcapa-dev-b48224-aca-env --validation-method CNAME --only-show-errors --output none
           for attempt in $(seq 1 30); do
             ACTUAL="$(az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --query properties.template.containers[0].image --output tsv --only-show-errors)"
             STATUS="$(curl --connect-timeout 5 --max-time 15 --silent --output /dev/null --write-out '%{http_code}' https://salcapa.salus.solutions/health/ready || true)"
