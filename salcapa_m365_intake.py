@@ -170,8 +170,10 @@ class GovernedM365Intake:
             )
         return name
 
-    def list_files(self, *, pending_only: bool = False) -> list[dict[str, Any]]:
+    def list_files(self, *, pending_only: bool = False, processed_only: bool = False) -> list[dict[str, Any]]:
         """List bounded files; optionally restrict descent to pending intake."""
+        if pending_only and processed_only:
+            raise ValueError("Only one intake subtree can be selected")
         select = (
             "id,name,size,file,folder,remoteItem,lastModifiedDateTime,eTag,cTag,"
             "createdBy,lastModifiedBy,webUrl,parentReference"
@@ -267,7 +269,10 @@ class GovernedM365Intake:
                         raise M365IntakeError(
                             "Governed Microsoft 365 intake exceeds the folder depth limit"
                         )
-                    if pending_only and not folder_path and name != "10 Pending Classification":
+                    if not folder_path and (
+                        (pending_only and name != "10 Pending Classification")
+                        or (processed_only and name != "90 Processed Intake")
+                    ):
                         continue
                     folders.append((item_id, relative_path, depth + 1))
                     continue
