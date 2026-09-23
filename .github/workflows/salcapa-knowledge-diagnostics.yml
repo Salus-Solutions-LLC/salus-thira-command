@@ -1,6 +1,7 @@
 name: SalCAPA knowledge processor safe diagnostics
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - development/salcapa-platform
