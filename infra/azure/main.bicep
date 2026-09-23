@@ -727,7 +727,8 @@ resource knowledgeScanJob 'Microsoft.App/jobs@2024-03-01' = if (provisionApplica
           image: containerImageDigest
           command: [
             'python'
-            'tools/salcapa_knowledge_scan_once.py'
+            '-m'
+            'tools.salcapa_knowledge_scan_once'
           ]
           resources: {
             cpu: json('0.25')
