@@ -55,7 +55,9 @@ def main() -> None:
     if web_url.scheme != "https" or not (web_url.hostname or "").lower().endswith(".sharepoint.com"):
         raise RuntimeError("M365_INTAKE_DRIVE_TRUST_FAILED")
 
-    files = intake.list_files()
+    # The pending backlog can exceed the global tree traversal ceiling. The
+    # live read and extraction check uses the same finite window as the worker.
+    files = intake.list_files(pending_only=True, max_files=500)
     if not files:
         raise RuntimeError("M365_INTAKE_NO_ACCEPTANCE_FILE")
     if not any("/" in str(item.get("relative_path", "")) for item in files):
