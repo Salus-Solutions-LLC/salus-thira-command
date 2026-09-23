@@ -573,7 +573,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             conn = db()
             _init_tables(conn)
             prior = {
-                (row["source_item_id"], row["source_etag"]): row
+                (row["source_item_id"], row["source_etag"]): dict(row)
                 for row in conn.execute(
                     "SELECT source_item_id,source_etag,status,reviewed_at "
                     "FROM m365_knowledge_candidates"
