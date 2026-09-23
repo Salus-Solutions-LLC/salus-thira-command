@@ -25,7 +25,6 @@ ID_TABLES = {
     'audit_log','backup_history','security_events','reassessment_triggers','evidence_attachments','report_versions','restore_requests','intel_findings','observation_intake_channels','observations','observation_attachments','observation_events','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','expert_conflicts','ops_engagement_assignments','expert_events','ops_requests','ops_engagements','ops_engagement_readiness','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements',
     'entity_versions','scope_changes','workflow_events','dr_validations','governed_intake',
     'materials','material_links','material_events',
-    'm365_knowledge_candidates','m365_knowledge_events',
     'salintel_domains','salintel_domain_events','salintel_domain_registry_backups','salintel_domain_registry_restore_requests','salintel_investigations','salintel_investigation_items','salintel_investigation_events'
 }
 
