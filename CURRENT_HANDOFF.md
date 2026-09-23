@@ -1,5 +1,32 @@
 # Salus Solutions — Current Handoff
 
+**Updated:** 23 September 2026
+**Active Azure development demonstration release:** SalCAPA 3.174
+**Frozen source:** `release/v3.174` at `a3b9abece87d328ebb272e8c15065c25f41a57ba`
+**Activation:** `568acd07dae508c0df0e7c82977bee25adc14706`
+**Immutable running image:** `salcapadevb48224acr.azurecr.io/salcapa@sha256:d9067d74d7a4f7a1bd62138329362e1cde9928c95b14ff54ae7ef08197628291`
+**Rollback:** SalCAPA 3.173
+**Authoritative repository:** `Salus-Solutions-LLC/salus-thira-command`
+**Development branch after diagnostic source edit:** `7b247d5072d3fae0f09b71e39f576789c38c5e34`
+
+## Current objective and evidence
+
+Complete automatic processing, destination verification, and archival of both real files under OneDrive `SalCAPA Intake / 10 Pending Classification`. The governed 3.174 deployment run `35815980228` succeeded, including readiness, sign-in, isolated Microsoft 365 acceptance, and temporary job cleanup. The 3.174 code preserves originals and retry obligations when extraction cannot finish; its PDF worker accepts empty annotation arrays and still blocks actual active features. No new application image has been deployed since 3.174.
+
+The scoped live diagnostic run `35817510244` found two pending files and zero promotions. DOCX extraction completed. PDF extraction still reports `PDF_ACTIVE_CONTENT`; direct worker diagnostic classified its reason as `other`, so the precise live PDF feature is unresolved. The application identity read the knowledge destination successfully but a harmless write to `Salus Knowledge Sources / 05 Research and Reference` returned Graph HTTP 403 `accessDenied`. The diagnostic job was removed.
+
+A source-only diagnostic commit `7b247d5` added bounded structural flags for the PDF; it did not change the running 3.174 image. Its triggered run `35819127268` completed and removed the temporary diagnostic job. The workflow's existing log filter did not include the new flags, so this run cannot establish their values. Automatic approval review rejected the proposed workflow edit to print those flags because the workflow would launch a managed-identity job that reads internal documents and attempts a Graph write/delete. Do not bypass that rejection. No SharePoint site permission has been changed, and no real file has been verified in the knowledge destination or processed archive.
+
+## Single best next action
+
+Obtain explicit approval for the bounded live workflow change after reviewing its cloud-side effects, then identify the PDF structure from allowlisted diagnostic output. Separately, use an authorized Microsoft 365 administrator to verify the SalCAPA application's site-scoped role on the exact `Salus Knowledge Sources` site and apply the narrow write grant only if missing; verify a harmless write and cleanup before retrying the two real files. Do not infer the exact permission fault solely from HTTP 403.
+
+---
+
+## Earlier handoff (historical; superseded by the update above)
+
+# Salus Solutions — Current Handoff
+
 **Handoff date:** 23 September 2026  
 **Current production release:** SalCAPA 3.171  
 **Accepted source commit:** `66b500dbfb8901b8c910a3667605750102e140dd`  
