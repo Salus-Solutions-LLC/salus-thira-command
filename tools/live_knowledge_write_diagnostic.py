@@ -148,6 +148,52 @@ def main() -> None:
     if delete_response.status_code != 204:
         raise RuntimeError("Diagnostic item cleanup failed")
 
+    # Exercise the application's source-drive move with a temporary item outside
+    # the watched Pending Classification folder. Always clean up the test item.
+    intake_drive = intake_config.drive_id
+    test_name = f"SalCAPA-Archive-Diagnostic-{uuid.uuid4().hex}.txt"
+    test_url = (
+        f"{GRAPH_ROOT}/drives/{intake_drive}/items/{intake_config.folder_item_id}:/"
+        f"{quote(test_name, safe='')}:/content"
+    )
+    test_item_id = ""
+    try:
+        created = writer.client.put(
+            test_url, headers=writer._headers() | {"Content-Type": "text/plain"},
+            content=b"SalCAPA scoped archive diagnostic.\\n",
+        )
+        print(f"SOURCE_DIAGNOSTIC_CREATE_HTTP={created.status_code}")
+        print(f"SOURCE_DIAGNOSTIC_CREATE_CODE={safe_code(created)}")
+        if created.status_code not in {200, 201}:
+            return
+        test_item = created.json()
+        test_item_id = str(test_item.get("id", ""))
+        if not re.fullmatch(r"[A-Za-z0-9_!.-]{8,256}", test_item_id):
+            raise RuntimeError("Source diagnostic identity unavailable")
+        moved = writer.client.patch(
+            f"{GRAPH_ROOT}/drives/{intake_drive}/items/{test_item_id}",
+            headers=writer._headers() | {
+                "If-Match": str(test_item.get("eTag", "")),
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json={"parentReference": {"id": PROCESSED_FOLDER}},
+        )
+        print(f"SOURCE_DIAGNOSTIC_ARCHIVE_HTTP={moved.status_code}")
+        print(f"SOURCE_DIAGNOSTIC_ARCHIVE_CODE={safe_code(moved)}")
+        if moved.status_code == 200:
+            actual_parent = str((moved.json().get("parentReference") or {}).get("id", ""))
+            print(f"SOURCE_DIAGNOSTIC_ARCHIVE_PARENT_MATCH={actual_parent == PROCESSED_FOLDER}")
+    finally:
+        if test_item_id:
+            cleanup = writer.client.delete(
+                f"{GRAPH_ROOT}/drives/{intake_drive}/items/{test_item_id}",
+                headers=writer._headers(),
+            )
+            print(f"SOURCE_DIAGNOSTIC_CLEANUP_HTTP={cleanup.status_code}")
+            if cleanup.status_code != 204:
+                raise RuntimeError("Source diagnostic cleanup failed")
+
 
 if __name__ == "__main__":
     main()
