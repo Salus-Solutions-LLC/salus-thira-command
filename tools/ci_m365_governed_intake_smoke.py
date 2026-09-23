@@ -328,6 +328,39 @@ def main():
         maximum_config, credential=Credential(), client=PageClient()
     )
     assert len(page_intake.list_files()) == 201
+
+    class VerifiedClient(PageClient):
+        parent = maximum_config.folder_item_id
+
+        def get(self, url, headers, params=None):
+            if url.endswith("/items/item00000000"):
+                return Response(200, {
+                    "id": "item00000000", "name": "doc0.txt",
+                    "size": 2, "eTag": "etag",
+                    "parentReference": {"id": self.parent},
+                })
+            if url.endswith("/items/item00000000/content"):
+                return Response(200, content=b"ok")
+            return super().get(url, headers, params)
+
+    verified_client = VerifiedClient()
+    verified_intake = GovernedM365Intake(
+        maximum_config, credential=Credential(), client=verified_client
+    )
+    listed = verified_intake.list_files()
+    assert verified_intake.read_listed_document(
+        listed[0], access_classification="Salus Internal"
+    ).content == b"ok"
+    verified_client.parent = "outside12345"
+    try:
+        verified_intake.read_listed_document(
+            listed[0], access_classification="Salus Internal"
+        )
+    except M365IntakeError as exc:
+        assert "changed after listing" in str(exc)
+    else:
+        raise AssertionError("Moved item was read from the listing")
+
     pages[base_url]["@odata.nextLink"] = "https://elsewhere.example/children"
     try:
         page_intake.list_files()
