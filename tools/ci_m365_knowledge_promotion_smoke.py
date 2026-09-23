@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from salcapa_knowledge_promotion import (
     ClassificationCommand, KnowledgeDestinationConfig, GraphKnowledgeWriter,
-    PENDING_PREFIX, TARGETS, automatic_classification,
+    PENDING_PREFIX, TARGETS, automatic_classification, refresh_archived_extraction,
 )
 
 
@@ -73,6 +73,40 @@ def main():
     assert binary["decision"] == "Approved"
     assert binary["extraction"]["status"] == "Automatic Retry Required"
     assert "Automatic Extraction Retry Required" in binary["processing_flags"]
+    binary_original = SimpleNamespace(
+        name="Strategic Assessment_ ISIS-K Threat to U.S. Hospitals - 19 March 2025.pdf",
+        content=b"CONFIDENTIAL",
+        content_type="application/pdf",
+        sha256=hashlib.sha256(b"CONFIDENTIAL").hexdigest(),
+    )
+    pending_retry, retry_code = refresh_archived_extraction(
+        binary, binary_original, binary_original.sha256
+    )
+    assert retry_code == "extraction_retry_required"
+    assert pending_retry == binary
+    mismatched, retry_code = refresh_archived_extraction(
+        binary, binary_original, hashlib.sha256(b"other").hexdigest()
+    )
+    assert retry_code == "archived_source_hash_mismatch"
+    assert mismatched == binary
+
+    archived_text = b"Approved internal reference material."
+    archived_doc = SimpleNamespace(
+        name="Strategic assessment research.txt", content=archived_text,
+        content_type="text/plain", sha256=hashlib.sha256(archived_text).hexdigest(),
+    )
+    retried = {
+        **binary,
+        "citation_metadata": {"citation_key": "sha256:immutable-source"},
+    }
+    completed, retry_code = refresh_archived_extraction(
+        retried, archived_doc, archived_doc.sha256
+    )
+    assert not retry_code
+    assert completed["extraction"]["status"] == "Complete"
+    assert completed["citation_metadata"] == retried["citation_metadata"]
+    assert "Automatic Extraction Retry Required" not in completed["processing_flags"]
+    assert retried["extraction"]["status"] == "Automatic Retry Required"
     destination = KnowledgeDestinationConfig("12345678", "abcdefgh", "archive12")
     destination.validate()
     assert destination.processed_folder_item_id == "archive12"

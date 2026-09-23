@@ -172,6 +172,24 @@ def _citation_metadata(document, extraction: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def refresh_archived_extraction(
+    classification: dict[str, Any], document, expected_sha256: str
+) -> tuple[dict[str, Any], str]:
+    """Retry derived extraction without changing the original citation identity."""
+    if document.sha256 != expected_sha256:
+        return classification, "archived_source_hash_mismatch"
+    refreshed = _extract_all_accessible_content(document)
+    if refreshed["status"] != "Complete":
+        return classification, "extraction_retry_required"
+    updated = dict(classification)
+    updated["extraction"] = refreshed
+    updated["processing_flags"] = [
+        flag for flag in classification.get("processing_flags", [])
+        if flag != "Automatic Extraction Retry Required"
+    ]
+    return updated, ""
+
+
 def automatic_classification(document, *, duplicate: bool) -> tuple[dict[str, Any], str]:
     """Classify every source automatically; conditions become metadata flags."""
     extraction = _extract_all_accessible_content(document)
@@ -500,6 +518,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             automatically_promoted = 0
             automatic_retry_required = 0
             retry_codes: set[str] = set()
+            retry_pending_ids: set[int] = set()
             writer = None
             for row in files:
                 document = intake.read_document(
@@ -574,6 +593,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                     )
                 if not extraction_complete:
                     automatic_retry_required += 1
+                    retry_pending_ids.add(candidate_id)
                     retry_codes.add("extraction_retry_required")
                     conn.execute(
                         "INSERT INTO m365_knowledge_events"
@@ -581,8 +601,6 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         (candidate_id,"AutomaticExtractionRetryScheduled",_AUTO_ACTOR,
                          json.dumps(classification["extraction"],sort_keys=True),timestamp),
                     )
-                    conn.commit()
-                    continue
                 conn.execute(
                     "INSERT INTO m365_knowledge_events"
                     "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
@@ -651,6 +669,47 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                             json.dumps({"reason":str(exc)},sort_keys=True),now(),
                         ),
                     )
+                conn.commit()
+            # Extraction obligations survive promotion. Retry against the exact
+            # archived original on later scans, without moving or rewriting it.
+            archived_retries = conn.execute(
+                "SELECT id,source_sha256,source_archive_item_id,classification_json "
+                "FROM m365_knowledge_candidates WHERE status='Ingested and Verified' "
+                "AND source_archive_item_id IS NOT NULL"
+            ).fetchall()
+            for pending in archived_retries:
+                classification = json.loads(pending["classification_json"] or "{}")
+                if classification.get("extraction", {}).get("status") != "Automatic Retry Required":
+                    continue
+                if pending["id"] in retry_pending_ids:
+                    continue
+                try:
+                    archived_doc = intake.read_document(
+                        pending["source_archive_item_id"],
+                        access_classification="Salus Internal",
+                    )
+                except M365IntakeError:
+                    automatic_retry_required += 1
+                    retry_codes.add("archived_source_read_unavailable")
+                    continue
+                classification, retry_code = refresh_archived_extraction(
+                    classification, archived_doc, pending["source_sha256"]
+                )
+                if retry_code:
+                    automatic_retry_required += 1
+                    retry_codes.add(retry_code)
+                    continue
+                completed_at = now()
+                conn.execute(
+                    "UPDATE m365_knowledge_candidates SET classification_json=? WHERE id=?",
+                    (json.dumps(classification, sort_keys=True), pending["id"]),
+                )
+                conn.execute(
+                    "INSERT INTO m365_knowledge_events"
+                    "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+                    (pending["id"],"AutomaticArchivedExtractionCompleted",_AUTO_ACTOR,
+                     json.dumps({"source_sha256":pending["source_sha256"]}),completed_at),
+                )
                 conn.commit()
             total = conn.execute(
                 "SELECT COUNT(*) FROM m365_knowledge_candidates"
