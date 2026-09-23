@@ -20,7 +20,7 @@ Live scoped diagnostic run `35821550222` used the running 3.175 image. It found 
 
 The target site is `salussolutions.sharepoint.com,69947f9a-c94c-43e9-8604-b73dc5c4360d,85462e8c-ac01-4a1f-b5a9-31608606e68d` (`https://salussolutions.sharepoint.com/sites/SalusKnowledgeSources`). SalCAPA's Graph application client ID is `c2fc227a-7ba4-467d-a6c6-8a0f9b813aee`. A protected read-only inspection by the Azure deployment identity returned HTTP 401 from Graph on `/sites/{site-id}/permissions`, so that identity cannot inspect or grant this permission. No site grant was changed. Use an authorized Microsoft 365/SharePoint administrator to inspect existing application grants and, if `write` is absent, grant `write` to this exact application on this exact site under the existing Sites.Selected model. Do not grant tenant-wide write or duplicate an existing site grant.
 
-The browser control capability was unavailable in this workspace because its required module could not be loaded. The SharePoint connector does not expose application site-grant operations. The Microsoft 365 administrator action is currently the dependency.
+The browser control capability is available, but automatic approval review rejected initiating Microsoft Graph Explorer sign-in because the requested account was not explicitly authorized. The SharePoint connector does not expose application site-grant operations. A specific authorization to sign in to the Salus Microsoft 365 administrator account through secure browser authentication is required before inspecting or applying the site grant in the browser. The browser's confirmation policy also requires confirmation at the action time before materially expanding app access.
 
 ## Single best next action
 
