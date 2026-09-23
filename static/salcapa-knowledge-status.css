@@ -1,0 +1,20 @@
+.knowledge-hero { margin-bottom: 18px; }
+.knowledge-hero h2 { margin: 0 0 6px; }
+.knowledge-hero label { display: block; max-width: 520px; margin-top: 20px; }
+.knowledge-list { display: grid; gap: 14px; }
+.knowledge-item .section-title { margin: 0; align-items: flex-start; }
+.knowledge-item .section-title h3 { margin: 0; overflow-wrap: anywhere; }
+.knowledge-item .section-title strong { font-size: 12px; color: var(--salus-blue); white-space: nowrap; }
+.knowledge-item details { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+.knowledge-item summary { cursor: pointer; color: var(--salus-orange); font-weight: 600; }
+.knowledge-item dl { display: grid; grid-template-columns: 130px minmax(0,1fr); gap: 8px 14px; }
+.knowledge-item dt { color: var(--muted); }
+.knowledge-item dd { margin: 0; overflow-wrap: anywhere; }
+.knowledge-item .row-actions { gap: 18px; }
+.knowledge-item a { color: var(--salus-orange); }
+@media(max-width:700px) {
+  .knowledge-item .section-title { display: block; }
+  .knowledge-item .section-title strong { white-space: normal; }
+  .knowledge-item dl { grid-template-columns: 1fr; gap: 3px; }
+  .knowledge-item dd { margin-bottom: 9px; }
+}
