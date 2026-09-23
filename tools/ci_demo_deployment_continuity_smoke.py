@@ -155,7 +155,14 @@ def main() -> None:
             and build["root_cause"] == "v3.185_abandoned_after_worker_timeout"
             and build["failed_workflows"] == "v3.185_live_worker_timeout"
         )
-        if abandoned_gap or failed_job_rollout or failed_worker_auth or failed_worker_timeout or failed_release_identity:
+        failed_pending_traversal = (
+            frozen == (3, 187)
+            and candidate == (3, 188)
+            and version(values["current_stable_release"]) == (3, 182)
+            and build["root_cause"] == "v3.187_abandoned_after_pending_traversal_limit"
+            and build["failed_workflows"] == "v3.187_live_pending_traversal_limit"
+        )
+        if abandoned_gap or failed_job_rollout or failed_worker_auth or failed_worker_timeout or failed_release_identity or failed_pending_traversal:
             assert build["validation_pr"] in {"pending", "none"} or build["validation_pr"].isdigit()
         else:
             assert build["validation_pr"].isdigit()
