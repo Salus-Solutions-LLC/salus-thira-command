@@ -12,7 +12,7 @@ from salcapa_knowledge_promotion import (
     GRAPH_ROOT, GraphKnowledgeWriter, KnowledgeDestinationConfig,
     PENDING_PREFIX, _extract_all_accessible_content, automatic_classification,
 )
-from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake
+from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake, M365IntakeError
 
 KNOWLEDGE_DRIVE = "b!mn-UaUzJ6UOGBLc9xcQ2DYwuRoUBrB9KtakxYIYG5o1riGTeQsB8T4jy0ttFW_fN"
 KNOWLEDGE_ROOT = "01WETF6P56Y2GOVW7725BZO354PWSELRRZ"
