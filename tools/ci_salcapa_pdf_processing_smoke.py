@@ -22,14 +22,14 @@ sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
 from pypdf import PdfWriter
-from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject, TextStringObject
+from pypdf.generic import ArrayObject, DecodedStreamObject, DictionaryObject, NameObject, TextStringObject
 
 import app as core
 import salcapa_pdf_processing as pdf
 from salcapa_pdf_processing import register_salcapa_pdf_processing
 
 
-def fictional_pdf(texts: list[str], *, active=False, embedded=False, encrypted=False) -> bytes:
+def fictional_pdf(texts: list[str], *, active=False, embedded=False, encrypted=False, empty_annotations=False, annotation=False) -> bytes:
     writer = PdfWriter()
     font = DictionaryObject({
         NameObject("/Type"): NameObject("/Font"),
@@ -47,6 +47,15 @@ def fictional_pdf(texts: list[str], *, active=False, embedded=False, encrypted=F
             stream = DecodedStreamObject()
             stream.set_data(f"BT /F1 12 Tf 72 720 Td ({escaped}) Tj ET".encode("latin-1"))
             page[NameObject("/Contents")] = writer._add_object(stream)
+        if empty_annotations:
+            page[NameObject("/Annots")] = ArrayObject([])
+        if annotation:
+            note = DictionaryObject({
+                NameObject("/Type"): NameObject("/Annot"),
+                NameObject("/Subtype"): NameObject("/Text"),
+                NameObject("/Contents"): TextStringObject("Fictional annotation"),
+            })
+            page[NameObject("/Annots")] = ArrayObject([writer._add_object(note)])
     writer.add_metadata({
         "/Title": "Fictional continuity record",
         "/Author": "Source-recorded demonstration author",
@@ -160,6 +169,18 @@ def main() -> None:
     assert "no OCR, rendering, attachment access" in record["extraction_method"]
     assert client.get(f"/api/material-processing/derivatives/{derivative_id}", headers=member).status_code == 403
 
+    empty_source = upload(
+        client, processor, "empty-annots.pdf",
+        fictional_pdf(["Empty annotations are inert."], empty_annotations=True),
+    )
+    empty_result = process(client, processor, int(empty_source["id"]))
+    assert empty_result.status_code == 200, empty_result.text
+    empty_detail = client.get(
+        f"/api/material-processing/derivatives/{empty_result.json()['derivative']['id']}",
+        headers=reviewer,
+    )
+    assert "Empty annotations are inert." in empty_detail.json()["content_text"]
+
     same_person = client.post(
         f"/api/material-processing/derivatives/{derivative_id}/review", headers=processor,
         json={"status": "Human Reviewed", "reason": "Compare the representation with the fictional source."},
@@ -178,6 +199,7 @@ def main() -> None:
 
     expect_failure(client, processor, "encrypted.pdf", fictional_pdf(["Protected"], encrypted=True), "PDF_ENCRYPTED")
     expect_failure(client, processor, "active.pdf", fictional_pdf(["Action"], active=True), "PDF_ACTIVE_CONTENT")
+    expect_failure(client, processor, "annotated.pdf", fictional_pdf(["Action"], annotation=True), "PDF_ACTIVE_CONTENT")
     expect_failure(client, processor, "embedded.pdf", fictional_pdf(["Attachment"], embedded=True), "PDF_ACTIVE_CONTENT")
     expect_failure(client, processor, "malformed.pdf", b"%PDF-1.7\nnot a valid PDF", "PDF_PARSE_FAILED")
     expect_failure(client, processor, "mismatch.pdf", fictional_pdf(["Mismatch"]), "PDF_TYPE_MISMATCH", "application/octet-stream")

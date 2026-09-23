@@ -124,11 +124,26 @@ def extract(path: Path) -> dict:
         page_facts: list[dict] = []
         truncated = False
         for index, page in enumerate(reader.pages, 1):
-            if any(key in page for key in ("/AA", "/Annots", "/RichMedia")):
+            if any(key in page for key in ("/AA", "/RichMedia")):
                 raise WorkerFailure(
                     "PDF_ACTIVE_CONTENT",
-                    "The PDF contains page actions or annotations and was not processed.",
+                    "The PDF contains page actions or rich media and was not processed.",
                 )
+            annotations = page.get("/Annots")
+            if annotations is not None:
+                try:
+                    declared_annotations = _resolve(annotations)
+                    has_annotations = len(declared_annotations) != 0
+                except (TypeError, ValueError, KeyError, AttributeError) as exc:
+                    raise WorkerFailure(
+                        "PDF_ACTIVE_CONTENT",
+                        "The PDF annotation declaration could not be inspected safely.",
+                    ) from exc
+                if has_annotations:
+                    raise WorkerFailure(
+                        "PDF_ACTIVE_CONTENT",
+                        "The PDF contains annotations and was not processed.",
+                    )
             try:
                 contents = page.get_contents()
                 decoded = contents.get_data() if contents is not None else b""
