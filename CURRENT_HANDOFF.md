@@ -1,8 +1,10 @@
 # Salus Solutions — Current Handoff
 
 **Handoff date:** 23 September 2026  
-**Current production release:** SalCAPA 3.170  
-**Release in preparation:** SalCAPA 3.171 runtime-registration hotfix  
+**Current production release:** SalCAPA 3.171  
+**Accepted source commit:** `66b500dbfb8901b8c910a3667605750102e140dd`  
+**Activation commit:** `9d3ac13bf3037f26d67ea5959d460d5e603a97b6`  
+**Immutable image:** `salcapadevb48224acr.azurecr.io/salcapa@sha256:55998773f4f3f7d55daed251a044432e5932f6a3815d13648c88d3363d0c7d24`  
 **Accepted source commit:** `729a48c3ec45a6ae98a57f9de8bc18d2d8a68b40`  
 **Activation commit:** `0932fff09f0606576ee728dae5191339ee2e1e77`  
 **Immutable image:** `salcapadevb48224acr.azurecr.io/salcapa@sha256:6b1693aa6321b9abcc8983d79b3e701ee112e29432c600357978c33f62de708f`  
@@ -46,7 +48,7 @@ SAL-D022 supersedes SAL-D021. Every file is automatically captured, hash-bound, 
 
 ## Remaining operational confirmation
 
-The live check after v3.170 found `Executive Protection.docx` still in `10 Pending Classification`. v3.170 corrected the PostgreSQL identity-return defect, but the second live check established that `register_knowledge_promotion` was not imported or invoked by `salcapa_runtime.py`; therefore the routes and scheduled startup processor were absent. SalCAPA 3.171 registers the processor with the live FastAPI application and adds runtime-composition regression assertions. After deployment, confirm the candidate reaches `Ingested and Verified`, appears in `05 Research and Reference`, and is moved to `90 Processed Intake` only after destination hash verification.
+The live check after v3.170 found `Executive Protection.docx` still in `10 Pending Classification`. v3.170 corrected the PostgreSQL identity-return defect, but the second live check established that `register_knowledge_promotion` was not imported or invoked by `salcapa_runtime.py`; therefore the routes and scheduled startup processor were absent. SalCAPA 3.171 registers the processor with the live FastAPI application and adds runtime-composition regression assertions. v3.171 passed governed deployment run `35809337948`. After its first scheduled cycle, both pending files remained in `10 Pending Classification`, `90 Processed Intake` remained empty, and no destination copy of `Executive Protection.docx` was discoverable. The remaining fault is therefore inside the live processing/promotion transaction and requires production-state diagnostics, including destination-library read/write authority. Confirm the candidate reaches `Ingested and Verified`, appears in `05 Research and Reference`, and is moved to `90 Processed Intake` only after destination hash verification.
 
 ## Known constraints
 
@@ -56,4 +58,4 @@ The live check after v3.170 found `Executive Protection.docx` still in `10 Pendi
 
 ## Single best next action
 
-Validate and deploy the v3.171 runtime-registration hotfix, then confirm the live candidate record and destination/archive locations for `Executive Protection.docx`.
+Add a governed live diagnostic/acceptance step for the knowledge destination and inspect the candidate retry reason before changing permissions or promotion behavior.
