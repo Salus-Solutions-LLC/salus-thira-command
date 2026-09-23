@@ -196,4 +196,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as exc:
+        # Type only: names, paths, and document contents must stay out of Actions logs.
+        print(f"SAFE_DIAGNOSTIC_ERROR_TYPE={type(exc).__name__}", flush=True)
+        raise SystemExit(1) from None
