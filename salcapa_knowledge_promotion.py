@@ -565,7 +565,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         try:
             intake_config = GovernedM365Config.from_environment()
             intake = GovernedM365Intake(intake_config)
-            listed = intake.list_files()
+            listed = intake.list_files(pending_only=True)
             pending_files = [
                 row for row in listed
                 if row["relative_path"].startswith(PENDING_PREFIX)
