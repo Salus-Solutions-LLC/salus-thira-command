@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## Protection Advisor UX handoff — 23 September 2026
+
+- PR #516 merged to `development/salcapa-platform` at `aab014f6569be2b95ed9fbd03c144a6ebc167bec`. It aligns the Part 2 code-name field IDs with draft hydration, autosave, and submission, and makes the retained report names and handling visible with an explicit edit action. Public Protection Advisor workflow run `35927033477` passed on candidate `2a12ef5a265261a288424fb32963209fd7cfc60d`.
+- This UX change is **merged, not confirmed deployed or visually accepted**. A live GET of both the Wix page and `/protection-advisor/embed` returned HTTP 200 after Marc's connection-reset screenshot. The embed's frame policy names both Wix hostnames. Browser rendering, start-link behavior, mobile layout, and a Part 2 signed-in save/submit/revision check remain open.
+- Wix's public-page actions were observed linking to `/protection-advisor`, whose application route redirects to the Wix page. Confirm that these actions open or scroll to the working embedded assessment. The Wix page itself needs a direct visual review and correction; no Wix edit was made in this branch.
+- Coordinate the next governed Advisor release with the separate document-processing build. Do not infer the active Azure release from this historical handoff header; inspect the exact frozen branch, image, deployment run, and live endpoint immediately before promotion.
+
 **Updated:** 23 September 2026
 **Active Azure development demonstration release:** SalCAPA 3.176
 **Frozen source:** `release/v3.176` at `12a13fdcb15e62276041553b83dee9699eddf7f4`
