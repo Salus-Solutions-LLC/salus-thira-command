@@ -575,7 +575,7 @@ jobs:
               '[REDACTED]',
               '/api/auth/oidc/start',
               'login.microsoftonline.com/$EXPECTED_TENANT_ID/oauth2/v2.0/authorize',
-              "if: failure() && steps.deployment.outcome == 'success'",
+              "if: failure() && (steps.deployment.outcome == 'success' || steps.deployment.outcome == 'failure')",
               'az containerapp update',
               '--image "$ROLLBACK_IMAGE"',
               'accepted-release/tools/validate_live_readiness.py',
