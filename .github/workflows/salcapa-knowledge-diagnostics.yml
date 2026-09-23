@@ -6,6 +6,7 @@ on:
       - development/salcapa-platform
     paths:
       - '.github/workflows/salcapa-knowledge-diagnostics.yml'
+      - 'tools/live_knowledge_write_diagnostic.py'
 
 permissions:
   contents: read
@@ -46,3 +47,95 @@ jobs:
               {key: state.get(key) for key in allowed}, sort_keys=True
           ))
           PY
+
+  authorize_scoped:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected scoped knowledge diagnostic gate passed."
+
+  scoped_graph:
+    needs: authorize_scoped
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Run isolated application-identity Graph diagnostic
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-diagnostic-app.json
+          EXPECTED_IMAGE=salcapadevb48224acr.azurecr.io/salcapa@sha256:fde7ce8d041ba6ffb7c5fd2eedbb24d88e024b91f413757044005f6c39261457
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-diagnostic-app.json)" = "$EXPECTED_IMAGE"
+          env_value() {
+            jq -r --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/salcapa-diagnostic-app.json
+          }
+          IDENTITY_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query id --output tsv --only-show-errors)"
+          ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors)"
+          REGISTRY_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query loginServer --output tsv --only-show-errors)"
+          SCRIPT_B64="$(base64 -w0 tools/live_knowledge_write_diagnostic.py)"
+          az deployment group create \
+            --name "salcapa-knowledge-diagnostic-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/m365-intake-acceptance-job.bicep \
+            --parameters \
+              environmentId="$ENVIRONMENT_ID" \
+              identityId="$IDENTITY_ID" \
+              registryServer="$REGISTRY_SERVER" \
+              imageDigest="$EXPECTED_IMAGE" \
+              tenantId="$(env_value SALUS_OIDC_TENANT_ID)" \
+              applicationClientId="$(env_value SALUS_OIDC_CLIENT_ID)" \
+              managedIdentityClientId="$(env_value SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID)" \
+              driveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" \
+              folderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" \
+              acceptanceScriptBase64="$SCRIPT_B64" \
+            --output none --only-show-errors
+          JOB_NAME=salcapa-m365-acceptance-b48224
+          EXECUTION_NAME="$(az containerapp job start \
+            --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
+            --query name --output tsv --only-show-errors)"
+          test -n "$EXECUTION_NAME"
+          SUCCEEDED=false
+          for attempt in $(seq 1 60); do
+            STATUS="$(az containerapp job execution show \
+              --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
+              --job-execution-name "$EXECUTION_NAME" \
+              --query properties.status --output tsv --only-show-errors)"
+            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
+            if [ "$STATUS" = "Failed" ]; then break; fi
+            sleep 10
+          done
+          az containerapp job logs show \
+            --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
+            --execution "$EXECUTION_NAME" --container salcapa-m365-acceptance \
+            --tail 100 --format text --only-show-errors 2>&1 \
+            | grep -E 'PENDING_EXTRACTION|KNOWLEDGE_DESTINATION|KNOWLEDGE_DIAGNOSTIC_CLEANUP' \
+            || true
+          test "$SUCCEEDED" = "true"
+      - name: Remove isolated diagnostic job
+        if: always()
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          JOB_NAME=salcapa-m365-acceptance-b48224
+          if ! az account show --only-show-errors >/dev/null 2>&1; then exit 0; fi
+          if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --only-show-errors >/dev/null 2>&1; then
+            az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes --only-show-errors
+          fi
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
+            --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
