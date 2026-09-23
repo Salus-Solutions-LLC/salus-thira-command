@@ -109,6 +109,8 @@ def main():
     runtime = open("salcapa_runtime.py", encoding="utf-8").read()
     assert "from salcapa_knowledge_promotion import register_knowledge_promotion" in runtime
     assert "register_knowledge_promotion(core.app, core.__dict__)" in runtime
+    assert "knowledge_processing" in runtime
+    assert "last_error_code" in module
     print("M365_KNOWLEDGE_PROMOTION_PASS")
 
 
