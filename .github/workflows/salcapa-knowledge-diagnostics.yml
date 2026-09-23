@@ -30,28 +30,26 @@ jobs:
           import urllib.request
 
           url = "https://salcapa.salus.solutions/health/ready"
-          for attempt in range(3):
+          allowed = (
+              "state", "last_discovered", "last_promoted",
+              "last_retry_required", "last_error_code", "last_retry_codes",
+          )
+          for sample in range(9):
               try:
                   with urllib.request.urlopen(url, timeout=15) as response:
                       if response.status != 200:
                           raise RuntimeError("Readiness did not return HTTP 200")
                       payload = json.load(response)
-                  break
-              except Exception:
-                  if attempt == 2:
-                      raise RuntimeError("Live readiness unavailable after bounded retries")
-                  time.sleep(10)
-
-          state = payload.get("knowledge_processing")
-          if not isinstance(state, dict):
-              raise RuntimeError("Knowledge processor status is absent")
-          allowed = (
-              "state", "last_discovered", "last_promoted",
-              "last_retry_required", "last_error_code", "last_retry_codes",
-          )
-          print("KNOWLEDGE_PROCESSOR_SAFE_STATUS=" + json.dumps(
-              {key: state.get(key) for key in allowed}, sort_keys=True
-          ))
+                  state = payload.get("knowledge_processing")
+                  if not isinstance(state, dict):
+                      raise RuntimeError("Knowledge processor status is absent")
+                  print("KNOWLEDGE_PROCESSOR_SAMPLE_" + str(sample) + "=" + json.dumps(
+                      {key: state.get(key) for key in allowed}, sort_keys=True
+                  ), flush=True)
+              except Exception as exc:
+                  print("KNOWLEDGE_PROCESSOR_SAMPLE_ERROR=" + type(exc).__name__, flush=True)
+              if sample < 8:
+                  time.sleep(15)
           PY
 
   authorize_scoped:
