@@ -1,0 +1,37 @@
+name: SalCAPA failed-rollout safe runtime inspection
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/salcapa-recovery-inspect.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Read exact runtime and ingress status without contents
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/app.json
+          jq -c '{image:.properties.template.containers[0].image,provisioningState:.properties.provisioningState,ingress:.properties.configuration.ingress.fqdn,customDomains:[.properties.configuration.ingress.customDomains[]?.name],scale:.properties.template.scale.minReplicas}' /tmp/app.json
+          az containerapp revision list --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --query '[].{name:name,active:properties.active,provisioningState:properties.provisioningState,healthState:properties.healthState,replicas:properties.replicas}' --output json --only-show-errors
+          FQDN="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/app.json)"
+          for host in "$FQDN" salcapa.salus.solutions; do
+            CODE="$(curl --connect-timeout 5 --max-time 20 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://$host/health/ready" || true)"
+            echo "READINESS_HTTP_FOR_$host=$CODE"
+          done
