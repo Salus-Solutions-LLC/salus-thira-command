@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 23 September 2026 07:50 CDT
-current_frozen_release: v3.175
-current_frozen_commit: 62b3fbc5089b237ee6aee044de84ace699b08d66
+last_verified_at: 23 September 2026 08:09 CDT
+current_frozen_release: v3.176
+current_frozen_commit: 12a13fdcb15e62276041553b83dee9699eddf7f4
 active_development_branch: development/salcapa-platform
-current_development_head: 907d2c2f59c4c2d41e3687f9356f8663e8075602
+current_development_head: 6e6f30b23e18b0bdf9f237d0a7dc5cf632cb2f1d
 active_product_milestone: issue_370_governed_knowledge_promotion
 active_build_system_issue: 370
-active_increment: byte_preserving_knowledge_promotion_v3176
-last_completed_increment: verified_knowledge_destination_write_v3175
-candidate_release: v3.176
+active_increment: knowledge_processing_steady_state_v3176
+last_completed_increment: byte_preserving_knowledge_promotion_v3176
+candidate_release: none
 validation_pr: pending
-validation_branch: release/v3.176
+validation_branch: none
 validation_base: development/salcapa-platform
-validation_head: 907d2c2f59c4c2d41e3687f9356f8663e8075602
-validation_gate_state: repair_validation_pending
+validation_head: 12a13fdcb15e62276041553b83dee9699eddf7f4
+validation_gate_state: all_required_gates_green
 failed_workflows: none
 first_root_failing_gate: none
 root_cause: none
 repair_head: none
 repair_summary: none
-genuine_blockers: v3176_full_validation_pending
-next_authorized_step: validate_freeze_publish_and_deploy_v3176
-deployed_demo_release: v3.175
-deployed_demo_state: accepted_stable_runtime_with_v3174_rollback
+genuine_blockers: none
+next_authorized_step: monitor_automatic_knowledge_processing
+deployed_demo_release: v3.176
+deployed_demo_state: accepted_stable_runtime_with_v3175_rollback
 ---
 
 # SalCAPA build continuity
@@ -33,7 +33,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current controlled checkpoint
 
-Release v3.175 at exact commit `62b3fbc5089b237ee6aee044de84ace699b08d66` is the accepted Azure development runtime, with v3.174 retained as rollback. Release v3.176 is the controlled candidate for byte-preserving Office originals. The scoped Graph grants now allow PDF promotion and archiving. Verify the full candidate, freeze the exact all-green commit, publish an immutable image, then deploy via governed activation records.
+Release v3.176 at exact commit `12a13fdcb15e62276041553b83dee9699eddf7f4` is the accepted Azure development runtime, with v3.175 retained as rollback. The production image is pinned at `sha256:a420f6a14fb7b296d6cd565483da615f846b94014247a4b43915cfbf5959f430`. CI run `35863059484`, image publication run `35863701593`, and governed deployment run `35864255511` passed. Both pending originals were archived after exact destination verification; the DOCX canonical original matched its archived OneDrive source SHA-256.
 
 ## Source precedence
 
