@@ -32,7 +32,7 @@ def safe_code(response) -> str:
 def main() -> None:
     intake_config = GovernedM365Config.from_environment()
     intake = GovernedM365Intake(intake_config)
-    listed = intake.list_files()
+    listed = intake.list_files(pending_only=True)
     files = [row for row in listed
              if row["relative_path"].startswith(PENDING_PREFIX)]
     print(f"PENDING_COUNT={len(files)}", flush=True)
