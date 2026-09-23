@@ -369,7 +369,7 @@ jobs:
           IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
         run: |
           set -euo pipefail
-          JOB_NAME=salcapa-dev-b48224-knowledge-scan
+          JOB_NAME=salcapa-dev-b48224-kb-scan
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
           test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$IMAGE_DIGEST"
           test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-knowledge-job.json)" = "Schedule"
@@ -485,7 +485,7 @@ jobs:
         run: |
           set -euo pipefail
           APP_NAME=salcapa-dev-b48224
-          az containerapp job delete --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-knowledge-scan --yes --only-show-errors || true
+          az containerapp job delete --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --yes --only-show-errors || true
           az containerapp update \
             --resource-group "$RESOURCE_GROUP" \
             --name "$APP_NAME" \
