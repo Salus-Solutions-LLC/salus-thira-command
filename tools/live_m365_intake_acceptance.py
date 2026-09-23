@@ -108,6 +108,12 @@ def main() -> None:
         )
 
     sample = min(files, key=lambda item: (item["size"] == 0, item["size"], item["id"]))
+    # Exercise the same bounded, current-parent read used by the backlog scanner.
+    bound = intake.read_listed_document(
+        sample, access_classification="Salus Internal"
+    )
+    if bound.sha256 != hashlib.sha256(bound.content).hexdigest():
+        raise RuntimeError("M365_INTAKE_BOUND_READ_HASH_MISMATCH")
     content = intake.read_file(sample["id"])
     if len(content) != sample["size"]:
         raise RuntimeError("M365_INTAKE_CONTENT_SIZE_MISMATCH")
