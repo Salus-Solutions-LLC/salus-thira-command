@@ -1,10 +1,10 @@
 # Salus Solutions — Current Handoff
 
 **Updated:** 23 September 2026
-**Active Azure development demonstration release:** SalCAPA 3.175
-**Frozen source:** `release/v3.175` at `62b3fbc5089b237ee6aee044de84ace699b08d66`
-**Immutable running image:** `salcapadevb48224acr.azurecr.io/salcapa@sha256:3c51917d148a231f91a0722b5704fd10b038925da66c32ccce051988c9553a50`
-**Rollback:** SalCAPA 3.174, source `a3b9abece87d328ebb272e8c15065c25f41a57ba`, image `sha256:d9067d74d7a4f7a1bd62138329362e1cde9928c95b14ff54ae7ef08197628291`
+**Active Azure development demonstration release:** SalCAPA 3.176
+**Frozen source:** `release/v3.176` at `12a13fdcb15e62276041553b83dee9699eddf7f4`
+**Immutable running image:** `salcapadevb48224acr.azurecr.io/salcapa@sha256:a420f6a14fb7b296d6cd565483da615f846b94014247a4b43915cfbf5959f430`
+**Rollback:** SalCAPA 3.175, source `62b3fbc5089b237ee6aee044de84ace699b08d66`, image `sha256:3c51917d148a231f91a0722b5704fd10b038925da66c32ccce051988c9553a50`
 **Authoritative repository:** `Salus-Solutions-LLC/salus-thira-command`
 **Working branch:** `development/salcapa-platform`
 
@@ -16,17 +16,17 @@ The 3.174 build reconstruction silently overwrote the reviewed PDF worker and it
 
 Live scoped diagnostic run `35821550222` used the running 3.175 image. It found both pending files; DOCX and PDF each reported `Complete` extraction. The PDF worker reported no active-feature rejection. That initial diagnostic returned Graph HTTP 403 `accessDenied` for a destination write; subsequent administrator grants and scoped diagnostics superseded that result. The temporary diagnostic job was removed.
 
-## Current permission and processing state
+## Accepted resolution
 
-The Microsoft Global Admin signed in to Graph Explorer as `MDuncan@SALUSSolutions.onmicrosoft.com`. Graph Explorer received delegated `Sites.FullControl.All` consent with organization-wide consent unchecked. The administrator created `write` application grants for SalCAPA Runtime (`c2fc227a-7ba4-467d-a6c6-8a0f9b813aee`) on the Salus Knowledge Sources SharePoint site and the personal OneDrive site; both Graph POST calls returned HTTP 201. The latter site grant applies across the user's OneDrive site, not solely the intake folder. The target's earlier read grant may still exist in parallel.
+The Microsoft Global Admin signed in to Graph Explorer as `MDuncan@SALUSSolutions.onmicrosoft.com`, granted delegated `Sites.FullControl.All` to Graph Explorer with organization-wide consent unchecked, and created application `write` grants for SalCAPA Runtime (`c2fc227a-7ba4-467d-a6c6-8a0f9b813aee`) on Salus Knowledge Sources and the personal OneDrive site. Both grant POST calls returned HTTP 201. The OneDrive grant covers the whole personal site. Scoped app-identity diagnostics confirmed SharePoint write and cleanup (201/204), and a disposable OneDrive create, move, cleanup (201/200/204) with the correct processed parent.
 
-Live application-identity destination write and cleanup returned HTTP 201 and HTTP 204. Both real files extracted completely. The PDF's 261,336-byte SharePoint copy matched the source SHA-256 and its original moved into `SalCAPA Intake / 90 Processed Intake` retaining item ID `01DBTAFUOFMEEKD6KJZZB2ZTGEOSPZXABT`. The DOCX original (`Executive Protection.docx`, 24,491 bytes, item ID `01DBTAFUL2TIWQFAH3ZRBJ6P5VTFSYWS7N`) remains in `10 Pending Classification`, because SharePoint rewrote the Office package to 30,509 bytes; the active 3.175 runtime correctly declines to archive without a byte-exact destination.
+The PDF extracted completely, was byte-exact in SharePoint (261,336 bytes and matching SHA-256), and its original moved to `SalCAPA Intake / 90 Processed Intake`. SharePoint rewrites Office packages: the viewable `Executive Protection.docx` differs from the 24,491-byte original. Release 3.176 retains that display copy and stores a verified canonical `Executive Protection.docx.fc13320b146a1a38.original.bin`. Independent downloads of the canonical SharePoint file and archived OneDrive original matched byte-for-byte at SHA-256 `fc13320b146a1a38c698d65361e2c921ed0ffdd9adef3e8f032e3c65a6ab3f07`. Both original item IDs are now in `90 Processed Intake`; `10 Pending Classification` is empty.
 
-On `development/salcapa-platform`, the 3.176 candidate adds a SHA-256-bound `.original.bin` fallback for Office formats when SharePoint mutates their display copy. It verifies the canonical original byte-for-byte before archiving. A CI regression simulates mutation and passed in the validate job; full CI and live deployment have not yet been accepted. A disposable application-identity OneDrive archive diagnostic is running with cleanup. The development candidate is distinct from the running 3.175 image.
+Exact candidate CI run [35863059484](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35863059484) passed validation, PostgreSQL, and production-container checks. Frozen source `release/v3.176` is commit `12a13fdcb15e62276041553b83dee9699eddf7f4`. Immutable image publication [35863701593](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35863701593) and governed deployment [35864255511](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35864255511) succeeded, including live readiness, isolated Microsoft 365 intake acceptance, and cleanup. The 3.175 image is the rollback. Database citation fields are written in the verified promotion transaction; no separate read of those live rows has been completed.
 
-## Next work
+## Routine follow-up
 
-Wait for the scoped archive diagnostic and full 3.176 CI. Freeze the exact all-green candidate, publish and deploy the immutable 3.176 image with 3.175 rollback, then confirm canonical DOCX hash and database citation record, source movement into `90 Processed Intake`, pending queue clear, and absence of duplicate knowledge records. Preserve the SharePoint-rendered DOCX as a convenience copy; the byte-exact `.original.bin` is canonical.
+Monitor the scheduled processor and verify new formats as they arrive. The diagnostic workflow still pins the 3.175 image until updated for 3.176; it is not the deployed application workflow. A previous read grant on the knowledge site may coexist with the effective write grant.
 
 ---
 
