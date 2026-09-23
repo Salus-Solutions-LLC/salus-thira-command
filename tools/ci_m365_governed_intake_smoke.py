@@ -237,6 +237,35 @@ def main():
         assert "shortcut" in str(exc).lower()
     else:
         raise AssertionError("A shortcut outside the governed tree was followed")
+    class LargeArchiveClient(Client):
+        def get(self, url, headers, params=None):
+            self.gets.append(url)
+            if url.endswith("/" + config.folder_item_id + "/children"):
+                return Response(200, {"value": [
+                    {"id": "01DBTAFUPENDINGFOLDER1", "name": "10 Pending Classification",
+                     "folder": {"childCount": 1}},
+                    {"id": "01DBTAFUPROCESSEDFOL1", "name": "90 Processed Intake",
+                     "folder": {"childCount": 5000}},
+                ]})
+            if url.endswith("/01DBTAFUPENDINGFOLDER1/children"):
+                return Response(200, {"value": [
+                    {"id": "01DBTAFUPENDINGFILE01", "name": "new.txt", "size": 4,
+                     "file": {"mimeType": "text/plain"}, "eTag": "pending-v1",
+                     "lastModifiedDateTime": "2026-09-23T00:00:00Z"},
+                ]})
+            if "01DBTAFUPROCESSEDFOL1" in url:
+                raise AssertionError("The large processed archive was traversed")
+            return Response(404)
+
+    archive_client = LargeArchiveClient()
+    pending_files = GovernedM365Intake(
+        config, credential=Credential(), client=archive_client
+    ).list_files(pending_only=True)
+    assert [row["relative_path"] for row in pending_files] == [
+        "10 Pending Classification/new.txt"
+    ]
+    assert len(archive_client.gets) == 2
+
     maximum_config = GovernedM365Config(
         tenant_id="11111111-1111-1111-1111-111111111111",
         application_client_id="22222222-2222-2222-2222-222222222222",
