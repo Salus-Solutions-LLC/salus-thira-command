@@ -130,6 +130,11 @@ def main() -> None:
                         "protection_advisor_knowledge_visibility_and_duplicate_safe_intake_v3178",
                         "v3.177_image_publication_cancelled_and_v3.178_build_continuity",
                     ),
+                    (
+                        "v3.183_abandoned_before_azure_acceptance_after_job_name_validation",
+                        "scheduled_knowledge_backlog_repair_v3184",
+                        "v3.183_deployment_failed_invalid_job_name",
+                    ),
                 }
                 assert (
                     values["root_cause"],
