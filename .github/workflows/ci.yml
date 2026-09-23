@@ -236,6 +236,8 @@ jobs:
         run: |
           test "$(docker run --rm salcapa:ci id -u)" = "10001"
           docker run --rm salcapa:ci python tools/verify_v343_source.py
+      - name: PDF worker active-feature regression inside production image
+        run: docker run --rm salcapa:ci python tools/ci_salcapa_pdf_processing_smoke.py
       - name: Representative M365 multi-format governed-ingestion acceptance
         run: docker run --rm salcapa:ci python tools/ci_m365_multiformat_ingestion_acceptance.py
       - name: SQLite lifecycle smoke inside container
