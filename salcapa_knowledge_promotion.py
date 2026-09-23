@@ -444,6 +444,13 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
     db = namespace["db"]
     now = namespace["now"]
     auth_context = namespace["auth_context"]
+    app.state.knowledge_processing = {
+        "state": "registered",
+        "last_discovered": 0,
+        "last_promoted": 0,
+        "last_retry_required": 0,
+        "last_error_code": "",
+    }
 
     def authority(request):
         context = auth_context(request)
@@ -455,6 +462,13 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         return str(context.get("username") or context.get("display_name") or "authorized-user")[:240]
 
     def process_pending(processor_actor: str) -> dict[str, int]:
+        app.state.knowledge_processing = {
+            "state": "running",
+            "last_discovered": 0,
+            "last_promoted": 0,
+            "last_retry_required": 0,
+            "last_error_code": "",
+        }
         try:
             intake_config = GovernedM365Config.from_environment()
             intake = GovernedM365Intake(intake_config)
@@ -621,7 +635,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "SELECT COUNT(*) FROM m365_knowledge_candidates"
             ).fetchone()[0]
             conn.close()
-            return {
+            result = {
                 "discovered": len(files),
                 "created": created,
                 "automatically_promoted": automatically_promoted,
@@ -629,7 +643,22 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "exception_review": 0,
                 "candidate_count": total,
             }
+            app.state.knowledge_processing = {
+                "state": "completed",
+                "last_discovered": len(files),
+                "last_promoted": automatically_promoted,
+                "last_retry_required": automatic_retry_required,
+                "last_error_code": "promotion_retry_required" if automatic_retry_required else "",
+            }
+            return result
         except M365IntakeError as exc:
+            app.state.knowledge_processing = {
+                "state": "failed",
+                "last_discovered": 0,
+                "last_promoted": 0,
+                "last_retry_required": 0,
+                "last_error_code": "m365_intake_unavailable",
+            }
             raise KnowledgePromotionError("Governed Microsoft 365 intake is unavailable") from exc
 
     def scan(request):
@@ -647,7 +676,15 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         while True:
             try:
                 process_pending("SalCAPA Scheduled Knowledge Processor")
-            except Exception:
+            except Exception as exc:
+                current = dict(getattr(app.state, "knowledge_processing", {}) or {})
+                current["state"] = "failed"
+                current["last_error_code"] = (
+                    "knowledge_promotion_error"
+                    if isinstance(exc, KnowledgePromotionError)
+                    else "unexpected_processing_error"
+                )
+                app.state.knowledge_processing = current
                 # The next bounded interval retries automatically. Detailed item
                 # outcomes are recorded in the governed candidate/event tables.
                 pass
