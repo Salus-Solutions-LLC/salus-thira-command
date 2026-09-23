@@ -4,15 +4,17 @@
 
 **Implementation status — 22 September 2026:** The eleven approved enterprise-knowledge folders were created and verified in **SharePoint → Salus Knowledge Sources → Documents**. The four approved workflow folders were created and verified in **OneDrive → SalCAPA Intake**. Separate SharePoint document libraries named **Protected Member Records** and **System Governance** were created and verified in the private SalCAPA site. The site displays one member, Marc Duncan, so the initial effective access boundary is Marc only. No existing business content was moved or deleted. The existing empty `Protected Member Records` folder in the general SalCAPA Documents library remains distinct from the new library and is not an approved records destination.
 
+**Controlling amendment — 23 September 2026:** SAL-D022 supersedes every human-ingestion-approval and exception-queue requirement in this document. Every file in `10 Pending Classification` is processed automatically. Author, title, dates, source identity, version, location, hash, and available citation locators are retained as structured citation metadata. Risk, rights, quality, duplication, restriction, sensitivity, and confidence conditions are metadata flags and do not block ingestion. Human authority still controls consequential use and disclosure.
+
 ## Executive decision
 
 Salus should use three deliberately separate content zones:
 
 1. **Enterprise knowledge:** SharePoint site **Salus Knowledge Sources** is the authoritative long-term home for approved Salus doctrine, methodologies, capabilities, templates, research, policies, training, and reusable examples.
-2. **Governed intake:** OneDrive folder **SalCAPA Intake** is a temporary, controlled drop zone for files awaiting capture, classification, processing, and human review. It is not the permanent knowledge library.
+2. **Governed intake:** OneDrive folder **SalCAPA Intake** is a temporary, controlled drop zone for automatic capture, classification, extraction, verification, and promotion. It is not the permanent knowledge library.
 3. **Protected Member records and outputs:** Protected Member source records must be segregated by member and engagement. Issued reports remain in **SalCAPA → Protected Member Reports**. Member-specific source material must not be mixed into the enterprise knowledge library.
 
-ChatGPT and SalCAPA may use the same approved enterprise knowledge corpus, but they reach it through different governed access paths. A file being stored does not automatically make it approved, searchable, indexed, or authoritative.
+ChatGPT and SalCAPA may use the same enterprise knowledge corpus, but they reach it through different governed access paths. Ingestion makes material searchable with provenance and flags; it does not by itself make the material authoritative or approve consequential use.
 
 ## Where to upload now
 
@@ -57,16 +59,14 @@ Recommended metadata:
 - Supersedes / superseded by
 - Permitted products: ChatGPT, SalCAPA, SalINTEL, SalTHIRA, SalOPS
 
-Only approved, human-reviewed content should become part of the active enterprise knowledge corpus. Historical material should remain discoverable but should not silently outrank current doctrine.
+All uploaded material becomes part of the searchable enterprise knowledge corpus. Authority, currency, sensitivity, duplication, restriction, and supersession are explicit metadata and must affect ranking and use so historical or unverified material does not silently outrank current doctrine.
 
 ### B. OneDrive: SalCAPA Intake
 
 This is a short-lived staging queue, not a records repository. Use these folders:
 
 - `10 Pending Classification`
-- `20 Ready for Intake Review`
-- `30 Exceptions and Manual Review`
-- `90 Migration Hold`
+- `90 Processed Intake`
 
 SalCAPA should continue to capture exact source bytes and provenance from its configured intake root. Movement out of intake must occur only after successful capture, reconciliation, and retention verification.
 
@@ -92,7 +92,7 @@ SalCAPA should:
 
 - read only from the configured intake boundary;
 - preserve the original, SHA-256 hash, Microsoft item identity, version/eTag, path, timestamps, owner, and classification;
-- require human approval before processing or indexing;
+- process and index every intake file automatically without human ingestion approval;
 - bind every derivative to the exact source hash;
 - require a different authorized reviewer before a derivative becomes human reviewed;
 - require separate authority before SalINTEL indexing or routing to another Salus product;
@@ -108,13 +108,13 @@ ChatGPT should be connected only to the approved **Salus Knowledge Sources** cor
 | Content | Governed processing posture | Important limits |
 |---|---|---|
 | TXT, MD, CSV, TSV, JSON, XML, LOG, EML | Native strict text extraction | Derived text capped at 2,000,000 characters |
-| DOCX, XLSX, PPTX | Non-executing Open XML extraction | Embedded/active content rejected; formulas are not recalculated; human review required |
-| DOC, XLS, PPT, DOCM, XLSM, PPTM | Stored original may be retained, but automated processing is blocked | Convert an approved copy to modern non-macro format; retain original for provenance |
+| DOCX, XLSX, PPTX | Non-executing Open XML extraction | Text, properties, headers, footers, notes, comments, and revision indicators are captured; formulas are not recalculated |
+| DOC, XLS, PPT, DOCM, XLSM, PPTM | Original automatically retained and promoted; safe extraction is attempted | Active content is never executed; inaccessible components remain an automatic retry obligation |
 | PDF | Isolated embedded-text extraction | 64 MB processor limit; encrypted or active-content PDFs rejected; selected-page rendering is separately governed |
 | JPG, JPEG, PNG | Metadata and printed-text OCR | 16 MB processor limit; one frame; OCR does not perform interpretation, identity, biometrics, or handwriting recognition |
 | Handwriting/difficult text | Separate request-driven local review | Requires an installed approved profile and independent human review |
 | WAV, MP3, MP4 | Isolated English spoken-word transcription | 128 MB processor limit, up to 3,600 seconds; no speaker identity, biometrics, emotion, translation, or video-frame analysis |
-| Other formats | May be preserved by intake if within intake controls, but are not automatically searchable | Manual review or a separately approved processor is required |
+| Other formats | Original automatically retained, classified, promoted, and tracked | Available safe extraction is attempted; unavailable extraction remains an automatic retry obligation and never an ingestion exception |
 
 The Microsoft intake hard cap is 100 MB per file and the currently documented deployment default is 25 MB. Processor-specific limits may be lower. A folder traversal is bounded to 20 levels and 2,000 discovered items; large migrations must therefore be staged in controlled batches.
 

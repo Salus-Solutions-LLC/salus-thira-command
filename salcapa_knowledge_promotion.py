@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -14,6 +15,9 @@ from urllib.parse import quote, urlparse
 import httpx
 from azure.identity import ManagedIdentityCredential
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+import salcapa_audio_video_processing as full_processing
+import salcapa_material_processing as material_processing
 
 from salcapa_m365_intake import (
     ASSERTION_SCOPE,
@@ -40,7 +44,6 @@ TARGETS = {
 }
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
 _AUTO_ACTOR = "SalCAPA Policy Engine"
-_AUTO_EXTENSIONS = {".csv", ".txt"}
 _EXCEPTION_MARKERS = {
     "attorney-client", "confidential", "draft", "employee", "export controlled",
     "legal hold", "medical record", "patient", "personnel", "privileged",
@@ -73,30 +76,136 @@ _AUTO_PRODUCTS = {
 }
 
 
-def automatic_classification(document, *, duplicate: bool) -> tuple[dict[str, Any] | None, str]:
-    """Return a bounded automatic classification or a fail-closed exception reason."""
-    if duplicate:
-        return None, "duplicate_requires_human_resolution"
-    extension = os.path.splitext(document.name)[1].lower()
-    if extension not in _AUTO_EXTENSIONS:
-        return None, "unsupported_or_unapproved_format"
-    normalized = re.sub(r"[^a-z0-9]+", " ", document.name.lower()).strip()
-    inspectable_text = document.content.decode("utf-8", errors="ignore").lower()
-    inspection_scope = normalized + " " + inspectable_text
-    marker = next(
-        (value for value in sorted(_EXCEPTION_MARKERS) if value in inspection_scope),
-        "",
+def _extract_all_accessible_content(document) -> dict[str, Any]:
+    """Extract every safely accessible component without blocking source ingestion."""
+    content_type = str(
+        getattr(document, "mime_type", "")
+        or getattr(document, "content_type", "")
+        or "application/octet-stream"
     )
-    if marker:
-        return None, f"sensitivity_marker:{marker}"
-    matches = [
+    try:
+        text, method, truncated, processor, processor_version = full_processing._decode_media(
+            document.content, document.name, content_type
+        )
+        return {
+            "status": "Complete",
+            "text": text,
+            "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            "method": method,
+            "processor": processor,
+            "processor_version": processor_version,
+            "truncated": bool(truncated),
+        }
+    except material_processing.ProcessingFailure as exc:
+        # The exact original is still promoted and retained. An inaccessible,
+        # encrypted, damaged, capacity-limited, or not-yet-supported component
+        # becomes an automatic retry obligation rather than an exception queue.
+        return {
+            "status": "Automatic Retry Required",
+            "text": "",
+            "text_sha256": hashlib.sha256(b"").hexdigest(),
+            "method": "Exact original retained; automatic extraction retry required",
+            "processor": "SalCAPA Full Knowledge Processor",
+            "processor_version": "2.0.0",
+            "truncated": False,
+            "failure_code": str(exc.code)[:120],
+            "failure_detail": str(exc.public_detail)[:1000],
+        }
+
+
+def _citation_metadata(document, extraction: dict[str, Any]) -> dict[str, Any]:
+    """Create structured, hash-bound metadata suitable for later citations."""
+    text = str(extraction.get("text", ""))
+    source_properties: dict[str, str] = {}
+    for field in (
+        "title", "subject", "creator", "keywords", "description", "category",
+        "created", "modified", "lastModifiedBy",
+    ):
+        match = re.search(rf"(?m)^{re.escape(field)}:\s*(.+?)\s*$", text)
+        if match:
+            source_properties[field] = match.group(1)[:1000]
+    extension = os.path.splitext(document.name)[1].lower()
+    locator_scheme = {
+        ".pdf": "page",
+        ".pptx": "slide and speaker-note section",
+        ".xlsx": "worksheet and cell",
+        ".docx": "document part, heading, paragraph, footnote, endnote, comment, header, and footer",
+        ".csv": "row and column",
+        ".tsv": "row and column",
+    }.get(extension, "content section")
+    author_values = []
+    for value in (
+        source_properties.get("creator", ""),
+        str(getattr(document, "source_owner", "") or ""),
+    ):
+        if value and value not in author_values:
+            author_values.append(value)
+    source_sha256 = str(
+        getattr(document, "sha256", "")
+        or hashlib.sha256(document.content).hexdigest()
+    )
+    return {
+        "citation_key": f"sha256:{source_sha256}",
+        "document_title": source_properties.get("title", "") or os.path.splitext(document.name)[0],
+        "authors": author_values,
+        "source_created_at": source_properties.get("created", ""),
+        "source_modified_at": source_properties.get("modified", "")
+        or str(getattr(document, "last_modified", "") or ""),
+        "source_last_modified_by": source_properties.get("lastModifiedBy", "")
+        or str(getattr(document, "last_modified_by", "") or ""),
+        "source_owner": str(getattr(document, "source_owner", "") or ""),
+        "source_owner_id": str(getattr(document, "source_owner_id", "") or ""),
+        "source_item_id": str(getattr(document, "item_id", "") or ""),
+        "source_relative_path": str(getattr(document, "relative_path", "") or ""),
+        "source_web_url": str(getattr(document, "web_url", "") or ""),
+        "source_etag": str(getattr(document, "etag", "") or ""),
+        "source_ctag": str(getattr(document, "ctag", "") or ""),
+        "source_sha256": source_sha256,
+        "source_mime_type": str(
+            getattr(document, "mime_type", "")
+            or getattr(document, "content_type", "")
+            or "application/octet-stream"
+        ),
+        "locator_scheme": locator_scheme,
+        "source_properties": source_properties,
+        "metadata_verification": "Source-stored metadata retained as provenance; authorship is not independently verified by ingestion.",
+    }
+
+
+def automatic_classification(document, *, duplicate: bool) -> tuple[dict[str, Any], str]:
+    """Classify every source automatically; conditions become metadata flags."""
+    extraction = _extract_all_accessible_content(document)
+    normalized = re.sub(r"[^a-z0-9]+", " ", document.name.lower()).strip()
+    inspectable_text = extraction["text"].lower()
+    if not inspectable_text:
+        inspectable_text = document.content[:2_000_000].decode("utf-8", errors="ignore").lower()
+    inspection_scope = normalized + " " + inspectable_text
+    markers = [value for value in sorted(_EXCEPTION_MARKERS) if value in inspection_scope]
+    filename_matches = [
         target
         for target, keywords in _AUTO_TARGET_RULES
         if any(keyword in normalized for keyword in keywords)
     ]
-    if len(matches) != 1:
-        return None, "classification_confidence_below_threshold"
-    target = matches[0]
+    content_matches = [
+        target
+        for target, keywords in _AUTO_TARGET_RULES
+        if any(keyword in inspectable_text for keyword in keywords)
+    ]
+    matches = filename_matches or content_matches
+    target = matches[0] if len(matches) == 1 else "05 Research and Reference"
+    flags = []
+    if duplicate:
+        flags.append("Duplicate")
+    if markers:
+        flags.extend(["Sensitive", *[f"Sensitivity Marker: {value}" for value in markers]])
+    if len(matches) > 1:
+        flags.append("Multiple Classification Signals")
+    if not matches:
+        flags.append("Default Research Classification")
+    if extraction["status"] != "Complete":
+        flags.append("Automatic Extraction Retry Required")
+    if extraction.get("truncated"):
+        flags.append("Derived Text Truncated; Original Retained")
     return {
         "decision": "Approved",
         "target_folder": target,
@@ -104,14 +213,17 @@ def automatic_classification(document, *, duplicate: bool) -> tuple[dict[str, An
         "document_type": "Reference Material",
         "sensitivity": "Salus Internal",
         "rationale": (
-            "Automatically classified under the approved low-risk, high-confidence "
-            "knowledge-promotion policy."
+            "Automatically processed under the approved no-exception knowledge-ingestion policy."
         ),
         "permit_products": _AUTO_PRODUCTS[target],
+        "processing_flags": list(dict.fromkeys(flags)),
+        "extraction": extraction,
+        "citation_metadata": _citation_metadata(document, extraction),
         "automation": {
-            "policy": "low-risk-high-confidence-v1",
-            "confidence": "high",
-            "exception_checks": "passed",
+            "policy": "automatic-full-processing-v2",
+            "classification_confidence": "high" if len(matches) == 1 else "bounded-default",
+            "human_ingestion_approval_required": False,
+            "exception_queue": False,
         },
     }, ""
 
@@ -342,8 +454,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
     def actor(context):
         return str(context.get("username") or context.get("display_name") or "authorized-user")[:240]
 
-    def scan(request):
-        context = authority(request)
+    def process_pending(processor_actor: str) -> dict[str, int]:
         try:
             intake_config = GovernedM365Config.from_environment()
             intake = GovernedM365Intake(intake_config)
@@ -355,7 +466,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             _init_tables(conn)
             created = 0
             automatically_promoted = 0
-            exception_review = 0
+            automatic_retry_required = 0
             writer = None
             for row in files:
                 document = intake.read_document(
@@ -367,63 +478,69 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                     (intake_config.drive_id, document.item_id, document.etag),
                 ).fetchone()
                 if existing:
-                    continue
+                    current = conn.execute(
+                        "SELECT * FROM m365_knowledge_candidates WHERE id=?", (existing["id"],)
+                    ).fetchone()
+                    if current["status"] != "Automatic Retry Required":
+                        continue
+                    candidate_id = current["id"]
+                else:
+                    candidate_id = None
                 duplicate = conn.execute(
                     "SELECT id FROM m365_knowledge_candidates WHERE source_sha256=? "
                     "AND status IN ('Promoted','Source Retained','Source Removed',"
                     "'Ingested and Verified')",
                     (document.sha256,),
                 ).fetchone()
-                classification, exception_reason = automatic_classification(
+                classification, _ = automatic_classification(
                     document, duplicate=bool(duplicate)
                 )
-                initial_status = (
-                    "Approved for Promotion" if classification else "Exception Review"
-                )
+                extraction_complete = classification["extraction"]["status"] == "Complete"
+                initial_status = "Approved for Promotion" if extraction_complete else "Automatic Retry Required"
                 timestamp = now()
-                cursor = conn.execute(
-                    """INSERT INTO m365_knowledge_candidates
-                    (source_drive_id,source_item_id,source_name,source_relative_path,source_etag,
-                     source_sha256,source_size,source_modified_at,source_owner,discovered_at,status,
-                     decision,target_folder,classification_json,reviewed_by,reviewed_at,
-                     review_rationale)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (
-                        intake_config.drive_id,document.item_id,document.name,
-                        document.relative_path,document.etag,document.sha256,document.size,
-                        document.last_modified,document.source_owner,timestamp,initial_status,
-                        "Approved" if classification else "Deferred",
-                        classification["target_folder"] if classification else "",
-                        json.dumps(classification or {
-                            "decision": "Deferred",
-                            "automation": {
-                                "policy": "low-risk-high-confidence-v1",
-                                "exception_reason": exception_reason,
-                            },
-                        },sort_keys=True),
-                        _AUTO_ACTOR,timestamp,
-                        classification["rationale"] if classification else exception_reason,
-                    ),
-                )
-                candidate_id = cursor.lastrowid
-                created += 1
-                conn.execute(
-                    "INSERT INTO m365_knowledge_events"
-                    "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
-                    (
-                        candidate_id,"Captured",actor(context),
-                        json.dumps({"sha256":document.sha256,"etag":document.etag}),timestamp,
-                    ),
-                )
-                if not classification:
-                    exception_review += 1
+                if candidate_id is None:
+                    cursor = conn.execute(
+                        """INSERT INTO m365_knowledge_candidates
+                        (source_drive_id,source_item_id,source_name,source_relative_path,source_etag,
+                         source_sha256,source_size,source_modified_at,source_owner,discovered_at,status,
+                         decision,target_folder,classification_json,reviewed_by,reviewed_at,
+                         review_rationale)
+                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        (
+                            intake_config.drive_id,document.item_id,document.name,
+                            document.relative_path,document.etag,document.sha256,document.size,
+                            document.last_modified,document.source_owner,timestamp,initial_status,
+                            "Approved",classification["target_folder"],
+                            json.dumps(classification,sort_keys=True),_AUTO_ACTOR,timestamp,
+                            classification["rationale"],
+                        ),
+                    )
+                    candidate_id = cursor.lastrowid
+                    created += 1
                     conn.execute(
                         "INSERT INTO m365_knowledge_events"
                         "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
                         (
-                            candidate_id,"RoutedToExceptionReview",_AUTO_ACTOR,
-                            json.dumps({"reason":exception_reason},sort_keys=True),timestamp,
+                            candidate_id,"Captured",processor_actor,
+                            json.dumps({"sha256":document.sha256,"etag":document.etag}),timestamp,
                         ),
+                    )
+                else:
+                    conn.execute(
+                        """UPDATE m365_knowledge_candidates SET status=?,decision='Approved',
+                        target_folder=?,classification_json=?,reviewed_by=?,reviewed_at=?,
+                        review_rationale=? WHERE id=?""",
+                        (initial_status,classification["target_folder"],
+                         json.dumps(classification,sort_keys=True),_AUTO_ACTOR,timestamp,
+                         classification["rationale"],candidate_id),
+                    )
+                if not extraction_complete:
+                    automatic_retry_required += 1
+                    conn.execute(
+                        "INSERT INTO m365_knowledge_events"
+                        "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+                        (candidate_id,"AutomaticExtractionRetryScheduled",_AUTO_ACTOR,
+                         json.dumps(classification["extraction"],sort_keys=True),timestamp),
                     )
                     conn.commit()
                     continue
@@ -480,17 +597,17 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                     )
                     automatically_promoted += 1
                 except KnowledgePromotionError as exc:
-                    exception_review += 1
+                    automatic_retry_required += 1
                     conn.execute(
                         "UPDATE m365_knowledge_candidates "
-                        "SET status='Exception Review',review_rationale=? WHERE id=?",
+                        "SET status='Automatic Retry Required',review_rationale=? WHERE id=?",
                         (str(exc),candidate_id),
                     )
                     conn.execute(
                         "INSERT INTO m365_knowledge_events"
                         "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
                         (
-                            candidate_id,"AutomaticPromotionFailed",_AUTO_ACTOR,
+                            candidate_id,"AutomaticPromotionRetryScheduled",_AUTO_ACTOR,
                             json.dumps({"reason":str(exc)},sort_keys=True),now(),
                         ),
                     )
@@ -503,16 +620,47 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "discovered": len(files),
                 "created": created,
                 "automatically_promoted": automatically_promoted,
-                "exception_review": exception_review,
+                "automatic_retry_required": automatic_retry_required,
+                "exception_review": 0,
                 "candidate_count": total,
             }
         except M365IntakeError as exc:
-            raise HTTPException(
-                503, "Governed Microsoft 365 intake is unavailable"
-            ) from exc
+            raise KnowledgePromotionError("Governed Microsoft 365 intake is unavailable") from exc
+
+    def scan(request):
+        context = authority(request)
+        try:
+            return process_pending(actor(context))
+        except KnowledgePromotionError as exc:
+            raise HTTPException(503, str(exc)) from exc
 
     scan.__annotations__["request"] = Request
     app.post("/api/integrations/m365/knowledge/scan", include_in_schema=False)(scan)
+
+    def scheduled_scan_loop() -> None:
+        interval = max(30, min(int(os.getenv("SALUS_KNOWLEDGE_SCAN_INTERVAL_SECONDS", "60")), 86400))
+        while True:
+            try:
+                process_pending("SalCAPA Scheduled Knowledge Processor")
+            except Exception:
+                # The next bounded interval retries automatically. Detailed item
+                # outcomes are recorded in the governed candidate/event tables.
+                pass
+            time.sleep(interval)
+
+    @app.on_event("startup")
+    def start_scheduled_knowledge_processing() -> None:
+        required = (
+            "SALUS_M365_INTAKE_DRIVE_ID", "SALUS_M365_INTAKE_FOLDER_ITEM_ID",
+            "SALUS_M365_KNOWLEDGE_DRIVE_ID", "SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID",
+            "SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID",
+        )
+        if all(os.getenv(name, "").strip() for name in required):
+            threading.Thread(
+                target=scheduled_scan_loop,
+                name="salcapa-knowledge-scan",
+                daemon=True,
+            ).start()
 
     def list_candidates(request):
         authority(request); conn = db(); _init_tables(conn)
@@ -550,12 +698,12 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         context = authority(request); conn = db(); _init_tables(conn)
         row = conn.execute("SELECT * FROM m365_knowledge_candidates WHERE id=?",(candidate_id,)).fetchone()
         if not row: conn.close(); raise HTTPException(404, "Knowledge candidate was not found")
-        if row["status"] != "Approved for Promotion": conn.close(); raise HTTPException(409, "Human approval is required before promotion")
+        if row["status"] != "Approved for Promotion": conn.close(); raise HTTPException(409, "The automatic processing record is not ready for promotion")
         intake_config = GovernedM365Config.from_environment(); intake = GovernedM365Intake(intake_config)
         document = intake.read_document(row["source_item_id"], access_classification="Salus Internal")
         if document.etag != row["source_etag"] or document.sha256 != row["source_sha256"]:
-            conn.execute("UPDATE m365_knowledge_candidates SET status='Changed - Re-review Required' WHERE id=?",(candidate_id,)); conn.commit(); conn.close()
-            raise HTTPException(409, "The source changed after approval and requires re-review")
+            conn.execute("UPDATE m365_knowledge_candidates SET status='Automatic Retry Required' WHERE id=?",(candidate_id,)); conn.commit(); conn.close()
+            raise HTTPException(409, "The source changed and has been scheduled for automatic reprocessing")
         writer = GraphKnowledgeWriter(intake_config, KnowledgeDestinationConfig.from_environment())
         destination = writer.put_verified(
             row["target_folder"], document.name, document.content, document.sha256

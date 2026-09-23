@@ -1,66 +1,54 @@
 # Salus Solutions — Current Handoff
 
-**Handoff date:** 22 September 2026  
-**Current production release:** SalCAPA 3.163  
-**Rollback release:** SalCAPA 3.162  
+**Handoff date:** 23 September 2026  
+**Current production release:** SalCAPA 3.168  
+**Release in preparation:** SalCAPA 3.169  
+**Rollback release:** SalCAPA 3.168  
 **Authoritative repository:** `Salus-Solutions-LLC/salus-thira-command`  
 **Working branch:** `development/salcapa-platform`
 
 ## Current objective
 
-Build the governed knowledge-promotion workflow from **OneDrive → SalCAPA Intake → 10 Pending Classification** to **SharePoint → Salus Knowledge Sources**, while preserving human approval, provenance, duplicate controls, access boundaries, and recoverability.
+Release SalCAPA 3.169 with automatic, complete, no-exception knowledge processing for every file beneath **OneDrive → SalCAPA Intake → 10 Pending Classification**.
 
-## Completed and deployed
+## Approved governing decision
 
-- SalCAPA 3.163 is deployed and the authenticated Protection Advisor professional PDF download was manually confirmed by Marc.
-- SalCAPA 3.162 remains the rollback baseline.
-- The eleven enterprise-knowledge folders exist in **Salus Knowledge Sources**.
-- The four intake workflow folders exist under **OneDrive → SalCAPA Intake**.
-- Restricted **Protected Member Records** and **System Governance** libraries exist in the SalCAPA SharePoint site.
-- The Protected Member relationship foundation, engagement dashboard, and Start New Assessment workflow are present on the development branch but are not yet released.
+SAL-D022 supersedes SAL-D021. Every file is automatically captured, hash-bound, extracted through the safe multiformat processing chain, classified, promoted, destination-hash verified, and moved to `90 Processed Intake`. Conditions that previously caused exception review are metadata flags. Processing limitations create automatic retry obligations. Originals and citation metadata are retained and files are never automatically deleted. Human authority remains required for consequential use and disclosure, not ingestion.
 
-## Approved knowledge workflow
+## Implemented for v3.169
 
-1. SalCAPA detects only files beneath `10 Pending Classification`.
-2. It captures exact bytes, Microsoft item identity, version/eTag, path, timestamps, owner, size, MIME type, and SHA-256.
-3. It identifies likely duplicates and creates an immutable review candidate without approving or indexing it.
-4. An authorized human classifies the candidate as Approved, Deferred, Duplicate, Unsupported, Sensitive, or Excluded.
-5. Approved content requires a mapped enterprise-knowledge folder and explicit permitted-product scope.
-6. SalCAPA copies approved bytes to the mapped **Salus Knowledge Sources** folder and verifies the destination hash.
-7. The source remains in intake by default. Removal is permitted only after verified promotion, retention reconciliation, and a separate enabled authorization.
-8. Any source version change after approval invalidates approval and requires re-review.
+- Removed format, duplicate, sensitivity, and classification-confidence ingestion gates.
+- Added automatic bounded classification with a `05 Research and Reference` fallback.
+- Connected intake classification to the existing TXT/CSV/JSON/XML/EML, Office Open XML, PDF, image OCR, and audio/video processing chain.
+- Preserved extracted text, extraction lineage, processor identity, hashes, truncation status, and processing flags in the candidate classification record.
+- Added structured citation metadata: document title, authors, source-created and modified dates, last modifier, OneDrive owner, item ID, relative path, trusted URL, eTag/cTag, MIME type, SHA-256 citation key, and format-appropriate locator scheme.
+- Added automatic retry status and events instead of exception review.
+- Added a 60-second scheduled processor when all governed Microsoft 365 identifiers are configured.
+- Preserved destination SHA-256 verification, source eTag protection, immutable audit events, movement to `90 Processed Intake`, and the prohibition on automatic deletion.
+- Verified `Executive Protection.docx` extracts completely, retains `Nikey Prijono` as source-stored creator and last modifier, retains its created/modified dates, and classifies to `05 Research and Reference` without an ingestion exception.
 
-## Current implementation status
+## Validation completed before commit
 
-- Continuity records were recovered from the project Library after they were found absent from the Git branch.
-- The recovered 3.161 handoff was reconciled to the verified 3.163 production state.
-- A local implementation provides candidate capture, classification, promotion, destination verification, source-change invalidation, event history, and default source retention.
-- Development commit `3470ad100ab495eba23e7f0fe7ed64058bd7780f` contains the restored continuity records, approved architecture, workflow implementation, application registration, environment contract, and CI gate.
-- CI, the production-container build, PostgreSQL validation, CodeQL, contextual intake, and Protection Advisor regression all passed on that exact commit.
-- No Microsoft 365 business content has been moved, copied, or deleted by this implementation.
-- No release or production deployment has been made for this workflow.
+- Python static compilation passed for the modified knowledge processor and smoke test.
+- `tools/ci_m365_knowledge_promotion_smoke.py` passed in an isolated environment using pinned application dependencies.
+- The attached `Executive Protection.docx` produced complete derived text and structured citation metadata through `SalCAPA Safe Office Document Extractor`.
 
-## Exact next action
+## Remaining release actions
 
-Resolve and verify the production **Salus Knowledge Sources** drive and root-folder identifiers and the application's least-privilege destination permission. Then add reviewer workflow acceptance, run a non-sensitive representative-file pilot with source removal disabled, and only afterward prepare a governed release candidate.
+1. Commit the v3.169 source and continuity records to `development/salcapa-platform`.
+2. Run repository CI and security validation.
+3. Freeze `release/v3.169` at the validated source commit.
+4. Publish an immutable Azure Container Registry image.
+5. Update the governed application activation to v3.169 with v3.168 rollback.
+6. Deploy and verify readiness, Entra/OIDC, Microsoft 365 acceptance, scheduled processing, destination verification, and source archiving.
+7. Confirm the live `Executive Protection.docx` item is processed and moved only after verified destination delivery.
 
-## Acceptance criteria
+## Known constraints
 
-- Only candidates beneath `10 Pending Classification` are captured.
-- Capture is idempotent by source drive, item, and eTag.
-- Hash-matched promoted content is flagged for duplicate review.
-- Promotion cannot occur without human approval.
-- Approved destinations are limited to the registered enterprise-knowledge taxonomy.
-- Destination bytes are independently verified against the captured SHA-256.
-- A changed source cannot use a stale approval.
-- Source removal is disabled by default and never precedes verified destination delivery.
-- Every capture, decision, promotion, verification, and removal outcome is auditable.
-- No item is automatically indexed into SalINTEL or exposed to ChatGPT merely because it was uploaded or promoted.
+- Active content is never executed.
+- Encrypted, corrupt, resource-limited, or not-yet-decodable components remain preserved and automatically retried; they do not enter a human exception queue.
+- Automatic ingestion does not authorize external publication, Protected Member disclosure, final findings, formal recommendations, risk acceptance, or methodology changes.
 
-## Unfinished or uncertain
+## Single best next action
 
-- Production destination drive and root-folder identifiers must be added through governed Azure configuration.
-- Application write permission to the explicit knowledge destination must be verified as least privilege.
-- Reviewer UI and live representative-format acceptance remain to be completed.
-- The first pilot should use no more than 25 non-sensitive representative documents.
-- Source removal must remain disabled until retention and recovery acceptance are separately approved.
+Commit and validate the v3.169 source, then freeze and publish the immutable release image.
