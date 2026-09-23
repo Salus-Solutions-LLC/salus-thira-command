@@ -484,7 +484,7 @@ def _init_tables(conn) -> None:
       UNIQUE(source_drive_id, source_item_id, source_etag)
     );
     DROP INDEX IF EXISTS idx_m365_knowledge_sha_destination;
-    CREATE INDEX idx_m365_knowledge_sha_destination
+    CREATE INDEX IF NOT EXISTS idx_m365_knowledge_sha_destination_lookup
       ON m365_knowledge_candidates(source_sha256, target_folder)
       WHERE status IN ('Promoted','Source Retained','Source Removed','Ingested and Verified');
     CREATE TABLE IF NOT EXISTS m365_knowledge_events (
