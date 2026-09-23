@@ -45,6 +45,26 @@ def main() -> None:
         if not re.fullmatch(r"[A-Z0-9_]+|none", code):
             code = "unavailable"
         print(f"PENDING_EXTRACTION extension={extension} status={extraction['status']} code={code}")
+        if extension == "pdf":
+            from pathlib import Path
+            from tempfile import TemporaryDirectory
+            from salcapa_pdf_worker import WorkerFailure, extract
+            with TemporaryDirectory(prefix="salcapa-pdf-diagnostic-") as tmp:
+                path = Path(tmp) / "source.pdf"
+                path.write_bytes(document.content)
+                try:
+                    extract(path)
+                except WorkerFailure as exc:
+                    reason = {
+                        "The PDF declares an interactive, active, form, portfolio, or rich-media feature and was not processed.": "root_active_feature",
+                        "The PDF declares embedded files or document JavaScript and was not processed.": "named_active_feature",
+                        "The PDF contains page actions or rich media and was not processed.": "page_active_feature",
+                        "The PDF annotation declaration could not be inspected safely.": "annotation_invalid",
+                        "The PDF contains annotations and was not processed.": "annotation_present",
+                    }.get(exc.detail, "other")
+                    print(f"PENDING_PDF_WORKER_REASON={reason}")
+                else:
+                    print("PENDING_PDF_WORKER_REASON=none")
 
     writer = GraphKnowledgeWriter(
         intake_config,
