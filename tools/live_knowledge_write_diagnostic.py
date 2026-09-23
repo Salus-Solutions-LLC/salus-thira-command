@@ -63,6 +63,8 @@ def main() -> None:
                         "The PDF contains annotations and was not processed.": "annotation_present",
                     }.get(exc.detail, "other")
                     print(f"PENDING_PDF_WORKER_REASON={reason}")
+                    allowed_codes = {"PDF_ACTIVE_CONTENT", "PDF_PARSE_FAILED", "PDF_RESOURCE_LIMIT", "PDF_CONTENT_STREAM_INVALID", "PDF_TEXT_EXTRACTION_FAILED", "PDF_ENCRYPTED", "PDF_WORKER_FAILED"}
+                    print("PENDING_PDF_WORKER_CODE=" + (exc.code if exc.code in allowed_codes else "other"))
                 else:
                     print("PENDING_PDF_WORKER_REASON=none")
 
