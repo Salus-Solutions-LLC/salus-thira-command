@@ -385,6 +385,11 @@ jobs:
           done
           if [ "$SUCCEEDED" != "true" ]; then
             echo "Scheduled knowledge worker did not complete successfully: $STATUS" >&2
+            sleep 5
+            az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 100 --format text --only-show-errors 2>&1 \
+              | grep -E 'ModuleNotFoundError|ImportError|KeyError|ValueError|RuntimeError|M365IntakeError|KnowledgePromotionError|TypeError|AttributeError|DatabaseError|OperationalError|AzureError|Traceback|failed to start|Error' \
+              | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' \
+              | tail -n 25 >&2 || true
             exit 1
           fi
           az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 50 --format text --only-show-errors 2>&1 | grep 'SALCAPA_KNOWLEDGE_BATCH=' || true
