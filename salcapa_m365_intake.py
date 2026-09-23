@@ -27,7 +27,7 @@ _ACCESS_CLASSIFICATIONS = {
     "Salus Internal", "Standard", "Restricted", "Sensitive", "Highly Sensitive",
 }
 _MAX_FOLDER_DEPTH = 20
-_MAX_DISCOVERED_ITEMS = 2000
+_MAX_DISCOVERED_ITEMS = 20000
 _DEFAULT_MAX_FILE_BYTES = 100 * 1024 * 1024
 _MAX_FILE_BYTES = 100 * 1024 * 1024
 
