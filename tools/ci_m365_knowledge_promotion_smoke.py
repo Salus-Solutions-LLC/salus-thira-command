@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from salcapa_knowledge_promotion import (
     ClassificationCommand, KnowledgeDestinationConfig, GraphKnowledgeWriter,
-    PENDING_PREFIX, TARGETS, automatic_classification, refresh_archived_extraction,
+    PENDING_PREFIX, TARGETS, _init_tables, automatic_classification, refresh_archived_extraction,
 )
 
 
@@ -209,6 +209,37 @@ def main():
     assert second["json"]["name"].startswith("duplicate.")
     assert second["json"]["name"].endswith(".pdf")
     assert first["json"]["parentReference"] == second["json"]["parentReference"]
+
+    # Existing installations have a unique SHA index; migration must preserve
+    # provenance for two separate source files containing identical bytes.
+    connection = sqlite3.connect(":memory:")
+    _init_tables(connection)
+    connection.execute("DROP INDEX idx_m365_knowledge_sha_destination")
+    connection.execute(
+        "CREATE UNIQUE INDEX idx_m365_knowledge_sha_destination "
+        "ON m365_knowledge_candidates(source_sha256,target_folder) "
+        "WHERE status IN ('Promoted','Source Retained','Source Removed','Ingested and Verified')"
+    )
+    insert = (
+        "INSERT INTO m365_knowledge_candidates "
+        "(source_drive_id,source_item_id,source_name,source_relative_path,"
+        "source_etag,source_sha256,source_size,source_modified_at,discovered_at,"
+        "status,target_folder) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+    )
+    def record(item_id):
+        connection.execute(insert, (
+            "drive12345",item_id,"duplicate.pdf","10 Pending Classification/duplicate.pdf",
+            "etag12345",original_hash,len(original),"2026-09-23","2026-09-23",
+            "Ingested and Verified","05 Research and Reference",
+        ))
+    record("source12345")
+    _init_tables(connection)
+    record("source23456")
+    assert connection.execute(
+        "SELECT count(*) FROM m365_knowledge_candidates WHERE source_sha256=?",
+        (original_hash,),
+    ).fetchone()[0] == 2
+    connection.close()
 
     module = open("salcapa_knowledge_promotion.py", encoding="utf-8").read()
     assert "Human approval is required before promotion" not in module
