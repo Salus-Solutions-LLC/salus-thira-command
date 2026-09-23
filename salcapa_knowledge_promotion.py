@@ -463,7 +463,24 @@ class GraphKnowledgeWriter:
             raise KnowledgePromotionError("Processed intake archive returned an untrusted location")
         return {"item_id": item_id, "web_url": web_url, "etag": str(item.get("eTag", ""))[:512]}
 
+_POSTGRES_SCHEMA_LOCK = threading.Lock()
+_POSTGRES_SCHEMA_READY = False
+
+
 def _init_tables(conn) -> None:
+    global _POSTGRES_SCHEMA_READY
+    if getattr(conn, "backend", "sqlite") == "postgres":
+        with _POSTGRES_SCHEMA_LOCK:
+            if _POSTGRES_SCHEMA_READY:
+                return
+            _create_tables(conn)
+            conn.commit()
+            _POSTGRES_SCHEMA_READY = True
+        return
+    _create_tables(conn)
+
+
+def _create_tables(conn) -> None:
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS m365_knowledge_candidates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -739,7 +756,8 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                     if archived_row is None:
                         raise M365IntakeError("Archived source is outside current intake listing")
                     archived_doc = intake.read_listed_document(
-                        archived_row, access_classification="Salus Internal",
+                        archived_row,
+                        access_classification="Salus Internal",
                     )
                 except M365IntakeError:
                     automatic_retry_required += 1
