@@ -570,13 +570,24 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 row for row in listed
                 if row["relative_path"].startswith(PENDING_PREFIX)
             ]
-            cursor = int(getattr(app.state, "knowledge_batch_cursor", 0))
-            start = cursor % len(pending_files) if pending_files else 0
-            files = pending_files[start:start + 20]
-            app.state.knowledge_batch_cursor = start + len(files)
-            listed_by_id = {row["id"]: row for row in listed}
             conn = db()
             _init_tables(conn)
+            prior = {
+                (row["source_item_id"], row["source_etag"]): row
+                for row in conn.execute(
+                    "SELECT source_item_id,source_etag,status,reviewed_at "
+                    "FROM m365_knowledge_candidates"
+                ).fetchall()
+            }
+            # Job invocations do not share memory. Prioritize never-seen files,
+            # then the oldest retry, so a stubborn file cannot stall the queue.
+            pending_files.sort(key=lambda row: (
+                1 if (row["id"], row["etag"]) in prior else 0,
+                str(prior.get((row["id"], row["etag"]), {}).get("reviewed_at") or ""),
+                row["relative_path"],
+            ))
+            files = pending_files[:20]
+            listed_by_id = {row["id"]: row for row in listed}
             created = 0
             automatically_promoted = 0
             automatic_retry_required = 0
