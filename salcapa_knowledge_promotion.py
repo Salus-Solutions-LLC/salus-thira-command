@@ -565,7 +565,9 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         try:
             intake_config = GovernedM365Config.from_environment()
             intake = GovernedM365Intake(intake_config)
+            print('SALCAPA_WORKER_PHASE=pending_listing_started', flush=True)
             listed = intake.list_files(pending_only=True)
+            print(f'SALCAPA_WORKER_PHASE=pending_listing_done file_count={len(listed)}', flush=True)
             pending_files = [
                 row for row in listed
                 if row["relative_path"].startswith(PENDING_PREFIX)
@@ -587,6 +589,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 row["relative_path"],
             ))
             files = pending_files[:20]
+            print(f'SALCAPA_WORKER_PHASE=batch_selected file_count={len(files)}', flush=True)
             listed_by_id = {row["id"]: row for row in listed}
             created = 0
             automatically_promoted = 0
@@ -594,7 +597,8 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             retry_codes: set[str] = set()
             retry_pending_ids: set[int] = set()
             writer = None
-            for row in files:
+            for index, row in enumerate(files, 1):
+                print(f'SALCAPA_WORKER_PHASE=file_started index={index}', flush=True)
                 try:
                     document = intake.read_listed_document(
                         row, access_classification="Salus Internal"
@@ -749,6 +753,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         ),
                     )
                 conn.commit()
+                print(f'SALCAPA_WORKER_PHASE=file_done index={index} promoted={automatically_promoted} retry={automatic_retry_required}', flush=True)
             if not pending_files:
                 archived_listed = intake.list_files(processed_only=True)
                 listed_by_id = {row["id"]: row for row in archived_listed}
@@ -816,6 +821,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "last_error_code": "promotion_retry_required" if automatic_retry_required else "",
                 "last_retry_codes": sorted(retry_codes),
             }
+            print(f'SALCAPA_WORKER_PHASE=batch_done promoted={automatically_promoted} retry={automatic_retry_required}', flush=True)
             return result
         except M365IntakeError as exc:
             app.state.knowledge_processing = {
