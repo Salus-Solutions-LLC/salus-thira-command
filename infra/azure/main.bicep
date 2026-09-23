@@ -736,6 +736,11 @@ resource knowledgeScanJob 'Microsoft.App/jobs@2024-03-01' = if (provisionApplica
           }
           env: [
             { name: 'SALUS_ENV', value: environmentName }
+            { name: 'SALUS_AUTH_MODE', value: 'oidc' }
+            { name: 'SALUS_OIDC_CLIENT_AUTH_METHOD', value: 'managed_identity' }
+            { name: 'SALUS_SEED_DEMO', value: '0' }
+            { name: 'SALUS_ALLOW_RESTORE', value: '0' }
+            { name: 'SALUS_ALLOW_SQLITE_PRODUCTION', value: '0' }
             { name: 'AZURE_CLIENT_ID', value: workloadIdentity.properties.clientId }
             { name: 'SALUS_OIDC_TENANT_ID', value: entraTenantId }
             { name: 'SALUS_OIDC_CLIENT_ID', value: entraRuntimeClientId }
