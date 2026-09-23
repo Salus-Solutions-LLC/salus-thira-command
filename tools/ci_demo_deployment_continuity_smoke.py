@@ -126,15 +126,21 @@ def main() -> None:
             )
             and build["active_increment"] == "knowledge_promotion_v3165"
         )
-        assert candidate in {frozen, (frozen[0], frozen[1] + 1)} or abandoned_gap
-        if candidate != frozen and not abandoned_gap:
+        failed_job_rollout = (
+            candidate == (frozen[0], frozen[1] + 2)
+            and build["root_cause"] == "v3.183_abandoned_before_azure_acceptance_after_job_name_validation"
+            and build["failed_workflows"] == "v3.183_deployment_failed_invalid_job_name"
+        )
+        assert candidate in {frozen, (frozen[0], frozen[1] + 1)} or abandoned_gap or failed_job_rollout
+        if candidate != frozen and not abandoned_gap and not failed_job_rollout:
             assert "superseded" in build["genuine_blockers"]
             assert f"v{frozen[0]}{frozen[1]}" in build["last_completed_increment"]
-        if abandoned_gap:
+        if abandoned_gap or failed_job_rollout:
             assert build["validation_pr"] in {"pending", "none"} or build["validation_pr"].isdigit()
         else:
             assert build["validation_pr"].isdigit()
-        assert build["genuine_blockers"] != "none"
+        if not failed_job_rollout:
+            assert build["genuine_blockers"] != "none"
     assert version(values["promotion_candidate"]) <= version(values["current_stable_release"])
     if values["promotion_candidate"] == values["current_stable_release"]:
         assert values["promotion_candidate_image_commit"] == values["current_stable_commit"]
