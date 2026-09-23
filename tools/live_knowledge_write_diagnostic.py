@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 import uuid
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from salcapa_knowledge_promotion import (
     GRAPH_ROOT, GraphKnowledgeWriter, KnowledgeDestinationConfig,
@@ -35,12 +36,14 @@ def main() -> None:
              if row["relative_path"].startswith(PENDING_PREFIX)]
     if len(files) > 20:
         raise RuntimeError("Pending sample exceeds diagnostic bound")
+    pending = []
     for row in files:
         document = intake.read_document(row["id"], access_classification="Salus Internal")
         extraction = _extract_all_accessible_content(document)
         extension = document.name.rsplit(".", 1)[-1].lower() if "." in document.name else "none"
         if extension not in {"pdf", "docx", "txt", "xlsx", "pptx", "csv", "png", "jpg"}:
             extension = "other"
+        pending.append((extension, document.name, document.sha256, len(document.content)))
         code = str(extraction.get("failure_code", "none"))
         if not re.fullmatch(r"[A-Z0-9_]+|none", code):
             code = "unavailable"
@@ -102,6 +105,24 @@ def main() -> None:
     )
     folder_id = writer._resolve_folder(TARGET_FOLDER)
     print("KNOWLEDGE_DESTINATION_READ=200")
+    for extension, source_name, source_sha256, source_size in pending:
+        readback = writer.client.get(
+            f"{GRAPH_ROOT}/drives/{KNOWLEDGE_DRIVE}/items/{folder_id}:/"
+            f"{quote(source_name, safe='')}:/content",
+            headers=writer._headers(),
+        )
+        host = (urlparse(readback.headers.get("Location", "")).hostname or "").lower()
+        host_class = (
+            "sharepoint.com" if host.endswith(".sharepoint.com") else
+            "sharepointonline.com" if host.endswith(".sharepointonline.com") else
+            "none" if not host else "other"
+        )
+        print(f"DESTINATION_READBACK extension={extension} http={readback.status_code} redirect_host={host_class}")
+        if readback.status_code == 200:
+            print(f"DESTINATION_BYTES extension={extension} size_match={len(readback.content) == source_size} sha_match={hashlib.sha256(readback.content).hexdigest() == source_sha256}")
+        elif readback.status_code in {302, 303, 307, 308} and host_class == "sharepoint.com":
+            downloaded = writer.client.get(readback.headers["Location"])
+            print(f"DESTINATION_BYTES extension={extension} http={downloaded.status_code} size_match={len(downloaded.content) == source_size} sha_match={hashlib.sha256(downloaded.content).hexdigest() == source_sha256}")
     name = f"SalCAPA-Write-Diagnostic-{uuid.uuid4().hex}.txt"
     url = (
         f"{GRAPH_ROOT}/drives/{KNOWLEDGE_DRIVE}/items/{folder_id}:/"
