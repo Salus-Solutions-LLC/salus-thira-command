@@ -10,7 +10,7 @@ from urllib.parse import quote, urlparse
 
 from salcapa_knowledge_promotion import (
     GRAPH_ROOT, GraphKnowledgeWriter, KnowledgeDestinationConfig,
-    PENDING_PREFIX, _extract_all_accessible_content,
+    PENDING_PREFIX, _extract_all_accessible_content, automatic_classification,
 )
 from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake
 
@@ -48,6 +48,8 @@ def main() -> None:
         if not re.fullmatch(r"[A-Z0-9_]+|none", code):
             code = "unavailable"
         print(f"PENDING_EXTRACTION extension={extension} status={extraction['status']} code={code}")
+        classification, _ = automatic_classification(document, duplicate=False)
+        print(f"PENDING_CLASSIFICATION extension={extension} target={classification['target_folder']}", flush=True)
         if extension == "pdf":
             from pathlib import Path
             from tempfile import TemporaryDirectory
