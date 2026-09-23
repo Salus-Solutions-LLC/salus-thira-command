@@ -6,9 +6,9 @@ SalCAPA 3.170 corrects the production PostgreSQL identity-return path for automa
 
 ## Correction
 
-- Registers `m365_knowledge_candidates` and `m365_knowledge_events` as PostgreSQL identity tables.
+- Uses an explicit cross-database `RETURNING id` clause when creating a knowledge candidate.
 - Ensures newly inserted knowledge candidates return their generated IDs before immutable audit events are written.
-- Adds regression checks requiring both knowledge tables to remain in the database identity registry.
+- Adds regression checks requiring the explicit identity-return and fail-closed guard to remain in the ingestion path.
 
 ## Unchanged controls
 
