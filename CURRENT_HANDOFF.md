@@ -1,8 +1,10 @@
 # Salus Solutions — Current Handoff
 
 **Handoff date:** 23 September 2026  
-**Current production release:** SalCAPA 3.168  
-**Release in preparation:** SalCAPA 3.169  
+**Current production release:** SalCAPA 3.169  
+**Accepted source commit:** `729a48c3ec45a6ae98a57f9de8bc18d2d8a68b40`  
+**Activation commit:** `0932fff09f0606576ee728dae5191339ee2e1e77`  
+**Immutable image:** `salcapadevb48224acr.azurecr.io/salcapa@sha256:6b1693aa6321b9abcc8983d79b3e701ee112e29432c600357978c33f62de708f`  
 **Rollback release:** SalCAPA 3.168  
 **Authoritative repository:** `Salus-Solutions-LLC/salus-thira-command`  
 **Working branch:** `development/salcapa-platform`
@@ -33,15 +35,17 @@ SAL-D022 supersedes SAL-D021. Every file is automatically captured, hash-bound, 
 - `tools/ci_m365_knowledge_promotion_smoke.py` passed in an isolated environment using pinned application dependencies.
 - The attached `Executive Protection.docx` produced complete derived text and structured citation metadata through `SalCAPA Safe Office Document Extractor`.
 
-## Remaining release actions
+## Release evidence
 
-1. Commit the v3.169 source and continuity records to `development/salcapa-platform`.
-2. Run repository CI and security validation.
-3. Freeze `release/v3.169` at the validated source commit.
-4. Publish an immutable Azure Container Registry image.
-5. Update the governed application activation to v3.169 with v3.168 rollback.
-6. Deploy and verify readiness, Entra/OIDC, Microsoft 365 acceptance, scheduled processing, destination verification, and source archiving.
-7. Confirm the live `Executive Protection.docx` item is processed and moved only after verified destination delivery.
+- CI run `35803637173` completed successfully for the exact frozen source.
+- `release/v3.169` was frozen at `729a48c3ec45a6ae98a57f9de8bc18d2d8a68b40`.
+- Immutable image publication run `35804087198` completed successfully.
+- Governed Azure application deployment run `35804334144` completed successfully, including readiness, identity/configuration checks, isolated Microsoft 365 intake acceptance, and cleanup.
+- v3.168 remains the accepted rollback release and immutable rollback image.
+
+## Remaining operational confirmation
+
+Confirm the live `Executive Protection.docx` candidate reaches `Ingested and Verified`, appears in `05 Research and Reference`, and is moved to `90 Processed Intake`. The scheduled processor retries automatically; the source is moved only after destination hash verification.
 
 ## Known constraints
 
@@ -51,4 +55,4 @@ SAL-D022 supersedes SAL-D021. Every file is automatically captured, hash-bound, 
 
 ## Single best next action
 
-Commit and validate the v3.169 source, then freeze and publish the immutable release image.
+Confirm the live candidate record and destination/archive locations for `Executive Protection.docx` after the scheduled scan.
