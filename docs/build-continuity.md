@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 23 September 2026 12:53 CDT
-current_frozen_release: v3.178
-current_frozen_commit: 253e4fb18aa4101c840455aa069693ef82455068
+last_verified_at: 23 September 2026 13:16 CDT
+current_frozen_release: v3.179
+current_frozen_commit: a3c4ac0093d02b5b5536135be904847282523249
 active_development_branch: development/salcapa-platform
-current_development_head: 485b79e529273826fcb85706d8f1523c48b1956f
+current_development_head: 2289869c194084f0fc8864631be3794b3193ffe3
 active_product_milestone: issue_370_governed_knowledge_promotion
 active_build_system_issue: 370
-active_increment: knowledge_graph_pagination_v3179
-last_completed_increment: protection_advisor_knowledge_visibility_and_duplicate_safe_intake_v3178
-candidate_release: v3.179
+active_increment: concurrent_graph_page_duplicate_reconciliation_v3180
+last_completed_increment: knowledge_graph_pagination_v3179
+candidate_release: v3.180
 validation_pr: pending
 validation_branch: none
 validation_base: development/salcapa-platform
-validation_head: 485b79e529273826fcb85706d8f1523c48b1956f
+validation_head: 2289869c194084f0fc8864631be3794b3193ffe3
 validation_gate_state: preflight
-failed_workflows: knowledge_diagnostic_run_35898270213
-first_root_failing_gate: governed_intake_folder_page_limit
-root_cause: graph_folder_pagination_rejected_after_first_page
-repair_head: 0fc4b796d4f20cb26dfada52cfa6ec31d122daf6
-repair_summary: bounded_2000_item_traversal_with_same_folder_nextlink_validation
+failed_workflows: v3.179_deployment_acceptance_duplicate_graph_item
+first_root_failing_gate: m365_acceptance_repeated_item
+root_cause: concurrent_folder_move_repeated_graph_item_at_page_boundary
+repair_head: d2c35f5fe9e8da02f0ac9d2ca4d86e34b7bface7
+repair_summary: deduplicate_valid_graph_item_ids_under_bounded_traversal_and_regress_unsafe_links
 genuine_blockers: none
-next_authorized_step: validate_v3179_then_freeze_publish_and_deploy
+next_authorized_step: validate_v3180_then_freeze_publish_and_deploy
 deployed_demo_release: v3.178
-deployed_demo_state: deployed_runtime_with_v3176_rollback_and_pagination_limit
+deployed_demo_state: accepted_runtime_restored_after_v3179_live_acceptance_failure
 ---
 
 # SalCAPA build continuity
@@ -32,6 +32,8 @@ deployed_demo_state: deployed_runtime_with_v3176_rollback_and_pagination_limit
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+Frozen v3.179 passed CI and image publication, but live Microsoft 365 acceptance saw a repeated Graph item during a concurrent folder move. The governed workflow restored accepted v3.178. Candidate v3.180 keeps the bounded continuation traversal and deduplicates valid item IDs; regression checks cover repeated entries, cross-origin links, cycles, and malformed IDs.
 
 Release v3.178 is deployed with v3.176 retained as rollback. A new batch exceeded the single Microsoft Graph folder page and stopped intake before discovery. Candidate v3.179 traverses same-folder continuation pages with a 2,000-item bound and rejects cross-origin or cyclic links. Local pagination tests passed; live verification follows governed validation and deployment.
 
