@@ -693,7 +693,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
 
 
 resource knowledgeScanJob 'Microsoft.App/jobs@2024-03-01' = if (provisionApplication) {
-  name: '${stem}-knowledge-scan'
+  name: '${stem}-kb-scan'
   location: location
   tags: commonTags
   identity: {
