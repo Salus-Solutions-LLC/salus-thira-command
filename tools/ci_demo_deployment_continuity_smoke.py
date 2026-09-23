@@ -142,7 +142,14 @@ def main() -> None:
             and build["root_cause"] == "v3.184_abandoned_after_worker_secret_lookup"
             and build["failed_workflows"] == "v3.184_live_worker_secret_lookup_failed"
         )
-        if abandoned_gap or failed_job_rollout or failed_worker_auth:
+        failed_worker_timeout = (
+            frozen == (3, 185)
+            and candidate == (3, 186)
+            and version(values["current_stable_release"]) == (3, 182)
+            and build["root_cause"] == "v3.185_abandoned_after_worker_timeout"
+            and build["failed_workflows"] == "v3.185_live_worker_timeout"
+        )
+        if abandoned_gap or failed_job_rollout or failed_worker_auth or failed_worker_timeout:
             assert build["validation_pr"] in {"pending", "none"} or build["validation_pr"].isdigit()
         else:
             assert build["validation_pr"].isdigit()
