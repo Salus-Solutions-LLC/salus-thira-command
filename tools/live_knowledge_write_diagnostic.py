@@ -39,12 +39,12 @@ def main() -> None:
     processed_names = {row["name"].casefold() for row in intake.list_files() if row["relative_path"].startswith("90 Processed Intake/")}
     pending = []
     for row in files:
-        print(f"PENDING_ARCHIVE_NAME_CONFLICT extension={row['name'].rsplit('.', 1)[-1].lower() if '.' in row['name'] else 'none'} conflict={row['name'].casefold() in processed_names}", flush=True)
         document = intake.read_document(row["id"], access_classification="Salus Internal")
         extraction = _extract_all_accessible_content(document)
         extension = document.name.rsplit(".", 1)[-1].lower() if "." in document.name else "none"
         if extension not in {"pdf", "docx", "txt", "xlsx", "pptx", "csv", "png", "jpg"}:
             extension = "other"
+        print(f"PENDING_ARCHIVE_NAME_CONFLICT extension={extension} conflict={document.name.casefold() in processed_names}", flush=True)
         pending.append((extension, document.name, document.sha256, len(document.content)))
         code = str(extraction.get("failure_code", "none"))
         if not re.fullmatch(r"[A-Z0-9_]+|none", code):
