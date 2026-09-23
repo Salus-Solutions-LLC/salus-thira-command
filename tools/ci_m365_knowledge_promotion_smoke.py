@@ -155,7 +155,61 @@ def main():
     verified = writer.put_verified("05 Research and Reference", "example.docx", original, original_hash)
     assert verified["item_id"] == "item12345"
     assert len(fake_client.uploaded) == 2
-    assert fake_client.uploaded[-1].endswith(f"example.docx.{original_hash[:16]}.original.bin")
+    assert fake_client.uploaded[-1].endswith(f"example.{original_hash[:24]}.docx.{original_hash[:16]}.original.bin")
+    # Same-title, different-content documents must get different library paths.
+    class ExactClient:
+        def __init__(self):
+            self.uploaded = []
+            self.data = b""
+
+        def get(self, url, **kwargs):
+            if url.endswith("/children"):
+                return Response(200, payload={"value": [{"id": "folder123", "name": "05 Research and Reference", "folder": {}}]})
+            if url.endswith("/content"):
+                return Response(200, content=self.data)
+            raise AssertionError(url)
+
+        def put(self, url, **kwargs):
+            self.uploaded.append(url)
+            self.data = kwargs["content"]
+            return Response(201, payload={"id": "item12345", "webUrl": "https://tenant.sharepoint.com/doc", "eTag": "etag"})
+
+    exact_client = ExactClient()
+    writer.client = exact_client
+    for data in (b"first document", b"second document"):
+        writer.put_verified("05 Research and Reference", "duplicate.pdf", data, hashlib.sha256(data).hexdigest())
+    assert len(set(exact_client.uploaded)) == 2
+
+    # Graph can reject a move when the processed folder already has that name.
+    class ArchiveConflictClient:
+        def __init__(self):
+            self.calls = []
+
+        def patch(self, url, **kwargs):
+            self.calls.append((url, kwargs))
+            if len(self.calls) == 1:
+                return Response(409)
+            return Response(200, payload={
+                "id": "source123", "name": kwargs["json"]["name"],
+                "parentReference": {"id": "processed123"},
+                "webUrl": "https://tenant.sharepoint.com/processed",
+                "eTag": "new-etag",
+            })
+
+    archive_client = ArchiveConflictClient()
+    writer.client = archive_client
+    writer.intake_config = SimpleNamespace(drive_id="intake123")
+    writer.destination = SimpleNamespace(processed_folder_item_id="processed123")
+    result = writer.archive_verified_source("source123", "original-etag", "duplicate.pdf", original_hash)
+    assert result["item_id"] == "source123"
+    assert len(archive_client.calls) == 2
+    first, second = (call[1] for call in archive_client.calls)
+    assert first["headers"]["If-Match"] == second["headers"]["If-Match"] == "original-etag"
+    assert "name" not in first["json"]
+    assert second["json"]["name"].startswith("duplicate.")
+    assert second["json"]["name"].endswith(".pdf")
+    assert first["json"]["parentReference"] == second["json"]["parentReference"]
+
     module = open("salcapa_knowledge_promotion.py", encoding="utf-8").read()
     assert "Human approval is required before promotion" not in module
     assert "Changed - Re-review Required" not in module
