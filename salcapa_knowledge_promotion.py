@@ -450,7 +450,24 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         "last_promoted": 0,
         "last_retry_required": 0,
         "last_error_code": "",
+        "last_retry_codes": [],
     }
+
+    def promotion_retry_code(exc: KnowledgePromotionError) -> str:
+        detail = str(exc)
+        if "destination could not be read" in detail:
+            return "destination_read_denied"
+        if "folder was not uniquely resolved" in detail:
+            return "destination_folder_unresolved"
+        if "file could not be written" in detail:
+            return "destination_write_denied"
+        if "destination verification failed" in detail:
+            return "destination_hash_verification_failed"
+        if "source could not be archived" in detail:
+            return "source_archive_denied"
+        if "archive could not be verified" in detail:
+            return "source_archive_verification_failed"
+        return "promotion_error"
 
     def authority(request):
         context = auth_context(request)
@@ -468,6 +485,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             "last_promoted": 0,
             "last_retry_required": 0,
             "last_error_code": "",
+            "last_retry_codes": [],
         }
         try:
             intake_config = GovernedM365Config.from_environment()
@@ -481,6 +499,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             created = 0
             automatically_promoted = 0
             automatic_retry_required = 0
+            retry_codes: set[str] = set()
             writer = None
             for row in files:
                 document = intake.read_document(
@@ -555,6 +574,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                     )
                 if not extraction_complete:
                     automatic_retry_required += 1
+                    retry_codes.add("extraction_retry_required")
                     conn.execute(
                         "INSERT INTO m365_knowledge_events"
                         "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
@@ -617,6 +637,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                     automatically_promoted += 1
                 except KnowledgePromotionError as exc:
                     automatic_retry_required += 1
+                    retry_codes.add(promotion_retry_code(exc))
                     conn.execute(
                         "UPDATE m365_knowledge_candidates "
                         "SET status='Automatic Retry Required',review_rationale=? WHERE id=?",
@@ -649,6 +670,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "last_promoted": automatically_promoted,
                 "last_retry_required": automatic_retry_required,
                 "last_error_code": "promotion_retry_required" if automatic_retry_required else "",
+                "last_retry_codes": sorted(retry_codes),
             }
             return result
         except M365IntakeError as exc:
@@ -658,6 +680,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "last_promoted": 0,
                 "last_retry_required": 0,
                 "last_error_code": "m365_intake_unavailable",
+                "last_retry_codes": [],
             }
             raise KnowledgePromotionError("Governed Microsoft 365 intake is unavailable") from exc
 
