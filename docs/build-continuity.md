@@ -11,7 +11,7 @@ active_build_system_issue: 370
 active_increment: knowledge_processing_steady_state_v3176
 last_completed_increment: byte_preserving_knowledge_promotion_v3176
 candidate_release: none
-validation_pr: pending
+validation_pr: none
 validation_branch: none
 validation_base: development/salcapa-platform
 validation_head: 12a13fdcb15e62276041553b83dee9699eddf7f4
