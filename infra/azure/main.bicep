@@ -706,10 +706,10 @@ resource knowledgeScanJob 'Microsoft.App/jobs@2024-03-01' = if (provisionApplica
     environmentId: containerAppsEnvironment.id
     configuration: {
       triggerType: 'Schedule'
-      replicaTimeout: 300
+      replicaTimeout: 900
       replicaRetryLimit: 0
       scheduleTriggerConfig: {
-        cronExpression: '*/5 * * * *'
+        cronExpression: '*/15 * * * *'
         parallelism: 1
         replicaCompletionCount: 1
       }
