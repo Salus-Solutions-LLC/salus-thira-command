@@ -1,27 +1,27 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 22 September 2026 18:49 CDT
+last_verified_at: 23 September 2026 07:55 CDT
 environment: azure_development_demonstration
-deployed_release: v3.167
-deployed_commit: 6571591a0cfa4b4125a06452ba214decb855862c
-image_digest: sha256:7e624cd29ccf42e25bb77ceed332d060ef6ff23557fa6db8c854ad5c1cd82013
-deployed_at: 22 September 2026 18:49 CDT
-deployment_workflow_run: 35798708116
+deployed_release: v3.175
+deployed_commit: 62b3fbc5089b237ee6aee044de84ace699b08d66
+image_digest: sha256:3c51917d148a231f91a0722b5704fd10b038925da66c32ccce051988c9553a50
+deployed_at: 23 September 2026 00:13 CDT
+deployment_workflow_run: 35821037619
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.167
-current_stable_commit: 6571591a0cfa4b4125a06452ba214decb855862c
-promotion_candidate: v3.167
-promotion_candidate_image_commit: 6571591a0cfa4b4125a06452ba214decb855862c
-promotion_candidate_image_digest: sha256:7e624cd29ccf42e25bb77ceed332d060ef6ff23557fa6db8c854ad5c1cd82013
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:7e624cd29ccf42e25bb77ceed332d060ef6ff23557fa6db8c854ad5c1cd82013
-promotion_candidate_image_published_at: 22 September 2026 18:41 CDT
-promotion_candidate_image_workflow_run: 35798405472
+current_stable_release: v3.175
+current_stable_commit: 62b3fbc5089b237ee6aee044de84ace699b08d66
+promotion_candidate: v3.175
+promotion_candidate_image_commit: 62b3fbc5089b237ee6aee044de84ace699b08d66
+promotion_candidate_image_digest: sha256:3c51917d148a231f91a0722b5704fd10b038925da66c32ccce051988c9553a50
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:3c51917d148a231f91a0722b5704fd10b038925da66c32ccce051988c9553a50
+promotion_candidate_image_published_at: 23 September 2026 00:04 CDT
+promotion_candidate_image_workflow_run: 35820754625
 promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
 promotion_readiness: accepted
 fictional_member_seed_state: verified
 critical_journey_acceptance: verified
-rollback_baseline: v3.166
+rollback_baseline: v3.174
 genuine_blocker: none
 ---
 
@@ -30,6 +30,8 @@ genuine_blocker: none
 This non-sensitive engineering record identifies the current accepted Azure development demonstration and its verified rollback. GitHub release branches, exact commits, immutable image digests, protected workflow results, and closed validation records control whenever another source disagrees.
 
 ## Current accepted deployment
+
+- [Governed deployment workflow 35821037619](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35821037619) deployed and accepted frozen **v3.175** commit `62b3fbc5089b237ee6aee044de84ace699b08d66` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:3c51917d148a231f91a0722b5704fd10b038925da66c32ccce051988c9553a50`; the accepted rollback is v3.174. The 3.176 Office byte-preserving candidate is not deployed.
 
 - [Governed deployment workflow 35798708116](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35798708116) deployed and accepted exact frozen **v3.167** commit `6571591a0cfa4b4125a06452ba214decb855862c` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:7e624cd29ccf42e25bb77ceed332d060ef6ff23557fa6db8c854ad5c1cd82013`; live readiness, Entra/OIDC, and isolated Microsoft 365 intake acceptance passed, and the temporary Azure test job was deleted.
 - [Governed deployment workflow 35795696031](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35795696031) deployed and accepted exact frozen **v3.166** commit `1afbd4679317a91781c1c3f249570d64c07b19e5` as `salcapadevb48224acr.azurecr.io/salcapa@sha256:b70d41c53f798c2c00e2e1af5fa40995c0bdf6ff7ca4776e678863b2dbb98d9e`; live readiness, Entra/OIDC, and isolated Microsoft 365 intake acceptance passed, and the temporary Azure test job was deleted.
