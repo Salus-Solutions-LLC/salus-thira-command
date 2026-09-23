@@ -9,6 +9,10 @@ on:
       - '.github/workflows/salcapa-knowledge-diagnostics.yml'
       - 'tools/live_knowledge_write_diagnostic.py'
 
+concurrency:
+  group: salcapa-knowledge-diagnostic
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
