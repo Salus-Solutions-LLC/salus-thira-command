@@ -16,11 +16,11 @@ validation_branch: none
 validation_base: development/salcapa-platform
 validation_head: 12a13fdcb15e62276041553b83dee9699eddf7f4
 validation_gate_state: preflight
-failed_workflows: none
-first_root_failing_gate: none
-root_cause: none
-repair_head: none
-repair_summary: none
+failed_workflows: v3.177_image_publication_cancelled_and_v3.178_build_continuity
+first_root_failing_gate: identical_content_provenance
+root_cause: v3.177_abandoned_before_publication_after_identical_content_provenance_gap
+repair_head: 85afad2128f1c05a9d277627860bc30421d9032a
+repair_summary: nonunique_sha_lookup_preserves_every_source_and_duplicate_regression_passes
 genuine_blockers: none
 next_authorized_step: validate_v3178_candidate_then_freeze_and_publish
 deployed_demo_release: v3.176
@@ -33,7 +33,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current controlled checkpoint
 
-Release v3.176 at exact commit `12a13fdcb15e62276041553b83dee9699eddf7f4` is the accepted Azure development runtime, with v3.175 retained as rollback. The production image is pinned at `sha256:a420f6a14fb7b296d6cd565483da615f846b94014247a4b43915cfbf5959f430`. CI run `35863059484`, image publication run `35863701593`, and governed deployment run `35864255511` passed. Both pending originals were archived after exact destination verification; the DOCX canonical original matched its archived OneDrive source SHA-256.
+Release v3.177 was frozen but its image publication was cancelled before deployment when an identical-content provenance constraint was found. Candidate v3.178 removes that constraint and has a duplicate regression check.\n\nRelease v3.176 at exact commit `12a13fdcb15e62276041553b83dee9699eddf7f4` is the accepted Azure development runtime, with v3.175 retained as rollback. The production image is pinned at `sha256:a420f6a14fb7b296d6cd565483da615f846b94014247a4b43915cfbf5959f430`. CI run `35863059484`, image publication run `35863701593`, and governed deployment run `35864255511` passed. Both pending originals were archived after exact destination verification; the DOCX canonical original matched its archived OneDrive source SHA-256.
 
 ## Source precedence
 
