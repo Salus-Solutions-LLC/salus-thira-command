@@ -79,7 +79,7 @@ jobs:
           set -euo pipefail
           test "$RESOURCE_GROUP" = "rg-salcapa-dev"
           az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-diagnostic-app.json
-          EXPECTED_IMAGE=salcapadevb48224acr.azurecr.io/salcapa@sha256:fde7ce8d041ba6ffb7c5fd2eedbb24d88e024b91f413757044005f6c39261457
+          EXPECTED_IMAGE=salcapadevb48224acr.azurecr.io/salcapa@sha256:d9067d74d7a4f7a1bd62138329362e1cde9928c95b14ff54ae7ef08197628291
           test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-diagnostic-app.json)" = "$EXPECTED_IMAGE"
           env_value() {
             jq -r --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/salcapa-diagnostic-app.json
