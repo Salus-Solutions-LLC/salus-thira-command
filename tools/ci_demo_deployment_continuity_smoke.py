@@ -131,8 +131,14 @@ def main() -> None:
             and build["root_cause"] == "v3.183_abandoned_before_azure_acceptance_after_job_name_validation"
             and build["failed_workflows"] == "v3.183_deployment_failed_invalid_job_name"
         )
-        assert candidate in {frozen, (frozen[0], frozen[1] + 1)} or abandoned_gap or failed_job_rollout
-        if candidate != frozen and not abandoned_gap and not failed_job_rollout:
+        failed_release_identity = (
+            frozen == (3, 185)
+            and candidate == (3, 187)
+            and build["root_cause"] == "v3.186_abandoned_before_publication_after_release_identity_mismatch"
+            and build["failed_workflows"] == "v3.186_image_publication_failed_release_identity"
+        )
+        assert candidate in {frozen, (frozen[0], frozen[1] + 1)} or abandoned_gap or failed_job_rollout or failed_release_identity
+        if candidate != frozen and not abandoned_gap and not failed_job_rollout and not failed_release_identity:
             assert "superseded" in build["genuine_blockers"]
             assert f"v{frozen[0]}{frozen[1]}" in build["last_completed_increment"]
         failed_worker_auth = (
@@ -149,7 +155,7 @@ def main() -> None:
             and build["root_cause"] == "v3.185_abandoned_after_worker_timeout"
             and build["failed_workflows"] == "v3.185_live_worker_timeout"
         )
-        if abandoned_gap or failed_job_rollout or failed_worker_auth or failed_worker_timeout:
+        if abandoned_gap or failed_job_rollout or failed_worker_auth or failed_worker_timeout or failed_release_identity:
             assert build["validation_pr"] in {"pending", "none"} or build["validation_pr"].isdigit()
         else:
             assert build["validation_pr"].isdigit()
