@@ -40,7 +40,7 @@ grep -q '<aside class="assessment-important"><strong>Important notice:</strong>'
 grep -q 'document.getElementById("assessment").scrollIntoView' "$WORK/page.html"
 grep -q 'preferred_min_height:900' "$WORK/page.html"
 grep -q 'Print or Save Preliminary Summary' "$WORK/page.html"
-grep -q 'Print or Save Detailed Results' "$WORK/page.html"
+grep -q 'Download Professional Detailed Report' "$WORK/page.html"
 grep -q 'print-part1' "$WORK/page.html"
 grep -q 'CONFIDENTIAL' "$WORK/page.html"
 grep -q 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' "$WORK/page.html"
