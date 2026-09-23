@@ -62,6 +62,34 @@ def main() -> None:
                         "The PDF annotation declaration could not be inspected safely.": "annotation_invalid",
                         "The PDF contains annotations and was not processed.": "annotation_present",
                     }.get(exc.detail, "other")
+                    if reason == "other" and exc.code == "PDF_ACTIVE_CONTENT":
+                        from pypdf import PdfReader
+                        from tools.salcapa_pdf_worker import _resolve
+                        reader = PdfReader(path, strict=True, root_object_recovery_limit=10_000)
+                        try:
+                            root = _resolve(reader.trailer["/Root"])
+                            names = _resolve(root.get("/Names")) if root.get("/Names") is not None else {}
+                            root_active = any(key in root for key in
+                                              ("/OpenAction", "/AA", "/AcroForm", "/Collection", "/RichMedia"))
+                            named_active = any(key in names for key in ("/EmbeddedFiles", "/JavaScript"))
+                            page_active = any(any(key in page for key in ("/AA", "/RichMedia"))
+                                              for page in reader.pages)
+                            annotation_active = False
+                            annotation_invalid = False
+                            for page in reader.pages:
+                                annots = page.get("/Annots")
+                                if annots is not None:
+                                    try:
+                                        annotation_active |= len(_resolve(annots)) != 0
+                                    except (TypeError, ValueError, KeyError, AttributeError):
+                                        annotation_invalid = True
+                            print("PENDING_PDF_ACTIVE_FLAGS=" + ",".join(
+                                str(int(flag)) for flag in
+                                (root_active, named_active, page_active,
+                                 annotation_active, annotation_invalid)
+                            ))
+                        finally:
+                            reader.close()
                     print(f"PENDING_PDF_WORKER_REASON={reason}")
                     allowed_codes = {"PDF_ACTIVE_CONTENT", "PDF_PARSE_FAILED", "PDF_RESOURCE_LIMIT", "PDF_CONTENT_STREAM_INVALID", "PDF_TEXT_EXTRACTION_FAILED", "PDF_ENCRYPTED", "PDF_WORKER_FAILED"}
                     print("PENDING_PDF_WORKER_CODE=" + (exc.code if exc.code in allowed_codes else "other"))
