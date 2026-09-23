@@ -1,0 +1,60 @@
+name: Restore accepted SalCAPA v3.182 after partial deployment
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/salcapa-restore-accepted-runtime.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected accepted-runtime restore gate passed."
+
+  restore:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Restore only the previously accepted image and verify readiness
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          FAILED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:bfaf3cca5a177831a7cfaee8cbe879624a962f3214bcf2d7d2e9d67bf9bbb4ed
+          ACCEPTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:3600b915aa95d5390b54a6554d7f4b247b8a196bbb2377ba3db4c0d3943357f8
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION"
+          CURRENT="$(az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --query properties.template.containers[0].image --output tsv --only-show-errors)"
+          if [ "$CURRENT" = "$FAILED_IMAGE" ]; then
+            az containerapp update --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --image "$ACCEPTED_IMAGE" --output none --only-show-errors
+          else
+            test "$CURRENT" = "$ACCEPTED_IMAGE"
+          fi
+          for attempt in $(seq 1 30); do
+            ACTUAL="$(az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --query properties.template.containers[0].image --output tsv --only-show-errors)"
+            STATUS="$(curl --connect-timeout 5 --max-time 15 --silent --output /dev/null --write-out '%{http_code}' https://salcapa.salus.solutions/health/ready || true)"
+            if [ "$ACTUAL" = "$ACCEPTED_IMAGE" ] && [ "$STATUS" = "200" ]; then
+              echo "ACCEPTED_V3182_RUNTIME_RESTORED"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Accepted runtime was not restored" >&2
+          exit 1
