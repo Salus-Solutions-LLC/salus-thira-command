@@ -106,6 +106,9 @@ def main():
     assert "m365_knowledge_events" in module
     assert "RETURNING id" in module
     assert "Automatic knowledge candidate identity was not returned" in module
+    runtime = open("salcapa_runtime.py", encoding="utf-8").read()
+    assert "from salcapa_knowledge_promotion import register_knowledge_promotion" in runtime
+    assert "register_knowledge_promotion(core.app, core.__dict__)" in runtime
     print("M365_KNOWLEDGE_PROMOTION_PASS")
 
 
