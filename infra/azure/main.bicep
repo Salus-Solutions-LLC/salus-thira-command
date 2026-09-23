@@ -687,6 +687,86 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
   ]
 }
 
+
+resource knowledgeScanJob 'Microsoft.App/jobs@2024-03-01' = if (provisionApplication) {
+  name: '${stem}-knowledge-scan'
+  location: location
+  tags: commonTags
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${workloadIdentity.id}': {}
+    }
+  }
+  properties: {
+    environmentId: containerAppsEnvironment.id
+    configuration: {
+      triggerType: 'Schedule'
+      replicaTimeout: 300
+      replicaRetryLimit: 0
+      scheduleTriggerConfig: {
+        cronExpression: '*/5 * * * *'
+        parallelism: 1
+        replicaCompletionCount: 1
+      }
+      registries: [
+        {
+          server: registry.properties.loginServer
+          identity: workloadIdentity.id
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'salcapa-knowledge-scan'
+          image: containerImageDigest
+          command: [
+            'python'
+            'tools/salcapa_knowledge_scan_once.py'
+          ]
+          resources: {
+            cpu: json('0.25')
+            memory: '0.5Gi'
+          }
+          env: [
+            { name: 'SALUS_ENV', value: environmentName }
+            { name: 'AZURE_CLIENT_ID', value: workloadIdentity.properties.clientId }
+            { name: 'SALUS_OIDC_TENANT_ID', value: entraTenantId }
+            { name: 'SALUS_OIDC_CLIENT_ID', value: entraRuntimeClientId }
+            { name: 'SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID', value: workloadIdentity.properties.clientId }
+            { name: 'SALUS_M365_INTAKE_DRIVE_ID', value: 'b!nLoH4rpIs0Ko75C0IRSSqNFy_EdwB-BMgQS848yr84pGrXen1bnSR6zYkxtw-PFF' }
+            { name: 'SALUS_M365_INTAKE_FOLDER_ITEM_ID', value: '01DBTAFUKSE2CSFDDEING2AAXOVQQEYNNL' }
+            { name: 'SALUS_M365_INTAKE_MAX_FILE_BYTES', value: '104857600' }
+            { name: 'SALUS_M365_KNOWLEDGE_DRIVE_ID', value: 'b!mn-UaUzJ6UOGBLc9xcQ2DYwuRoUBrB9KtakxYIYG5o1riGTeQsB8T4jy0ttFW_fN' }
+            { name: 'SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID', value: '01WETF6P56Y2GOVW7725BZO354PWSELRRZ' }
+            { name: 'SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID', value: '01DBTAFULEFCM3ALTBFNHZVKGCHE7QGFJ4' }
+            { name: 'SALUS_DB_BACKEND', value: 'postgres' }
+            { name: 'SALUS_POSTGRES_AUTH', value: 'entra' }
+            { name: 'SALUS_POSTGRES_HOST', value: postgres.properties.fullyQualifiedDomainName }
+            { name: 'SALUS_POSTGRES_DATABASE', value: databaseName }
+            { name: 'SALUS_POSTGRES_USER', value: workloadIdentity.name }
+            { name: 'SALUS_POSTGRES_SSLMODE', value: 'require' }
+            { name: 'SALUS_MANAGED_DB_TARGET', value: 'azure_postgresql' }
+            { name: 'SALUS_SECRET_BACKEND', value: 'azure_keyvault' }
+            { name: 'SALUS_KEY_VAULT_URL', value: keyVault.properties.vaultUri }
+            { name: 'SALUS_STORAGE_BACKEND', value: 'azure' }
+            { name: 'SALUS_AZURE_STORAGE_ACCOUNT_URL', value: storage.properties.primaryEndpoints.blob }
+            { name: 'SALUS_AZURE_STORAGE_CONTAINER', value: evidenceContainerName }
+            { name: 'SALUS_TELEMETRY_BACKEND', value: 'azure_monitor' }
+            { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
+          ]
+        }
+      ]
+    }
+  }
+  dependsOn: [
+    evidenceRole
+    vaultRole
+    registryPullRole
+  ]
+}
+
 output applicationName string = stem
 output containerAppsEnvironmentName string = containerAppsEnvironment.name
 output managedIdentityName string = workloadIdentity.name
