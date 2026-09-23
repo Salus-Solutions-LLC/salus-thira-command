@@ -48,7 +48,7 @@ def main() -> None:
         if extension == "pdf":
             from pathlib import Path
             from tempfile import TemporaryDirectory
-            from salcapa_pdf_worker import WorkerFailure, extract
+            from tools.salcapa_pdf_worker import WorkerFailure, extract
             with TemporaryDirectory(prefix="salcapa-pdf-diagnostic-") as tmp:
                 path = Path(tmp) / "source.pdf"
                 path.write_bytes(document.content)
