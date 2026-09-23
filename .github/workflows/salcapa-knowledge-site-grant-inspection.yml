@@ -40,6 +40,8 @@ jobs:
           APP_ID="$(jq -r 'first(.properties.template.containers[0].env[] | select(.name == "SALUS_OIDC_CLIENT_ID") | .value)' /tmp/salcapa-app.json)"
           test -n "$APP_ID"
           test "$APP_ID" != "null"
+          [[ "$APP_ID" =~ ^[0-9a-fA-F-]{36}$ ]]
+          echo "SALCAPA_GRAPH_APP_CLIENT_ID=$APP_ID"
           export APP_ID
           GRAPH_TOKEN="$(az account get-access-token --resource https://graph.microsoft.com --query accessToken --output tsv)"
           test -n "$GRAPH_TOKEN"
