@@ -548,10 +548,16 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         try:
             intake_config = GovernedM365Config.from_environment()
             intake = GovernedM365Intake(intake_config)
-            files = [
-                row for row in intake.list_files()
+            listed = intake.list_files()
+            pending_files = [
+                row for row in listed
                 if row["relative_path"].startswith(PENDING_PREFIX)
             ]
+            cursor = int(getattr(app.state, "knowledge_batch_cursor", 0))
+            start = cursor % len(pending_files) if pending_files else 0
+            files = pending_files[start:start + 20]
+            app.state.knowledge_batch_cursor = start + len(files)
+            listed_by_id = {row["id"]: row for row in listed}
             conn = db()
             _init_tables(conn)
             created = 0
@@ -561,9 +567,14 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             retry_pending_ids: set[int] = set()
             writer = None
             for row in files:
-                document = intake.read_document(
-                    row["id"], access_classification="Salus Internal"
-                )
+                try:
+                    document = intake.read_listed_document(
+                        row, access_classification="Salus Internal"
+                    )
+                except M365IntakeError:
+                    automatic_retry_required += 1
+                    retry_codes.add("source_changed_during_scan")
+                    continue
                 existing = conn.execute(
                     "SELECT id FROM m365_knowledge_candidates "
                     "WHERE source_drive_id=? AND source_item_id=? AND source_etag=?",
@@ -716,7 +727,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "SELECT id,source_sha256,source_archive_item_id,classification_json "
                 "FROM m365_knowledge_candidates WHERE status='Ingested and Verified' "
                 "AND source_archive_item_id IS NOT NULL"
-            ).fetchall()
+            ).fetchall() if not pending_files else []
             for pending in archived_retries:
                 classification = json.loads(pending["classification_json"] or "{}")
                 if classification.get("extraction", {}).get("status") != "Automatic Retry Required":
@@ -724,9 +735,11 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 if pending["id"] in retry_pending_ids:
                     continue
                 try:
-                    archived_doc = intake.read_document(
-                        pending["source_archive_item_id"],
-                        access_classification="Salus Internal",
+                    archived_row = listed_by_id.get(pending["source_archive_item_id"])
+                    if archived_row is None:
+                        raise M365IntakeError("Archived source is outside current intake listing")
+                    archived_doc = intake.read_listed_document(
+                        archived_row, access_classification="Salus Internal",
                     )
                 except M365IntakeError:
                     automatic_retry_required += 1
