@@ -43,7 +43,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.185
+          ref: release/v3.187
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -65,15 +65,15 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.185-application-3db5c003") and
+            (.activation_key == "salcapa-v3.187-application-8640677c") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.185") and
-            (.source_commit == "3db5c003978060a821d903ea5774a2859a02c35c") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:291203d47b72f69654a0efa14d74e301dfe2bf6381d9077a1eab57915484b7ab") and
+            (.source_release == "release/v3.187") and
+            (.source_commit == "8640677ce4c7180b888ee3682d6e7f90bf048b1c") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:442c93c7db2df53e8d54bb6630ad055d1b0dae86e7a56666531400725d50b601") and
             (.rollback_release == "release/v3.182") and
             (.rollback_commit == "71373a645a229d922c281f61e9c1471a269b7aeb") and
             (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:3600b915aa95d5390b54a6554d7f4b247b8a196bbb2377ba3db4c0d3943357f8") and
@@ -373,11 +373,11 @@ jobs:
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
           test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$IMAGE_DIGEST"
           test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-knowledge-job.json)" = "Schedule"
-          test "$(jq -r '.properties.configuration.scheduleTriggerConfig.cronExpression' /tmp/salcapa-knowledge-job.json)" = "*/5 * * * *"
+          test "$(jq -r '.properties.configuration.scheduleTriggerConfig.cronExpression' /tmp/salcapa-knowledge-job.json)" = "*/15 * * * *"
           EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
           test -n "$EXECUTION_NAME"
           SUCCEEDED=false
-          for attempt in $(seq 1 50); do
+          for attempt in $(seq 1 100); do
             STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --query properties.status --output tsv --only-show-errors)"
             if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
             if [ "$STATUS" = "Failed" ]; then break; fi
@@ -387,7 +387,7 @@ jobs:
             echo "Scheduled knowledge worker did not complete successfully: $STATUS" >&2
             sleep 5
             az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 100 --format text --only-show-errors 2>&1 \
-              | grep -E 'ModuleNotFoundError|ImportError|KeyError|ValueError|RuntimeError|M365IntakeError|KnowledgePromotionError|TypeError|AttributeError|DatabaseError|OperationalError|AzureError|Traceback|failed to start|Error' \
+              | grep -E 'SALCAPA_WORKER_PHASE|ModuleNotFoundError|ImportError|KeyError|ValueError|RuntimeError|M365IntakeError|KnowledgePromotionError|TypeError|AttributeError|DatabaseError|OperationalError|AzureError|Traceback|failed to start|Error' \
               | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' \
               | tail -n 25 >&2 || true
             exit 1
@@ -398,7 +398,7 @@ jobs:
       - name: Create and run isolated Microsoft 365 intake acceptance job
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          EXPECTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:291203d47b72f69654a0efa14d74e301dfe2bf6381d9077a1eab57915484b7ab
+          EXPECTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:442c93c7db2df53e8d54bb6630ad055d1b0dae86e7a56666531400725d50b601
         run: |
           set -euo pipefail
           env_value() {
