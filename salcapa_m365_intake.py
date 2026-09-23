@@ -193,27 +193,43 @@ class GovernedM365Intake:
                 f"{GRAPH_ROOT}/drives/{self.config.drive_id}/items/"
                 f"{folder_id}/children"
             )
-            response = self.client.get(
-                url,
-                headers=self._headers(),
-                params={"$select": select, "$top": "200"},
-            )
-            if response.status_code != 200:
-                raise M365IntakeError(
-                    "Governed Microsoft 365 folder could not be read"
+            page_url = url
+            page_params = {"$select": select, "$top": "200"}
+            visited_pages: set[str] = set()
+            folder_items: list[dict[str, Any]] = []
+            while page_url:
+                if page_url in visited_pages or len(visited_pages) >= _MAX_DISCOVERED_ITEMS:
+                    raise M365IntakeError("Governed Microsoft 365 folder pagination contained a cycle")
+                visited_pages.add(page_url)
+                response = self.client.get(
+                    page_url, headers=self._headers(), params=page_params,
                 )
-            payload = response.json()
-            if payload.get("@odata.nextLink"):
-                raise M365IntakeError(
-                    "Governed Microsoft 365 folder exceeds the bounded intake page"
-                )
-            values = payload.get("value")
-            if not isinstance(values, list):
-                raise M365IntakeError(
-                    "Governed Microsoft 365 response was incomplete"
-                )
+                if response.status_code != 200:
+                    raise M365IntakeError("Governed Microsoft 365 folder could not be read")
+                payload = response.json()
+                values = payload.get("value")
+                if not isinstance(values, list):
+                    raise M365IntakeError("Governed Microsoft 365 response was incomplete")
+                if discovered + len(folder_items) + len(values) > _MAX_DISCOVERED_ITEMS:
+                    raise M365IntakeError("Governed Microsoft 365 intake exceeds the traversal limit")
+                folder_items.extend(values)
+                next_link = payload.get("@odata.nextLink")
+                if next_link:
+                    if (
+                        not isinstance(next_link, str)
+                        or len(next_link) > 8192
+                        or not next_link.startswith(url + "?")
+                        or urlparse(next_link).fragment
+                        or urlparse(next_link).username is not None
+                        or urlparse(next_link).password is not None
+                    ):
+                        raise M365IntakeError("Governed Microsoft 365 pagination link was invalid")
+                    page_url = next_link
+                    page_params = None
+                else:
+                    page_url = ""
 
-            for item in values:
+            for item in folder_items:
                 discovered += 1
                 if discovered > _MAX_DISCOVERED_ITEMS:
                     raise M365IntakeError(
