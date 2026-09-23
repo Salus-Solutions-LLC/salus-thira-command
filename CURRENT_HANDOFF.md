@@ -2,6 +2,7 @@
 
 **Handoff date:** 23 September 2026  
 **Current production release:** SalCAPA 3.169  
+**Release in preparation:** SalCAPA 3.170 PostgreSQL ingestion hotfix  
 **Accepted source commit:** `729a48c3ec45a6ae98a57f9de8bc18d2d8a68b40`  
 **Activation commit:** `0932fff09f0606576ee728dae5191339ee2e1e77`  
 **Immutable image:** `salcapadevb48224acr.azurecr.io/salcapa@sha256:6b1693aa6321b9abcc8983d79b3e701ee112e29432c600357978c33f62de708f`  
@@ -45,7 +46,7 @@ SAL-D022 supersedes SAL-D021. Every file is automatically captured, hash-bound, 
 
 ## Remaining operational confirmation
 
-Confirm the live `Executive Protection.docx` candidate reaches `Ingested and Verified`, appears in `05 Research and Reference`, and is moved to `90 Processed Intake`. The scheduled processor retries automatically; the source is moved only after destination hash verification.
+The live check found `Executive Protection.docx` still in `10 Pending Classification`. Diagnosis identified that the PostgreSQL adapter did not treat `m365_knowledge_candidates` and `m365_knowledge_events` as identity tables, so the candidate insert did not return an ID and the first audit-event insert failed. SalCAPA 3.170 adds both tables to the governed PostgreSQL identity-table registry and adds a regression assertion. After deployment, confirm the candidate reaches `Ingested and Verified`, appears in `05 Research and Reference`, and is moved to `90 Processed Intake` only after destination hash verification.
 
 ## Known constraints
 
@@ -55,4 +56,4 @@ Confirm the live `Executive Protection.docx` candidate reaches `Ingested and Ver
 
 ## Single best next action
 
-Confirm the live candidate record and destination/archive locations for `Executive Protection.docx` after the scheduled scan.
+Validate and deploy the v3.170 PostgreSQL ingestion hotfix, then confirm the live candidate record and destination/archive locations for `Executive Protection.docx`.
