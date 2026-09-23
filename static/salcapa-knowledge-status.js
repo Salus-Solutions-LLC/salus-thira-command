@@ -23,7 +23,7 @@ function knowledgeStatusRow(row) {
   const where = esc(row.target_folder || 'Classification pending');
   const hash = esc(row.source_sha256 || '');
   const sourceDate = esc(metadata.source_created_at || metadata.source_modified_at || row.source_modified_at || 'Not recorded');
-  const author = esc((metadata.authors || []).join(', ') || row.source_owner || 'Not recorded');
+  const author = esc((Array.isArray(metadata.authors) ? metadata.authors.join(', ') : '') || row.source_owner || 'Not recorded');
   const citation = esc(metadata.citation_key || (hash ? `sha256:${hash}` : 'Not available yet'));
   const originalLink = ready && /^https:\/\//i.test(row.source_archive_web_url || '')
     ? `<a href="${esc(row.source_archive_web_url)}" target="_blank" rel="noopener noreferrer">Open archived original &gt;</a>` : '';
