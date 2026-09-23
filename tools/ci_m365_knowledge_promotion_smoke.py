@@ -214,7 +214,7 @@ def main():
     # provenance for two separate source files containing identical bytes.
     connection = sqlite3.connect(":memory:")
     _init_tables(connection)
-    connection.execute("DROP INDEX idx_m365_knowledge_sha_destination")
+    connection.execute("DROP INDEX idx_m365_knowledge_sha_destination_lookup")
     connection.execute(
         "CREATE UNIQUE INDEX idx_m365_knowledge_sha_destination "
         "ON m365_knowledge_candidates(source_sha256,target_folder) "
