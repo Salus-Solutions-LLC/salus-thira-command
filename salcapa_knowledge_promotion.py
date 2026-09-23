@@ -738,6 +738,9 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         ),
                     )
                 conn.commit()
+            if not pending_files:
+                archived_listed = intake.list_files(processed_only=True)
+                listed_by_id = {row["id"]: row for row in archived_listed}
             # Extraction obligations survive promotion. Retry against the exact
             # archived original on later scans, without moving or rewriting it.
             archived_retries = conn.execute(
@@ -813,6 +816,8 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "last_retry_codes": [],
             }
             raise KnowledgePromotionError("Governed Microsoft 365 intake is unavailable") from exc
+
+    app.state.process_knowledge_pending = process_pending
 
     def scan(request):
         context = authority(request)
