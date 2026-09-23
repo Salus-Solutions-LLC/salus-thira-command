@@ -50,6 +50,12 @@ def main() -> None:
         print(f"PENDING_EXTRACTION extension={extension} status={extraction['status']} code={code}")
         classification, _ = automatic_classification(document, duplicate=False)
         print(f"PENDING_CLASSIFICATION extension={extension} target={classification['target_folder']}", flush=True)
+        fresh = intake.client.get(
+            f"{GRAPH_ROOT}/drives/{intake_config.drive_id}/items/{document.item_id}",
+            headers={"Authorization": f"Bearer {intake._graph_token()}"},
+        )
+        fresh_etag = str(fresh.json().get("eTag", "")) if fresh.status_code == 200 else ""
+        print(f"PENDING_SOURCE_VERSION extension={extension} http={fresh.status_code} current={fresh_etag == document.etag}", flush=True)
         if extension == "pdf":
             from pathlib import Path
             from tempfile import TemporaryDirectory
