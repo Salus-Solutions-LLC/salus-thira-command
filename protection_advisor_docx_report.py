@@ -623,7 +623,7 @@ def render_protection_advisor_pdf(
             canvas.drawRightString(width - .65 * inch, .30 * inch, f"Page {number}")
             canvas.restoreState()
 
-    doc = BaseDocTemplate(str(destination), pagesize=letter, leftMargin=.7 * inch, rightMargin=.7 * inch, topMargin=.7 * inch, bottomMargin=.65 * inch)
+    doc = BaseDocTemplate(str(destination), pagesize=letter, leftMargin=.7 * inch, rightMargin=.7 * inch, topMargin=.7 * inch, bottomMargin=.65 * inch, lang="en-US")
     frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="body")
     doc.addPageTemplates(PageTemplate(id="Salus", frames=(frame,), onPage=page_frame))
     story = [Spacer(1, .45 * inch), P("SALUS SOLUTIONS", subtitle), Spacer(1, .08 * inch),
