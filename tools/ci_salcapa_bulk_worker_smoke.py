@@ -34,8 +34,9 @@ def check():
             def __init__(self,config): pass
             def read_scoped_document(self,item,**kwargs):
                 assert kwargs["pending_folder_id"]=="pending-12345678"
+                assert kwargs["required_ancestor_id"]=="enterprise-12345678"
                 if item["id"]==files[0]["id"]:
-                    raise promotion.M365IntakeError("moved outside folder")
+                    raise promotion.M365RouteError("unassigned source")
                 return SimpleNamespace(item_id=item["id"],name=item["name"],
                     relative_path="10 Pending Classification/2.txt",content=b"two",
                     size=3,mime_type="text/plain",sha256="a"*64,etag=item["etag"],
@@ -49,15 +50,18 @@ def check():
             "GovernedM365Intake","GraphKnowledgeWriter","discover","resolve_pending",
             "claim_work","complete_work","automatic_classification")}
         previous=os.environ.get("SALUS_KNOWLEDGE_BULK_DELTA")
+        previous_route=os.environ.get("SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID")
         outcomes=[]
         try:
             os.environ["SALUS_KNOWLEDGE_BULK_DELTA"]="1"
+            os.environ["SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID"]="enterprise-12345678"
             promotion.GovernedM365Intake=Intake
             promotion.GraphKnowledgeWriter=Writer
             promotion.discover=lambda *args,**kwargs: {"pages":1}
             promotion.resolve_pending=lambda *args: "pending-12345678"
             promotion.claim_work=lambda *args,**kwargs: files
-            promotion.complete_work=lambda *args,**kwargs: outcomes.append((args[3]["id"],kwargs["success"]))
+            promotion.complete_work=lambda *args,**kwargs: outcomes.append((
+                args[3]["id"],kwargs["success"],kwargs.get("hold",False)))
             promotion.GovernedM365Config.from_environment=lambda: SimpleNamespace(drive_id="drive-12345678")
             promotion.KnowledgeDestinationConfig.from_environment=lambda: SimpleNamespace()
             promotion.automatic_classification=lambda *args,**kwargs: ({
@@ -68,11 +72,13 @@ def check():
                 db=connect,now=lambda:"2026-09-24T00:00:00Z",auth_context=lambda request:{"role":"System Administrator"}))
             result=app.state.process_knowledge_pending("test actor")
             assert result["automatically_promoted"]==1 and result["automatic_retry_required"]==1,result
-            assert outcomes==[(files[0]["id"],False),(files[1]["id"],True)],outcomes
+            assert outcomes==[(files[0]["id"],False,True),(files[1]["id"],True,False)],outcomes
         finally:
             for name,value in saved.items(): setattr(promotion,name,value)
             if previous is None: os.environ.pop("SALUS_KNOWLEDGE_BULK_DELTA",None)
             else: os.environ["SALUS_KNOWLEDGE_BULK_DELTA"]=previous
+            if previous_route is None: os.environ.pop("SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID",None)
+            else: os.environ["SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID"]=previous_route
     print("bulk worker smoke passed")
 
 
