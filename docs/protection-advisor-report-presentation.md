@@ -13,8 +13,8 @@ The approved `Protection Advisor Report Template.docx` controls Salus identity, 
 
 ## Authority and limits
 
-OPM's public Plain Writing Plan adopts clear, concise, well-organized writing. It is editorial guidance, not a universal OPM font, margin, or report-cover specification for private assessments:
-https://www.opm.gov/information-management/plain-language/plainwritingplan.pdf
+OPM's public plain-language guidance calls for descriptive headings, short paragraphs, adequate margins and white space, consistently used fonts, tables where they clarify information, dates and page numbers, and line breaks that preserve names and dates. It is editorial guidance, not a universal OPM font, margin, or report-cover specification for private assessments:
+https://www.opm.gov/information-management/plain-language/
 
 Federal Section 508 guidance provides tests for accessible Word documents and PDFs:
 https://www.section508.gov/create/documents/
