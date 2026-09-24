@@ -56,7 +56,7 @@ jobs:
       - name: Verify installed dependency consistency
         run: python -m pip check
       - name: Compile Python
-        run: python -m py_compile app.py salus_protection_advisor.py protection_advisor_report_contract.py protection_advisor_docx_report.py protection_advisor_report_artifact.py advisor_report_config.py salcapa_m365_advisor_reports.py salcapa_runtime.py salcapa_m365_intake.py salcapa_bulk_delta.py salcapa_zip_members.py salcapa_m365_material_ingestion.py salcapa_m365_source_change.py salintel_material_index.py salthira_material_evidence_routing.py salcapa_m365_reports.py salcapa_demo_evaluator.py material_capability.py salintel_domains.py salops_preparedness.py personnel_assessment.py salintel_relationships.py salintel_research.py salintel_handoffs.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
+        run: python -m py_compile app.py salus_protection_advisor.py protection_advisor_report_contract.py protection_advisor_docx_report.py protection_advisor_report_artifact.py advisor_report_config.py salcapa_m365_advisor_reports.py salcapa_runtime.py salcapa_m365_intake.py salcapa_bulk_delta.py salcapa_zip_members.py salcapa_zip_index.py salcapa_m365_material_ingestion.py salcapa_m365_source_change.py salintel_material_index.py salthira_material_evidence_routing.py salcapa_m365_reports.py salcapa_demo_evaluator.py material_capability.py salintel_domains.py salops_preparedness.py personnel_assessment.py salintel_relationships.py salintel_research.py salintel_handoffs.py database.py portable_backup.py storage.py security_controls.py secret_provider.py rate_limit.py telemetry.py managed_database.py tools/*.py
       - name: Validate JavaScript syntax
         run: node --check static/product-branding.js && node --check static/product-version.js && node --check static/app.js && node --check static/demo-environments.js && node --check static/guidance.js && node --check static/condition-visuals.js && node --check static/intake-capture.js && node --check static/salintel-domains.js && node --check static/personnel-assessment.js && node --check static/salintel-relationships.js && node --check static/salintel-research.js && node --check static/salintel-handoffs.js && node --check static/salcapa-intake-review.js
       - name: Salus brand system acceptance
@@ -119,6 +119,10 @@ jobs:
         run: python tools/ci_m365_scoped_read_smoke.py
       - name: Bounded ZIP member regression smoke
         run: python tools/ci_salcapa_zip_members_smoke.py
+      - name: Resumable ZIP member index regression smoke
+        run: python tools/ci_salcapa_zip_index_smoke.py
+      - name: Gated ZIP worker integration smoke
+        run: python tools/ci_salcapa_bulk_zip_worker_smoke.py
       - name: Governed Microsoft 365 knowledge-promotion regression smoke
         run: python tools/ci_m365_knowledge_promotion_smoke.py
       - name: Gated bulk promotion worker regression smoke
@@ -218,6 +222,11 @@ jobs:
           SALUS_DB_BACKEND: postgres
           SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salus_thira_ci
         run: python tools/ci_salcapa_bulk_delta_postgres_smoke.py
+      - name: PostgreSQL ZIP member index transaction smoke
+        env:
+          SALUS_DB_BACKEND: postgres
+          SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salus_thira_ci
+        run: python tools/ci_salcapa_zip_index_postgres_smoke.py
       - name: PostgreSQL transaction smoke
         env:
           SALUS_DB_BACKEND: postgres
