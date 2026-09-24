@@ -48,7 +48,7 @@ RUN python tools/reconstruct_salcapa_material_processing.py
 RUN python tools/reconstruct_salcapa_office_processing.py
 RUN python tools/reconstruct_salcapa_pdf_processing.py
 RUN python tools/reconstruct_salcapa_image_ocr_processing.py
-RUN python tools/reconstruct_salcapa_audio_video_processing.py
+RUN python -c "import inspect, salcapa_audio_video_processing as media; assert 'worker_timeout_seconds' in inspect.signature(media._decode_media).parameters"
 RUN python tools/reconstruct_salcapa_visual_geospatial.py
 RUN python tools/reconstruct_salcapa_facility_imagery.py
 RUN python tools/reconstruct_salcapa_facility_review_profiles.py
