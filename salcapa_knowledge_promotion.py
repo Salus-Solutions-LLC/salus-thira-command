@@ -86,7 +86,8 @@ def _extract_all_accessible_content(document) -> dict[str, Any]:
         or getattr(document, "content_type", "")
         or "application/octet-stream"
     )
-    if document.name.lower().endswith(".zip"):
+    if (document.name.lower().endswith(".zip")
+            and os.getenv("SALUS_KNOWLEDGE_ZIP_MEMBERS", "0") == "1"):
         records = []
         excerpts = []
         text_bytes = 0
