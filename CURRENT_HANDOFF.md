@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## Intake release evidence checked — 24 September 2026
+
+- Frozen `release/v3.190` is exact commit `160e589e753547ad8f736e768b61090c7ba176c5`. [CI run 35939333140](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35939333140) passed validation, PostgreSQL runtime, and container runtime. The release is an ancestor of current development, which is 71 commits ahead at this check.
+- [Image publication history](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/workflows/azure-image-publish.yml) ends at v3.189 (#98); no v3.190 image publication run was found. The activation files and Azure deployment workflow still pin v3.189. Do not interpret the green frozen-source CI as a published or deployed v3.190 image.
+- [Azure deployment run 35937985774](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/35937985774) failed its v3.189 promotion and its job summary records restoration of the accepted v3.182 immutable image and live readiness. This is workflow evidence at that run, not a fresh Azure resource query. No later application deployment run appeared in the workflow history checked. The live intake queue remains unaccepted and the new bulk/ZIP worker flags remain off.
+- Next release action: reconcile the frozen worker repair with current development, use the controlled validation gate, publish an exact immutable image, update the activation and rollback pins, and run governed deployment plus repeated live batches. Verify the current Azure image and queue directly during that gate before declaring recovery.
+
 ## Wix Protection Advisor entry links published — 24 September 2026
 
 - Marc's existing Wix administration and publication authorization was applied on the Salus Solutions New site. The published page at https://www.salus.solutions/protection-advisor now has all ten assessment actions linked to https://salcapa.salus.solutions/protection-advisor/embed. A fresh live-page inspection found zero assessment actions pointing to the redirecting /protection-advisor route. A live click on “Begin Your Protection Assessment >” opened the embedded-app route with the Part 1 anonymous form and organization selector.
