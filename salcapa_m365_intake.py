@@ -351,6 +351,76 @@ class GovernedM365Intake:
             access_classification=access_classification,
         )
 
+    def read_scoped_document(
+        self, item: dict[str, Any], *, pending_folder_id: str,
+        access_classification: str = "Salus Internal",
+    ) -> GovernedM365Document:
+        """Read a delta-ledger item after rechecking its live pending-folder ancestry.
+
+        A delta row alone does not authorize source bytes: items can move out of
+        the granted subtree between discovery and work. The source ETag and every
+        ancestor are checked before the content request, which uses If-Match.
+        """
+        if access_classification not in _ACCESS_CLASSIFICATIONS:
+            raise M365IntakeError("Microsoft 365 intake access classification is invalid")
+        item_id = str(item.get("id", ""))
+        if not _IDENTIFIER.fullmatch(item_id) or not _IDENTIFIER.fullmatch(pending_folder_id):
+            raise M365IntakeError("Governed Microsoft 365 item identity is invalid")
+        if item_id == pending_folder_id:
+            raise M365IntakeError("Pending directory cannot be read as a file")
+        expected_size = int(item.get("size", -1))
+        if expected_size < 0 or expected_size > self.config.max_file_bytes:
+            raise M365IntakeError("Governed Microsoft 365 item exceeds the file-size limit")
+        endpoint = f"{GRAPH_ROOT}/drives/{self.config.drive_id}/items/"
+        response = self.client.get(
+            endpoint + item_id, headers=self._headers(),
+            params={"$select": "id,name,size,eTag,parentReference,file,remoteItem"},
+        )
+        if response.status_code != 200:
+            raise M365IntakeError("Governed Microsoft 365 item could not be read")
+        current = response.json()
+        parent = str((current.get("parentReference") or {}).get("id", ""))
+        if (
+            current.get("id") != item_id or "file" not in current
+            or "remoteItem" in current or not _IDENTIFIER.fullmatch(parent)
+            or current.get("name") != item.get("name")
+            or current.get("eTag") != item.get("etag")
+            or current.get("size") != expected_size
+            or parent != item.get("parent_id")
+        ):
+            raise M365IntakeError("Governed Microsoft 365 item changed after discovery")
+        names = [self._safe_path_component(item["name"])]
+        seen = {item_id}
+        while parent != pending_folder_id:
+            if parent in seen or len(seen) > 128:
+                raise M365IntakeError("Governed Microsoft 365 folder ancestry is invalid")
+            seen.add(parent)
+            ancestor = self.client.get(
+                endpoint + parent, headers=self._headers(),
+                params={"$select": "id,name,parentReference,folder,remoteItem"},
+            )
+            if ancestor.status_code != 200:
+                raise M365IntakeError("Governed Microsoft 365 folder ancestry could not be verified")
+            folder = ancestor.json()
+            next_parent = str((folder.get("parentReference") or {}).get("id", ""))
+            if (folder.get("id") != parent or "folder" not in folder
+                    or "remoteItem" in folder or not _IDENTIFIER.fullmatch(next_parent)):
+                raise M365IntakeError("Governed Microsoft 365 folder left the pending subtree")
+            names.append(self._safe_path_component(folder.get("name")))
+            parent = next_parent
+        path = "10 Pending Classification/" + "/".join(reversed(names))
+        verified = dict(item, relative_path=path)
+        content = self._read_allowed_item(verified)
+        return GovernedM365Document(
+            item_id=item_id, name=item["name"], relative_path=path,
+            content=content, size=expected_size, mime_type=item["mime_type"],
+            sha256=hashlib.sha256(content).hexdigest(), etag=item["etag"],
+            ctag=item["ctag"], last_modified=item["last_modified"],
+            source_owner=item["source_owner"], source_owner_id=item["source_owner_id"],
+            last_modified_by=item["last_modified_by"], web_url=item["web_url"],
+            access_classification=access_classification,
+        )
+
     def read_file(self, item_id: str) -> bytes:
         allowed = {item["id"]: item for item in self.list_files()}
         item = allowed.get(item_id)
