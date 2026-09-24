@@ -1,12 +1,12 @@
 # Salus Solutions — Current Handoff
 
-## Bulk intake candidate — 24 September 2026
+## Bulk intake decision and validated development increment — 24 September 2026
 
-- Marc authorized publishing the scoped first-window repair and bulk-intake work item to this private repository. [Issue #520](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/520) captures large nested batches, durable retries, ZIP members, oversized-file visibility, and Protected Member segregation.
-- Draft [PR #521](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/521) removes the first-500 pending-file selection window and adds a 600-file, three-page pagination regression to CI. The local regression passed. This is a candidate only; repository gates, governed release, deployment, queue drain, and live acceptance remain open.
-- The more recent `docs/build-continuity.md` checkpoint records deployed demonstration release v3.182 and candidate v3.190 repairing a built-image audio worker mismatch. The 3.176 status below is historical and must not be used as current live-state evidence. Verify the active image and current queue before promotion.
-- Marc explicitly authorized recording SAL-D023 as approved on 24 September 2026. The decision register now records the bulk-intake and Protected Member segregation requirement; Issue #520 tracks implementation and acceptance. Approval of the requirement does not constitute product acceptance.
-- Next action: review PR #521 and its exact-head CI; reconcile it with the v3.190 release repair, then validate repeated live batches. Issue #520 remains open until measured large-batch and member-isolation acceptance passes.
+- Marc approved SAL-D023, recorded in `SALUS_DECISION_REGISTER.md`: dependable large nested intake for Salus and Protected Member work, with source-bound auditability, no silent skip or starvation, recovery after partial failure, and segregation by member and engagement. [Issue #520](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/520) tracks full implementation and acceptance.
+- [PR #521](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/521) removed the first-500 pending-file selection window and added a 600-file, three-page nested pagination CI regression. Exact head `1a48a6717a88b69512c6556da24a1bafbe88003e` passed CI run `35948425362` (validation, PostgreSQL, production container, regression), CodeQL run `35948425381`, and Contextual Intake run `35948425318`. The PR was closed without merge; that exact head advanced non-force to `development/salcapa-platform`.
+- No new frozen release, published image, Azure deployment, live queue-drain result, or large-batch acceptance is claimed. The development scanner still has a 20,000-item traversal bound, 20-file processing passes, a file-size bound, and no complete ZIP-member ingestion.
+- The more recent `docs/build-continuity.md` checkpoint records deployed demonstration release v3.182 and candidate v3.190 repairing a built-image audio worker mismatch. The 3.176 status below is historical. Verify the current running image and queue immediately before any release work.
+- Next action: reconcile this validated development increment with v3.190, then run governed repeated-batch live acceptance. Issue #520 remains open for durable queue, bounded archive processing, oversized-file visibility, member isolation, throughput, and recovery acceptance.
 
 ## Protection Advisor UX handoff — 23 September 2026
 
