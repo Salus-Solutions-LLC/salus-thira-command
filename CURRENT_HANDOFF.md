@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Folder-scoped bulk discovery increment — 24 September 2026
+
+- [PR #522](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/522) validated a read-only pending-folder delta probe at exact head `f0be37eb6d4d768a38be079186ccbd54c885c0a8` with CI `35949960202`, CodeQL `35949960373`, and contextual intake `35949960207`. The PR was closed without merge and that head advanced non-force to development. Protected Azure run `35950366072` confirmed the v3.182 app identity returned HTTP 200, a scoped next link, and removed its temporary diagnostic job.
+- The next development increment adds a checkpointed Graph delta ledger and a 10,000-item restart/resync/throttle regression. This is discovery infrastructure only; it is not yet wired into live promotion. The existing production worker still performs bounded tree scans and has no customer/member isolation. Do not put Protected Member source material into `10 Pending Classification`.
+- Complete the verified source read and durable processing worker, safe ZIP-member extraction, member-specific routing, and governed large-batch live acceptance before describing bulk ingestion as ready. Issue #520 remains open. No new image or Azure deployment is claimed.
+
 ## Bulk intake decision and validated development increment — 24 September 2026
 
 - Marc approved SAL-D023, recorded in `SALUS_DECISION_REGISTER.md`: dependable large nested intake for Salus and Protected Member work, with source-bound auditability, no silent skip or starvation, recovery after partial failure, and segregation by member and engagement. [Issue #520](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/520) tracks full implementation and acceptance.
