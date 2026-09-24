@@ -42,6 +42,8 @@ def _add_table(document, headers, rows, widths=None):
     header_properties.append(repeat)
     for index, title in enumerate(headers):
         cell = header.cells[index]
+        if widths:
+            cell.width = Inches(widths[index])
         cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
         shading = OxmlElement("w:shd")
         shading.set(qn("w:fill"), "17365D")
@@ -57,6 +59,8 @@ def _add_table(document, headers, rows, widths=None):
         cells = table.add_row().cells
         for index, value in enumerate(values):
             cell = cells[index]
+            if widths:
+                cell.width = Inches(widths[index])
             cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
             if row_index % 2:
                 shading = OxmlElement("w:shd")
@@ -84,7 +88,7 @@ def _professional_body(document, fields, result, package) -> None:
         ("Project code name", fields["ProjectCodeName"]),
         ("Report reference", fields["ReportReference"]),
         ("Prepared", fields["GeneratedAt"]),
-        ("Handling", fields["InformationClassificationHandling"]),
+        ("Handling", "CUI review requested" if fields["InformationClassificationHandling"] == "CUI" else fields["InformationClassificationHandling"]),
         ("Status", "Preliminary - Salus professional review required"),
     ), widths=(2.05, 4.35))
 
@@ -150,7 +154,7 @@ def _professional_body(document, fields, result, package) -> None:
             ", ".join(item.get("mission_areas") or []),
             "Information incomplete" if item.get("information_gap") else "Reported need",
         ))
-    _add_table(document, ("Priority", "Capability", "Need", "Mission areas", "Basis"), cap_rows, widths=(.55, 2.25, .65, 1.75, 1.2))
+    _add_table(document, ("Priority", "Capability", "Need", "Mission areas", "Basis"), cap_rows, widths=(.8, 2.0, .65, 1.6, 1.35))
     document.add_paragraph(
         "Need scores rank the relative urgency of review within this submission. They are not "
         "probability estimates, compliance findings, or final measures of readiness."
@@ -228,7 +232,7 @@ def _professional_body(document, fields, result, package) -> None:
         ("After interview", "Request only the evidence needed to resolve priority findings and gaps.", "Salus"),
         ("After evidence review", "Confirm or revise service sequence, scope, level, schedule, and specialists.", "Authorized Salus reviewer"),
         ("Before engagement", "Approve scope, commercial terms, information handling, and points of contact.", "Salus and Protected Member"),
-    ), widths=(1.25, 3.9, 1.25))
+    ), widths=(1.45, 3.35, 1.6))
 
     document.add_heading("Important Notice", level=1)
     document.add_paragraph(
@@ -361,6 +365,49 @@ def _clear_story(target) -> None:
         element.remove(child)
 
 
+def _apply_report_handling(document, requested_handling: str) -> None:
+    """Adapt the approved Salus cover without asserting an unverified CUI designation."""
+    display = "CUI review requested" if requested_handling == "CUI" else requested_handling
+    watermark = "REVIEW" if requested_handling == "CUI" else requested_handling.upper()
+    notice = (
+        f"Requested handling: {display}. Salus must validate applicable distribution, "
+        "records, and government information controls before formal release. "
+        "Distribute this preliminary report only to authorized recipients."
+    )
+    substitutions = (
+        ("CONFIDENTIALITY NOTICE and Controlled Unclassified Information (CUI):", "REPORT HANDLING NOTICE"),
+        (
+            "The contents of this document include information the Government or related entities",
+            "This preliminary Salus report is prepared for the recipient identified on the cover. "
+            "It describes self-reported conditions and is subject to professional review.",
+        ),
+        (
+            "The contents of this document or email, including attachments, may also contain information that is CUI.",
+            notice,
+        ),
+    )
+    for paragraph in document.element.body.xpath(".//w:p"):
+        nodes = paragraph.xpath(".//w:t")
+        combined = "".join(node.text or "" for node in nodes)
+        for prefix, replacement in substitutions:
+            if combined.startswith(prefix) and nodes:
+                nodes[0].text = replacement
+                for node in nodes[1:]:
+                    node.text = ""
+                break
+
+    for paragraph in document.sections[0].header._element.xpath(".//w:p"):
+        nodes = paragraph.xpath(".//w:t")
+        combined = "".join(node.text or "" for node in nodes)
+        if "Controlled Unclassified Information (CUI)" in combined and nodes:
+            nodes[0].text = f"---SALUS SOLUTIONS | PROTECTION ADVISOR | {display.upper()}---"
+            for node in nodes[1:]:
+                node.text = ""
+    for element in document.sections[0].header._element.iter():
+        if element.tag.endswith("}textpath") and element.get("string") == "CONFIDENTIAL":
+            element.set("string", watermark)
+
+
 def render_protection_advisor_docx(
     *,
     template_path: str | os.PathLike[str],
@@ -409,6 +456,8 @@ def render_protection_advisor_docx(
         raise ValueError("template Part 1/Part 2 insertion marker was not found")
 
     _trim_after_cover_page(document)
+
+    _apply_report_handling(document, fields["InformationClassificationHandling"])
 
     cover_section = document.sections[0]
     # Capture the source story parts before creating any new section. Accessing a
@@ -495,16 +544,19 @@ def render_protection_advisor_pdf(
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     fields = context.as_template_fields()
+    requested_handling = fields["InformationClassificationHandling"]
+    display_handling = "CUI review requested" if requested_handling == "CUI" else requested_handling
+    watermark = "REVIEW" if requested_handling == "CUI" else requested_handling.upper()
     styles = getSampleStyleSheet()
-    body = ParagraphStyle("SalusBody", parent=styles["BodyText"], fontName="Helvetica", fontSize=9.5, leading=12, spaceAfter=7)
+    body = ParagraphStyle("SalusBody", parent=styles["BodyText"], fontName="Helvetica", fontSize=10.5, leading=14, spaceAfter=7)
     h1 = ParagraphStyle("SalusH1", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=16, leading=19, textColor=colors.black, spaceBefore=10, spaceAfter=7)
     h2 = ParagraphStyle("SalusH2", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=11.5, leading=14, textColor=colors.black, spaceBefore=7, spaceAfter=5)
     title = ParagraphStyle("SalusTitle", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=22, leading=26, alignment=TA_CENTER, textColor=colors.black)
     subtitle = ParagraphStyle("SalusSubtitle", parent=body, fontSize=11, leading=14, alignment=TA_CENTER, textColor=colors.HexColor("#2F75B5"))
-    small = ParagraphStyle("SalusSmall", parent=body, fontSize=8.5, leading=10.5, spaceAfter=0)
+    small = ParagraphStyle("SalusSmall", parent=body, fontSize=9.5, leading=12, spaceAfter=0)
     table_header = ParagraphStyle(
         "SalusTableHeader", parent=small, fontName="Helvetica-Bold",
-        fontSize=8, leading=9.25, textColor=colors.white, alignment=TA_LEFT,
+        fontSize=9, leading=11, textColor=colors.white, alignment=TA_LEFT,
     )
 
     def P(text, style=body):
@@ -539,6 +591,8 @@ def render_protection_advisor_pdf(
         return [P("- " + str(item), body) for item in items]
 
     def page_frame(canvas, doc):
+        canvas.setTitle("Protection Advisor Assessment Report")
+        canvas.setAuthor("Salus Solutions")
         number = canvas.getPageNumber()
         width, height = letter
         if number == 2:
@@ -547,18 +601,18 @@ def render_protection_advisor_pdf(
             canvas.setFont("Helvetica-Bold", 52)
             canvas.translate(width / 2, height / 2)
             canvas.rotate(45)
-            canvas.drawCentredString(0, 0, "CONFIDENTIAL")
+            canvas.drawCentredString(0, 0, watermark)
             canvas.restoreState()
         elif number >= 3:
             canvas.saveState()
             canvas.setFillColor(colors.HexColor("#7A1F1F"))
             canvas.setFont("Helvetica", 7.5)
-            canvas.drawCentredString(width / 2, height - .42 * inch, "CONFIDENTIALITY NOTICE - AUTHORIZED USE ONLY")
+            canvas.drawCentredString(width / 2, height - .42 * inch, f"SALUS SOLUTIONS - PROTECTION ADVISOR - {display_handling.upper()}")
             canvas.setFillColor(colors.Color(.4, .4, .4, alpha=.07))
             canvas.setFont("Helvetica-Bold", 46)
             canvas.translate(width / 2, height / 2)
             canvas.rotate(45)
-            canvas.drawCentredString(0, 0, "CONFIDENTIAL")
+            canvas.drawCentredString(0, 0, watermark)
             canvas.rotate(-45)
             canvas.translate(-width / 2, -height / 2)
             canvas.setFillColor(colors.black)
@@ -569,7 +623,7 @@ def render_protection_advisor_pdf(
             canvas.drawRightString(width - .65 * inch, .30 * inch, f"Page {number}")
             canvas.restoreState()
 
-    doc = BaseDocTemplate(str(destination), pagesize=letter, leftMargin=.7 * inch, rightMargin=.7 * inch, topMargin=.7 * inch, bottomMargin=.65 * inch)
+    doc = BaseDocTemplate(str(destination), pagesize=letter, leftMargin=.7 * inch, rightMargin=.7 * inch, topMargin=.7 * inch, bottomMargin=.65 * inch, lang="en-US")
     frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="body")
     doc.addPageTemplates(PageTemplate(id="Salus", frames=(frame,), onPage=page_frame))
     story = [Spacer(1, .45 * inch), P("SALUS SOLUTIONS", subtitle), Spacer(1, .08 * inch),
@@ -577,11 +631,11 @@ def render_protection_advisor_pdf(
     story.append(T(("Report detail", "Value"), (
         ("Protected Member code name", fields["ClientCodeName"]), ("Project code name", fields["ProjectCodeName"]),
         ("Report reference", fields["ReportReference"]), ("Prepared", fields["GeneratedAt"]),
-        ("Handling", fields["InformationClassificationHandling"]),
+        ("Handling", display_handling),
     ), (2.0 * inch, 4.1 * inch)))
-    story += [Spacer(1, .22 * inch), P("CONFIDENTIALITY NOTICE", h1),
-              P("This document contains confidential assessment information prepared for an authorized recipient. Do not disclose, reproduce, or distribute it beyond persons with an authorized need to know."),
-              Spacer(1, .12 * inch), P("AUTHORIZED USE ONLY", subtitle), PageBreak(), Spacer(1, 8.5 * inch), PageBreak()]
+    story += [Spacer(1, .22 * inch), P("Report handling notice", h1),
+              P(f"Requested handling: {display_handling}. Salus must validate applicable distribution, records, and government information controls before formal release. Distribute this preliminary report only to authorized recipients."),
+              Spacer(1, .12 * inch), P("SALUS PROFESSIONAL REVIEW REQUIRED", subtitle), PageBreak(), Spacer(1, 8.5 * inch), PageBreak()]
 
     capabilities = result.get("priority_capabilities") or []
     scores = result.get("mission_area_scores") or {}
