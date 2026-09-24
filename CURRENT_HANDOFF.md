@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Enterprise ZIP member indexing validated in development — 24 September 2026
+
+- [PR #528](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/528) passed exact-head CI `36038045253` (validation, PostgreSQL, production container), CodeQL `36038044950`, and contextual intake `36038045081` at `7882e1eb841a012cc24e917cde96ffe6bd235431`. The draft PR was closed without merge after validation; the ZIP code was advanced with a non-force, history-preserving development update.
+- Under default-off `SALUS_KNOWLEDGE_BULK_DELTA=1` and `SALUS_KNOWLEDGE_ZIP_MEMBERS=1`, verified enterprise ZIPs now enroll in a durable job. A leased worker checkpoints at most 20 central-directory entries per page into separately addressable indexed records, verifies the archived source hash, retries transient failures, and exposes permanent member-review reasons and paginated operator metadata. CI covers interrupted pages, SQLite and PostgreSQL storage, and the gated promotion integration.
+- This is development code, with neither flag enabled in production. It does not provide a Protected Member or customer source-to-destination mapping, production search integration for ZIP members, live 10,000-file throughput, Azure deployment, or governed release acceptance. Keep customer batches outside the enterprise intake folder until routing and access isolation are approved. Continue issue #520.
+
 ## Protection Advisor form typography validated in development — 24 September 2026
 
 - The presentation-only form change from draft PR #518 was validated on current development in [PR #529](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/529). Exact head `0f99e6cc1305a3c36e883244eab222fad92a6e4e` passed CI `36037162806` (validate, PostgreSQL, production container), CodeQL `36037162799`, contextual intake `36037162796`, and Public Protection Advisor `36037189416`. PR #529 was closed without merge and the exact head advanced non-force to `development/salcapa-platform`; old draft #518 was closed as superseded.
