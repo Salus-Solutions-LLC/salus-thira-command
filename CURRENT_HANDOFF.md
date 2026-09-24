@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## Protection Advisor form typography validated in development — 24 September 2026
+
+- The presentation-only form change from draft PR #518 was validated on current development in [PR #529](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/529). Exact head `0f99e6cc1305a3c36e883244eab222fad92a6e4e` passed CI `36037162806` (validate, PostgreSQL, production container), CodeQL `36037162799`, contextual intake `36037162796`, and Public Protection Advisor `36037189416`. PR #529 was closed without merge and the exact head advanced non-force to `development/salcapa-platform`; old draft #518 was closed as superseded.
+- The embedded form now uses Arial/Helvetica throughout, including choice and consent labels, and gives start/next/review controls a visible orange button treatment. No frozen release, image publication, Azure deployment, or live desktop/mobile visual acceptance is claimed. Coordinate release with the document worker gate; then verify the embedded form and signed-in Part 2 in a real browser.
+
 ## Protection Advisor report presentation validated in development — 24 September 2026
 
 - The report generator and presentation contract from draft PR #519 were applied on current development in [validation PR #527](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/527). Exact head `33c084e20f38c11bd484af45f94016bcf1e35a8c` passed CI `36036303057` (validate, PostgreSQL, production container), CodeQL `36036303055`, and contextual intake `36036303028`. PR #527 was closed without merge and the exact head advanced non-force to `development/salcapa-platform`; old draft #519 was closed as superseded.
