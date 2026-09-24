@@ -120,7 +120,10 @@ with TemporaryDirectory() as tmp:
     assert pdf.startswith(b"%PDF-")
     assert len(pdf) > 10_000
     from pypdf import PdfReader
-    extracted = "\n".join(page.extract_text() for page in PdfReader(output).pages)
+    rendered_pdf = PdfReader(output)
+    assert rendered_pdf.metadata.title == "Protection Advisor Assessment Report"
+    assert rendered_pdf.trailer["/Root"].get("/Lang") == "en-US"
+    extracted = "\n".join(page.extract_text() for page in rendered_pdf.pages)
     assert "CUI review requested" in extracted
     assert "CONFIDENTIALITY NOTICE - AUTHORIZED USE ONLY" not in extracted
 
