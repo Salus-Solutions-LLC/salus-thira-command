@@ -135,6 +135,10 @@ def check():
         work=claim_work(connect,DRIVE,PENDING,limit=2,now=601)
         assert [row["id"] for row in work]==["file-00010001","file-00010002"]
         assert not claim_work(connect,DRIVE,PENDING,limit=1,now=601)
+        assert complete_work(connect,DRIVE,PENDING,work[1],success=False,
+                             reason="enterprise_route_assignment_required",hold=True,now=602)
+        with connect() as conn:
+            assert conn.execute("SELECT status FROM m365_bulk_items WHERE item_id='file-00010002'").fetchone()[0]=="Assignment Required"
         assert complete_work(connect,DRIVE,PENDING,work[0],success=False,reason="source_changed",now=602)
         assert not claim_work(connect,DRIVE,PENDING,limit=1,now=603)
         assert claim_work(connect,DRIVE,PENDING,limit=1,now=632)[0]["id"]=="file-00010001"
