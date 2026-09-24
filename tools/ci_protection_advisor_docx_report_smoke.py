@@ -50,10 +50,30 @@ with TemporaryDirectory() as tmp:
     assert rendered.sections[2].start_type == WD_SECTION.NEW_PAGE
     for section in rendered.sections:
         header_xml = section.header._element.xml
-        assert "CONFIDENTIAL" in header_xml
+        assert "CUI REVIEW REQUESTED" in header_xml
+        assert 'string="REVIEW"' in header_xml
+        assert "Controlled Unclassified Information (CUI)" not in header_xml
         assert "#bfbfbf" in header_xml.lower(), "watermark must remain light gray"
         assert "z-index:-251658240" in header_xml, "watermark must remain behind readable content"
     assert not any(p.text.strip() for p in rendered.sections[1].footer.paragraphs)
+
+    confidential = build_report_context(
+        client_code_name="EXAMPLE-MEMBER", project_code_name="EXAMPLE-PROJECT",
+        organization_type="Business", government_or_public_service_role="None",
+        assessment_authority_or_sponsor="Authorized representative",
+        information_handling="Confidential", report_reference="SPA-REPORT-0002",
+        generated_at=datetime(2026, 9, 20, 14, 30, tzinfo=timezone.utc),
+    )
+    confidential_output = Path(tmp) / "confidential.docx"
+    render_protection_advisor_docx(
+        template_path=template, output_path=confidential_output,
+        context=confidential, part1_text="Preliminary summary.",
+        part2_text="Preliminary package.",
+    )
+    confidential_doc = Document(confidential_output)
+    assert "CUI" not in confidential_doc.element.xml
+    assert "CUI" not in confidential_doc.sections[0].header._element.xml
+    assert "CONFIDENTIAL" in confidential_doc.sections[0].header._element.xml
 
 print("Protection Advisor DOCX three-page renderer smoke passed")
 
@@ -99,5 +119,9 @@ with TemporaryDirectory() as tmp:
     pdf = output.read_bytes()
     assert pdf.startswith(b"%PDF-")
     assert len(pdf) > 10_000
+    from pypdf import PdfReader
+    extracted = "\n".join(page.extract_text() for page in PdfReader(output).pages)
+    assert "CUI review requested" in extracted
+    assert "CONFIDENTIALITY NOTICE - AUTHORIZED USE ONLY" not in extracted
 
 print("Protection Advisor PDF table-layout smoke passed")
