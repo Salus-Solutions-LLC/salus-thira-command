@@ -80,8 +80,8 @@ def main() -> None:
     accepted = []
     for family in sorted(samples):
         sample = samples[family]
-        document = intake.read_document(
-            str(sample["id"]), access_classification="Salus Internal"
+        document = intake.read_listed_document(
+            sample, access_classification="Salus Internal"
         )
         if document.relative_path != sample["relative_path"]:
             raise RuntimeError("M365_INTAKE_RELATIVE_PATH_MISMATCH")
@@ -116,9 +116,12 @@ def main() -> None:
     )
     if bound.sha256 != hashlib.sha256(bound.content).hexdigest():
         raise RuntimeError("M365_INTAKE_BOUND_READ_HASH_MISMATCH")
-    content = intake.read_file(sample["id"])
-    if len(content) != sample["size"]:
-        raise RuntimeError("M365_INTAKE_CONTENT_SIZE_MISMATCH")
+    # The unbounded helper walks the entire root, including the processed
+    # archive; a live pending acceptance must stay within its discovered
+    # finite window and verify each source's current ancestry and version.
+    content = intake._read_allowed_item(sample)
+    if len(content) != sample["size"] or hashlib.sha256(content).hexdigest() != bound.sha256:
+        raise RuntimeError("M365_INTAKE_CONTENT_MISMATCH")
 
     print(
         "M365_LIVE_GOVERNED_EXTRACTION_PASS "
