@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Archive transaction recovery candidate — 24 September 2026
+
+- [PR #524](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/524) passed exact-head CI `35951900795` (validation, PostgreSQL, production container), CodeQL `35951900958`, and contextual intake `35951900896`. It was closed without merge, and exact head `c05dc3c8021ef0d317d60d9f287dec098db5d7a3` advanced non-force to development. Both bulk worker and ZIP processing remain off by default.
+- The next candidate checkpoints a verified destination before moving its source and reconciles a moved source by Graph item ID and SHA-256 after an interrupted commit. It adds a true 10,000-nested-file delta regression and an operator summary for oldest age, next retry, and 24-hour completions. Keep both feature gates off until member routing, independently indexed ZIP members, load and Azure acceptance are complete.
+- No production release, image publication, Azure deployment, or Protected Member isolation is claimed. Issue #520 remains open.
+
 ## Gated batch worker and ZIP development candidate — 24 September 2026
 
 - Development commit `ae7b57abde5d6f504667908719f4923edff8f535` from [PR #523](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/523) passed exact-head CI `35951001491`, CodeQL `35951001515`, contextual intake `35951001507`; the PR was closed without merge and the exact head advanced non-force. It adds a durable discovery ledger but leaves live worker behavior unchanged.
