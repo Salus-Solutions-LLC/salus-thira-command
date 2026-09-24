@@ -36,6 +36,7 @@ def create_tables(conn):
       reason TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 0,
       next_attempt INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL,
       seen_generation INTEGER NOT NULL DEFAULT 0,
+      lease_owner TEXT NOT NULL DEFAULT '', lease_until INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY(drive_id,pending_id,item_id)
     );
     CREATE INDEX IF NOT EXISTS idx_m365_bulk_work
@@ -161,6 +162,10 @@ def _apply_item(conn, intake, pending, item, clock, generation):
           reason=excluded.reason,
           attempts=CASE WHEN m365_bulk_items.etag=excluded.etag
                         THEN m365_bulk_items.attempts ELSE 0 END,
+          lease_owner=CASE WHEN m365_bulk_items.etag=excluded.etag
+                           THEN m365_bulk_items.lease_owner ELSE '' END,
+          lease_until=CASE WHEN m365_bulk_items.etag=excluded.etag
+                           THEN m365_bulk_items.lease_until ELSE 0 END,
           updated_at=excluded.updated_at,seen_generation=excluded.seen_generation""",
         (intake.config.drive_id,pending,item_id,parent,name,kind,etag,size,
          json.dumps(metadata,sort_keys=True),status,reason,clock,generation),
@@ -235,6 +240,71 @@ def discover(intake, connect, *, max_pages=10, now=None):
                      "WHERE drive_id=? AND pending_id=? AND lease_owner=?",(drive,pending,owner))
         conn.commit()
         return {"pages":pages,"complete":phase=="delta"}
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def claim_work(connect, drive, pending, *, limit=20, now=None):
+    """Lease due files in oldest-first order across competing worker replicas."""
+    if not 1 <= limit <= 100:
+        raise ValueError("Work batch limit is out of range")
+    clock = int(time.time() if now is None else now)
+    conn = connect()
+    selected = []
+    try:
+        for _ in range(limit):
+            owner = uuid.uuid4().hex
+            row = conn.execute(
+                """UPDATE m365_bulk_items SET status='Working',lease_owner=?,
+                   lease_until=?,attempts=attempts+1
+                   WHERE drive_id=? AND pending_id=? AND item_id=(
+                     SELECT item_id FROM m365_bulk_items
+                     WHERE drive_id=? AND pending_id=? AND kind='file'
+                       AND ((status IN ('Pending','Retry') AND next_attempt<=?)
+                         OR (status='Working' AND lease_until<?))
+                     ORDER BY updated_at,item_id LIMIT 1
+                   ) AND ((status IN ('Pending','Retry') AND next_attempt<=?)
+                         OR (status='Working' AND lease_until<?))
+                   RETURNING item_id,parent_id,name,etag,size,metadata_json,
+                             attempts,lease_owner""",
+                (owner,clock+300,drive,pending,drive,pending,clock,clock,clock,clock),
+            ).fetchone()
+            if row is None:
+                conn.commit()
+                break
+            conn.commit()
+            metadata = json.loads(row["metadata_json"])
+            selected.append(dict(metadata,id=row["item_id"],parent_id=row["parent_id"],
+                                 name=row["name"],etag=row["etag"],size=row["size"],
+                                 attempts=row["attempts"],lease_owner=row["lease_owner"]))
+        return selected
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def complete_work(connect, drive, pending, item, *, success, reason="", now=None):
+    """Commit a version-bound outcome; a changed ETag cannot inherit success."""
+    clock = int(time.time() if now is None else now)
+    attempts = item["attempts"]
+    delay = 0 if success else min(3600, 30 * (2 ** min(attempts - 1, 7)))
+    conn = connect()
+    try:
+        cursor = conn.execute(
+            """UPDATE m365_bulk_items SET status=?,reason=?,next_attempt=?,
+               lease_owner='',lease_until=0,updated_at=?
+               WHERE drive_id=? AND pending_id=? AND item_id=? AND etag=?
+                 AND lease_owner=? AND status='Working'""",
+            ("Done" if success else "Retry",reason[:120],clock+delay,clock,
+             drive,pending,item["id"],item["etag"],item["lease_owner"]),
+        )
+        conn.commit()
+        return cursor.rowcount == 1
     except Exception:
         conn.rollback()
         raise
