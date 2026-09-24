@@ -525,6 +525,44 @@ class GraphKnowledgeWriter:
             raise KnowledgePromotionError("Processed intake archive returned an untrusted location")
         return {"item_id": item_id, "web_url": web_url, "etag": str(item.get("eTag", ""))[:512]}
 
+    def verify_already_archived_source(self, item_id: str, sha256: str) -> dict[str, str] | None:
+        """Reconcile a source moved immediately before a database commit was lost."""
+        if not _IDENTIFIER.fullmatch(item_id):
+            raise KnowledgePromotionError("Archived source identity is invalid")
+        url = f"{GRAPH_ROOT}/drives/{self.intake_config.drive_id}/items/{item_id}"
+        response = self.client.get(
+            url, headers=self._headers() | {"Accept":"application/json"},
+            params={"$select":"id,parentReference,webUrl,eTag,size,file"},
+        )
+        if response.status_code != 200:
+            raise KnowledgePromotionError("Archived source could not be read for reconciliation")
+        item = response.json()
+        if item.get("id") != item_id or "file" not in item:
+            raise KnowledgePromotionError("Archived source identity could not be verified")
+        size = int(item.get("size", -1))
+        if size < 0 or size > self.intake_config.max_file_bytes:
+            raise KnowledgePromotionError("Archived source size is outside the governed limit")
+        parent = str((item.get("parentReference") or {}).get("id", ""))
+        if parent != self.destination.processed_folder_item_id:
+            return None
+        download = self.client.get(
+            url + "/content", headers=self._headers() | {"Accept":"application/octet-stream"}
+        )
+        if download.status_code in {302,303,307,308}:
+            location = str(download.headers.get("Location", ""))
+            parsed = urlparse(location)
+            if (parsed.scheme != "https" or parsed.username or parsed.password
+                    or not (parsed.hostname or "").lower().endswith(".sharepoint.com")):
+                raise KnowledgePromotionError("Archived source verification location is untrusted")
+            download = self.client.get(location,headers={"Accept":"application/octet-stream"})
+        if download.status_code != 200 or hashlib.sha256(download.content).hexdigest() != sha256:
+            raise KnowledgePromotionError("Archived source hash could not be verified")
+        web_url = str(item.get("webUrl", ""))
+        parsed = urlparse(web_url)
+        if parsed.scheme != "https" or not (parsed.hostname or "").endswith(".sharepoint.com"):
+            raise KnowledgePromotionError("Archived source location is untrusted")
+        return {"item_id":item_id,"web_url":web_url,"etag":str(item.get("eTag", ""))[:512]}
+
 _POSTGRES_SCHEMA_LOCK = threading.Lock()
 _POSTGRES_SCHEMA_READY = False
 
@@ -570,6 +608,10 @@ def _create_tables(conn) -> None:
       id INTEGER PRIMARY KEY AUTOINCREMENT, candidate_id INTEGER NOT NULL,
       event_type TEXT NOT NULL, actor TEXT NOT NULL, detail_json TEXT NOT NULL,
       created_at TEXT NOT NULL,
+      FOREIGN KEY(candidate_id) REFERENCES m365_knowledge_candidates(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS m365_reconcile_checks (
+      candidate_id INTEGER PRIMARY KEY, checked_at INTEGER NOT NULL,
       FOREIGN KEY(candidate_id) REFERENCES m365_knowledge_candidates(id) ON DELETE CASCADE
     );
     """)
@@ -701,7 +743,9 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                     current = conn.execute(
                         "SELECT * FROM m365_knowledge_candidates WHERE id=?", (existing["id"],)
                     ).fetchone()
-                    if current["status"] != "Automatic Retry Required":
+                    if current["status"] not in {
+                        "Approved for Promotion", "Automatic Retry Required", "Destination Verified"
+                    }:
                         if bulk_enabled:
                             complete_work(db,intake_config.drive_id,pending_id,row,success=True)
                         continue
@@ -719,6 +763,8 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 )
                 extraction_complete = classification["extraction"]["status"] == "Complete"
                 initial_status = "Approved for Promotion" if extraction_complete else "Automatic Retry Required"
+                if candidate_id is not None and current["status"] == "Destination Verified":
+                    initial_status = "Destination Verified"
                 timestamp = now()
                 if candidate_id is None:
                     cursor = conn.execute(
@@ -792,6 +838,18 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         document.content,
                         document.sha256,
                     )
+                    # Persist the verified destination before the irreversible
+                    # source move. A later pass can reconcile a moved source
+                    # if the final database commit was interrupted.
+                    conn.execute(
+                        """UPDATE m365_knowledge_candidates
+                        SET status='Destination Verified',destination_drive_id=?,
+                        destination_item_id=?,destination_web_url=?,destination_etag=?
+                        WHERE id=?""",
+                        (writer.destination.drive_id,destination["item_id"],
+                         destination["web_url"],destination["etag"],candidate_id),
+                    )
+                    conn.commit()
                     archived = writer.archive_verified_source(
                         document.item_id, document.etag, document.name, document.sha256
                     )
@@ -829,7 +887,8 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                     retry_codes.add(promotion_retry_code(exc))
                     conn.execute(
                         "UPDATE m365_knowledge_candidates "
-                        "SET status='Automatic Retry Required',review_rationale=? WHERE id=?",
+                        "SET status=CASE WHEN destination_item_id<>'' THEN 'Destination Verified' "
+                        "ELSE 'Automatic Retry Required' END,review_rationale=? WHERE id=?",
                         (str(exc),candidate_id),
                     )
                     conn.execute(
@@ -846,6 +905,52 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                                   success=promoted_this_file,
                                   reason="" if promoted_this_file else "promotion_retry_required")
                 print(f'SALCAPA_WORKER_PHASE=file_done index={index} promoted={automatically_promoted} retry={automatic_retry_required}', flush=True)
+            # The external archive move can succeed just before a process dies.
+            # Recheck the exact source ID and bytes to finish that transaction.
+            if bulk_enabled:
+                outstanding = conn.execute(
+                    "SELECT c.id,c.source_item_id,c.source_sha256 FROM m365_knowledge_candidates c "
+                    "LEFT JOIN m365_reconcile_checks r ON r.candidate_id=c.id "
+                    "WHERE c.status='Destination Verified' ORDER BY COALESCE(r.checked_at,0),c.id LIMIT 20"
+                ).fetchall()
+                for pending in outstanding:
+                    def defer_reconciliation():
+                        conn.execute(
+                            "INSERT INTO m365_reconcile_checks(candidate_id,checked_at) VALUES(?,?) "
+                            "ON CONFLICT(candidate_id) DO UPDATE SET checked_at=excluded.checked_at",
+                            (pending["id"],int(time.time())),
+                        )
+                        conn.commit()
+                    try:
+                        if writer is None:
+                            writer = GraphKnowledgeWriter(
+                                intake_config,KnowledgeDestinationConfig.from_environment())
+                        archived = writer.verify_already_archived_source(
+                            pending["source_item_id"],pending["source_sha256"])
+                    except KnowledgePromotionError:
+                        automatic_retry_required += 1
+                        retry_codes.add("archive_reconciliation_retry_required")
+                        defer_reconciliation()
+                        continue
+                    if archived is None:
+                        defer_reconciliation()
+                        continue
+                    timestamp = now()
+                    conn.execute(
+                        """UPDATE m365_knowledge_candidates SET status='Ingested and Verified',
+                        promoted_at=?,source_archived_at=?,source_archive_item_id=?,
+                        source_archive_web_url=?,source_archive_etag=? WHERE id=?""",
+                        (timestamp,timestamp,archived["item_id"],archived["web_url"],
+                         archived["etag"],pending["id"]),
+                    )
+                    conn.execute(
+                        "INSERT INTO m365_knowledge_events"
+                        "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+                        (pending["id"],"ArchivedSourceReconciled",_AUTO_ACTOR,
+                         json.dumps({"source_item_id":pending["source_item_id"]}),timestamp),
+                    )
+                    conn.commit()
+                    automatically_promoted += 1
             if not pending_files and not bulk_enabled:
                 archived_listed = intake.list_files(processed_only=True)
                 listed_by_id = {row["id"]: row for row in archived_listed}
@@ -947,12 +1052,26 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             rows = conn.execute(
                 "SELECT status,COUNT(*) AS count FROM m365_bulk_items GROUP BY status"
             ).fetchall()
+            oldest = conn.execute(
+                "SELECT MIN(updated_at) FROM m365_bulk_items "
+                "WHERE status IN ('Pending','Retry','Working')"
+            ).fetchone()[0]
+            completed_day = conn.execute(
+                "SELECT COUNT(*) FROM m365_bulk_items WHERE status='Done' AND updated_at>=?",
+                (int(time.time())-86400,),
+            ).fetchone()[0]
+            next_due = conn.execute(
+                "SELECT MIN(next_attempt) FROM m365_bulk_items WHERE status='Retry'"
+            ).fetchone()[0]
             cursors = conn.execute(
                 "SELECT phase,last_error,updated_at FROM m365_bulk_cursors"
             ).fetchall()
             return {
                 "enabled": os.getenv("SALUS_KNOWLEDGE_BULK_DELTA", "0") == "1",
                 "counts": {row["status"]: row["count"] for row in rows},
+                "oldest_open_age_seconds": max(0,int(time.time())-oldest) if oldest else None,
+                "completed_last_24_hours": completed_day,
+                "next_retry_epoch": next_due,
                 "cursors": [dict(row) for row in cursors],
             }
         finally:
