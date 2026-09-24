@@ -18,7 +18,7 @@ except ModuleNotFoundError:
     class M365IntakeError(RuntimeError): pass
     module.M365IntakeError=M365IntakeError
     sys.modules["salcapa_m365_intake"]=module
-from salcapa_bulk_delta import discover, _scoped_link
+from salcapa_bulk_delta import discover, claim_work, complete_work, _scoped_link
 from salcapa_m365_intake import M365IntakeError
 
 
@@ -63,7 +63,7 @@ class Intake:
 
 def file(i, *, size=12):
     return {"id":f"file-{i:08d}","name":f"{i}.txt","file":{"mimeType":"text/plain"},
-            "size":size,"eTag":f'"{i}"',"parentReference":{"id":PENDING},
+            "size":size,"eTag":f'"{i}"',"parentReference":{"id":f"folder-{i//200:08d}"},
             "lastModifiedDateTime":"2026-09-24T00:00:00Z"}
 
 
@@ -80,22 +80,23 @@ def check():
             return conn
         client=Client()
         intake=Intake(client)
-        # Fifty pages, 200 files each, nested folder record, and an oversize file.
-        for n in range(50):
+        # Fifty folders followed by 10,000 nested files across fifty full pages.
+        for n in range(51):
             url=BASE if n==0 else BASE+f"?page={n}"
-            values=[file(n*200+i) for i in range(200)]
-            if n==0:
-                values[0]={"id":"folder-12345678","name":"Subfolder","folder":{},
-                           "parentReference":{"id":PENDING},"size":0}
-                values[1]=file(1,size=101)
-            link=BASE+f"?page={n+1}" if n<49 else BASE+"?token=done"
+            values=[file((n-1)*200+i) for i in range(200)] if n else [
+                {"id":f"folder-{i:08d}","name":f"Subfolder {i}","folder":{},
+                 "parentReference":{"id":PENDING},"size":0} for i in range(50)]
+            if n==1: values[1]=file(1,size=101)
+            link=BASE+f"?page={n+1}" if n<50 else BASE+"?token=done"
             client.pages[url]=Response(200,{"value":values,
-                "@odata.nextLink" if n<49 else "@odata.deltaLink":link})
+                "@odata.nextLink" if n<50 else "@odata.deltaLink":link})
         for _ in range(5):
             result=discover(intake,connect,max_pages=10,now=100)
-        assert result=={"pages":10,"complete":True},result
+        assert result=={"pages":10,"complete":False},result
+        assert discover(intake,connect,max_pages=10,now=101)=={"pages":1,"complete":True}
         with connect() as conn:
-            assert conn.execute("SELECT COUNT(*) FROM m365_bulk_items").fetchone()[0]==10000
+            assert conn.execute("SELECT COUNT(*) FROM m365_bulk_items").fetchone()[0]==10050
+            assert conn.execute("SELECT COUNT(*) FROM m365_bulk_items WHERE kind='file'").fetchone()[0]==10000
             assert conn.execute("SELECT status FROM m365_bulk_items WHERE item_id='file-00000001'").fetchone()[0]=="Oversize"
             conn.execute("UPDATE m365_bulk_items SET status='Done' WHERE item_id='file-00000200'")
             conn.commit()
@@ -112,7 +113,9 @@ def check():
         assert discover(intake,connect,now=391)["resync"]
         with connect() as conn:
             assert conn.execute("SELECT link FROM m365_bulk_cursors").fetchone()[0]==""
-        client.pages[BASE]=Response(200,{"value":[file(200)],
+        client.pages[BASE]=Response(200,{"value":[
+            {"id":"folder-00000001","name":"Subfolder 1","folder":{},
+             "parentReference":{"id":PENDING},"size":0},file(200)],
             "@odata.deltaLink":BASE+"?token=resynced"})
         assert discover(intake,connect,now=392)["complete"]
         with connect() as conn:
@@ -126,6 +129,19 @@ def check():
         with connect() as conn:
             assert conn.execute("SELECT link FROM m365_bulk_cursors").fetchone()[0]==BASE+"?token=resynced"
             assert conn.execute("SELECT COUNT(*) FROM m365_bulk_items WHERE item_id='file-00010001'").fetchone()[0]==0
+        client.pages[BASE+"?token=resynced"]=Response(200,{"value":[file(10001),file(10002)],
+            "@odata.deltaLink":BASE+"?token=fresh"})
+        discover(intake,connect,now=600)
+        work=claim_work(connect,DRIVE,PENDING,limit=2,now=601)
+        assert [row["id"] for row in work]==["file-00010001","file-00010002"]
+        assert not claim_work(connect,DRIVE,PENDING,limit=1,now=601)
+        assert complete_work(connect,DRIVE,PENDING,work[0],success=False,reason="source_changed",now=602)
+        assert not claim_work(connect,DRIVE,PENDING,limit=1,now=603)
+        assert claim_work(connect,DRIVE,PENDING,limit=1,now=632)[0]["id"]=="file-00010001"
+        with connect() as conn:
+            conn.execute("UPDATE m365_bulk_items SET etag='new' WHERE item_id='file-00010002'")
+            conn.commit()
+        assert not complete_work(connect,DRIVE,PENDING,work[1],success=True,now=604)
     print("bulk delta smoke passed")
 
 
