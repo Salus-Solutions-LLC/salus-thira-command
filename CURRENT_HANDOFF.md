@@ -1,5 +1,13 @@
 # Salus Solutions — Current Handoff
 
+## Bulk intake candidate — 24 September 2026
+
+- Marc authorized publishing the scoped first-window repair and bulk-intake work item to this private repository. [Issue #520](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/520) captures large nested batches, durable retries, ZIP members, oversized-file visibility, and Protected Member segregation.
+- Draft [PR #521](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/521) removes the first-500 pending-file selection window and adds a 600-file, three-page pagination regression to CI. The local regression passed. This is a candidate only; repository gates, governed release, deployment, queue drain, and live acceptance remain open.
+- The more recent `docs/build-continuity.md` checkpoint records deployed demonstration release v3.182 and candidate v3.190 repairing a built-image audio worker mismatch. The 3.176 status below is historical and must not be used as current live-state evidence. Verify the active image and current queue before promotion.
+- The decision register was not changed: the proposed SAL-D023 approval entry was blocked by automatic approval review because Marc authorized publishing the fix and work item, not recording a new approved governance decision.
+- Next action: review PR #521 and its exact-head CI; reconcile it with the v3.190 release repair, then validate repeated live batches. Issue #520 remains open until measured large-batch and member-isolation acceptance passes.
+
 ## Protection Advisor UX handoff — 23 September 2026
 
 - PR #516 merged to `development/salcapa-platform` at `aab014f6569be2b95ed9fbd03c144a6ebc167bec`. It aligns the Part 2 code-name field IDs with draft hydration, autosave, and submission, and makes the retained report names and handling visible with an explicit edit action. Public Protection Advisor workflow run `35927033477` passed on candidate `2a12ef5a265261a288424fb32963209fd7cfc60d`.
