@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Protection Advisor report presentation validated in development — 24 September 2026
+
+- The report generator and presentation contract from draft PR #519 were applied on current development in [validation PR #527](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/527). Exact head `33c084e20f38c11bd484af45f94016bcf1e35a8c` passed CI `36036303057` (validate, PostgreSQL, production container), CodeQL `36036303055`, and contextual intake `36036303028`. PR #527 was closed without merge and the exact head advanced non-force to `development/salcapa-platform`; old draft #519 was closed as superseded.
+- The Word report retains the Salus template layout while adapting handling labels to the requested context without asserting an unverified federal CUI designation. Tables now use explicit cell widths. The PDF uses larger body/table type, contextual handling labels, page markings, and metadata. The approved example report remains the visual and content authority.
+- This is development code only. No new frozen release, immutable image, Azure deployment, or live Word/PDF acceptance is claimed. The running release must be verified before promotion, especially while the separate document worker release is active. The ReportLab PDF remains untagged; do not claim Section 508 conformance. Next: coordinate a governed release after the worker gate settles, then render and inspect live DOCX/PDF and public print/save outputs with both Confidential and CUI-review handling.
+
 ## Enterprise source route validated in development — 24 September 2026
 
 - [PR #526](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/526) passed exact-head CI `35991688085` (validation, PostgreSQL, production container), CodeQL `35991688084`, and contextual intake `35991688098`. The PR was closed without merge; exact head `9f2a66ecca407883973682e59933bd608ddf494e` advanced non-force to `development/salcapa-platform`.
