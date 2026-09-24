@@ -53,7 +53,7 @@ def _header_matches(data: bytes, extension: str) -> bool:
     return len(data) >= 12 and data[4:8] == b"ftyp"
 
 
-def _run_worker(data: bytes, extension: str) -> dict:
+def _run_worker(data: bytes, extension: str, *, timeout_seconds: int = WORKER_TIMEOUT_SECONDS) -> dict:
     if os.name != "posix" or not WORKER.is_file():
         raise base.ProcessingFailure(
             "TRANSCRIPTION_UNAVAILABLE",
@@ -74,7 +74,7 @@ def _run_worker(data: bytes, extension: str) -> dict:
                     [sys.executable, "-I", str(WORKER), str(source)], cwd=directory,
                     env={"PYTHONIOENCODING": "utf-8", "PYTHONHASHSEED": "0", "LC_ALL": "C.UTF-8"},
                     stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    timeout=WORKER_TIMEOUT_SECONDS, check=False, start_new_session=True,
+                    timeout=timeout_seconds, check=False, start_new_session=True,
                 )
             except subprocess.TimeoutExpired as exc:
                 raise base.ProcessingFailure(
@@ -110,7 +110,7 @@ def _run_worker(data: bytes, extension: str) -> dict:
         _CAPACITY.release()
 
 
-def _decode_media(data: bytes, original_name: str, content_type: str) -> tuple[str, str, bool, str, str]:
+def _decode_media(data: bytes, original_name: str, content_type: str, *, worker_timeout_seconds: int = WORKER_TIMEOUT_SECONDS) -> tuple[str, str, bool, str, str]:
     extension = original_name.rsplit(".", 1)[-1].lower() if "." in original_name else ""
     if extension not in CONTENT_TYPES:
         return _ORIGINAL_DECODER(data, original_name, content_type)
@@ -130,7 +130,7 @@ def _decode_media(data: bytes, original_name: str, content_type: str) -> tuple[s
             "MEDIA_HEADER_INVALID",
             "The material does not contain the expected recording header. The original remains unchanged for review.",
         )
-    payload = _run_worker(data, extension)
+    payload = _run_worker(data, extension, timeout_seconds=worker_timeout_seconds)
     text, facts = payload.get("text"), payload.get("facts")
     if not isinstance(text, str) or not text or len(text) > base.MAX_DERIVED_CHARACTERS or not isinstance(facts, dict):
         raise base.ProcessingFailure(
