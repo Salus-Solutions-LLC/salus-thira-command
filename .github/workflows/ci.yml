@@ -109,6 +109,8 @@ jobs:
         run: python tools/ci_passwordless_runtime_smoke.py
       - name: Governed Microsoft 365 folder-intake regression smoke
         run: python tools/ci_m365_governed_intake_smoke.py
+      - name: Large pending-window pagination regression smoke
+        run: python tools/ci_m365_batch_window_smoke.py
       - name: Governed Microsoft 365 knowledge-promotion regression smoke
         run: python tools/ci_m365_knowledge_promotion_smoke.py
 
