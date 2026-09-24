@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## Enterprise-only source boundary candidate — 24 September 2026
+
+- The next development increment requires an explicit `SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID` distinct from the pending root before enabling `SALUS_KNOWLEDGE_BULK_DELTA`. Each claimed file's live ancestor chain must include that enterprise subfolder before source bytes are read. Unmatched files become `Assignment Required` in the durable ledger and are not automatically promoted. Tests cover matched, unmatched, moved-out, and held items.
+- This is a fail-closed boundary for the future bulk worker, not Protected Member routing. A registered member/engagement-to-tenant/destination mapping and access isolation remain necessary before customer batches may be processed. The current production worker is still the legacy scanner; no feature flag or Azure deployment is changed.
+
 ## Bulk recovery validated in development — 24 September 2026
 
 - [PR #525](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/525) passed exact-head CI `35952452997`, CodeQL `35952452983`, and contextual intake `35952452951`. It was closed without merge, and exact head `e0bb42fd0c45c56057596fd23c2a27d1c0485eef` advanced non-force to `development/salcapa-platform`.
