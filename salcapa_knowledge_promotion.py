@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import mimetypes
 import os
 import re
 import threading
@@ -19,7 +18,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 import salcapa_audio_video_processing as full_processing
 import salcapa_material_processing as material_processing
-from salcapa_zip_members import ArchiveLimitError, iter_zip_members
+from salcapa_zip_index import create_tables as create_zip_tables, defer_job as defer_zip_job
+from salcapa_zip_index import enqueue as enqueue_zip, process_page as process_zip_page
 
 from salcapa_m365_intake import (
     ASSERTION_SCOPE,
@@ -88,58 +88,15 @@ def _extract_all_accessible_content(document) -> dict[str, Any]:
         or "application/octet-stream"
     )
     if (document.name.lower().endswith(".zip")
-            and os.getenv("SALUS_KNOWLEDGE_ZIP_MEMBERS", "0") == "1"):
-        records = []
-        excerpts = []
-        text_bytes = 0
-        retry = False
-        truncated = False
-        try:
-            for member in iter_zip_members(document.content):
-                path = member["path"]
-                if member["status"] != "Ready":
-                    retry = True
-                    records.append({key:member[key] for key in ("path","status","reason","size")})
-                    continue
-                member_type = mimetypes.guess_type(path)[0] or "application/octet-stream"
-                try:
-                    extracted = full_processing._decode_media(
-                        member["content"],path,member_type,
-                        **({"worker_timeout_seconds":30} if path.lower().endswith((".wav",".mp3",".mp4")) else {}),
-                    )
-                    text_value, method, was_truncated, processor, version = extracted
-                    record = {"path":path,"status":"Complete","size":member["size"],
-                              "sha256":member["sha256"],"text_sha256":hashlib.sha256(text_value.encode()).hexdigest(),
-                              "method":method,"processor":processor,"processor_version":version,
-                              "truncated":bool(was_truncated)}
-                    if text_bytes < 2_000_000:
-                        excerpt = (f"ZIP member: {path}\n" + text_value).encode("utf-8")
-                        room = 2_000_000 - text_bytes
-                        selected = excerpt[:room].decode("utf-8",errors="ignore")
-                        excerpts.append(selected)
-                        text_bytes += len(selected.encode("utf-8"))
-                        truncated = truncated or len(excerpt) > room
-                    else:
-                        truncated = True
-                except material_processing.ProcessingFailure as exc:
-                    retry = True
-                    record = {"path":path,"status":"Automatic Retry Required",
-                              "size":member["size"],"sha256":member["sha256"],
-                              "failure_code":str(exc.code)[:120]}
-                records.append(record)
-        except ArchiveLimitError as exc:
-            return {"status":"Automatic Retry Required","text":"",
-                    "text_sha256":hashlib.sha256(b"").hexdigest(),
-                    "method":"Bounded ZIP inspection","processor":"SalCAPA ZIP Member Processor",
-                    "processor_version":"1.0.0","truncated":False,
-                    "failure_code":exc.code,"members":records}
-        text_value = "\n".join(excerpts)
-        return {"status":"Automatic Retry Required" if retry else "Complete",
-                "text":text_value,"text_sha256":hashlib.sha256(text_value.encode()).hexdigest(),
-                "method":"Bounded ZIP member inspection with path and hash provenance",
-                "processor":"SalCAPA ZIP Member Processor","processor_version":"1.0.0",
-                "truncated":truncated,"members":records,
-                **({"failure_code":"zip_member_retry_required"} if retry else {})}
+            and os.getenv("SALUS_KNOWLEDGE_ZIP_MEMBERS", "0") == "1"
+            and os.getenv("SALUS_KNOWLEDGE_BULK_DELTA", "0") == "1"):
+        return {
+            "status":"Automatic Retry Required","text":"",
+            "text_sha256":hashlib.sha256(b"").hexdigest(),
+            "method":"Durable, bounded ZIP member indexing queued after source archive",
+            "processor":"SalCAPA ZIP Member Processor","processor_version":"2.0.0",
+            "truncated":False,"failure_code":"zip_member_index_queued",
+        }
     try:
         extension = document.name.rsplit('.', 1)[-1].lower() if '.' in document.name else ''
         if extension in full_processing.CONTENT_TYPES:
@@ -526,7 +483,9 @@ class GraphKnowledgeWriter:
             raise KnowledgePromotionError("Processed intake archive returned an untrusted location")
         return {"item_id": item_id, "web_url": web_url, "etag": str(item.get("eTag", ""))[:512]}
 
-    def verify_already_archived_source(self, item_id: str, sha256: str) -> dict[str, str] | None:
+    def verify_already_archived_source(
+        self, item_id: str, sha256: str, *, include_content: bool = False
+    ) -> dict[str, Any] | None:
         """Reconcile a source moved immediately before a database commit was lost."""
         if not _IDENTIFIER.fullmatch(item_id):
             raise KnowledgePromotionError("Archived source identity is invalid")
@@ -562,7 +521,10 @@ class GraphKnowledgeWriter:
         parsed = urlparse(web_url)
         if parsed.scheme != "https" or not (parsed.hostname or "").endswith(".sharepoint.com"):
             raise KnowledgePromotionError("Archived source location is untrusted")
-        return {"item_id":item_id,"web_url":web_url,"etag":str(item.get("eTag", ""))[:512]}
+        result = {"item_id":item_id,"web_url":web_url,"etag":str(item.get("eTag", ""))[:512]}
+        if include_content:
+            result["content"] = download.content
+        return result
 
 _POSTGRES_SCHEMA_LOCK = threading.Lock()
 _POSTGRES_SCHEMA_READY = False
@@ -671,6 +633,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             intake_config = GovernedM365Config.from_environment()
             intake = GovernedM365Intake(intake_config)
             bulk_enabled = os.getenv("SALUS_KNOWLEDGE_BULK_DELTA", "0") == "1"
+            zip_enabled = bulk_enabled and os.getenv("SALUS_KNOWLEDGE_ZIP_MEMBERS", "0") == "1"
             pending_id = ""
             enterprise_folder_id = ""
             if bulk_enabled:
@@ -780,6 +743,8 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 classification, _ = automatic_classification(
                     document, duplicate=bool(duplicate)
                 )
+                if bulk_enabled:
+                    classification.setdefault("automation", {})["source_route_folder_id"] = enterprise_folder_id
                 extraction_complete = classification["extraction"]["status"] == "Complete"
                 initial_status = "Approved for Promotion" if extraction_complete else "Automatic Retry Required"
                 if candidate_id is not None and current["status"] == "Destination Verified":
@@ -919,6 +884,8 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         ),
                     )
                 conn.commit()
+                if zip_enabled and promoted_this_file and document.name.lower().endswith(".zip"):
+                    enqueue_zip(conn,candidate_id,document.sha256,archived["item_id"])
                 if bulk_enabled:
                     complete_work(db,intake_config.drive_id,pending_id,row,
                                   success=promoted_this_file,
@@ -970,6 +937,78 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                     )
                     conn.commit()
                     automatically_promoted += 1
+            if zip_enabled:
+                create_zip_tables(conn)
+                # Recover enrollment if a process stopped after committing the
+                # verified archive but before committing its ZIP job.
+                archived_zips = conn.execute(
+                    "SELECT c.id,c.source_name,c.source_sha256,c.source_archive_item_id,c.classification_json "
+                    "FROM m365_knowledge_candidates c LEFT JOIN m365_zip_jobs z ON z.candidate_id=c.id "
+                    "WHERE c.status='Ingested and Verified' AND LOWER(c.source_name) LIKE '%.zip' "
+                    "AND c.source_archive_item_id<>'' AND z.candidate_id IS NULL "
+                    "ORDER BY c.id LIMIT 100"
+                ).fetchall()
+                enrolled = 0
+                for candidate in archived_zips:
+                    if enrolled >= 20:
+                        break
+                    classification = json.loads(candidate["classification_json"] or "{}")
+                    if classification.get("automation",{}).get("source_route_folder_id") != enterprise_folder_id:
+                        continue
+                    enqueue_zip(conn,candidate["id"],candidate["source_sha256"],
+                                candidate["source_archive_item_id"])
+                    enrolled += 1
+                zip_jobs = conn.execute(
+                    "SELECT z.candidate_id,z.source_sha256,z.source_archive_item_id,c.classification_json "
+                    "FROM m365_zip_jobs z JOIN m365_knowledge_candidates c ON c.id=z.candidate_id "
+                    "WHERE z.status IN ('Pending','Partial') AND c.status='Ingested and Verified' "
+                    "AND z.next_attempt<=? AND z.lease_until<? "
+                    "ORDER BY z.updated_at,z.candidate_id LIMIT 2",
+                    (int(time.time()),int(time.time())),
+                ).fetchall()
+                for job in zip_jobs:
+                    classification = json.loads(job["classification_json"] or "{}")
+                    if classification.get("automation",{}).get("source_route_folder_id") != enterprise_folder_id:
+                        defer_zip_job(db,job["candidate_id"],"source_route_changed")
+                        continue
+                    try:
+                        if writer is None:
+                            writer = GraphKnowledgeWriter(
+                                intake_config,KnowledgeDestinationConfig.from_environment())
+                        verified = writer.verify_already_archived_source(
+                            job["source_archive_item_id"],job["source_sha256"],include_content=True)
+                        if verified is None:
+                            raise KnowledgePromotionError("ZIP source is outside the verified archive")
+                    except KnowledgePromotionError:
+                        defer_zip_job(db,job["candidate_id"],"archived_zip_read_unavailable")
+                        automatic_retry_required += 1
+                        retry_codes.add("archived_zip_read_unavailable")
+                        continue
+                    def decode_zip_member(content, name, mime):
+                        args = {"worker_timeout_seconds":30} if name.lower().endswith((".wav",".mp3",".mp4")) else {}
+                        return full_processing._decode_media(content,name,mime,**args)[0]
+                    page = process_zip_page(db,job["candidate_id"],verified["content"],
+                                            decode_zip_member,
+                                            failure_types=(material_processing.ProcessingFailure,),limit=20)
+                    if page.get("status") == "Complete":
+                        candidate = conn.execute(
+                            "SELECT classification_json FROM m365_knowledge_candidates WHERE id=?",
+                            (job["candidate_id"],),
+                        ).fetchone()
+                        if candidate:
+                            classification = json.loads(candidate["classification_json"] or "{}")
+                            classification["extraction"] = {
+                                "status":"Complete","text":"",
+                                "text_sha256":hashlib.sha256(b"").hexdigest(),
+                                "method":"Individually indexed bounded ZIP members",
+                                "processor":"SalCAPA ZIP Member Processor","processor_version":"2.0.0",
+                                "truncated":False,"member_count":page["total_entries"],
+                            }
+                            conn.execute(
+                                "UPDATE m365_knowledge_candidates SET classification_json=? WHERE id=?",
+                                (json.dumps(classification,sort_keys=True),job["candidate_id"]),
+                            )
+                            conn.commit()
             if not pending_files and not bulk_enabled:
                 archived_listed = intake.list_files(processed_only=True)
                 listed_by_id = {row["id"]: row for row in archived_listed}
@@ -1068,6 +1107,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         try:
             from salcapa_bulk_delta import create_tables
             create_tables(conn)
+            create_zip_tables(conn)
             rows = conn.execute(
                 "SELECT status,COUNT(*) AS count FROM m365_bulk_items GROUP BY status"
             ).fetchall()
@@ -1085,12 +1125,20 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             cursors = conn.execute(
                 "SELECT phase,last_error,updated_at FROM m365_bulk_cursors"
             ).fetchall()
+            zip_jobs = conn.execute(
+                "SELECT status,COUNT(*) AS count FROM m365_zip_jobs GROUP BY status"
+            ).fetchall()
+            zip_members = conn.execute(
+                "SELECT status,COUNT(*) AS count FROM m365_zip_member_index GROUP BY status"
+            ).fetchall()
             return {
                 "enabled": os.getenv("SALUS_KNOWLEDGE_BULK_DELTA", "0") == "1",
                 "counts": {row["status"]: row["count"] for row in rows},
                 "oldest_open_age_seconds": max(0,int(time.time())-oldest) if oldest else None,
                 "completed_last_24_hours": completed_day,
                 "next_retry_epoch": next_due,
+                "zip_jobs": {row["status"]:row["count"] for row in zip_jobs},
+                "zip_members": {row["status"]:row["count"] for row in zip_members},
                 "cursors": [dict(row) for row in cursors],
             }
         finally:
@@ -1098,6 +1146,42 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
 
     bulk_status.__annotations__["request"] = Request
     app.get("/api/integrations/m365/knowledge/bulk-status", include_in_schema=False)(bulk_status)
+
+    def zip_member_index(candidate_id: int, request, offset: int = 0, limit: int = 20):
+        authority(request)
+        if candidate_id <= 0 or offset < 0 or not 1 <= limit <= 100:
+            raise HTTPException(422,"ZIP member page is invalid")
+        conn = db()
+        try:
+            _init_tables(conn)
+            create_zip_tables(conn)
+            candidate = conn.execute(
+                "SELECT classification_json FROM m365_knowledge_candidates WHERE id=? "
+                "AND status='Ingested and Verified'",(candidate_id,),
+            ).fetchone()
+            if candidate is None or not json.loads(candidate["classification_json"] or "{}").get(
+                "automation",{}
+            ).get("source_route_folder_id"):
+                raise HTTPException(404,"Indexed enterprise source was not found")
+            job = conn.execute(
+                "SELECT status,total_entries,next_ordinal,failure_code FROM m365_zip_jobs "
+                "WHERE candidate_id=?",(candidate_id,),
+            ).fetchone()
+            rows = conn.execute(
+                """SELECT ordinal,member_path,path_sha256,source_sha256,content_sha256,
+                   text_sha256,SUBSTR(content_text,1,2000) AS excerpt,size,status,
+                   failure_code,attempts,next_attempt
+                   FROM m365_zip_member_index WHERE candidate_id=?
+                   ORDER BY ordinal LIMIT ? OFFSET ?""",
+                (candidate_id,limit,offset),
+            ).fetchall()
+            return {"job":dict(job) if job else None,"items":[dict(row) for row in rows],
+                    "offset":offset,"limit":limit}
+        finally:
+            conn.close()
+
+    zip_member_index.__annotations__["request"] = Request
+    app.get("/api/integrations/m365/knowledge/zip-members",include_in_schema=False)(zip_member_index)
 
     def scheduled_scan_loop() -> None:
         interval = max(30, min(int(os.getenv("SALUS_KNOWLEDGE_SCAN_INTERVAL_SECONDS", "60")), 86400))
