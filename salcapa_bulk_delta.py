@@ -288,11 +288,11 @@ def claim_work(connect, drive, pending, *, limit=20, now=None):
         conn.close()
 
 
-def complete_work(connect, drive, pending, item, *, success, reason="", now=None):
+def complete_work(connect, drive, pending, item, *, success, reason="", hold=False, now=None):
     """Commit a version-bound outcome; a changed ETag cannot inherit success."""
     clock = int(time.time() if now is None else now)
     attempts = item["attempts"]
-    delay = 0 if success else min(3600, 30 * (2 ** min(attempts - 1, 7)))
+    delay = 0 if success or hold else min(3600, 30 * (2 ** min(attempts - 1, 7)))
     conn = connect()
     try:
         cursor = conn.execute(
@@ -300,7 +300,8 @@ def complete_work(connect, drive, pending, item, *, success, reason="", now=None
                lease_owner='',lease_until=0,updated_at=?
                WHERE drive_id=? AND pending_id=? AND item_id=? AND etag=?
                  AND lease_owner=? AND status='Working'""",
-            ("Done" if success else "Retry",reason[:120],clock+delay,clock,
+            ("Assignment Required" if hold else "Done" if success else "Retry",
+             reason[:120],clock+delay,clock,
              drive,pending,item["id"],item["etag"],item["lease_owner"]),
         )
         conn.commit()
