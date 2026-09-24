@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Gated batch worker and ZIP development candidate — 24 September 2026
+
+- Development commit `ae7b57abde5d6f504667908719f4923edff8f535` from [PR #523](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/523) passed exact-head CI `35951001491`, CodeQL `35951001515`, contextual intake `35951001507`; the PR was closed without merge and the exact head advanced non-force. It adds a durable discovery ledger but leaves live worker behavior unchanged.
+- The next candidate adds leased 20-file work, retries with backoff, ancestry verification at read time, a status summary, and bounded ZIP member inspection with per-member path/hash or failure reason. It is feature-gated off by default (`SALUS_KNOWLEDGE_BULK_DELTA=0`). ZIP extraction metadata is not yet an independently indexed member record; recovery after a crash between source archival and promotion transaction commit, archived extraction retries under bulk mode, and member-specific routing remain open.
+- No image publication, Azure deployment, live queue drain, 10,000-file live acceptance, or Protected Member isolation is claimed. Continue issue #520 and do not place Protected Member material in the enterprise pending folder.
+
 ## Folder-scoped bulk discovery increment — 24 September 2026
 
 - [PR #522](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/522) validated a read-only pending-folder delta probe at exact head `f0be37eb6d4d768a38be079186ccbd54c885c0a8` with CI `35949960202`, CodeQL `35949960373`, and contextual intake `35949960207`. The PR was closed without merge and that head advanced non-force to development. Protected Azure run `35950366072` confirmed the v3.182 app identity returned HTTP 200, a scoped next link, and removed its temporary diagnostic job.
