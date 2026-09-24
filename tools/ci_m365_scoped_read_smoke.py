@@ -19,7 +19,7 @@ except ModuleNotFoundError:
     sys.modules["azure"]=azure
     sys.modules["azure.identity"]=identity
 
-from salcapa_m365_intake import GovernedM365Intake, GovernedM365Config, M365IntakeError
+from salcapa_m365_intake import GovernedM365Intake, GovernedM365Config, M365IntakeError, M365RouteError
 
 DRIVE="drive-12345678"
 ROOT="root-12345678"
@@ -63,7 +63,14 @@ def check():
     row=dict(id=ITEM,name="x.txt",etag='"one"',size=3,parent_id=FOLDER,
              mime_type="text/plain",ctag="",last_modified="2026-09-24T00:00:00Z",
              source_owner="",source_owner_id="",last_modified_by="",web_url="")
-    assert intake.read_scoped_document(row,pending_folder_id=PENDING).relative_path=="10 Pending Classification/Sub/x.txt"
+    assert intake.read_scoped_document(row,pending_folder_id=PENDING,
+                                      required_ancestor_id=FOLDER).relative_path=="10 Pending Classification/Sub/x.txt"
+    client.calls.clear()
+    try: intake.read_scoped_document(row,pending_folder_id=PENDING,
+                                     required_ancestor_id="enterprise-12345678")
+    except M365RouteError: pass
+    else: raise AssertionError("unassigned source was accepted as enterprise")
+    assert not any(url.endswith("/content") for url in client.calls)
     client.calls.clear()
     client.ancestor_parent=OUTSIDE
     try: intake.read_scoped_document(row,pending_folder_id=PENDING)
