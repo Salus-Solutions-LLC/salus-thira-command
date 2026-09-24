@@ -572,7 +572,10 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             intake_config = GovernedM365Config.from_environment()
             intake = GovernedM365Intake(intake_config)
             print('SALCAPA_WORKER_PHASE=pending_listing_started', flush=True)
-            listed = intake.list_files(pending_only=True, max_files=500)
+            # Rank the complete bounded pending snapshot before selecting the
+            # work batch. A fixed first-file window can keep newer files out
+            # of view forever while earlier items await automatic retries.
+            listed = intake.list_files(pending_only=True)
             print(f'SALCAPA_WORKER_PHASE=pending_listing_done file_count={len(listed)}', flush=True)
             pending_files = [
                 row for row in listed
