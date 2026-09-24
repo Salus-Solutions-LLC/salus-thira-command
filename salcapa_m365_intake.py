@@ -36,6 +36,10 @@ class M365IntakeError(RuntimeError):
     """A fail-closed Microsoft 365 intake error safe for internal handling."""
 
 
+class M365RouteError(M365IntakeError):
+    """Source has no approved enterprise route within the pending subtree."""
+
+
 @dataclass(frozen=True)
 class GovernedM365Config:
     tenant_id: str
@@ -353,6 +357,7 @@ class GovernedM365Intake:
 
     def read_scoped_document(
         self, item: dict[str, Any], *, pending_folder_id: str,
+        required_ancestor_id: str | None = None,
         access_classification: str = "Salus Internal",
     ) -> GovernedM365Document:
         """Read a delta-ledger item after rechecking its live pending-folder ancestry.
@@ -366,6 +371,11 @@ class GovernedM365Intake:
         item_id = str(item.get("id", ""))
         if not _IDENTIFIER.fullmatch(item_id) or not _IDENTIFIER.fullmatch(pending_folder_id):
             raise M365IntakeError("Governed Microsoft 365 item identity is invalid")
+        if required_ancestor_id is not None and (
+            not _IDENTIFIER.fullmatch(required_ancestor_id)
+            or required_ancestor_id == pending_folder_id
+        ):
+            raise M365IntakeError("Approved enterprise source route is invalid")
         if item_id == pending_folder_id:
             raise M365IntakeError("Pending directory cannot be read as a file")
         expected_size = int(item.get("size", -1))
@@ -391,6 +401,7 @@ class GovernedM365Intake:
             raise M365IntakeError("Governed Microsoft 365 item changed after discovery")
         names = [self._safe_path_component(item["name"])]
         seen = {item_id}
+        routed = parent == required_ancestor_id
         while parent != pending_folder_id:
             if parent in seen or len(seen) > 128:
                 raise M365IntakeError("Governed Microsoft 365 folder ancestry is invalid")
@@ -408,6 +419,9 @@ class GovernedM365Intake:
                 raise M365IntakeError("Governed Microsoft 365 folder left the pending subtree")
             names.append(self._safe_path_component(folder.get("name")))
             parent = next_parent
+            routed = routed or parent == required_ancestor_id
+        if required_ancestor_id is not None and not routed:
+            raise M365RouteError("Source has no approved enterprise route")
         path = "10 Pending Classification/" + "/".join(reversed(names))
         verified = dict(item, relative_path=path)
         content = self._read_allowed_item(verified)
