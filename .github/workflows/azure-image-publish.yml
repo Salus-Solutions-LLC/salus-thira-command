@@ -227,6 +227,7 @@ jobs:
               -e "EXPECTED_RELEASE_VERSION=$RELEASE_VERSION" \
               "$IMAGE_REFERENCE" \
               python -c 'import os; import salcapa_runtime as r; expected = os.environ["EXPECTED_RELEASE_VERSION"]; assert r.SALCAPA_RELEASE_VERSION == expected; assert r.app.state.salcapa_release_version == expected'
+            docker run --rm "$IMAGE_REFERENCE" python -c 'import inspect, salcapa_audio_video_processing as media; assert "worker_timeout_seconds" in inspect.signature(media._decode_media).parameters'
             az acr login --name "$REGISTRY_NAME"
             docker push "$IMAGE_REFERENCE"
           fi
