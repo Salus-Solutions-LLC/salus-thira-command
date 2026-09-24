@@ -28,6 +28,7 @@ from salcapa_m365_intake import (
     GovernedM365Config,
     GovernedM365Intake,
     M365IntakeError,
+    M365RouteError,
 )
 from salcapa_bulk_delta import claim_work, complete_work, discover, resolve_pending
 
@@ -671,9 +672,18 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             intake = GovernedM365Intake(intake_config)
             bulk_enabled = os.getenv("SALUS_KNOWLEDGE_BULK_DELTA", "0") == "1"
             pending_id = ""
+            enterprise_folder_id = ""
             if bulk_enabled:
                 discover(intake, db, max_pages=10)
                 pending_id = resolve_pending(intake)
+                enterprise_folder_id = os.getenv(
+                    "SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID", ""
+                ).strip()
+                if (not _IDENTIFIER.fullmatch(enterprise_folder_id)
+                        or enterprise_folder_id == pending_id):
+                    raise KnowledgePromotionError(
+                        "An explicit enterprise source folder is required before bulk work"
+                    )
                 pending_files = claim_work(db, intake_config.drive_id, pending_id, limit=20)
                 listed = pending_files
             else:
@@ -724,9 +734,18 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         continue
                 try:
                     document = (intake.read_scoped_document(
-                        row,pending_folder_id=pending_id,access_classification="Salus Internal"
+                        row,pending_folder_id=pending_id,
+                        required_ancestor_id=enterprise_folder_id,
+                        access_classification="Salus Internal"
                     ) if bulk_enabled else intake.read_listed_document(
                         row, access_classification="Salus Internal"))
+                except M365RouteError:
+                    automatic_retry_required += 1
+                    retry_codes.add("enterprise_route_assignment_required")
+                    complete_work(db,intake_config.drive_id,pending_id,row,
+                                  success=False,reason="enterprise_route_assignment_required",
+                                  hold=True)
+                    continue
                 except M365IntakeError:
                     automatic_retry_required += 1
                     retry_codes.add("source_changed_during_scan")
