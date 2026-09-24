@@ -111,6 +111,8 @@ jobs:
         run: python tools/ci_m365_governed_intake_smoke.py
       - name: Large pending-window pagination regression smoke
         run: python tools/ci_m365_batch_window_smoke.py
+      - name: Folder delta capability probe regression smoke
+        run: python tools/ci_bulk_delta_probe_smoke.py
       - name: Governed Microsoft 365 knowledge-promotion regression smoke
         run: python tools/ci_m365_knowledge_promotion_smoke.py
 
