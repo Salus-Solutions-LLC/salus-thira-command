@@ -157,7 +157,7 @@ def _apply_item(conn, intake, pending, item, clock, generation):
           status=CASE WHEN m365_bulk_items.etag=excluded.etag AND
                            m365_bulk_items.parent_id=excluded.parent_id AND
                            m365_bulk_items.name=excluded.name AND
-                           m365_bulk_items.status IN ('Done','Retry')
+                           m365_bulk_items.status IN ('Done','Retry','Working')
                       THEN m365_bulk_items.status ELSE excluded.status END,
           reason=excluded.reason,
           attempts=CASE WHEN m365_bulk_items.etag=excluded.etag
