@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Enterprise source route validated in development — 24 September 2026
+
+- [PR #526](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/526) passed exact-head CI `35991688085` (validation, PostgreSQL, production container), CodeQL `35991688084`, and contextual intake `35991688098`. The PR was closed without merge; exact head `9f2a66ecca407883973682e59933bd608ddf494e` advanced non-force to `development/salcapa-platform`.
+- The default-off bulk worker requires an explicitly configured enterprise subfolder. Files outside that subfolder are held as `Assignment Required` before source bytes are read. This prevents the new worker from treating unassigned batches as Salus enterprise knowledge when enabled.
+- This does not deploy the worker, establish Protected Member destinations, or complete independent ZIP-member indexing and live load acceptance. The current live worker remains unchanged. Issue #520 is open; customer data must remain outside the current enterprise pending intake until member/engagement routing and access tests are complete.
+
 ## Enterprise-only source boundary candidate — 24 September 2026
 
 - The next development increment requires an explicit `SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID` distinct from the pending root before enabling `SALUS_KNOWLEDGE_BULK_DELTA`. Each claimed file's live ancestor chain must include that enterprise subfolder before source bytes are read. Unmatched files become `Assignment Required` in the durable ledger and are not automatically promoted. Tests cover matched, unmatched, moved-out, and held items.
