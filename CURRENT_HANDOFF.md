@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Bulk recovery validated in development — 24 September 2026
+
+- [PR #525](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/525) passed exact-head CI `35952452997`, CodeQL `35952452983`, and contextual intake `35952452951`. It was closed without merge, and exact head `e0bb42fd0c45c56057596fd23c2a27d1c0485eef` advanced non-force to `development/salcapa-platform`.
+- The delta ledger, default-off leased worker, ancestry check, bounded ZIP inspection, 10,000-nested-file simulation, and archive transaction reconciler are development code. Neither `SALUS_KNOWLEDGE_BULK_DELTA` nor `SALUS_KNOWLEDGE_ZIP_MEMBERS` has been enabled or deployed. The live scanner still uses the old traversal and can silently skip files over 100 MB.
+- Before release: establish explicit per-member/engagement source-to-destination routes and access tests; store independently indexed ZIP members with bounded background work; validate runtime throughput and recovery using staged load; reconcile with the v3.190 runtime repair; run governed release, Azure live acceptance and rollback. Keep Protected Member files out of the current enterprise pending folder. Issue #520 remains open.
+
 ## Archive transaction recovery candidate — 24 September 2026
 
 - [PR #524](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/524) passed exact-head CI `35951900795` (validation, PostgreSQL, production container), CodeQL `35951900958`, and contextual intake `35951900896`. It was closed without merge, and exact head `c05dc3c8021ef0d317d60d9f287dec098db5d7a3` advanced non-force to development. Both bulk worker and ZIP processing remain off by default.
