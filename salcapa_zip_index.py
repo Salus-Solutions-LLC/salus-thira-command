@@ -176,7 +176,11 @@ def process_page(connect, candidate_id, source, decoder, *, failure_types=(), li
             "SELECT MIN(next_attempt) FROM m365_zip_member_index "
             "WHERE candidate_id=? AND status='Retry'",(candidate_id,),
         ).fetchone()[0]
-        status = "Complete" if next_ordinal == total and retry is None else "Partial" if next_ordinal == total else "Pending"
+        reviewed = conn.execute(
+            "SELECT 1 FROM m365_zip_member_index WHERE candidate_id=? AND status='Review' LIMIT 1",
+            (candidate_id,),
+        ).fetchone()
+        status = ("Review" if reviewed else "Complete") if next_ordinal == total and retry is None else "Partial" if next_ordinal == total else "Pending"
         conn.execute(
             """UPDATE m365_zip_jobs SET next_ordinal=?,total_entries=?,status=?,
                failure_code='',next_attempt=?,updated_at=?,lease_owner='',lease_until=0
