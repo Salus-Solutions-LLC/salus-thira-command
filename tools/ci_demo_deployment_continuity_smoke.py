@@ -169,7 +169,14 @@ def main() -> None:
             and build["root_cause"] == "v3.188_abandoned_after_bounded_batch_timeout"
             and build["failed_workflows"] == "v3.188_second_live_batch_timed_out"
         )
-        if abandoned_gap or failed_job_rollout or failed_worker_auth or failed_worker_timeout or failed_release_identity or failed_pending_traversal or failed_recording_timeout:
+        failed_reconstructed_audio = (
+            frozen == (3, 189)
+            and candidate == (3, 190)
+            and version(values["current_stable_release"]) == (3, 182)
+            and build["root_cause"] == "v3.189_image_reconstructed_outdated_audio_module"
+            and build["failed_workflows"] == "v3.189_live_worker_audio_signature_mismatch"
+        )
+        if abandoned_gap or failed_job_rollout or failed_worker_auth or failed_worker_timeout or failed_release_identity or failed_pending_traversal or failed_recording_timeout or failed_reconstructed_audio:
             assert build["validation_pr"] in {"pending", "none"} or build["validation_pr"].isdigit()
         else:
             assert build["validation_pr"].isdigit()
