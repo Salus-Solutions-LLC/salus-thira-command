@@ -123,6 +123,8 @@ jobs:
         run: python tools/ci_m365_knowledge_promotion_smoke.py
       - name: Gated bulk promotion worker regression smoke
         run: python tools/ci_salcapa_bulk_worker_smoke.py
+      - name: Archive move crash reconciliation regression smoke
+        run: python tools/ci_salcapa_bulk_reconcile_smoke.py
 
       - name: Governed M365 material persistence regression
         run: python tools/ci_m365_material_ingestion_smoke.py
