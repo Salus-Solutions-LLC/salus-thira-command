@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## Live Protection Advisor UX check — 24 September 2026
+
+- In a browser, the published Wix page loaded its shell and used an iframe with source `https://salcapa.salus.solutions/protection-advisor/embed`. The embedded form loaded when visited directly; its body still used Georgia at 18px, and its start button remained unfilled. The validated typography and report changes have not been visually accepted in production. The Wix embed's intermittent connection reset remains unresolved; a direct successful load does not establish reliable iframe loading.
+- The Wix page's visible assessment start links target `https://salcapa.salus.solutions/protection-advisor`. Opening that route redirects to the same Wix page, so these calls to action do not enter the assessment. Fix the Wix link targets or make them scroll/focus the working embedded form, then verify desktop and mobile behavior. Wix administration was not accessed in this check.
+
 ## Enterprise ZIP member indexing validated in development — 24 September 2026
 
 - [PR #528](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/528) passed exact-head CI `36038045253` (validation, PostgreSQL, production container), CodeQL `36038044950`, and contextual intake `36038045081` at `7882e1eb841a012cc24e917cde96ffe6bd235431`. The draft PR was closed without merge after validation; the ZIP code was advanced with a non-force, history-preserving development update.
