@@ -104,6 +104,20 @@ HEADERS = {"X-Salus-User": "Information Review Lead", "X-Salus-Tenant": "5", "X-
 
 with tempfile.TemporaryDirectory() as fixture_dir, TestClient(core.app) as client:
     material = fixtures(Path(fixture_dir))
+    original_run = media_processing.subprocess.run
+    def bounded_timeout(*args, **kwargs):
+        assert kwargs["timeout"] == 1
+        raise subprocess.TimeoutExpired(args[0], 1)
+    media_processing.subprocess.run = bounded_timeout
+    try:
+        try:
+            media_processing._run_worker(material["wav"], "wav", timeout_seconds=1)
+        except media_processing.base.ProcessingFailure as exc:
+            assert exc.code == "MEDIA_RESOURCE_LIMIT"
+        else:
+            raise AssertionError("Timed out transcription did not become a retryable processing failure")
+    finally:
+        media_processing.subprocess.run = original_run
     for extension, content_type in (("wav", "audio/wav"), ("mp3", "audio/mpeg"), ("mp4", "video/mp4")):
         original = material[extension]
         response = process(client, upload(client, f"briefing.{extension}", content_type, original))
