@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## Customer batch staging boundary candidate — 24 September 2026
+
+- The live OneDrive `SalCAPA Intake / 10 Pending Classification` folder was read-only inventoried: 194 direct children (108 files, 86 folders), with nested content. It remains the approved enterprise intake queue but is not clearing as required. `docs/build-continuity.md` names v3.182 as the last accepted deployed demonstration and v3.190 as a frozen repair candidate; the exact running Azure image has not been independently queried in this pass. The default-off bulk and ZIP workers remain development-only.
+- This candidate adds `salcapa_customer_batches.py`, an isolated durable batch/assignment ledger and boundary regression. A direct child of a separately configured staging root receives an immutable batch ID. Item paths, versions, and hashes are tracked without promoting to enterprise knowledge. An authorized route check binds one member, engagement, and destination; a completed inventory checkpoint, live ancestry, route, and source checks are required before returning a publication plan. The module has no Graph write, API route, worker invocation, or production flag; no customer material has been uploaded or released.
+- Permission inspection of the existing SalCAPA `Protected Member Records` library root returned inherited SalCAPA Visitors (read) and Members (write). Those permissions do not yet establish the required member/engagement isolation. Do not activate customer staging or publish into that library until a separate restricted destination and app grants are configured and verified.
+- Next: validate this candidate in CI and security checks; implement a dedicated staging source and complete Graph inventory, authorized assignment API, isolated destination provisioning, hash-verified publication and source archival; separately reconcile v3.190 and restore the enterprise queue using governed live acceptance. No Azure deployment or customer acceptance is claimed.
+
 ## Live Protection Advisor UX check — 24 September 2026
 
 - In a browser, the published Wix page loaded its shell and used an iframe with source `https://salcapa.salus.solutions/protection-advisor/embed`. The embedded form loaded when visited directly; its body still used Georgia at 18px, and its start button remained unfilled. The validated typography and report changes have not been visually accepted in production. The Wix embed's intermittent connection reset remains unresolved; a direct successful load does not establish reliable iframe loading.
