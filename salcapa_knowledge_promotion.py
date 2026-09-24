@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import mimetypes
 import os
 import re
 import threading
@@ -18,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 import salcapa_audio_video_processing as full_processing
 import salcapa_material_processing as material_processing
+from salcapa_zip_members import ArchiveLimitError, iter_zip_members
 
 from salcapa_m365_intake import (
     ASSERTION_SCOPE,
@@ -27,6 +29,7 @@ from salcapa_m365_intake import (
     GovernedM365Intake,
     M365IntakeError,
 )
+from salcapa_bulk_delta import claim_work, complete_work, discover, resolve_pending
 
 PENDING_PREFIX = "10 Pending Classification/"
 DECISIONS = {"Approved", "Deferred", "Duplicate", "Unsupported", "Sensitive", "Excluded"}
@@ -83,6 +86,58 @@ def _extract_all_accessible_content(document) -> dict[str, Any]:
         or getattr(document, "content_type", "")
         or "application/octet-stream"
     )
+    if document.name.lower().endswith(".zip"):
+        records = []
+        excerpts = []
+        text_bytes = 0
+        retry = False
+        truncated = False
+        try:
+            for member in iter_zip_members(document.content):
+                path = member["path"]
+                if member["status"] != "Ready":
+                    retry = True
+                    records.append({key:member[key] for key in ("path","status","reason","size")})
+                    continue
+                member_type = mimetypes.guess_type(path)[0] or "application/octet-stream"
+                try:
+                    extracted = full_processing._decode_media(
+                        member["content"],path,member_type,
+                        **({"worker_timeout_seconds":30} if path.lower().endswith((".wav",".mp3",".mp4")) else {}),
+                    )
+                    text_value, method, was_truncated, processor, version = extracted
+                    record = {"path":path,"status":"Complete","size":member["size"],
+                              "sha256":member["sha256"],"text_sha256":hashlib.sha256(text_value.encode()).hexdigest(),
+                              "method":method,"processor":processor,"processor_version":version,
+                              "truncated":bool(was_truncated)}
+                    if text_bytes < 2_000_000:
+                        excerpt = (f"ZIP member: {path}\n" + text_value).encode("utf-8")
+                        room = 2_000_000 - text_bytes
+                        selected = excerpt[:room].decode("utf-8",errors="ignore")
+                        excerpts.append(selected)
+                        text_bytes += len(selected.encode("utf-8"))
+                        truncated = truncated or len(excerpt) > room
+                    else:
+                        truncated = True
+                except material_processing.ProcessingFailure as exc:
+                    retry = True
+                    record = {"path":path,"status":"Automatic Retry Required",
+                              "size":member["size"],"sha256":member["sha256"],
+                              "failure_code":str(exc.code)[:120]}
+                records.append(record)
+        except ArchiveLimitError as exc:
+            return {"status":"Automatic Retry Required","text":"",
+                    "text_sha256":hashlib.sha256(b"").hexdigest(),
+                    "method":"Bounded ZIP inspection","processor":"SalCAPA ZIP Member Processor",
+                    "processor_version":"1.0.0","truncated":False,
+                    "failure_code":exc.code,"members":records}
+        text_value = "\n".join(excerpts)
+        return {"status":"Automatic Retry Required" if retry else "Complete",
+                "text":text_value,"text_sha256":hashlib.sha256(text_value.encode()).hexdigest(),
+                "method":"Bounded ZIP member inspection with path and hash provenance",
+                "processor":"SalCAPA ZIP Member Processor","processor_version":"1.0.0",
+                "truncated":truncated,"members":records,
+                **({"failure_code":"zip_member_retry_required"} if retry else {})}
     try:
         extension = document.name.rsplit('.', 1)[-1].lower() if '.' in document.name else ''
         if extension in full_processing.CONTENT_TYPES:
@@ -571,32 +626,38 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         try:
             intake_config = GovernedM365Config.from_environment()
             intake = GovernedM365Intake(intake_config)
-            print('SALCAPA_WORKER_PHASE=pending_listing_started', flush=True)
-            # Rank the complete bounded pending snapshot before selecting the
-            # work batch. A fixed first-file window can keep newer files out
-            # of view forever while earlier items await automatic retries.
-            listed = intake.list_files(pending_only=True)
-            print(f'SALCAPA_WORKER_PHASE=pending_listing_done file_count={len(listed)}', flush=True)
-            pending_files = [
-                row for row in listed
-                if row["relative_path"].startswith(PENDING_PREFIX)
-            ]
+            bulk_enabled = os.getenv("SALUS_KNOWLEDGE_BULK_DELTA", "0") == "1"
+            pending_id = ""
+            if bulk_enabled:
+                discover(intake, db, max_pages=10)
+                pending_id = resolve_pending(intake)
+                pending_files = claim_work(db, intake_config.drive_id, pending_id, limit=20)
+                listed = pending_files
+            else:
+                print('SALCAPA_WORKER_PHASE=pending_listing_started', flush=True)
+                # Retain the bounded legacy behavior until the bulk route is
+                # governed, validated, and explicitly enabled for enterprise data.
+                listed = intake.list_files(pending_only=True)
+                print(f'SALCAPA_WORKER_PHASE=pending_listing_done file_count={len(listed)}', flush=True)
+                pending_files = [
+                    row for row in listed
+                    if row["relative_path"].startswith(PENDING_PREFIX)
+                ]
             conn = db()
             _init_tables(conn)
-            prior = {
-                (row["source_item_id"], row["source_etag"]): dict(row)
-                for row in conn.execute(
-                    "SELECT source_item_id,source_etag,status,reviewed_at "
-                    "FROM m365_knowledge_candidates"
-                ).fetchall()
-            }
-            # Job invocations do not share memory. Prioritize never-seen files,
-            # then the oldest retry, so a stubborn file cannot stall the queue.
-            pending_files.sort(key=lambda row: (
-                1 if (row["id"], row["etag"]) in prior else 0,
-                str(prior.get((row["id"], row["etag"]), {}).get("reviewed_at") or ""),
-                row["relative_path"],
-            ))
+            if not bulk_enabled:
+                prior = {
+                    (row["source_item_id"], row["source_etag"]): dict(row)
+                    for row in conn.execute(
+                        "SELECT source_item_id,source_etag,status,reviewed_at "
+                        "FROM m365_knowledge_candidates"
+                    ).fetchall()
+                }
+                pending_files.sort(key=lambda row: (
+                    1 if (row["id"], row["etag"]) in prior else 0,
+                    str(prior.get((row["id"], row["etag"]), {}).get("reviewed_at") or ""),
+                    row["relative_path"],
+                ))
             files = pending_files[:20]
             print(f'SALCAPA_WORKER_PHASE=batch_selected file_count={len(files)}', flush=True)
             listed_by_id = {row["id"]: row for row in listed}
@@ -608,13 +669,27 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             writer = None
             for index, row in enumerate(files, 1):
                 print(f'SALCAPA_WORKER_PHASE=file_started index={index}', flush=True)
+                promoted_this_file = False
+                if bulk_enabled:
+                    completed = conn.execute(
+                        "SELECT id FROM m365_knowledge_candidates WHERE source_drive_id=? "
+                        "AND source_item_id=? AND source_etag=? AND status='Ingested and Verified'",
+                        (intake_config.drive_id,row["id"],row["etag"]),
+                    ).fetchone()
+                    if completed:
+                        complete_work(db,intake_config.drive_id,pending_id,row,success=True)
+                        continue
                 try:
-                    document = intake.read_listed_document(
-                        row, access_classification="Salus Internal"
-                    )
+                    document = (intake.read_scoped_document(
+                        row,pending_folder_id=pending_id,access_classification="Salus Internal"
+                    ) if bulk_enabled else intake.read_listed_document(
+                        row, access_classification="Salus Internal"))
                 except M365IntakeError:
                     automatic_retry_required += 1
                     retry_codes.add("source_changed_during_scan")
+                    if bulk_enabled:
+                        complete_work(db,intake_config.drive_id,pending_id,row,
+                                      success=False,reason="source_changed_during_scan")
                     continue
                 existing = conn.execute(
                     "SELECT id FROM m365_knowledge_candidates "
@@ -626,6 +701,8 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         "SELECT * FROM m365_knowledge_candidates WHERE id=?", (existing["id"],)
                     ).fetchone()
                     if current["status"] != "Automatic Retry Required":
+                        if bulk_enabled:
+                            complete_work(db,intake_config.drive_id,pending_id,row,success=True)
                         continue
                     candidate_id = current["id"]
                 else:
@@ -745,6 +822,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         ),
                     )
                     automatically_promoted += 1
+                    promoted_this_file = True
                 except KnowledgePromotionError as exc:
                     automatic_retry_required += 1
                     retry_codes.add(promotion_retry_code(exc))
@@ -762,8 +840,12 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         ),
                     )
                 conn.commit()
+                if bulk_enabled:
+                    complete_work(db,intake_config.drive_id,pending_id,row,
+                                  success=promoted_this_file,
+                                  reason="" if promoted_this_file else "promotion_retry_required")
                 print(f'SALCAPA_WORKER_PHASE=file_done index={index} promoted={automatically_promoted} retry={automatic_retry_required}', flush=True)
-            if not pending_files:
+            if not pending_files and not bulk_enabled:
                 archived_listed = intake.list_files(processed_only=True)
                 listed_by_id = {row["id"]: row for row in archived_listed}
             # Extraction obligations survive promotion. Retry against the exact
@@ -772,7 +854,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "SELECT id,source_sha256,source_archive_item_id,classification_json "
                 "FROM m365_knowledge_candidates WHERE status='Ingested and Verified' "
                 "AND source_archive_item_id IS NOT NULL"
-            ).fetchall() if not pending_files else []
+            ).fetchall() if not pending_files and not bulk_enabled else []
             for pending in archived_retries:
                 classification = json.loads(pending["classification_json"] or "{}")
                 if classification.get("extraction", {}).get("status") != "Automatic Retry Required":
@@ -854,6 +936,29 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
 
     scan.__annotations__["request"] = Request
     app.post("/api/integrations/m365/knowledge/scan", include_in_schema=False)(scan)
+
+    def bulk_status(request):
+        authority(request)
+        conn = db()
+        try:
+            from salcapa_bulk_delta import create_tables
+            create_tables(conn)
+            rows = conn.execute(
+                "SELECT status,COUNT(*) AS count FROM m365_bulk_items GROUP BY status"
+            ).fetchall()
+            cursors = conn.execute(
+                "SELECT phase,last_error,updated_at FROM m365_bulk_cursors"
+            ).fetchall()
+            return {
+                "enabled": os.getenv("SALUS_KNOWLEDGE_BULK_DELTA", "0") == "1",
+                "counts": {row["status"]: row["count"] for row in rows},
+                "cursors": [dict(row) for row in cursors],
+            }
+        finally:
+            conn.close()
+
+    bulk_status.__annotations__["request"] = Request
+    app.get("/api/integrations/m365/knowledge/bulk-status", include_in_schema=False)(bulk_status)
 
     def scheduled_scan_loop() -> None:
         interval = max(30, min(int(os.getenv("SALUS_KNOWLEDGE_SCAN_INTERVAL_SECONDS", "60")), 86400))
