@@ -990,7 +990,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                     page = process_zip_page(db,job["candidate_id"],verified["content"],
                                             decode_zip_member,
                                             failure_types=(material_processing.ProcessingFailure,),limit=20)
-                    if page.get("status") == "Complete":
+                    if page.get("status") in {"Complete","Review"}:
                         candidate = conn.execute(
                             "SELECT classification_json FROM m365_knowledge_candidates WHERE id=?",
                             (job["candidate_id"],),
@@ -998,11 +998,11 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         if candidate:
                             classification = json.loads(candidate["classification_json"] or "{}")
                             classification["extraction"] = {
-                                "status":"Complete","text":"",
+                                "status":"Complete" if page["status"] == "Complete" else "Review Required","text":"",
                                 "text_sha256":hashlib.sha256(b"").hexdigest(),
                                 "method":"Individually indexed bounded ZIP members",
                                 "processor":"SalCAPA ZIP Member Processor","processor_version":"2.0.0",
-                                "truncated":False,"member_count":page["total_entries"],
+                                "truncated":False,"entry_count":page["total_entries"],
                             }
                             conn.execute(
                                 "UPDATE m365_knowledge_candidates SET classification_json=? WHERE id=?",
