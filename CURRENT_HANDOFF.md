@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Wix Protection Advisor entry links published — 24 September 2026
+
+- Marc's existing Wix administration and publication authorization was applied on the Salus Solutions New site. The published page at https://www.salus.solutions/protection-advisor now has all ten assessment actions linked to https://salcapa.salus.solutions/protection-advisor/embed. A fresh live-page inspection found zero assessment actions pointing to the redirecting /protection-advisor route. A live click on “Begin Your Protection Assessment >” opened the embedded-app route with the Part 1 anonymous form and organization selector.
+- The iframe on the published Wix page loaded the Part 1 form after a delay in this browser, but Wix's separate “Preparing your assessment…” placeholder remained visible. Intermittent iframe connection reset and signed-in Part 2 were not acceptance-tested. Wix's mobile editor view showed narrow, tightly wrapped long-form action text; mobile usability remains an open UX task. The SalCAPA form typography and report updates remain validated in development only, with no live release claimed here.
+- Next Protection Advisor action: inspect mobile experience and remove the stale Wix loading placeholder after confirming reliable iframe load; coordinate the governed SalCAPA release for typography/report changes with document-worker acceptance, then visually inspect live Part 2, DOCX/PDF, and public print/save outputs against the approved example.
+
 ## Customer batch staging boundary validated in development — 24 September 2026
 
 - The live OneDrive `SalCAPA Intake / 10 Pending Classification` folder was read-only inventoried: 194 direct children (108 files, 86 folders), with nested content. It remains the approved enterprise intake queue but is not clearing as required. `docs/build-continuity.md` names v3.182 as the last accepted deployed demonstration and v3.190 as a frozen repair candidate; the exact running Azure image has not been independently queried in this pass. The default-off bulk and ZIP workers remain development-only.
