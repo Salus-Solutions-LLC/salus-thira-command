@@ -45,7 +45,7 @@ def check():
             return blob.decode("utf-8")
         assert process_page(connect,42,source,decoder,limit=2,now=101)["next_ordinal"]==2
         assert process_page(connect,42,source,decoder,limit=2,now=102)["next_ordinal"]==4
-        assert process_page(connect,42,source,decoder,limit=2,now=103)["status"]=="Complete"
+        assert process_page(connect,42,source,decoder,limit=2,now=103)["status"]=="Review"
         with connect() as conn:
             rows=conn.execute("SELECT ordinal,status FROM m365_zip_member_index ORDER BY ordinal").fetchall()
             assert [(r["ordinal"],r["status"]) for r in rows]==[
