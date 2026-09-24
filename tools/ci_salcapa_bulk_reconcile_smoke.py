@@ -67,8 +67,10 @@ def check():
         saved={name:getattr(promotion,name) for name in (
             "GovernedM365Intake","GraphKnowledgeWriter","discover","resolve_pending","claim_work")}
         prior=os.environ.get("SALUS_KNOWLEDGE_BULK_DELTA")
+        prior_route=os.environ.get("SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID")
         try:
             os.environ["SALUS_KNOWLEDGE_BULK_DELTA"]="1"
+            os.environ["SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID"]="enterprise-12345678"
             promotion.GovernedM365Intake=lambda config: object()
             promotion.GraphKnowledgeWriter=lambda *args: writer
             promotion.discover=lambda *args,**kwargs: {"pages":0}
@@ -89,6 +91,8 @@ def check():
             for name,value in saved.items(): setattr(promotion,name,value)
             if prior is None: os.environ.pop("SALUS_KNOWLEDGE_BULK_DELTA",None)
             else: os.environ["SALUS_KNOWLEDGE_BULK_DELTA"]=prior
+            if prior_route is None: os.environ.pop("SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID",None)
+            else: os.environ["SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID"]=prior_route
     print("bulk archive reconciliation smoke passed")
 
 
