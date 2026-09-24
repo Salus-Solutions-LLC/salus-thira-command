@@ -84,9 +84,15 @@ def _extract_all_accessible_content(document) -> dict[str, Any]:
         or "application/octet-stream"
     )
     try:
-        text, method, truncated, processor, processor_version = full_processing._decode_media(
-            document.content, document.name, content_type
-        )
+        extension = document.name.rsplit('.', 1)[-1].lower() if '.' in document.name else ''
+        if extension in full_processing.CONTENT_TYPES:
+            text, method, truncated, processor, processor_version = full_processing._decode_media(
+                document.content, document.name, content_type, worker_timeout_seconds=30
+            )
+        else:
+            text, method, truncated, processor, processor_version = full_processing._decode_media(
+                document.content, document.name, content_type
+            )
         return {
             "status": "Complete",
             "text": text,
