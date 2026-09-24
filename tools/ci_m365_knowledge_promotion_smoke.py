@@ -34,6 +34,26 @@ def main():
     automated, reason = automatic_classification(assessment, duplicate=False)
     assert reason == ""
     assert automated["target_folder"] == "05 Research and Reference"
+    import salcapa_knowledge_promotion as promotion
+    import salcapa_material_processing as material
+    original_decode = promotion.full_processing._decode_media
+    observed = []
+    def timed_recording(_data, _name, _type, *, worker_timeout_seconds):
+        observed.append(worker_timeout_seconds)
+        raise material.ProcessingFailure(
+            "MEDIA_RESOURCE_LIMIT", "The recording exceeded its bounded processing time."
+        )
+    promotion.full_processing._decode_media = timed_recording
+    try:
+        recording, _ = automatic_classification(
+            SimpleNamespace(name="recording.mp3", content=b"ID3", mime_type="audio/mpeg"),
+            duplicate=False,
+        )
+    finally:
+        promotion.full_processing._decode_media = original_decode
+    assert observed == [30]
+    assert recording["extraction"]["status"] == "Automatic Retry Required"
+    assert "Automatic Extraction Retry Required" in recording["processing_flags"]
     assert automated["permit_products"] == ["SalCAPA", "SalINTEL", "SalTHIRA"]
     citation = automated["citation_metadata"]
     assert citation["document_title"] == "Strategic assessment research"
