@@ -247,6 +247,57 @@ def discover(intake, connect, *, max_pages=10, now=None):
         conn.close()
 
 
+def checkpoint_oversize(connect, drive, pending, items, *, now=None):
+    """Retain legacy scanner size holds without reading bytes or claiming work.
+
+    The legacy listing remains bounded; this checkpoints only files actually
+    seen in its pass. The full delta scan separately discovers the full tree.
+    """
+    if not _IDENTIFIER.fullmatch(drive) or not _IDENTIFIER.fullmatch(pending):
+        raise M365IntakeError("Oversize checkpoint scope is invalid")
+    clock = int(time.time() if now is None else now)
+    conn = connect()
+    try:
+        create_tables(conn)
+        for item in items:
+            item_id = str(item.get("id", ""))
+            parent = str(item.get("parent_id", ""))
+            if (not _IDENTIFIER.fullmatch(item_id)
+                    or not _IDENTIFIER.fullmatch(parent)
+                    or not item.get("etag") or int(item.get("size", -1)) < 0):
+                raise M365IntakeError("Oversize source metadata is incomplete")
+            metadata = {key: item.get(key, "") for key in (
+                "relative_path", "mime_type", "last_modified", "ctag",
+                "source_owner", "source_owner_id", "last_modified_by", "web_url",
+            )}
+            conn.execute(
+                """INSERT INTO m365_bulk_items
+                (drive_id,pending_id,item_id,parent_id,name,kind,etag,size,
+                 metadata_json,status,reason,updated_at)
+                VALUES(?,?,?,?,?,'file',?,?,?,'Oversize','file_size_limit',?)
+                ON CONFLICT(drive_id,pending_id,item_id) DO UPDATE SET
+                  parent_id=excluded.parent_id,name=excluded.name,etag=excluded.etag,
+                  size=excluded.size,metadata_json=excluded.metadata_json,
+                  status=CASE WHEN m365_bulk_items.etag=excluded.etag
+                                   AND m365_bulk_items.status='Done'
+                              THEN 'Done' ELSE 'Oversize' END,
+                  reason=CASE WHEN m365_bulk_items.etag=excluded.etag
+                                   AND m365_bulk_items.status='Done'
+                              THEN m365_bulk_items.reason ELSE 'file_size_limit' END,
+                  updated_at=excluded.updated_at""",
+                (drive,pending,item_id,parent,str(item.get("name", ""))[:512],
+                 str(item["etag"])[:512],int(item["size"]),
+                 json.dumps(metadata,sort_keys=True),clock),
+            )
+        conn.commit()
+        return len(items)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def claim_work(connect, drive, pending, *, limit=20, now=None):
     """Lease due files in oldest-first order across competing worker replicas."""
     if not 1 <= limit <= 100:

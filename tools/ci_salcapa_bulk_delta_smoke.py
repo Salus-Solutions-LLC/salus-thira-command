@@ -18,7 +18,9 @@ except ModuleNotFoundError:
     class M365IntakeError(RuntimeError): pass
     module.M365IntakeError=M365IntakeError
     sys.modules["salcapa_m365_intake"]=module
-from salcapa_bulk_delta import discover, claim_work, complete_work, _scoped_link
+from salcapa_bulk_delta import (
+    checkpoint_oversize, discover, claim_work, complete_work, _scoped_link,
+)
 from salcapa_m365_intake import M365IntakeError
 
 
@@ -146,6 +148,18 @@ def check():
             conn.execute("UPDATE m365_bulk_items SET etag='new' WHERE item_id='file-00010002'")
             conn.commit()
         assert not complete_work(connect,DRIVE,PENDING,work[1],success=True,now=604)
+        # A size hold survives restart and cannot be leased for byte processing.
+        held = dict(id="file-99999999",parent_id="folder-00000001",name="large.bin",
+                    etag='"large-v1"',size=101,relative_path="10 Pending Classification/large.bin",
+                    last_modified="2026-09-24T00:00:00Z")
+        assert checkpoint_oversize(connect,DRIVE,PENDING,[held],now=700)==1
+        with connect() as conn:
+            saved=conn.execute("SELECT status,reason,metadata_json FROM m365_bulk_items "
+                               "WHERE item_id=?",(held["id"],)).fetchone()
+            assert saved["status"]=="Oversize" and saved["reason"]=="file_size_limit"
+            assert "large.bin" in saved["metadata_json"]
+        assert not any(row["id"]==held["id"] for row in
+                       claim_work(connect,DRIVE,PENDING,limit=100,now=701))
     print("bulk delta smoke passed")
 
 

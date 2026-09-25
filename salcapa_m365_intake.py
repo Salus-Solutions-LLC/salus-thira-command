@@ -106,6 +106,17 @@ class GovernedM365Intake:
         self._token: tuple[str, int] | None = None
         self._listed_folder_ids: set[str] = set()
         self._listed_items: dict[str, dict[str, Any]] = {}
+        self._oversize_items: list[dict[str, Any]] = []
+        self._pending_folder_id = ""
+
+    @property
+    def oversize_items(self) -> list[dict[str, Any]]:
+        """Metadata only; oversized source bytes are never read by this scanner."""
+        return [item.copy() for item in self._oversize_items]
+
+    @property
+    def pending_folder_id(self) -> str:
+        return self._pending_folder_id
 
     def _graph_token(self) -> str:
         now = int(time.time())
@@ -191,6 +202,8 @@ class GovernedM365Intake:
         visited_items: set[str] = set()
         result: list[dict[str, Any]] = []
         discovered = 0
+        self._oversize_items = []
+        self._pending_folder_id = ""
 
         while folders:
             folder_id, folder_path, depth = folders.pop(0)
@@ -280,14 +293,16 @@ class GovernedM365Intake:
                         or (processed_only and name != "90 Processed Intake")
                     ):
                         continue
+                    if pending_only and not folder_path:
+                        self._pending_folder_id = item_id
                     folders.append((item_id, relative_path, depth + 1))
                     continue
                 if "file" not in item:
                     continue
 
                 size = int(item.get("size", -1))
-                if size < 0 or size > self.config.max_file_bytes:
-                    continue
+                if size < 0:
+                    raise M365IntakeError("Governed Microsoft 365 item size was invalid")
                 etag = str(item.get("eTag", ""))[:512]
                 last_modified = str(item.get("lastModifiedDateTime", ""))[:64]
                 if not etag or not last_modified:
@@ -296,8 +311,9 @@ class GovernedM365Intake:
                     )
                 source_owner, source_owner_id = self._identity(item.get("createdBy"))
                 last_modified_by, _ = self._identity(item.get("lastModifiedBy"))
-                result.append({
+                record = {
                     "id": item_id,
+                    "parent_id": folder_id,
                     "name": name,
                     "relative_path": relative_path,
                     "size": size,
@@ -309,7 +325,11 @@ class GovernedM365Intake:
                     "source_owner_id": source_owner_id,
                     "last_modified_by": last_modified_by,
                     "web_url": self._trusted_source_url(item.get("webUrl")),
-                })
+                }
+                if size > self.config.max_file_bytes:
+                    self._oversize_items.append(record)
+                    continue
+                result.append(record)
                 if max_files is not None and len(result) >= max_files:
                     folders.clear()
                     break

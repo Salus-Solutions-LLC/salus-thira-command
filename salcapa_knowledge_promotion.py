@@ -30,7 +30,9 @@ from salcapa_m365_intake import (
     M365IntakeError,
     M365RouteError,
 )
-from salcapa_bulk_delta import claim_work, complete_work, discover, resolve_pending
+from salcapa_bulk_delta import (
+    checkpoint_oversize, claim_work, complete_work, discover, resolve_pending,
+)
 
 PENDING_PREFIX = "10 Pending Classification/"
 DECISIONS = {"Approved", "Deferred", "Duplicate", "Unsupported", "Sensitive", "Excluded"}
@@ -655,6 +657,12 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 # its pass within a finite Graph window while the separately
                 # routed delta worker is validated for the complete backlog.
                 listed = intake.list_files(pending_only=True, max_files=1000)
+                oversize_items = getattr(intake, "oversize_items", [])
+                oversize_held = checkpoint_oversize(
+                    db, intake_config.drive_id, intake.pending_folder_id,
+                    oversize_items,
+                ) if oversize_items else 0
+                print(f'SALCAPA_WORKER_PHASE=oversize_checkpointed count={oversize_held}', flush=True)
                 print(f'SALCAPA_WORKER_PHASE=pending_listing_done file_count={len(listed)}', flush=True)
                 pending_files = [
                     row for row in listed
@@ -1069,6 +1077,8 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "exception_review": 0,
                 "candidate_count": total,
             }
+            if not bulk_enabled:
+                result["oversize_held"] = oversize_held
             app.state.knowledge_processing = {
                 "state": "completed",
                 "last_discovered": len(files),
@@ -1112,6 +1122,11 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             rows = conn.execute(
                 "SELECT status,COUNT(*) AS count FROM m365_bulk_items GROUP BY status"
             ).fetchall()
+            oversize_rows = conn.execute(
+                "SELECT item_id,name,size,reason,updated_at,metadata_json "
+                "FROM m365_bulk_items WHERE status='Oversize' "
+                "ORDER BY updated_at,item_id LIMIT 50"
+            ).fetchall()
             oldest = conn.execute(
                 "SELECT MIN(updated_at) FROM m365_bulk_items "
                 "WHERE status IN ('Pending','Retry','Working')"
@@ -1135,6 +1150,13 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             return {
                 "enabled": os.getenv("SALUS_KNOWLEDGE_BULK_DELTA", "0") == "1",
                 "counts": {row["status"]: row["count"] for row in rows},
+                "oversize_items": [
+                    {"item_id": row["item_id"], "name": row["name"],
+                     "size_bytes": row["size"], "reason": row["reason"],
+                     "last_seen_epoch": row["updated_at"],
+                     "relative_path": json.loads(row["metadata_json"]).get("relative_path", "")}
+                    for row in oversize_rows
+                ],
                 "oldest_open_age_seconds": max(0,int(time.time())-oldest) if oldest else None,
                 "completed_last_24_hours": completed_day,
                 "next_retry_epoch": next_due,

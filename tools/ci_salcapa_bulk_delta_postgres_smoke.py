@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0,os.path.dirname(os.path.dirname(__file__)))
 from database import connect_database
-from salcapa_bulk_delta import discover,claim_work,complete_work
+from salcapa_bulk_delta import checkpoint_oversize,discover,claim_work,complete_work
 from ci_salcapa_bulk_delta_smoke import Client,Intake,Response,BASE,file,DRIVE,PENDING
 
 
@@ -20,10 +20,14 @@ def check():
     assert len(work)==2
     assert complete_work(connect_database,DRIVE,PENDING,work[0],success=True,now=1002)
     assert complete_work(connect_database,DRIVE,PENDING,work[1],success=False,reason="retry",now=1002)
+    checkpoint_oversize(connect_database,DRIVE,PENDING,[dict(
+        id="file-00999999",parent_id="folder-00000001",name="large.bin",
+        etag='"large"',size=101,relative_path="10 Pending Classification/large.bin",
+    )],now=1003)
     conn=connect_database()
     try:
         rows=conn.execute("SELECT status FROM m365_bulk_items ORDER BY item_id").fetchall()
-        assert [row["status"] for row in rows]==["Done","Retry"]
+        assert [row["status"] for row in rows]==["Done","Retry","Oversize"]
     finally:
         conn.execute("DROP TABLE IF EXISTS m365_bulk_items")
         conn.execute("DROP TABLE IF EXISTS m365_bulk_cursors")

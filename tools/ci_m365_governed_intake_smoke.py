@@ -113,7 +113,8 @@ class Client:
                  "webUrl": "https://salussolutions.sharepoint.com/sites/approved/governed.pdf"},
                 {"id": "01DBTAFUFOLDER0001", "name": "nested", "size": 0, "folder": {"childCount": 2}},
                 {"id": "01DBTAFUTOOLARGE001", "name": "large.bin", "size": 11,
-                 "file": {"mimeType": "application/octet-stream"}},
+                 "file": {"mimeType": "application/octet-stream"},
+                 "eTag": "etag-large-v1", "lastModifiedDateTime": "2026-09-17T00:00:00Z"},
             ]})
         if url.endswith("/01DBTAFUVALIDFILE01/content"):
             assert headers["If-Match"] == "etag-v1"
@@ -165,6 +166,9 @@ def main():
         "nested/nested.docx",
         "nested/deeper/deep.pdf",
     ]
+    assert len(intake.oversize_items) == 1
+    assert intake.oversize_items[0]["name"] == "large.bin"
+    assert intake.oversize_items[0]["size"] == 11
     assert intake.read_file("01DBTAFUNESTEDFILE1") == b"safe"
     assert intake.read_file("01DBTAFUDEEPFILE001") == b"safe"
     assert intake.read_file("01DBTAFUVALIDFILE01") == b"safe"
