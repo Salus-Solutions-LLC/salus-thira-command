@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## Bulk-worker routing decision and automatic review block — 25 September 2026, 15:19 CDT
+
+- Marc selected mixed routing for the existing pending backlog: process clear Salus reference material and hold organization-specific/client-derived files until approved Protected Member and engagement assignment. The existing root contains organization-named folders; the new `20 Salus Enterprise Knowledge` folder is empty. The live v3.196 path is still the legacy 20-file scan every 15 minutes; the built delta/leased bulk worker is disabled because its explicit enterprise source is unpopulated and customer destinations are not accepted.
+- Automatic approval review rejected a proposed move of whole `HSEEP Guidance and Compliance` and `Research & Reference` folders into the enterprise subfolder. It found unverified nested material could cross the enterprise boundary and explicitly forbade an indirect workaround. No folders or files moved. Continue with exact file-level inventory and authorization, not a broad inferred folder move. Issue #520 has the checkpoint.
+
 ## Live intake and About-page checkpoint — 25 September 2026, 15:12 CDT
 
 - Governed v3.196 deployment run `36099965934` reported `SALCAPA_KNOWLEDGE_BATCH`: 20 discovered/created, 18 automatically promoted, 15 automatic retries required, 3 oversize held, and 1,279 candidate records. This is a successful bounded pass, not a full drain or 10,000-file acceptance.
