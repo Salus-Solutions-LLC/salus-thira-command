@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 23 September 2026 13:46 CDT
-current_frozen_release: v3.189
-current_frozen_commit: 52c85616510abc6c54896deec1ece39c193e9195
+last_verified_at: 24 September 2026 22:58 CDT
+current_frozen_release: v3.194
+current_frozen_commit: 8667fbe7776b7109338d638abf152f40d95f2a7c
 active_development_branch: development/salcapa-platform
-current_development_head: becbc00f592c2dc37b41fb29de6e9dffe04ab459
-active_product_milestone: issue_370_governed_knowledge_promotion
-active_build_system_issue: 370
-active_increment: fix_reconstructed_audio_runtime_v3190
-last_completed_increment: v3189_partial_live_batch_reconstructed_audio_signature_failure
-candidate_release: v3.190
-validation_pr: pending
-validation_branch: none
+current_development_head: 9c88ae561d498b53d126863fe1c9ced52f8c276b
+active_product_milestone: issue_520_dependable_governed_intake
+active_build_system_issue: 520
+active_increment: oversize_visibility_v3195_corrected_runtime_identity
+last_completed_increment: v3194_oversize_ledger_frozen_identity_mismatch
+candidate_release: v3.195
+validation_pr: 537
+validation_branch: candidate/v3.195-runtime-identity
 validation_base: development/salcapa-platform
-validation_head: becbc00f592c2dc37b41fb29de6e9dffe04ab459
-validation_gate_state: preflight
-failed_workflows: v3.189_live_worker_audio_signature_mismatch
-first_root_failing_gate: built_image_audio_api_did_not_match_reviewed_source
-root_cause: v3.189_image_reconstructed_outdated_audio_module
-repair_head: becbc00f592c2dc37b41fb29de6e9dffe04ab459
-repair_summary: run_checked_in_audio_source_and_verify_bounded_signature_inside_built_image
-genuine_blockers: v3.183_through_v3.189_superseded_before_live_acceptance
-next_authorized_step: validate_v3190_then_freeze_publish_deploy_and_verify_repeated_batches
-deployed_demo_release: v3.182
-deployed_demo_state: accepted_runtime_with_v3181_rollback_and_backlog_stalled_at_traversal_limit
+validation_head: 9c88ae561d498b53d126863fe1c9ced52f8c276b
+validation_gate_state: controlled_validation_passed_closed_without_merge
+failed_workflows: development_build_continuity_36092448918_stale_record
+first_root_failing_gate: stale_candidate_version_in_build_continuity
+root_cause: v3194_frozen_runtime_identity_remained_v3193_and_continuity_metadata_was_stale
+repair_head: 9c88ae561d498b53d126863fe1c9ced52f8c276b
+repair_summary: advance_runtime_identity_to_v3195_and_refresh_continuity_record
+genuine_blockers: development_revalidation_and_v3195_frozen_gates_pending
+next_authorized_step: validate_and_freeze_v3195_then_request_release_specific_publication_authorization
+deployed_demo_release: v3.193
+deployed_demo_state: accepted_runtime_with_v3192_rollback_and_bounded_pending_scan
 ---
 
 # SalCAPA build continuity
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_runtime_with_v3181_rollback_and_backlog_stalled_at
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+Frozen `release/v3.194` at `8667fbe7776b7109338d638abf152f40d95f2a7c` passed source CI but declares runtime version 3.193. Its immutable image publication was not attempted because the protected workflow requires the runtime identity to equal the release branch. Validation PR #537 passed all candidate workflows and closed without merge; exact head `9c88ae561d498b53d126863fe1c9ced52f8c276b` advanced non-force to development with runtime identity 3.195. Accepted v3.193 remains live, v3.192 is its rollback, and the corrected successor awaits development/frozen gates and separate release-specific authorization before image publication. The v3.194 oversize-ledger source change is retained in the successor. Issue #520 still requires enterprise-only routing and live 10,000-file acceptance.
 
 Frozen v3.180 passed live Microsoft 365 acceptance. The operational diagnostic then counted 549 pending items. Candidate v3.181 processes at most 20 pending items per pass, verifies each item's current parent and ETag before reading, and defers archived extraction retries until the pending backlog is cleared. Accepted v3.180 remains active until the new release passes live acceptance.
 
