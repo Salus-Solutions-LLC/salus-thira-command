@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 25 September 2026 00:29 CDT
+last_verified_at: 25 September 2026 15:42 CDT
 current_frozen_release: v3.196
 current_frozen_commit: 17f9bf4638371e0a21910fada6e8b195cfb0558f
 active_development_branch: development/salcapa-platform
-current_development_head: 2da3f42b09d17f52c69f74cdbd3b072715e5a9a6
+current_development_head: 892d993702a44376fca3830adcc2cbb662b76dd9
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: advisor_report_settings_visibility_v3196_application_promotion
+active_increment: salus_enterprise_bulk_root_v3197
 last_completed_increment: v3196_accepted_immutable_image_and_governed_deployment
-candidate_release: v3.196
-validation_pr: 538
-validation_branch: candidate/advisor-ux-visibility-20260925
+candidate_release: v3.197
+validation_pr: 542
+validation_branch: candidate/salus-pending-bulk-route-20260925
 validation_base: development/salcapa-platform
-validation_head: 2ab0ca4c0c354354e40326890c6ff2d006938a11
-validation_gate_state: all_required_gates_green
-failed_workflows: none
+validation_head: f5a7822da16afc97e24f8d179bd26285ff789899
+validation_gate_state: controlled_validation_passed_closed_without_merge
+failed_workflows: development_continuity_marker_lag_after_runtime_3_197
 first_root_failing_gate: none
-root_cause: continuity_record_lagged_v3196_runtime_marker
-repair_head: 17f9bf4638371e0a21910fada6e8b195cfb0558f
-repair_summary: v3196_immutable_image_and_live_azure_acceptance
+root_cause: continuity_record_lagged_v3197_runtime_marker
+repair_head: 892d993702a44376fca3830adcc2cbb662b76dd9
+repair_summary: candidate_gates_passed_development_release_marker_pending_ci
 genuine_blockers: issue_520_nested_drain_zip_member_customer_routing_and_ux_report_acceptance_open
-next_authorized_step: finish_wix_desktop_mobile_and_advisor_docx_acceptance_then_issue_520_bulk_gates
+next_authorized_step: validate_development_freeze_v3197_publish_image_and_run_governed_bulk_acceptance
 deployed_demo_release: v3.196
 deployed_demo_state: accepted_immutable_runtime_with_v3195_rollback_and_bounded_worker_acceptance
 ---
@@ -32,6 +32,9 @@ deployed_demo_state: accepted_immutable_runtime_with_v3195_rollback_and_bounded_
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+The v3.197 candidate routes the existing Salus pending folder through the durable bulk worker with an exact, live-verified customer staging sibling and a two-minute schedule. PR #542 exact head `f5a7822da16afc97e24f8d179bd26285ff789899` passed CI, CodeQL, contextual intake, and Azure infrastructure validation before closing without merge; its four tested file blobs were advanced with a non-force development commit `623b94b79469ff1f0b0cbd66b05e9fcb00332b37`. Runtime marker advanced to 3.197 at `892d993702a44376fca3830adcc2cbb662b76dd9`. The first development continuity job failed solely because this record still named candidate v3.196. This update repairs the marker; development gates, freeze, image, Azure activation, and live throughput remain open. v3.196 stays deployed with v3.195 rollback. No files moved.
+
 
 Accepted v3.196 is frozen at `17f9bf4638371e0a21910fada6e8b195cfb0558f`, published at immutable digest `sha256:49f1d1c32124c4af672b1f8a2300c0435a43bb68672aff66d2d28193390c3588`, and passed governed Azure deployment run `36099965934` with accepted v3.195 retained as rollback. Validation PR #538 passed exact-head candidate gates and closed without merge; all 44 development and 45 frozen checks passed. The bounded scheduled worker, isolated Microsoft 365 intake, live identity/sign-in, and cleanup gates passed. This does not complete issue #520's 10,000-file nested drain, ZIP/member/customer routing, or recovery acceptance. Wix all-page desktop/mobile UX and Advisor DOCX-to-SharePoint acceptance remain open.
 
