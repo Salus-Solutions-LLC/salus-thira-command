@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## Wix mental-health draft safety checkpoint — 25 September 2026
+
+- On the Wix page "Mental Health Trauma-From Services Page," corrected the crisis telephone text from an erroneous `+1-800-273-TALK or 811` and its `tel:+1-800-273-811` target to `1-800-273-TALK (8255)` / `tel:+1-800-273-8255`, and saved the draft. Verified the displayed text and link target in the Wix editor DOM. The official 988 Lifeline also confirms call or text 988; use https://988lifeline.org/get-help/ for authoritative current help information.
+- This page is not accepted. Its visible 988 resource URL has a different, older target (`https://suicidepreventionlifeline.org/`), several unsourced or ambiguous statistics (90%, 25%, 19%), potentially stale other resources, two differently targeted "Back to Mental Health" links, 24px serif mobile long-form text, and copy errors. NAMI's https://www.nami.org/mental-health-by-the-numbers/ (reviewed 2025) reports 23.4% of US adults experienced mental illness in 2024; do not silently substitute that for a claim with a different denominator. Review and correct each assertion with sources. None of this draft is live; the site-wide publication rejection for unfinished changes remains in effect.
+
 ## Wix service-page draft checkpoint — 25 September 2026, 11:59 CDT
 
 - Saved desktop Arial and mobile 16px left-aligned rich-text formatting on SalOPS Readiness and Preparedness, Protective Operations, Incident and Crisis Support, and Recovery and Sustainment. In mobile editor, moved the long-form text blocks closer to their page titles on all four pages. Readiness also had the floating Back to Top button removed from its mobile layout after it obscured body copy; the page content and link remain. The site-wide shared chat control remains.
