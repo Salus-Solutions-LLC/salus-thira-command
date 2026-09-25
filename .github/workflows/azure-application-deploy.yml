@@ -373,7 +373,7 @@ jobs:
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
           test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$IMAGE_DIGEST"
           test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-knowledge-job.json)" = "Schedule"
-          test "$(jq -r '.properties.configuration.scheduleTriggerConfig.cronExpression' /tmp/salcapa-knowledge-job.json)" = "*/15 * * * *"
+          test "$(jq -r '.properties.configuration.scheduleTriggerConfig.cronExpression' /tmp/salcapa-knowledge-job.json)" = "*/2 * * * *"
           EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
           test -n "$EXECUTION_NAME"
           SUCCEEDED=false
@@ -507,7 +507,7 @@ jobs:
               {
                 echo "### SalCAPA failed promotion rollback"
                 echo ""
-                echo "- Accepted immutable v3.195 image restored"
+                echo "- Accepted immutable v3.196 image restored"
                 echo "- Live readiness restored"
                 echo "- DNS unchanged"
                 echo "- Client secret not used"
