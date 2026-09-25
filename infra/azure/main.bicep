@@ -709,7 +709,7 @@ resource knowledgeScanJob 'Microsoft.App/jobs@2024-03-01' = if (provisionApplica
       replicaTimeout: 900
       replicaRetryLimit: 0
       scheduleTriggerConfig: {
-        cronExpression: '*/15 * * * *'
+        cronExpression: '*/2 * * * *'
         parallelism: 1
         replicaCompletionCount: 1
       }
@@ -748,6 +748,9 @@ resource knowledgeScanJob 'Microsoft.App/jobs@2024-03-01' = if (provisionApplica
             { name: 'SALUS_M365_INTAKE_DRIVE_ID', value: 'b!nLoH4rpIs0Ko75C0IRSSqNFy_EdwB-BMgQS848yr84pGrXen1bnSR6zYkxtw-PFF' }
             { name: 'SALUS_M365_INTAKE_FOLDER_ITEM_ID', value: '01DBTAFUKSE2CSFDDEING2AAXOVQQEYNNL' }
             { name: 'SALUS_M365_INTAKE_MAX_FILE_BYTES', value: '104857600' }
+            { name: 'SALUS_KNOWLEDGE_BULK_DELTA', value: '1' }
+            { name: 'SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID', value: '01DBTAFUO6Z6REUUQQQNGIH5N44O5Q77OM' }
+            { name: 'SALUS_M365_CUSTOMER_BATCH_STAGING_FOLDER_ITEM_ID', value: '01DBTAFUIPAP4XZKZJ2RBIUTQYEJWDFKMA' }
             { name: 'SALUS_M365_KNOWLEDGE_DRIVE_ID', value: 'b!mn-UaUzJ6UOGBLc9xcQ2DYwuRoUBrB9KtakxYIYG5o1riGTeQsB8T4jy0ttFW_fN' }
             { name: 'SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID', value: '01WETF6P56Y2GOVW7725BZO354PWSELRRZ' }
             { name: 'SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID', value: '01DBTAFULEFCM3ALTBFNHZVKGCHE7QGFJ4' }
