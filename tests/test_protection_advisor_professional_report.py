@@ -84,6 +84,30 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
     assert '"services"' not in text
 
 
+def test_pdf_total_pages_follow_long_wrapped_report(tmp_path: Path):
+    result = dict(RESULT)
+    result["priority_capabilities"] = [
+        {"capability": f"Capability {index}: " + "Operational coordination and continuity " * 2,
+         "need_score": index, "mission_areas": ["Prevention", "Protection", "Mitigation", "Response", "Recovery"],
+         "information_gap": index % 2 == 0}
+        for index in range(1, 33)
+    ]
+    result["attention_topics"] = [f"Confirm plans and current evidence {index}" for index in range(25)]
+    result["information_gaps"] = [f"Validate authority {index}" for index in range(20)]
+    path = render_protection_advisor_pdf(
+        output_path=tmp_path / "long-report.pdf", context=_context(), result=result, package=PACKAGE,
+    )
+    reader = PdfReader(path)
+    total = len(reader.pages)
+    assert total > 10
+    text = "\\n".join(page.extract_text() or "" for page in reader.pages)
+    assert "Capability 32" in text
+    assert all(
+        f"Page {number} of {total}" in (page.extract_text() or "")
+        for number, page in enumerate(reader.pages, 1) if number != 2
+    )
+
+
 def test_public_part_two_control_does_not_print_the_webpage():
     source = Path("public_protection_advisor.py").read_text(encoding="utf-8")
     assert 'fetch("/public/protection-advisor/report.pdf"' in source
