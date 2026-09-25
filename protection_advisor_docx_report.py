@@ -536,6 +536,7 @@ def render_protection_advisor_pdf(
         from reportlab.lib.units import inch
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.pdfgen.canvas import Canvas
         from reportlab.platypus import (
             BaseDocTemplate, Frame, KeepTogether, PageBreak, PageTemplate,
             Paragraph, Spacer, Table, TableStyle,
@@ -556,15 +557,15 @@ def render_protection_advisor_pdf(
     display_handling = "CUI review requested" if requested_handling == "CUI" else requested_handling
     watermark = "REVIEW" if requested_handling == "CUI" else requested_handling.upper()
     styles = getSampleStyleSheet()
-    body = ParagraphStyle("SalusBody", parent=styles["BodyText"], fontName="SalusSans", fontSize=10.5, leading=14, spaceAfter=7)
-    h1 = ParagraphStyle("SalusH1", parent=styles["Heading1"], fontName="SalusSans-Bold", fontSize=16, leading=19, textColor=colors.black, spaceBefore=10, spaceAfter=7)
-    h2 = ParagraphStyle("SalusH2", parent=styles["Heading2"], fontName="SalusSans-Bold", fontSize=11.5, leading=14, textColor=colors.black, spaceBefore=7, spaceAfter=5)
+    body = ParagraphStyle("SalusBody", parent=styles["BodyText"], fontName="SalusSans", fontSize=11.5, leading=16, spaceAfter=9)
+    h1 = ParagraphStyle("SalusH1", parent=styles["Heading1"], fontName="SalusSans-Bold", fontSize=17, leading=21, textColor=colors.black, spaceBefore=13, spaceAfter=9)
+    h2 = ParagraphStyle("SalusH2", parent=styles["Heading2"], fontName="SalusSans-Bold", fontSize=12, leading=16, textColor=colors.black, spaceBefore=9, spaceAfter=6)
     title = ParagraphStyle("SalusTitle", parent=styles["Title"], fontName="SalusSans-Bold", fontSize=22, leading=26, alignment=TA_CENTER, textColor=colors.black)
     subtitle = ParagraphStyle("SalusSubtitle", parent=body, fontSize=11, leading=14, alignment=TA_CENTER, textColor=colors.HexColor("#2F75B5"))
-    small = ParagraphStyle("SalusSmall", parent=body, fontSize=9.5, leading=12, spaceAfter=0)
+    small = ParagraphStyle("SalusSmall", parent=body, fontSize=10, leading=13, spaceAfter=0)
     table_header = ParagraphStyle(
         "SalusTableHeader", parent=small, fontName="SalusSans-Bold",
-        fontSize=9, leading=11, textColor=colors.white, alignment=TA_LEFT,
+        fontSize=9.5, leading=12, textColor=colors.white, alignment=TA_LEFT,
     )
 
     def P(text, style=body):
@@ -598,12 +599,42 @@ def render_protection_advisor_pdf(
     def bullets(items):
         return [P("- " + str(item), body) for item in items]
 
+    class NumberedCanvas(Canvas):
+        """Write a real total page count after Platypus has laid out the story."""
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._page_states = []
+
+        def showPage(self):
+            self._page_states.append(dict(self.__dict__))
+            self._startPage()
+
+        def save(self):
+            total = len(self._page_states)
+            for state in self._page_states:
+                self.__dict__.update(state)
+                if self._pageNumber != 2:
+                    self.saveState()
+                    self.setFillColor(colors.black)
+                    self.setFont("SalusSans", 8)
+                    self.drawRightString(letter[0] - .65 * inch, .30 * inch, f"Page {self._pageNumber} of {total}")
+                    self.restoreState()
+                super().showPage()
+            super().save()
+
     def page_frame(canvas, doc):
         canvas.setTitle("Protection Advisor Assessment Report")
         canvas.setAuthor("Salus Solutions")
         number = canvas.getPageNumber()
         width, height = letter
-        if number == 2:
+        if number == 1:
+            canvas.saveState()
+            canvas.setFillColor(colors.HexColor("#7A1F1F"))
+            canvas.setFont("SalusSans", 8)
+            canvas.drawString(.65 * inch, .30 * inch, "Salus Solutions | Preliminary report")
+            canvas.restoreState()
+        elif number == 2:
             canvas.saveState()
             canvas.setFillColor(colors.Color(.4, .4, .4, alpha=.10))
             canvas.setFont("SalusSans-Bold", 52)
@@ -628,7 +659,6 @@ def render_protection_advisor_pdf(
             canvas.line(.65 * inch, .48 * inch, width - .65 * inch, .48 * inch)
             canvas.drawString(.65 * inch, .30 * inch, "+1-888-496-6668")
             canvas.drawCentredString(width / 2, .30 * inch, "www.Salus.Solutions")
-            canvas.drawRightString(width - .65 * inch, .30 * inch, f"Page {number}")
             canvas.restoreState()
 
     doc = BaseDocTemplate(str(destination), pagesize=letter, leftMargin=.7 * inch, rightMargin=.7 * inch, topMargin=.7 * inch, bottomMargin=.65 * inch, lang="en-US")
@@ -675,5 +705,5 @@ def render_protection_advisor_pdf(
     for service in package.get("later_phase_services") or []:
         story.append(P(f"{service.get('title', 'Service')} - Level {service.get('level', '')} {service.get('level_name', '')}. {service.get('summary', '')}"))
     story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Deliverables", h1), T(("Deliverable", "Purpose"), (("Validated assessment record", "Separates verified facts, reported conditions, inferences, and unknowns"), ("Capability and dependency map", "Shows essential functions, supporting resources, failure points, and alternates"), ("Prioritized improvement plan", "Identifies actions, owners, sequence, dependencies, and completion measures"), ("Exercise and validation plan", "Tests priority capabilities and creates defensible evidence"), ("Executive briefing", "Presents decisions, risks, resource implications, and next steps")), (2.2 * inch, 3.9 * inch)), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor screens reported conditions against 32 core capabilities across Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize professional review; they do not independently establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Screening indicator; not an audit grade"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Service level", "Preliminary engagement depth; subject to human review")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Recommended service", "Level", "Preliminary rationale"), tuple((x.get("title", "Service"), f"Level {x.get('level', '')}", x.get("why", "")) for x in package.get("services") or []), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
-    doc.build(story)
+    doc.build(story, canvasmaker=NumberedCanvas)
     return destination
