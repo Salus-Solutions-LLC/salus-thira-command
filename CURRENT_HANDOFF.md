@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## Wix service-page draft checkpoint — 25 September 2026, 11:59 CDT
+
+- Saved desktop Arial and mobile 16px left-aligned rich-text formatting on SalOPS Readiness and Preparedness, Protective Operations, Incident and Crisis Support, and Recovery and Sustainment. In mobile editor, moved the long-form text blocks closer to their page titles on all four pages. Readiness also had the floating Back to Top button removed from its mobile layout after it obscured body copy; the page content and link remain. The site-wide shared chat control remains.
+- These are typography and spacing edits, not a substantive rewrite or a complete page-by-page acceptance. Other public pages and app/system pages remain to inspect, as do full-length page behavior, audio/graphics where present, and mobile overlay behavior. Wix changes are saved but not published. The earlier automatic review rejection of the unverified site-wide draft remains applicable; do not bypass it with a test deployment. Last confirmed live Wix revision is still the earlier 5:17 AM published revision.
+
 ## Wix core-page draft checkpoint — 25 September 2026, 11:10 CDT
 
 - The Wix editor now has saved typography changes on Home, How Salus Works, Protection Advisor, SalCAPA, SalINTEL, SalTHIRA, and SalOPS. Their long-form rich text was changed from serif to Arial on desktop, with 16px mobile body settings and left alignment. Home has two desktop rich-text components adjusted; its main mobile component is 16px. SalTHIRA and SalOPS previously used 23px mobile body settings; they were reduced to 16px. Screenshots in the editor showed improved line wrapping. Existing audio players, logos, process graphics, QR code, page links, and shared header/footer remained in the edited page views. No paragraph copy has yet been substantively rewritten, and the remaining public pages and system pages have not been reviewed or edited in this pass.
