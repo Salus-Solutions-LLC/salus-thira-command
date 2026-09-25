@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Salus intake source clarification and bulk-route candidate — 25 September 2026, 15:27 CDT
+
+- Marc clarified that all existing material under OneDrive `SalCAPA Intake / 10 Pending Classification` is Salus material, including nested folders. Bulk customer material belongs in the separate sibling `40 Customer Batch Staging - Unassigned`. SAL-D024 supersedes the earlier mixed-backlog assumption. Marc should leave existing Salus material and new Salus uploads in the current pending folder; no folder move was performed.
+- Draft [PR #542](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/542) at candidate head `8f5e65abd1dd07aa6a2358095b4f8056ddcb2665` adjusts the default-off bulk worker to accept the existing Salus pending root only if a configured customer staging ID is verified as a separate live sibling. The per-file pending ancestry, ETag, hash, archive, and destination checks remain. Its smoke regression covers root routing and a same-folder rejection. Candidate checks are running. The root route is not live, and the fast worker flags remain off in accepted v3.196.
+- The earlier automatic review rejected a broad move of nested folders and forbade an indirect workaround. The candidate moves no content; before activation, verify the live customer sibling ID, exact source scope, candidate gates, and governed release/live acceptance. The separate customer publication path and member isolation remain unaccepted. Issue #520 stays open.
+
 ## Bulk-worker routing decision and automatic review block — 25 September 2026, 15:19 CDT
 
 - Marc selected mixed routing for the existing pending backlog: process clear Salus reference material and hold organization-specific/client-derived files until approved Protected Member and engagement assignment. The existing root contains organization-named folders; the new `20 Salus Enterprise Knowledge` folder is empty. The live v3.196 path is still the legacy 20-file scan every 15 minutes; the built delta/leased bulk worker is disabled because its explicit enterprise source is unpopulated and customer destinations are not accepted.
