@@ -2465,10 +2465,10 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             profile = json.loads(row["profile_json"])
             package = json.loads(row["package_json"])
             report_reference = "SPA-REPORT-" + row["submission_key"].removeprefix("SPA-SUBMISSION-")
-            handling = "CUI" if (
-                identity.get("handling_status") == "Approved"
-                and "CUI" in str(identity.get("handling_profile", ""))
-            ) else "Confidential"
+            # The renderer explicitly labels this as "CUI review requested"
+            # with a REVIEW watermark; it never asserts an approved marking.
+            # Preserve the member's request even before reviewer approval.
+            handling = "CUI" if "CUI" in str(identity.get("handling_profile", "")) else "Confidential"
             context = build_report_context(
                 client_code_name=str(identity["protected_member_code_name"]),
                 project_code_name=str(identity["project_code_name"]),

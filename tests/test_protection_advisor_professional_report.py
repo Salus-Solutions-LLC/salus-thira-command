@@ -79,5 +79,23 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
 
 def test_public_part_two_control_does_not_print_the_webpage():
     source = Path("public_protection_advisor.py").read_text(encoding="utf-8")
-    assert 'window.location.assign("/public/protection-advisor/report.pdf")' in source
+    assert 'fetch("/public/protection-advisor/report.pdf"' in source
+    assert 'window.location.assign("/public/protection-advisor/report.pdf")' not in source
     assert 'scope==="part2"' in source
+
+
+def test_requested_cui_is_visible_without_an_approved_marking(tmp_path: Path):
+    context = build_report_context(
+        client_code_name="Test Member", project_code_name="Test Project",
+        organization_type="Private", government_or_public_service_role="Not provided",
+        assessment_authority_or_sponsor="Not provided", information_handling="CUI",
+        report_reference="SPA-REPORT-CUI-REQUEST", generated_at=datetime(2026, 9, 22, tzinfo=timezone.utc),
+    )
+    path = render_protection_advisor_pdf(
+        output_path=tmp_path / "cui-request.pdf", context=context, result=RESULT, package=PACKAGE,
+    )
+    text = "\n".join(page.extract_text() or "" for page in PdfReader(path).pages)
+    assert "CUI review requested" in text
+    assert "Requested handling: CUI review requested" in text
+    source = Path("public_protection_advisor.py").read_text(encoding="utf-8")
+    assert 'handling = "CUI" if "CUI" in str(identity.get("handling_profile", "")) else "Confidential"' in source
