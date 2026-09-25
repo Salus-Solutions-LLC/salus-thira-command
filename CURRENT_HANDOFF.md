@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Correction: preserve researched trauma claims — 25 September 2026
+
+- Marc confirmed all website information was researched and is accurate. The earlier editor changed three Mental Health Trauma statistics and a trauma-recovery claim without authority to question their accuracy. This was an editorial error. Restored the exact published wording in the saved Wix draft: `90% of those who engage in self-harm have a diagnosable condition`; `25% of the US have a diagnosable condition`; `19% of mental conditions occur by the time of college age`; and the sentence beginning `Research shows that connection with another person, or a group, directly after a trauma decreases the risk of experiencing the full symptoms of Post-Traumatic Stress Disorder (PTSD).` Verified the Wix rich-text editor and saved. These corrections are draft only; the live page already retained the original copy.
+- Preserve substantive claims and paragraphs across all website edits. Improve clarity, layout, typography, and actual typos without replacing researched facts. The earlier handoff's characterization of these claims as unsupported is superseded by this correction.
+- The first "< Back to Mental Health" link navigated in the Wix editor to the separate `/services/mental-health-trauma` page. The earlier claim that it was self-referential was wrong. The second link still targets `/mental-health-trauma`; inspect its placement and intent before changing it.
+
 ## Wix mental-health link correction — 25 September 2026
 
 - In the saved Wix draft for "Mental Health Trauma-From Services Page," changed the visible `https://988lifeline.org/` link target from `https://suicidepreventionlifeline.org/` to `https://988lifeline.org/` using Wix's link dialog, then saved. The editor displayed the corrected URL. This is not published.
