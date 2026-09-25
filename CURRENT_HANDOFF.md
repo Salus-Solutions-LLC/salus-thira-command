@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 25 September 2026 continuation — About Wix and acceptance boundaries
+
+- Reviewed the Wix About Salus page in desktop and mobile editor. Its single long-form rich-text block includes the original paragraphs, internal links, and a 02:22 audio player. Applied Arial to that block in desktop editor while retaining its heading sizes, copy, and audio. Saved the site draft. Mobile preview still has a large title-to-body gap and 20px-style narrow-column body; no mobile geometry or site-wide publication was accepted. Preserve all researched claims and full paragraphs.
+- The public Advisor `/protection-advisor/embed` currently exposes Part 1 and a Part 2 create-account/sign-in screen in this browser. No authenticated Salus reviewer session is present, so no existing submission was approved and no governed DOCX/PDF pair was generated or changed. Do not create a duplicate assessment to simulate acceptance.
+- [Issue #520](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/520) remains open. Its acceptance explicitly calls for a 10,000-nested-file live drain, restart/throttle/fairness, ZIP member indexing, member/engagement isolation, and governed release/live verification. The accepted v3.196 bounded worker pass does not establish those conditions. Do not enable the default-off customer route without approved source/destination and permissions.
+- The prior automatic Wix test-publish rejection for unfinished site-wide draft has not been resolved. Continue page-by-page desktop/mobile visual and interaction checks, then request the consequential publish action only with a complete, reviewable scope.
+
 ## Correction: preserve researched trauma claims — 25 September 2026
 
 - Marc confirmed all website information was researched and is accurate. The earlier editor changed three Mental Health Trauma statistics and a trauma-recovery claim without authority to question their accuracy. This was an editorial error. Restored the exact published wording in the saved Wix draft: `90% of those who engage in self-harm have a diagnosable condition`; `25% of the US have a diagnosable condition`; `19% of mental conditions occur by the time of college age`; and the sentence beginning `Research shows that connection with another person, or a group, directly after a trauma decreases the risk of experiencing the full symptoms of Post-Traumatic Stress Disorder (PTSD).` Verified the Wix rich-text editor and saved. These corrections are draft only; the live page already retained the original copy.
