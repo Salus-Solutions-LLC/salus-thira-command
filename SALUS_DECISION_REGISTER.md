@@ -27,6 +27,8 @@
 
 | SAL-D023 | Large batches of nested files and folders are a required SalCAPA intake capability for Salus and Protected Member work. Each item must be durably discoverable, processable without starvation or silent skip, source-bound and auditable, and recoverable after partial failure. Protected Member sources remain segregated by member and engagement; intake does not approve cross-member reuse, findings, or disclosure. Implementation and acceptance are tracked in Issue #520. | Approved by Marc, 24 September 2026 |
 
+| SAL-D024 | Marc clarified on 25 September 2026 that the existing OneDrive `SalCAPA Intake / 10 Pending Classification` Salus folder and its nested backlog contain Salus material for enterprise knowledge processing. Bulk customer material has a separate sibling staging folder, `40 Customer Batch Staging - Unassigned`, and must remain outside enterprise promotion until its member/engagement route and access are accepted. This supersedes the 25 September mixed-backlog routing assumption recorded in the handoff and issue #520; it does not waive source verification, hash/provenance, extraction limits, customer isolation, or governed release acceptance. | Approved 25 September 2026 |
+
 ## Register maintenance rule
 
 Add a dated entry whenever Marc approves a material change to terminology, architecture, methodology, governance, report design, data handling, release policy, or customer experience. Never silently replace an approved decision; mark it superseded and reference the new decision.
