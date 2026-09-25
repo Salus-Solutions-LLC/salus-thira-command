@@ -644,11 +644,22 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 enterprise_folder_id = os.getenv(
                     "SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID", ""
                 ).strip()
-                if (not _IDENTIFIER.fullmatch(enterprise_folder_id)
-                        or enterprise_folder_id == pending_id):
+                if not _IDENTIFIER.fullmatch(enterprise_folder_id):
                     raise KnowledgePromotionError(
                         "An explicit enterprise source folder is required before bulk work"
                     )
+                if enterprise_folder_id == pending_id:
+                    customer_staging_id = os.getenv(
+                        "SALUS_M365_CUSTOMER_BATCH_STAGING_FOLDER_ITEM_ID", ""
+                    ).strip()
+                    if (not _IDENTIFIER.fullmatch(customer_staging_id)
+                            or customer_staging_id == pending_id
+                            or not intake.verify_sibling_folder(
+                                pending_id, customer_staging_id
+                            )):
+                        raise KnowledgePromotionError(
+                            "Salus root routing requires a verified separate customer staging sibling"
+                        )
                 pending_files = claim_work(db, intake_config.drive_id, pending_id, limit=20)
                 listed = pending_files
             else:
@@ -707,7 +718,9 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 try:
                     document = (intake.read_scoped_document(
                         row,pending_folder_id=pending_id,
-                        required_ancestor_id=enterprise_folder_id,
+                        required_ancestor_id=(
+                            enterprise_folder_id if enterprise_folder_id != pending_id else None
+                        ),
                         access_classification="Salus Internal"
                     ) if bulk_enabled else intake.read_listed_document(
                         row, access_classification="Salus Internal"))
