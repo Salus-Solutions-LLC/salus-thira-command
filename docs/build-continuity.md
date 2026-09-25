@@ -2,29 +2,29 @@
 schema_version: 1
 record_kind: salcapa_build_continuity
 last_verified_at: 25 September 2026 00:29 CDT
-current_frozen_release: v3.195
-current_frozen_commit: 9c88ae561d498b53d126863fe1c9ced52f8c276b
+current_frozen_release: v3.196
+current_frozen_commit: 17f9bf4638371e0a21910fada6e8b195cfb0558f
 active_development_branch: development/salcapa-platform
-current_development_head: 0cb0eb54f0910fad2f18d870bcaba822fa84dee2
+current_development_head: 2da3f42b09d17f52c69f74cdbd3b072715e5a9a6
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: advisor_report_settings_visibility_v3196
-last_completed_increment: v3195_accepted_immutable_image_and_governed_deployment
+active_increment: advisor_report_settings_visibility_v3196_application_promotion
+last_completed_increment: v3196_accepted_immutable_image_and_governed_deployment
 candidate_release: v3.196
 validation_pr: 538
 validation_branch: candidate/advisor-ux-visibility-20260925
 validation_base: development/salcapa-platform
 validation_head: 2ab0ca4c0c354354e40326890c6ff2d006938a11
-validation_gate_state: controlled_validation_passed_closed_without_merge
-failed_workflows: continuity-record_at_0cb0eb5_requires_candidate_version_update
-first_root_failing_gate: build_continuity_candidate_version_mismatch
+validation_gate_state: all_required_gates_green
+failed_workflows: none
+first_root_failing_gate: none
 root_cause: continuity_record_lagged_v3196_runtime_marker
-repair_head: 0cb0eb54f0910fad2f18d870bcaba822fa84dee2
-repair_summary: update_v3196_candidate_continuity_after_advisor_ux_validation
-genuine_blockers: v3194_superseded_before_publication_and_issue_520_complete_nested_drain_and_member_routing_not_accepted
-next_authorized_step: finish_v3196_development_and_frozen_gates_before_immutable_image_promotion
-deployed_demo_release: v3.195
-deployed_demo_state: accepted_immutable_runtime_with_v3193_rollback_and_bounded_oversize_holds
+repair_head: 17f9bf4638371e0a21910fada6e8b195cfb0558f
+repair_summary: v3196_immutable_image_and_live_azure_acceptance
+genuine_blockers: issue_520_nested_drain_zip_member_customer_routing_and_ux_report_acceptance_open
+next_authorized_step: finish_wix_desktop_mobile_and_advisor_docx_acceptance_then_issue_520_bulk_gates
+deployed_demo_release: v3.196
+deployed_demo_state: accepted_immutable_runtime_with_v3195_rollback_and_bounded_worker_acceptance
 ---
 
 # SalCAPA build continuity
@@ -33,7 +33,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current controlled checkpoint
 
-Candidate v3.196 advances the report handling and code-name edit control to the beginning of the retained and newly submitted Advisor results. Validation PR #538 passed exact-head CI, CodeQL, contextual intake, and Advisor acceptance, closed without merge, and source head `2ab0ca4c0c354354e40326890c6ff2d006938a11` advanced non-force to development. Runtime marker commit `0cb0eb54f0910fad2f18d870bcaba822fa84dee2` temporarily failed only the continuity record because its candidate field still read v3.195; this record repairs that mismatch. v3.196 is not frozen, published, deployed, or live-accepted. Accepted v3.195 remains live and would be the rollback for a subsequent governed v3.196 promotion. Advisor DOCX-to-SharePoint acceptance and full Wix desktop/mobile review remain open.
+Accepted v3.196 is frozen at `17f9bf4638371e0a21910fada6e8b195cfb0558f`, published at immutable digest `sha256:49f1d1c32124c4af672b1f8a2300c0435a43bb68672aff66d2d28193390c3588`, and passed governed Azure deployment run `36099965934` with accepted v3.195 retained as rollback. Validation PR #538 passed exact-head candidate gates and closed without merge; all 44 development and 45 frozen checks passed. The bounded scheduled worker, isolated Microsoft 365 intake, live identity/sign-in, and cleanup gates passed. This does not complete issue #520's 10,000-file nested drain, ZIP/member/customer routing, or recovery acceptance. Wix all-page desktop/mobile UX and Advisor DOCX-to-SharePoint acceptance remain open.
 
 Accepted v3.195 is frozen at `9c88ae561d498b53d126863fe1c9ced52f8c276b`, published at immutable digest `sha256:035ef8684d2092fc6eb1f2b51769c6e7e30b443b2e28dd571e6edecf54b32ecd`, and passed governed Azure deployment run `36093814271` with v3.193 retained as rollback. The scheduled worker observed 20 discovered files, five promotions, 34 retry-required records, three oversized holds, and zero exception reviews. This accepted bounded pass does not complete issue #520's fair 10,000-file nested drain, ZIP/member routing, or recovery acceptance. The empty `20 Salus Enterprise Knowledge` folder inside `10 Pending Classification` has item ID `01DBTAFUOMR2BU2SRKGBAY3INJKHT6TB74`; it is not enabled as a bulk route and holds no source files. Frozen v3.194 was superseded before publication because its runtime marker was 3.193. Exact frozen branches and workflow results remain authoritative.
 
