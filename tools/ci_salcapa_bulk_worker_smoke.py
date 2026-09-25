@@ -32,9 +32,11 @@ def check():
         files=[row(1),row(2)]
         class Intake:
             def __init__(self,config): pass
+            def verify_sibling_folder(self,pending,customer):
+                return pending=="pending-12345678" and customer=="customer-12345678"
             def read_scoped_document(self,item,**kwargs):
                 assert kwargs["pending_folder_id"]=="pending-12345678"
-                assert kwargs["required_ancestor_id"]=="enterprise-12345678"
+                assert kwargs["required_ancestor_id"] in ("enterprise-12345678",None)
                 if item["id"]==files[0]["id"]:
                     raise promotion.M365RouteError("unassigned source")
                 return SimpleNamespace(item_id=item["id"],name=item["name"],
@@ -51,6 +53,7 @@ def check():
             "claim_work","complete_work","automatic_classification")}
         previous=os.environ.get("SALUS_KNOWLEDGE_BULK_DELTA")
         previous_route=os.environ.get("SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID")
+        previous_customer=os.environ.get("SALUS_M365_CUSTOMER_BATCH_STAGING_FOLDER_ITEM_ID")
         outcomes=[]
         try:
             os.environ["SALUS_KNOWLEDGE_BULK_DELTA"]="1"
@@ -73,12 +76,29 @@ def check():
             result=app.state.process_knowledge_pending("test actor")
             assert result["automatically_promoted"]==1 and result["automatic_retry_required"]==1,result
             assert outcomes==[(files[0]["id"],False,True),(files[1]["id"],True,False)],outcomes
+            # The existing Salus pending root is eligible only with a distinct,
+            # verified customer staging sibling. No material is moved.
+            files[:]=[row(3)]
+            os.environ["SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID"]="pending-12345678"
+            os.environ["SALUS_M365_CUSTOMER_BATCH_STAGING_FOLDER_ITEM_ID"]="customer-12345678"
+            root_result=app.state.process_knowledge_pending("test actor")
+            assert root_result["automatically_promoted"]==1,root_result
+            assert outcomes[-1]==(files[0]["id"],True,False),outcomes
+            os.environ["SALUS_M365_CUSTOMER_BATCH_STAGING_FOLDER_ITEM_ID"]="pending-12345678"
+            try:
+                app.state.process_knowledge_pending("test actor")
+            except promotion.KnowledgePromotionError:
+                pass
+            else:
+                raise AssertionError("same-folder customer staging must fail closed")
         finally:
             for name,value in saved.items(): setattr(promotion,name,value)
             if previous is None: os.environ.pop("SALUS_KNOWLEDGE_BULK_DELTA",None)
             else: os.environ["SALUS_KNOWLEDGE_BULK_DELTA"]=previous
             if previous_route is None: os.environ.pop("SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID",None)
             else: os.environ["SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID"]=previous_route
+            if previous_customer is None: os.environ.pop("SALUS_M365_CUSTOMER_BATCH_STAGING_FOLDER_ITEM_ID",None)
+            else: os.environ["SALUS_M365_CUSTOMER_BATCH_STAGING_FOLDER_ITEM_ID"]=previous_customer
     print("bulk worker smoke passed")
 
 
