@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## Protection Advisor Part 2 field layout integration — 25 September 2026
+
+- Candidate PR #540 exact head `d39bcf1b0d95fadb30b625b285332ca213a596df` passed Public Protection Advisor, SalCAPA Contextual Intake, CI (including container runtime), and CodeQL. The candidate source file differs from development only by the scoped report-identity editor CSS.
+- Applied that exact file blob to `development/salcapa-platform` in commit `520bb3fd6c5f99170c7bbe57a5af7efa98e85fbb`, retaining the current handoff changes. Development branch checks were running at this checkpoint. The change is source only; no image, Azure deployment, or live visual acceptance has occurred. The participant report format gap remains issue #541 and governed DOCX/PDF still require Salus reviewer handling approval.
+
 ## Protection Advisor Part 2 live continuation — 25 September 2026, 14:35 CDT
 
 - Marc completed secure Part 2 sign-in in the cloud browser after an initial incorrect-credentials error. The existing submitted assessment `SPA-SUBMISSION-0F5A2329FDE1FB4C2453CAD5F5DD6E81` is accessible; it shows Protected Member and Project code names, Government Contractor CUI **requested** and awaiting Salus review, retained results dated 16 September 2026, a tailored Level 3 package, and a prominent report-names/handling edit control. No new assessment, identity revision, handling approval, or submission was made.
