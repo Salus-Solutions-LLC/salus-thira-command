@@ -18,7 +18,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 ENV LD_LIBRARY_PATH=/opt/whisper/bin
 WORKDIR /app
 COPY requirements.txt ./
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg=7:5.1.9-0+deb12u1 tesseract-ocr=5.3.0-2 tesseract-ocr-eng=1:4.1.0-2 poppler-utils && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg=7:5.1.9-0+deb12u1 tesseract-ocr=5.3.0-2 tesseract-ocr-eng=1:4.1.0-2 poppler-utils fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /opt/salcapa-pdf-render && \
     install -m 0555 /usr/bin/pdftoppm /opt/salcapa-pdf-render/pdftoppm && \
     RENDERER_SHA="$(sha256sum /opt/salcapa-pdf-render/pdftoppm | cut -d ' ' -f 1)" && \
