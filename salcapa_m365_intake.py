@@ -375,6 +375,29 @@ class GovernedM365Intake:
             access_classification=access_classification,
         )
 
+    def verify_sibling_folder(self, pending_folder_id: str, customer_folder_id: str) -> bool:
+        """Fail closed unless the customer source is a separate live sibling."""
+        if (not _IDENTIFIER.fullmatch(pending_folder_id)
+                or not _IDENTIFIER.fullmatch(customer_folder_id)
+                or pending_folder_id == customer_folder_id):
+            return False
+        endpoint = f"{GRAPH_ROOT}/drives/{self.config.drive_id}/items/"
+        parents = []
+        for item_id in (pending_folder_id, customer_folder_id):
+            response = self.client.get(
+                endpoint + item_id, headers=self._headers(),
+                params={"$select": "id,name,parentReference,folder,remoteItem"},
+            )
+            if response.status_code != 200:
+                return False
+            item = response.json()
+            parent = str((item.get("parentReference") or {}).get("id", ""))
+            if (item.get("id") != item_id or "folder" not in item
+                    or "remoteItem" in item or not _IDENTIFIER.fullmatch(parent)):
+                return False
+            parents.append(parent)
+        return parents[0] == parents[1]
+
     def read_scoped_document(
         self, item: dict[str, Any], *, pending_folder_id: str,
         required_ancestor_id: str | None = None,
