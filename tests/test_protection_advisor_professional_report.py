@@ -67,6 +67,13 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
     )
     reader = PdfReader(path)
     assert len(reader.pages) >= 8
+    page_count = len(reader.pages)
+    assert f"Page 1 of {page_count}" in (reader.pages[0].extract_text() or "")
+    assert "Page 2 of" not in (reader.pages[1].extract_text() or "")
+    assert all(
+        f"Page {number} of {page_count}" in (page.extract_text() or "")
+        for number, page in enumerate(reader.pages, 1) if number != 2
+    )
     fonts = reader.pages[2]["/Resources"]["/Font"].get_object().values()
     assert any("/FontFile2" in font.get_object()["/FontDescriptor"].get_object() for font in fonts if "/FontDescriptor" in font.get_object())
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
