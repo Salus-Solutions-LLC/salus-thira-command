@@ -651,9 +651,10 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 listed = pending_files
             else:
                 print('SALCAPA_WORKER_PHASE=pending_listing_started', flush=True)
-                # Retain the bounded legacy behavior until the bulk route is
-                # governed, validated, and explicitly enabled for enterprise data.
-                listed = intake.list_files(pending_only=True)
+                # The legacy scanner has no durable traversal checkpoint. Keep
+                # its pass within a finite Graph window while the separately
+                # routed delta worker is validated for the complete backlog.
+                listed = intake.list_files(pending_only=True, max_files=1000)
                 print(f'SALCAPA_WORKER_PHASE=pending_listing_done file_count={len(listed)}', flush=True)
                 pending_files = [
                     row for row in listed
