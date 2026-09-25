@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0,os.path.dirname(os.path.dirname(__file__)))
 import salcapa_knowledge_promotion as promotion
+from salcapa_m365_intake import GovernedM365Intake as RealIntake
 
 
 class App:
@@ -15,6 +16,34 @@ class App:
     def post(self,*args,**kwargs): return lambda fn: fn
     def get(self,*args,**kwargs): return lambda fn: fn
     def on_event(self,*args,**kwargs): return lambda fn: fn
+
+
+def check_sibling_boundary():
+    class Response:
+        status_code=200
+        def __init__(self,payload): self.payload=payload
+        def json(self): return self.payload
+    class Client:
+        parent="intake-12345678"
+        def get(self,url,**kwargs):
+            item_id=url.rsplit("/",1)[-1]
+            return Response({"id":item_id,"name":item_id,"folder":{},
+                             "parentReference":{"id":self.parent}})
+    intake=object.__new__(RealIntake)
+    intake.config=SimpleNamespace(drive_id="drive-12345678")
+    intake.client=Client()
+    intake._headers=lambda: {}
+    assert intake.verify_sibling_folder("pending-12345678","customer-12345678")
+    intake.client.parent="other-12345678"
+    class SplitClient(Client):
+        def get(self,url,**kwargs):
+            response=super().get(url,**kwargs)
+            if url.endswith("customer-12345678"):
+                response.payload["parentReference"]["id"]="different-12345678"
+            return response
+    intake.client=SplitClient()
+    assert not intake.verify_sibling_folder("pending-12345678","customer-12345678")
+    assert not intake.verify_sibling_folder("pending-12345678","pending-12345678")
 
 
 def check():
@@ -102,4 +131,6 @@ def check():
     print("bulk worker smoke passed")
 
 
-if __name__=="__main__": check()
+if __name__=="__main__":
+    check_sibling_boundary()
+    check()
