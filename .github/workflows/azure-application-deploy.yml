@@ -43,7 +43,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.190
+          ref: release/v3.191
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -65,15 +65,15 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.190-application-160e589e") and
+            (.activation_key == "salcapa-v3.191-application-a1d2513a") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.190") and
-            (.source_commit == "160e589e753547ad8f736e768b61090c7ba176c5") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:deed0b19cc4cd57a46c48b1ef1ac54646b669475afce97582ead41c9d2f86fbe") and
+            (.source_release == "release/v3.191") and
+            (.source_commit == "a1d2513a1925ef9d5821bafa0f0e04ce472e93b8") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:35d15f5f358bff3c741969bd5cde94cab0d8bdc8e7a2c24137a764ebfdbf9a4b") and
             (.rollback_release == "release/v3.182") and
             (.rollback_commit == "71373a645a229d922c281f61e9c1471a269b7aeb") and
             (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:3600b915aa95d5390b54a6554d7f4b247b8a196bbb2377ba3db4c0d3943357f8") and
@@ -398,7 +398,7 @@ jobs:
       - name: Create and run isolated Microsoft 365 intake acceptance job
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          EXPECTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:deed0b19cc4cd57a46c48b1ef1ac54646b669475afce97582ead41c9d2f86fbe
+          EXPECTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:35d15f5f358bff3c741969bd5cde94cab0d8bdc8e7a2c24137a764ebfdbf9a4b
         run: |
           set -euo pipefail
           env_value() {

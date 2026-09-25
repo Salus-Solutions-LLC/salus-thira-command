@@ -5,11 +5,11 @@
   "location": "southcentralus",
   "unique_suffix": "b48224",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-  "source_release": "release/v3.190",
-  "source_commit": "160e589e753547ad8f736e768b61090c7ba176c5",
-  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:deed0b19cc4cd57a46c48b1ef1ac54646b669475afce97582ead41c9d2f86fbe",
+  "source_release": "release/v3.191",
+  "source_commit": "a1d2513a1925ef9d5821bafa0f0e04ce472e93b8",
+  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:35d15f5f358bff3c741969bd5cde94cab0d8bdc8e7a2c24137a764ebfdbf9a4b",
   "rollback_release": "release/v3.182",
   "rollback_commit": "71373a645a229d922c281f61e9c1471a269b7aeb",
   "rollback_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:3600b915aa95d5390b54a6554d7f4b247b8a196bbb2377ba3db4c0d3943357f8",
-  "activation_key": "salcapa-v3.190-application-160e589e"
+  "activation_key": "salcapa-v3.191-application-a1d2513a"
 }
