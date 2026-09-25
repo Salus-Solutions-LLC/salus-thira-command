@@ -43,7 +43,7 @@ jobs:
       - name: Checkout frozen application source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.193
+          ref: release/v3.195
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -51,7 +51,7 @@ jobs:
       - name: Checkout accepted rollback source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.192
+          ref: release/v3.193
           path: accepted-release
           fetch-depth: 1
           persist-credentials: false
@@ -65,18 +65,18 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.193-application-e0e143cd") and
+            (.activation_key == "salcapa-v3.195-application-9c88ae56") and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.193") and
-            (.source_commit == "e0e143cd05f31b7031fe039a6d54f886985eecdb") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:67b93ab1d2b8d92e9b43636945469b67c98882b0b9770b6974e382212ef163a2") and
-            (.rollback_release == "release/v3.192") and
-            (.rollback_commit == "65ed6975cdce1db69851000293ed655565394a75") and
-            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:89d6b8441fbb78395169a9360fa564a957344c93ebff957e1e5a1ada3465ad38") and
+            (.source_release == "release/v3.195") and
+            (.source_commit == "9c88ae561d498b53d126863fe1c9ced52f8c276b") and
+            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:035ef8684d2092fc6eb1f2b51769c6e7e30b443b2e28dd571e6edecf54b32ecd") and
+            (.rollback_release == "release/v3.193") and
+            (.rollback_commit == "e0e143cd05f31b7031fe039a6d54f886985eecdb") and
+            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:67b93ab1d2b8d92e9b43636945469b67c98882b0b9770b6974e382212ef163a2") and
             ((keys - [
               "activation_key",
               "approval_record",
@@ -398,7 +398,7 @@ jobs:
       - name: Create and run isolated Microsoft 365 intake acceptance job
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          EXPECTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:67b93ab1d2b8d92e9b43636945469b67c98882b0b9770b6974e382212ef163a2
+          EXPECTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:035ef8684d2092fc6eb1f2b51769c6e7e30b443b2e28dd571e6edecf54b32ecd
         run: |
           set -euo pipefail
           env_value() {
@@ -482,7 +482,7 @@ jobs:
             --query "[?name == '$JOB_NAME'] | length(@)" \
             --output tsv --only-show-errors)" = "0"
 
-      - name: Restore accepted v3.182 if promotion verification fails
+      - name: Restore accepted v3.193 if promotion verification fails
         if: failure() && (steps.deployment.outcome == 'success' || steps.deployment.outcome == 'failure')
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
@@ -507,7 +507,7 @@ jobs:
               {
                 echo "### SalCAPA failed promotion rollback"
                 echo ""
-                echo "- Accepted immutable v3.182 image restored"
+                echo "- Accepted immutable v3.193 image restored"
                 echo "- Live readiness restored"
                 echo "- DNS unchanged"
                 echo "- Client secret not used"
@@ -517,5 +517,5 @@ jobs:
             fi
             sleep 10
           done
-          echo "Failed promotion did not restore the accepted v3.182 runtime." >&2
+          echo "Failed promotion did not restore the accepted v3.193 runtime." >&2
           exit 1
