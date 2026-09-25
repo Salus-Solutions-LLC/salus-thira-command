@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## Frozen-chat recovery and live folder verification — 25 September 2026, 15:34 CDT
+
+- Inspected the five continuity records and current draft PR #542. Its candidate head advanced to `f5a7822da16afc97e24f8d179bd26285ff789899` after the 15:27 checkpoint; the PR remains open and draft. The candidate includes a proposed two-minute Azure knowledge job schedule and bulk-delta activation. No deployment or completed exact-head checks were verified at this checkpoint.
+- Delegated OneDrive listing verified `10 Pending Classification` (ID `01DBTAFUO6Z6REUUQQQNGIH5N44O5Q77OM`) and empty `40 Customer Batch Staging - Unassigned` (ID `01DBTAFUIPAP4XZKZJ2RBIUTQYEJWDFKMA`) as distinct sibling folders under `SalCAPA Intake` (parent ID `01DBTAFUKSE2CSFDDEING2AAXOVQQEYNNL`). These are the exact IDs in the candidate Bicep configuration. The pending folder has 131 immediate children; this is not a recursive backlog count.
+- Keep existing Salus files in the pending folder. Before any candidate promotion, verify exact-head CI/CodeQL/contextual gates, governed release evidence, live bounded throughput and retry behavior, rollback, and the issue #520 acceptance criteria. Customer publication remains gated.
+
 ## Salus intake source clarification and bulk-route candidate — 25 September 2026, 15:27 CDT
 
 - Marc clarified that all existing material under OneDrive `SalCAPA Intake / 10 Pending Classification` is Salus material, including nested folders. Bulk customer material belongs in the separate sibling `40 Customer Batch Staging - Unassigned`. SAL-D024 supersedes the earlier mixed-backlog assumption. Marc should leave existing Salus material and new Salus uploads in the current pending folder; no folder move was performed.
