@@ -37,7 +37,7 @@ def check():
             def read_scoped_document(self,item,**kwargs):
                 assert kwargs["pending_folder_id"]=="pending-12345678"
                 assert kwargs["required_ancestor_id"] in ("enterprise-12345678",None)
-                if item["id"]==files[0]["id"]:
+                if item["id"]==row(1)["id"]:
                     raise promotion.M365RouteError("unassigned source")
                 return SimpleNamespace(item_id=item["id"],name=item["name"],
                     relative_path="10 Pending Classification/2.txt",content=b"two",
