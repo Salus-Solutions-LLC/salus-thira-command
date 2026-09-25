@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## Wix mental-health link correction — 25 September 2026
+
+- In the saved Wix draft for "Mental Health Trauma-From Services Page," changed the visible `https://988lifeline.org/` link target from `https://suicidepreventionlifeline.org/` to `https://988lifeline.org/` using Wix's link dialog, then saved. The editor displayed the corrected URL. This is not published.
+- The page switcher places this page under SalOPS. Its two "< Back to Mental Health" links in the editor accessibility tree target `/services/mental-health-trauma` and `/mental-health-trauma`, while the current rendered editor page is `/mental-health-trauma`; at least one appears self-referential. They require a deliberate navigation decision and correction. The page and site-wide draft remain unaccepted. Do not publish or deploy the incomplete saved site; the prior automatic review rejected that action.
+
 ## Wix mental-health draft continuation — 25 September 2026, 13:48 CDT
 
 - Inspected the saved Wix editor page and public-page inventory. The Wix site includes many additional public, member, program, store, and dynamic pages beyond the eight core typography drafts; no whole-site rewrite or all-page acceptance exists.
