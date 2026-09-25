@@ -534,6 +534,8 @@ def render_protection_advisor_pdf(
         from reportlab.lib.pagesizes import letter
         from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
         from reportlab.lib.units import inch
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
         from reportlab.platypus import (
             BaseDocTemplate, Frame, KeepTogether, PageBreak, PageTemplate,
             Paragraph, Spacer, Table, TableStyle,
@@ -543,19 +545,25 @@ def render_protection_advisor_pdf(
 
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
+    font_dir = Path("/usr/share/fonts/truetype/dejavu")
+    for font_name, filename in (("SalusSans", "DejaVuSans.ttf"), ("SalusSans-Bold", "DejaVuSans-Bold.ttf")):
+        font_path = font_dir / filename
+        if not font_path.is_file():
+            raise RuntimeError(f"Required embedded report font is missing: {font_path}")
+        pdfmetrics.registerFont(TTFont(font_name, str(font_path)))
     fields = context.as_template_fields()
     requested_handling = fields["InformationClassificationHandling"]
     display_handling = "CUI review requested" if requested_handling == "CUI" else requested_handling
     watermark = "REVIEW" if requested_handling == "CUI" else requested_handling.upper()
     styles = getSampleStyleSheet()
-    body = ParagraphStyle("SalusBody", parent=styles["BodyText"], fontName="Helvetica", fontSize=10.5, leading=14, spaceAfter=7)
-    h1 = ParagraphStyle("SalusH1", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=16, leading=19, textColor=colors.black, spaceBefore=10, spaceAfter=7)
-    h2 = ParagraphStyle("SalusH2", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=11.5, leading=14, textColor=colors.black, spaceBefore=7, spaceAfter=5)
-    title = ParagraphStyle("SalusTitle", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=22, leading=26, alignment=TA_CENTER, textColor=colors.black)
+    body = ParagraphStyle("SalusBody", parent=styles["BodyText"], fontName="SalusSans", fontSize=10.5, leading=14, spaceAfter=7)
+    h1 = ParagraphStyle("SalusH1", parent=styles["Heading1"], fontName="SalusSans-Bold", fontSize=16, leading=19, textColor=colors.black, spaceBefore=10, spaceAfter=7)
+    h2 = ParagraphStyle("SalusH2", parent=styles["Heading2"], fontName="SalusSans-Bold", fontSize=11.5, leading=14, textColor=colors.black, spaceBefore=7, spaceAfter=5)
+    title = ParagraphStyle("SalusTitle", parent=styles["Title"], fontName="SalusSans-Bold", fontSize=22, leading=26, alignment=TA_CENTER, textColor=colors.black)
     subtitle = ParagraphStyle("SalusSubtitle", parent=body, fontSize=11, leading=14, alignment=TA_CENTER, textColor=colors.HexColor("#2F75B5"))
     small = ParagraphStyle("SalusSmall", parent=body, fontSize=9.5, leading=12, spaceAfter=0)
     table_header = ParagraphStyle(
-        "SalusTableHeader", parent=small, fontName="Helvetica-Bold",
+        "SalusTableHeader", parent=small, fontName="SalusSans-Bold",
         fontSize=9, leading=11, textColor=colors.white, alignment=TA_LEFT,
     )
 
@@ -569,7 +577,7 @@ def render_protection_advisor_pdf(
         commands = [
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#17365D")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 0), (-1, 0), "SalusSans-Bold"),
             ("ALIGN", (0, 0), (-1, -1), "LEFT"),
             ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
             ("VALIGN", (0, 1), (-1, -1), "TOP"),
@@ -598,7 +606,7 @@ def render_protection_advisor_pdf(
         if number == 2:
             canvas.saveState()
             canvas.setFillColor(colors.Color(.4, .4, .4, alpha=.10))
-            canvas.setFont("Helvetica-Bold", 52)
+            canvas.setFont("SalusSans-Bold", 52)
             canvas.translate(width / 2, height / 2)
             canvas.rotate(45)
             canvas.drawCentredString(0, 0, watermark)
@@ -606,17 +614,17 @@ def render_protection_advisor_pdf(
         elif number >= 3:
             canvas.saveState()
             canvas.setFillColor(colors.HexColor("#7A1F1F"))
-            canvas.setFont("Helvetica", 7.5)
+            canvas.setFont("SalusSans", 7.5)
             canvas.drawCentredString(width / 2, height - .42 * inch, f"SALUS SOLUTIONS - PROTECTION ADVISOR - {display_handling.upper()}")
             canvas.setFillColor(colors.Color(.4, .4, .4, alpha=.07))
-            canvas.setFont("Helvetica-Bold", 46)
+            canvas.setFont("SalusSans-Bold", 46)
             canvas.translate(width / 2, height / 2)
             canvas.rotate(45)
             canvas.drawCentredString(0, 0, watermark)
             canvas.rotate(-45)
             canvas.translate(-width / 2, -height / 2)
             canvas.setFillColor(colors.black)
-            canvas.setFont("Helvetica", 8)
+            canvas.setFont("SalusSans", 8)
             canvas.line(.65 * inch, .48 * inch, width - .65 * inch, .48 * inch)
             canvas.drawString(.65 * inch, .30 * inch, "+1-888-496-6668")
             canvas.drawCentredString(width / 2, .30 * inch, "www.Salus.Solutions")
@@ -657,7 +665,7 @@ def render_protection_advisor_pdf(
               P("Primary Conclusions", h1)]
     story += bullets(("Treat protection, emergency planning, continuity, and capability validation as one integrated program.", "Test reported capability against current evidence and performance under realistic stress.", "Validate authority, succession, escalation, dependencies, and alternate arrangements.", "Require authorized Salus review before final scope, price, or assurance statements."))
     story += [PageBreak(), P("Priority Capability Findings", h1),
-              T(("Priority", "Capability", "Need", "Mission areas", "Basis"), tuple((i, x.get("capability", ""), x.get("need_score", ""), ", ".join(x.get("mission_areas") or []), "Information incomplete" if x.get("information_gap") else "Reported need") for i, x in enumerate(capabilities, 1)), (.65 * inch, 1.9 * inch, .55 * inch, 1.7 * inch, 1.3 * inch), centered_columns=(0, 2)),
+              T(("Priority", "Capability", "Need", "Mission areas", "Basis"), tuple((i, x.get("capability", ""), x.get("need_score", ""), ", ".join(x.get("mission_areas") or []), "Information incomplete" if x.get("information_gap") else "Reported need") for i, x in enumerate(capabilities, 1)), (.8 * inch, 1.85 * inch, .55 * inch, 1.65 * inch, 1.25 * inch), centered_columns=(0, 2)),
               P("Need scores rank review urgency within this submission. They are not probability estimates, compliance findings, or final measures of readiness."), P("Conditions Requiring Attention", h1)]
     story += bullets(result.get("attention_topics") or ("No specific attention topic was preserved in this preliminary record.",))
     story += [PageBreak(), P("Information Gaps", h1), P("These issues could materially change the assessment and should be resolved before a final opinion, scope, or price is issued.")]

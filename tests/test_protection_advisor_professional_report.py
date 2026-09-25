@@ -67,6 +67,8 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
     )
     reader = PdfReader(path)
     assert len(reader.pages) >= 8
+    fonts = reader.pages[2]["/Resources"]["/Font"].get_object().values()
+    assert any("/FontFile2" in font.get_object()["/FontDescriptor"].get_object() for font in fonts if "/FontDescriptor" in font.get_object())
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     assert "Executive Summary" in text
     assert "Recommended Protection Package" in text
