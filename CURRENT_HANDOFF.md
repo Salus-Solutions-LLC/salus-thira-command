@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## Wix mental-health draft continuation — 25 September 2026, 13:48 CDT
+
+- Inspected the saved Wix editor page and public-page inventory. The Wix site includes many additional public, member, program, store, and dynamic pages beyond the eight core typography drafts; no whole-site rewrite or all-page acceptance exists.
+- On the "Mental Health Trauma-From Services Page," saved in-place copy corrections while retaining the original section/list structure: replaced unsupported 90% and 19% claims with nonnumeric, qualified guidance; updated the ambiguous 25% claim to NAMI's 2024 23.4% of U.S. adults figure (https://www.nami.org/mental-health-by-the-numbers/); softened an unsupported assertion that immediate social connection decreases PTSD risk; corrected "breathing o help" and "why your survived." SAMHSA's trauma guidance supports the revised qualified support language (https://www.samhsa.gov/mental-health/disaster-preparedness/coping-tips).
+- In Wix mobile editor, reduced this page's long-form rich-text component from 24px to 16px and verified the mobile preview's line wrapping. These are saved drafts only. The visible 988 Lifeline URL still targets an older domain, the two "Back to Mental Health" links disagree, other resources and claims need review, and the mobile chat control still overlaps narrow content. Do not publish the site-wide draft until these and other public-page desktop/mobile scope checks pass.
+- Accepted Azure development runtime remains v3.196 per governed run 36099965934; no SalCAPA release or SharePoint report mutation was made in this continuation. Advisor DOCX acceptance and issue #520 large-batch/member-isolation acceptance remain open. Next: correct the mental-health links and finish a page-by-page public copy/layout/media/link review, then verify site-wide publish scope and live rendering. Continue report and intake acceptance separately.
+
 ## Wix mental-health draft safety checkpoint — 25 September 2026
 
 - On the Wix page "Mental Health Trauma-From Services Page," corrected the crisis telephone text from an erroneous `+1-800-273-TALK or 811` and its `tel:+1-800-273-811` target to `1-800-273-TALK (8255)` / `tel:+1-800-273-8255`, and saved the draft. Verified the displayed text and link target in the Wix editor DOM. The official 988 Lifeline also confirms call or text 988; use https://988lifeline.org/get-help/ for authoritative current help information.
