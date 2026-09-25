@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## Live intake and About-page checkpoint — 25 September 2026, 15:12 CDT
+
+- Governed v3.196 deployment run `36099965934` reported `SALCAPA_KNOWLEDGE_BATCH`: 20 discovered/created, 18 automatically promoted, 15 automatic retries required, 3 oversize held, and 1,279 candidate records. This is a successful bounded pass, not a full drain or 10,000-file acceptance.
+- Delegated OneDrive listing of `SalCAPA Intake / 10 Pending Classification` now returns 131 immediate children (44 files, 87 folders), versus 194 immediate children recorded on 24 September. The direct processed folder returns at least 200 files with continuation. A direct pending file `RDU AEP.pdf` is about 262 MiB; two other oversize holds may be nested. No full recursive reconciliation, retry resolution, or customer isolation is claimed. Do not infer completion from the direct-child count.
+- Wix About Salus draft: moved the retained 02:22 audio player from over the third paragraph into the title section, resized it to 341 × 70 on desktop, and verified that its title and player no longer overlap the body. Mobile now places it below the subtitle; set the single long-form text component to 16 px and saved. The page and site-wide draft are not published. Other Wix pages and the shared mobile chat overlay remain to accept.
+- Development source commit `520bb3fd6c5f99170c7bbe57a5af7efa98e85fbb` for the Part 2 field layout passed Public Advisor; the subsequent handoff-only commit `54eb92d24bb45df3d27fda207d3dfe05741ced02` passed CI, CodeQL, and contextual intake. No image or Azure deployment has followed.
+
 ## Protection Advisor Part 2 field layout integration — 25 September 2026
 
 - Candidate PR #540 exact head `d39bcf1b0d95fadb30b625b285332ca213a596df` passed Public Protection Advisor, SalCAPA Contextual Intake, CI (including container runtime), and CodeQL. The candidate source file differs from development only by the scoped report-identity editor CSS.
