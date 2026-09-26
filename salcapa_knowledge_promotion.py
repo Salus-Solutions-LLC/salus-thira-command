@@ -51,6 +51,21 @@ TARGETS = {
 }
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
 _AUTO_ACTOR = "SalCAPA Policy Engine"
+
+
+def _worker_rss_kib() -> int | str:
+    """Current Linux worker RSS for bounded, content-free phase diagnostics."""
+    try:
+        with open("/proc/self/status", encoding="ascii") as status:
+            for line in status:
+                if line.startswith("VmRSS:"):
+                    value = int(line.split()[1])
+                    return value if 0 <= value <= 1_000_000_000 else "unknown"
+    except (OSError, ValueError, IndexError):
+        pass
+    return "unknown"
+
+
 _EXCEPTION_MARKERS = {
     "attorney-client", "confidential", "draft", "employee", "export controlled",
     "legal hold", "medical record", "patient", "personnel", "privileged",
@@ -708,7 +723,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 source_size = row.get("size")
                 size_label = source_size if isinstance(source_size, int) and source_size >= 0 else "unknown"
                 print(
-                    f'SALCAPA_WORKER_PHASE=file_started index={index} source_size_bytes={size_label}',
+                    f'SALCAPA_WORKER_PHASE=file_started index={index} source_size_bytes={size_label} rss_kib={_worker_rss_kib()}',
                     flush=True,
                 )
                 promoted_this_file = False
@@ -730,6 +745,10 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                         access_classification="Salus Internal"
                     ) if bulk_enabled else intake.read_listed_document(
                         row, access_classification="Salus Internal"))
+                    print(
+                        f'SALCAPA_WORKER_PHASE=source_read_complete index={index} rss_kib={_worker_rss_kib()}',
+                        flush=True,
+                    )
                 except M365RouteError:
                     automatic_retry_required += 1
                     retry_codes.add("enterprise_route_assignment_required")
@@ -770,6 +789,10 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 ).fetchone()
                 classification, _ = automatic_classification(
                     document, duplicate=bool(duplicate)
+                )
+                print(
+                    f'SALCAPA_WORKER_PHASE=classification_complete index={index} rss_kib={_worker_rss_kib()}',
+                    flush=True,
                 )
                 if bulk_enabled:
                     classification.setdefault("automation", {})["source_route_folder_id"] = enterprise_folder_id
