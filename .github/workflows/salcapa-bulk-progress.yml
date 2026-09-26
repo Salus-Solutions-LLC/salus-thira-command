@@ -13,10 +13,18 @@ permissions:
   id-token: write
 
 jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected read-only bulk observation gate passed."
+
   observe:
+    needs: authorize
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: salcapa-dev-approval
     steps:
       - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
         with:
