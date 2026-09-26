@@ -31,7 +31,7 @@ def create_tables(conn):
     CREATE TABLE IF NOT EXISTS m365_bulk_items (
       drive_id TEXT NOT NULL, pending_id TEXT NOT NULL, item_id TEXT NOT NULL,
       parent_id TEXT NOT NULL DEFAULT '', name TEXT NOT NULL DEFAULT '',
-      kind TEXT NOT NULL, etag TEXT NOT NULL DEFAULT '', size INTEGER NOT NULL DEFAULT 0,
+      kind TEXT NOT NULL, etag TEXT NOT NULL DEFAULT '', size BIGINT NOT NULL DEFAULT 0,
       metadata_json TEXT NOT NULL DEFAULT '{}', status TEXT NOT NULL,
       reason TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 0,
       next_attempt INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL,
@@ -42,6 +42,21 @@ def create_tables(conn):
     CREATE INDEX IF NOT EXISTS idx_m365_bulk_work
       ON m365_bulk_items(drive_id,pending_id,status,next_attempt,updated_at);
     """)
+    # Existing PostgreSQL ledgers were created with a 32-bit size column.
+    # Graph reports folder sizes beyond that range even though byte processing
+    # remains capped separately. Migrate in place before the first page insert.
+    if getattr(conn, "backend", "") == "postgres":
+        row = conn.execute(
+            "SELECT data_type FROM information_schema.columns "
+            "WHERE table_schema=current_schema() AND table_name='m365_bulk_items' "
+            "AND column_name='size'"
+        ).fetchone()
+        if row is None:
+            raise M365IntakeError("Bulk ledger size column is missing")
+        if row["data_type"] == "integer":
+            conn.execute("ALTER TABLE m365_bulk_items ALTER COLUMN size TYPE BIGINT")
+        elif row["data_type"] != "bigint":
+            raise M365IntakeError("Bulk ledger size column has an unsupported type")
 
 
 def _scoped_link(link, drive_id, pending_id):
@@ -178,6 +193,7 @@ def discover(intake, connect, *, max_pages=10, now=None):
     pending = resolve_pending(intake)
     drive = intake.config.drive_id
     conn = connect()
+    owner = None
     try:
         create_tables(conn)
         owner, cursor = _claim(conn, drive, pending, clock)
@@ -242,6 +258,17 @@ def discover(intake, connect, *, max_pages=10, now=None):
         return {"pages":pages,"complete":phase=="delta"}
     except Exception:
         conn.rollback()
+        if owner:
+            try:
+                conn.execute(
+                    "UPDATE m365_bulk_cursors SET lease_until=0,lease_owner='',"
+                    "next_attempt=?,last_error='delta_discovery_error' "
+                    "WHERE drive_id=? AND pending_id=? AND lease_owner=?",
+                    (clock + 60, drive, pending, owner),
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()
         raise
     finally:
         conn.close()
