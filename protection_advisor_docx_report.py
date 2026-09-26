@@ -703,10 +703,35 @@ def render_protection_advisor_pdf(
     capabilities = result.get("priority_capabilities") or []
     scores = result.get("mission_area_scores") or {}
     primary = package.get("primary_service") or {}
+    priority_names = [str(item.get("capability", "")).strip() for item in capabilities[:6]]
+    priority_names = [name for name in priority_names if name]
+    sequence = [str(item).strip() for item in (package.get("sequence") or []) if str(item).strip()]
     story += [P("Protection Advisor Assessment Report", h1), P("Preliminary results and recommended protection package", subtitle),
+              T(("Report detail", "Value"), (
+                  ("Protected Member code name", fields["ClientCodeName"]),
+                  ("Project code name", fields["ProjectCodeName"]),
+                  ("Report reference", fields["ReportReference"]),
+                  ("Prepared", fields["GeneratedAt"]),
+                  ("Handling", display_handling),
+                  ("Status", "Preliminary - Salus professional review required"),
+              ), (2.0 * inch, 4.1 * inch)),
               P("Executive Summary", h1),
-              P(f"The assessment recorded {result.get('strength_count', 0)} positive indicators, {result.get('attention_count', 0)} conditions requiring attention, and {result.get('information_gap_count', 0)} material information gaps. The findings support an integrated review of protection, preparedness, continuity, response, and recovery."),
-              P(f"Salus recommends beginning with {primary.get('title', 'a qualification and validation review')} at Level {primary.get('level', '')} {primary.get('level_name', '')}. {primary.get('summary', '')}"),
+              P(f"The assessment recorded {result.get('strength_count', 0)} positive indicators; "
+                f"{result.get('attention_count', 0)} conditions require attention and "
+                f"{result.get('information_gap_count', 0)} material information gaps prevent a final "
+                "determination of readiness. The results support one connected review of protection, "
+                "preparedness, continuity, response, and recovery."),
+              P(("The highest preliminary capability priorities are " + ", ".join(priority_names) + ". "
+                 "They identify where professional validation should begin across the five mission areas; "
+                 "they do not establish a confirmed deficiency or threat.") if priority_names else
+                "The preliminary capability priorities require Salus professional validation against current evidence."),
+              P(f"Salus recommends beginning with {primary.get('title', 'a qualification and validation review')} "
+                f"at Level {primary.get('level', '')} {primary.get('level_name', '')}. "
+                f"{primary.get('summary', '')} "
+                + ("The proposed sequence continues with " + "; ".join(sequence[1:4]) + ". "
+                   if len(sequence) > 1 else "")
+                + "The sequence remains preliminary until Salus validates the operating environment, "
+                  "evidence, authorities, resources, and priorities."),
               PageBreak(), P("Assessment Snapshot", h1),
               T(("Measure", "Result", "Interpretation"), (
                   ("Overall result", result.get("recommendation", "Professional review recommended"), "Preliminary decision-support result"),
