@@ -33,6 +33,7 @@ from salcapa_m365_intake import (
 from salcapa_bulk_delta import (
     checkpoint_oversize, claim_work, complete_work, discover, resolve_pending,
 )
+from salcapa_bulk_extraction_retry import process_due as retry_archived_bulk_extraction
 
 PENDING_PREFIX = "10 Pending Classification/"
 DECISIONS = {"Approved", "Deferred", "Duplicate", "Unsupported", "Sensitive", "Excluded"}
@@ -1034,6 +1035,26 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             if not pending_files and not bulk_enabled:
                 archived_listed = intake.list_files(processed_only=True)
                 listed_by_id = {row["id"]: row for row in archived_listed}
+            # Bulk mode retries derived extraction from the verified archive with
+            # a durable lease and backoff; the original and citation hash stay fixed.
+            archived_extraction_completed = 0
+            if bulk_enabled:
+                def bulk_retry_writer():
+                    nonlocal writer
+                    if writer is None:
+                        writer = GraphKnowledgeWriter(
+                            intake_config, KnowledgeDestinationConfig.from_environment()
+                        )
+                    return writer
+                bulk_retries = retry_archived_bulk_extraction(
+                    conn, get_writer=bulk_retry_writer,
+                    refresh=refresh_archived_extraction,
+                    failure_types=(KnowledgePromotionError,), now_iso=now,
+                    skip_zip=zip_enabled, limit=2,
+                )
+                archived_extraction_completed = bulk_retries["completed"]
+                automatic_retry_required += bulk_retries["retry"]
+                retry_codes.update(bulk_retries["codes"])
             # Extraction obligations survive promotion. Retry against the exact
             # archived original on later scans, without moving or rewriting it.
             archived_retries = conn.execute(
@@ -1088,6 +1109,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 "automatically_promoted": automatically_promoted,
                 "automatic_retry_required": automatic_retry_required,
                 "exception_review": 0,
+                "archived_extraction_completed": archived_extraction_completed,
                 "candidate_count": total,
             }
             if not bulk_enabled:
