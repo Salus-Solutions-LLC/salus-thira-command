@@ -33,7 +33,7 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - name: Read aggregate intake ledger through a one-off job execution
+      - name: Probe first Graph delta page without source bytes
         env:
           EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
         run: |
@@ -43,29 +43,41 @@ jobs:
           az containerapp job show --resource-group rg-salcapa-dev --name "$job" --query properties.template --output json > /tmp/salcapa-job-template.json
           cat > /tmp/salcapa-ledger-audit.py <<'PY'
           import json
-          from salcapa_runtime import app
-          import app as core
+          from urllib.parse import urlparse, parse_qs
+          from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake, GRAPH_ROOT
+          from salcapa_bulk_delta import SELECT, resolve_pending, _scoped_link
 
-          conn = core.db()
-          try:
-              items = conn.execute(
-                  "SELECT kind,status,reason,COUNT(*) AS n FROM m365_bulk_items "
-                  "GROUP BY kind,status,reason ORDER BY kind,status,reason"
-              ).fetchall()
-              cursors = conn.execute(
-                  "SELECT phase,last_error,generation,updated_at FROM m365_bulk_cursors"
-              ).fetchall()
-              pending = conn.execute(
-                  "SELECT COUNT(*) FROM m365_knowledge_candidates"
-              ).fetchone()[0]
-              result = {
-                  "ledger": [dict(row) for row in items],
-                  "cursors": [dict(row) for row in cursors],
-                  "candidate_count": pending,
-              }
-              print("SALCAPA_LEDGER_AUDIT=" + json.dumps(result, sort_keys=True), flush=True)
-          finally:
-              conn.close()
+          config = GovernedM365Config.from_environment()
+          intake = GovernedM365Intake(config)
+          pending = resolve_pending(intake)
+          endpoint = f"{GRAPH_ROOT}/drives/{config.drive_id}/items/{pending}/delta"
+          response = intake.client.get(
+              endpoint, headers=intake._headers(),
+              params={"$select": SELECT, "$top": "200"},
+          )
+          output = {"http_status": response.status_code}
+          if response.status_code == 200:
+              payload = response.json()
+              values = payload.get("value")
+              link = payload.get("@odata.nextLink") or payload.get("@odata.deltaLink")
+              parsed = urlparse(link or "")
+              output.update(
+                  item_count=len(values) if isinstance(values, list) else -1,
+                  link_kind="next" if "@odata.nextLink" in payload else "delta" if "@odata.deltaLink" in payload else "none",
+                  link_path=parsed.path.replace(config.drive_id, "<drive>").replace(pending, "<pending>"),
+                  link_query_keys=sorted(parse_qs(parsed.query).keys()),
+              )
+              try:
+                  _scoped_link(link, config.drive_id, pending)
+                  output["scope_check"] = "passed"
+              except Exception as exc:
+                  output["scope_check"] = type(exc).__name__ + ": " + str(exc)
+          else:
+              try:
+                  output["graph_error_code"] = response.json().get("error", {}).get("code", "")
+              except Exception:
+                  pass
+          print("SALCAPA_GRAPH_PROBE=" + json.dumps(output, sort_keys=True), flush=True)
           PY
           python3 - <<'PY'
           import json
@@ -88,5 +100,5 @@ jobs:
             sleep 8
           done
           echo "Ledger audit status=$status"
-          az containerapp job logs show --resource-group rg-salcapa-dev --name "$job" --execution "$execution" --container salcapa-knowledge-scan --tail 80 --format text --only-show-errors 2>/dev/null | grep 'SALCAPA_LEDGER_AUDIT=' | tail -n 1 || true
+          az containerapp job logs show --resource-group rg-salcapa-dev --name "$job" --execution "$execution" --container salcapa-knowledge-scan --tail 80 --format text --only-show-errors 2>/dev/null | grep 'SALCAPA_GRAPH_PROBE=' | tail -n 1 || true
           test "$status" = Succeeded
