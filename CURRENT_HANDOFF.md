@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 26 September 2026, 20:55 UTC — public Wix sample-product exposure corrected
+
+- The Wix connector confirmed the site uses Catalog V1 and has 12 legacy generic “I'm a product” records, all initially marked `visible=true`. Their public product URLs were present in catalog data; direct live check of `https://www.salus.solutions/product-page/i-m-a-product` displayed the $85 generic product and Add to Cart. The absence of the guessed public category URL and search results did **not** mean the product URLs were inaccessible.
+- Using the documented Catalog V1 partial product update, changed only `visible` to `false` for those 12 named placeholder records, preserving all IDs, descriptions, prices, media, and inventory for recovery. Each response confirmed `visible=false`. A subsequent default catalog query returned zero visible products (`totalResults=0`); after live propagation, the checked direct product URL displayed “This product couldn't be found” and no Add to Cart. No order, payment, or checkout was attempted. This is a live catalog visibility correction, independent of the still-unpublished Wix editor layout drafts. The 12 sample products remain stored; investigate why they were retained before any permanent deletion or store redesign.
+
 ## 26 September 2026, 20:51 UTC — Wix app-template and live-route audit
 
 - Continued desktop/mobile Wix editor review without changing site content. Program Course List, Onboarding, Participant, and Payment templates rendered in the phone preview; Course List and available program content showed no visible overlap. Payment Page explicitly says online payments cannot be accepted and asks visitors to contact Salus. Member Team Home phone preview showed the profile, announcement board, Submit Reports link, and footer without a collision in the portions inspected. Groups Feed rendered on mobile, while the Group Page item preview said “This group can't be found”; no existing group item was available for a detail acceptance check.
