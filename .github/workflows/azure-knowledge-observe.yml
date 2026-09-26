@@ -1,0 +1,50 @@
+name: SalCAPA knowledge worker throughput observation
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-knowledge-observe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - name: Record protected observation approval gate passage
+        run: echo 'Protected SalCAPA development observation approval gate passed.'
+
+  observe:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Read bounded worker execution results
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION"
+          job=salcapa-dev-b48224-kb-scan
+          az containerapp job show --resource-group rg-salcapa-dev --name "$job"             --query '{cron:properties.configuration.scheduleTriggerConfig.cronExpression,image:properties.template.containers[0].image}'             --output json
+          az containerapp job execution list --resource-group rg-salcapa-dev --name "$job"             --query '[0:8].[name,properties.status]' --output tsv |
+          while IFS=$'\t' read -r execution status; do
+            test -n "$execution" || continue
+            printf 'execution=%s status=%s\n' "$execution" "$status"
+            az containerapp job logs show --resource-group rg-salcapa-dev               --name "$job" --execution "$execution" --container salcapa-knowledge-scan               --tail 100 --format text --only-show-errors 2>/dev/null |
+              grep 'SALCAPA_KNOWLEDGE_BATCH=' | tail -n 1 || true
+          done
