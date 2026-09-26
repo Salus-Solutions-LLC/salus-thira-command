@@ -120,6 +120,7 @@ with tempfile.TemporaryDirectory() as td:
     assert 'id="projectCodeName"' not in embedded.text
     assert 'id="reportIdentityEditor"' in embedded.text
     assert "Edit code names and report handling" in embedded.text
+    assert "Update report code names or requested handling" in embedded.text
     assert "SPA-REPORT-TEMPLATE-1.1.0" in embedded.text
     assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in embedded.text
     assert 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' in embedded.text
