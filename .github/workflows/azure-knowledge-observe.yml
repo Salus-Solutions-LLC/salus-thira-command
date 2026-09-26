@@ -33,7 +33,7 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - name: Probe first Graph delta page without source bytes
+      - name: Validate Graph delta page metadata in temporary ledger
         env:
           EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
         run: |
@@ -43,9 +43,10 @@ jobs:
           az containerapp job show --resource-group rg-salcapa-dev --name "$job" --query properties.template --output json > /tmp/salcapa-job-template.json
           cat > /tmp/salcapa-ledger-audit.py <<'PY'
           import json
-          from urllib.parse import urlparse, parse_qs
+          import sqlite3
+          import time
           from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake, GRAPH_ROOT
-          from salcapa_bulk_delta import SELECT, resolve_pending, _scoped_link
+          from salcapa_bulk_delta import SELECT, resolve_pending, _apply_item, create_tables
 
           config = GovernedM365Config.from_environment()
           intake = GovernedM365Intake(config)
@@ -57,21 +58,25 @@ jobs:
           )
           output = {"http_status": response.status_code}
           if response.status_code == 200:
-              payload = response.json()
-              values = payload.get("value")
-              link = payload.get("@odata.nextLink") or payload.get("@odata.deltaLink")
-              parsed = urlparse(link or "")
-              output.update(
-                  item_count=len(values) if isinstance(values, list) else -1,
-                  link_kind="next" if "@odata.nextLink" in payload else "delta" if "@odata.deltaLink" in payload else "none",
-                  link_path=parsed.path.replace(config.drive_id, "<drive>").replace(pending, "<pending>"),
-                  link_query_keys=sorted(parse_qs(parsed.query).keys()),
-              )
-              try:
-                  _scoped_link(link, config.drive_id, pending)
-                  output["scope_check"] = "passed"
-              except Exception as exc:
-                  output["scope_check"] = type(exc).__name__ + ": " + str(exc)
+              values = response.json().get("value")
+              output["item_count"] = len(values) if isinstance(values, list) else -1
+              if isinstance(values, list):
+                  conn = sqlite3.connect(":memory:")
+                  create_tables(conn)
+                  for index, item in enumerate(values):
+                      try:
+                          _apply_item(conn, intake, pending, item, int(time.time()), 0)
+                      except Exception as exc:
+                          output["failed_index"] = index
+                          output["exception_type"] = type(exc).__name__
+                          output["exception_message"] = str(exc)[:160]
+                          output["facet"] = "folder" if "folder" in item else "file" if "file" in item else "other"
+                          output["is_pending"] = item.get("id") == pending
+                          output["has_parent"] = bool((item.get("parentReference") or {}).get("id"))
+                          break
+                  else:
+                      output["validated_count"] = len(values)
+                  conn.close()
           else:
               try:
                   output["graph_error_code"] = response.json().get("error", {}).get("code", "")
