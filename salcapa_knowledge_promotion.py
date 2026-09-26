@@ -64,6 +64,8 @@ def _worker_rss_kib() -> int | str:
     except (OSError, ValueError, IndexError):
         pass
     return "unknown"
+
+
 _EXCEPTION_MARKERS = {
     "attorney-client", "confidential", "draft", "employee", "export controlled",
     "legal hold", "medical record", "patient", "personnel", "privileged",
