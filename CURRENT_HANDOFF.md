@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 26 September 2026 — document-processing counter correction
+
+- Source inspection of `salcapa_knowledge_promotion.py` confirms `candidate_count` is `SELECT COUNT(*) FROM m365_knowledge_candidates`: total stored candidate rows, **not** outstanding backlog depth. The v3.202 batch selected at most 20 file-ledger items. The per-pass `automatic_retry_required` field counts retry events encountered in that execution, not the durable total of pending retry obligations. Earlier summaries must not equate either counter with remaining work. Before asserting progress or completion, obtain scoped `m365_bulk_items` status counts (`Pending`, `Retry`, `Working`, `Assignment Required`, `Oversize`, `Done`) and durable extraction-retry counts from the live ledger, then prove their transitions across repeated runs. No source or deployment changed at this checkpoint.
+
 ## 26 September 2026, 20:55 UTC — public Wix sample-product exposure corrected
 
 - The Wix connector confirmed the site uses Catalog V1 and has 12 legacy generic “I'm a product” records, all initially marked `visible=true`. Their public product URLs were present in catalog data; direct live check of `https://www.salus.solutions/product-page/i-m-a-product` displayed the $85 generic product and Add to Cart. The absence of the guessed public category URL and search results did **not** mean the product URLs were inaccessible.
