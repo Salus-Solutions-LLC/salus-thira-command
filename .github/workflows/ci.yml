@@ -226,6 +226,8 @@ jobs:
           SALUS_DB_BACKEND: postgres
           SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salus_thira_ci
         run: python tools/ci_salcapa_bulk_delta_postgres_smoke.py
+      - name: PostgreSQL bulk archived extraction retry smoke
+        run: python tools/ci_salcapa_bulk_extraction_retry_postgres_smoke.py
       - name: PostgreSQL ZIP member index transaction smoke
         env:
           SALUS_DB_BACKEND: postgres
