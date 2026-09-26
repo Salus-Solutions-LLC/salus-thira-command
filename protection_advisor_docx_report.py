@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import json
+import io
+import zipfile
 from copy import deepcopy
 from pathlib import Path
 
@@ -559,6 +561,7 @@ def render_protection_advisor_pdf(
         from reportlab.lib.pagesizes import letter
         from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
         from reportlab.lib.units import inch
+        from reportlab.lib.utils import ImageReader
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
         from reportlab.pdfgen.canvas import Canvas
@@ -577,10 +580,15 @@ def render_protection_advisor_pdf(
         if not font_path.is_file():
             raise RuntimeError(f"Required embedded report font is missing: {font_path}")
         pdfmetrics.registerFont(TTFont(font_name, str(font_path)))
+    template_path = Path(__file__).with_name(_TEMPLATE_NAME)
+    if not template_path.is_file():
+        raise RuntimeError(f"Approved Salus report template is missing: {template_path}")
+    with zipfile.ZipFile(template_path) as template:
+        logo_image = ImageReader(io.BytesIO(template.read("word/media/image1.png")))
     fields = context.as_template_fields()
     requested_handling = fields["InformationClassificationHandling"]
     display_handling = "CUI review requested" if requested_handling == "CUI" else requested_handling
-    watermark = "REVIEW" if requested_handling == "CUI" else requested_handling.upper()
+    watermark = "CONFIDENTIAL"
     styles = getSampleStyleSheet()
     body = ParagraphStyle("SalusBody", parent=styles["BodyText"], fontName="SalusSans", fontSize=11.5, leading=16, spaceAfter=9)
     h1 = ParagraphStyle("SalusH1", parent=styles["Heading1"], fontName="SalusSans-Bold", fontSize=17, leading=21, textColor=colors.black, spaceBefore=13, spaceAfter=9)
@@ -648,6 +656,15 @@ def render_protection_advisor_pdf(
                 super().showPage()
             super().save()
 
+    def draw_brand_footer(canvas):
+        canvas.drawImage(logo_image, .65 * inch, .25 * inch,
+                         width=1.65 * inch, height=.25 * inch,
+                         preserveAspectRatio=True, mask="auto")
+        canvas.setFillColor(colors.black)
+        canvas.setFont("SalusSans", 8)
+        canvas.drawString(2.75 * inch, .30 * inch, "+1-888-496-6668")
+        canvas.drawString(4.22 * inch, .30 * inch, "www.Salus.Solutions")
+
     def page_frame(canvas, doc):
         canvas.setTitle("Protection Advisor Assessment Report")
         canvas.setAuthor("Salus Solutions")
@@ -655,9 +672,7 @@ def render_protection_advisor_pdf(
         width, height = letter
         if number == 1:
             canvas.saveState()
-            canvas.setFillColor(colors.HexColor("#7A1F1F"))
-            canvas.setFont("SalusSans", 8)
-            canvas.drawString(.65 * inch, .30 * inch, "Salus Solutions | Preliminary report")
+            draw_brand_footer(canvas)
             canvas.restoreState()
         elif number == 2:
             canvas.saveState()
@@ -671,7 +686,7 @@ def render_protection_advisor_pdf(
             canvas.saveState()
             canvas.setFillColor(colors.HexColor("#7A1F1F"))
             canvas.setFont("SalusSans", 7.5)
-            canvas.drawCentredString(width / 2, height - .42 * inch, f"SALUS SOLUTIONS - PROTECTION ADVISOR - {display_handling.upper()}")
+            canvas.drawCentredString(width / 2, height - .42 * inch, "CONFIDENTIAL — SALUS PROTECTED INFORMATION")
             canvas.setFillColor(colors.Color(.4, .4, .4, alpha=.07))
             canvas.setFont("SalusSans-Bold", 46)
             canvas.translate(width / 2, height / 2)
@@ -679,11 +694,7 @@ def render_protection_advisor_pdf(
             canvas.drawCentredString(0, 0, watermark)
             canvas.rotate(-45)
             canvas.translate(-width / 2, -height / 2)
-            canvas.setFillColor(colors.black)
-            canvas.setFont("SalusSans", 8)
-            canvas.line(.65 * inch, .48 * inch, width - .65 * inch, .48 * inch)
-            canvas.drawString(.65 * inch, .30 * inch, "+1-888-496-6668")
-            canvas.drawCentredString(width / 2, .30 * inch, "www.Salus.Solutions")
+            draw_brand_footer(canvas)
             canvas.restoreState()
 
     doc = BaseDocTemplate(str(destination), pagesize=letter, leftMargin=.7 * inch, rightMargin=.7 * inch, topMargin=.7 * inch, bottomMargin=.65 * inch, lang="en-US")
