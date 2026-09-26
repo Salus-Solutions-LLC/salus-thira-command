@@ -19,7 +19,7 @@ except ModuleNotFoundError:
     module.M365IntakeError=M365IntakeError
     sys.modules["salcapa_m365_intake"]=module
 from salcapa_bulk_delta import (
-    checkpoint_oversize, discover, claim_work, complete_work, _scoped_link,
+    checkpoint_oversize, discover, claim_work, complete_work, create_tables, _scoped_link,
 )
 from salcapa_m365_intake import M365IntakeError
 
@@ -74,6 +74,23 @@ def check():
         _scoped_link("https://evil.example/v1.0/drives/"+DRIVE+"/items/"+PENDING+"/delta?x=y",DRIVE,PENDING)
     except M365IntakeError: pass
     else: raise AssertionError("cross-origin continuation accepted")
+    class MigrationProbe:
+        backend = "postgres"
+        def __init__(self, data_type):
+            self.data_type = data_type
+            self.statements = []
+        def executescript(self, script):
+            self.statements.append(script)
+        def execute(self, sql):
+            self.statements.append(sql)
+            return SimpleNamespace(fetchone=lambda: {"data_type": self.data_type})
+    old = MigrationProbe("integer")
+    create_tables(old)
+    assert "size BIGINT NOT NULL" in old.statements[0]
+    assert any("ALTER COLUMN size TYPE BIGINT" in sql for sql in old.statements)
+    upgraded = MigrationProbe("bigint")
+    create_tables(upgraded)
+    assert not any("ALTER COLUMN size TYPE BIGINT" in sql for sql in upgraded.statements)
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(directory,"ledger.sqlite")
         def connect():
@@ -88,7 +105,7 @@ def check():
             values=[file((n-1)*200+i) for i in range(200)] if n else [
                 {"id":f"folder-{i:08d}","name":f"Subfolder {i}","folder":{},
                  "parentReference":{"id":PENDING},"size":0} for i in range(50)]
-            if n==1: values[1]=file(1,size=101)
+            if n==1: values[1]=file(1,size=140_098_514_258)
             link=BASE+f"?page={n+1}" if n<50 else BASE+"?token=done"
             client.pages[url]=Response(200,{"value":values,
                 "@odata.nextLink" if n<50 else "@odata.deltaLink":link})
@@ -99,7 +116,7 @@ def check():
         with connect() as conn:
             assert conn.execute("SELECT COUNT(*) FROM m365_bulk_items").fetchone()[0]==10050
             assert conn.execute("SELECT COUNT(*) FROM m365_bulk_items WHERE kind='file'").fetchone()[0]==10000
-            assert conn.execute("SELECT status FROM m365_bulk_items WHERE item_id='file-00000001'").fetchone()[0]=="Oversize"
+            assert tuple(conn.execute("SELECT status,size FROM m365_bulk_items WHERE item_id='file-00000001'").fetchone())==("Oversize",140_098_514_258)
             conn.execute("UPDATE m365_bulk_items SET status='Done' WHERE item_id='file-00000200'")
             conn.commit()
         client.pages[BASE+"?token=done"]=Response(200,{"value":[file(200),
@@ -129,7 +146,11 @@ def check():
         except M365IntakeError: pass
         else: raise AssertionError("untrusted continuation accepted")
         with connect() as conn:
-            assert conn.execute("SELECT link FROM m365_bulk_cursors").fetchone()[0]==BASE+"?token=resynced"
+            cursor=conn.execute("SELECT link,lease_until,next_attempt,last_error "
+                                "FROM m365_bulk_cursors").fetchone()
+            assert cursor["link"]==BASE+"?token=resynced"
+            assert cursor["lease_until"]==0 and cursor["next_attempt"]==453
+            assert cursor["last_error"]=="delta_discovery_error"
             assert conn.execute("SELECT COUNT(*) FROM m365_bulk_items WHERE item_id='file-00010001'").fetchone()[0]==0
         client.pages[BASE+"?token=resynced"]=Response(200,{"value":[file(10001),file(10002)],
             "@odata.deltaLink":BASE+"?token=fresh"})
