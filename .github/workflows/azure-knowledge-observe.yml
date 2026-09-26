@@ -33,27 +33,60 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - name: Read bounded worker execution results
+      - name: Read aggregate intake ledger through a one-off job execution
         env:
           EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
         run: |
           set -euo pipefail
           test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION"
           job=salcapa-dev-b48224-kb-scan
-          az containerapp job show --resource-group rg-salcapa-dev --name "$job"             --query '{cron:properties.configuration.scheduleTriggerConfig.cronExpression,image:properties.template.containers[0].image}'             --output json
-          az containerapp job execution list --resource-group rg-salcapa-dev --name "$job"             --query '[0:3].[name,properties.status]' --output tsv |
-          while IFS=$'\t' read -r execution status; do
-            test -n "$execution" || continue
-            printf 'execution=%s status=%s\n' "$execution" "$status"
-            az containerapp job logs show --resource-group rg-salcapa-dev               --name "$job" --execution "$execution" --container salcapa-knowledge-scan               --tail 100 --format text --only-show-errors 2>/dev/null |
-              grep 'SALCAPA_KNOWLEDGE_BATCH=' | tail -n 1 || true
-            if [ "$status" = "Failed" ]; then
-              az containerapp job replica list --resource-group rg-salcapa-dev \
-                --name "$job" --execution "$execution" \
-                --query '[].{name:name,status:properties.status,exitCode:properties.containers[0].exitCode}' --output json
-              az containerapp job logs show --resource-group rg-salcapa-dev \
-                --name "$job" --execution "$execution" --container salcapa-knowledge-scan \
-                --tail 80 --format text --only-show-errors 2>/dev/null | tail -n 80 || true
-              break
-            fi
+          az containerapp job show --resource-group rg-salcapa-dev --name "$job" --query properties.template --output json > /tmp/salcapa-job-template.json
+          cat > /tmp/salcapa-ledger-audit.py <<'PY'
+          import json
+          from salcapa_runtime import app
+          import app as core
+
+          conn = core.db()
+          try:
+              items = conn.execute(
+                  "SELECT kind,status,reason,COUNT(*) AS n FROM m365_bulk_items "
+                  "GROUP BY kind,status,reason ORDER BY kind,status,reason"
+              ).fetchall()
+              cursors = conn.execute(
+                  "SELECT phase,last_error,generation,updated_at FROM m365_bulk_cursors"
+              ).fetchall()
+              pending = conn.execute(
+                  "SELECT COUNT(*) FROM m365_knowledge_candidates"
+              ).fetchone()[0]
+              result = {
+                  "ledger": [dict(row) for row in items],
+                  "cursors": [dict(row) for row in cursors],
+                  "candidate_count": pending,
+              }
+              print("SALCAPA_LEDGER_AUDIT=" + json.dumps(result, sort_keys=True), flush=True)
+          finally:
+              conn.close()
+          PY
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('/tmp/salcapa-job-template.json')
+          template = json.loads(p.read_text())
+          if len(template['containers']) != 1 or template['containers'][0]['name'] != 'salcapa-knowledge-scan':
+              raise SystemExit('Unexpected governed job template')
+          template['containers'][0]['command'] = ['python', '-c']
+          template['containers'][0]['args'] = [Path('/tmp/salcapa-ledger-audit.py').read_text()]
+          Path('/tmp/salcapa-audit-template.json').write_text(json.dumps(template))
+          PY
+          execution="$(az containerapp job start --resource-group rg-salcapa-dev --name "$job" --yaml /tmp/salcapa-audit-template.json --query name --output tsv --only-show-errors)"
+          test -n "$execution"
+          echo "Started read-only ledger audit execution"
+          status=Running
+          for attempt in {1..30}; do
+            status="$(az containerapp job execution show --resource-group rg-salcapa-dev --name "$job" --job-execution-name "$execution" --query properties.status --output tsv --only-show-errors)"
+            if [ "$status" = Succeeded ] || [ "$status" = Failed ]; then break; fi
+            sleep 8
           done
+          echo "Ledger audit status=$status"
+          az containerapp job logs show --resource-group rg-salcapa-dev --name "$job" --execution "$execution" --container salcapa-knowledge-scan --tail 80 --format text --only-show-errors 2>/dev/null | grep 'SALCAPA_LEDGER_AUDIT=' | tail -n 1 || true
+          test "$status" = Succeeded
