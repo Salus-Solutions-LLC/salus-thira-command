@@ -67,6 +67,13 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
     )
     reader = PdfReader(path)
     assert len(reader.pages) >= 8
+    page_count = len(reader.pages)
+    assert f"Page 1 of {page_count}" in (reader.pages[0].extract_text() or "")
+    assert "Page 2 of" not in (reader.pages[1].extract_text() or "")
+    assert all(
+        f"Page {number} of {page_count}" in (page.extract_text() or "")
+        for number, page in enumerate(reader.pages, 1) if number != 2
+    )
     fonts = reader.pages[2]["/Resources"]["/Font"].get_object().values()
     assert any("/FontFile2" in font.get_object()["/FontDescriptor"].get_object() for font in fonts if "/FontDescriptor" in font.get_object())
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
@@ -75,6 +82,30 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
     assert "Appendix B Preliminary Service Rationale" in text
     assert '"mission_area_scores"' not in text
     assert '"services"' not in text
+
+
+def test_pdf_total_pages_follow_long_wrapped_report(tmp_path: Path):
+    result = dict(RESULT)
+    result["priority_capabilities"] = [
+        {"capability": f"Capability {index}: " + "Operational coordination and continuity " * 2,
+         "need_score": index, "mission_areas": ["Prevention", "Protection", "Mitigation", "Response", "Recovery"],
+         "information_gap": index % 2 == 0}
+        for index in range(1, 33)
+    ]
+    result["attention_topics"] = [f"Confirm plans and current evidence {index}" for index in range(25)]
+    result["information_gaps"] = [f"Validate authority {index}" for index in range(20)]
+    path = render_protection_advisor_pdf(
+        output_path=tmp_path / "long-report.pdf", context=_context(), result=result, package=PACKAGE,
+    )
+    reader = PdfReader(path)
+    total = len(reader.pages)
+    assert total > 10
+    text = "\\n".join(page.extract_text() or "" for page in reader.pages)
+    assert "Capability 32" in text
+    assert all(
+        f"Page {number} of {total}" in (page.extract_text() or "")
+        for number, page in enumerate(reader.pages, 1) if number != 2
+    )
 
 
 def test_public_part_two_control_does_not_print_the_webpage():
