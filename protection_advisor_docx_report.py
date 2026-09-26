@@ -647,16 +647,41 @@ def render_protection_advisor_pdf(
             total = len(self._page_states)
             for state in self._page_states:
                 self.__dict__.update(state)
-                if self._pageNumber != 2:
-                    self.saveState()
+                self.saveState()
+                self.setFillAlpha(1)
+                number = self._pageNumber
+                width, height = letter
+                if number == 2:
+                    self.setFillColor(colors.Color(.4, .4, .4, alpha=.10))
+                    self.setFont("SalusSans-Bold", 52)
+                    self.translate(width / 2, height / 2)
+                    self.rotate(45)
+                    self.drawCentredString(0, 0, watermark)
+                else:
+                    if number >= 3:
+                        self.setFillColor(colors.HexColor("#7A1F1F"))
+                        self.setFont("SalusSans", 7.5)
+                        self.drawCentredString(width / 2, height - .42 * inch, "CONFIDENTIAL — SALUS PROTECTED INFORMATION")
+                        self.setFillColor(colors.Color(.4, .4, .4, alpha=.07))
+                        self.setFont("SalusSans-Bold", 46)
+                        self.translate(width / 2, height / 2)
+                        self.rotate(45)
+                        self.drawCentredString(0, 0, watermark)
+                        self.rotate(-45)
+                        self.translate(-width / 2, -height / 2)
+                    draw_brand_footer(self)
+                    self.setFillAlpha(1)
                     self.setFillColor(colors.black)
                     self.setFont("SalusSans", 8)
-                    self.drawRightString(letter[0] - .65 * inch, .30 * inch, f"Page {self._pageNumber} of {total}")
-                    self.restoreState()
+                    self.drawRightString(width - .65 * inch, .30 * inch, f"Page {number} of {total}")
+                self.restoreState()
                 super().showPage()
             super().save()
 
     def draw_brand_footer(canvas):
+        # The watermark uses transparency; explicitly restore opaque graphics
+        # before drawing the template's black logo and footer text.
+        canvas.setFillAlpha(1)
         canvas.drawImage(logo_image, .65 * inch, .25 * inch,
                          width=1.65 * inch, height=.25 * inch,
                          preserveAspectRatio=True, mask="auto")
@@ -668,34 +693,6 @@ def render_protection_advisor_pdf(
     def page_frame(canvas, doc):
         canvas.setTitle("Protection Advisor Assessment Report")
         canvas.setAuthor("Salus Solutions")
-        number = canvas.getPageNumber()
-        width, height = letter
-        if number == 1:
-            canvas.saveState()
-            draw_brand_footer(canvas)
-            canvas.restoreState()
-        elif number == 2:
-            canvas.saveState()
-            canvas.setFillColor(colors.Color(.4, .4, .4, alpha=.10))
-            canvas.setFont("SalusSans-Bold", 52)
-            canvas.translate(width / 2, height / 2)
-            canvas.rotate(45)
-            canvas.drawCentredString(0, 0, watermark)
-            canvas.restoreState()
-        elif number >= 3:
-            canvas.saveState()
-            canvas.setFillColor(colors.HexColor("#7A1F1F"))
-            canvas.setFont("SalusSans", 7.5)
-            canvas.drawCentredString(width / 2, height - .42 * inch, "CONFIDENTIAL — SALUS PROTECTED INFORMATION")
-            canvas.setFillColor(colors.Color(.4, .4, .4, alpha=.07))
-            canvas.setFont("SalusSans-Bold", 46)
-            canvas.translate(width / 2, height / 2)
-            canvas.rotate(45)
-            canvas.drawCentredString(0, 0, watermark)
-            canvas.rotate(-45)
-            canvas.translate(-width / 2, -height / 2)
-            draw_brand_footer(canvas)
-            canvas.restoreState()
 
     doc = BaseDocTemplate(str(destination), pagesize=letter, leftMargin=.7 * inch, rightMargin=.7 * inch, topMargin=.7 * inch, bottomMargin=.65 * inch, lang="en-US")
     frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="body")
@@ -768,3 +765,4 @@ def render_protection_advisor_pdf(
     story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Deliverables", h1), T(("Deliverable", "Purpose"), (("Validated assessment record", "Separates verified facts, reported conditions, inferences, and unknowns"), ("Capability and dependency map", "Shows essential functions, supporting resources, failure points, and alternates"), ("Prioritized improvement plan", "Identifies actions, owners, sequence, dependencies, and completion measures"), ("Exercise and validation plan", "Tests priority capabilities and creates defensible evidence"), ("Executive briefing", "Presents decisions, risks, resource implications, and next steps")), (2.2 * inch, 3.9 * inch)), P("Human Review and Decision Points", h1), P("No automated recommendation becomes a final scope, assurance statement, price, contract commitment, or protective decision without authorized Salus review. The reviewer confirms service selection, level, specialists, deliverables, schedule, pricing basis, handling controls, and eligibility."), P("Recommended Immediate Actions", h1), T(("Timing", "Action", "Responsible party"), (("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"), ("Within 5 business days", "Conduct a qualification and validation interview.", "Salus and Protected Member"), ("After interview", "Request only evidence needed to resolve priority findings and gaps.", "Salus"), ("After evidence review", "Confirm or revise sequence, scope, level, schedule, and specialists.", "Authorized Salus reviewer"), ("Before engagement", "Approve scope, commercial terms, handling, and points of contact.", "Salus and Protected Member")), (1.3 * inch, 3.35 * inch, 1.45 * inch)), P("Decision Required", h1), P("The next decision is whether to authorize a Salus qualification and validation review. That review determines the appropriate package and evidence needed before work is proposed."), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor screens reported conditions against 32 core capabilities across Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize professional review; they do not independently establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Screening indicator; not an audit grade"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Service level", "Preliminary engagement depth; subject to human review")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Recommended service", "Level", "Preliminary rationale"), tuple((x.get("title", "Service"), f"Level {x.get('level', '')}", x.get("why", "")) for x in package.get("services") or []), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
     doc.build(story, canvasmaker=NumberedCanvas)
     return destination
+
