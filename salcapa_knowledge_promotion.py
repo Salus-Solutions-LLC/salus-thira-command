@@ -705,7 +705,12 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             retry_pending_ids: set[int] = set()
             writer = None
             for index, row in enumerate(files, 1):
-                print(f'SALCAPA_WORKER_PHASE=file_started index={index}', flush=True)
+                source_size = row.get("size")
+                size_label = source_size if isinstance(source_size, int) and source_size >= 0 else "unknown"
+                print(
+                    f'SALCAPA_WORKER_PHASE=file_started index={index} source_size_bytes={size_label}',
+                    flush=True,
+                )
                 promoted_this_file = False
                 if bulk_enabled:
                     completed = conn.execute(
