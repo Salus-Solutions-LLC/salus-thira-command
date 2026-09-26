@@ -125,8 +125,15 @@ def test_requested_cui_is_visible_without_an_approved_marking(tmp_path: Path):
     path = render_protection_advisor_pdf(
         output_path=tmp_path / "cui-request.pdf", context=context, result=RESULT, package=PACKAGE,
     )
-    text = "\n".join(page.extract_text() or "" for page in PdfReader(path).pages)
+    reader = PdfReader(path)
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
     assert "CUI review requested" in text
     assert "Requested handling: CUI review requested" in text
+    assert "CONFIDENTIAL" in (reader.pages[1].extract_text() or "")
+    assert "REVIEW" not in (reader.pages[1].extract_text() or "")
+    assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in (reader.pages[2].extract_text() or "")
+    for page_index in (0, 2):
+        images = reader.pages[page_index]["/Resources"].get_object().get("/XObject")
+        assert images and any(obj.get_object().get("/Subtype") == "/Image" for obj in images.get_object().values())
     source = Path("public_protection_advisor.py").read_text(encoding="utf-8")
     assert 'handling = "CUI" if "CUI" in str(identity.get("handling_profile", "")) else "Confidential"' in source
