@@ -151,4 +151,3 @@ def test_requested_cui_is_visible_without_an_approved_marking(tmp_path: Path):
         assert images and any(obj.get_object().get("/Subtype") == "/Image" for obj in images.get_object().values())
     source = Path("public_protection_advisor.py").read_text(encoding="utf-8")
     assert 'handling = "CUI" if "CUI" in str(identity.get("handling_profile", "")) else "Confidential"' in source
-
