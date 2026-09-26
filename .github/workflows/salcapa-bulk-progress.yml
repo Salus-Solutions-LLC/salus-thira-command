@@ -1,0 +1,56 @@
+name: SalCAPA bulk intake progress observation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/salcapa-bulk-progress.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: salcapa-dev-approval
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Summarize recent scheduled execution results
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          JOB_NAME=salcapa-dev-b48224-kb-scan
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-job.json
+          test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-job.json)" = "Schedule"
+          test "$(jq -r '.properties.configuration.scheduleTriggerConfig.cronExpression' /tmp/salcapa-job.json)" = "*/2 * * * *"
+          az containerapp job execution list --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-executions.json
+          jq -r 'sort_by(.properties.startTime // "") | reverse | .[:12][] | .name' /tmp/salcapa-executions.json > /tmp/salcapa-recent-names.txt
+          test -s /tmp/salcapa-recent-names.txt
+          echo '### Recent bounded knowledge batches' >> "$GITHUB_STEP_SUMMARY"
+          echo '| Execution | Status | Discovered | Created | Promoted | Retry | Exceptions |' >> "$GITHUB_STEP_SUMMARY"
+          echo '| --- | --- | ---: | ---: | ---: | ---: | ---: |' >> "$GITHUB_STEP_SUMMARY"
+          while IFS= read -r execution; do
+            [[ "$execution" =~ ^salcapa-dev-b48224-kb-scan-[a-z0-9]+$ ]] || exit 1
+            status="$(jq -r --arg name "$execution" '.[] | select(.name == $name) | .properties.status' /tmp/salcapa-executions.json)"
+            batch=''
+            if [ "$status" = "Succeeded" ]; then
+              batch="$(az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$execution" --container salcapa-knowledge-scan --tail 100 --format text --only-show-errors 2>/dev/null | sed -n 's/^.*SALCAPA_KNOWLEDGE_BATCH=//p' | tail -1 || true)"
+            fi
+            if [ -n "$batch" ]; then
+              values="$(printf '%s' "$batch" | jq -er '[.discovered,.created,.automatically_promoted,.automatic_retry_required,.exception_review] | map(if type == "number" then tostring else error("non-numeric batch") end) | join(" | ")')"
+            else
+              values='— | — | — | — | —'
+            fi
+            echo "| $execution | $status | $values |" >> "$GITHUB_STEP_SUMMARY"
+          done < /tmp/salcapa-recent-names.txt
+          cat "$GITHUB_STEP_SUMMARY"
