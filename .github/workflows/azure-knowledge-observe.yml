@@ -41,10 +41,17 @@ jobs:
           test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION"
           job=salcapa-dev-b48224-kb-scan
           az containerapp job show --resource-group rg-salcapa-dev --name "$job"             --query '{cron:properties.configuration.scheduleTriggerConfig.cronExpression,image:properties.template.containers[0].image}'             --output json
-          az containerapp job execution list --resource-group rg-salcapa-dev --name "$job"             --query '[0:8].[name,properties.status]' --output tsv |
+          az containerapp job execution list --resource-group rg-salcapa-dev --name "$job"             --query '[0:4].[name,properties.status]' --output tsv |
           while IFS=$'\t' read -r execution status; do
             test -n "$execution" || continue
             printf 'execution=%s status=%s\n' "$execution" "$status"
             az containerapp job logs show --resource-group rg-salcapa-dev               --name "$job" --execution "$execution" --container salcapa-knowledge-scan               --tail 100 --format text --only-show-errors 2>/dev/null |
               grep 'SALCAPA_KNOWLEDGE_BATCH=' | tail -n 1 || true
+            if [ "$status" = "Failed" ]; then
+              az containerapp job logs show --resource-group rg-salcapa-dev \
+                --name "$job" --execution "$execution" --container salcapa-knowledge-scan \
+                --tail 120 --format text --only-show-errors 2>/dev/null |
+                grep -E 'SALCAPA_WORKER_PHASE=|SALCAPA_KNOWLEDGE_BATCH=|Traceback|Error|Exception|failed' |
+                tail -n 24 || true
+            fi
           done
