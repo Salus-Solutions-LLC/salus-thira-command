@@ -74,6 +74,20 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
         f"Page {number} of {page_count}" in (page.extract_text() or "")
         for number, page in enumerate(reader.pages, 1) if number != 2
     )
+    for number, page in enumerate(reader.pages, 1):
+        page_text = page.extract_text() or ""
+        if number == 2:
+            assert "+1-888-496-6668" not in page_text
+            continue
+        assert "+1-888-496-6668" in page_text
+        assert "www.Salus.Solutions" in page_text
+        images = page["/Resources"].get_object().get("/XObject")
+        assert images and any(
+            obj.get_object().get("/Subtype") == "/Image"
+            for obj in images.get_object().values()
+        )
+        if number >= 3:
+            assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in page_text
     fonts = reader.pages[2]["/Resources"]["/Font"].get_object().values()
     assert any("/FontFile2" in font.get_object()["/FontDescriptor"].get_object() for font in fonts if "/FontDescriptor" in font.get_object())
     text = "\n".join(page.extract_text() or "" for page in reader.pages)

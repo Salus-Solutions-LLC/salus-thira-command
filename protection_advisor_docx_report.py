@@ -647,16 +647,41 @@ def render_protection_advisor_pdf(
             total = len(self._page_states)
             for state in self._page_states:
                 self.__dict__.update(state)
-                if self._pageNumber != 2:
-                    self.saveState()
+                self.saveState()
+                self.setFillAlpha(1)
+                number = self._pageNumber
+                width, height = letter
+                if number == 2:
+                    self.setFillColor(colors.Color(.4, .4, .4, alpha=.10))
+                    self.setFont("SalusSans-Bold", 52)
+                    self.translate(width / 2, height / 2)
+                    self.rotate(45)
+                    self.drawCentredString(0, 0, watermark)
+                else:
+                    if number >= 3:
+                        self.setFillColor(colors.HexColor("#7A1F1F"))
+                        self.setFont("SalusSans", 7.5)
+                        self.drawCentredString(width / 2, height - .42 * inch, "CONFIDENTIAL — SALUS PROTECTED INFORMATION")
+                        self.setFillColor(colors.Color(.4, .4, .4, alpha=.07))
+                        self.setFont("SalusSans-Bold", 46)
+                        self.translate(width / 2, height / 2)
+                        self.rotate(45)
+                        self.drawCentredString(0, 0, watermark)
+                        self.rotate(-45)
+                        self.translate(-width / 2, -height / 2)
+                    draw_brand_footer(self)
+                    self.setFillAlpha(1)
                     self.setFillColor(colors.black)
                     self.setFont("SalusSans", 8)
-                    self.drawRightString(letter[0] - .65 * inch, .30 * inch, f"Page {self._pageNumber} of {total}")
-                    self.restoreState()
+                    self.drawRightString(width - .65 * inch, .30 * inch, f"Page {number} of {total}")
+                self.restoreState()
                 super().showPage()
             super().save()
 
     def draw_brand_footer(canvas):
+        # The watermark uses transparency; explicitly restore opaque graphics
+        # before drawing the template's black logo and footer text.
+        canvas.setFillAlpha(1)
         canvas.drawImage(logo_image, .65 * inch, .25 * inch,
                          width=1.65 * inch, height=.25 * inch,
                          preserveAspectRatio=True, mask="auto")
@@ -668,34 +693,6 @@ def render_protection_advisor_pdf(
     def page_frame(canvas, doc):
         canvas.setTitle("Protection Advisor Assessment Report")
         canvas.setAuthor("Salus Solutions")
-        number = canvas.getPageNumber()
-        width, height = letter
-        if number == 1:
-            canvas.saveState()
-            draw_brand_footer(canvas)
-            canvas.restoreState()
-        elif number == 2:
-            canvas.saveState()
-            canvas.setFillColor(colors.Color(.4, .4, .4, alpha=.10))
-            canvas.setFont("SalusSans-Bold", 52)
-            canvas.translate(width / 2, height / 2)
-            canvas.rotate(45)
-            canvas.drawCentredString(0, 0, watermark)
-            canvas.restoreState()
-        elif number >= 3:
-            canvas.saveState()
-            canvas.setFillColor(colors.HexColor("#7A1F1F"))
-            canvas.setFont("SalusSans", 7.5)
-            canvas.drawCentredString(width / 2, height - .42 * inch, "CONFIDENTIAL — SALUS PROTECTED INFORMATION")
-            canvas.setFillColor(colors.Color(.4, .4, .4, alpha=.07))
-            canvas.setFont("SalusSans-Bold", 46)
-            canvas.translate(width / 2, height / 2)
-            canvas.rotate(45)
-            canvas.drawCentredString(0, 0, watermark)
-            canvas.rotate(-45)
-            canvas.translate(-width / 2, -height / 2)
-            draw_brand_footer(canvas)
-            canvas.restoreState()
 
     doc = BaseDocTemplate(str(destination), pagesize=letter, leftMargin=.7 * inch, rightMargin=.7 * inch, topMargin=.7 * inch, bottomMargin=.65 * inch, lang="en-US")
     frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="body")
