@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 27 September 2026 — Tierra Linda strategy and applicability register
+
+- Continued the same local Tierra Linda draft. Section 15A now compares 12 Ranch strategy families: flood/dams/access; wildfire/drought; alerting; power/water/fuel; medical/public safety; people/continuity; cattle/exotics/horses; airfield/roads/visitors; security; funding/insurance; governance/partners; and monitoring/improvement. Each identifies candidate options and the evidence/decision gate tied to Section 16 question IDs. Combined-failure scenarios and double-counted resources are called out.
+- Section 15 time bands were explicitly labeled provisional planning candidates, not approved priorities, funded projects or SalOPS assignments. The same Word draft rendered to 25 PDF pages; all 36 collection IDs were present, no page was blank, and the new strategy table was checked visually. No new report, customer submission or production change.
+- Next action remains source-bound collection and reconciliation of the 64-file inventory and SI-01–SI-36 responses, followed by field/subject-matter verification and authorized SalINTEL review before final SalTHIRA and SalOPS decisions.
+
+
 ## 27 September 2026 — Tierra Linda program sub-item and website reconciliation
 
 - Updated the existing Tierra Linda SalINTEL/Facility Assessment Word draft in place at `C:\Users\MarcDuncan\.codex\.chatgpt-projects\g-p-6ab2ab2948188191b06bda9f84f15cad\work\Tierra_Linda_Ranch_Facility_Assessment_20260927.docx`; no duplicate report, customer submission or production change. Section 16 now explicitly crosswalks all named SalINTEL graphic channels and analyst research/analyze/qualify/validate, all six SalTHIRA steps, four SalOPS service areas, and SalCAPA's collect/analyze/prioritize/act and member pathway against the published Salus website process, strategy and product language.
