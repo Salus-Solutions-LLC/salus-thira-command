@@ -18,7 +18,7 @@ Before modifying anything, the chat must:
 6. State the objective, current state, unfinished work, next action, and authorization boundary.
 7. Obtain clarification before acting if sources materially conflict.
 
-## Required learning check
+## Chat-record reconciliation and report update check\n\nAt startup, inspect the current candidate-record queue and recently approved decisions, methods, templates and lessons relevant to the objective. A chat, summary or memory note is a lead to verify against source turns and governing artifacts, never self-validating authority. Record source IDs, conflicts, dispositions and review owner for material proposals. Preserve member-specific source and access boundaries.\n\nBefore creating or materially revising a report, identify its governed record ID and current version, approved method/template versions, and applicable improvements since the last release. Document the impact decision for active drafts and issued versions. Apply approved changes to the working report; revise or supplement an issued version through controlled review and release, retaining its predecessor. Verify DOCX/PDF/print substance and rendered-page quality. Update SalCAPA's report impact and delivery status when that workflow exists; until then, record the same evidence in the handoff and governed records.\n\n## Required learning check
 
 For every material assessment, service or methodology change, record what prior knowledge was used, what new evidence confirmed or challenged it, what member-neutral lesson may transfer to other sectors or domains, and what restriction or human approval controls reuse. Preserve customer originals in their engagement boundary. Do not claim every possible source was reviewed; record the actual collection boundary and unresolved unknowns. See SAL-D025 and the Program Charter.
 
@@ -30,7 +30,7 @@ After material work, the chat must update:
 - `SALUS_DECISION_REGISTER.md` if Marc made a material decision.
 - `APPROVED_ARTIFACTS.md` if an artifact was approved, replaced, or superseded.
 - GitHub release, issue, or continuity records when technical work changed the product.
-- The governed lesson/methodology change queue when new evidence or outcomes may improve work across Protected Members, sectors or domains; no unapproved lesson becomes doctrine or cross-member disclosure.
+- The governed candidate-record and lesson/methodology queue when chats, evidence or outcomes may improve work across Protected Members, sectors or domains; record provenance, conflicts, reviewer, disposition, restrictions and affected reports. No unapproved lesson becomes doctrine or cross-member disclosure.\n- The report-impact record when an approved improvement may affect an active draft or issued report; record the update, controlled revision/supplement decision, validation and delivery state.
 
 The final handoff must identify:
 
