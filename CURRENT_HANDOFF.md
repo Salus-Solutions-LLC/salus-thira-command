@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 27 September 2026 — Tierra Linda Word branding and handling
+
+- Updated the existing local Tierra Linda Word working draft in place at `C:\Users\MarcDuncan\.codex\.chatgpt-projects\g-p-6ab2ab2948188191b06bda9f84f15cad\work\Tierra_Linda_Ranch_Facility_Assessment_20260927.docx`. Added Salus logo artwork extracted from the repository's `static/salus-reticle.svg`, black report title/subtitle treatment, a running confidential header, authorized-distribution footer, and a cover handling notice for Tierra Linda Ranch HOA and authorized Salus personnel. The label does not assert CUI status. Resident names, contact details, medical information, gate credentials and tactical routes remain excluded from the client copy.
+- Rebuilt and rendered 26 pages; all pages contain text, all show the confidentiality header, all 36 SI question IDs remain present, the artwork is embedded, and the cover plus representative internal/last pages were visually checked. No duplicate report or production release was created.
+- The approved `Protection_Advisor_Example_Client_Report.docx/pdf` is listed in `APPROVED_ARTIFACTS.md` but was not obtainable from the current local workspace or SharePoint search. The repository's governed report renderer and available template text were inspected for handling conventions; therefore exact visual parity to the approved example is **not yet claimed**. Before final client issue, obtain and inspect the approved example directly, compare all pages, and complete authorized human review.
+
+
 ## 27 September 2026 — Tierra Linda strategy and applicability register
 
 - Continued the same local Tierra Linda draft. Section 15A now compares 12 Ranch strategy families: flood/dams/access; wildfire/drought; alerting; power/water/fuel; medical/public safety; people/continuity; cattle/exotics/horses; airfield/roads/visitors; security; funding/insurance; governance/partners; and monitoring/improvement. Each identifies candidate options and the evidence/decision gate tied to Section 16 question IDs. Combined-failure scenarios and double-counted resources are called out.
