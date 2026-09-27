@@ -10,7 +10,7 @@ Paste this into any new Salus chat when needed:
 
 Before modifying anything, the chat must:
 
-1. Read all five continuity records.
+1. Read all five continuity records, treating the Charter and the approved Decision Register as one governing program authority under SAL-D036; apply exact decision wording and supersession from the register.
 2. Inspect the relevant approved artifacts directly.
 3. Inspect current repository and deployment state when the task is technical.
 4. Identify conflicts or stale facts.
@@ -20,7 +20,13 @@ Before modifying anything, the chat must:
 8. State the objective, current state, unfinished work, next action, and authorization boundary.
 9. Obtain clarification before acting if sources materially conflict.
 
-## Chat-record reconciliation and report update check\n\nAt startup, inspect the current candidate-record queue and recently approved decisions, methods, templates and lessons relevant to the objective. A chat, summary or memory note is a lead to verify against source turns and governing artifacts, never self-validating authority. Record source IDs, conflicts, dispositions and review owner for material proposals. Preserve member-specific source and access boundaries.\n\nBefore creating or materially revising a report, identify its governed record ID and current version, approved method/template versions, and applicable improvements since the last release. Document the impact decision for active drafts and issued versions. Apply approved changes to the working report; revise or supplement an issued version through controlled review and release, retaining its predecessor. Verify DOCX/PDF/print substance and rendered-page quality. Update SalCAPA's report impact and delivery status when that workflow exists; until then, record the same evidence in the handoff and governed records.\n\n## Required learning check
+## Chat-record reconciliation and report update check
+
+At startup, inspect the current candidate-record queue and recently approved decisions, methods, templates and lessons relevant to the objective. A chat, summary or memory note is a lead to verify against source turns and governing artifacts, never self-validating authority. Record source IDs, conflicts, dispositions and review owner for material proposals. Preserve member-specific source and access boundaries.
+
+Before creating or materially revising a report, identify its governed record ID and current version, approved method/template versions, and applicable improvements since the last release. Document the impact decision for active drafts and issued versions. Apply approved changes to the working report; revise or supplement an issued version through controlled review and release, retaining its predecessor. Verify DOCX/PDF/print substance and rendered-page quality. Update SalCAPA's report impact and delivery status when that workflow exists; until then, record the same evidence in the handoff and governed records.
+
+## Required learning check
 
 For every material assessment, service or methodology change, record what prior knowledge was used, what new evidence confirmed or challenged it, what member-neutral lesson may transfer to other sectors or domains, and what restriction or human approval controls reuse. Preserve customer originals in their engagement boundary. Do not claim every possible source was reviewed; record the actual collection boundary and unresolved unknowns. See SAL-D025 and the Program Charter.
 
@@ -32,7 +38,8 @@ After material work, the chat must update:
 - `SALUS_DECISION_REGISTER.md` if Marc made a material decision.
 - `APPROVED_ARTIFACTS.md` if an artifact was approved, replaced, or superseded.
 - GitHub release, issue, or continuity records when technical work changed the product.
-- The governed candidate-record and lesson/methodology queue when chats, evidence or outcomes may improve work across Protected Members, sectors or domains; record provenance, conflicts, reviewer, disposition, restrictions and affected reports. No unapproved lesson becomes doctrine or cross-member disclosure.\n- The report-impact record when an approved improvement may affect an active draft or issued report; record the update, controlled revision/supplement decision, validation and delivery state.
+- The governed candidate-record and lesson/methodology queue when chats, evidence or outcomes may improve work across Protected Members, sectors or domains; record provenance, conflicts, reviewer, disposition, restrictions and affected reports. No unapproved lesson becomes doctrine or cross-member disclosure.
+- The report-impact record when an approved improvement may affect an active draft or issued report; record the update, controlled revision/supplement decision, validation and delivery state.
 
 The final handoff must identify:
 
