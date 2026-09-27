@@ -14,8 +14,13 @@ Before modifying anything, the chat must:
 2. Inspect the relevant approved artifacts directly.
 3. Inspect current repository and deployment state when the task is technical.
 4. Identify conflicts or stale facts.
-5. State the objective, current state, unfinished work, next action, and authorization boundary.
-6. Obtain clarification before acting if sources materially conflict.
+5. Identify the current approved methodology/template version and relevant reusable cross-domain or cross-sector lessons under SAL-D025; test their applicability, restrictions and conflicts against this engagement rather than copying conclusions.
+6. State the objective, current state, unfinished work, next action, and authorization boundary.
+7. Obtain clarification before acting if sources materially conflict.
+
+## Required learning check
+
+For every material assessment, service or methodology change, record what prior knowledge was used, what new evidence confirmed or challenged it, what member-neutral lesson may transfer to other sectors or domains, and what restriction or human approval controls reuse. Preserve customer originals in their engagement boundary. Do not claim every possible source was reviewed; record the actual collection boundary and unresolved unknowns. See SAL-D025 and the Program Charter.
 
 ## Mandatory closeout checklist
 
@@ -25,6 +30,7 @@ After material work, the chat must update:
 - `SALUS_DECISION_REGISTER.md` if Marc made a material decision.
 - `APPROVED_ARTIFACTS.md` if an artifact was approved, replaced, or superseded.
 - GitHub release, issue, or continuity records when technical work changed the product.
+- The governed lesson/methodology change queue when new evidence or outcomes may improve work across Protected Members, sectors or domains; no unapproved lesson becomes doctrine or cross-member disclosure.
 
 The final handoff must identify:
 
