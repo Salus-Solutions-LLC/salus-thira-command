@@ -6,6 +6,14 @@
 
 **Controlling amendment — 23 September 2026:** SAL-D022 supersedes every human-ingestion-approval and exception-queue requirement in this document. Every file in `10 Pending Classification` is processed automatically. Author, title, dates, source identity, version, location, hash, and available citation locators are retained as structured citation metadata. Risk, rights, quality, duplication, restriction, sensitivity, and confidence conditions are metadata flags and do not block ingestion. Human authority still controls consequential use and disclosure.
 
+**Controlling addition — 27 September 2026 (SAL-D025):** Every Salus method, strategy, service and authorized engagement participates in a governed learning loop across sectors and domains. Store member-specific originals and identifiable derivatives only in the appropriate Protected Member boundary. Create a separate generalized, member-neutral lesson record for enterprise knowledge when authorized; carry provenance pointers, restrictions, applicability, confidence, currency, conflict and supersession metadata. Enterprise correlation and indexing do not authorize disclosure to another Protected Member. A human approves consequential methodology changes, final findings, publication and cross-member identifiable disclosure. This addition extends the three-zone architecture; it does not collapse the zones.
+
+### Cross-engagement learning record
+
+For each proposed reusable lesson, record: origin engagement/reference and restricted source pointer; lawful purpose and permitted reuse; generalized claim or pattern; affected sector, domain, mission phase, method, strategy, objective, tactic, resource or law/regulation; supporting and conflicting evidence; reliability/confidence; geographic and temporal applicability; sensitivity and disclosure limits; analyst and reviewer; approval state; effective/review/expiry dates; related prior version; and measured outcome or recheck trigger. Keep the restricted original out of the enterprise corpus. Use approved lessons as candidate context for new work, then test them against that engagement's own evidence.
+
+At closure and after material incidents, exercises or SalOPS outcomes, the responsible analyst records what was learned, which prior rule was confirmed or challenged, who may reuse it, and whether a controlled methodology/template or product change is proposed. Approved changes update the Decision and Approved Artifacts Registers and supersede rather than erase earlier versions. SalCAPA dashboards should show the queue and approval state; they must not turn draft lessons into automatic recommendations.
+
 ## Executive decision
 
 Salus should use three deliberately separate content zones:
