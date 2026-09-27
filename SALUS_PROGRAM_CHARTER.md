@@ -110,6 +110,10 @@ Across applicable SalINTEL domains, collect and explain eight evidence dimension
 
 Compare each material external finding against member files, earlier report versions and relevant government records. Keep a claim-level contradiction record with both source locators, dates, exact disagreement, plausible reasons, decision effect, owner, resolution attempt and open status. Do not silently choose a convenient source or call a later source a contradiction when it merely reports a changed condition. Unresolved conflicts reduce confidence and remain visible in client reporting, with protected details in the correct annex.
 
+### Dedicated SalINTEL compliance assessment and report section
+
+Every SalINTEL report shall include a dedicated compliance section, even when the finding is that applicability remains unresolved. The section is a structured research and evidence assessment, not a legal opinion or an allegation.
+
 Screen potential noncompliance as a risk question: identify the exact standard, permit, rule, statute or contract term; issuing authority and jurisdiction; effective date; affected asset or activity; applicability or exemption; observed conduct or missing record; conflicting evidence; potential consequence; and competent reviewer. Distinguish binding obligations from voluntary guidance and private policy. Absence of a supplied permit, inspection or test does not prove absence of the document or a violation. Label supported facts, possible gaps and verified findings separately; seek owner and qualified legal, engineering, health or regulatory review before alleging a violation. Escalate credible urgent life-safety concerns through authorized channels. [SAL-D038]
 
 ### Product responsibilities
