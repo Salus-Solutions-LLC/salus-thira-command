@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 27 September 2026 — SalTHIRA concept-only presentation direction
+
+- Marc directed that the recently supplied reference documents not be named or individually crosswalked in the SalTHIRA methodology or reports. Their useful scenario, target, capability, funding, recovery and mitigation concepts remain incorporated within Salus's approved six-step structure.
+- Revised the **same** member-neutral working methodology `work/SalTHIRA_Methodology_Working_Draft_20260927.docx` and **same** Tierra Linda working report `work/Tierra_Linda_Ranch_Level_1_SalTHIRA_Working_Report_20260927.docx`. Removed document titles, file names, hashes, dedicated document crosswalks and associated citation IDs from those outputs; replaced them with concept-based analytic practice sections. Existing other public-source and Member evidence references remain where relevant.
+- Rendered and visually reviewed both: methodology **5 pages**; Ranch report **20 pages**, wholly blank page 2, body page 3, visible `page X of 20` footers. Text extraction found no names of the four references in either output. Both remain working drafts pending the existing evidence, analyst and release gates; no production or Charter change was made.
+
 ## 27 September 2026 — Tierra Linda SalTHIRA method-to-report audit
 
 - Audited the existing Level 1 Tierra Linda SalTHIRA working report against the member-neutral SalTHIRA working method and four Marc-supplied FEMA references. The earlier 17-page version had the approved six-step outline and 32-capability prompt list but did not operationalize all Level 1 method features: H4–H7 lacked linked decision records; POETE, capability disposition, function-level recovery inputs, retrospective funding proof, mitigation-plan status and a contradiction/release gate were incomplete.
