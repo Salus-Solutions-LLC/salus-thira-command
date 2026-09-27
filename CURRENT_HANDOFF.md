@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 27 September 2026 — all approved decisions mapped in Program Charter
+
+- Marc directed that all decisions be recorded in the Salus Program Charter. Reconciled the Charter against the authoritative Decision Register and added a one-row-per-decision application map for all **36 currently approved decisions**: SAL-D001–SAL-D019 and SAL-D022–SAL-D038. SAL-D020 and SAL-D021 are identified as superseded intake history; SAL-D022 and the SAL-D024 routing clarification govern. Exact decision wording, effective scope and supersession remain in the Decision Register; the Charter map gives each decision a findable standing application. No new substantive decision, price, artifact approval or deployment was inferred.
+- Charter commit `9554b650feca8fdb1558bb082cf5232afe49f857` on `development/salcapa-platform`. GitHub readback matched the written content byte-for-byte and confirmed 36 unique approved IDs, none missing or extra, plus the dedicated SalINTEL compliance section.
+- No production application change or new customer report was made. Next: keep this map and the Charter's substantive rules synchronized whenever a later material decision is approved; use the Register and approved artifacts for exact authority and the handoff for implementation status.
+
 ## 27 September 2026 — SAL-D038 proactive SalINTEL collection, contradictions and dedicated compliance
 
 - Marc approved eight SalINTEL evidence dimensions and directed proactive lawful public-source collection during active authorized assessments, comparison with member files, visible material contradictions and a dedicated compliance section in every SalINTEL report. Recorded SAL-D038 in the Decision Register (commit `034e90eb24844e3d17b3995bd1356a831befc1a5`); amended the Program Charter, including the dedicated section instruction (latest commit `c6806df78fe7bd87e8c1725891b56e7a71e991fd`); updated the Chat Startup Protocol (latest commit `948d3847cdb21c50ffae69a6baee6671550a51fe`) and Knowledge and Records Architecture (commit `4433640ef8213dc0ff02880e9f19f7ecd7e6d236`) on `development/salcapa-platform`. Research is bounded by the active scope, source access, privacy and capacity; it is not perpetual monitoring or an exhaustive-internet claim.
