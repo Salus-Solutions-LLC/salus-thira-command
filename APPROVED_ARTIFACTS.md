@@ -6,7 +6,7 @@
 | `SALUS_THREE_LEVEL_SERVICE_FRAMEWORK.md` | Enterprise service-depth, proposal, reporting and commercial structure; repository `development/salcapa-platform` | Approved program structure, 27 September 2026 (SAL-D029); methodology/reporting profiles refined under SAL-D031; sequential integrated packages under SAL-D032; staged product and SalCAPA reporting under SAL-D033; software and prices not yet approved/deployed |
 | `Protection_Advisor_Example_Client_Report.pdf` | Visual and content reference for the client-facing Protection Advisor report | Approved by Marc, 22 September 2026 |
 | `Protection_Advisor_Example_Client_Report.docx` | Editable reference for report structure, writing, and formatting | Approved by Marc, 22 September 2026 |
-| `SALUS_PROGRAM_CHARTER.md` | Program purpose, architecture, methodology, and standing standards | Authoritative continuity record |
+| `SALUS_PROGRAM_CHARTER.md` | Program purpose, architecture, methodology and standing standards; incorporates approved decisions by reference under SAL-D036 | Authoritative continuity record; decision wording and supersession remain in `SALUS_DECISION_REGISTER.md` |
 | `SALUS_DECISION_REGISTER.md` | Durable register of approved program decisions | Authoritative continuity record |
 | `CURRENT_HANDOFF.md` | Current deployment state, unfinished work, defects, and next action | Authoritative current-state record |
 | `SALUS_PROJECT_INSTRUCTIONS.md` | Mandatory behavior for chats in the Salus Project | Authoritative Project instruction source |
