@@ -14,9 +14,10 @@ Before modifying anything, the chat must:
 2. Inspect the relevant approved artifacts directly.
 3. Inspect current repository and deployment state when the task is technical.
 4. Identify conflicts or stale facts.
-5. Identify the current approved methodology/template version and relevant reusable cross-domain or cross-sector lessons under SAL-D025; test their applicability, restrictions and conflicts against this engagement rather than copying conclusions.
-6. State the objective, current state, unfinished work, next action, and authorization boundary.
-7. Obtain clarification before acting if sources materially conflict.
+5. Inspect the approved Salus system presentation and three-level service framework when scope, packages, proposals, reports or product design are involved. Keep SalTHIRA phases distinct from service levels and Protected Membership entitlements.
+6. Identify the current approved methodology/template version and relevant reusable cross-domain or cross-sector lessons under SAL-D025; test their applicability, restrictions and conflicts against this engagement rather than copying conclusions.
+7. State the objective, current state, unfinished work, next action, and authorization boundary.
+8. Obtain clarification before acting if sources materially conflict.
 
 ## Chat-record reconciliation and report update check\n\nAt startup, inspect the current candidate-record queue and recently approved decisions, methods, templates and lessons relevant to the objective. A chat, summary or memory note is a lead to verify against source turns and governing artifacts, never self-validating authority. Record source IDs, conflicts, dispositions and review owner for material proposals. Preserve member-specific source and access boundaries.\n\nBefore creating or materially revising a report, identify its governed record ID and current version, approved method/template versions, and applicable improvements since the last release. Document the impact decision for active drafts and issued versions. Apply approved changes to the working report; revise or supplement an issued version through controlled review and release, retaining its predecessor. Verify DOCX/PDF/print substance and rendered-page quality. Update SalCAPA's report impact and delivery status when that workflow exists; until then, record the same evidence in the handoff and governed records.\n\n## Required learning check
 
