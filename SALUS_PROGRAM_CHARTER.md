@@ -46,6 +46,14 @@ SalOPS implements approved actions, sustains readiness, provides protective and 
 
 Information and reporting sources enter SalCAPA. Relevant information and requirements flow to SalINTEL. Qualified intelligence informs SalTHIRA. Findings, assessments, priorities, and recommendations return through SalCAPA to Protected Members. Approved actions, requests, and tasks flow to SalOPS. Operational results and lessons return to SalCAPA.
 
+## Governed enterprise learning and continuous improvement
+
+Salus operates as a cumulative learning system across Protected Members, sectors, methods, strategies, objectives, tactics, resources, statutory and regulatory contexts, competing-resource conditions, outcomes, and derivatives. Each authorized engagement should test relevant prior knowledge and record transferable lessons; qualified lessons and subsequent field results should improve future research, assessments, services, and decisions. Cross-domain connections and counterexamples are part of the method, not isolated repositories.
+
+The learning loop is: capture source-bound observations and results; generalize member-neutral patterns; compare them with other sectors and domains; qualify provenance, applicability, confidence, currency, restrictions and conflicts; approve controlled changes; apply the current version; and measure results and feed lessons back through SalCAPA. Preserve version history and superseded material. Record what was not searched or remains unknown instead of asserting an exhaustive view.
+
+Salus may correlate authorized information internally across engagements, but enterprise learning does not grant automatic cross-Protected-Member disclosure. Keep identifiable Protected Member evidence and security-sensitive derivatives segregated. A reusable enterprise record may cite a restricted source without copying its protected contents. Apply legal, contractual, privacy, licensing, access, purpose and human disclosure controls to every derivative. Human approval remains required for consequential methodology changes, final findings, recommendations, risk acceptance, external publication and service commitments. See SAL-D025 and the approved Knowledge and Records Architecture.
+
 ## Protection Advisor
 
 Protection Advisor is a public marketing, initial-intake, and decision-support tool for prospective Protected Members.
