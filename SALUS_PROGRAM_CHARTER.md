@@ -10,6 +10,51 @@ This charter is the standing Salus program rule. The approved decisions in `SALU
 
 The standing decisions cover architecture and terminology; the Protection Advisor and its five mission areas and 32 core capabilities; intake, provenance, retention and Protected Member isolation; governed enterprise learning; chat-derived candidate records; report currency and parity; the approved Salus system presentation; sequential Level 1, Level 2 and Level 3 packages; the six-step SalTHIRA method and same-level SalINTEL → SalTHIRA → SalOPS → SalCAPA report sequence; customer education in every SalINTEL research area; comprehensive organization and trusted-access assessment; and confidential report handling and pagination. For exact wording, exceptions and supersession, use the decision register. New approved decisions are added there and assessed for an explicit charter update, affected methods, templates, pricing, marketing, active reports and product implementation before use. This charter incorporation does not bypass human approval or release gates.
 
+## Approved decision application map
+
+This map makes every currently approved decision findable in the Charter. The exact approved wording, effective scope, exceptions and supersession history remain in `SALUS_DECISION_REGISTER.md`; the cited Charter sections and approved artifacts supply the operational detail. Do not infer deployment, a final report, price or customer release from decision approval.
+
+| Decision | Standing application |
+|---|---|
+| SAL-D001 | GitHub is the technical source of truth; use governed repository and release records. |
+| SAL-D002 | Operate the Protected Members → SalCAPA™ → SalINTEL™ → SalTHIRA™ → SalOPS™ architecture and feedback loop. |
+| SAL-D003 | Use “Protected Members” consistently in program and customer materials. |
+| SAL-D004 | Apply the approved six-step SalTHIRA method at every authorized level. |
+| SAL-D005 | Protection Advisor uses anonymous Part 1 and authenticated detailed Part 2. |
+| SAL-D006 | Retain Protection Advisor information indefinitely under the approved policy. |
+| SAL-D007 | Reflect the five mission areas and 32 core capabilities in Protection Advisor scoring and analysis. |
+| SAL-D008 | Tailor Protection Advisor recommendations to answers and Level 1, 2 or 3 service depth. |
+| SAL-D009 | Bound assessment work as Initial Pass, Focused Assessment or Deep Dive, subject to the later sequential-package rule. |
+| SAL-D010 | Use the approved polished Protection Advisor example report as content and visual authority. |
+| SAL-D011 | Keep public Print or Save, governed DOCX and governed PDF substantively consistent. |
+| SAL-D012 | Do not issue questionnaire dumps, browser printouts, JSON or internal contracts as client reports. |
+| SAL-D013 | Store governed Protection Advisor reports in SharePoint Protected Member Reports / SalCAPA Generated Reports. |
+| SAL-D014 | Regenerate the same governed report in its existing record or filename; prevent duplicates and preserve release history. |
+| SAL-D015 | Issue Protective Intelligence updates on the tenth day of each month, subject to protective escalation. |
+| SAL-D016 | Use “See, Decide, Coordinate, Act, Prove” in the SalCAPA top bar. |
+| SAL-D017 | Use day-month-year dates and 24-hour time in SalCAPA. |
+| SAL-D018 | Use Chat for research, strategy and writing; use Work/Codex when executable systems or artifacts require it. |
+| SAL-D019 | Inspect approved artifacts directly before governed changes; do not reconstruct them from chat memory. |
+| SAL-D022 | Automatically capture, safely extract, classify, index and hash-verify every file in the governed Salus staging boundary; retain originals and metadata, retry limitations, and reserve consequential use for human authority. |
+| SAL-D023 | Make large nested batches durable, auditable, recoverable and isolated by Protected Member and engagement; acceptance is tracked in issue #520. |
+| SAL-D024 | Route the existing Salus intake backlog to enterprise processing; keep bulk customer files in separate unassigned staging until member and engagement routing is accepted. |
+| SAL-D025 | Govern cumulative cross-engagement learning with provenance, applicability, currency, restrictions, review, supersession and member isolation. |
+| SAL-D026 | Treat chats as candidate record leads; qualify and disposition them through auditable SalCAPA review and dashboard states before reuse. |
+| SAL-D027 | Impact-check reports against current approved methods and evidence; control revisions, immutable releases, parity and rendered validation. |
+| SAL-D028 | Apply the approved seven-slide Salus system presentation as the architecture and methodology visual authority. |
+| SAL-D029 | Organize offerings around bounded Level 1 Initial Pass, Level 2 Focused Assessment and Level 3 Deep Dive; membership entitlement and price are separate. |
+| SAL-D030 | Assess leadership, personnel, command, insider controls, all applicable core capabilities and local-to-global dependencies as an organizational system. |
+| SAL-D031 | State each product's level, evidence depth, review, deliverable and stop gate in scopes and reports. |
+| SAL-D032 | Require a qualified integrated Level 1 package before Level 2 and a qualified Level 2 package before Level 3; label every work product and identify next-level needs. |
+| SAL-D033 | At each level, issue SalINTEL, then SalTHIRA, then SalOPS reports; aggregate approved results in the final SalCAPA report. |
+| SAL-D034 | Educate the member in every SalINTEL domain and map role-based trusted access without implying person-specific misconduct. |
+| SAL-D035 | Use a Salus Confidential cover, wholly blank page 2, body from page 3 and visible “page X of Y” indications on stand-alone reports. |
+| SAL-D036 | Incorporate every approved decision into this Charter while preserving the Register as the exact decision and supersession record. |
+| SAL-D037 | Protect Salus expression, brand and confidential know-how with rights, disclosure, access, contract and report controls while respecting member and third-party rights. |
+| SAL-D038 | Collect the eight SalINTEL evidence dimensions; research lawful public sources during active authorized work; reconcile contradictions and include a dedicated compliance section. |
+
+SAL-D020 and SAL-D021 are superseded intake decisions retained in the Decision Register as history; SAL-D022 governs the current intake rule, with the routing clarification in SAL-D024. On approval of a later material decision, reconcile this map and the substantive Charter rule before treating the new decision as implemented.
+
 ## Approved operating architecture
 
 ### Protected Members
