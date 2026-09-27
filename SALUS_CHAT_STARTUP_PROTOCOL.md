@@ -17,8 +17,9 @@ Before modifying anything, the chat must:
 5. For facility, personnel or other organizational assessment, apply SAL-D030: screen leadership, command, trusted access and insider-risk controls, crisis communications, five mission areas, all 32 FEMA core capabilities and added sector capabilities, plus evidence-linked local-to-global dependencies. Preserve individual privacy and the distinction between no evidence found and not assessed.
 6. Inspect the approved Salus system presentation and three-level service framework when scope, packages, proposals, reports or product design are involved. Check requested, authorized and completed integrated package and product level, prerequisites and same-level SalINTEL → SalTHIRA → SalOPS handoffs, evidence/stop gates and report labels under SAL-D031–SAL-D032. Every customer starts with Level 1; Level 2/3 require the completed prior package. Confirm methods and standards before a level-labeled SalINTEL report, SalTHIRA report, SalOPS report and final SalCAPA aggregate under SAL-D033. Keep SalTHIRA phases distinct from service levels and Protected Membership entitlements.
 7. Identify current report confidentiality/cover, blank-second-page and customer-education standards under SAL-D034–SAL-D035; confirm all role families, vendors and contractors are considered where relevant. Identify the current approved methodology/template version and relevant reusable cross-domain or cross-sector lessons under SAL-D025; test their applicability, restrictions and conflicts against this engagement rather than copying conclusions.
-8. State the objective, current state, unfinished work, next action, and authorization boundary.
-9. Obtain clarification before acting if sources materially conflict.
+8. Before sharing methods, templates, samples, reports or member materials, apply SAL-D037: verify source/contract rights, intended audience, handling tier, permitted use, disclosed detail and release record. Keep nonpublic implementation separate from the client decision aid, and preserve necessary safety sharing.
+9. State the objective, current state, unfinished work, next action, and authorization boundary.
+10. Obtain clarification before acting if sources materially conflict.
 
 ## Chat-record reconciliation and report update check
 
