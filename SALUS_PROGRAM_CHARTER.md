@@ -4,6 +4,12 @@
 
 Salus Solutions LLC is an intelligence, security, investigations, emergency-management, and operational-support company. The Salus program turns fragmented information into qualified intelligence, prioritized risk decisions, coordinated actions, and defensible records for Protected Members.
 
+## Authority, decision continuity and scope
+
+This charter is the standing Salus program rule. The approved decisions in `SALUS_DECISION_REGISTER.md` are incorporated into this charter by reference, including SAL-D001–SAL-D035 and later approved entries. The register preserves the exact decision, approval status and supersession history; it is not replaced by a paraphrase here. Apply each approved decision with its approved artifact and effective scope. Superseded entries remain historical records and do not govern current work. The approved-artifact register identifies exact design authorities; the current handoff records implementation and deployment state. A charter summary does not convert a working draft, proposal, local artifact, issue or undeployed requirement into an accepted release.
+
+The standing decisions cover architecture and terminology; the Protection Advisor and its five mission areas and 32 core capabilities; intake, provenance, retention and Protected Member isolation; governed enterprise learning; chat-derived candidate records; report currency and parity; the approved Salus system presentation; sequential Level 1, Level 2 and Level 3 packages; the six-step SalTHIRA method and same-level SalINTEL → SalTHIRA → SalOPS → SalCAPA report sequence; customer education in every SalINTEL research area; comprehensive organization and trusted-access assessment; and confidential report handling and pagination. For exact wording, exceptions and supersession, use the decision register. New approved decisions are added there and assessed for an explicit charter update, affected methods, templates, pricing, marketing, active reports and product implementation before use. This charter incorporation does not bypass human approval or release gates.
+
 ## Approved operating architecture
 
 ### Protected Members
@@ -54,7 +60,13 @@ The learning loop is: capture source-bound observations and results; generalize 
 
 Salus may correlate authorized information internally across engagements, but enterprise learning does not grant automatic cross-Protected-Member disclosure. Keep identifiable Protected Member evidence and security-sensitive derivatives segregated. A reusable enterprise record may cite a restricted source without copying its protected contents. Apply legal, contractual, privacy, licensing, access, purpose and human disclosure controls to every derivative. Human approval remains required for consequential methodology changes, final findings, recommendations, risk acceptance, external publication and service commitments. See SAL-D025 and the approved Knowledge and Records Architecture.
 
-## Chat-derived records and reporting currency\n\nChat discussions, user corrections, field observations and generated work may propose program records, but do not become approved doctrine merely by appearing in a conversation. SalCAPA shall preserve a traceable candidate record, check it against governing decisions and artifacts, record supporting and conflicting evidence, qualify customer scope and reuse rights, and route it to an accountable reviewer. Disposition and implementation state must be visible in the SalCAPA dashboard. Approved generalized lessons may inform other engagements through the governed learning loop; restricted originals remain segregated. See SAL-D026.\n\nEvery new or materially revised report must use the latest approved applicable Salus method, template and reporting standard. A material improvement prompts an impact check of active drafts and issued reports. Analysts document the decision to revise, supplement, or retain an issued report; any revised release is versioned and linked to its predecessor. Preserve immutable issued versions, source provenance, reviewer authority and customer boundaries. Client-facing DOCX, PDF and print/save outputs must agree in substance and be checked for legibility, accessibility, navigation and rendered pages. SalCAPA shall surface applicability, review and delivery status. See SAL-D027.\n\n## Approved presentation and three-level service model
+## Chat-derived records and reporting currency
+
+Chat discussions, user corrections, field observations and generated work may propose program records, but do not become approved doctrine merely by appearing in a conversation. SalCAPA shall preserve a traceable candidate record, check it against governing decisions and artifacts, record supporting and conflicting evidence, qualify customer scope and reuse rights, and route it to an accountable reviewer. Disposition and implementation state must be visible in the SalCAPA dashboard. Approved generalized lessons may inform other engagements through the governed learning loop; restricted originals remain segregated. See SAL-D026.
+
+Every new or materially revised report must use the latest approved applicable Salus method, template and reporting standard. A material improvement prompts an impact check of active drafts and issued reports. Analysts document the decision to revise, supplement, or retain an issued report; any revised release is versioned and linked to its predecessor. Preserve immutable issued versions, source provenance, reviewer authority and customer boundaries. Client-facing DOCX, PDF and print/save outputs must agree in substance and be checked for legibility, accessibility, navigation and rendered pages. SalCAPA shall surface applicability, review and delivery status. See SAL-D027.
+
+## Approved presentation and three-level service model
 
 The approved seven-slide `Salus System and Methodolgy.pptx` is the visual methodology authority as of 27 September 2026 (SAL-D028; exact artifact and hash in APPROVED_ARTIFACTS.md). The three SalTHIRA phases group the six steps; they do not define commercial service levels.
 
@@ -114,13 +126,9 @@ Protection Advisor is a public marketing, initial-intake, and decision-support t
 
 ## Investigation and assessment levels
 
-Every assessment domain should define bounded service levels so scope and effort do not expand indefinitely. The standing model is:
+Every assessment domain uses the sequential integrated service packages and product-specific completion gates above. Level 1 Initial Pass establishes a source-bound baseline and same-level SalINTEL, SalTHIRA and SalOPS outputs. A qualified Level 1 package is required before Level 2 Focused Assessment; a qualified Level 2 package is required before Level 3 Deep Dive. Targeted validation at Level 2 and approved complex modules at Level 3 address named questions and dependencies. Existing evidence may satisfy a prerequisite check after qualification, but no package, same-level handoff, review or decision is silently skipped.
 
-- Level 1 — Initial Pass: rapid review using readily available information.
-- Level 2 — Focused Assessment: deeper validation and targeted investigation.
-- Level 3 — Deep Dive: comprehensive, corroborated assessment with expanded evidence and analysis.
-
-Exact hours, sources, and deliverables must be stated in each scope.
+Each scope states authorized hours or effort, sources, role and access boundaries, deliverables, price, exclusions, evidence and analyst gates, and the point at which additional authority is required. Recommendations for a deeper level do not authorize collection, billing or operational work.
 
 ## Governance principles
 
@@ -132,6 +140,8 @@ Exact hours, sources, and deliverables must be stated in each scope.
 - Client deliverables must be visually inspected when layout is material.
 
 ## Brand and interface standards
+
+For reports and printable documents, apply the approved Salus visual authority together with applicable U.S. Office of Personnel Management federal guidance for clear, readable document style and plain language. Use the Salus confidentiality treatment and verify the final rendered DOCX, PDF and print pages. Do not label a document as government-classified solely because it follows a federal style guide.
 
 - Use a clean, airy, professional visual style aligned with `www.Salus.Solutions`.
 - Use the correct Salus logo, balanced white space, readable type, and orange action controls.
