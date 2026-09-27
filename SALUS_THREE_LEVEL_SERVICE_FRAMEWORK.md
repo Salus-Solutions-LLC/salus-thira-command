@@ -1,6 +1,6 @@
 # Salus Three-Level Service Framework
 
-**Status:** Approved program structure, 27 September 2026 (SAL-D029). Commercial prices, service-specific scope sheets, entitlements and software deployment remain subject to their separate approvals.
+**Status:** Approved program structure, 27 September 2026 (SAL-D029); level methodology and reporting architecture refined under SAL-D031. Commercial prices, service-specific scope sheets, entitlements and software deployment remain subject to their separate approvals.
 
 ## Governing distinction
 
@@ -34,6 +34,46 @@ The level purchased must be recorded for each scoped work package, not inferred 
 | SalCAPA™ | Governed intake, coordination, delivery and action tracking for scoped work | More workflows, review cycles, entities and reporting cadence as contracted | Portfolio, cross-domain coordination, assurance and executive views as contracted | The secure environment and audit controls apply at every level; access and features depend on approved entitlement and deployed capability |
 
 Level 1 can reveal an immediate life-safety concern. Escalate that concern through the applicable urgent procedure even when deeper paid analysis has not been authorized. Do not defer required protection or imply a response guarantee from a service-level label.
+
+## Methodology depth and completion gates
+
+Every product has a **level profile** that states its covered entities, time/geography, questions and decisions, sources and exclusions, interviews/fieldwork, specialist needs, expected outputs, hours/capacity, schedule, reviewer, completion checklist and price treatment. The level is selected and authorized per work package. A SalINTEL Level 2 does not automatically authorize SalTHIRA Level 2 or SalOPS Level 2. Cross-product bundles name the level and scope of each component.
+
+| Gate | Level 1 Initial Pass | Level 2 Focused Assessment | Level 3 Deep Dive |
+|---|---|---|---|
+| Entry | Signed baseline question, covered entity and source boundary | Approved priority questions and selected controls/scenarios, usually informed by Level 1 | Approved consequential decision, complex scope, specialist plan and budget |
+| Collection | Existing member records, readily accessible authorized official/open sources, limited clarification | Targeted interviews, record requests, selective site observation/tests and wider source diversity as authorized | Broadest lawful approved source set, multi-role/partner collection, technical inspection/testing and historical or cross-domain research in scope |
+| Organizational lens | Map roles, command, trusted access, crisis-message authority and essential functions; mark unknowns | Validate selected delegations, staffing, screening/access controls and exercises | Challenge succession, simultaneous failures, insider-control effectiveness, interorganizational dependencies and recovery capacity |
+| Capability lens | Screen all 32 FEMA capabilities plus sector-specific ones for applicability and owner; no unsupported ratings | Establish outcome/target and performance evidence for the selected high-priority applicable capabilities; disposition the remainder | Evaluate all applicable capabilities within the approved scope, including cross-capability dependencies, competing resources and measured performance |
+| External context | Identify material local-to-global drivers and suspected dependencies | Verify named supplier, public-service, legal/regulatory and economic effects on priority functions | Model cascading and compound disruptions, substitutes, lead times, financial sensitivity and regional/national/global competition |
+| Analytical confidence | Source-bound baseline, contradictions and explicit unknowns | Corroborated priority findings and documented residual gaps | Deeper corroboration, counterexamples, specialist challenge and sensitivity analysis |
+| Stop | All baseline checks completed, unavailable, excluded or deferred with reason | Every authorized priority question resolved or explicitly dispositioned | All approved modules and review gates complete with residual unknowns and future-monitoring triggers |
+| Human gate | Analyst qualification and authorized release | Analyst plus relevant specialist/owner validation and release | Multidisciplinary or independent challenge when specified, accountable decision and release |
+
+A high-consequence finding at any level triggers the appropriate safety or alert route. It does not silently purchase the next level. The same standards for lawfulness, privacy, evidence lineage, protected-member isolation, human review, confidentiality and urgent escalation apply at every level.
+
+### Product work products by level
+
+| Product | Level 1 | Level 2 | Level 3 |
+|---|---|---|---|
+| SalINTEL™ | Baseline intelligence/assessment with source ledger, 32-capability applicability screen, urgent flags, contradictions and bounded collection questions | Focused validated report on named priority issues, role/dependency analysis, tested or corroborated evidence and remaining gaps | Comprehensive scoped intelligence product with multi-domain and historical analysis, specialist findings, counterexamples, confidence and residual unknowns |
+| SalTHIRA™ | All six steps at screening depth; provisional scenario/context, target assumptions, capability evidence, gap hypotheses and option questions | All six steps for selected scenarios; validated targets, current performance, gaps, option tradeoffs and prioritized recommendations | All six steps for complex/compound scenarios; tested targets, cascading consequences, competing-resource and sensitivity analysis, alternatives and decision record |
+| SalOPS™ | Bounded readiness check, single approved plan/action or advisory task with owner and proof | Targeted plan, training, exercise, protective or incident-support package with evaluation and corrective actions | Integrated or sustained multi-site program, complex exercises/operations, recovery and measured revalidation; staffing and live response separately contracted |
+| SalCAPA™ | Governed intake, source/decision record, delivery and action status for each authorized component | Expanded collection, review, workflow and cadence for the agreed scope | Portfolio coordination, assurance, cross-domain and executive reporting where deployed and entitled |
+
+### Report architecture and disclosure
+
+Every report begins with: Protected Member and engagement; product and **requested, authorized and completed level**; scope/profile version; decision question; as-of period; completed and excluded work; source boundary; status (working, qualified, approved or issued); reviewer; and handling. If the authorized level is unknown, print **“Level authorization pending”** and do not claim completion. Separate service level from severity/readiness/color status and from Protected Membership plan.
+
+All reports use a consistent sequence: executive decision; scope and method; facts and source quality; organization and external context; scenarios and capability applicability; level-specific findings and uncertainty; options and costs where authorized; decisions and handoffs; collection needs; source/annex register. The body emphasizes findings material to the purchased level; the source and 32-capability disposition register remain traceable in the appropriate annex/record. Level 1 delivers a concise screening and questions; Level 2 shows validated priority analyses and alternatives; Level 3 shows comprehensive scoped analysis, technical inputs, sensitivity, implementation and residual risk. Length is driven by evidence and decision need, never used as a proxy for level.
+
+Each finding states **observed/verified, reported, inferred, hypothesis, unknown, not assessed or no evidence found within a defined search**, with source/date, confidence, contrary evidence and decision effect. A level report explicitly distinguishes (a) work completed inside scope, (b) material facts not yet validated, (c) work outside scope, and (d) recommended next-level work. A recommended next level is a proposal, not an unfinished current level or automatic commitment. Do not imply that a Level 1 screen proves the absence of insider, security or other hazards.
+
+### Upgrade and quality decision
+
+Recommend Level 2 when a material decision depends on unverified people, infrastructure, command, warning, supply or capability facts, or when conflicting sources can reasonably be resolved by targeted collection. Recommend Level 3 when compound failures, multiple entities, high-consequence engineering/financial/operational choices, materially contested facts, specialist methods or long-term investment require deeper proof. A qualified analyst records the reason, incremental questions, exact new work, expected decision benefit, estimate and who may approve it. Unavailable sources may instead be recorded as residual limits when deeper work would not change the decision.
+
+An engagement may stop after any completed authorized level. Salus personnel may also scope Level 2 or 3 directly when enough context already exists; earlier-level evidence must still be incorporated and gaps documented. Do not rerun prior work merely to recreate a level label.
 
 ## Selling and pricing rules
 
