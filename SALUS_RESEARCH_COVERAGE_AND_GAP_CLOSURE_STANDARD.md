@@ -1,6 +1,6 @@
 # Salus research coverage and gap-closure standard
 
-**Authority:** SAL-D065–SAL-D068, Marc's 28 September 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
+**Authority:** SAL-D065–SAL-D071, Marc's 28 September 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
 
 ## Purpose
 
@@ -61,3 +61,7 @@ A completion statement names the actual engagement, level, report versions, sour
 
 Before handoff or issue, a human reviewer checks the coverage matrix against the authorized scope, samples original sources, challenges important assumptions and excluded domains, confirms volatile dates, verifies privacy and permissions, and checks that every material gap has an owner or documented reason for deferral. Run the SAL-D063 coherence check and SAL-D064 source-to-release integrity check; then record the exact artifact/version, search boundary, gaps, reviewer, corrections and release status. Feed reviewed member-neutral discoveries into SAL-D025 governed learning while keeping Protected Member evidence segregated. A methodology rule does not establish that a particular Member's research is complete.
 
+
+## SAL-D071 completion gate
+
+Maintain one explicit in-scope queue of original sources, linked and contrary leads, unresolved contradictions, Member questions, method changes, same-level report effects and release checks. Close an item only with an evidenced finding, reasoned exclusion or no-change, or a documented outside-scope decision made by an authorized reviewer. A named blocker remains open with attempted alternatives, decision effect, owner and next proof. Do the remaining lawful work while that blocker exists. Before saying a task is 100% complete, compare the queue with the agreed deliverable and acceptance gates, validate exact versions, and obtain any required qualified review and human release. State interim status plainly, even when a chat turn or work period ends. Do not describe every possible source on the internet as searched; make the search boundary and remaining leads auditable.
