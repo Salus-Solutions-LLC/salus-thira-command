@@ -48,6 +48,10 @@ For each material option, screen the applicable professional lenses in `proposal
 
 For material leadership, authority, process or communication gaps, construct an evidence-linked change case from the approved organizational-health method: current strength to preserve, observed mechanism, no-action and proportionate alternatives, legal and practical decision owner, resources and constraints, expected daily and stress benefit, baseline and target, adverse effects, retest and residual risk. Examples may include bounded delegation, alternate training, decision brief and escalation design, promulgation checks, crisis communications, command-transfer rehearsal and corrective-action review. These are options, not automatic prescriptions or authorized services. Match the option to the approved SalOPS™ action state and record separate authorization before implementation.
 
+## Organizational-health cross-product handoff [SAL-D052]
+
+Carry each material organizational-health option with its originating Advisor signal if any, qualified SalINTEL™ domain/source ID, SalTHIRA™ scenario and target effect, Member decision owner, action state, daily/stress benefit and proof. An Advisor answer alone does not authorize or justify an operational service. Use the approved integration crosswalk and return verified performance to SalCAPA™ for reassessment.
+
 ## Approval and release boundary
 
 The approved enterprise method and report structure are reusable. The working `SalOPS Report Template DRAFT.docx` and `Tierra Linda Ranch - SalOPS Level 1.docx` remain design references, not approved populated reports or operational orders. Qualify the exact member evidence, reconcile same-level inputs, complete analyst and authorized human review, perform the report-specific conformance check, and issue only through the governed record. Preserve member isolation, immutable release/version history and SAL-D027 impact review.
