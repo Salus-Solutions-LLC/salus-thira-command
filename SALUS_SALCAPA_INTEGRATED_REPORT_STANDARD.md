@@ -10,6 +10,8 @@ The integrated workflow is: collect and control sources in the correct Protected
 
 ## Required decisions and traceability
 
+Under SAL-D065, the integrated report shall show the actual research boundary and the highest-value unresolved information beside the decisions it could change. Reconcile the same stable gap IDs and receiving dispositions from SalINTEL™, SalTHIRA™ and SalOPS™; identify who will collect or validate each item, what proof is needed, when to reconsider the decision and which Level 2 or Level 3 scope is justified. A count of documents or citations is not a completion claim. Keep the detailed research log in the restricted Member record and explain the material limits plainly to the Protected Member.
+
 The report shall answer:
 1. What was learned, by which source and with what confidence or limit?
 2. Which threat, hazard, essential-function, capability, governance and dependency issues deserve priority?

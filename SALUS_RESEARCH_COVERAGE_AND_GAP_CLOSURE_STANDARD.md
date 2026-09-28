@@ -1,0 +1,40 @@
+# Salus research coverage and gap-closure standard
+
+**Authority:** SAL-D065, Marc's 28 September 2026 direction. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
+
+## Purpose
+
+Salus adds value by actively finding decision-changing information the Protected Member did not know to request or could not readily locate. Analysts shall search across relevant disciplines and geographic scales, reconcile discoveries with Member records and Salus knowledge, explain what changed, and leave a usable route to resolve what cannot yet be established. This is a duty of diligent discovery within the authorized scope, not a claim to have searched the entire internet or found every possible fact.
+
+## Research design and coverage record
+
+Before searching, name the Member or enterprise decision, level, essential functions, time horizon, affected people in aggregate, jurisdiction, sensitivity, responsible analyst and reviewer. Build a topic-by-source coverage matrix from the applicable Salus professional lenses, five mission areas, 32 core capabilities, sector capabilities and Member priorities. Include geographic layers and local-to-global dependencies when location or external systems could change the decision. Do not assume a source class is irrelevant without recording why.
+
+For each material topic, seek and compare as applicable: Member and owner records; current and historical incident, exercise and repair records; competent federal, state and local primary sources; statutes, regulations, permits and adopted standards; maps, imagery and technical datasets; public-service and infrastructure operators; insurance, finance and market records; professional research and opposing views; authorized interviews and field evidence; and approved Salus tools and prior qualified lessons. Search both the expected condition and plausible contrary or failure conditions. Recheck volatile facts before a decision or report issue. Record which sources require a specialist or owner to interpret.
+
+Each source or unsuccessful search records the exact query or source class, publisher/custodian, locator, retrieved and effective dates, version, geographic and population coverage, access/license restriction, evidence type, extraction or inspection method, analyst, result and limitation. Preserve an exact Member source inventory and restricted evidence. A search-result count, prior chat summary, file count or citation list does not prove substantive review.
+
+## Gap discovery and reconciliation
+
+Convert every material unknown into a stable gap ID linked to the decision and same-level SalINTEL™ → SalTHIRA™ → SalOPS™ → SalCAPA™ record. Mark **not found**, **not accessible**, **not collected**, **outdated**, **conflicting**, **too coarse**, **not validated**, **outside approved scope** or **not applicable with reason**. Record what was sought, why it matters, likely custodian, alternate source, handling, collector, due/trigger, decision effect, whether Salus can collect it independently, and what observation would confirm or overturn the working assumption. Distinguish source absence from absence of a capability, duty, asset or hazard.
+
+Compare new information with the exact existing Member record and approved Salus method. Separate genuine contradiction, later change in condition, different geographic scope, different definitions and uncertain inference. Keep source and contrary evidence together. Do not allege noncompliance, misconduct, coverage or physical overlap on a coarse map, outdated record or missing file alone. Escalate a decision-changing legal, engineering, medical, insurance or security question to the competent reviewer.
+
+## Diligence and stopping rule
+
+Do not close a material search merely because the first plausible source supports the initial hypothesis. Search primary and contrary leads, adjacent jurisdictions and dependencies, historical and current periods, and a second independent source when the consequence warrants it. Continue until the defined decision is supported at its level, available leads have been followed or explicitly triaged, contradictions have a disposition, and additional research is unlikely to change the present decision relative to its cost, delay and authorization. Record that judgment and reviewer. If time, access, privacy, budget or competence stops the work first, label the output **bounded** and retain the open gap, owner and next action. A life-safety concern may require immediate separately authorized protective action while evidence collection continues.
+
+## Levels, products and reporting
+
+- **Protection Advisor:** seek low-burden signals and educate; do not require detailed security maps, personal records or an exhaustive evidence packet before Level 1.
+- **Level 1 SalINTEL:** perform a broad, documented source screen, identify material findings and the ranked missing-information register; collect lawful public information proactively and ask the Member only for decision-changing restricted records.
+- **Level 1 SalTHIRA:** carry qualified facts and unknowns through all six steps, five mission areas and applicable capabilities; show how missing information affects provisional target, gap and priority.
+- **Level 1 SalOPS:** turn high-value gaps into specific collection, validation, protective and service options with owner, authority, timing and proof; distinguish proposals from approved work.
+- **Level 1 SalCAPA:** show the Member what is known, what remains unresolved, why it matters now, the decision available at Level 1 and the bounded Level 2 case. Retain one stable ID and receiver disposition.
+- **Levels 2 and 3:** validate selected gaps and compound questions under their separately authorized scope; never silently upgrade an unverified Level 1 assertion.
+
+Each stand-alone report's scope and executive summary state the actual search boundary and material blind spots. A dedicated evidence and missing-information section provides concise Member education, source-linked findings, contradictions, ranked collection questions and the next-level or urgent action that each answer enables. Keep detailed tactics and sensitive coordinates in the restricted record. Report impact review applies to active and issued versions whenever a new source changes a finding, ranking, recommendation or customer choice.
+
+## Quality and learning gate
+
+Before handoff or issue, a human reviewer checks the coverage matrix against the authorized scope, samples original sources, challenges important assumptions and excluded domains, confirms volatile dates, verifies privacy and permissions, and checks that every material gap has an owner or documented reason for deferral. Run the SAL-D063 coherence check and SAL-D064 source-to-release integrity check; then record the exact artifact/version, search boundary, gaps, reviewer, corrections and release status. Feed reviewed member-neutral discoveries into SAL-D025 governed learning while keeping Protected Member evidence segregated. A methodology rule does not establish that a particular Member's research is complete.

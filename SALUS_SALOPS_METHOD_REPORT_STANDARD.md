@@ -18,6 +18,8 @@ Urgent competent-authority life-safety measures are not delayed for a higher pac
 
 ## Input and option-to-action method
 
+Under SAL-D065, accept each material research and validation gap by stable ID or return it with a reason. Convert a decision-changing gap into a proposed collection, test, interim protective measure or separately scoped Salus service with responsible owner, authorization, due/trigger, dependency and completion proof. SalOPS™ does not treat a missing fact as a confirmed defect or a proposed task as approved operations. Its report distinguishes what can be done at the current level from evidence that requires Level 2 or Level 3.
+
 Use exact source versions and stable IDs linking SalINTEL™ source, contradiction, assets and essential functions to SalTHIRA™ scenario, target, demonstrated capacity, gap, treatment, priority, uncertainty and residual risk. Capture the Member's mission, authority, existing plans, personnel, facilities, partner/contract terms, funding, insurance, permits, accessibility and privacy restrictions. State missing proof and its effect on a decision.
 
 Use these distinct states: **proposed, screened, offered, authorized, planned, performed, verified, sustained or closed, deferred, rejected**. Never conflate them. Before authorization, compare no action and alternatives on consequence, time to harm, essential-function effect, expected capability gain, evidence confidence, cost and lead time, partner availability under competing demand, safety, accessibility, legal/contract terms, side effects, reversibility and sequence. Explain qualitative judgment; do not present an unvalidated score as measured performance.

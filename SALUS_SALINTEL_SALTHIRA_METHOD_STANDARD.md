@@ -14,6 +14,8 @@ Every Protected Member begins with a qualified Level 1 package before Level 2; L
 
 ## SalINTEL required process
 
+Apply SAL-D065 throughout this process. Before collecting, create an applicable topic-by-source coverage matrix and record the actual search terms/classes, dates, exclusions and contrary leads. At handoff, give each material missing or disputed input a stable ID, priority, decision effect, likely custodian, collector, proof request and next-level disposition. A source inventory or qualified public-data screen is not a completed substantive review. The SalINTEL report states which high-consequence domains remain unassessed and how their resolution could change a SalTHIRA target or ranking.
+
 1. **Scope and protect.** Define the Protected Member, engagement, essential functions, facilities, population groups in aggregate, time horizon, authorized sources and methods, law/privacy boundaries, access restrictions and review authority. Separate person-level evidence in restricted annexes.
 2. **Collect and inventory.** Preserve every received source's identity, date, version, origin, hash where available, owner, license/access limits and relevance. Search relevant lawful public sources proactively during active authorized work; record the actual search boundary, retrieval date and blind spots. Sources include member insight, local context, human reporting, external reports, open sources, global/regional developments, approved proprietary tools and partner reporting. Outputs are leads until qualified.
 3. **Research the organizational system.** Examine leadership, command, succession, finance, business processes, personnel and volunteer roles, vendor/contractor and trusted access, insider-control indicators, facilities, dependencies, crisis communications, preparedness, protection, response, recovery and mitigation. Consider local economy and infrastructure, politics, regulation, supply chains, insurance/finance, environmental and animal interfaces, aviation and transport, health/medical access, resource competition and compound events where applicable.
@@ -26,6 +28,8 @@ Every Protected Member begins with a qualified Level 1 package before Level 2; L
 10. **Report and review.** Use the approved SalINTEL template. Include the executive summary, scope and level, organization and governance, roles/trusted access, assets/dependencies, hazards/actual incidents, capability and eight-dimension screens, dedicated compliance and contradiction sections, qualified findings, collection register, same-level handoff, sources and lessons. Qualify findings through accountable analyst/human review before issue.
 
 ## SalTHIRA required process
+
+At each of the six steps, accept, qualify or return each decision-changing SalINTEL gap ID under SAL-D065. Test whether excluded evidence could reverse a scenario priority, capability target, assessed capacity, gap, option or impact-of-change judgment. Keep an explicit provisional rating and validation task when it could; do not imply that broad research or a coarse geographic screen establishes current site performance.
 
 SalTHIRA owns the target, gap and priority decisions. Apply all six Salus steps at each authorized level:
 1. Identify threats and hazards.
