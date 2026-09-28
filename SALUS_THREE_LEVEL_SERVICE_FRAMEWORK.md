@@ -100,6 +100,10 @@ An engagement may stop after any completed authorized level. A customer may not 
 5. Salus personnel approve final scope, price, discount, contract, external partner, service-level change and operational commitment. SalCAPA may propose options but must not auto-charge or silently authorize work.
 6. Preserve prior estimate, SOW, report and service-level versions. A change request records why scope changed, affected price/capacity, approver and effective date.
 
+### Relevant additional-service discovery
+
+At every level, SalOPS™ and the final SalCAPA™ summary shall explain additional Salus services that fit a documented Protected Member need, including lawful and suitable security, planning, training or exercises when supported. Each suggestion identifies expected benefit, alternative, evidence limits, prerequisites, accountable service owner and optional request-for-scope path. Service discovery is separate from the sequential Level 1–3 assessment purchase. Verify the approved catalog, licensing, insurance, available people/partners, jurisdiction and Member consent before making an offer. Scope, price, staffing and operational commitments require distinct approval; no urgent safety advice is conditioned on purchase. Record the Member's choice and follow-up in its SalCAPA™ boundary. [SAL-D047]
+
 ## Required proposal, report and dashboard fields
 
 Every proposal/SOW, work order, work product, report and marketing example displays: Protected Member/engagement and covered entities where appropriate; integrated package level and product-level represented status; prerequisite package and handoff; authorized service level and profile version; question/decision; scope and exclusions; source/collection boundaries; deliverable and review criteria; staffing/field/partner assumptions; schedule/cadence; customer dependencies; price basis and approved customer-facing price where applicable; change trigger; approver; and report/method version. Reports also show actual work performed, evidence and uncertainty, findings, decisions, authorized SalOPS actions and residual questions. Internal cost/margin stay Salus-only.
