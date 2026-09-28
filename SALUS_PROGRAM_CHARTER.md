@@ -62,6 +62,7 @@ This map makes every currently approved decision findable in the Charter. The ex
 | SAL-D046 | Apply the approved SalCAPA integrated process and decision-summary report structure in `SALUS_SALCAPA_INTEGRATED_REPORT_STANDARD.md`; aggregate only approved same-level product reports. |
 | SAL-D047 | In SalOPS and SalCAPA processes and reports, show evidence-linked opportunities for relevant additional Salus services and a voluntary scoped follow-up, subject to suitability, authority, availability and separate approval. |
 | SAL-D048 | After the four product methods and reports are refined, review Protection Advisor Parts 1 and 2 against the current Salus services site and approved Level 1 pathway; educate and invite a voluntary Level 1 or separate-service request through governed report changes. |
+| SAL-D050 | Screen material professional lenses across all four methods and reports, with explicit legal/technical applicability, financial and insurance feasibility, human behavior, energy and community effects, and independent challenge at the authorized level. |
 
 SAL-D020 and SAL-D021 are superseded intake decisions retained in the Decision Register as history; SAL-D022 governs the current intake rule, with the routing clarification in SAL-D024. On approval of a later material decision, reconcile this map and the substantive Charter rule before treating the new decision as implemented.
 
@@ -217,6 +218,37 @@ A Level 1 handoff may use bounded qualitative consequences and provisional targe
 - **SalOPS™** turns authorized decisions into preparedness, protective, incident/crisis-response, recovery and sustainment work, including plans, training, exercises, crisis communications, personnel controls, continuity, mitigation, corrective actions and measured retests. Results return through SalCAPA to SalINTEL and SalTHIRA.
 
 At every service level, make the collection boundary and capability dispositions explicit. A lower commercial level may defer deeper investigation, but it must not silently omit an applicable life-safety issue, human qualification or required authorization. Apply approved improvements to active drafts and impact-check issued reports under SAL-D027; preserve release history and customer isolation.
+
+## Multidisciplinary assurance across the four products [SAL-D050]
+
+At every authorized level, Salus screens the relevance of the perspectives below. The screen is mandatory; full investigation, specialist opinion, field work and testing are scoped by materiality, competence and Protected Member authorization. The dated source and evidence crosswalk in `proposals/SALUS_MULTIDISCIPLINARY_ASSURANCE_REVIEW_20260928.md` supports this rule. Its sources are research leads; they do not establish a Member fact, legal duty, insurance coverage or engineering conclusion without applicability review.
+
+| Perspective | Required question when applicable |
+|---|---|
+| Enterprise risk management and board governance | Which objectives, risk appetite, correlated exposures, control owners, residual risks and risk-acceptance authority drive the decision? |
+| Compliance, anti-bribery, fraud and investigations counsel | Which exact jurisdictions, activities, third parties, procurement interactions, conflicts, payment controls, reporting channels, evidence-preservation duties and independent-investigation safeguards apply? |
+| CFO, CPA and internal audit | What are interruption cost, cash runway, liquidity and contingency funding, debt/contract constraints, capital backlog, segregation of duties and approval controls under stress? |
+| Insurance and claims | What do the actual policy forms, locations, insured activities, limits, sublimits, exclusions, deductibles, waiting periods, notification and documentation terms cover or leave unresolved? |
+| Engineering, architecture and construction | What do actual asset condition, design basis, occupancy, maintenance, drainage, load, fire/life safety, permits, inspections, adopted code edition and local amendments show? |
+| Federal, state, tribal and local regulation | Which entity/activity, threshold, competent authority, effective date, exemption and exact obligation apply; which specialist must verify a disputed duty? |
+| Emergency management and public safety | How do Member command, warning, evacuation, shelter, resource typing, mutual aid, responder access, medical support, surge and reimbursement interface with public authority and competing incidents? |
+| Homeland security and critical infrastructure | Which intentional, cyber/physical/insider and supply-chain threats are credible for this Member, and what source reliability and information-sharing limits govern them? |
+| FBI-informed behavioral threat management | How are concerning behaviors reported, triaged, assessed by qualified multidisciplinary personnel, lawfully managed and referred without profiling or unsupported criminal attribution? |
+| Energy assurance | What are critical loads, power/fuel/water/communications interdependencies, backup endurance, transfer and restart tests, supplier priorities and common-mode failure? |
+| Sociology, community and affected groups | Whose needs, trust, informal networks, access barriers, local conflict and distribution of consequences are missed by leadership-only evidence? Use aggregate data before person-level material. |
+| Behavioral science and human factors | Can people receive, believe, understand and perform protective instructions under stress, fatigue, poor connectivity, language barriers and role overload; what exercise evidence supports this? |
+| Business continuity and recovery | What are essential functions, minimum service, tolerable interruption, recovery time/data targets, alternates, restoration order and tested return to service? |
+| Cybersecurity, privacy and AI assurance | What data and systems/OT are critical; how are access, integrity, backups, vendors, incident response and human oversight of automated decisions governed? |
+| Public health, medical and accessibility | Can people obtain medical care and accessible warnings, evacuation, transport and shelter; what health, water and confidentiality constraints apply? |
+| Environment, climate and animal health | Which current/future environmental conditions, chemical/waste/water duties, animal disease, biosecurity and animal care/evacuation needs affect functions? |
+| Procurement, logistics and supply chain | Are critical vendors concentrated, geographically correlated, delayed, compromised or restricted; what alternate capacity and emergency-purchasing authority exists? |
+| Independent review and ethics | Have contrary evidence, source selection, model bias, conflicts, distributional effects, dissent and unresolved uncertainty received proportionate challenge? |
+
+SalINTEL™ records each applicable lens, exact binding authority or advisory source, jurisdiction and effective/adopted edition when relevant, decision question, source boundary, evidence, unknown, contradiction, owner, reviewer and specialist trigger. Its dedicated compliance section maintains duty-to-evidence traceability. Missing records are unknowns, not automatic findings of violation or control failure. Person-specific, medical, investigative and tactical material remains in restricted Member records.
+
+SalTHIRA™ carries material lenses through all six approved steps and the five mission areas and applicable core/sector capabilities. It examines correlated and compound failure, unequal consequences, financial and recovery feasibility, common lifeline failure, human performance, resource competition and sensitivity to assumptions. Targets and ratings remain provisional where performance is untested. SalOPS™ compares options for operating authority, qualified specialist, law/permit/insurance gates, capital and cash timing, accessible communication, resource competition, safe stop, proof and residual exposure. A recommendation does not authorize action. SalCAPA™ reconciles the exact approved same-level products into a board-ready decision and assurance register with owner, funding, chosen/deferred action, due date, proof, dissent and residual uncertainty; Member risk acceptance stays distinct from Salus analysis.
+
+At Level 1, screen and prioritize with existing authorized evidence and name decision-changing unknowns. At Level 2, validate the selected issues through scoped collection and qualified review. At Level 3, test approved complex dependencies, alternatives and performance. Every stand-alone report explains material applicable lenses, evidence limits, specialist need, decision effect and next-level question in plain language; an internal or restricted annex preserves detailed proof. Do not copy this generic matrix as a Member finding. Apply SAL-D027 impact review to active and issued reports within their existing governed identity. Report-template revisions, accessibility, typography, page layout and offered-format parity remain separate release gates.
 
 ## Protection Advisor
 

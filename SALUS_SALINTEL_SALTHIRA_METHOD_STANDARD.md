@@ -1,6 +1,6 @@
 # SalINTEL and SalTHIRA Controlled Method and Report Standard
 
-**Status:** Approved enterprise method and report-template structure, effective 27 September 2026 (SAL-D044).  
+**Status:** Approved enterprise method and report-template structure, effective 27 September 2026 (SAL-D044); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050).  
 **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential.  
 **Applies to:** Level 1, Level 2 and Level 3 work under the Program Charter. This record governs method and reusable structure; it does not approve a Protected Member finding, a price, operational task, software release, or report issue.
 
@@ -42,6 +42,12 @@ Keep linked scenario decision records. Analyze five mission areas, all 32 core c
 The SalTHIRA client-facing title and filename are `[Protected Member customer name] - SalTHIRA Level [1, 2, or 3]`; status, date and version appear separately. Both stand-alone products use a Salus Confidential approved-personnel cover, a **wholly blank second page**, body beginning page three and visible `page X of Y` on nonblank pages. Use Arial for titles, headings, running headers and table headings; Times New Roman for prose, table body, notes and footers. Maintain brand, plain language, accessibility, navigation, source citations and rendered DOCX/PDF/print parity when offered.
 
 The SalTHIRA BLUF begins the body with ranked narrative and four separate numbered tables: hazard scenario priorities; six-step assessment-work priorities; five mission-area priorities; and all 32 core-capability priorities. Put each table's heading at a lower level than BLUF, state its purpose immediately above, keep title/purpose/header together and repeat headers on continuation pages. Follow with executive assessment, scope, SalINTEL readiness, assessment practice, six steps, connected scenario records, continuity/recovery, resource competition, capability screen, mitigation/contradictions, analyst review/SalOPS handoff and sources. Same-level SalOPS recommendations/options are required; execution needs separate approval.
+
+## Multidisciplinary assurance screen [SAL-D050]
+
+At every level, screen the applicability of professional lenses for enterprise risk and board decisions; compliance, anti-bribery and fraud; CFO/CPA and liquidity; insurance/claims; engineering, construction and adopted codes; regulators; emergency management and public safety; homeland security; FBI-informed behavioral threat assessment; energy assurance; sociology/community trust; behavioral and human factors; business continuity; cybersecurity/privacy/AI; public health/accessibility; environment/animal health; procurement/supply chain; and independent review. Use the dated primary-source and evidence matrix in `proposals/SALUS_MULTIDISCIPLINARY_ASSURANCE_REVIEW_20260928.md` as a research lead, not as a Member finding or automatic legal duty. Mark each lens applicable, not applicable, unknown or outside approved scope, with rationale and a specialist trigger. Level 1 screens existing authorized sources and names decision-changing unknowns; Level 2 validates selected questions; Level 3 tests approved compound cases and alternatives.
+
+SalINTEL's dedicated compliance section shall link each candidate duty to the actual regulated entity/activity, authority, jurisdiction, threshold, effective date, adopted code/standard edition and local amendment, exemption, evidence, owner and qualified reviewer. Its eight dimensions shall explicitly prompt financial survival and insurability, trusted and accessible warning, energy/fuel endurance, and behavioral performance when material. Keep person-specific allegations in restricted records. SalTHIRA shall test correlated failure, distribution of consequences, liquidity and recovery feasibility, common-mode lifeline failure, and human performance in its six steps when applicable. The report shall show the lens screen, qualified evidence, contradictory sources, specialist decisions and next-level collection needs without adding unsupported numerical precision.
 
 ## Template, change and release control
 
