@@ -1,6 +1,6 @@
 # Salus research coverage and gap-closure standard
 
-**Authority:** SAL-D065–SAL-D066, Marc's 28 September 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
+**Authority:** SAL-D065–SAL-D067, Marc's 28 September 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
 
 ## Purpose
 
@@ -44,6 +44,12 @@ Do not close a material search merely because the first plausible source support
 - **Levels 2 and 3:** validate selected gaps and compound questions under their separately authorized scope; never silently upgrade an unverified Level 1 assertion.
 
 Each stand-alone report's scope and executive summary state the actual search boundary and material blind spots. A dedicated evidence and missing-information section provides concise Member education, source-linked findings, contradictions, ranked collection questions and the next-level or urgent action that each answer enables. Keep detailed tactics and sensitive coordinates in the restricted record. Report impact review applies to active and issued versions whenever a new source changes a finding, ranking, recommendation or customer choice.
+
+## Protected Member execution and completion record
+
+Maintain one restricted execution ledger per engagement and level. It must enumerate the exact source inventory and content-bearing parts actually reviewed, each material item/claim and source trail, domain and five-mission-area/32-core-capability applicability, sector additions, contradicting and unavailable evidence, legal/specialist questions, decision effect, owner/proof, and same-level dispositions into all four reports. Mark every entry **substantively assessed**, **bounded with named gate**, **excluded with reason**, or **superseded with lineage**. Neither automated indexing nor a broad domain label earns substantive-assessment status. Recheck the ledger when new material arrives or conditions change.
+
+A completion statement names the actual engagement, level, report versions, source boundary, open gates and qualified reviewer. It requires original-source sampling and challenged exclusions, evidence-to-recommendation trace, exact report versions and rendered/native/accessibility checks, and governed human release. State a narrower completed question when other domains remain bounded. Never equate a Charter amendment, a count of files or findings, a draft report, or a large amount of effort with completion of the Protected Member application.
 
 ## Quality and learning gate
 
