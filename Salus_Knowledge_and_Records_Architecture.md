@@ -176,6 +176,10 @@ Delete nothing yet. The only location presently identified as a likely deletion 
 
 It should not be deleted until its acceptance file has been checked against governance/acceptance records and the production binding has been re-verified immediately before deletion. All other named locations require retention or migration work first.
 
+## SAL-D057 supply-chain evidence lineage
+
+Record a stable `supply_chain_id` for each material essential output and its critical inbound and outbound dependencies. Link Member record, source/date/rights, quantity and unit, supplier/site/tier, utility and route, time-to-survive and time-to-recover estimate, contradiction, working assumption, SalTHIRA™ target/gap, SalOPS™ option, SalCAPA™ decision, authorization and proof. Keep private contracts, prices, supplier lists, security locations and animal/person records in the segregated Member boundary. Store public market and regulator feeds with publication lag and applicability, not as proof of a named supplier's capacity. Version corrections and validated cross-engagement learning under SAL-D025. A monitoring cadence is a design field, not evidence of a live service.
+
 ## SAL-D055 assumption-to-action provenance
 
 The governed record model links each material `question_id`, `source_id`, qualified finding and contradiction, `assumption_id` (basis, alternative, confidence limit and validation trigger), SalTHIRA™ scenario/target/gap, SalOPS™ option, paired narrative/checklist `recommendation_id`, Member decision and authorization state, completion proof and review/supersession event. These are logical requirements for future SalCAPA design, not proof of a deployed field or permission for unrestricted collection. Store person-level and Protected Member evidence in the correct segregated boundary; retain Salus reusable method separately. A cross-engagement lesson may generalize a reviewed method under SAL-D025 but may not expose an identifiable Member fact or silently rewrite an issued report. Preserve prior assumption and recommendation versions when evidence changes, so the reason for a changed action remains auditable.

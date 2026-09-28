@@ -63,6 +63,10 @@ The final handoff must identify:
 
 If a new chat lacks a file, repository, account connection, or permission needed to verify current state, it must say so. It must not fill the gap by guessing, silently redesigning, or treating old chat memory as authoritative.
 
+## SAL-D057 supply-chain continuity
+
+For an assessment involving essential products, services or daily survival inputs, inspect `SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md` after the controlling records. Identify the exact Member output and critical input, ordinary versus stressed operating minimum, source/date and confidence, potential common-mode dependencies, proposed time-to-survive/time-to-recover test, same-level four-product chain ID and controlled action/proof. Record the public-data search boundary and unresolved supplier facts. Do not treat a market feed as an individual supplier assurance, a candidate Word revision as an issued report, or a proposed monitoring cadence as a live service. Include the Salus namesake safety/security/wellbeing outcome where it helps the Member understand the decision; avoid unsupported guarantees.
+
 ## SAL-D055 analytical recommendation continuity
 
 On a Salus assessment, report or questionnaire task, inspect `SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md` and `SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md` after the five controlling records. Before a material report handoff, identify which source-bound questions led to working assumptions and which assumptions led to paired narrative/checklist recommendations. Preserve stable IDs, Member decision/action states, validation triggers and report versions. State whether a requirement is approved method, local candidate, live feature or issued Member finding. If a current report or questionnaire lacks the approved pattern, record an SAL-D027 impact and the exact artifact/release gate rather than claiming completion from Charter text alone.

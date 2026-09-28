@@ -92,3 +92,7 @@ For every material decision, SalCAPA™ reconciles the three same-level reports 
 ## SAL-D056 integrated spatial decision summary
 
 Reconcile geospatial findings across the three exact same-level reports. State material location/dependency, map date and confidence, affected function/capability, decision, owner and proof without disclosing exploitable overlays. Surface conflicts between map, incident, owner and field records; identify what Level 2 or Level 3 validation could change. Preserve source-to-scenario-to-option IDs and narrative/checklist parity under `SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md`.
+
+## SAL-D057 essential-output and supply decision summary
+
+For each material supply-chain decision, reconcile the three same-level reports into one plain-language view of essential output, safety/welfare threshold, limiting input, current evidence and uncertainty, interruption/endurance and restoration assumption, SalTHIRA™ capability consequence, feasible SalOPS™ options, Member choice, accountable owner, resource/funding requirement, proof and review trigger. Show normal-day and stress benefits, supplier/route common-mode risk and any Level 2/3 data that could change the decision. Keep restricted contracts, prices, customer lists and security-sensitive logistics out of ordinary summaries. Apply `SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md`.
