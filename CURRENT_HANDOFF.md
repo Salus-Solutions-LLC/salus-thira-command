@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 28 September 2026 — Word font and final-page screen correction
+
+- Exact working Word reports were rerendered after correcting newly added headings from inherited Calibri Bold to Arial and retaining Times New Roman body text. Extracted rendered characters now use Arial/Arial Bold and Times New Roman/Times New Roman Bold (SalINTEL also has Symbol); no Calibri remains in the four rendered PDFs. A sparse final SalTHIRA page caused by its redundant source-boundary paragraph was removed without deleting the report's source register or other evidence limits.
+- Latest bounded render screen: SalINTEL 70 pages, SalTHIRA 36, SalOPS 17 and SalCAPA 15; page 2 blank and no missing page-X-of-Y footer in any. This is a font/pagination screen, not full all-page visual, native Word, accessibility, exact-source or human issue approval.
+- The restricted source index now has 628 unique stable IDs, all local paths present at build time, and retains unverified link leads distinctly. The source ID derives from stable file identity or normalized URL rather than row order. Continue the 20 top-level claim-scoped originals whose whole-file disposition remains open, plus linked and current-state proofs.
+
 ## 28 September 2026 — Tierra Linda original-source and financial reconciliation checkpoint
 
 - Continued source-by-source review under SAL-D070. The restricted source index now distinguishes 64 Member uploads, one separate recorded source, 16 thought-leader list files, 475 unverified linked thought-leader leads, 34 claim-scoped thought-leader primary works and 38 Ranch-related open-source original/lead links. These are indexed identities, not completed content reviews. The 2023 horse-program form, four eclipse-planning records, two temporary agency-statement variants, January/April Board minutes, July flood memorandum, and four alert/radio notices received all-page or full-text claim review; financial reports remain claim-scoped.
