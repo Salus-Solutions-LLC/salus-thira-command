@@ -102,3 +102,7 @@ For each essential function, record the safe minimum service, time at which func
 ## SAL-D060 fresh research and reconciliation
 
 At each material SalINTEL™ or SalTHIRA™ decision, run the dated, decision-relevant thought-leader and contrasting-source review in `SALUS_THOUGHT_LEADER_RESEARCH_STANDARD.md`. SalINTEL™ records the source-bound concept, evidence, limits, Member applicability and any contradiction; SalTHIRA™ tests its effect on scenarios, targets, gaps and priorities. A named expert or supplied list cannot substitute for current Member evidence, a binding authority or a qualified analyst decision. Carry adopted improvements and unresolved questions through SAL-D025/SAL-D027 without disclosing restricted research or Member material.
+
+## SAL-D062 decision-to-proof handoff
+
+Begin each material SalINTEL™ line with the Member decision, affected function, authority and evidence needed to reverse the working assumption. Give it a stable ID and carry that ID, source status, contrary evidence and missing-proof request through the six SalTHIRA™ steps. In the level-labeled reports, state the qualified current decision and what a Level 2/3 validation would change. SalTHIRA™ must link its ranked target/gap/treatment to a feasible same-level SalOPS™ option and observable proof; it must not treat an untested plan, equipment inventory or public source as demonstrated performance. Apply the shared internal decision fields and review gate in `SALUS_ENTERPRISE_DECISION_TO_PROOF_OPERATING_STANDARD.md` without adding a seventh SalTHIRA™ step.
