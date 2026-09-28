@@ -156,8 +156,10 @@ def _professional_body(document, fields, result, package) -> None:
 
     document.add_heading("Mission Area Profile", level=1)
     document.add_paragraph(
-        "These are reported-need screening indicators, not audit grades or measured capability. "
-        "Higher values indicate more reported need. Missing answers are information gaps, not evidence of a deficit."
+        "The five mission areas group work to prevent harm, protect people and assets, limit consequences, "
+        "respond, and restore essential functions. These scores reflect reported need from answered questions only; "
+        "they are not audit grades or measured capability. Higher values mean more reported need. "
+        "Missing answers are information gaps, not evidence of a deficit."
     )
     _add_table(document, ("Mission area", "Reported need", "Preliminary interpretation"), _mission_rows(scores), widths=(2.0, 1.5, 2.9))
     document.add_heading("Primary Conclusions", level=1)
@@ -773,7 +775,7 @@ def render_protection_advisor_pdf(
                   ("Core capabilities", result.get("core_capabilities_considered", 32), "Screened across five mission areas; not validated"),
               ), (1.75 * inch, 1.45 * inch, 2.9 * inch), centered_columns=(1,)),
               P("Mission Area Profile", h1),
-              P("Scores show reported need: higher values mean more need, not more readiness. Unknown answers remain information gaps."),
+              P("The five mission areas group work to prevent harm, protect people and assets, limit consequences, respond, and restore essential functions. Scores reflect reported need from answered questions only: higher means more need, not more readiness. Unknown answers remain information gaps."),
               T(("Mission area", "Reported need", "Preliminary interpretation"), _mission_rows(scores), (1.8 * inch, 1.15 * inch, 3.15 * inch), centered_columns=(1,)),
               P("Primary Conclusions", h1)]
     story += bullets(("Treat protection, emergency planning, continuity, and capability validation as one integrated program.", "Test reported capability against current evidence and performance under realistic stress.", "Validate authority, succession, escalation, dependencies, and alternate arrangements.", "Require authorized Salus review before final scope, price, or assurance statements."))

@@ -106,3 +106,7 @@ At each material SalINTEL™ or SalTHIRA™ decision, run the dated, decision-re
 ## SAL-D062 decision-to-proof handoff
 
 Begin each material SalINTEL™ line with the Member decision, affected function, authority and evidence needed to reverse the working assumption. Give it a stable ID and carry that ID, source status, contrary evidence and missing-proof request through the six SalTHIRA™ steps. In the level-labeled reports, state the qualified current decision and what a Level 2/3 validation would change. SalTHIRA™ must link its ranked target/gap/treatment to a feasible same-level SalOPS™ option and observable proof; it must not treat an untested plan, equipment inventory or public source as demonstrated performance. Apply the shared internal decision fields and review gate in `SALUS_ENTERPRISE_DECISION_TO_PROOF_OPERATING_STANDARD.md` without adding a seventh SalTHIRA™ step.
+
+## SAL-D063 coherence and receiver check
+
+At every material revision and handoff, apply `SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md`. SalINTEL™ states in plain language what was reported, verified, contradicted and still unknown, with a decision-changing collection request. SalTHIRA™ records whether it accepted, returned, qualified or excluded each material input, then explains the same decision ID through all six steps without changing its source meaning. Test high, low, unknown and contradictory cases; check the rank direction and confidence separately. Record exact versions, reviewer, clarity readback and unresolved impact before an issued report or SalOPS™ transfer.

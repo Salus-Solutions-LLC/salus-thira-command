@@ -79,10 +79,15 @@ This map makes every currently approved decision findable in the Charter. The ex
 | SAL-D060 | Start a fresh, relevant thought-leader review for every material Salus decision or work product; verify primary works, challenge and reconcile ideas, and govern adoption without claiming exhaustive knowledge. |
 | SAL-D061 | Use the bounded primary-source reconciliation to challenge people, communication, system and functional-recovery assumptions across the four products. |
 | SAL-D062 | Run one decision-to-proof operating chain for research, analysis, service delivery, reporting and governed learning at each authorized level. |
+| SAL-D063 | Run the standing portfolio coherence and plain-language handoff gate for every material improvement and same-level product transfer. |
 
 SAL-D020 and SAL-D021 are superseded intake decisions retained in the Decision Register as history; SAL-D022 governs the current intake rule, with the routing clarification in SAL-D024. On approval of a later material decision, reconcile this map and the substantive Charter rule before treating the new decision as implemented.
 
 ## Approved operating architecture
+
+### Standing coherence and plain-language handoff gate [SAL-D063]
+
+Every material enhancement, learning event, questionnaire or report revision, service description, and same-level SalINTEL™ → SalTHIRA™ → SalOPS™ → SalCAPA™ transfer receives a recorded accuracy, consistency, continuity and clarity check under `SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md`. Review the governing decision, approved artifact, actual current implementation and affected Member work together. Keep one decision ID, source and contrary evidence, confidence, falsifier, level, action state and proof meaning intact across products. The receiver accepts, returns, qualifies or excludes the item with a reason; silence is not acceptance. Test favorable, adverse, unknown and conflicting cases, then use a nonexpert readback to confirm that personnel and the Protected Member can explain what is known, why it matters, the choice, owner and proof. Record the exact reviewed boundary and open gates. A method update does not itself revise an issued report or deploy a workflow.
 
 ### Protected Members
 
