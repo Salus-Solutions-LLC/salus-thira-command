@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 27 September 2026 — SAL-D041 SalTHIRA report naming
+
+- Marc approved the customer-facing SalTHIRA report naming pattern `[Protected Member customer name] - SalTHIRA Level [1, 2, or 3]`. Recorded SAL-D041 in the Decision Register (commit `ddc97944da8ee6a2c966920c6cae5ba3941c3d8d`) and incorporated it in the Program Charter (commit `75ec49ade5ff5d30348ee154aadd033c1089a9ed`). Working status, date, version and release metadata remain in cover/governed fields, not the title or filename. This is a naming decision; the member-neutral SalTHIRA working methodology as a whole is not thereby approved.
+- Renamed the **same** local Word report from `work/Tierra_Linda_Ranch_Level_1_SalTHIRA_Working_Report_20260927.docx` to `work/Tierra Linda Ranch - SalTHIRA Level 1.docx`; changed its cover title, running footer label and DOCX title property. The old DOCX path no longer exists; no duplicate report was created. Updated the same working methodology document with the reusable Level 1/2/3 title rule.
+- Re-rendered the Ranch report (**27 pages**) and working methodology (**7 pages**). Verified exact cover/metadata title, blank report page 2, BLUF on page 3 and `page X of 27` on visible pages. The report is still a working Level 1 assessment with existing evidence, analyst and Member release gates open. No product deployment, price or issued report changed.
+
 ## 27 September 2026 — explicit SalOPS options in Tierra Linda SalTHIRA
 
 - Marc asked whether SalOPS recommendations were included. Existing Sections 7–8 and 12 contained preliminary options, but Section 12 had only a brief generic handoff. Revised the **same** local Tierra Linda Level 1 SalTHIRA working DOCX `work/Tierra_Linda_Ranch_Level_1_SalTHIRA_Working_Report_20260927.docx` with seven proposed Level 1 SalOPS work packages linked to G1–G7 and H1–H8: access/engineering, warning/assistance, wildfire/traffic, power-water-communications, medical/mutual aid, recovery/finance, and animal-airfield-security-digital interfaces. Each states the proposed action, responsible authority/partners, approval and proof gate; a sequencing paragraph separates Level 1 options from later validated Level 2/3 work.
