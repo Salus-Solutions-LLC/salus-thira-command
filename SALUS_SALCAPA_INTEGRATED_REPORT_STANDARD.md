@@ -1,6 +1,6 @@
 # SalCAPA™ Integrated Report Standard
 
-**Status:** Approved enterprise process and report structure, effective 27 September 2026 (SAL-D046). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework and same-level product standards. This standard does not issue a Protected Member report, approve its findings, deploy dashboard functionality, set a price or authorize operations.
+**Status:** Approved enterprise process and report structure, effective 27 September 2026 (SAL-D046); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework and same-level product standards. This standard does not issue a Protected Member report, approve its findings, deploy dashboard functionality, set a price or authorize operations.
 
 ## Purpose and controlled process
 
@@ -35,7 +35,7 @@ The integration step shall compare qualified SalINTEL™ needs, SalTHIRA™ prio
 
 The report shall have a **Relevant Salus services and Member choices** section, distinct from required safety advice, SalOPS options already offered and sequential Level 2/3 assessment. Use a concise table with finding or need, service and expected benefit, prerequisites and evidence limit, decision owner and voluntary next step. Include a simple route to ask Salus for a scoped discussion or proposal; record acceptance, deferral or rejection in SalCAPA™. A referral is not authorized work, a guaranteed outcome, a package entitlement or a reason to delay urgent protective action. The Member may decline additional services without losing the value of the completed assessment. Price and contracting remain separately approved.
 
-## Multidisciplinary decision and assurance register [proposed SAL-D050 enhancement]
+## Multidisciplinary decision and assurance register [SAL-D050]
 
 The integration step shall compare the applicable professional lenses in `proposals/SALUS_MULTIDISCIPLINARY_ASSURANCE_REVIEW_20260928.md` against the exact approved same-level source reports. A board-ready decision row shall show objective and consequence, source and confidence, legal/technical/insurance applicability status, financial and cash effect, affected groups, common dependencies, chosen/deferred option, competent authority and specialist, resource/funding source, due date, proof, residual exposure and dissent or unresolved uncertainty. Separate the Member's risk acceptance from Salus analysis and from regulator, insurer or licensed professional determinations. Summarize only the material, applicable lenses in the client report; retain the full applicability and source register internally or in a restricted annex. At Level 1, unresolved decision-changing specialist questions become a bounded Level 2 collection plan, not a generic sales claim.
 
