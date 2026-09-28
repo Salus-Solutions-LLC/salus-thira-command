@@ -90,3 +90,6 @@ On a Salus assessment, report or questionnaire task, inspect `SALUS_ANALYTICAL_A
 
 For a location-dependent assessment, identify the confirmed AOI/boundary status, authorized Member map boundary, current spatial-source dates and restricted overlay location before claiming proximity or route exposure. Read `SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md`; record source coverage, missing owner/field validation and report-impact decisions in the handoff. Do not expose private access or critical-system locations in ordinary chat handoffs.
 
+## SAL-D069 source-index continuity
+
+For a continuing research or Protected Member task, locate the engagement's restricted source index and execution ledger, plus the separate member-neutral method/public-source index. State their dates, actual source-review boundary, high-consequence unresolved leads, and the next retrieval. Update rather than duplicate source identities; preserve hashes, versions, contradictions and supersession. Do not transfer another Member's files or identifiable findings through a shared index. An indexed link is not proof of original-source review.
