@@ -100,6 +100,10 @@ An engagement may stop after any completed authorized level. A customer may not 
 5. Salus personnel approve final scope, price, discount, contract, external partner, service-level change and operational commitment. SalCAPA may propose options but must not auto-charge or silently authorize work.
 6. Preserve prior estimate, SOW, report and service-level versions. A change request records why scope changed, affected price/capacity, approver and effective date.
 
+### Protection Advisor transition after method refinement
+
+When the four product methods and report designs are refined, review Protection Advisor Parts 1 and 2 under SAL-D048. Use answer-dependent education to show the value and bounds of the first **Level 1 integrated assessment**, while separately offering evidence-linked choices from the current Salus services index and relevant subpages. The later Level 2 and Level 3 packages may be explained as conditional sequential opportunities, not direct-entry first purchases. Preserve Part 1 anonymity, Part 2 authentication, the approved report example, consent and governed report-release controls. No questionnaire or production change is approved by this framework note.
+
 ### Relevant additional-service discovery
 
 At every level, SalOPS™ and the final SalCAPA™ summary shall explain additional Salus services that fit a documented Protected Member need, including lawful and suitable security, planning, training or exercises when supported. Each suggestion identifies expected benefit, alternative, evidence limits, prerequisites, accountable service owner and optional request-for-scope path. Service discovery is separate from the sequential Level 1–3 assessment purchase. Verify the approved catalog, licensing, insurance, available people/partners, jurisdiction and Member consent before making an offer. Scope, price, staffing and operational commitments require distinct approval; no urgent safety advice is conditioned on purchase. Record the Member's choice and follow-up in its SalCAPA™ boundary. [SAL-D047]
