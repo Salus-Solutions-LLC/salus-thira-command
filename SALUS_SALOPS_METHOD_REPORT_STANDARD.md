@@ -52,6 +52,10 @@ For material leadership, authority, process or communication gaps, construct an 
 
 Carry each material organizational-health option with its originating Advisor signal if any, qualified SalINTEL™ domain/source ID, SalTHIRA™ scenario and target effect, Member decision owner, action state, daily/stress benefit and proof. An Advisor answer alone does not authorize or justify an operational service. Use the approved integration crosswalk and return verified performance to SalCAPA™ for reassessment.
 
+## Required-information trace [SAL-D053]
+
+When an organizational or multidisciplinary gap leads to an option, link the specific SalINTEL™ request/evidence status and SalTHIRA™ decision effect. Identify which missing document, interview, specialist review or exercise would change feasibility, authority, cost, safety or predicted benefit. A generic request list does not authorize collection or a service.
+
 ## Approval and release boundary
 
 The approved enterprise method and report structure are reusable. The working `SalOPS Report Template DRAFT.docx` and `Tierra Linda Ranch - SalOPS Level 1.docx` remain design references, not approved populated reports or operational orders. Qualify the exact member evidence, reconcile same-level inputs, complete analyst and authorized human review, perform the report-specific conformance check, and issue only through the governed record. Preserve member isolation, immutable release/version history and SAL-D027 impact review.
