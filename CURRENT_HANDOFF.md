@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 28 September 2026 — SAL-D069 source-index reuse
+
+- Marc approved a source index for each customer effort and reuse of the indexing method across relevant Salus ecosystem domains. SAL-D069 is recorded in the Charter, Decision Register, research standard and startup protocol on this draft branch. Protected Member evidence remains in a restricted engagement index; only reviewed, provenance-preserving member-neutral lessons and public-source navigation can enter the shared method index under SAL-D025.
+- The restricted Tierra Linda index at `work/report_qa/coherence/Tierra_Linda_Restricted_Source_Index_20260928.csv` currently links 64 uploads, one separate recorded source, 16 thought-leader lead lists and 34 open-source links to review status, claim IDs, four-report trace and next retrieval. The companion builder at `work/report_qa/coherence/build_tlr_source_index_20260928.py` preserves current source hashes from the existing inventory. Counts are index coverage, not completed original-source analysis or release.
+- Next: continue original and contrary source review; refresh the index and four existing working reports when findings change. Keep the index/member execution record outside the enterprise repository and do not claim complete Tierra Linda assessment until exact source, domain, report QA and human release gates close.
+
 ## 28 September 2026 — SAL-D068 active-engagement continuity and Tierra Linda source checkpoint
 
 - Marc directed that authorized source research continue across work periods. SAL-D068 is recorded in the Program Charter, Decision Register, research coverage standard, Approved Artifacts and startup protocol on this draft branch. An interim answer, draft, chat turn or handoff is a checkpoint, not a source-completion claim. The restricted engagement ledger must retain exact open items and resumable next actions; privacy, access, expense and human release controls remain in force.
