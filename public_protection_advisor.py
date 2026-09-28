@@ -861,19 +861,18 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
         elif state in {"Unknown", "Declined"}:
             unknowns.append(question["text"])
     capability_rows, mission_scores = _capability_results(questions, answers)
-    highest_need = capability_rows[0]["need_score"] if capability_rows else 0
-    if highest_need >= 65 or len(attention) >= 10:
-        level = "Priority Level 1 assessment recommended"
-    elif highest_need >= 35 or len(attention) >= 4:
-        level = "Focused Level 1 assessment recommended"
-    elif unknowns:
-        level = "Level 1 discovery recommended"
-    else:
-        level = "Level 1 review recommended"
+    level = "Level 1 Initial Pass recommended"
     priority = next((q for q in questions if answers.get(q["key"], {}).get("answer_state") in {"No", "Partially"}), None)
     if priority is None:
         priority = next((q for q in questions if answers.get(q["key"], {}).get("answer_state") in {"Unknown", "Declined"}), None)
-    if priority:
+    if priority and answers.get(priority["key"], {}).get("answer_state") in {"Unknown", "Declined"}:
+        hypothesis = {
+            "reported_basis": f"The answer to '{priority['text']}' is not known or was not provided.",
+            "working_assumption": "Current capability cannot be inferred from this answer; the information gap may affect the Level 1 priority decision.",
+            "level_1_action": "Ask the responsible owner for the minimum available evidence and record whether the question changes the Level 1 priority.",
+            "checklist": ["Identify the responsible owner.", "Request only decision-relevant evidence with consent.", "Record the answer, source, confidence and next step."],
+        }
+    elif priority:
         state = answers.get(priority["key"], {}).get("answer_state", "Unknown")
         hypothesis = {
             "reported_basis": f"The response to '{priority['text']}' was '{state}'.",
@@ -897,7 +896,7 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
         "attention_topics": attention[:6],
         "information_gaps": unknowns[:6],
         "preliminary_hypothesis": hypothesis,
-        "priority_capabilities": [row for row in capability_rows if row["need_score"] > 0][:8],
+        "priority_capabilities": [row for row in capability_rows if row["need_score"] is not None and row["need_score"] > 0][:8],
         "mission_area_scores": mission_scores,
         "core_capabilities_considered": len(CORE_CAPABILITIES),
         "notice": "This result is preliminary and non-binding. All new Protected Members begin with a qualified Level 1 integrated assessment; Level 2 and Level 3 are conditional, sequential options. A Salus professional must review scope, evidence, services, and any price.",
@@ -1358,23 +1357,6 @@ def _package_recommendation(
 
     services = [service_row(key) for key in primary_keys]
     later_services = [service_row(key) for key in later_keys]
-    for service in services:
-        service["later_level_candidate"] = service["level"] if service["level"] > 1 else None
-        service["level"] = 1
-        service["level_name"] = SERVICE_LEVEL_NAMES[1]
-        service["why"] = (
-            "A Level 1 review of this service area can establish its evidence and priorities. "
-            "Any deeper work depends on the integrated Level 1 assessment and professional review."
-        )
-    primary = {
-        "key": "salcapa_level_1",
-        "title": "Integrated SalCAPA Assessment",
-        "summary": "Complete Level 1 SalINTEL, SalTHIRA, SalOPS, and SalCAPA work in sequence; record evidence, assumptions, priorities, and specific actions.",
-        "level": 1,
-        "level_name": SERVICE_LEVEL_NAMES[1],
-        "why": "The first assessment establishes a defensible basis for later levels and service decisions.",
-        "capabilities": sorted({cap for service in services for cap in service["capabilities"]})[:6],
-    }
     capability_rows, mission_scores = _capability_results(questions, answers)
     lead = {
         "key": "integrated_level_1",
@@ -1386,16 +1368,16 @@ def _package_recommendation(
         "capabilities": [],
     }
     return {
-        "title": "Level 1 SalCAPA assessment and protection options",
-        "primary_service": primary,
+        "title": "Integrated Salus Level 1 Assessment",
+        "primary_service": lead,
         "services": services,
         "later_phase_services": later_services,
-        "sequence": ["Integrated SalCAPA Assessment — Level 1", *[f"{item['title']} — Level 1 option" for item in services]],
-        "priority_capabilities": [row for row in capability_rows if row["need_score"] > 0][:8],
+        "sequence": ["Integrated Salus Assessment — Level 1 Initial Pass", "Focused Assessment — Level 2 if qualified Level 1 findings warrant it", "Deep Dive — Level 3 if qualified Level 2 findings warrant it"],
+        "priority_capabilities": [row for row in capability_rows if row["need_score"] is not None and row["need_score"] > 0][:8],
         "mission_area_scores": mission_scores,
         "core_capabilities_considered": len(CORE_CAPABILITIES),
-        "rationale": "All Protected Members begin with Level 1. This preliminary package connects the capability conditions identified in Part 1 with the scale, consequences, activities, dependencies, maturity, timing, and implementation context supplied in Part 2. Level 2 uses the Level 1 gaps and evidence; Level 3 builds on validated Level 2 work. Immediate protective services may be recommended when warranted without bypassing the assessment sequence.",
-        "notice": "Preliminary — Subject to Salus Professional Review. A Salus professional must validate the answers, capability interpretation, service selection, level, scope, evidence, specialists, deliverables, schedule, pricing, contract terms, and Protected Member eligibility.",
+        "rationale": "The integrated Level 1 assessment connects the reported conditions, strengths and unknowns to the Member's context, then develops same-level SalINTEL, SalTHIRA, SalOPS and SalCAPA decisions. Later assessment levels and separate services depend on qualified findings and authorization.",
+        "notice": "Preliminary — Subject to Salus Professional Review. Listed services are possible separate options, not authorized work. Level 2 requires a qualified Level 1 package; Level 3 requires a qualified Level 2 package. A professional must validate evidence, scope, capacity, pricing, terms and eligibility.",
         "version": PACKAGE_RECOMMENDATION_VERSION,
     }
 
