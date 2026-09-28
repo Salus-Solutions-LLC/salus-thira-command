@@ -1,5 +1,7 @@
 # SalCAPA™ Integrated Report Design — Proposed v0.1
 
+**Disposition (27 September 2026):** Marc approved the SalCAPA™ integrated process and report structure. The controlling approved derivative is `SALUS_SALCAPA_INTEGRATED_REPORT_STANDARD.md` under SAL-D046. This proposal remains historical design evidence; its earlier candidate-status wording is superseded. The working Word template and Tierra Linda report are not issued.
+
 **Status:** Design proposal, 27 September 2026. This file is not an approved Program Charter amendment, report standard, or issued Protected Member report. Approval and registration are required before it becomes authoritative.
 
 ## Purpose and controlling relationship
