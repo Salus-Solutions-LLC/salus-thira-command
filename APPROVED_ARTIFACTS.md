@@ -2,6 +2,7 @@
 
 | Artifact | Role | Authority status |
 |---|---|---|
+| `SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md` | Approved staged Level 1 and conditional Level 2/3 information-request and 18-lens product crosswalk | Approved direction from Marc, 28 September 2026 (SAL-D053); generic control, not Member source-completeness proof or issued report |
 | `SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md` | Approved member-neutral Protection Advisor and four-product integration design for organizational-health findings and Level 1–3 handoffs | Approved by Marc, 28 September 2026 (SAL-D052); exact live questionnaire, scoring, Word/PDF reports and deployment require separate governed release |
 | `proposals/SALUS_ORGANIZATIONAL_HEALTH_ASSESSMENT_METHOD_20260928.md` | Approved member-neutral organizational-health, leadership and command assessment method; apply with the Program Charter and four product standards, preserving Member-specific applicability and release gates | Approved by Marc, 28 September 2026 (SAL-D051); not a Member finding, issued report or deployed workflow |
 | `proposals/SALUS_MULTIDISCIPLINARY_ASSURANCE_REVIEW_20260928.md` | Approved member-neutral multidisciplinary applicability and primary-source research companion; Program Charter and product standards control the actual method | Approved by Marc, 28 September 2026 (SAL-D050); source leads require Member-specific jurisdiction, version and specialist review; not a Member finding or issued report |
