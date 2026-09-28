@@ -175,3 +175,7 @@ Delete nothing yet. The only location presently identified as a likely deletion 
 **OneDrive → SalCAPA Intake - Governed- DO NOT USE**
 
 It should not be deleted until its acceptance file has been checked against governance/acceptance records and the production binding has been re-verified immediately before deletion. All other named locations require retention or migration work first.
+
+## SAL-D055 assumption-to-action provenance
+
+The governed record model links each material `question_id`, `source_id`, qualified finding and contradiction, `assumption_id` (basis, alternative, confidence limit and validation trigger), SalTHIRA™ scenario/target/gap, SalOPS™ option, paired narrative/checklist `recommendation_id`, Member decision and authorization state, completion proof and review/supersession event. These are logical requirements for future SalCAPA design, not proof of a deployed field or permission for unrestricted collection. Store person-level and Protected Member evidence in the correct segregated boundary; retain Salus reusable method separately. A cross-engagement lesson may generalize a reviewed method under SAL-D025 but may not expose an identifiable Member fact or silently rewrite an issued report. Preserve prior assumption and recommendation versions when evidence changes, so the reason for a changed action remains auditable.
