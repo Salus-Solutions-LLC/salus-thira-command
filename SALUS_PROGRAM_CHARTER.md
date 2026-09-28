@@ -370,3 +370,7 @@ Before delivering, issuing or materially revising any SalCAPA™, SalINTEL™, S
 ## Protective Intelligence cadence
 
 The standing Protective Intelligence update cadence is the tenth day of every month, with Green, Yellow, Orange, and Red escalation tied to protective actions.
+
+## SAL-D056 geospatial and infrastructure intelligence
+
+Apply `SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md` across Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™. Screen dated imagery, terrain, waterways/flood, transport, energy, pipelines, communications, regulated facilities and hazardous-material flows where relevant to a Protected Member's people, functions and decisions. Record bounded coverage, source dates, scale/accuracy, rights, contradictions and a confirmed area of interest before asserting site-specific overlap or proximity. Public maps require utility-owner, field or specialist confirmation for operating conditions and work planning. Explain material concerns and pair source-linked recommendations with checklists. Restrict precise private access and critical-system overlays. Preserve sequential levels, report-impact review and governed release.
