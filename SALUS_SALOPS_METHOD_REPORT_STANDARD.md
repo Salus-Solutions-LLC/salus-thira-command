@@ -1,6 +1,6 @@
 # SalOPS™ Method and Report Standard
 
-**Status:** Approved enterprise method and report structure, effective 27 September 2026 (SAL-D045); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework, SalINTEL/SalTHIRA standard, and current controlled templates. This standard authorizes methodology and report design, not live operations, spending, pricing, software deployment, or any Protected Member finding.
+**Status:** Approved enterprise method and report structure, effective 27 September 2026 (SAL-D045); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051); analytical assumptions-to-action amendment approved 28 September 2026 (SAL-D055). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework, SalINTEL/SalTHIRA standard, and current controlled templates. This standard authorizes methodology and report design, not live operations, spending, pricing, software deployment, or any Protected Member finding.
 
 ## Purpose and domain structure
 
