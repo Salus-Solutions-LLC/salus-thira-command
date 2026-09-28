@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 28 September 2026 — SAL-D073 full baseline for each Member report
+
+- Marc directed that every individual Protected Member report receive the full current enterprise requirements applicable to its product and level by default. A reduction is considered only **after** the complete baseline is prepared and reviewed, and only on a specific documented request through a governed exception. SAL-D073 is in the Program Charter and Decision Register; SalINTEL™/SalTHIRA™, SalOPS™, SalCAPA™ and Protection Advisor report guidance, plus the chat startup protocol, now carry the same rule. It narrows the general SAL-D072 exception path for Member reports.
+- Retain the complete baseline and exact evidence/version lineage. Any approved reduced derivative must name its omissions and decision effects, compensating controls, approval and release QA. Binding law, essential safety, privacy, truthful disclosure, professional qualification and human release authority cannot be waived. The three service levels remain distinct; Level 1 does not claim Level 2/3 field validation.
+- Application to Tierra Linda: keep all four current report identities as full Level 1 working drafts; no reduced Member variant has been requested or authorized. Continue source, whole-page and qualified release gates before issue. Repository documentation is in the open branch; do not confuse method adoption with an issued Member report.
+
 ## 28 September 2026 — SAL-D072 enterprise applicability
 
 - Marc clarified and confirmed that SAL-D072 is an **in-force enterprise requirement with verified complete rollout** across all Salus work and every Protected Member project, including work already underway. The Program Charter and Decision Register now record Marc's 28 September 2026 acceptance. The branch `codex/salus-coherence-audit-20260928` is the current repository documentation vehicle; its open PR status does not postpone the operating requirement. The chat startup protocol and research coverage standard require applicability checks at each task/engagement start. This enterprise acceptance does not issue a named Member report or establish a separate software release.
