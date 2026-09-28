@@ -100,3 +100,7 @@ For each material supply-chain decision, reconcile the three same-level reports 
 ## SAL-D060 research-to-decision trace
 
 The integrated report identifies only decision-relevant, verified external concepts that affected the approved same-level SalINTEL™, SalTHIRA™ and SalOPS™ products. Reconcile those concepts with Member facts, alternatives, reviewer decisions and any source conflict; cite appropriately without copying nonpublic third-party or Salus implementation. Record which candidate research was adopted, rejected, deferred or requires next-level proof in the internal decision ledger. A fresh research run improves the decision but does not by itself validate a Member condition or change an issued report.
+
+## SAL-D061 integrated performance and learning check
+
+In the same-level decision summary, connect each material role, communication, minimum-function or system-control issue to qualified SalINTEL™ evidence; the SalTHIRA™ scenario, target, capability gap and priority; the SalOPS™ option, authority and resource; and the observable result or open retest. Show both favorable and contrary evidence, the consequence of a failed assumption, and whether service has returned at the required level rather than merely whether an asset was repaired. Preserve an unverified improvement as an open action, not an accepted capability. An incident/near-miss count requires context about exposure and reporting. Route tested lessons through SAL-D025 and report impacts through SAL-D027; maintain Member isolation.

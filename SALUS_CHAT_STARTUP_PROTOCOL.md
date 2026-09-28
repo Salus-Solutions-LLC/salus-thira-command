@@ -42,6 +42,8 @@ For every material assessment, service or methodology change, record what prior 
 
 Apply SAL-D060 before material Salus decisions and deliverables: consult the controlled thought-leader source registry, conduct a fresh dated search of relevant primary work and credible opposing views, record the selected/excluded lenses and search limits, and reconcile decision-changing ideas against current Salus authority, evidence and Member context. Route any proposed improvement through the governed candidate, human approval and report-impact process. A supplied list is a research lead, not verified doctrine; if it is unavailable, record the access gap and continue with otherwise available primary sources.
 
+For material capability or recovery work, use SAL-D061 to screen actual and emergent roles, upward reporting, expertise, accessible message understanding, minimum-function restoration, system interactions and verified corrective-action closure. The 28 September 2026 reconciliation is a bounded research companion, not a verified roster or Member finding; recheck relevant original works and Member evidence for the present decision.
+
 ## Mandatory closeout checklist
 
 After material work, the chat must update:
