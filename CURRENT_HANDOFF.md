@@ -1,5 +1,14 @@
 # Salus Solutions — Current Handoff
 
+## 27 September 2026 — proposed SalCAPA integrated report design and Tierra Linda working example
+
+- Marc requested a decision-focused SalCAPA™ summary of same-level SalINTEL™, SalTHIRA™, and SalOPS™ results, designed to explain actions and the value of a separately scoped next level. Inspected the current Charter, Decision Register, Approved Artifacts, startup protocol, approved three-level framework and SalINTEL/SalTHIRA standard, proposed SalOPS method, and working Tierra Linda component reports.
+- Saved member-neutral **proposed v0.1** design at `proposals/SALCAPA_INTEGRATED_REPORT_DESIGN_DRAFT_20260927.md` (commit `0a5b8ce185bf2069fcac825944a4f482b058cf1e`). This is not a Charter amendment or approved report standard.
+- Created `work/salcapa_report_design/SalCAPA Integrated Report Template DRAFT.docx` (5 rendered pages; SHA-256 `dba8cc0684e0d230e88b85cd2d494d3b6d069cd42cd84fc9575cb60ef1b322cd`) and `work/salcapa_report_design/Tierra Linda Ranch - SalCAPA Level 1.docx` (7 rendered pages; SHA-256 `1e576da395752136af7a61a76bbdd445ad034ca13a17bc490cf16c70cc0`). Both are local working design artifacts. Rendered-page review checked the confidentiality cover, blank second page, body from page 3, titled tables, page X of Y and fonts. Conformance matrix: `work/report_qa/Tierra_Linda_SalCAPA_Level_1_Charter_Conformance_20260927.md`.
+- The Ranch example synthesizes flood and wildfire priorities, five mission-area posture, proposed operating options, resource dependencies, decisions and evidence-specific optional Level 2 scope without resident PII or invented pricing. Source documents remain working: SalINTEL™ SHA-256 `7650e1de411c3ec85aa209a251fb78f84f79b7f2272f12459add7476235ddc24`, SalTHIRA™ `6fe07d449b0c009f96387a58d15ec37c12bb7b7131e46a491ab769056265a237`, SalOPS™ `3781659c51e4d8e9ff1aff77410785ded3c4d103d6c2002afd1b9f559a6a5654`. None is an issued source. SalOPS methodology is proposed.
+- **Open gates:** Marc's design approval, controlled SalOPS method approval, approved same-level component reports, source reconciliation, analyst/human review and all-page release QA. Only then register and issue a governed SalCAPA™ report. No production deployment or Member release occurred.
+- **Next action:** review proposed design and working example with Marc; revise if needed. After explicit approval, update governing records and apply the standard to approved source reports.
+
 ## 27 September 2026 — proposed SalOPS phase and report design
 
 - Marc requested design of the SalOPS phase and report. Inspected the current Charter, Decision Register, Approved Artifacts, startup protocol, three-level framework, approved SalINTEL/SalTHIRA standard, seven-slide Salus system presentation and working Tierra Linda SalINTEL/SalTHIRA reports. Used FEMA NIMS, HSEEP and continuity guidance and NIST SP 800-34 Rev. 1 as design inputs, without asserting a new mandate or Ranch compliance.
