@@ -1,6 +1,6 @@
 # SalCAPA™ Integrated Report Standard
 
-**Status:** Approved enterprise process and report structure, effective 27 September 2026 (SAL-D046); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework and same-level product standards. This standard does not issue a Protected Member report, approve its findings, deploy dashboard functionality, set a price or authorize operations.
+**Status:** Approved enterprise process and report structure, effective 27 September 2026 (SAL-D046); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051); analytical assumptions-to-action amendment approved 28 September 2026 (SAL-D055). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework and same-level product standards. This standard does not issue a Protected Member report, approve its findings, deploy dashboard functionality, set a price or authorize operations.
 
 ## Purpose and controlled process
 
