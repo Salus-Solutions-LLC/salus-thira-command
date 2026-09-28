@@ -75,3 +75,7 @@ Distinguish map-screened options from field, owner and specialist validated work
 ## SAL-D057 supply-chain operating options
 
 Turn same-level supply-chain findings into bounded options for inventory, verified alternate suppliers/routes, demand shaping, safe minimum output, emergency purchasing/cash, supplier/utility coordination, monitoring, exercise and recovery. Each proposed checklist names the material/output, owner, qualification and legal gates, lead time, competing resources, measurable proof, safe-stop rule and separately approved cost/action. Do not portray a generic alternate supplier or public market report as assured capacity. Carry the same chain and recommendation IDs under `SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md`.
+
+## SAL-D060 current external thinking in operating options
+
+For material SalOPS™ options, review relevant thought-leader work anew under `SALUS_THOUGHT_LEADER_RESEARCH_STANDARD.md` and compare it with current Salus authority, qualified Member evidence, operational capacity, rights and specialist standards. Explain the supported mechanism and tradeoff in the option record; record why a proposed model is unsuitable when applicable. An external idea alone does not authorize staffing, tactics, expenditure, price or a service commitment. Feed measured outcomes and contradictions back into the governed learning record.

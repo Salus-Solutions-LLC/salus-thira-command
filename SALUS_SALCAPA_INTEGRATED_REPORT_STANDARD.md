@@ -96,3 +96,7 @@ Reconcile geospatial findings across the three exact same-level reports. State m
 ## SAL-D057 essential-output and supply decision summary
 
 For each material supply-chain decision, reconcile the three same-level reports into one plain-language view of essential output, safety/welfare threshold, limiting input, current evidence and uncertainty, interruption/endurance and restoration assumption, SalTHIRA™ capability consequence, feasible SalOPS™ options, Member choice, accountable owner, resource/funding requirement, proof and review trigger. Show normal-day and stress benefits, supplier/route common-mode risk and any Level 2/3 data that could change the decision. Keep restricted contracts, prices, customer lists and security-sensitive logistics out of ordinary summaries. Apply `SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md`.
+
+## SAL-D060 research-to-decision trace
+
+The integrated report identifies only decision-relevant, verified external concepts that affected the approved same-level SalINTEL™, SalTHIRA™ and SalOPS™ products. Reconcile those concepts with Member facts, alternatives, reviewer decisions and any source conflict; cite appropriately without copying nonpublic third-party or Salus implementation. Record which candidate research was adopted, rejected, deferred or requires next-level proof in the internal decision ledger. A fresh research run improves the decision but does not by itself validate a Member condition or change an issued report.

@@ -40,6 +40,8 @@ Apply SAL-D059 when closing that matrix: inspect informative-image alternative t
 
 For every material assessment, service or methodology change, record what prior knowledge was used, what new evidence confirmed or challenged it, what member-neutral lesson may transfer to other sectors or domains, and what restriction or human approval controls reuse. Preserve customer originals in their engagement boundary. Do not claim every possible source was reviewed; record the actual collection boundary and unresolved unknowns. See SAL-D025 and the Program Charter.
 
+Apply SAL-D060 before material Salus decisions and deliverables: consult the controlled thought-leader source registry, conduct a fresh dated search of relevant primary work and credible opposing views, record the selected/excluded lenses and search limits, and reconcile decision-changing ideas against current Salus authority, evidence and Member context. Route any proposed improvement through the governed candidate, human approval and report-impact process. A supplied list is a research lead, not verified doctrine; if it is unavailable, record the access gap and continue with otherwise available primary sources.
+
 ## Mandatory closeout checklist
 
 After material work, the chat must update:
