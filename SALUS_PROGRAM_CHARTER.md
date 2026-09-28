@@ -64,6 +64,8 @@ This map makes every currently approved decision findable in the Charter. The ex
 | SAL-D048 | After the four product methods and reports are refined, review Protection Advisor Parts 1 and 2 against the current Salus services site and approved Level 1 pathway; educate and invite a voluntary Level 1 or separate-service request through governed report changes. |
 | SAL-D050 | Screen material professional lenses across all four methods and reports, with explicit legal/technical applicability, financial and insurance feasibility, human behavior, energy and community effects, and independent challenge at the authorized level. |
 | SAL-D051 | Apply the approved organizational-health method across all four products and Levels 1–3: assess twelve domains, trace formal and actual authority and work, preserve strengths, qualify gaps and unknowns, test normal and stress performance, and justify/retest changes. |
+| SAL-D052 | Connect Protection Advisor signals to SalINTEL evidence, six-step SalTHIRA effects, SalOPS options and SalCAPA decisions at each qualified level; preserve Part 1 low burden, Part 2 consent and exact report/release gates. |
+| SAL-D053 | Use a staged Member-specific required-information and lens crosswalk, with a tailored Level 1 packet, conditional next-level proof, missing-information table and stable evidence-to-decision trace; do not claim exhaustive source coverage without an engagement ledger. |
 
 SAL-D020 and SAL-D021 are superseded intake decisions retained in the Decision Register as history; SAL-D022 governs the current intake rule, with the routing clarification in SAL-D024. On approval of a later material decision, reconcile this map and the substantive Charter rule before treating the new decision as implemented.
 
@@ -261,6 +263,12 @@ Record each material domain as a verified operating strength, designed but unpro
 
 A recommendation shall identify the observed condition and strength to retain; causal mechanism; no-action and proportionate alternatives; legal/financial/operational fit; authorized owner and resources; expected daily and stress benefit; baseline, measure, target, retest and residual risk. Forecasts remain forecasts until verified. SalINTEL™ collects and explains the organization; SalTHIRA™ carries material effects through its existing six steps, scenarios, capability targets and five mission areas; SalOPS™ turns qualified priorities into separately authorized options and action; SalCAPA™ reconciles decisions, owners, proof and next-level value. Use the existing product reports and protected Member record, not a fifth product or duplicate report. Apply report-impact and SAL-D043 release checks before changing an active or issued report.
 
+### Required information and lens-to-decision register [SAL-D053]
+
+Use `SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md` to turn the approved professional lenses, organizational-health domains and SalTHIRA input needs into a staged collection plan. The Protection Advisor collects only preliminary, low-burden signals. After a Level 1 scope is authorized, request a tailored minimum existing-material packet; seek more sensitive or detailed records only where a defined decision, legal duty or higher-level validation justifies them. Salus researches lawful public information without shifting that work to the Member. Record each request's purpose, authority, applicability, source/date/version, status, restriction, contradiction, reviewer, product link and next action in the Protected Member boundary.
+
+Every SalINTEL™ report contains a Member-specific missing-information and collection-request table showing what is needed, why, by whom, at what level and how the answer could change SalTHIRA™, SalOPS™ or SalCAPA™ decisions. The six-step SalTHIRA handoff carries targets, demonstrated capacity, gaps, options, costs, authority, confidence and unresolved proof; SalOPS and SalCAPA preserve stable IDs, decisions and retests. The generic register is a control, not proof that all prior chats, uploads, websites, laws or Member records were reviewed. Qualify the actual engagement source inventory and contradictions before making a completeness claim.
+
 ## Protection Advisor
 
 Protection Advisor is a public marketing, initial-intake, and decision-support tool for prospective Protected Members.
@@ -273,6 +281,12 @@ Protection Advisor is a public marketing, initial-intake, and decision-support t
 - Customer-facing results must be useful, professional, and understandable.
 - The governed report must include an approved cover, confidentiality treatment, executive summary, identity and scope, methodology and limitations, findings, strengths, gaps, unresolved information needs, prioritized recommendations, service recommendations with rationale, implementation sequence, next steps, and a structured answer appendix.
 - Raw questionnaire exports, internal contracts, JSON, and printed web pages are not acceptable reports.
+
+### Organizational health in the Protection Advisor [SAL-D052]
+
+Use `SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md` as the approved product and Protection Advisor design. Part 1 remains anonymous and low burden: use its existing short questions about decision authority, succession, ownership, reporting, leadership records, warning signals and exercises to explain why an organization must work in ordinary conditions and when leaders or systems are unavailable. Do not present a questionnaire answer as a verified organizational-health rating, misconduct finding or formal SalTHIRA™ result. “Not sure,” not applicable and declined answers are information limits. Part 2 may collect bounded governing form, role-based concern and evidence availability, plus the existing next-step decision role, under authenticated consent; do not request suspected persons' names, privileged records or sensitive security details in open text.
+
+The Protection Advisor result explains the meaning and limit of each relevant signal and how Level 1 SalINTEL™ can validate authority, actual work, promulgation and stress performance. Use a versioned crosswalk from the answer and wording to Member education, SalINTEL™ domain and missing evidence, potential SalTHIRA™ effect, possible SalOPS™ option and SalCAPA™ decision. Preserve strengths and voluntary Member choices. Exact live questionnaire, scoring, content and downloadable report changes require direct inspection of the current production artifacts, approved example report, existing governed record, consent/access controls and SAL-D027/SAL-D043 rendered release gates; method approval does not deploy such changes.
 
 ### Protection Advisor pathway and service-catalog review [SAL-D048]
 
