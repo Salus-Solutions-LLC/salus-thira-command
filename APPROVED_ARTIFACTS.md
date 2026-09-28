@@ -22,7 +22,7 @@
 | `SALUS_CHAT_STARTUP_PROTOCOL.md` | Mandatory new-chat startup and handoff protocol | Authoritative continuity procedure |
 | `Salus_Knowledge_and_Records_Architecture.md` | Enterprise knowledge, governed intake, Protected Member records, routing, retention, and deletion design | Approved target design, 22 September 2026 |
 
-| `SALUS_EXPANDED_LENS_DISCOVERY_METHOD_20260928.md` | Member-neutral conditional sub-lenses, uncertainty/discovery loop, bounded past-chat provenance and four-product handoff; repository `development/salcapa-platform` after merge | Approved by Marc, 28 September 2026 (SAL-D054). Method only; the 50-chat recent-list boundary and selected chat review are explicit. Not an issued Member finding, revised Word binary or deployed feature. |
+| `SALUS_EXPANDED_LENS_DISCOVERY_METHOD_20260928.md` | Member-neutral conditional sub-lenses, uncertainty/discovery loop, bounded past-chat provenance and four-product handoff; repository `development/salcapa-platform` after merge | Approved by Marc, 28 September 2026 (SAL-D054). Method only; the 50-chat recent-list boundary and bounded previews of all 48 visible prior project chats are explicit. Not an issued Member finding, revised Word binary or deployed feature. |
 
 ## Protection Advisor report authority
 
