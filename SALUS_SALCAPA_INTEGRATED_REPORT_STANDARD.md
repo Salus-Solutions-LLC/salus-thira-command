@@ -1,6 +1,6 @@
 # SalCAPA™ Integrated Report Standard
 
-**Status:** Approved enterprise process and report structure, effective 27 September 2026 (SAL-D046); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework and same-level product standards. This standard does not issue a Protected Member report, approve its findings, deploy dashboard functionality, set a price or authorize operations.
+**Status:** Approved enterprise process and report structure, effective 27 September 2026 (SAL-D046); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework and same-level product standards. This standard does not issue a Protected Member report, approve its findings, deploy dashboard functionality, set a price or authorize operations.
 
 ## Purpose and controlled process
 
@@ -38,6 +38,10 @@ The report shall have a **Relevant Salus services and Member choices** section, 
 ## Multidisciplinary decision and assurance register [SAL-D050]
 
 The integration step shall compare the applicable professional lenses in `proposals/SALUS_MULTIDISCIPLINARY_ASSURANCE_REVIEW_20260928.md` against the exact approved same-level source reports. A board-ready decision row shall show objective and consequence, source and confidence, legal/technical/insurance applicability status, financial and cash effect, affected groups, common dependencies, chosen/deferred option, competent authority and specialist, resource/funding source, due date, proof, residual exposure and dissent or unresolved uncertainty. Separate the Member's risk acceptance from Salus analysis and from regulator, insurer or licensed professional determinations. Summarize only the material, applicable lenses in the client report; retain the full applicability and source register internally or in a restricted annex. At Level 1, unresolved decision-changing specialist questions become a bounded Level 2 collection plan, not a generic sales claim.
+
+## Organizational health decision summary [SAL-D051]
+
+The integrated report shall summarize material verified strengths, leadership/authority/process gaps, unknowns and contradictions from the same-level organizational-health assessment. Show their effect on daily work, stress scenarios, capability targets, SalOPS™ options and the Member's decision. For each selected change, link source and finding IDs to the mechanism, authorized owner, funding/resource need, expected benefit, measure, retest, residual exposure and next-level validation. Do not average away a critical failure or imply that an offered service is authorized work. Keep sensitive role and personnel evidence in its protected source record.
 
 ## Required stand-alone report structure
 
