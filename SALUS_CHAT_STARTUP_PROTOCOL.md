@@ -93,3 +93,7 @@ For a location-dependent assessment, identify the confirmed AOI/boundary status,
 ## SAL-D069 source-index continuity
 
 For a continuing research or Protected Member task, locate the engagement's restricted source index and execution ledger, plus the separate member-neutral method/public-source index. State their dates, actual source-review boundary, high-consequence unresolved leads, and the next retrieval. Update rather than duplicate source identities; preserve hashes, versions, contradictions and supersession. Do not transfer another Member's files or identifiable findings through a shared index. An indexed link is not proof of original-source review.
+
+## SAL-D071 completion and continuation check
+
+At startup, recover the exact authorized objective, acceptance gates, restricted open queue and last verified source/report versions. Continue the next available action; do not treat the prior chat ending, a draft, or a status reply as task completion. During work, communicate progress without implying release. Before any completion statement, verify every in-scope material item's disposition, exact artifact and report checks, and required human approval. When a real boundary prevents one step, record alternatives attempted, custodian and exact next proof, continue unaffected work, and hand off with the task explicitly in progress or gated. Preserve SAL-D068 limits on privacy, expense and indefinite monitoring.
