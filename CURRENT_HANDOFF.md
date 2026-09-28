@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 28 September 2026 — SAL-D052 organizational health across products and Protection Advisor
+
+- Marc directed application of the approved SAL-D051 organizational-health method across SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™ and the Protection Advisor. Reviewed the existing four standards, three-level framework and exact `public_protection_advisor.py` questionnaire version `SPA-PUBLIC-QUESTIONNAIRE-2.0.0` on development. Part 1 already has authority, ownership, reporting, leadership and exercise prompts; its burden should not increase.
+- Added `SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md` as the approved member-neutral crosswalk and Part 1/Part 2 design. Added SAL-D052 to the Decision Register and Charter and integrated it into the three product standards, three-level framework and Approved Artifacts register. Existing Part 1 answers remain preliminary; Level 1 SalINTEL qualifies the full twelve-domain assessment. The six-step SalTHIRA, SalOPS action authorization and SalCAPA same-level decision chain remain intact.
+- PR #569, which approved SAL-D051, merged into `development/salcapa-platform` as `02be08d8db571adf56ce478bd33cf9a26ddb9641`. SAL-D052 changes are on `codex/organizational-health-cross-product-20260928` pending validation/merge. No live questionnaire, recommendation rules, downloadable report, Protected Member record, Word template or software deployment changed in this branch. Exact implementation requires approved-example inspection, consent/privacy, report parity, rendered QA and governed release.
+- Next action: validate and merge the SAL-D052 method records; then stage exact Protection Advisor and active-report impact reviews without duplicate submissions or reports.
+
 ## 28 September 2026 — SAL-D051 organizational health method approved
 
 - Marc approved the member-neutral organizational health, leadership and command assessment method in `proposals/SALUS_ORGANIZATIONAL_HEALTH_ASSESSMENT_METHOD_20260928.md`. It defines twelve domains, evidence and confidence rules, routine/stress tests, causal recommendations and Levels 1–3 integration.
