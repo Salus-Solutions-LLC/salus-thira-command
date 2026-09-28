@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 28 September 2026 — SAL-D051 organizational health method approved
+
+- Marc approved the member-neutral organizational health, leadership and command assessment method in `proposals/SALUS_ORGANIZATIONAL_HEALTH_ASSESSMENT_METHOD_20260928.md`. It defines twelve domains, evidence and confidence rules, routine/stress tests, causal recommendations and Levels 1–3 integration.
+- SAL-D051 was added to the Decision Register and Program Charter; the SalINTEL/SalTHIRA, SalOPS and SalCAPA standards now carry the method through the existing four-product sequence. The Approved Artifacts register identifies the method as an approved authority. Reviewed primary ISO, GAO, FEMA, OPM, AHRQ, NASA and CDC guidance with Member-specific applicability limits.
+- Changes are on branch `codex/organizational-health-method-20260928` in PR #569. The repo method approval does not issue a Protected Member finding, revise working Word reports, authorize operations or deploy software. Active report/template impact remains a controlled follow-up under SAL-D027 and SAL-D043.
+- Next action: validate changed records and merge PR #569 after governed checks; then record the merge SHA and deployment status in the handoff.
+
 ## 28 September 2026 — SAL-D050 multidisciplinary assurance approved and merged
 
 - Marc paused Protection Advisor implementation to require a deep cross-discipline review before changing the questionnaire. Read the Charter, Decision Register, Approved Artifacts, startup protocol, current handoff, three-level framework and all four product standards. Research used dated, primary official sources across enterprise risk, fraud/anti-corruption, finance, insurance, engineering/code, public regulation, emergency management, critical infrastructure, FBI-informed behavioral threat, energy, community and behavior, continuity, cybersecurity, accessibility/public health, environment/animal health and supply chain.

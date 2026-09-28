@@ -1,6 +1,6 @@
 # SalOPS™ Method and Report Standard
 
-**Status:** Approved enterprise method and report structure, effective 27 September 2026 (SAL-D045); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework, SalINTEL/SalTHIRA standard, and current controlled templates. This standard authorizes methodology and report design, not live operations, spending, pricing, software deployment, or any Protected Member finding.
+**Status:** Approved enterprise method and report structure, effective 27 September 2026 (SAL-D045); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework, SalINTEL/SalTHIRA standard, and current controlled templates. This standard authorizes methodology and report design, not live operations, spending, pricing, software deployment, or any Protected Member finding.
 
 ## Purpose and domain structure
 
@@ -43,6 +43,10 @@ The body includes a plain-language executive summary and Bottom Line Up Front; t
 ## Multidisciplinary option and report screen [SAL-D050]
 
 For each material option, screen the applicable professional lenses in `proposals/SALUS_MULTIDISCIPLINARY_ASSURANCE_REVIEW_20260928.md`. In addition to the existing option-to-action record, name: operating authority and qualified/licensed specialist; legal, permit, code, contract and insurance gates; capital cost, cash timing and funding source; supplier/public-resource competition; power/fuel and other common-mode dependencies; accessible and trusted communications; human performance under stress; affected groups; safe stop condition; verification method; and residual exposure. Mark unknown or not applicable explicitly. A report's recommendation does not approve construction, investigation, procurement, deployment or field operations. At Level 1, present bounded choices and specialist triggers; at Level 2, validate selected feasibility; at Level 3, compare approved complex alternatives and measured performance. Add a concise multidisciplinary feasibility and assurance table to the stand-alone SalOPS report, linked to exact SalINTEL evidence and SalTHIRA target/gap IDs.
+
+## Organizational health and command options [SAL-D051]
+
+For material leadership, authority, process or communication gaps, construct an evidence-linked change case from the approved organizational-health method: current strength to preserve, observed mechanism, no-action and proportionate alternatives, legal and practical decision owner, resources and constraints, expected daily and stress benefit, baseline and target, adverse effects, retest and residual risk. Examples may include bounded delegation, alternate training, decision brief and escalation design, promulgation checks, crisis communications, command-transfer rehearsal and corrective-action review. These are options, not automatic prescriptions or authorized services. Match the option to the approved SalOPS™ action state and record separate authorization before implementation.
 
 ## Approval and release boundary
 
