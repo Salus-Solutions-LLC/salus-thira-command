@@ -1,6 +1,6 @@
 # Salus multidisciplinary assurance and assessment review
 
-**Status:** Proposed method and report enhancement for human review, 28 September 2026. **Handling:** Salus Internal Confidential. **Applies to:** SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™ at Levels 1, 2 and 3. This is a cross-sector research record, not a finding about any Protected Member, a legal opinion, an insurance opinion, a certification, or an authorization to operate.
+**Status:** Approved multidisciplinary applicability and research companion under SAL-D050, 28 September 2026. The Program Charter and product standards control; individual source applicability and Member findings require fresh review. **Handling:** Salus Internal Confidential. **Applies to:** SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™ at Levels 1, 2 and 3. This is a cross-sector research record, not a finding about any Protected Member, a legal opinion, an insurance opinion, a certification, or an authorization to operate.
 
 ## Decision from the review
 
@@ -43,7 +43,7 @@ These are **applicability screens**, not a claim that every Protected Member nee
 
 Every report must distinguish **already required/covered by existing method**, **newly required screen**, **not applicable**, **not assessed**, **reported**, **inferred**, **verified**, and **disputed**. Do not turn a candidate concern into a client-specific finding without source and review. Confidential/person-level or tactical evidence remains in a restricted annex or separate governed record.
 
-## Required Salus product changes for review
+## Required Salus product method and report requirements
 
 1. **SalINTEL™:** Add a multidisciplinary applicability and authority register with lens, objective, source boundary, law/standard status, scope, owner, evidence, contradiction, specialist trigger and SalTHIRA input. Expand finance/insurance, anti-corruption, engineering/code, human behavior/accessibility and energy endurance prompts in the existing organizational, eight-dimension and compliance sections.
 2. **SalTHIRA™:** Add portfolio correlation, distribution of consequences, funding/recovery feasibility, common-mode lifeline failure and behavioral performance to scenario/target/gap/option analysis. Preserve all six approved steps and all 32 capability applicability decisions; no unsupported numeric precision.
@@ -76,7 +76,7 @@ Apply this to the **existing governed report identity** at its next controlled w
 | SalOPS™ Level 1/2/3 | Add a concise “Feasibility and operating gates” table adjacent to ranked options: authority/specialist, cost and cash timing, legal/permit/insurance condition, shared resource, stop rule, proof. Explain why an option is feasible or pending. | Contract/permit/insurance verification, qualified operator, task authorization, safety and cost record. |
 | SalCAPA™ Level 1/2/3 | Add “Decision and assurance register” to the integrated executive decision section. Summarize who decides, which options are ready, contingent or deferred, funding and residual exposure, and what Level 2/3 proof would change the decision. | Exact component report versions, Member approval, where-used links, reviewer challenge, delivery and supersession. |
 
-For all four, test the confidential cover, blank page two, level label, executive summary, Arial headings, Times New Roman body, page X of Y, internal links, accessibility and PDF/DOCX/print parity under the existing Charter. Report-template edits and any Member report revision remain open, separately reviewable work; this method proposal is not a substitute for those edits.
+For all four, test the confidential cover, blank page two, level label, executive summary, Arial headings, Times New Roman body, page X of Y, internal links, accessibility and PDF/DOCX/print parity under the existing Charter. Report-template edits and any Member report revision remain open, separately reviewable work; this method record is not a substitute for those edits.
 
 ## Research boundary and open work
 
