@@ -31,6 +31,10 @@ Offer a secure, staged upload and a â€œnot held / not known / prefer to discussâ
 
 ## 3. Lens-specific conditional information
 
+### Supply-chain collection and SalTHIRA handoff [SAL-D057]
+
+At Level 1 ask for the Member's essential products/services and minimum acceptable operation, then only the critical inputs and outbound commitments that could change a decision: ordinary and stress usage, usable stock, lead and replenishment time, qualified substitutes, animal or human welfare floors, supplier/route/site concentration, responsible role and last interruption. Use an existing inventory, purchase or incident record in place of a new form. Salus acquires dated public market, utility, transportation, disease, drought, trade or regulatory context itself; it does not treat these as a supplier-specific assurance. A Level 2 request names the selected chain and seeks usage, contracts, supplier and route confirmation, recovery tests and financial consequences. Level 3 requests detailed multi-tier, correlated scenario and exercise proof only under approved scope. Each request links `supply_chain_id` to a minimum-output target, SalTHIRA capability/gap, SalOPS option and evidence that would validate it. Sensitive supplier, price and security data stay within the Member's restricted record. The low-burden Protection Advisor Part 1 can ask which essential output most worries the Member and whether one input/route is hard to replace; detailed records wait for an authorized assessment.
+
 This table operationalizes SAL-D050's 18 perspectives. Level 1 screens each for applicability and records a reason; it does not demand each document. The second column identifies decision-changing follow-up for a focused Level 2 or approved Level 3 scope.
 
 | Lens | Level 1 screen or available evidence | Conditional validation or specialist trigger |

@@ -36,6 +36,10 @@ The approved example report controls the intended professional standard. Product
 
 The earlier `Salus-Protection-Advisor-SPA-REPORT-0F5A2329FDE1FB4C2453CAD5F5DD6E81` DOCX/PDF pair is explicitly **not approved** as a content or design authority. It is a technical pipeline test artifact only.
 
+## SAL-D057–SAL-D058 method authorities
+
+`SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md` is the approved member-neutral method for inbound survival inputs and outbound products/services at Levels 1–3. SAL-D058 in the Program Charter states the practical safety, security and wellbeing promise tied to the Salus namesake. These approvals do not approve a Protected Member finding, supplier assurance, specific price, marketing claim, revised Word binary or deployed feature. Existing controlled template identities and release gates remain in force.
+
 ## Artifact-control rule
 
 Before implementing a feature governed by an approved artifact, inspect the artifact itself. Do not rely on a chat summary. When Marc approves a replacement, record the new artifact and mark the old one superseded; do not silently delete historical authority.

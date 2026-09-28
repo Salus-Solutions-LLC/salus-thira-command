@@ -82,3 +82,7 @@ SalTHIRA™ carries the qualified assumption through all six steps and ranks how
 ## Implementation boundary
 
 This approval establishes the enterprise doctrine and template structure. Existing draft SharePoint items, dashboard behavior, prices, issued customer reports and production workflows change only through their own controlled artifact/release processes. The Tierra Linda Level 1 SalINTEL and SalTHIRA documents remain working member reports until their evidence, analyst and distribution gates are met.
+
+## SAL-D057 production and survival-input handoff
+
+SalINTEL™ includes a titled supply-chain and essential-input resilience section for each applicable Member. Explain its outputs/products and safe minimum service; map critical inbound/outbound dependencies, evidence, ordinary demand and stress endurance, supplier/route concentration, usable inventory, substitute qualification, financial and authority constraints, and actual incidents. Identify lawful data Salus can refresh and targeted Member/counterpart proof needed for Level 2. Carry source and stable chain IDs into SalTHIRA™. The same-level SalTHIRA™ applies all six steps to output/endurance targets, provisional time to survive/recover, current capacity, correlated loss, gaps, options and priority sensitivity. Do not imply a supplier guarantee or measured recovery time from a policy document. Apply `SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md` and express decisions in narrative/checklist form.

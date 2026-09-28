@@ -4,6 +4,10 @@
 
 Salus Solutions LLC is an intelligence, security, investigations, emergency-management, and operational-support company. The Salus program turns fragmented information into qualified intelligence, prioritized risk decisions, coordinated actions, and defensible records for Protected Members.
 
+### The Salus namesake and Member promise [SAL-D058]
+
+Salus, the Roman personification of health, safety and public welfare, expresses the purpose Marc sets for the company: improve Protected Members' **safety, security and wellbeing** in ordinary life and under stress. Define whose lives, essential services, livelihoods, animals and communities a decision affects; educate the Member, preserve dignity and privacy, make specific feasible recommendations, support authorized action and test whether outcomes improved. This is an operating standard across Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™, not a promise that risk can be eliminated or an authorization to sell or perform unapproved services.
+
 ## Authority, decision continuity and scope
 
 This charter is the standing Salus program rule. The approved decisions in `SALUS_DECISION_REGISTER.md` are incorporated into this charter by reference, including SAL-D001–SAL-D048 and later approved entries. The register preserves the exact decision, approval status and supersession history; it is not replaced by a paraphrase here. Apply each approved decision with its approved artifact and effective scope. Superseded entries remain historical records and do not govern current work. The approved-artifact register identifies exact design authorities; the current handoff records implementation and deployment state. A charter summary does not convert a working draft, proposal, local artifact, issue or undeployed requirement into an accepted release.
@@ -370,3 +374,7 @@ Before delivering, issuing or materially revising any SalCAPA™, SalINTEL™, S
 ## Protective Intelligence cadence
 
 The standing Protective Intelligence update cadence is the tenth day of every month, with Green, Yellow, Orange, and Red escalation tied to protective actions.
+
+## SAL-D057 supply-chain resilience and production continuity
+
+Apply `SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md` in every authorized engagement where a Protected Member produces or delivers a product/service or depends on outside inputs to maintain safe minimum operation. Trace both outbound obligations and inbound survival needs, including people, suppliers, utilities, data, finance, transport, customers and public services. Distinguish ordinary demand and controls from regional disruption, substitutions, degraded operation, recovery and return to service. SalINTEL™ educates and qualifies the chain and missing proof; SalTHIRA™ tests it in all six steps and applicable mission areas/capabilities; SalOPS™ proposes specific, separately authorized treatments; SalCAPA™ reconciles the same-level choice, owner and proof. Use sequential Levels 1→2→3, source update/contradiction controls, Member isolation and SAL-D055 narrative/checklist expression. A public commodity trend is not proof of a named supplier's inventory or capacity.
