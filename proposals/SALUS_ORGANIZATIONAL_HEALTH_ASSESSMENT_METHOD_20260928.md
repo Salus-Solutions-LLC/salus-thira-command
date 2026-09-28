@@ -1,6 +1,6 @@
 # Salus organizational health, leadership and command assessment method
 
-**Status:** Proposed member-neutral method for Marc's review; not an approved Program Charter change, Protected Member finding, issued report, legal opinion or deployed workflow.  
+**Status:** Approved member-neutral enterprise method by Marc, 28 September 2026 (SAL-D051); not a Protected Member finding, issued report, legal opinion or deployed workflow.  
 **Date:** 28 September 2026.  
 **Applies to:** SalCAPA™, SalINTEL™, SalTHIRA™ and SalOPS™ at Levels 1, 2 and 3.  
 **Authority:** The Salus Program Charter, Decision Register, approved product standards and six-step SalTHIRA method control if this proposal conflicts with them. No source below automatically creates a duty for a Protected Member.
@@ -152,6 +152,6 @@ This design synthesizes primary guidance, not a claim of certification or univer
 
 Research boundary: sources above were reviewed as of 28 September 2026. This is a cross-sector method. Before making a Member finding, the analyst must identify jurisdiction, legal form, sector rules, adopted standards, contracts, insurance terms, regulator guidance, current versions, and contrary evidence. Quantitative outcome claims require Member baseline and retest. No Member has been assessed by this proposal.
 
-## 11. Acceptance test for approving this method
+## 11. Ongoing method conformance test
 
-Approve only after a Salus analyst can use the method to: (1) map legal and real authority; (2) show a verified strength and a justified gap in each material domain; (3) reproduce a decision and promulgation trace; (4) distinguish routine and stress performance; (5) rate evidence without treating unknown as failure; (6) connect each recommendation to daily and stress benefit and a measurable retest; (7) carry findings through the existing Level 1–3 and four-product structure; and (8) protect Member and personnel data. After Marc approves, assign a new decision ID, update the Program Charter and all affected standards, register the artifact and update the handoff. Until then this proposal remains review material.
+A Salus analyst applies this method only when they can: (1) map legal and real authority; (2) show a verified strength and a justified gap in each material domain; (3) reproduce a decision and promulgation trace; (4) distinguish routine and stress performance; (5) rate evidence without treating unknown as failure; (6) connect each recommendation to daily and stress benefit and a measurable retest; (7) carry findings through the existing Level 1–3 and four-product structure; and (8) protect Member and personnel data. SAL-D051 records Marc's approval of this member-neutral method. Each Member application, report-template revision, operational change or software implementation remains subject to its separate scope, evidence, conformance and human release gates.
