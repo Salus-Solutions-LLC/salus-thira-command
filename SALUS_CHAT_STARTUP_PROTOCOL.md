@@ -44,6 +44,8 @@ Apply SAL-D060 before material Salus decisions and deliverables: consult the con
 
 For material capability or recovery work, use SAL-D061 to screen actual and emergent roles, upward reporting, expertise, accessible message understanding, minimum-function restoration, system interactions and verified corrective-action closure. The 28 September 2026 reconciliation is a bounded research companion, not a verified roster or Member finding; recheck relevant original works and Member evidence for the present decision.
 
+Apply SAL-D062 for material Salus or Protected Member work: state the decision and authority, source/contrary evidence and falsifier, approved product/level path, specific recommendation and checklist, separate service authorization, observed proof and residual risk. Use the shared operating standard's record fields and preserve one ID across same-level products. Check report and live-system impact separately; method adoption does not establish deployment or a released Member outcome.
+
 ## Mandatory closeout checklist
 
 After material work, the chat must update:

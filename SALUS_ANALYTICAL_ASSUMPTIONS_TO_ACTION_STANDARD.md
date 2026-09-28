@@ -69,6 +69,8 @@ Tailor the length to the decision. The table is a report presentation pattern, n
 
 ## Quality and release gate
 
+The SAL-D062 operating chain makes the recommended decision, authority, service state and observed proof fields mandatory for each material item. Reuse one stable ID across research, product reports, service record and SalCAPA™; preserve a falsifier and next review trigger. A strong narrative must make the mechanism comprehensible to the Protected Member, while the paired checklist must make the authorized next action and test possible. Apply the full shared standard in `SALUS_ENTERPRISE_DECISION_TO_PROOF_OPERATING_STANDARD.md` and keep the item at its true evidence/authorization state.
+
 Before a report or recommendation is issued, a qualified analyst and reviewer check that each material assumption has a source and alternative, each recommendation is causally justified, and its narrative and checklist match. Confirm that the action is specific enough to carry out, proportional to evidence, lawful and within scope; that affected people, linked systems, unintended effects, funding and competing resources were considered; and that the validation trigger can actually be observed. Apply Member isolation, confidentiality, versioned evidence and SAL-D043 visual/report QA. A working assumption may remain in a clearly marked working report; a final Member decision or implemented task requires the applicable human approvals and governed release.
 
 Salus may describe this evidence-to-judgment-to-action approach as its method in proposals and education. Do not assert that no other methodology does this or make an unverified market superiority claim.
