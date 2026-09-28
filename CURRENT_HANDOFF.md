@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 28 September 2026 — SAL-D072 enterprise applicability
+
+- Marc clarified that all established Salus methods, processes, standards, requirements and Program Charter decisions must apply across all Salus work and every Protected Member project. SAL-D072 is recorded in the draft Program Charter and Decision Register on `codex/salus-coherence-audit-20260928`; the chat startup protocol now requires an applicability and affected-artifact check at each task/engagement start. This is a governed method change in the open PR, not proof of deployment or retroactive remediation of every workflow or Member report.
+- Application rule: current approved baseline and exact versions, material requirements mapped to owners/evidence/outputs/tests/release gates, SAL-D027/SAL-D063/SAL-D064 impact and coherence checks for existing work, documented governed exceptions, and SAL-D025 provenance/review with strict Protected Member isolation. No silent grandfathering; no copying another Member's evidence.
+- Next: include SAL-D072 in the portfolio-wide method/artifact impact queue and apply it to each continuing workstream, including the still-open Tierra Linda source/report/release gates. Verify exact affected artifact versions and human approvals before claiming implementation or Member completion.
+
 ## 28 September 2026 — SAL-D071 completion integrity and Tierra Linda source continuation
 
 - Marc directed that Salus continue authorized work until the defined scope and its acceptance gates are fully met, without presenting checkpoints as completion. Draft Charter, Decision Register, startup protocol and research standard now contain SAL-D071 on `codex/salus-coherence-audit-20260928`; these are PR-stage method changes, not a deployed or issued assessment. Work remains active across the explicit open queue. SAL-D068 privacy, cost, access and human-release controls remain effective.
