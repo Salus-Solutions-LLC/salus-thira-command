@@ -21,6 +21,7 @@ def _add_bullets(document, items) -> None:
         # "List Bullet" style. Use a plain paragraph with an explicit bullet so
         # rendering remains deterministic across approved and smoke templates.
         paragraph = document.add_paragraph()
+        paragraph.paragraph_format.keep_together = True
         paragraph.add_run("\u2022 " + str(item))
 
 
@@ -105,6 +106,8 @@ def _add_table(document, headers, rows, widths=None):
 
 def _professional_body(document, fields, result, package) -> None:
     """Write the approved client-report architecture from governed model data."""
+    for style_name in ("Heading 1", "Heading 2"):
+        document.styles[style_name].paragraph_format.keep_with_next = True
     scores = result.get("mission_area_scores") or {}
     capabilities = result.get("priority_capabilities") or []
     gaps = result.get("information_gaps") or []
@@ -144,7 +147,6 @@ def _professional_body(document, fields, result, package) -> None:
             f"{primary.get('summary', '')}"
         )
 
-    document.add_page_break()
     document.add_heading("Assessment Snapshot", level=1)
     _add_table(document, ("Measure", "Result", "Interpretation"), (
         ("Overall result", result.get("recommendation", "Professional review recommended"), "Preliminary decision-support result"),
@@ -162,6 +164,7 @@ def _professional_body(document, fields, result, package) -> None:
         "Missing answers are information gaps, not evidence of a deficit."
     )
     _add_table(document, ("Mission area", "Reported need", "Preliminary interpretation"), _mission_rows(scores), widths=(2.0, 1.5, 2.9))
+    document.add_page_break()
     document.add_heading("Primary Conclusions", level=1)
     _add_bullets(document, (
         "Leadership should treat protection, emergency planning, continuity, and capability validation as one integrated program.",
@@ -170,7 +173,6 @@ def _professional_body(document, fields, result, package) -> None:
         "Final findings, scope, price, and assurance statements require authorized Salus professional review.",
     ))
 
-    document.add_page_break()
     document.add_heading("Priority Capability Findings", level=1)
     cap_rows = []
     for index, item in enumerate(capabilities, 1):
@@ -181,7 +183,7 @@ def _professional_body(document, fields, result, package) -> None:
             ", ".join(item.get("mission_areas") or []),
             "Information incomplete" if item.get("information_gap") else "Reported need",
         ))
-    _add_table(document, ("Priority", "Capability", "Need", "Mission areas", "Basis"), cap_rows, widths=(.8, 2.0, .65, 1.6, 1.35))
+    _add_table(document, ("Priority", "Capability", "Need", "Mission areas", "Basis"), cap_rows, widths=(.8, 1.9, .8, 1.6, 1.3))
     document.add_paragraph(
         "Need scores rank the relative urgency of review within this submission. They are not "
         "probability estimates, compliance findings, or final measures of readiness."
@@ -189,7 +191,6 @@ def _professional_body(document, fields, result, package) -> None:
     document.add_heading("Conditions Requiring Attention", level=1)
     _add_bullets(document, attention or ("No specific attention topics were preserved in this preliminary record.",))
 
-    document.add_page_break()
     document.add_heading("Information Gaps", level=1)
     document.add_paragraph(
         "These unanswered or insufficiently supported issues could materially change the "
@@ -217,7 +218,6 @@ def _professional_body(document, fields, result, package) -> None:
                 document.add_paragraph(str(hypothesis[key]))
         _add_bullets(document, hypothesis.get("checklist") or ())
 
-    document.add_page_break()
     document.add_heading("Recommended Protection Package", level=1)
     if primary:
         document.add_paragraph(
@@ -229,15 +229,15 @@ def _professional_body(document, fields, result, package) -> None:
     sequence = package.get("sequence") or []
     document.add_heading("Recommended Sequence", level=1)
     sequence_rows = _sequence_rows(package)
-    _add_table(document, ("Phase", "Service", "Purpose"), sequence_rows, widths=(.6, 2.85, 2.95))
-    document.add_heading("Additional Later Phase Services", level=1)
-    for service in package.get("later_phase_services") or []:
-        document.add_paragraph(
-            f"{service.get('title', 'Service')} - Level {service.get('level', '')} "
-            f"{service.get('level_name', '')}. {service.get('summary', '')}"
-        )
+    _add_table(document, ("Phase", "Service", "Purpose"), sequence_rows, widths=(.8, 2.7, 2.9))
+    if package.get("later_phase_services"):
+        document.add_heading("Additional Later Phase Services", level=1)
+        for service in package["later_phase_services"]:
+            document.add_paragraph(
+                f"{service.get('title', 'Service')} - Level {service.get('level', '')} "
+                f"{service.get('level_name', '')}. {service.get('summary', '')}"
+            )
 
-    document.add_page_break()
     document.add_heading("Preliminary Scope for Salus Review", level=1)
     document.add_paragraph(
         "A Salus professional should confirm the Protected Member's objectives, operating "
@@ -266,6 +266,7 @@ def _professional_body(document, fields, result, package) -> None:
         "or protective decision without authorized Salus review. The reviewer confirms service selection, "
         "level, specialists, deliverables, schedule, pricing basis, handling controls, and eligibility."
     )
+    document.add_page_break()
     document.add_heading("Recommended Immediate Actions", level=1)
     _add_table(document, ("Timing", "Action", "Responsible party"), (
         ("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"),
@@ -316,7 +317,7 @@ def _professional_body(document, fields, result, package) -> None:
     service_rows = []
     for service in package.get("services") or []:
         service_rows.append((service.get("title", "Service"), f"Level {service.get('level', '')}", service.get("why", "")))
-    _add_table(document, ("Possible separate service", "Potential depth", "Preliminary rationale"), service_rows, widths=(2.25, .8, 3.35))
+    _add_table(document, ("Possible separate service", "Potential depth", "Preliminary rationale"), service_rows, widths=(2.1, 1.0, 3.3))
     document.add_heading("Limitations", level=2)
     document.add_paragraph(
         "This report does not contain enough validated evidence to support final findings about "
@@ -573,6 +574,11 @@ def render_protection_advisor_docx(
     if not isinstance(result, dict) or not isinstance(package, dict):
         raise ValueError("Protection Advisor report content must be structured objects")
     _professional_body(document, fields, result, package)
+
+    # Section creation can resolve the cover to a different footer part. Apply
+    # the required phrase and body font to both final parts just before saving.
+    _normalize_footer(document.sections[0].footer)
+    _normalize_footer(document.sections[-1].footer)
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     document.save(str(destination))

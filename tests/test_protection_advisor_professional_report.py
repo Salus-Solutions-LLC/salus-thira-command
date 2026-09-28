@@ -80,6 +80,7 @@ def test_template_based_docx_has_blank_second_page_and_required_font_styles(tmp_
     assert len(document.sections) == 3
     assert not list(document.sections[1].header._element.iter(qn("w:t")))
     assert not list(document.sections[1].footer._element.iter(qn("w:t")))
+    assert any(node.text == "page " for node in document.sections[0].footer._element.iter(qn("w:t")))
     assert any(node.text == "page " for node in document.sections[2].footer._element.iter(qn("w:t")))
     assert document.styles["Normal"].font.name == "Times New Roman"
     assert document.styles["Heading 1"].font.name == "Arial"
