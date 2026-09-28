@@ -14,6 +14,8 @@ For each material topic, seek and compare as applicable: Member and owner record
 
 Each source or unsuccessful search records the exact query or source class, publisher/custodian, locator, retrieved and effective dates, version, geographic and population coverage, access/license restriction, evidence type, extraction or inspection method, analyst, result and limitation. Preserve an exact Member source inventory and restricted evidence. A search-result count, prior chat summary, file count or citation list does not prove substantive review.
 
+Inspect the content-bearing parts of each format. Email may carry the operative notice in HTML or an attached document; PDF pages may be image-only; a spreadsheet may contain restricted personal fields. Record which parts were actually parsed, visually reviewed or deliberately withheld. Use automated topic hits to prioritize human reading, never to establish that a domain was assessed or absent. Keep personal records segregated and extract only aggregate, decision-relevant facts for reports.
+
 ## Gap discovery and reconciliation
 
 Convert every material unknown into a stable gap ID linked to the decision and same-level SalINTEL™ → SalTHIRA™ → SalOPS™ → SalCAPA™ record. Mark **not found**, **not accessible**, **not collected**, **outdated**, **conflicting**, **too coarse**, **not validated**, **outside approved scope** or **not applicable with reason**. Record what was sought, why it matters, likely custodian, alternate source, handling, collector, due/trigger, decision effect, whether Salus can collect it independently, and what observation would confirm or overturn the working assumption. Distinguish source absence from absence of a capability, duty, asset or hazard.
@@ -38,3 +40,4 @@ Each stand-alone report's scope and executive summary state the actual search bo
 ## Quality and learning gate
 
 Before handoff or issue, a human reviewer checks the coverage matrix against the authorized scope, samples original sources, challenges important assumptions and excluded domains, confirms volatile dates, verifies privacy and permissions, and checks that every material gap has an owner or documented reason for deferral. Run the SAL-D063 coherence check and SAL-D064 source-to-release integrity check; then record the exact artifact/version, search boundary, gaps, reviewer, corrections and release status. Feed reviewed member-neutral discoveries into SAL-D025 governed learning while keeping Protected Member evidence segregated. A methodology rule does not establish that a particular Member's research is complete.
+
