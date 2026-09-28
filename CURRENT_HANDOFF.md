@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 27 September 2026 — SalTHIRA provisional ranked BLUF method and Ranch report
+
+- Marc directed a best-judgment ranked rating method and a Bottom Line Up Front section at the beginning of the Tierra Linda Level 1 SalTHIRA report, including all 32 core capabilities and ranks across Prevention, Protection, Mitigation, Response and Recovery. Updated the **same** local working methodology `work/SalTHIRA_Methodology_Working_Draft_20260927.docx` with an anchored 1–5 **attention priority** rubric, narrative and table requirements, separate evidence confidence, analyst override/re-rating rules and an unassessed escape gate. This is an ordinal judgment, not an automatic weighted risk score, measured capability grade or probability.
+- Updated the **same** Ranch working DOCX `work/Tierra_Linda_Ranch_Level_1_SalTHIRA_Working_Report_20260927.docx` with a page-3 ranked BLUF. It contains narrative plus tables for H1–H8, six Salus decision factors, the five mission areas ranked Response/Mitigation/Protection/Recovery/Prevention, and all 32 unique core capabilities ranked 1–32. It distinguishes attention from sufficiency, states limited evidence confidence and preserves Member/analyst review gates. No specific person-level information or names of the four recently supplied references were introduced.
+- Methodology rendered **6 pages**; report rendered **25 pages**. Report page 2 is wholly blank, BLUF begins page 3, all visible footers show `page X of 25`, and the 32-row rating table was checked for uniqueness and visual layout. These are local working drafts; 64-upload reconciliation, target approval, capability testing, contradiction review, analyst qualification and Member release remain open. No production software or Azure deployment changed.
+
 ## 27 September 2026 — SalTHIRA concept-only presentation direction
 
 - Marc directed that the recently supplied reference documents not be named or individually crosswalked in the SalTHIRA methodology or reports. Their useful scenario, target, capability, funding, recovery and mitigation concepts remain incorporated within Salus's approved six-step structure.
