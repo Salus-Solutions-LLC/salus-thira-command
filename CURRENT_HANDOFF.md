@@ -910,3 +910,8 @@ The live check after v3.170 found `Executive Protection.docx` still in `10 Pendi
 
 Add a governed live diagnostic/acceptance step for the knowledge destination and inspect the candidate retry reason before changing permissions or promotion behavior.
 
+
+## 28 September 2026 — Tierra Linda restricted-ledger recovery and draft-render checkpoint
+- The 64-upload restricted execution ledger suffered a partial CSV rewrite during email-body status clarification. Rebuilt it atomically from the last complete restricted source index and 64-source screen, validated 64 distinct upload identities, then rebuilt the 628-ID index. The rebuilt ledger retains finding IDs and review status; previous free-text claim-scope commentary was not wholly preserved, so claim-specific reconciliation remains the finding authority. Ten email parent bodies are marked read; nested attachments and current-state proof remain separately open. Three newsletters remain claim-scoped for whole-file disposition.
+- The four existing Level 1 Tierra Linda Word drafts were rendered after July/August financial-source integration. SalINTEL 70 pages, SalTHIRA 36, SalOPS 17 and SalCAPA 15; page 2 is blank and every other page has `page X of Y`. This is a bounded layout check, not full visual, accessibility, source or human release acceptance. The reports are still working drafts and have not been issued.
+- Next: finish remaining original newsletter and nested-attachment dispositions, reconcile material findings across the four reports, perform full visual/source/accessibility QA, then seek governed human release. Keep the main task in progress under SAL-D074.
