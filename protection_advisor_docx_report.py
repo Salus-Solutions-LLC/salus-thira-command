@@ -37,6 +37,19 @@ def _sequence_rows(package):
     return rows
 
 
+def _mission_rows(scores):
+    rows = []
+    for area in ("Prevention", "Protection", "Mitigation", "Response", "Recovery"):
+        score = scores.get(area)
+        interpretation = "Insufficient information" if score is None else "Higher reported need" if score >= 60 else "Some reported need" if score >= 35 else "Limited reported need"
+        rows.append((area, "Unknown" if score is None else f"{int(score)} / 100", interpretation))
+    return rows
+
+
+def _service_rows(package):
+    return tuple((item.get("title", "Service"), f"Level {item.get('level', '')} possible depth", item.get("why", "")) for item in package.get("services") or [])
+
+
 def _add_table(document, headers, rows, widths=None):
     from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -68,6 +81,7 @@ def _add_table(document, headers, rows, widths=None):
         paragraph.paragraph_format.space_after = Pt(0)
         run = paragraph.add_run(str(title))
         run.bold = True
+        run.font.name = "Arial"
         run.font.size = Pt(9)
         run.font.color.rgb = RGBColor(255, 255, 255)
     for row_index, values in enumerate(rows):
@@ -84,6 +98,7 @@ def _add_table(document, headers, rows, widths=None):
             paragraph = cell.paragraphs[0]
             paragraph.paragraph_format.space_after = Pt(0)
             run = paragraph.add_run(str(value))
+            run.font.name = "Times New Roman"
             run.font.size = Pt(9.5)
     return table
 
@@ -136,20 +151,15 @@ def _professional_body(document, fields, result, package) -> None:
         ("Positive indicators", result.get("strength_count", 0), "Reported practices that may support improvement"),
         ("Conditions requiring attention", result.get("attention_count", 0), "Potential gaps, weaknesses, or unvalidated capability"),
         ("Information gaps", result.get("information_gap_count", 0), "Unknowns that could materially change conclusions"),
-        ("Core capabilities considered", result.get("core_capabilities_considered", 32), "Capabilities evaluated across five mission areas"),
+        ("Core capabilities considered", result.get("core_capabilities_considered", 32), "Capabilities screened across five mission areas; not validated"),
     ), widths=(2.1, 1.35, 2.95))
 
     document.add_heading("Mission Area Profile", level=1)
     document.add_paragraph(
-        "These scores are screening indicators, not audit grades. Lower values identify areas "
-        "requiring validation, investigation, or improvement planning."
+        "These are reported-need screening indicators, not audit grades or measured capability. "
+        "Higher values indicate more reported need. Missing answers are information gaps, not evidence of a deficit."
     )
-    score_rows = []
-    for area in ("Prevention", "Protection", "Mitigation", "Response", "Recovery"):
-        score = int(scores.get(area, 0))
-        interpretation = "Relative strength" if score >= 60 else "Moderate concern" if score >= 50 else "Priority concern"
-        score_rows.append((area, f"{score} / 100", interpretation))
-    _add_table(document, ("Mission area", "Screening score", "Preliminary interpretation"), score_rows, widths=(2.0, 1.5, 2.9))
+    _add_table(document, ("Mission area", "Reported need", "Preliminary interpretation"), _mission_rows(scores), widths=(2.0, 1.5, 2.9))
     document.add_heading("Primary Conclusions", level=1)
     _add_bullets(document, (
         "Leadership should treat protection, emergency planning, continuity, and capability validation as one integrated program.",
@@ -206,6 +216,7 @@ def _professional_body(document, fields, result, package) -> None:
             f"Level {primary.get('level', '')} {primary.get('level_name', '')}. {primary.get('summary', '')}"
         )
         document.add_paragraph(f"Why this leads the package. {primary.get('why', '')}")
+    document.add_paragraph("All new Protected Members begin with the Level 1 integrated assessment. Level 2 and Level 3 require qualified prior packages. Additional Salus services are separate, optional scopes that require review and authorization.")
     sequence = package.get("sequence") or []
     document.add_heading("Recommended Sequence", level=1)
     sequence_rows = _sequence_rows(package)
@@ -277,7 +288,7 @@ def _professional_body(document, fields, result, package) -> None:
     )
     document.add_heading("Interpretation Rules", level=2)
     _add_table(document, ("Element", "How it should be interpreted"), (
-        ("Mission area score", "A screening indicator derived from reported conditions; not an audit grade"),
+        ("Mission area score", "Reported-need indicator; higher means more reported need, not measured readiness"),
         ("Need score", "A relative priority within this submission; not probability or consequence"),
         ("Reported need", "A condition that may require improvement or validation"),
         ("Information gap", "An unknown that could alter findings, priorities, scope, or recommendations"),
@@ -296,7 +307,7 @@ def _professional_body(document, fields, result, package) -> None:
     service_rows = []
     for service in package.get("services") or []:
         service_rows.append((service.get("title", "Service"), f"Level {service.get('level', '')}", service.get("why", "")))
-    _add_table(document, ("Recommended service", "Level", "Preliminary rationale"), service_rows, widths=(2.25, .8, 3.35))
+    _add_table(document, ("Possible separate service", "Potential depth", "Preliminary rationale"), service_rows, widths=(2.25, .8, 3.35))
     document.add_heading("Limitations", level=2)
     document.add_paragraph(
         "This report does not contain enough validated evidence to support final findings about "
@@ -390,6 +401,17 @@ def _clear_story(target) -> None:
     element = target._element
     for child in list(element):
         element.remove(child)
+
+
+def _normalize_footer(footer) -> None:
+    from docx.oxml.ns import qn
+
+    for node in footer._element.iter(qn("w:t")):
+        if node.text and node.text.startswith("Page "):
+            node.text = "page " + node.text[5:]
+    for node in footer._element.iter(qn("w:rFonts")):
+        for attribute in ("ascii", "hAnsi", "cs"):
+            node.set(qn(f"w:{attribute}"), "Times New Roman")
 
 
 def _apply_report_handling(document, requested_handling: str) -> None:
@@ -497,14 +519,15 @@ def render_protection_advisor_docx(
     cover_footer = deepcopy(cover_section.footer._element)
 
     blank_section = document.add_section(WD_SECTION.CONTINUOUS)
-    # The intentionally blank second page retains only the template's light
-    # CONFIDENTIAL watermark; it has no visible header text or footer.
-    _replace_story(blank_section.header, cover_header, cover_header_part)
+    # The second page is intentionally empty, including its header and footer.
+    _clear_story(blank_section.header)
     _clear_story(blank_section.footer)
 
     results_section = document.add_section(WD_SECTION.NEW_PAGE)
     _replace_story(results_section.header, cover_header, cover_header_part)
     _replace_story(results_section.footer, cover_footer, cover_footer_part)
+    _normalize_footer(cover_section.footer)
+    _normalize_footer(results_section.footer)
 
     try:
         result = json.loads(part1_text)
@@ -574,8 +597,8 @@ def render_protection_advisor_pdf(
 
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    font_dir = Path("/usr/share/fonts/truetype/dejavu")
-    for font_name, filename in (("SalusSans", "DejaVuSans.ttf"), ("SalusSans-Bold", "DejaVuSans-Bold.ttf")):
+    font_dir = Path(os.environ.get("SALUS_REPORT_FONT_DIR", r"C:\Windows\Fonts" if os.name == "nt" else "/usr/share/fonts/truetype/msttcorefonts"))
+    for font_name, filename in (("SalusBody", "times.ttf"), ("SalusHeader", "arial.ttf"), ("SalusHeader-Bold", "arialbd.ttf")):
         font_path = font_dir / filename
         if not font_path.is_file():
             raise RuntimeError(f"Required embedded report font is missing: {font_path}")
@@ -590,14 +613,14 @@ def render_protection_advisor_pdf(
     display_handling = "CUI review requested" if requested_handling == "CUI" else requested_handling
     watermark = "CONFIDENTIAL"
     styles = getSampleStyleSheet()
-    body = ParagraphStyle("SalusBody", parent=styles["BodyText"], fontName="SalusSans", fontSize=11.5, leading=16, spaceAfter=9)
-    h1 = ParagraphStyle("SalusH1", parent=styles["Heading1"], fontName="SalusSans-Bold", fontSize=17, leading=21, textColor=colors.black, spaceBefore=13, spaceAfter=9)
-    h2 = ParagraphStyle("SalusH2", parent=styles["Heading2"], fontName="SalusSans-Bold", fontSize=12, leading=16, textColor=colors.black, spaceBefore=9, spaceAfter=6)
-    title = ParagraphStyle("SalusTitle", parent=styles["Title"], fontName="SalusSans-Bold", fontSize=22, leading=26, alignment=TA_CENTER, textColor=colors.black)
+    body = ParagraphStyle("SalusBody", parent=styles["BodyText"], fontName="SalusBody", fontSize=11.5, leading=16, spaceAfter=9)
+    h1 = ParagraphStyle("SalusH1", parent=styles["Heading1"], fontName="SalusHeader-Bold", fontSize=17, leading=21, textColor=colors.black, spaceBefore=13, spaceAfter=9)
+    h2 = ParagraphStyle("SalusH2", parent=styles["Heading2"], fontName="SalusHeader-Bold", fontSize=12, leading=16, textColor=colors.black, spaceBefore=9, spaceAfter=6)
+    title = ParagraphStyle("SalusTitle", parent=styles["Title"], fontName="SalusHeader-Bold", fontSize=22, leading=26, alignment=TA_CENTER, textColor=colors.black)
     subtitle = ParagraphStyle("SalusSubtitle", parent=body, fontSize=11, leading=14, alignment=TA_CENTER, textColor=colors.HexColor("#2F75B5"))
     small = ParagraphStyle("SalusSmall", parent=body, fontSize=10, leading=13, spaceAfter=0)
     table_header = ParagraphStyle(
-        "SalusTableHeader", parent=small, fontName="SalusSans-Bold",
+        "SalusTableHeader", parent=small, fontName="SalusHeader-Bold",
         fontSize=9.5, leading=12, textColor=colors.white, alignment=TA_LEFT,
     )
 
@@ -611,7 +634,7 @@ def render_protection_advisor_pdf(
         commands = [
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#17365D")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "SalusSans-Bold"),
+            ("FONTNAME", (0, 0), (-1, 0), "SalusHeader-Bold"),
             ("ALIGN", (0, 0), (-1, -1), "LEFT"),
             ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
             ("VALIGN", (0, 1), (-1, -1), "TOP"),
@@ -651,19 +674,13 @@ def render_protection_advisor_pdf(
                 self.setFillAlpha(1)
                 number = self._pageNumber
                 width, height = letter
-                if number == 2:
-                    self.setFillColor(colors.Color(.4, .4, .4, alpha=.10))
-                    self.setFont("SalusSans-Bold", 52)
-                    self.translate(width / 2, height / 2)
-                    self.rotate(45)
-                    self.drawCentredString(0, 0, watermark)
-                else:
+                if number != 2:
                     if number >= 3:
                         self.setFillColor(colors.HexColor("#7A1F1F"))
-                        self.setFont("SalusSans", 7.5)
+                        self.setFont("SalusHeader", 7.5)
                         self.drawCentredString(width / 2, height - .42 * inch, "CONFIDENTIAL — SALUS PROTECTED INFORMATION")
                         self.setFillColor(colors.Color(.4, .4, .4, alpha=.07))
-                        self.setFont("SalusSans-Bold", 46)
+                        self.setFont("SalusHeader-Bold", 46)
                         self.translate(width / 2, height / 2)
                         self.rotate(45)
                         self.drawCentredString(0, 0, watermark)
@@ -672,8 +689,8 @@ def render_protection_advisor_pdf(
                     draw_brand_footer(self)
                     self.setFillAlpha(1)
                     self.setFillColor(colors.black)
-                    self.setFont("SalusSans", 8)
-                    self.drawRightString(width - .65 * inch, .30 * inch, f"Page {number} of {total}")
+                    self.setFont("SalusBody", 8)
+                    self.drawRightString(width - .65 * inch, .30 * inch, f"page {number} of {total}")
                 self.restoreState()
                 super().showPage()
             super().save()
@@ -686,7 +703,7 @@ def render_protection_advisor_pdf(
                          width=1.65 * inch, height=.25 * inch,
                          preserveAspectRatio=True, mask="auto")
         canvas.setFillColor(colors.black)
-        canvas.setFont("SalusSans", 8)
+        canvas.setFont("SalusBody", 8)
         canvas.drawString(2.75 * inch, .30 * inch, "+1-888-496-6668")
         canvas.drawString(4.22 * inch, .30 * inch, "www.Salus.Solutions")
 
@@ -746,10 +763,11 @@ def render_protection_advisor_pdf(
                   ("Positive indicators", result.get("strength_count", 0), "Reported practices that may support improvement"),
                   ("Conditions requiring attention", result.get("attention_count", 0), "Potential gaps or unvalidated capability"),
                   ("Information gaps", result.get("information_gap_count", 0), "Unknowns that could change conclusions"),
-                  ("Core capabilities", result.get("core_capabilities_considered", 32), "Evaluated across five mission areas"),
+                  ("Core capabilities", result.get("core_capabilities_considered", 32), "Screened across five mission areas; not validated"),
               ), (1.75 * inch, 1.45 * inch, 2.9 * inch), centered_columns=(1,)),
               P("Mission Area Profile", h1),
-              T(("Mission area", "Score", "Preliminary interpretation"), tuple((a, f"{int(scores.get(a, 0))} / 100", "Relative strength" if int(scores.get(a, 0)) >= 60 else "Moderate concern" if int(scores.get(a, 0)) >= 50 else "Priority concern") for a in ("Prevention", "Protection", "Mitigation", "Response", "Recovery")), (1.8 * inch, 1.15 * inch, 3.15 * inch), centered_columns=(1,)),
+              P("Scores show reported need: higher values mean more need, not more readiness. Unknown answers remain information gaps."),
+              T(("Mission area", "Reported need", "Preliminary interpretation"), _mission_rows(scores), (1.8 * inch, 1.15 * inch, 3.15 * inch), centered_columns=(1,)),
               P("Primary Conclusions", h1)]
     story += bullets(("Treat protection, emergency planning, continuity, and capability validation as one integrated program.", "Test reported capability against current evidence and performance under realistic stress.", "Validate authority, succession, escalation, dependencies, and alternate arrangements.", "Require authorized Salus review before final scope, price, or assurance statements."))
     story += [PageBreak(), P("Priority Capability Findings", h1),
@@ -759,9 +777,9 @@ def render_protection_advisor_pdf(
     story += [PageBreak(), P("Information Gaps", h1), P("These issues could materially change the assessment and should be resolved before a final opinion, scope, or price is issued.")]
     story += bullets(result.get("information_gaps") or ("Professional validation remains required.",))
     story += [P("Evidence Needed", h1)] + bullets(("Current emergency, continuity, communications, security, and recovery plans.", "Authority, succession, delegation, notification, and escalation records.", "Essential-function, dependency, vendor, utility, and restoration-priority information.", "Training, exercise, incident, corrective-action, maintenance, and inspection records.", "Relevant interviews, demonstrations, observations, and current performance evidence."))
-    story += [PageBreak(), P("Recommended Protection Package", h1), P(f"The preliminary lead engagement is {primary.get('title', 'Professional Review')} - Level {primary.get('level', '')} {primary.get('level_name', '')}. {primary.get('summary', '')}"), P("Why this leads the package. " + str(primary.get("why", ""))), P("Recommended Sequence", h1), T(("Phase", "Service", "Purpose"), _sequence_rows(package), (.65 * inch, 2.45 * inch, 3.0 * inch), centered_columns=(0,)), P("Additional Later Phase Services", h1)]
+    story += [PageBreak(), P("Recommended Protection Package", h1), P(f"The preliminary lead engagement is {primary.get('title', 'Professional Review')} - Level {primary.get('level', '')} {primary.get('level_name', '')}. {primary.get('summary', '')}"), P("Every new Protected Member starts with a Level 1 integrated assessment. Level 2 and Level 3 are conditional, sequential packages. Additional services require separate scope and approval."), P("Why this leads the package. " + str(primary.get("why", ""))), P("Recommended Sequence", h1), T(("Phase", "Assessment package", "Purpose"), _sequence_rows(package), (.65 * inch, 2.45 * inch, 3.0 * inch), centered_columns=(0,)), P("Additional Later Phase Services", h1)]
     for service in package.get("later_phase_services") or []:
         story.append(P(f"{service.get('title', 'Service')} - Level {service.get('level', '')} {service.get('level_name', '')}. {service.get('summary', '')}"))
-    story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Deliverables", h1), T(("Deliverable", "Purpose"), (("Validated assessment record", "Separates verified facts, reported conditions, inferences, and unknowns"), ("Capability and dependency map", "Shows essential functions, supporting resources, failure points, and alternates"), ("Prioritized improvement plan", "Identifies actions, owners, sequence, dependencies, and completion measures"), ("Exercise and validation plan", "Tests priority capabilities and creates defensible evidence"), ("Executive briefing", "Presents decisions, risks, resource implications, and next steps")), (2.2 * inch, 3.9 * inch)), P("Human Review and Decision Points", h1), P("No automated recommendation becomes a final scope, assurance statement, price, contract commitment, or protective decision without authorized Salus review. The reviewer confirms service selection, level, specialists, deliverables, schedule, pricing basis, handling controls, and eligibility."), P("Recommended Immediate Actions", h1), T(("Timing", "Action", "Responsible party"), (("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"), ("Within 5 business days", "Conduct a qualification and validation interview.", "Salus and Protected Member"), ("After interview", "Request only evidence needed to resolve priority findings and gaps.", "Salus"), ("After evidence review", "Confirm or revise sequence, scope, level, schedule, and specialists.", "Authorized Salus reviewer"), ("Before engagement", "Approve scope, commercial terms, handling, and points of contact.", "Salus and Protected Member")), (1.3 * inch, 3.35 * inch, 1.45 * inch)), P("Decision Required", h1), P("The next decision is whether to authorize a Salus qualification and validation review. That review determines the appropriate package and evidence needed before work is proposed."), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor screens reported conditions against 32 core capabilities across Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize professional review; they do not independently establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Screening indicator; not an audit grade"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Service level", "Preliminary engagement depth; subject to human review")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Recommended service", "Level", "Preliminary rationale"), tuple((x.get("title", "Service"), f"Level {x.get('level', '')}", x.get("why", "")) for x in package.get("services") or []), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
+    story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Deliverables", h1), T(("Deliverable", "Purpose"), (("Validated assessment record", "Separates verified facts, reported conditions, inferences, and unknowns"), ("Capability and dependency map", "Shows essential functions, supporting resources, failure points, and alternates"), ("Prioritized improvement plan", "Identifies actions, owners, sequence, dependencies, and completion measures"), ("Exercise and validation plan", "Tests priority capabilities and creates defensible evidence"), ("Executive briefing", "Presents decisions, risks, resource implications, and next steps")), (2.2 * inch, 3.9 * inch)), P("Human Review and Decision Points", h1), P("No automated recommendation becomes a final scope, assurance statement, price, contract commitment, or protective decision without authorized Salus review. The reviewer confirms service selection, level, specialists, deliverables, schedule, pricing basis, handling controls, and eligibility."), P("Recommended Immediate Actions", h1), T(("Timing", "Action", "Responsible party"), (("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"), ("Within 5 business days", "Conduct a qualification and validation interview.", "Salus and Protected Member"), ("After interview", "Request only evidence needed to resolve priority findings and gaps.", "Salus"), ("After evidence review", "Confirm or revise sequence, scope, level, schedule, and specialists.", "Authorized Salus reviewer"), ("Before engagement", "Approve scope, commercial terms, handling, and points of contact.", "Salus and Protected Member")), (1.3 * inch, 3.35 * inch, 1.45 * inch)), P("Decision Required", h1), P("The next decision is whether to authorize a Salus qualification and validation review. That review determines the appropriate package and evidence needed before work is proposed."), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor screens reported conditions against 32 core capabilities across Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize professional review; they do not independently establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Reported-need indicator; higher means more need, not measured readiness"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Service level", "Preliminary engagement depth; subject to human review")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Possible separate service", "Potential depth", "Preliminary rationale"), _service_rows(package), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
     doc.build(story, canvasmaker=NumberedCanvas)
     return destination

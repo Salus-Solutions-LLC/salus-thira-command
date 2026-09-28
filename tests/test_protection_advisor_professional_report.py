@@ -1,15 +1,17 @@
 from datetime import datetime, timezone
 from pathlib import Path
+import json
 
 from docx import Document
+from docx.oxml.ns import qn
 from pypdf import PdfReader
 
-from protection_advisor_docx_report import _professional_body, render_protection_advisor_pdf
+from protection_advisor_docx_report import _professional_body, render_protection_advisor_docx, render_protection_advisor_pdf
 from protection_advisor_report_contract import build_report_context
 
 
 RESULT = {
-    "recommendation": "Comprehensive review recommended",
+    "recommendation": "Level 1 Initial Pass recommended",
     "strength_count": 6,
     "attention_count": 16,
     "information_gap_count": 5,
@@ -21,8 +23,8 @@ RESULT = {
 }
 
 PACKAGE = {
-    "primary_service": {"title": "Emergency Planning and Crisis Communications", "level": 3, "level_name": "Deep Dive", "summary": "Establish an integrated operating framework.", "why": "The reported conditions span multiple mission areas."},
-    "sequence": ["Emergency Planning and Crisis Communications", "Continuity and Recovery"],
+    "primary_service": {"title": "Integrated Salus Assessment", "level": 1, "level_name": "Initial Pass", "summary": "A Level 1 assessment across the four Salus products.", "why": "Every new Protected Member begins with Level 1."},
+    "sequence": ["Integrated Salus Assessment — Level 1 Initial Pass", "Focused Assessment — Level 2 if qualified Level 1 findings warrant it"],
     "later_phase_services": [],
     "services": [{"title": "Emergency Planning and Crisis Communications", "level": 3, "why": "Connected gaps require comprehensive validation."}],
     "rationale": "The proposed sequence addresses connected capability needs.",
@@ -58,6 +60,23 @@ def test_professional_docx_body_contains_approved_sections_without_json(tmp_path
     assert '"primary_service"' not in text
 
 
+def test_template_based_docx_has_blank_second_page_and_required_font_styles(tmp_path: Path):
+    path = render_protection_advisor_docx(
+        template_path=Path("Protection Advisor Report Template.docx"),
+        output_path=tmp_path / "report.docx",
+        context=_context(),
+        part1_text=json.dumps(RESULT),
+        part2_text=json.dumps(PACKAGE),
+    )
+    document = Document(path)
+    assert len(document.sections) == 3
+    assert not list(document.sections[1].header._element.iter(qn("w:t")))
+    assert not list(document.sections[1].footer._element.iter(qn("w:t")))
+    assert any(node.text == "page " for node in document.sections[2].footer._element.iter(qn("w:t")))
+    assert document.styles["Normal"].font.name == "Times New Roman"
+    assert document.styles["Heading 1"].font.name == "Arial"
+
+
 def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
     path = render_protection_advisor_pdf(
         output_path=tmp_path / "report.pdf",
@@ -68,10 +87,10 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
     reader = PdfReader(path)
     assert len(reader.pages) >= 8
     page_count = len(reader.pages)
-    assert f"Page 1 of {page_count}" in (reader.pages[0].extract_text() or "")
-    assert "Page 2 of" not in (reader.pages[1].extract_text() or "")
+    assert f"page 1 of {page_count}" in (reader.pages[0].extract_text() or "")
+    assert not (reader.pages[1].extract_text() or "").strip()
     assert all(
-        f"Page {number} of {page_count}" in (page.extract_text() or "")
+        f"page {number} of {page_count}" in (page.extract_text() or "")
         for number, page in enumerate(reader.pages, 1) if number != 2
     )
     for number, page in enumerate(reader.pages, 1):
@@ -90,6 +109,9 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
             assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in page_text
     fonts = reader.pages[2]["/Resources"]["/Font"].get_object().values()
     assert any("/FontFile2" in font.get_object()["/FontDescriptor"].get_object() for font in fonts if "/FontDescriptor" in font.get_object())
+    font_names = {str(font.get_object().get("/BaseFont", "")) for font in fonts}
+    assert any("Arial" in name for name in font_names)
+    assert any("TimesNewRoman" in name for name in font_names)
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     assert "Executive Summary" in text
     assert "Recommended Protection Package" in text
@@ -117,7 +139,7 @@ def test_pdf_total_pages_follow_long_wrapped_report(tmp_path: Path):
     text = "\\n".join(page.extract_text() or "" for page in reader.pages)
     assert "Capability 32" in text
     assert all(
-        f"Page {number} of {total}" in (page.extract_text() or "")
+        f"page {number} of {total}" in (page.extract_text() or "")
         for number, page in enumerate(reader.pages, 1) if number != 2
     )
 
@@ -143,7 +165,7 @@ def test_requested_cui_is_visible_without_an_approved_marking(tmp_path: Path):
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     assert "CUI review requested" in text
     assert "Requested handling: CUI review requested" in text
-    assert "CONFIDENTIAL" in (reader.pages[1].extract_text() or "")
+    assert not (reader.pages[1].extract_text() or "").strip()
     assert "REVIEW" not in (reader.pages[1].extract_text() or "")
     assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in (reader.pages[2].extract_text() or "")
     for page_index in (0, 2):

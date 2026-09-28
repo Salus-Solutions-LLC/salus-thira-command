@@ -33,7 +33,7 @@ from protection_advisor_report_contract import build_report_context
 from salcapa_m365_advisor_reports import publish_advisor_docx
 
 QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
-RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.0.0"
+RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-3.0.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
 REPORT_TEMPLATE_VERSION = "SPA-REPORT-TEMPLATE-1.0.0"
@@ -43,7 +43,7 @@ HANDLING_PROFILES = {
 }
 HANDLING_REVIEW_REQUIRED = HANDLING_PROFILES - {"Commercial Confidential"}
 PACKAGE_PROFILE_VERSION = "SPA-SERVICE-PROFILE-2.0.0"
-PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-2.0.0"
+PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-3.0.0"
 SESSION_HOURS = 24  # Browser authentication lifetime only; retained records do not expire here.
 NOTIFICATION_MODE = os.getenv("SALUS_ADVISOR_NOTIFICATION_MODE", "outbox").strip().lower()
 NOTIFICATION_TO = os.getenv("SALUS_ADVISOR_NOTIFICATION_TO", "mduncan@salus.solutions").strip().lower()
@@ -455,8 +455,8 @@ STATE_NEED = {
     "Documented": 0.7,
     "Partially": 1.8,
     "No": 3.0,
-    "Unknown": 0.8,
-    "Declined": 0.5,
+    "Unknown": 0.0,
+    "Declined": 0.0,
     "Not Applicable": 0.0,
 }
 
@@ -498,32 +498,33 @@ if set(CORE_CAPABILITIES) != _COVERED_CORE_CAPABILITIES:
 
 def _capability_results(
     questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]]
-) -> tuple[list[dict[str, Any]], dict[str, int]]:
+) -> tuple[list[dict[str, Any]], dict[str, int | None]]:
     totals = {name: {"need": 0.0, "possible": 0.0, "unknown": 0} for name in CORE_CAPABILITIES}
     for question in questions:
         state = answers.get(question["key"], {}).get("answer_state", "Unknown")
-        if state == "Not Applicable":
+        if state in {"Not Applicable", "Unknown", "Declined"}:
+            if state in {"Unknown", "Declined"}:
+                for capability in question["capabilities"]:
+                    totals[capability]["unknown"] += 1
             continue
-        need = STATE_NEED.get(state, 0.8)
+        need = STATE_NEED.get(state, 0.0)
         for capability in question["capabilities"]:
             totals[capability]["need"] += need * question["weight"]
             totals[capability]["possible"] += 3.0 * question["weight"]
-            if state in {"Unknown", "Declined"}:
-                totals[capability]["unknown"] += 1
     capability_rows = []
     for name, values in totals.items():
-        score = round(100 * values["need"] / values["possible"]) if values["possible"] else 0
+        score = round(100 * values["need"] / values["possible"]) if values["possible"] else None
         capability_rows.append({
             "capability": name,
             "mission_areas": list(CORE_CAPABILITIES[name]),
             "need_score": score,
             "information_gap": values["unknown"] > 0,
         })
-    capability_rows.sort(key=lambda row: (-row["need_score"], row["capability"]))
-    mission_scores: dict[str, int] = {}
+    capability_rows.sort(key=lambda row: (row["need_score"] is None, -(row["need_score"] or 0), row["capability"]))
+    mission_scores: dict[str, int | None] = {}
     for area in ("Prevention", "Protection", "Mitigation", "Response", "Recovery"):
-        relevant = [row["need_score"] for row in capability_rows if area in row["mission_areas"]]
-        mission_scores[area] = round(sum(relevant) / len(relevant)) if relevant else 0
+        relevant = [row["need_score"] for row in capability_rows if area in row["mission_areas"] and row["need_score"] is not None]
+        mission_scores[area] = round(sum(relevant) / len(relevant)) if relevant else None
     return capability_rows, mission_scores
 
 def _initialize(conn: Any) -> None:
@@ -860,15 +861,7 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
         elif state in {"Unknown", "Declined"}:
             unknowns.append(question["text"])
     capability_rows, mission_scores = _capability_results(questions, answers)
-    highest_need = capability_rows[0]["need_score"] if capability_rows else 0
-    if highest_need >= 65 or len(attention) >= 10:
-        level = "Comprehensive review recommended"
-    elif highest_need >= 35 or len(attention) >= 4:
-        level = "Focused review recommended"
-    elif unknowns:
-        level = "Foundation discovery recommended"
-    else:
-        level = "Foundation review recommended"
+    level = "Level 1 Initial Pass recommended"
     return {
         "status": "Preliminary — Salus Review Required",
         "recommendation": level,
@@ -877,10 +870,10 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
         "information_gap_count": len(unknowns),
         "attention_topics": attention[:6],
         "information_gaps": unknowns[:6],
-        "priority_capabilities": [row for row in capability_rows if row["need_score"] > 0][:8],
+        "priority_capabilities": [row for row in capability_rows if row["need_score"] is not None and row["need_score"] > 0][:8],
         "mission_area_scores": mission_scores,
         "core_capabilities_considered": len(CORE_CAPABILITIES),
-        "notice": "This result is preliminary and non-binding. A qualified Salus professional must review scope, recommendations, service levels, and any price.",
+        "notice": "This result is preliminary and non-binding. All new Protected Members begin with a qualified Level 1 integrated assessment; Level 2 and Level 3 are conditional, sequential options. A Salus professional must review scope, evidence, services, and any price.",
         "manual_next_step": "Qualification, scoping, proposal, onboarding, and service delivery remain human-controlled.",
     }
 
@@ -1055,7 +1048,7 @@ function openAccountLogin(event){event.preventDefault();accountAccess.classList.
 function confirmProfile(){profileAgreementError.textContent="";if(!detailAck.checked||!identifiableConsent.checked){profileAgreementError.textContent="Both acknowledgements are required before Part 2.";return}profileAgreement.classList.add("hidden");accountAccess.classList.remove("hidden");accountAccess.scrollIntoView({behavior:"smooth"})}
 function showProfileForAccount(email,draft){accountEmailCurrent=email;detailAck.checked=true;identifiableConsent.checked=true;accountAccess.classList.add("hidden");contactEmail.value=email;contactEmail.readOnly=true;hydrateDraft(draft||{});profile.classList.remove("hidden");profile.scrollIntoView({behavior:"smooth"});enableAutosave()}
 async function createAccount(){accountError.textContent="";try{if(accountPassword.value!==accountPasswordConfirm.value)throw new Error("Passwords do not match");const data=await call("/public/protection-advisor/account",{method:"POST",body:JSON.stringify({email:accountEmail.value,password:accountPassword.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked})});showProfileForAccount(data.email,data.draft)}catch(x){accountError.textContent=x.message}}
-function packageMarkup(p){return '<h2>'+p.title+'</h2><p>'+p.rationale+'</p>'+p.services.map(s=>'<div class="package-item"><h3>'+s.title+' — Level '+s.level+'</h3><p>'+s.summary+'</p><p><strong>Why this level:</strong> '+s.why+'</p><p><strong>Core capabilities addressed:</strong> '+s.capabilities.join(", ")+'</p></div>').join("")+(p.later_phase_services.length?'<h3>Possible later-phase services</h3><p>'+p.later_phase_services.map(s=>s.title+' — Level '+s.level).join("; ")+'</p>':'')+'<p><strong>Suggested sequence:</strong> '+p.sequence.join(" → ")+'</p><p>'+p.notice+'</p><a class="action" href="https://www.salus.solutions/contact">Discuss This Package With Salus &gt;</a>'}
+function packageMarkup(p){if(p.primary_service?.key!=="integrated_level_1")return '<h2>Earlier preliminary assessment</h2><p>This assessment used an earlier recommendation method. Salus must review the original result before a current package or report is proposed.</p><a class="action" href="https://www.salus.solutions/contact">Request Salus Review &gt;</a>';return '<h2>'+escapeAdvisorHtml(p.title)+'</h2><p>'+escapeAdvisorHtml(p.rationale)+'</p><p><strong>First package:</strong> '+escapeAdvisorHtml(p.primary_service.title)+' — Level 1 Initial Pass. '+escapeAdvisorHtml(p.primary_service.summary)+'</p><h3>Possible separately scoped services</h3>'+p.services.map(s=>'<div class="package-item"><h4>'+escapeAdvisorHtml(s.title)+'</h4><p>'+escapeAdvisorHtml(s.summary)+'</p><p>'+escapeAdvisorHtml(s.why)+'</p></div>').join("")+(p.later_phase_services.length?'<h3>Additional options to discuss later</h3><p>'+p.later_phase_services.map(s=>escapeAdvisorHtml(s.title)).join("; ")+'</p>':'')+'<p><strong>Assessment sequence:</strong> '+p.sequence.map(escapeAdvisorHtml).join(" → ")+'</p><p>'+escapeAdvisorHtml(p.notice)+'</p><a class="action" href="https://www.salus.solutions/contact">Discuss Level 1 With Salus &gt;</a>'}
 function openReportIdentityEditor(){const editor=document.getElementById('reportIdentityEditor');if(!editor)return;editor.open=true;editor.scrollIntoView({behavior:'smooth',block:'start'});editor.querySelector('input')?.focus({preventScroll:true})}
 function identityEditorMarkup(i){return '<details id="reportIdentityEditor" class="notice report-identity-editor"><summary><strong>Edit code names and report handling &gt;</strong></summary><p class="muted">Changes create a new immutable revision. A controlled-information request remains Confidential unless an authorized Salus reviewer approves the marking.</p><label>Protected Member Code Name<input id="retainedMemberCode" value="'+escapeAdvisorHtml(i.protected_member_code_name||"")+'" maxlength="80"></label><label>Project Code Name<input id="retainedProjectCode" value="'+escapeAdvisorHtml(i.project_code_name||"")+'" maxlength="80"></label><label>Requested report-handling profile<select id="retainedHandlingProfile">'+["Commercial Confidential","Government Sensitive","Federal CUI","Government Contractor CUI","Specialized Regulated Information"].map(v=>'<option'+(v===i.handling_profile?' selected':'')+'>'+v+'</option>').join("")+'</select></label><label>Handling authority<input id="retainedHandlingAuthority" value="'+escapeAdvisorHtml(i.handling_authority||"")+'" maxlength="240"></label><label>Designating agency<input id="retainedDesignatingAgency" value="'+escapeAdvisorHtml(i.designating_agency||"")+'" maxlength="160"></label><label>Contract or task-order reference<input id="retainedContractReference" value="'+escapeAdvisorHtml(i.contract_reference||"")+'" maxlength="160"></label><label>Dissemination controls<input id="retainedDisseminationControls" value="'+escapeAdvisorHtml(i.dissemination_controls||"")+'" maxlength="240"></label><button type="button" onclick="updateReportIdentity()">Save New Revision &gt;</button><p id="identityUpdateStatus" class="muted"></p></details>'}
 function reportIdentityControls(i){return '<section class="report-identity-summary" aria-label="Report names and handling"><h3>Report names and handling</h3><p><strong>Protected Member:</strong> '+escapeAdvisorHtml(i.protected_member_code_name||'Not specified')+' · <strong>Project:</strong> '+escapeAdvisorHtml(i.project_code_name||'Not specified')+' · <strong>Requested handling:</strong> '+escapeAdvisorHtml(i.handling_profile||'Commercial Confidential')+'</p><p class="muted">Review or change these settings before downloading your report.</p><button type="button" class="report-edit-action" aria-controls="reportIdentityEditor" onclick="openReportIdentityEditor()">Update report code names or requested handling &gt;</button></section>'+identityEditorMarkup(i)}
@@ -1143,7 +1136,7 @@ def _service_catalog_page() -> str:
 {items}</main></body></html>"""
 
 
-SERVICE_LEVEL_NAMES = {1: "Foundation", 2: "Enhanced", 3: "Comprehensive"}
+SERVICE_LEVEL_NAMES = {1: "Initial Pass", 2: "Focused Assessment", 3: "Deep Dive"}
 SERVICE_DEFAULT_CAPABILITIES = {
     "salthira": ("Threats and Hazards Identification", "Risk and Disaster Resilience Assessment"),
     "facility": ("Physical Protective Measures", "Access Control and Identity Verification"),
@@ -1168,13 +1161,10 @@ def _package_recommendation(
     scores = {key: 0.0 for key in catalog}
     capabilities = {key: set() for key in catalog}
     evidence = {key: [] for key in catalog}
-    information_gap_count = 0
 
     for question in questions:
         state = answers.get(question["key"], {}).get("answer_state", "Unknown")
-        need = STATE_NEED.get(state, 0.8)
-        if state in {"Unknown", "Declined"}:
-            information_gap_count += 1
+        need = STATE_NEED.get(state, 0.0)
         if need <= 0:
             continue
         contribution = need * question["weight"]
@@ -1245,9 +1235,6 @@ def _package_recommendation(
         add("cyber_physical", 2.0, "essential function tolerates less than four hours of interruption")
     elif downtime == "4–24 hours":
         add("continuity", 2.5, "essential function has a short interruption tolerance")
-    elif downtime in {"Not established", "Not sure"}:
-        add("continuity", 1.5, "recovery tolerance requires validation")
-        add("salthira", 1.0, "recovery tolerance requires validation")
 
     maturity = profile.get("existing_program_maturity", "")
     if maturity == "Recently assessed, documented, and validated":
@@ -1311,16 +1298,8 @@ def _package_recommendation(
         add("protective_intelligence", 2.5, external)
         add("incident_support", 2.0, external)
 
-    if profile.get("decision_authority", "").casefold() in {"unknown", "not sure"}:
-        add("implementation", 1.0, "decision authority requires clarification")
-    if information_gap_count >= max(5, len(questions) // 4):
-        add("salthira", 3.0, "material information gaps require structured discovery")
-
     ranked = sorted(scores, key=lambda key: (-scores[key], key))
     qualified = [key for key in ranked if scores[key] >= 3.0]
-    if not qualified:
-        qualified = ["monitoring"] if maturity == "Recently assessed, documented, and validated" else ["salthira"]
-        add(qualified[0], 1.0, "focused professional confirmation is appropriate")
     primary_keys = qualified[:4]
     later_keys = qualified[4:7]
 
@@ -1331,12 +1310,12 @@ def _package_recommendation(
         relevant_capabilities = sorted(capabilities[key] or SERVICE_DEFAULT_CAPABILITIES[key])[:6]
         if relevant_capabilities:
             why = (
-                f"{level_name} service is indicated by needs involving "
+                f"This may merit a separately scoped {level_name} service after the required assessment steps; reported needs involve "
                 + ", ".join(relevant_capabilities[:3])
                 + "."
             )
         else:
-            why = f"{level_name} service is indicated by the organization and service profile."
+            why = f"This possible {level_name} service requires Salus review of the organization and service profile."
         return {
             **catalog[key],
             "level": level,
@@ -1352,17 +1331,26 @@ def _package_recommendation(
     services = [service_row(key) for key in primary_keys]
     later_services = [service_row(key) for key in later_keys]
     capability_rows, mission_scores = _capability_results(questions, answers)
+    lead = {
+        "key": "integrated_level_1",
+        "title": "Integrated Salus Assessment",
+        "level": 1,
+        "level_name": "Initial Pass",
+        "summary": "A Level 1 SalINTEL, SalTHIRA and SalOPS assessment, followed by one Level 1 SalCAPA decision summary.",
+        "why": "Every Protected Member starts with a qualified Level 1 package. Reported needs and unknowns set its priorities; they do not waive the prerequisite.",
+        "capabilities": [],
+    }
     return {
-        "title": f"{services[0]['title']}-led protection package",
-        "primary_service": services[0],
+        "title": "Integrated Salus Level 1 Assessment",
+        "primary_service": lead,
         "services": services,
         "later_phase_services": later_services,
-        "sequence": [f"{item['title']} — Level {item['level']}" for item in services],
-        "priority_capabilities": [row for row in capability_rows if row["need_score"] > 0][:8],
+        "sequence": ["Integrated Salus Assessment — Level 1 Initial Pass", "Focused Assessment — Level 2 if qualified Level 1 findings warrant it", "Deep Dive — Level 3 if qualified Level 2 findings warrant it"],
+        "priority_capabilities": [row for row in capability_rows if row["need_score"] is not None and row["need_score"] > 0][:8],
         "mission_area_scores": mission_scores,
         "core_capabilities_considered": len(CORE_CAPABILITIES),
-        "rationale": "This preliminary package connects the capability conditions identified in Part 1 with the scale, consequences, activities, dependencies, maturity, timing, and implementation context supplied in Part 2.",
-        "notice": "Preliminary — Subject to Salus Professional Review. A Salus professional must validate the answers, capability interpretation, service selection, level, scope, evidence, specialists, deliverables, schedule, pricing, contract terms, and Protected Member eligibility.",
+        "rationale": "The Level 1 integrated assessment screens the reported conditions, strengths and unknowns; qualified findings may support separately scoped services or a later sequential level.",
+        "notice": "Preliminary — Subject to Salus Professional Review. Listed services are possible separate options, not authorized work. Level 2 requires a qualified Level 1 package; Level 3 requires a qualified Level 2 package. A professional must validate evidence, scope, capacity, pricing, terms and eligibility.",
         "version": PACKAGE_RECOMMENDATION_VERSION,
     }
 
@@ -2450,7 +2438,8 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             if session["status"] != "Submitted":
                 raise HTTPException(409, "Submit Part 2 before downloading the detailed report")
             row = conn.execute(
-                """SELECT s.submission_key,s.result_json,p.profile_json,p.package_json
+                """SELECT s.submission_key,s.result_json,p.profile_json,p.package_json,
+                          p.package_recommendation_version
                      FROM advisor_public_submissions s
                      JOIN advisor_public_service_profiles p ON p.submission_key=s.submission_key
                     WHERE s.session_key=?""",
@@ -2459,6 +2448,8 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             identity = _latest_report_identity(conn, session["session_key"])
             if not row or not identity:
                 raise HTTPException(409, "Submitted assessment report is unavailable")
+            if row["package_recommendation_version"] != PACKAGE_RECOMMENDATION_VERSION:
+                raise HTTPException(409, "This earlier assessment needs Salus review before a report can be regenerated. Please contact Salus for its original report or a qualified update.")
             output_dir = os.getenv("SALUS_ADVISOR_REPORT_OUTPUT_DIR", "").strip()
             if not output_dir:
                 raise HTTPException(503, "Report delivery is temporarily unavailable")
