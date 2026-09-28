@@ -2,6 +2,9 @@
 
 | Artifact | Role | Authority status |
 |---|---|---|
+| `SALUS_SALINTEL_SALTHIRA_METHOD_STANDARD.md` | Member-neutral controlling SalINTEL and SalTHIRA method/process and report structure; repository `development/salcapa-platform`; initial commit `6395c2c9273a16fb753ea5227f73904075c13eda` | Approved by Marc, 27 September 2026 (SAL-D044); enterprise doctrine, not member finding or deployed workflow |
+| `SalINTEL Report Template.docx` | Controlled member-neutral Word template v1.0; local reviewed derivative at `work/approved_templates/SalINTEL Report Template.docx`; SHA-256 `5A99C3F0A3DB126F101407617AABA7CB8EB098C3D704E436B01C5D8520BB1959`; 9 rendered pages | Approved structure and prompts, 27 September 2026 (SAL-D044). Cloud-controlled publishing and access review remain open; populated member reports require separate release. |
+| `SalTHIRA Report Template.docx` | Controlled member-neutral Word template v1.0; local reviewed derivative at `work/approved_templates/SalTHIRA Report Template.docx`; SHA-256 `29B896804C44B56D5A32BA377FE557B676649FAC88C83D674BE77EA088B81FF8`; 6 rendered pages | Approved structure and prompts, 27 September 2026 (SAL-D044). Cloud-controlled publishing and access review remain open; populated member reports require separate release. |
 | `Salus System and Methodolgy.pptx` | Seven-slide Salus architecture and methodology authority; SharePoint source item 01DBTAFUMQVTSEZJPMA5FIOYJ3NKXP7OSP; SHA-256 7FB44AF954ADFE6AF0C29C90EB577F09F46C5A72EADB96FBBED4FDFF567D0768 | Approved by Marc, 27 September 2026 (SAL-D028) |
 | `SALUS_THREE_LEVEL_SERVICE_FRAMEWORK.md` | Enterprise service-depth, proposal, reporting and commercial structure; repository `development/salcapa-platform` | Approved program structure, 27 September 2026 (SAL-D029); methodology/reporting profiles refined under SAL-D031; sequential integrated packages under SAL-D032; staged product and SalCAPA reporting under SAL-D033; software and prices not yet approved/deployed |
 | `Protection_Advisor_Example_Client_Report.pdf` | Visual and content reference for the client-facing Protection Advisor report | Approved by Marc, 22 September 2026 |
@@ -22,3 +25,7 @@ The earlier `Salus-Protection-Advisor-SPA-REPORT-0F5A2329FDE1FB4C2453CAD5F5DD6E8
 ## Artifact-control rule
 
 Before implementing a feature governed by an approved artifact, inspect the artifact itself. Do not rely on a chat summary. When Marc approves a replacement, record the new artifact and mark the old one superseded; do not silently delete historical authority.
+
+## SAL-D044 member report boundary
+
+The Tierra Linda SalINTEL and SalTHIRA Level 1 working reports are provenance/design inputs only. They are not enterprise templates or issued findings. The prior SharePoint SalINTEL working methodology/template items remain draft history until an exact controlled replacement and access review are completed. The GitHub standard governs the approved method; the two registered Word files are the approved local template versions. Do not confuse template approval with deployment or customer release.
