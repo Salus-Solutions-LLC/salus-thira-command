@@ -1,0 +1,39 @@
+name: SalCAPA Analytical Actions
+
+on:
+  pull_request:
+    paths:
+      - salcapa_analytical_actions.py
+      - salcapa_runtime.py
+      - static/salcapa-analytical-actions.js
+      - static/salcapa-contextual-intake.js
+      - tools/ci_salcapa_analytical_actions_smoke.py
+      - .github/workflows/salcapa-analytical-actions.yml
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - salcapa_analytical_actions.py
+      - salcapa_runtime.py
+      - static/salcapa-analytical-actions.js
+      - static/salcapa-contextual-intake.js
+      - tools/ci_salcapa_analytical_actions_smoke.py
+      - .github/workflows/salcapa-analytical-actions.yml
+
+permissions:
+  contents: read
+
+jobs:
+  tenant-and-decision-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python tools/ci_salcapa_analytical_actions_smoke.py
+      - run: python -m py_compile salcapa_analytical_actions.py salcapa_runtime.py tools/ci_salcapa_analytical_actions_smoke.py
+      - run: node --check static/salcapa-analytical-actions.js

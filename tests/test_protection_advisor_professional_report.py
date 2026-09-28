@@ -20,6 +20,12 @@ RESULT = {
     "priority_capabilities": [{"capability": "Operational Coordination", "need_score": 64, "mission_areas": ["Prevention", "Response"], "information_gap": False}],
     "attention_topics": ["Are decision authority and succession documented and understood?"],
     "information_gaps": ["Recovery targets require validation."],
+    "preliminary_hypothesis": {
+        "reported_basis": "The participant reported a command authority concern.",
+        "working_assumption": "Authority may need validation; another control may compensate.",
+        "level_1_action": "Review a representative decision handoff in Level 1.",
+        "checklist": ["Name an owner.", "Review the record.", "Log the result."],
+    },
 }
 
 PACKAGE = {
@@ -58,6 +64,8 @@ def test_professional_docx_body_contains_approved_sections_without_json(tmp_path
         assert heading in text
     assert '"strength_count"' not in text
     assert '"primary_service"' not in text
+    assert "Preliminary Working Hypothesis and Level 1 Action" in text
+    assert "Review a representative decision handoff in Level 1." in text
 
 
 def test_template_based_docx_has_blank_second_page_and_required_font_styles(tmp_path: Path):
@@ -85,6 +93,9 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
         package=PACKAGE,
     )
     reader = PdfReader(path)
+    assert "Preliminary Working Hypothesis and Level 1 Action" in "\n".join(
+        page.extract_text() or "" for page in reader.pages
+    )
     assert len(reader.pages) >= 8
     page_count = len(reader.pages)
     assert f"page 1 of {page_count}" in (reader.pages[0].extract_text() or "")

@@ -263,9 +263,13 @@ with tempfile.TemporaryDirectory() as td:
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
-    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.0.0"
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.1.0"
+    assert package["primary_service"]["title"]=="Integrated SalCAPA Assessment"
+    assert package["primary_service"]["level"]==1
+    assert package["sequence"][0]=="Integrated SalCAPA Assessment — Level 1"
+    assert result["preliminary_hypothesis"]["working_assumption"]
     assert 1<=len(package["services"])<=4
-    assert all(item["level"] in {1,2,3} for item in package["services"])
+    assert all(item["level"]==1 for item in package["services"])
     assert all(item["capabilities"] and item["why"] for item in package["services"])
     assert package["core_capabilities_considered"]==32
     assert package["sequence"]
