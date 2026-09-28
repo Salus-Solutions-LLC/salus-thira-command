@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 28 September 2026 — organizational health method proposal under review
+
+- Marc requested a deep, reusable approach to assess governance, command, decision making, processes, leadership, delegations, promulgation, dynamic leadership and organizational pattern recognition, including daily and stress performance.
+- Read the authoritative Charter, Decision Register, Approved Artifacts, startup protocol, current handoff and four product standards. Reviewed primary ISO, GAO, FEMA, OPM, AHRQ, NASA and CDC guidance. This is cross-sector guidance; Member legal and regulatory applicability must be established separately.
+- Created `proposals/SALUS_ORGANIZATIONAL_HEALTH_ASSESSMENT_METHOD_20260928.md` on branch `codex/organizational-health-method-20260928`. It defines 12 diagnostic domains, evidence and rating rules, normal/stress tests, causal recommendation design, Levels 1–3 and product integration. It is a proposal, not an approved Charter change, issued Member finding or deployed workflow.
+- Next action: Marc reviews the proposal. On approval, record a new decision, integrate the controlling requirements into the Charter and affected standards, update the Approved Artifacts register, validate and merge. No Protected Member report or system deployment changed in this proposal.
+
 ## 28 September 2026 — SAL-D050 multidisciplinary assurance approved and merged
 
 - Marc paused Protection Advisor implementation to require a deep cross-discipline review before changing the questionnaire. Read the Charter, Decision Register, Approved Artifacts, startup protocol, current handoff, three-level framework and all four product standards. Research used dated, primary official sources across enterprise risk, fraud/anti-corruption, finance, insurance, engineering/code, public regulation, emergency management, critical infrastructure, FBI-informed behavioral threat, energy, community and behavior, continuity, cybersecurity, accessibility/public health, environment/animal health and supply chain.
