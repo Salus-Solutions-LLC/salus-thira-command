@@ -1,6 +1,6 @@
 # Salus research coverage and gap-closure standard
 
-**Authority:** SAL-D065–SAL-D067, Marc's 28 September 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
+**Authority:** SAL-D065–SAL-D068, Marc's 28 September 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
 
 ## Purpose
 
@@ -31,6 +31,8 @@ Convert every material unknown into a stable gap ID linked to the decision and s
 Compare new information with the exact existing Member record and approved Salus method. Separate genuine contradiction, later change in condition, different geographic scope, different definitions and uncertain inference. Keep source and contrary evidence together. Do not allege noncompliance, misconduct, coverage or physical overlap on a coarse map, outdated record or missing file alone. Escalate a decision-changing legal, engineering, medical, insurance or security question to the competent reviewer.
 
 ## Diligence and stopping rule
+
+During an active authorized Member assessment, an interim answer, saved draft, chat-turn ending or handoff is a checkpoint. Continue original and linked source pursuit, contrary checks and cross-product application across work periods without waiting for the Member to repeat the instruction. If a real access, rights, specialist, Member-record or authorization boundary prevents one step, pursue lawful alternatives and unaffected work; carry the exact open item and next action in the restricted execution ledger and current handoff. Do not relabel a bounded checkpoint as completed Member research. This does not create an unapproved background monitor or waive privacy, cost or release authority. [SAL-D068]
 
 Do not close a material search merely because the first plausible source supports the initial hypothesis. Search primary and contrary leads, adjacent jurisdictions and dependencies, historical and current periods, and a second independent source when the consequence warrants it. Continue until the defined decision is supported at its level, available leads have been followed or explicitly triaged, contradictions have a disposition, and additional research is unlikely to change the present decision relative to its cost, delay and authorization. Record that judgment and reviewer. If time, access, privacy, budget or competence stops the work first, label the output **bounded** and retain the open gap, owner and next action. A life-safety concern may require immediate separately authorized protective action while evidence collection continues.
 
