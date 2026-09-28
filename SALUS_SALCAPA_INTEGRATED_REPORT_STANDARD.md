@@ -29,7 +29,7 @@ Each material decision/action row has stable links to SalINTEL™ evidence and c
 
 Every Protected Member begins with Level 1; Level 2 follows a qualified integrated Level 1 package, and Level 3 follows a qualified integrated Level 2 package. A completed level is useful on its own. Higher levels and operational services require distinct scope and authorization. Urgent safety action is not held for commercial advancement. Describe the value of additional work through a named uncertainty, decision, deliverable and expected use; do not manufacture urgency, guarantee outcomes or conceal material risks. Price or contractual commitments appear only when separately approved and sourced.
 
-## Cross-service discovery and Member choice
+## Cross-service discovery and Member choice [SAL-D047]
 
 The integration step shall compare qualified SalINTEL™ needs, SalTHIRA™ priorities and SalOPS™ options against the current approved Salus service catalog. For each relevant additional service, record the source finding, Member outcome sought, why the service fits, immediate versus next-level timing, prerequisites, limits, service owner and authorization path. Show how a service could change the Member's decision or capability; do not present a list of offerings without a specific connection to this Member. Examples may include licensed armed security where lawful and appropriate, unarmed protective services, planning, training, exercises, crisis communications, continuity, recovery support and separately authorized specialist assessment or investigation. Verify licensing, insurance, jurisdiction, personnel/partner availability, conflicts, price and scope before making a commitment.
 
