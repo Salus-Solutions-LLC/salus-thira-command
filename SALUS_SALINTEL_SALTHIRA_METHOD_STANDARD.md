@@ -82,3 +82,9 @@ SalTHIRA™ carries the qualified assumption through all six steps and ranks how
 ## Implementation boundary
 
 This approval establishes the enterprise doctrine and template structure. Existing draft SharePoint items, dashboard behavior, prices, issued customer reports and production workflows change only through their own controlled artifact/release processes. The Tierra Linda Level 1 SalINTEL and SalTHIRA documents remain working member reports until their evidence, analyst and distribution gates are met.
+
+## SAL-D056 geospatial evidence and six-step handoff
+
+For material site, route and lifeline questions, SalINTEL™ records the confirmed or provisional area of interest, dated map layers, scale/uncertainty, private-layer gaps and protected overlay tier in its evidence and missing-information tables. SalTHIRA™ carries qualified spatial evidence through the existing six steps, five mission areas and applicable capabilities, testing access, cascades, regional resource competition and restoration consequences at the represented level. Public map presence alone does not verify exposure, utility resilience, excavation position or a legal breach. Link decision-changing spatial assumptions to same-level SalOPS™ options and next-level validation under `SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md`.
+
+Under SAL-D030, SalINTEL™ also records decision-relevant political and civic actions at local through global scale with the actual authority, adopted/proposed stage, docket or source, date, dependency and uncertainty. SalTHIRA™ tests only evidence-supported effects on scenarios, resources, targets and recovery. Political affiliation or lawful expression alone is neither a threat indicator nor a person-level finding.

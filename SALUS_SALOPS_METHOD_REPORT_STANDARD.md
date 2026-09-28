@@ -67,3 +67,7 @@ Each material SalOPS™ option and recommendation uses the same stable ID in a p
 ## Approval and release boundary
 
 The approved enterprise method and report structure are reusable. The working `SalOPS Report Template DRAFT.docx` and `Tierra Linda Ranch - SalOPS Level 1.docx` remain design references, not approved populated reports or operational orders. Qualify the exact member evidence, reconcile same-level inputs, complete analyst and authorized human review, perform the report-specific conformance check, and issue only through the governed record. Preserve member isolation, immutable release/version history and SAL-D027 impact review.
+
+## SAL-D056 location-dependent options
+
+Distinguish map-screened options from field, owner and specialist validated work. Recommend specific route, lifeline, access, monitoring, continuity and responder-coordination steps with accountable owner, prerequisite, authority, safe-stop condition and proof. A mapped pipeline is never an excavation locate; a mapped route is never proof of access or load capacity. Keep precise private access and critical-system overlays restricted. Link each proposed task to the same-level SalINTEL™ source and SalTHIRA™ scenario/target/gap; separately authorize execution under `SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md`.
