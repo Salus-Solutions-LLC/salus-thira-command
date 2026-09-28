@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 28 September 2026 — SAL-D064 source-to-release integrity approved
+
+- Marc directed that the latest source, privacy, report-render and historical-report lessons become part of the Salus Program Charter. SAL-D064 now adds a member-neutral source-to-release rule to the Charter and Decision Register, with execution language in the portfolio coherence standard and chat startup protocol. It requires an exact engagement source ledger, dated-operational-change reconciliation, distinct warning issuance/delivery/action evidence, privacy-safe directory use, exact rendered-page QA and preservation of historical report and model lineage. The Ranch-specific handout, email and directory findings remain only in the restricted Member audit; they were not promoted to universal facts or a client report.
+- This is approved enterprise method, not a completed 64-file review, approved Word binary, changed live questionnaire, repaired historical PDF route, issued Tierra Linda report or deployment. Current working reports and stacked draft PRs #574/#587 retain their previous status. The Protection Advisor historical-download 409 and original-artifact retrieval path remain an explicit release gate. The four Ranch working documents still require exact finding/proof, full-source, accessibility, native Word/print and analyst release review.
+- Next: complete the remaining source and same-ID report reconciliation in the existing Tierra Linda engagement, settle the historical Advisor retrieval path with governed artifact lineage, then validate and review the stacked drafts before any promotion or Member release.
+
 ## 28 September 2026 — Rendered report QA and Advisor layout correction
 
 - Corrected the prior handoff's renderer statement: LibreOffice is installed at `C:\Program Files\LibreOffice\program\soffice.exe`; the bundled document-render script works when that directory is added to its process PATH. This supplies local LibreOffice QA, not Microsoft Word or production print parity.
