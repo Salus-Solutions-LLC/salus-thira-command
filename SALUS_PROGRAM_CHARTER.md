@@ -323,6 +323,14 @@ Apply four practical handling tiers: **Public** (approved marketing and high-lev
 
 Legal review is required before adopting standard confidentiality, intellectual-property, license, subcontractor or enforcement clauses and before filing registrations. No watermark, copyright notice, confidentiality legend or access control guarantees that a competitor cannot independently develop a similar method. [SAL-D037]
 
+## Expanded lens discovery and bounded chat learning
+
+The approved SAL-D054 method adds conditional operational sub-lenses beneath SAL-D050's eighteen perspectives: owners/operators, dispatch/law enforcement, fire/community risk reduction, EMS/medical access, HAZMAT, zoning/floodplain, hydrology/geospatial uncertainty, transport/evacuation, aviation/recreation, agriculture/animal health, coupled lifelines and cyber/OT, information integrity and AI, worker/volunteer safety, whole-community recovery, public-resource competition, supply-chain geography, insurance/reconstruction, civic trust and second-order effects. Screen relevance rather than require a full specialist survey for every Protected Member. Preserve the five mission areas, 32-capability applicability decisions, SalTHIRA's six steps, the three sequential levels and the same-level SalINTEL™ → SalTHIRA™ → SalOPS™ → SalCAPA™ chain.
+
+Each material issue distinguishes verified observation, unverified report, inference, assumption, known gap, dispute and unmodeled possibility. Test written plans against actual incidents and exercises; map dependencies, affected groups and adverse effects; seek independent challenge and a falsifying observation. Unforeseen hazards cannot be claimed as exhaustively identified. Set collection, owner, specialist, next-level and recheck triggers proportionate to the decision. Explain applicable concerns to the Protected Member without exporting the restricted method or person-level records.
+
+Past chats are candidate evidence, not authority or proof of implementation. Record the accessible search boundary and exclusions; reconcile a candidate lesson against the Charter, Decision Register, approved artifacts and current deployment evidence before reuse. Follow SAL-D025 for provenance, applicability, confidence, currency, restrictions, review, supersession and Protected Member isolation. Human approval remains required for consequential method and finding decisions. The companion `SALUS_EXPANDED_LENS_DISCOVERY_METHOD_20260928.md` holds the 28 September 2026 source and chat review, limits and product handoffs. Its approval does not issue or change a Protected Member report or live workflow. [SAL-D054]
+
 ## Governance principles
 
 - GitHub is the technical source of truth.

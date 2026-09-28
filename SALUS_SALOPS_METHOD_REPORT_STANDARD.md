@@ -56,6 +56,10 @@ Carry each material organizational-health option with its originating Advisor si
 
 When an organizational or multidisciplinary gap leads to an option, link the specific SalINTEL™ request/evidence status and SalTHIRA™ decision effect. Identify which missing document, interview, specialist review or exercise would change feasibility, authority, cost, safety or predicted benefit. A generic request list does not authorize collection or a service.
 
+## SAL-D054 operating-option challenge
+
+Use the applicable sub-lenses in `SALUS_EXPANDED_LENS_DISCOVERY_METHOD_20260928.md` to test whether an offered option depends on unconfirmed dispatch or mutual aid, access, fuel, water, communications, veterinary/medical care, permits, insurance, volunteers or a single vendor. State which counterpart can confirm the dependency, the safe stopping condition, alternative mode, adverse or unequal effects, funding and proof. Match the selected SalTHIRA™ scenario and same level; distinguish offered, authorized, implemented and validated states. A chat assertion or paper plan cannot establish operational readiness. Any change to an existing controlled report/template follows SAL-D027 and SAL-D043.
+
 ## Approval and release boundary
 
 The approved enterprise method and report structure are reusable. The working `SalOPS Report Template DRAFT.docx` and `Tierra Linda Ranch - SalOPS Level 1.docx` remain design references, not approved populated reports or operational orders. Qualify the exact member evidence, reconcile same-level inputs, complete analyst and authorized human review, perform the report-specific conformance check, and issue only through the governed record. Preserve member isolation, immutable release/version history and SAL-D027 impact review.
