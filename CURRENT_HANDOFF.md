@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 28 September 2026 — SAL-D070 source-by-source research and application
+
+- Marc directed deep original-source review of the indexed materials, extraction of concepts, strategies, methods and results, and application across the Salus ecosystem. SAL-D070 now appears in the draft Program Charter, Decision Register and research standard. It is an enterprise requirement; the unfinished Tierra Linda and thought-leader source queue is not declared complete.
+- The restricted Tierra Linda source index now also retains 475 unverified thought-leader hyperlinks and distinguishes 34 claim-scoped primary works from lead-list entries; the Ranch original-source queue has progressed through the three-page horse-program form, four eclipse-planning originals, two agency-statement variants, January/April Board minutes, the July flood memorandum and four county-alert/radio notices. Relevant findings were reconciled into the same four working Word report identities, including evacuation-assistance roster governance, July flood-repair cash/insurance constraints and horse-program helmet/waiver review. No person-level allegation or resident data was added to general reports.
+- A current GAO 2025 internal-control revision and 2026 fraud-evaluation appendix were reconciled in the member-neutral thought-leader record, with applicability limits for private HOAs. Remaining original/source, specialist, report QA and human release gates stay open. Next: continue the financial, newsletter, email/attachment and external-link queue; refresh the index and re-render exact report versions before any release claim.
+
 ## 28 September 2026 — SAL-D069 source-index reuse
 
 - Marc approved a source index for each customer effort and reuse of the indexing method across relevant Salus ecosystem domains. SAL-D069 is recorded in the Charter, Decision Register, research standard and startup protocol on this draft branch. Protected Member evidence remains in a restricted engagement index; only reviewed, provenance-preserving member-neutral lessons and public-source navigation can enter the shared method index under SAL-D025.
