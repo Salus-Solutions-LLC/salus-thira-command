@@ -62,3 +62,7 @@ The final handoff must identify:
 ## Recovery rule
 
 If a new chat lacks a file, repository, account connection, or permission needed to verify current state, it must say so. It must not fill the gap by guessing, silently redesigning, or treating old chat memory as authoritative.
+
+## SAL-D055 analytical recommendation continuity
+
+On a Salus assessment, report or questionnaire task, inspect `SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md` and `SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md` after the five controlling records. Before a material report handoff, identify which source-bound questions led to working assumptions and which assumptions led to paired narrative/checklist recommendations. Preserve stable IDs, Member decision/action states, validation triggers and report versions. State whether a requirement is approved method, local candidate, live feature or issued Member finding. If a current report or questionnaire lacks the approved pattern, record an SAL-D027 impact and the exact artifact/release gate rather than claiming completion from Charter text alone.

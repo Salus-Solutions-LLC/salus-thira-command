@@ -1,6 +1,6 @@
 # SalINTEL and SalTHIRA Controlled Method and Report Standard
 
-**Status:** Approved enterprise method and report-template structure, effective 27 September 2026 (SAL-D044); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051).  
+**Status:** Approved enterprise method and report-template structure, effective 27 September 2026 (SAL-D044); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051); analytical assumptions-to-action amendment approved 28 September 2026 (SAL-D055).  
 **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential.  
 **Applies to:** Level 1, Level 2 and Level 3 work under the Program Charter. This record governs method and reusable structure; it does not approve a Protected Member finding, a price, operational task, software release, or report issue.
 
@@ -72,6 +72,12 @@ The registered Word templates are approved **structures and prompts**, not compl
 For SalINTEL™, apply the conditional sub-lens screen and source/uncertainty ledger in `SALUS_EXPANDED_LENS_DISCOVERY_METHOD_20260928.md`. Educate the Protected Member on each material concern and distinguish a planned capability from demonstrated incident/exercise performance. Trace dispatch, fire, EMS, HAZMAT, land use, animal operations, lifeline coupling, information integrity, volunteer safety, resource competition, community recovery and second-order effects when applicable. Investigate a contradiction before treating missing evidence as noncompliance. Person-level chat or case material stays restricted.
 
 For SalTHIRA™, carry selected evidence and unknowns through the **existing six steps**, five mission areas and applicable core capabilities. Challenge the favored scenario with a compound failure, resource-constrained response, adverse treatment effect and plausible alternative explanation when each could change targets, gaps or priorities. Mark assumption, confidence and specialist trigger; do not invent a probability or claim an unmodeled surprise was identified. At Level 1 screen and rank; Level 2 validates selected decision-changing issues; Level 3 tests approved complex cases. Active Word templates and Member reports require separate SAL-D027/SAL-D043 review and release.
+
+## SAL-D055 assumption-led recommendations and report expression
+
+Apply `SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md` to every material question and recommendation at the represented level. SalINTEL™ records the source-bound answer, contradiction, analytical working assumption, alternative explanation, confidence, validation test and decision effect; it educates the Member and recommends a specific proportionate immediate or next-level step. The missing-information table states the decision that each answer may change. In the SalINTEL™ executive summary and applicable sections, pair each priority recommendation's narrative with a verifiable action checklist and stable ID.
+
+SalTHIRA™ carries the qualified assumption through all six steps and ranks how a true/false result would change the scenario, consequence, mission-area/core-capability target, gap and treatment. Its BLUF states the analyst's current-level judgment in narrative and checklist form, linked to the existing numbered tables; the checklist must not silently turn a proposed SalOPS™ option into an authorized task. Level 1 uses bounded assumptions to deliver useful qualified priorities and options; Levels 2 and 3 test and revise selected assumptions. Record no-action and feasible alternatives, affected groups, dependencies, professional/Member authority, proof and residual uncertainty. Maintain narrative/checklist parity in the controlled Word templates and any populated report after SAL-D027/SAL-D043 review.
 
 ## Implementation boundary
 

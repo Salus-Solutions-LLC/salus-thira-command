@@ -1,6 +1,6 @@
 # SalOPS™ Method and Report Standard
 
-**Status:** Approved enterprise method and report structure, effective 27 September 2026 (SAL-D045); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework, SalINTEL/SalTHIRA standard, and current controlled templates. This standard authorizes methodology and report design, not live operations, spending, pricing, software deployment, or any Protected Member finding.
+**Status:** Approved enterprise method and report structure, effective 27 September 2026 (SAL-D045); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051); analytical assumptions-to-action amendment approved 28 September 2026 (SAL-D055). **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential. Apply with the Program Charter, Decision Register, approved system presentation, three-level framework, SalINTEL/SalTHIRA standard, and current controlled templates. This standard authorizes methodology and report design, not live operations, spending, pricing, software deployment, or any Protected Member finding.
 
 ## Purpose and domain structure
 
@@ -59,6 +59,10 @@ When an organizational or multidisciplinary gap leads to an option, link the spe
 ## SAL-D054 operating-option challenge
 
 Use the applicable sub-lenses in `SALUS_EXPANDED_LENS_DISCOVERY_METHOD_20260928.md` to test whether an offered option depends on unconfirmed dispatch or mutual aid, access, fuel, water, communications, veterinary/medical care, permits, insurance, volunteers or a single vendor. State which counterpart can confirm the dependency, the safe stopping condition, alternative mode, adverse or unequal effects, funding and proof. Match the selected SalTHIRA™ scenario and same level; distinguish offered, authorized, implemented and validated states. A chat assertion or paper plan cannot establish operational readiness. Any change to an existing controlled report/template follows SAL-D027 and SAL-D043.
+
+## SAL-D055 assumption-to-option narrative and checklist
+
+Each material SalOPS™ option and recommendation uses the same stable ID in a plain-language narrative and a verifiable action checklist under `SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md`. The narrative names its SalINTEL™ evidence and working assumption, SalTHIRA™ scenario/target/gap, alternative and no-action consequence, causal benefit, constraints and residual risk. The checklist gives the specific proposed steps, Member/Salus authority, timing, cost/resource basis, prerequisite, partner and competing demand, safety/stop or fallback, completion proof and validation trigger. Mark suggested, offered, selected, authorized, implemented and validated states separately. Do not present a checklist as an order or a service commitment. At Level 1 recommend bounded, feasible actions while explicitly stating unconfirmed assumptions; at Levels 2/3 revise action detail after validation or stress testing. Keep Member-facing narrative and checklist consistent with the SalCAPA™ master action record and controlled report versions.
 
 ## Approval and release boundary
 
