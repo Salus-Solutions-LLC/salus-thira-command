@@ -68,6 +68,8 @@ The Member may stop after a useful Level 1 package. Level 2 follows a qualified 
 
 ## 5. Content crosswalk and acceptance gates
 
+Use `SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md` to stage the Member packet and conditional proof requests after Level 1 authorization. It includes the other approved professional lenses as well as organizational health; Protection Advisor continues to collect only preliminary signals.
+
 For every material leadership or process signal, maintain a controlled crosswalk:
 `advisor question/answer/version → educational statement and caveat → SalINTEL domain/source/contradiction → SalTHIRA scenario/target/gap → SalOPS option/state → SalCAPA decision/owner/proof → report version and review`.
 
