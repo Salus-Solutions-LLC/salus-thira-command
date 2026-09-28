@@ -1,6 +1,6 @@
 # Salus research coverage and gap-closure standard
 
-**Authority:** SAL-D065–SAL-D071, Marc's 28 September 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
+**Authority:** SAL-D065–SAL-D072, Marc's 28 September 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
 
 ## Purpose
 
@@ -65,3 +65,7 @@ Before handoff or issue, a human reviewer checks the coverage matrix against the
 ## SAL-D071 completion gate
 
 Maintain one explicit in-scope queue of original sources, linked and contrary leads, unresolved contradictions, Member questions, method changes, same-level report effects and release checks. Close an item only with an evidenced finding, reasoned exclusion or no-change, or a documented outside-scope decision made by an authorized reviewer. A named blocker remains open with attempted alternatives, decision effect, owner and next proof. Do the remaining lawful work while that blocker exists. Before saying a task is 100% complete, compare the queue with the agreed deliverable and acceptance gates, validate exact versions, and obtain any required qualified review and human release. State interim status plainly, even when a chat turn or work period ends. Do not describe every possible source on the internet as searched; make the search boundary and remaining leads auditable.
+
+## SAL-D072 use across the enterprise and every Member
+
+Use this standard for every authorized Salus research or assessment workstream and every Protected Member, including changes to existing work. At intake and after each material method or evidence change, record the controlling version, applicable research and report requirements, named owner, source and decision trace, verification and release gate. Record a governed, time-bounded exception or reasoned not-applicable decision if a requirement truly does not govern a specific task. Transfer only approved member-neutral learning with provenance, qualified review and Protected Member isolation. An enterprise method approval does not show that a particular Member's source queue or reports passed the completion gate.
