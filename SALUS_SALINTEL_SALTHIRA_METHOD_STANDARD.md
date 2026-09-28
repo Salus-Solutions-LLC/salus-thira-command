@@ -1,6 +1,6 @@
 # SalINTEL and SalTHIRA Controlled Method and Report Standard
 
-**Status:** Approved enterprise method and report-template structure, effective 27 September 2026 (SAL-D044); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051).  
+**Status:** Approved enterprise method and report-template structure, effective 27 September 2026 (SAL-D044); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051); analytical assumptions-to-action amendment approved 28 September 2026 (SAL-D055).  
 **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential.  
 **Applies to:** Level 1, Level 2 and Level 3 work under the Program Charter. This record governs method and reusable structure; it does not approve a Protected Member finding, a price, operational task, software release, or report issue.
 
