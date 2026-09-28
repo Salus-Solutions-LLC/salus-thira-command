@@ -1,11 +1,13 @@
 """Bounded SAL-D055 register smoke: lineage, tenant boundary, and Member choice."""
 import sqlite3
+import sys
 import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from salcapa_analytical_actions import register_analytical_actions
 
 
