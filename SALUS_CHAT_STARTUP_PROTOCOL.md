@@ -24,6 +24,10 @@ Before modifying anything, the chat must:
 12. State the objective, current state, unfinished work, next action, and authorization boundary.
 13. Obtain clarification before acting if sources materially conflict.
 
+## Protection Advisor redesign trigger
+
+When the four SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™ methods, information requirements, research and report designs have been refined and a Protection Advisor Part 1 or Part 2 change is proposed, apply SAL-D048. Inspect exact current questionnaire/logic/report versions and the approved Protection Advisor example; review the current `https://www.salus.solutions/services` index and relevant subpages; map qualified answers to Member education, a Level 1 assessment invitation and separate suitable service choices. Preserve the sequential Level 1 first-purchase rule, Part 1/Part 2 boundaries, Protected Member consent, SAL-D027 impact, SAL-D040 typography, SAL-D043 report QA and governed release. Do not infer that the future-review decision approved a production edit.
+
 ## Chat-record reconciliation and report update check
 
 At startup, inspect the current candidate-record queue and recently approved decisions, methods, templates and lessons relevant to the objective. A chat, summary or memory note is a lead to verify against source turns and governing artifacts, never self-validating authority. Record source IDs, conflicts, dispositions and review owner for material proposals. Preserve member-specific source and access boundaries.
