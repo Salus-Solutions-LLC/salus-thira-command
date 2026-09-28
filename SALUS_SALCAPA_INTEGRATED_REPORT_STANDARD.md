@@ -29,6 +29,12 @@ Each material decision/action row has stable links to SalINTEL™ evidence and c
 
 Every Protected Member begins with Level 1; Level 2 follows a qualified integrated Level 1 package, and Level 3 follows a qualified integrated Level 2 package. A completed level is useful on its own. Higher levels and operational services require distinct scope and authorization. Urgent safety action is not held for commercial advancement. Describe the value of additional work through a named uncertainty, decision, deliverable and expected use; do not manufacture urgency, guarantee outcomes or conceal material risks. Price or contractual commitments appear only when separately approved and sourced.
 
+## Cross-service discovery and Member choice
+
+The integration step shall compare qualified SalINTEL™ needs, SalTHIRA™ priorities and SalOPS™ options against the current approved Salus service catalog. For each relevant additional service, record the source finding, Member outcome sought, why the service fits, immediate versus next-level timing, prerequisites, limits, service owner and authorization path. Show how a service could change the Member's decision or capability; do not present a list of offerings without a specific connection to this Member. Examples may include licensed armed security where lawful and appropriate, unarmed protective services, planning, training, exercises, crisis communications, continuity, recovery support and separately authorized specialist assessment or investigation. Verify licensing, insurance, jurisdiction, personnel/partner availability, conflicts, price and scope before making a commitment.
+
+The report shall have a **Relevant Salus services and Member choices** section, distinct from required safety advice, SalOPS options already offered and sequential Level 2/3 assessment. Use a concise table with finding or need, service and expected benefit, prerequisites and evidence limit, decision owner and voluntary next step. Include a simple route to ask Salus for a scoped discussion or proposal; record acceptance, deferral or rejection in SalCAPA™. A referral is not authorized work, a guaranteed outcome, a package entitlement or a reason to delay urgent protective action. The Member may decline additional services without losing the value of the completed assessment. Price and contracting remain separately approved.
+
 ## Required stand-alone report structure
 
 Name the report `[Protected Member customer name] - SalCAPA Level [1, 2, or 3]`. The title/front matter and executive summary state represented level and requested/authorized/completed status. The Salus Confidential cover identifies approved viewers, permitted use and distribution, storage, restricted annex treatment, version and release authority. **Page 2 is entirely blank**, and the body begins on page 3. Nonblank pages use `page X of Y`. Use Arial for title, headings, running headers and table column headings and Times New Roman for body, table body, notes and footers. Apply brand, accessibility, navigation and rendered-page checks.
@@ -48,7 +54,8 @@ The body covers:
 7. Sequence, dependencies, competing public/mutual-aid resources and no-action consequences.
 8. Member decisions and Salus follow-through: urgent matters, bounded actions, accountable owner, target date and closure proof.
 9. Next-level or continuing-service opportunity, each mapped to a specific uncertainty or implementation decision, deliverable, prerequisite and separate scope/authorization.
-10. Evidence, limitations, document control and restricted annex index. Point to source reports instead of copying unnecessary sensitive detail.
+10. Relevant Salus services and Member choices, with evidence-linked service fit, verified availability conditions and an optional request-for-scope route.
+11. Evidence, limitations, document control and restricted annex index. Point to source reports instead of copying unnecessary sensitive detail.
 
 Each major finding teaches the Protected Member in plain language: pathway to harm or disruption, current evidence, contrary or missing information, practical choices, what a choice requires and what information would change it. Distinguish observed fact, report, inference, estimate, unknown, not assessed and verified outcome. Include material compliance issues only at their qualified status; do not present an unsupplied permit as a violation. Minimize PII and keep person-specific records in restricted annexes and the correct member boundary.
 
