@@ -1,6 +1,6 @@
 # Salus Three-Level Service Framework
 
-**Status:** Approved program structure, 27 September 2026 (SAL-D029); level methodology and reporting architecture refined under SAL-D031 and sequential package rule under SAL-D032 and staged product/final-report sequence under SAL-D033. Commercial prices, service-specific scope sheets, entitlements and software deployment remain subject to their separate approvals.
+**Status:** Approved program structure, 27 September 2026 (SAL-D029); level methodology and reporting architecture refined under SAL-D031 and sequential package rule under SAL-D032 and staged product/final-report sequence under SAL-D033. SalOPS™ and SalCAPA™ detailed enterprise methods and report structures are now controlled by `SALUS_SALOPS_METHOD_REPORT_STANDARD.md` (SAL-D045) and `SALUS_SALCAPA_INTEGRATED_REPORT_STANDARD.md` (SAL-D046). Commercial prices, service-specific scope sheets, entitlements and software deployment remain subject to their separate approvals.
 
 ## Governing distinction
 
