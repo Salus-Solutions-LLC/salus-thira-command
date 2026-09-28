@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 27 September 2026 — SAL-D043 per-report Charter conformance gate
+
+- Marc directed that every Salus report be checked against the Program Charter. Recorded SAL-D043 in the Decision Register (commit `e9c6690fbffc5b954441c5db00d2dd32ac76ab4f`), added the per-report conformance gate to the Program Charter (commit `ae037c1626861fb632e1607929946588e5c953a5`), and made it part of the Chat Startup and Handoff Protocol (commit `b97ee08b9217038c6ee5735b7b26c3cdb9f2d321`). Each exact report version gets met/pending/not-applicable dispositions for content, evidence, confidentiality, naming, typography, pagination, rendered layout, accessibility and format parity.
+- Created an internal QA record `work/report_qa/Tierra_Linda_SalTHIRA_Level_1_Charter_Conformance_20260927.md` for the existing `work/Tierra Linda Ranch - SalTHIRA Level 1.docx`. The current working document meets the checked title/level, cover, blank page 2, page 3 BLUF, page X of 27, Arial/Times New Roman, four titled BLUF tables, six-step working content, five mission areas, 32 capabilities and seven-option SalOPS handoff. Source reconciliation, approved methodology, analyst/Member validation, privacy/accessibility release review and any offered-format parity remain explicit gates.
+- No issued report, production deployment or customer release status changed. The next report delivery or material revision must repeat the matrix on that exact version and correct any defect before issue.
+
 ## 27 September 2026 — SAL-D042 SalTHIRA BLUF table titles
 
 - Marc directed clear titles and purposes at the top of each BLUF table. Recorded SAL-D042 in the Decision Register (commit `d541a3ef3b073e9f876405e3afb03ef5f95ddb9f`) and Program Charter (commit `b6db42f382d8b7537b2af598f5ec3c58b774d419`).
