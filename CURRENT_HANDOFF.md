@@ -1,11 +1,12 @@
 # Salus Solutions — Current Handoff
 
-## 28 September 2026 — SAL-D052 organizational health across products and Protection Advisor
+## 28 September 2026 — SAL-D052–SAL-D053 cross-product integration and information audit
 
 - Marc directed application of the approved SAL-D051 organizational-health method across SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™ and the Protection Advisor. Reviewed the existing four standards, three-level framework and exact `public_protection_advisor.py` questionnaire version `SPA-PUBLIC-QUESTIONNAIRE-2.0.0` on development. Part 1 already has authority, ownership, reporting, leadership and exercise prompts; its burden should not increase.
 - Added `SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md` as the approved member-neutral crosswalk and Part 1/Part 2 design. Added SAL-D052 to the Decision Register and Charter and integrated it into the three product standards, three-level framework and Approved Artifacts register. Existing Part 1 answers remain preliminary; Level 1 SalINTEL qualifies the full twelve-domain assessment. The six-step SalTHIRA, SalOPS action authorization and SalCAPA same-level decision chain remain intact.
 - PR #569, which approved SAL-D051, merged into `development/salcapa-platform` as `02be08d8db571adf56ce478bd33cf9a26ddb9641`. SAL-D052 changes are on `codex/organizational-health-cross-product-20260928` pending validation/merge. No live questionnaire, recommendation rules, downloadable report, Protected Member record, Word template or software deployment changed in this branch. Exact implementation requires approved-example inspection, consent/privacy, report parity, rendered QA and governed release.
-- Next action: validate and merge the SAL-D052 method records; then stage exact Protection Advisor and active-report impact reviews without duplicate submissions or reports.
+- Marc asked whether the wider Salus body of work and required-information lists were included. Audit found the 18-lens SAL-D050 research had not been consolidated into one staged Member request and six-step handoff. Added `SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md`, SAL-D053, and Charter/product-standard requirements for a tailored Level 1 packet, conditional Level 2/3 requests, missing-information table and evidence-to-decision trace. The register explicitly disclaims exhaustive review of prior chats, 64 uploads or every law/site; engagement-specific reconciliation is still required.
+- Next action: validate and merge the SAL-D052/SAL-D053 method records; then stage exact Protection Advisor and active-report impact reviews without duplicate submissions or reports.
 
 ## 28 September 2026 — SAL-D051 organizational health method approved
 
