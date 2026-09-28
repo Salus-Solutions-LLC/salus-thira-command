@@ -47,6 +47,10 @@ The integrated report shall summarize material verified strengths, leadership/au
 
 Where an organizational-health concern began in Protection Advisor, preserve the question and version as a preliminary origin only. Link the Member-specific SalINTEL™ validation, SalTHIRA™ scenario/capability effect, SalOPS™ option and state, and SalCAPA™ decision, owner, proof and residual uncertainty. Reconcile a later finding that differs from the initial answer without erasing either record. The integrated report describes the qualified result and its limits, not a questionnaire-derived organizational rating.
 
+## Missing-information and lens assurance trace [SAL-D053]
+
+The integrated report shall disclose material decision-changing information not yet obtained and identify its source owner, sensitivity, collection level, interim decision and review trigger. Reconcile the applicable professional lenses, organizational domains and same-level source report IDs in the existing assurance register. Do not claim completeness from a generic checklist or duplicate the Member's evidence files in the integrated summary.
+
 ## Required stand-alone report structure
 
 Name the report `[Protected Member customer name] - SalCAPA Level [1, 2, or 3]`. The title/front matter and executive summary state represented level and requested/authorized/completed status. The Salus Confidential cover identifies approved viewers, permitted use and distribution, storage, restricted annex treatment, version and release authority. **Page 2 is entirely blank**, and the body begins on page 3. Nonblank pages use `page X of Y`. Use Arial for title, headings, running headers and table column headings and Times New Roman for body, table body, notes and footers. Apply brand, accessibility, navigation and rendered-page checks.
