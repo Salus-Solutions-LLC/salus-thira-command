@@ -26,10 +26,10 @@ Candidates are additive, member-neutral revisions in the shared local workspace 
 
 | Candidate DOCX | SHA-256 | Rendered pages |
 |---|---|---|
-| `SalINTEL Report Template v2 CANDIDATE.docx` | `4C3AA1928B8758C7B166782FC015B3EC904FE9DDB5DD6E3388DEABF938E4083E` | 9 |
-| `SalTHIRA Report Template v2 CANDIDATE.docx` | `B040D3600765601EDC0B35C5608F3B91D974FC6B607B682E3058F45123FD2728` | 6 |
-| `SalOPS Report Template v2 CANDIDATE.docx` | `92541AEB8971983DD2729B2B4636770DE9802EE1CDF996F088889E995D2009DB` | 6 |
-| `SalCAPA Integrated Report Template v2 CANDIDATE.docx` | `9197315D3FAB73DC384B880D941D87CA39B380AEDE05A4B6A50CA092E22E2C76` | 6 |
+| `SalINTEL Report Template v2 CANDIDATE.docx` | `4EAA32BA36B5BD6C597CDD45E73FF98989462A90BE8C1D970B556ED357348A08` | 9 |
+| `SalTHIRA Report Template v2 CANDIDATE.docx` | `56119F4EB7FB6FD4CE97D07CF27600C41F60F58CB43ED62F4BEEC73BDC976AB6` | 6 |
+| `SalOPS Report Template v2 CANDIDATE.docx` | `688C3BC453AFBFB207E605A764C9C5BEB88CA090ED6776A1834CCF4FD4137BBD` | 6 |
+| `SalCAPA Integrated Report Template v2 CANDIDATE.docx` | `D1BA8F2DF6CB3D824CB30FA389A1145E9F81D8DA7E0C050F05E8F87D83038E00` | 6 |
 
 Before a candidate replaces an approved template or is used to issue a Member report, inspect every page at full size, verify typography/accessibility/internal links and PDF/print parity, approve the exact binary and storage/access location, register its hash and supersession, and complete report-specific SAL-D043 conformance. A PDF text check alone does not prove a visually blank page; the page image review is also required. Do not overwrite the approved v1 binaries or create a duplicate report to force adoption.
 
