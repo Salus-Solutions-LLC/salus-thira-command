@@ -2,6 +2,7 @@
 
 | Artifact | Role | Authority status |
 |---|---|---|
+| `SALUS_THOUGHT_LEADER_RESEARCH_STANDARD.md` | Member-neutral fresh research, source verification, contrasting-view and Salus reconciliation method | Approved direction from Marc, 28 September 2026 (SAL-D060); supplied Word rosters are candidate sources pending full intake and independent verification, not approved doctrine or issued findings |
 | `SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md` | Member-neutral imagery, infrastructure-map, spatial provenance, restricted-overlay and Level 1–3 product handoff method | Approved direction from Marc, 28 September 2026 (SAL-D056); site-specific overlay, exact Word templates, live features and issued reports require separate validation/release |
 | `SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md` | Approved staged Level 1 and conditional Level 2/3 information-request and 18-lens product crosswalk | Approved direction from Marc, 28 September 2026 (SAL-D053); generic control, not Member source-completeness proof or issued report |
 | `SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md` | Approved member-neutral Protection Advisor and four-product integration design for organizational-health findings and Level 1–3 handoffs | Approved by Marc, 28 September 2026 (SAL-D052); exact live questionnaire, scoring, Word/PDF reports and deployment require separate governed release |
