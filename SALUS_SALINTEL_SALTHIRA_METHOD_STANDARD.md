@@ -1,6 +1,6 @@
 # SalINTEL and SalTHIRA Controlled Method and Report Standard
 
-**Status:** Approved enterprise method and report-template structure, effective 27 September 2026 (SAL-D044).  
+**Status:** Approved enterprise method and report-template structure, effective 27 September 2026 (SAL-D044); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050).  
 **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential.  
 **Applies to:** Level 1, Level 2 and Level 3 work under the Program Charter. This record governs method and reusable structure; it does not approve a Protected Member finding, a price, operational task, software release, or report issue.
 
@@ -43,7 +43,7 @@ The SalTHIRA client-facing title and filename are `[Protected Member customer na
 
 The SalTHIRA BLUF begins the body with ranked narrative and four separate numbered tables: hazard scenario priorities; six-step assessment-work priorities; five mission-area priorities; and all 32 core-capability priorities. Put each table's heading at a lower level than BLUF, state its purpose immediately above, keep title/purpose/header together and repeat headers on continuation pages. Follow with executive assessment, scope, SalINTEL readiness, assessment practice, six steps, connected scenario records, continuity/recovery, resource competition, capability screen, mitigation/contradictions, analyst review/SalOPS handoff and sources. Same-level SalOPS recommendations/options are required; execution needs separate approval.
 
-## Multidisciplinary assurance screen [proposed SAL-D050 enhancement]
+## Multidisciplinary assurance screen [SAL-D050]
 
 At every level, screen the applicability of professional lenses for enterprise risk and board decisions; compliance, anti-bribery and fraud; CFO/CPA and liquidity; insurance/claims; engineering, construction and adopted codes; regulators; emergency management and public safety; homeland security; FBI-informed behavioral threat assessment; energy assurance; sociology/community trust; behavioral and human factors; business continuity; cybersecurity/privacy/AI; public health/accessibility; environment/animal health; procurement/supply chain; and independent review. Use the dated primary-source and evidence matrix in `proposals/SALUS_MULTIDISCIPLINARY_ASSURANCE_REVIEW_20260928.md` as a research lead, not as a Member finding or automatic legal duty. Mark each lens applicable, not applicable, unknown or outside approved scope, with rationale and a specialist trigger. Level 1 screens existing authorized sources and names decision-changing unknowns; Level 2 validates selected questions; Level 3 tests approved compound cases and alternatives.
 
