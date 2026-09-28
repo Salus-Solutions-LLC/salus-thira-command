@@ -1,5 +1,7 @@
 # SalOPS Method and Report Design — Proposed v0.1
 
+**Disposition (27 September 2026):** Marc approved the SalOPS™ process and report structure. The controlling approved derivative is `SALUS_SALOPS_METHOD_REPORT_STANDARD.md` under SAL-D045. This proposal remains historical design evidence; its earlier candidate-status wording is superseded. The working Word template and Tierra Linda report are not issued.
+
 **Date:** 27 September 2026. **Status:** Candidate design for Marc's review; not approved enterprise doctrine, operational authority, price, deployed software or issued member report. **Handling:** Salus Internal Confidential.
 
 ## Design decision
