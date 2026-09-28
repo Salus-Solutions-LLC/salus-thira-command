@@ -25,13 +25,20 @@ Fresh relevant research check under SAL-D060: [date; selected and excluded lense
 
 ## 3. Working judgment
 
-**Qualified finding or strength:** [State what was observed and what remains only reported.]  
-**Testable working assumption:** [Condition, geography, time, affected function.]  
-**Plausible alternative and falsifier:** [What would change the conclusion, and the least burdensome lawful way to learn it.]  
-**Uncertainty and consequence if wrong:** [Qualitative unless evidence supports a number.]  
-**System interactions:** [Actual/formal roles; access; reporting; decision authority; communications; people; utility/road/supply/finance/public-service dependencies; feedback; delayed or shared resources.]  
-**Normal and stressed function:** [Current output; safe minimum; interruption threshold; restoration stages; time to usable function versus asset repair.]  
-**Affected groups and unintended effects:** [Who benefits, who bears burden, accessibility/privacy, neighboring demand and fallback.]  
+**Qualified finding or strength:** [State what was observed and what remains only reported.]
+
+**Testable working assumption:** [Condition, geography, time, affected function.]
+
+**Plausible alternative and falsifier:** [What would change the conclusion, and the least burdensome lawful way to learn it.]
+
+**Uncertainty and consequence if wrong:** [Qualitative unless evidence supports a number.]
+
+**System interactions:** [Actual/formal roles; access; reporting; decision authority; communications; people; utility/road/supply/finance/public-service dependencies; feedback; delayed or shared resources.]
+
+**Normal and stressed function:** [Current output; safe minimum; interruption threshold; restoration stages; time to usable function versus asset repair.]
+
+**Affected groups and unintended effects:** [Who benefits, who bears burden, accessibility/privacy, neighboring demand and fallback.]
+
 **Specialist, site or next-level proof required:** [Exact question, source owner, safe method, due/decision point and potential priority change.]
 
 ## 4. Same-level product handoff
@@ -45,22 +52,29 @@ Fresh relevant research check under SAL-D060: [date; selected and excluded lense
 
 ## 5. Specific recommendation and Member choice
 
-**Narrative [recommendation ID]:** [Explain the evidence, working assumption and alternative; why the mechanism matters; no action and feasible options; preferred choice and tradeoffs; current level and what would change the recommendation.]  
+**Narrative [recommendation ID]:** [Explain the evidence, working assumption and alternative; why the mechanism matters; no action and feasible options; preferred choice and tradeoffs; current level and what would change the recommendation.]
+
 
 | Action checklist | Owner and approval state | Trigger / window | Dependency and safe stop | Completion proof and reviewer |
 |---|---|---|---|---|
 | ☐ [One verifiable step] | [Named role; suggested / selected / authorized / performed / validated] | [Date or condition] | [Resource, partner, legal or safety gate] | [Observed record and acceptance measure] |
 
-**Member decision:** [Selected, deferred, rejected or pending; rationale, date, authority and risk acceptance only if actually approved.]  
-**Separate Salus service scope/price:** [Catalog and authority check, versioned estimate, capacity, contract/approval; blank until authorized.]  
+**Member decision:** [Selected, deferred, rejected or pending; rationale, date, authority and risk acceptance only if actually approved.]
+
+**Separate Salus service scope/price:** [Catalog and authority check, versioned estimate, capacity, contract/approval; blank until authorized.]
+
 **Change control:** [Changed option/scope/cost/condition, authority and reason.]
 
 ## 6. Performance, reporting and learning
 
-**Work actually performed and deviations:** [Authorized task ID, date, personnel/partner role, incident, actual resources and change record.]  
-**Result against target:** [Observed function, exercise/incident or other test, baseline, witness/source and uncertainty; do not treat attendance, purchase, repair or ticket closure as capability proof.]  
-**Residual gap, retest and stop/reopen trigger:** [Owner, due point and evidence to close or reopen.]  
-**Report impact and release:** [Active/issued reports affected, SAL-D027 decision, exact version/hash, protected recipients, qualified review, Word/PDF/print and accessibility proof under SAL-D043/SAL-D059.]  
+**Work actually performed and deviations:** [Authorized task ID, date, personnel/partner role, incident, actual resources and change record.]
+
+**Result against target:** [Observed function, exercise/incident or other test, baseline, witness/source and uncertainty; do not treat attendance, purchase, repair or ticket closure as capability proof.]
+
+**Residual gap, retest and stop/reopen trigger:** [Owner, due point and evidence to close or reopen.]
+
+**Report impact and release:** [Active/issued reports affected, SAL-D027 decision, exact version/hash, protected recipients, qualified review, Word/PDF/print and accessibility proof under SAL-D043/SAL-D059.]
+
 **Enterprise lesson disposition:** [Candidate/approved/rejected/superseded; generalized member-neutral statement, restricted source pointer, reviewer, rights, where-used and refresh trigger.]
 
 ### Reviewer gate
