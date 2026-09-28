@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 27 September 2026 — explicit SalOPS options in Tierra Linda SalTHIRA
+
+- Marc asked whether SalOPS recommendations were included. Existing Sections 7–8 and 12 contained preliminary options, but Section 12 had only a brief generic handoff. Revised the **same** local Tierra Linda Level 1 SalTHIRA working DOCX `work/Tierra_Linda_Ranch_Level_1_SalTHIRA_Working_Report_20260927.docx` with seven proposed Level 1 SalOPS work packages linked to G1–G7 and H1–H8: access/engineering, warning/assistance, wildfire/traffic, power-water-communications, medical/mutual aid, recovery/finance, and animal-airfield-security-digital interfaces. Each states the proposed action, responsible authority/partners, approval and proof gate; a sequencing paragraph separates Level 1 options from later validated Level 2/3 work.
+- The report remains an analytic handoff, not an incident action plan, approved spending, vendor award or executed SalOPS package. Re-rendered **27 pages**; page 2 blank, BLUF starts page 3, all visible pages show `page X of 27`; inspected the affected pages 24–25. Existing evidence and analyst/Member release gates remain open. No separate SalOPS report, production code or Azure deployment was created.
+
 ## 27 September 2026 — SalTHIRA provisional ranked BLUF method and Ranch report
 
 - Marc directed a best-judgment ranked rating method and a Bottom Line Up Front section at the beginning of the Tierra Linda Level 1 SalTHIRA report, including all 32 core capabilities and ranks across Prevention, Protection, Mitigation, Response and Recovery. Updated the **same** local working methodology `work/SalTHIRA_Methodology_Working_Draft_20260927.docx` with an anchored 1–5 **attention priority** rubric, narrative and table requirements, separate evidence confidence, analyst override/re-rating rules and an unassessed escape gate. This is an ordinal judgment, not an automatic weighted risk score, measured capability grade or probability.
