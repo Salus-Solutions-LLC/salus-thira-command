@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 27 September 2026 — SAL-D042 SalTHIRA BLUF table titles
+
+- Marc directed clear titles and purposes at the top of each BLUF table. Recorded SAL-D042 in the Decision Register (commit `d541a3ef3b073e9f876405e3afb03ef5f95ddb9f`) and Program Charter (commit `b6db42f382d8b7537b2af598f5ec3c58b774d419`).
+- Updated the **same** `work/Tierra Linda Ranch - SalTHIRA Level 1.docx` in place with numbered descriptive titles and one-sentence purposes immediately above the scenario, six-step assessment-work, five-mission-area and 32-core-capability BLUF tables. Updated the same member-neutral working methodology with that layout rule.
+- Re-rendered the report (**27 pages**) and methodology (**7 pages**). The four titles appear on pages 3, 4, 5 and 6 respectively, with each purpose and its table header on the same page; spanning table headers repeat. Report page 2 remains blank and visible footers show `page X of 27`. The report and method remain working drafts with existing evidence, analyst and Member release gates; no production or issued report changed.
+
 ## 27 September 2026 — SAL-D041 SalTHIRA report naming
 
 - Marc approved the customer-facing SalTHIRA report naming pattern `[Protected Member customer name] - SalTHIRA Level [1, 2, or 3]`. Recorded SAL-D041 in the Decision Register (commit `ddc97944da8ee6a2c966920c6cae5ba3941c3d8d`) and incorporated it in the Program Charter (commit `75ec49ade5ff5d30348ee154aadd033c1089a9ed`). Working status, date, version and release metadata remain in cover/governed fields, not the title or filename. This is a naming decision; the member-neutral SalTHIRA working methodology as a whole is not thereby approved.
