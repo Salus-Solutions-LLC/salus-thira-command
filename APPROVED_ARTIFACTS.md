@@ -26,6 +26,10 @@
 
 | `SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md` | Member-neutral SAL-D055 method for sourced working assumptions, alternatives, specific recommendations, paired narrative and checklist, Level 1–3 depth and four-product trace; repository `development/salcapa-platform` after merge | Approved by Marc, 28 September 2026. Controlled method only; exact Word templates, Member reports and live questionnaire/output implementations require separate artifact and release review. |
 
+## SAL-D055 candidate Word templates
+
+Four local v2 Word candidates add the paired analytical narrative and action checklist to SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™. Their exact local paths, SHA-256 values, page counts and remaining release gates are in `SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md`. They are not approved binary authorities or issued Member reports. The previously registered SalINTEL™ and SalTHIRA™ v1 templates remain approved; SalOPS™ and SalCAPA™ templates remain draft. Approve exact replacements only after full-page and accessibility review, artifact storage/access control, human approval and supersession registration. [SAL-D055]
+
 ## Protection Advisor report authority
 
 The approved example report controls the intended professional standard. Production outputs may adapt dynamic text, page count, and section length to the submission, but must preserve its substantive architecture, writing quality, visual treatment, and decision usefulness.
