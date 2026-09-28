@@ -1,6 +1,6 @@
 # Salus research coverage and gap-closure standard
 
-**Authority:** SAL-D065, Marc's 28 September 2026 direction. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
+**Authority:** SAL-D065–SAL-D066, Marc's 28 September 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
 
 ## Purpose
 
@@ -15,6 +15,14 @@ For each material topic, seek and compare as applicable: Member and owner record
 Each source or unsuccessful search records the exact query or source class, publisher/custodian, locator, retrieved and effective dates, version, geographic and population coverage, access/license restriction, evidence type, extraction or inspection method, analyst, result and limitation. Preserve an exact Member source inventory and restricted evidence. A search-result count, prior chat summary, file count or citation list does not prove substantive review.
 
 Inspect the content-bearing parts of each format. Email may carry the operative notice in HTML or an attached document; PDF pages may be image-only; a spreadsheet may contain restricted personal fields. Record which parts were actually parsed, visually reviewed or deliberately withheld. Use automated topic hits to prioritize human reading, never to establish that a domain was assessed or absent. Keep personal records segregated and extract only aggregate, decision-relevant facts for reports.
+
+## Item-level source chain and application
+
+Treat every material claim, concept, requirement, questionnaire item, capability, recommendation, service or customer-facing statement as a research item with a stable locator. Pursue its original authority and useful links: source page, parent record, relevant subpages and folders, underlying dataset or map, applicable law or technical note, earlier and current versions, and credible contrary or adjacent evidence. Search local, regional, national and global dependencies when they could change the decision. Do not stop at a search snippet, an index, a summary, one favorable page, or the content already uploaded. Read and record the operative text, table, map scale, image or attachment. Distinguish a source's assertion from independent verification and from Salus inference.
+
+For each item record the question, source trail and searched boundary, precise finding, contrary evidence, date/currency, confidence, Member applicability, decision effect, alternative interpretations, and what would falsify the conclusion. Reconcile the item with approved Salus authority and the exact Protected Member record. Produce a concrete action or a reasoned no-change disposition with owner, timing and observable proof. Check whether the item changes the Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™, Levels 1–3, operations, services, pricing, marketing, dashboard or governed learning; mark each material receiver accepted, qualified, returned or inapplicable with reason. A cross-product implication is a review trigger, not authorization for an automatic edit or release.
+
+Before closing an item, the reviewer challenges unvisited links, primary and contrary sources, historical/current change, affected jurisdictions, compound effects, owner/field proof and the consequence of error. If access, rights, competence, privacy or authorization blocks pursuit, record what was attempted, the alternate route, exact missing proof, owner and decision gate. Effort alone never establishes completeness. Convenience, a large source list, a keyword count, absence from the uploads or a generic claim that research is impossible does not close a material item. The accountable analyst must label a bounded conclusion and carry it forward when the evidence remains incomplete.
 
 ## Gap discovery and reconciliation
 
