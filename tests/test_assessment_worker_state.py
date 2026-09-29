@@ -91,6 +91,21 @@ class AssessmentWorkerStateTests(unittest.TestCase):
         second = self.q.claim('tenant-a', 'worker-a')
         self.assertEqual(second.item_id, 'item-a2')
 
+    def test_repeated_process_loss_escalates_and_other_work_continues(self):
+        self.q.add_item('item-a2', 'pkg-a', 'tenant-a', 'independent-source', 'source', 5,
+                        'opaque-evidence-ref-2', 'e' * 64)
+        for attempt in (1, 2, 3):
+            item = self.q.claim('tenant-a', f'worker-{attempt}', lease_seconds=10)
+            self.assertEqual((item.item_id, item.attempts), ('item-a', attempt))
+            self.q.close()
+            self.clock.advance(11)
+            self.q = AssessmentQueue(self.db, clock=self.clock)
+        next_item = self.q.claim('tenant-a', 'worker-4', lease_seconds=10)
+        self.assertEqual(next_item.item_id, 'item-a2')
+        events = self.q.events('tenant-a', 'pkg-a')
+        self.assertEqual([e['event_type'] for e in events].count('failed_escalated'), 1)
+        self.assertIsNone(self.q.claim('tenant-a', 'worker-5'))
+
     def test_runner_processes_checkpoint_and_fails_closed_without_adapter(self):
         self.assertTrue(run_one(self.q, 'tenant-a', 'worker-a', {}))
         self.assertEqual(self.q.events('tenant-a', 'pkg-a')[-1]['event_type'], 'blocked_expertise')
