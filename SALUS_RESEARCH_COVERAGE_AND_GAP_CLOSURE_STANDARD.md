@@ -88,3 +88,7 @@ For an accepted assessment still open after an active work period, persist the e
 ## SAL-D078 sustained-processing evidence
 
 An uninterrupted research requirement is satisfied only by observed sustained queue processing and automatic recovery, not by the existence of a recurring reminder. Capture checkpoint IDs, last successful original-source/report actions, active and idle intervals, restart/retry events, unresolved queue, owner and stop-gate evidence. A persistent worker or equivalent controlled mechanism must preserve Member segregation, single-writer document updates, bounded retries and qualified release. Where this capability is absent, label the workflow not implemented, use the available scheduled continuation as a fallback, continue active-turn work and keep the capability gap open. [SAL-D078]
+
+## SAL-D079 default across every Salus work package
+
+Apply the sustained-processing and evidence rules above by default to every accepted Salus work package, not only to an assessment for which Marc repeats the instruction. Only his specific recorded direction for the identified work and period changes its cadence or pauses/stops it. Keep working independent authorized source, analysis, report and QA items when another item waits for expertise, rights or human decision. If persistent execution is not implemented and verified for a workflow, label SAL-D079 unmet and report actual idle time; continue available interim work without implying the default has been satisfied. [SAL-D079]
