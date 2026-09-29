@@ -154,21 +154,43 @@ class AssessmentQueue:
         if row is None or tuple(row) != (item_id, stage, source_ref, source_sha256):
             raise ValueError('item idempotency conflict')
 
-    def claim(self, tenant_id, worker_id, lease_seconds=120):
+    def claim(self, tenant_id, worker_id, lease_seconds=120, max_attempts=3):
+        if lease_seconds <= 0 or max_attempts <= 0:
+            raise ValueError('positive lease and attempt limit required')
         now = self.clock()
         self.conn.execute('BEGIN IMMEDIATE')
         try:
             # One package writer prevents simultaneous mutations of its four draft identities.
-            row = self.conn.execute(
+            rows = self.conn.execute(
                 "SELECT i.* FROM assessment_work_items i JOIN assessment_work_packages p "
                 "ON p.package_id=i.package_id AND p.tenant_id=i.tenant_id "
                 "WHERE i.tenant_id=? AND p.state='active' "
                 "AND (p.lease_until IS NULL OR p.lease_until<=?) "
                 "AND i.state IN ('queued','retry_wait','working') "
                 "AND i.next_eligible_at<=? AND (i.lease_until IS NULL OR i.lease_until<=?) "
-                "ORDER BY i.priority DESC,i.created_at,i.item_id LIMIT 1",
+                "ORDER BY i.priority DESC,i.created_at,i.item_id",
                 (tenant_id, now, now, now),
-            ).fetchone()
+            ).fetchall()
+            row = None
+            for candidate in rows:
+                if candidate['attempts'] < max_attempts:
+                    row = candidate
+                    break
+                self.conn.execute(
+                    "UPDATE assessment_work_items SET state='failed_escalated',"
+                    "lease_owner=NULL,lease_until=NULL,updated_at=? "
+                    "WHERE item_id=? AND tenant_id=?",
+                    (now, candidate['item_id'], tenant_id),
+                )
+                self.conn.execute(
+                    'UPDATE assessment_work_packages SET lease_owner=NULL,lease_until=NULL,updated_at=? '
+                    'WHERE package_id=? AND tenant_id=?',
+                    (now, candidate['package_id'], tenant_id),
+                )
+                self._event(tenant_id, candidate['package_id'], candidate['item_id'],
+                            'failed_escalated', worker_id,
+                            {'reason_code': 'ATTEMPT_LIMIT_AFTER_INTERRUPTION',
+                             'attempts': candidate['attempts']})
             if row is None:
                 self.conn.execute('COMMIT')
                 return None
