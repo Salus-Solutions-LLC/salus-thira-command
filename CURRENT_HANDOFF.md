@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 28 September 2026 — Tierra Linda sparse-page and version correction
+
+- After the fourth-quarter newsletter integration, SalTHIRA and SalOPS had sparse final pages. Tightened spacing only in their late appended sections, retained all qualified text, and rerendered both. Current bounded screen: SalINTEL 70, SalTHIRA 36, SalOPS 17, SalCAPA 15 pages; each second page is blank and every rendered footer reads page X of Y. Changed and final pages were visually inspected. This corrects the sparse-page defect identified in the preceding checkpoint; full all-page visual, native Word/accessibility, exact-source and governed release checks remain open.
+- Corrected the SalTHIRA source register's stale 54-page/27 September SalINTEL reference to the 28 September 70-page bounded render, and SalOPS's two stale 27 September cross-report references to 28 September. The same report identities remain working drafts and are not issued. Next: inspect consequential newsletter visuals and linked/contrary sources, then continue remaining original-source and source-to-four-product QA. Owner: Salus analyst; Member schedule authority remains to be confirmed with the Board/horse-program lead.
+
 ## 28 September 2026 — Tierra Linda fourth-quarter newsletter original-text disposition and schedule contradiction
 
 - All 38 text pages of the Protected Member's fourth-quarter 2026 LASSO were read. Restricted findings TLR-ANIMAL-08 and TLR-FLOOD-08 record the newsletter's internally conflicting 08:00–09:00 versus 09:00 trail-ride notices and original NWS/Texas cross-check of the 14–16 July regional flood. The public records corroborate regional road/creek flooding and simultaneous demand, not every newsletter total or a specific Ranch delay. The existing four reports already carry flood and competing-resource implications, so the flood reconciliation is a reasoned no-change pending agency after-action. Photographs and linked/contrary sources still need disposition where they bear on a claim.
