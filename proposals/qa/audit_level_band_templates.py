@@ -53,6 +53,10 @@ def inspect(product, source, expected_hash):
         if drawings and len(image_alts) < drawings:
             issues.append('A drawing lacks alternate description in the document body')
     document = Document(candidate)
+    word_cover = '\n'.join(paragraph.text for paragraph in document.paragraphs[:8])
+    word_candidate = re.search(r'\bcandidate\s+(\d+\.\d+)\b', word_cover, flags=re.I)
+    if not word_candidate:
+        issues.append('Word cover candidate version missing')
     title_styles = [paragraph.style.name for paragraph in document.paragraphs
                     if f'- {product} Level [path]' in paragraph.text]
     if title_styles != ['Title']:
@@ -73,6 +77,9 @@ def inspect(product, source, expected_hash):
     if len(pages) != expected_pages:
         issues.append(f'Page count {len(pages)} differs from expected {expected_pages}')
     page_text = [page.extract_text() or '' for page in pages]
+    pdf_candidate = re.search(r'\bcandidate\s+(\d+\.\d+)\b', page_text[0], flags=re.I)
+    if not pdf_candidate or not word_candidate or pdf_candidate.group(1) != word_candidate.group(1):
+        issues.append('Rendered PDF cover does not match Word candidate version')
     if len(page_text) < 2 or page_text[1].strip():
         issues.append('Second page is not text blank')
     footers = []
