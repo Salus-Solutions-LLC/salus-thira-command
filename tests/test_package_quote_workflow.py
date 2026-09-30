@@ -65,6 +65,17 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         app.ENVIRONMENT='development'
         unverified=director.post(url,json={**quote,'source_receipt_id':'SPA-EXAMPLE'})
         assert unverified.status_code==409, unverified.text
+        conn=app.db()
+        conn.execute('UPDATE package_agreement_artifacts SET scan_status=? WHERE id=?',('Pending',agreement_id))
+        conn.commit();conn.close()
+        pending_quote=director.post(url,json=quote)
+        assert pending_quote.status_code==409 and 'security check' in pending_quote.text,pending_quote.text
+        pending_retry=director.post(f'/api/assessments/{assessment_id}/package-agreements',
+            files={'file':('Agreement.pdf',pdf,'application/pdf')})
+        assert pending_retry.status_code==409,pending_retry.text
+        conn=app.db()
+        conn.execute('UPDATE package_agreement_artifacts SET scan_status=? WHERE id=?',('Clean',agreement_id))
+        conn.commit();conn.close()
         bad=director.post(url,json={**quote,'access_eligibility_confirmed':False})
         assert bad.status_code == 422, bad.text
         # A concurrent boundary edit after the initial validation must stop issue.
@@ -192,6 +203,16 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.commit();conn.close()
         missing_delivery=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
         assert missing_delivery.status_code==409, missing_delivery.text
+        conn=app.db()
+        conn.execute('UPDATE package_agreement_artifacts SET scan_status=? WHERE id=?',('Pending',agreement_id))
+        conn.commit();conn.close()
+        pending_download=member.get(f'/api/package-agreements/{agreement_id}/download')
+        assert pending_download.status_code==409 and 'security check' in pending_download.text,pending_download.text
+        pending_acceptance=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
+        assert pending_acceptance.status_code==409 and 'security check' in pending_acceptance.text,pending_acceptance.text
+        conn=app.db()
+        conn.execute('UPDATE package_agreement_artifacts SET scan_status=? WHERE id=?',('Clean',agreement_id))
+        conn.commit();conn.close()
         conn=app.db()
         stored=conn.execute('SELECT stored_name FROM package_agreement_artifacts WHERE id=?',(agreement_id,)).fetchone()['stored_name']
         conn.close()
@@ -629,6 +650,17 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         received=member.get(f'/api/package-intake-files/{file_id}/download')
         assert received.status_code==200 and received.content==upload_bytes
         assert received.headers['x-content-sha256']==uploaded.json()['content_sha256']
+        conn=app.db()
+        conn.execute('UPDATE package_intake_uploads SET scan_status=? WHERE id=?',('Pending',file_id))
+        conn.commit();conn.close()
+        pending_file=member.get(f'/api/package-intake-files/{file_id}/download')
+        assert pending_file.status_code==409 and 'security check' in pending_file.text,pending_file.text
+        pending_file_retry=member.post(upload_path,
+            files={'file':('Example-Plan.pdf',upload_bytes,'application/pdf')})
+        assert pending_file_retry.status_code==409,pending_file_retry.text
+        conn=app.db()
+        conn.execute('UPDATE package_intake_uploads SET scan_status=? WHERE id=?',('Clean',file_id))
+        conn.commit();conn.close()
         assert member.patch(f'{intake_url}/{upload_item}',json={'status':'Not held'}).status_code==409
         intake_retention=f'/api/package-intake-files/{file_id}/retention'
         assert member.patch(intake_retention,json={'legal_hold':True,

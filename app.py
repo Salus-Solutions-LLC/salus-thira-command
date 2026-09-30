@@ -1907,7 +1907,7 @@ class PackageHandoffReviewIn(BaseModel):
     decision_role_basis: str = Field(min_length=12,max_length=1000)
     confirm_exact_receipt: Literal[True]
 
-def verified_package_quote(row,request:Request):
+def verified_package_quote(conn,row,request:Request):
     content={key:row[key] for key in PackageQuoteIn.model_fields if key!='predecessor_qualification_id'}
     if row['assessment_scope_sha256']:
         content['assessment_scope_sha256']=row['assessment_scope_sha256']
@@ -1917,6 +1917,12 @@ def verified_package_quote(row,request:Request):
     if quote_digest(content)!=row['content_sha256']:
         security_event(request,'PACKAGE_QUOTE_INTEGRITY_FAILURE','High',f'quote_id={row["id"]}')
         raise HTTPException(409,'The quote failed integrity verification.')
+    agreement=conn.execute('''SELECT content_sha256,scan_status FROM package_agreement_artifacts
+        WHERE id=? AND tenant_id=? AND assessment_id=?''',
+        (row['agreement_artifact_id'],row['tenant_id'],row['assessment_id'])).fetchone()
+    if (not agreement or agreement['content_sha256']!=row['agreement_sha256'].lower()
+            or agreement['scan_status']!='Clean'):
+        raise HTTPException(409,'The quoted agreement has not passed the file security check.')
     return row
 
 def lock_package_assessment(conn, assessment_id:int):
@@ -1979,7 +1985,7 @@ def verified_package_predecessor(conn,qualification_id:int,request:Request,curre
             or qualification['covered_operation']!=current['covered_operation']
             or qualification['exclusions']!=current['exclusions']):
         raise HTTPException(409,'The predecessor does not match this Member, sequence or decision boundary.')
-    verified_package_quote(prior_quote,request)
+    verified_package_quote(conn,prior_quote,request)
     for product,snapshot in reports.items():
         report=conn.execute('''SELECT * FROM package_product_report_versions
             WHERE tenant_id=? AND assessment_id=? AND product=? ORDER BY version_no DESC LIMIT 1''',
@@ -5396,7 +5402,11 @@ async def upload_package_agreement(assessment_id:int,request:Request,file:Upload
         raise HTTPException(422 if scan['status']=='Infected' else 503,'The agreement could not pass the file security check.')
     tid=tenant_id(request); digest=hashlib.sha256(content).hexdigest(); conn=db()
     existing=conn.execute('SELECT * FROM package_agreement_artifacts WHERE tenant_id=? AND assessment_id=? AND content_sha256=?',(tid,assessment_id,digest)).fetchone()
-    if existing: conn.close(); return {k:existing[k] for k in ('id','assessment_id','original_name','content_sha256','size_bytes','uploaded_at')}
+    if existing:
+        conn.close()
+        if existing['scan_status']!='Clean':
+            raise HTTPException(409,'The stored agreement has not passed the file security check.')
+        return {k:existing[k] for k in ('id','assessment_id','original_name','content_sha256','size_bytes','uploaded_at')}
     stored=f'tenant-{tid}/assessment-{assessment_id}/package-agreements/{uuid.uuid4().hex}_{digest[:16]}.pdf'
     try:
         storage.put_bytes(stored,content)
@@ -5428,12 +5438,14 @@ def download_package_agreement(artifact_id:int,request:Request):
     if member and not quote: conn.close(); raise HTTPException(404,'The agreement is not attached to a Member quote.')
     if quote:
         try:
-            verified_package_quote(quote,request)
+            verified_package_quote(conn,quote,request)
             if quote['level']>1:
                 current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
                     (item['assessment_id'],tenant_id(request))).fetchone()
                 verified_quote_predecessor_link(conn,quote,request,current)
         except Exception: conn.close(); raise
+    if item['scan_status']!='Clean':
+        conn.close(); raise HTTPException(409,'The agreement has not passed the file security check.')
     conn.close()
     try: data=storage.get_bytes(item['stored_name'])
     except FileNotFoundError: raise HTTPException(404,'Stored agreement is missing.')
@@ -5460,7 +5472,7 @@ def get_package_quote(assessment_id:int,request:Request):
     conn=db(); quote=conn.execute('SELECT * FROM package_quote_versions WHERE tenant_id=? AND assessment_id=? ORDER BY version_no DESC LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
     if not quote: conn.close(); raise HTTPException(404,'No fixed package quote has been approved.')
     try:
-        verified_package_quote(quote,request)
+        verified_package_quote(conn,quote,request)
         predecessor_valid=True
         if quote['level']>1:
             try: verified_quote_predecessor_link(conn,quote,request,assessment)
@@ -5717,6 +5729,8 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
         agreement=conn.execute('SELECT * FROM package_agreement_artifacts WHERE id=? AND tenant_id=? AND assessment_id=?',(p.agreement_artifact_id,tenant_id(request),assessment_id)).fetchone()
         if not agreement or agreement['content_sha256'].lower()!=p.agreement_sha256.lower():
             raise HTTPException(409,'Register and verify the exact agreement PDF before quoting.')
+        if agreement['scan_status']!='Clean':
+            raise HTTPException(409,'The agreement has not passed the file security check.')
         try: agreement_bytes=storage.get_bytes(agreement['stored_name'])
         except Exception as exc: raise HTTPException(503,'The stored agreement is unavailable.') from exc
         if hashlib.sha256(agreement_bytes).hexdigest()!=agreement['content_sha256']:
@@ -5774,7 +5788,7 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
         if prior:
             prior_quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(prior['quote_id'],tenant_id(request),assessment_id)).fetchone()
             if prior_quote:
-                verified_package_quote(prior_quote,request)
+                verified_package_quote(conn,prior_quote,request)
                 if prior_quote['level']>1:
                     verified_quote_predecessor_link(conn,prior_quote,request,assessment)
             if (prior_quote and prior['quote_id']==p.quote_id and prior['quote_sha256']==p.quote_sha256
@@ -5783,7 +5797,7 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
             raise HTTPException(409,'This acceptance key was already used for another decision.')
         quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(p.quote_id,tenant_id(request),assessment_id)).fetchone()
         if not quote: raise HTTPException(404,'Package quote not found.')
-        verified_package_quote(quote,request)
+        verified_package_quote(conn,quote,request)
         if quote['level']>1: verified_quote_predecessor_link(conn,quote,request,assessment)
         if quote['source_receipt_id']:
             raise HTTPException(409,'This quote has an unverified Protection Advisor receipt and cannot be accepted.')
@@ -5818,7 +5832,7 @@ def authorized_package_intake(conn,assessment_id:int,request:Request):
     accepted=conn.execute('''SELECT q.* FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
         WHERE a.tenant_id=? AND a.assessment_id=? ORDER BY a.id DESC LIMIT 1''',(tenant_id(request),assessment_id)).fetchone()
     if not assessment or not accepted: raise HTTPException(409,'The package intake opens after an authorized agreement.')
-    verified_package_quote(accepted,request)
+    verified_package_quote(conn,accepted,request)
     if accepted['level']>1: verified_quote_predecessor_link(conn,accepted,request,assessment)
     if (not accepted['assessment_scope_sha256'] or accepted['assessment_scope_sha256']!=assessment_scope_digest(assessment)
         or accepted['assessment_version']!=assessment['version']):
@@ -5926,10 +5940,14 @@ async def upload_package_intake_file(assessment_id:int,item_id:int,request:Reque
         if not item: raise HTTPException(404,'This item was not requested for the authorized package.')
         if item['status'] in ('Not held','Not known','Prefer to discuss'):
             raise HTTPException(409,'Review this item with Salus before sending a file.')
-        existing=conn.execute('''SELECT id,intake_request_id,original_name,content_sha256,size_bytes,uploaded_at
+        existing=conn.execute('''SELECT id,intake_request_id,original_name,content_sha256,size_bytes,scan_status,uploaded_at
             FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=? AND content_sha256=?''',
             (tid,item_id,digest)).fetchone()
-        if existing: return dict(existing)
+        if existing:
+            if existing['scan_status']!='Clean':
+                raise HTTPException(409,'The stored file has not passed the security check.')
+            return {key:existing[key] for key in
+                ('id','intake_request_id','original_name','content_sha256','size_bytes','uploaded_at')}
         file_count=conn.execute('SELECT COUNT(*) AS n FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=?',
             (tid,item_id)).fetchone()['n']
         if file_count>=5:
@@ -5977,6 +5995,8 @@ def download_package_intake_file(file_id:int,request:Request):
         quote=authorized_package_intake(conn,row['assessment_id'],request)
         if row['quote_id']!=quote['id']:
             raise HTTPException(409,'This file belongs to a previous package scope.')
+        if row['scan_status']!='Clean':
+            raise HTTPException(409,'The file has not passed the security check.')
     finally: conn.close()
     try: data=storage.get_bytes(row['stored_name'])
     except FileNotFoundError: raise HTTPException(404,'Stored file is missing.')
@@ -6528,7 +6548,7 @@ def qualify_package_predecessor(assessment_id:int,p:PackagePredecessorQualificat
             (issue['quote_id'],tid)).fetchone()
         if not quote or quote['assessment_id']!=assessment_id:
             raise HTTPException(409,'The predecessor quote is unavailable.')
-        verified_package_quote(quote,request)
+        verified_package_quote(conn,quote,request)
         if (quote['assessment_scope_sha256']!=issue['assessment_scope_sha256']
                 or quote['level'] not in (1,2)):
             raise HTTPException(409,'Only an exact issued Level 1 or Level 2 package can qualify its successor.')
