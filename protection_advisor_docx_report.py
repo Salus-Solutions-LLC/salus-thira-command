@@ -55,8 +55,8 @@ def _mission_rows(scores):
 
 
 def _service_rows(package):
-    rows = tuple((item.get("title", "Service"), f"Level {item.get('level', '')} possible depth", item.get("why", "")) for item in package.get("services") or [])
-    return rows or (("None identified yet", "To be determined", "Salus will review any separate service need with the Protected Member."),)
+    rows = tuple((item.get("title", "Service"), "Separate quote if suitable", item.get("why", "")) for item in package.get("services") or [])
+    return rows or (("None identified yet", "To discuss", "Salus will review any separate service need with the Protected Member."),)
 
 
 def _add_table(document, headers, rows, widths=None):
@@ -269,11 +269,11 @@ def _professional_body(document, fields, result, package) -> None:
     sequence_rows = _sequence_rows(package)
     _add_table(document, ("Phase", "Service", "Purpose"), sequence_rows, widths=(.8, 2.7, 2.9))
     if package.get("later_phase_services"):
-        document.add_heading("Additional Later Phase Services", level=1)
+        document.add_heading("Other Services to Discuss After Salus Review", level=1)
         for service in package["later_phase_services"]:
             document.add_paragraph(
-                f"{service.get('title', 'Service')} - Level {service.get('level', '')} "
-                f"{service.get('level_name', '')}. {service.get('summary', '')}"
+                f"{service.get('title', 'Service')} - separate quote if suitable. "
+                f"{service.get('summary', '')}"
             )
 
     document.add_heading("Preliminary Scope for Salus Review", level=1)
@@ -290,12 +290,11 @@ def _professional_body(document, fields, result, package) -> None:
         "Define training, exercise, assurance, reassessment, and continuing-improvement requirements.",
     ))
     document.add_heading("Proposed Deliverables", level=1)
-    _add_table(document, ("Deliverable", "Purpose"), (
-        ("Validated assessment record", "Separates verified facts, reported conditions, inferences, and unknowns"),
-        ("Capability and dependency map", "Shows essential functions, supporting resources, failure points, and alternates"),
-        ("Prioritized improvement plan", "Identifies actions, owners, sequence, dependencies, and completion measures"),
-        ("Exercise and validation plan", "Tests priority capabilities and creates defensible performance evidence"),
-        ("Executive briefing", "Presents decisions, risks, resource implications, and recommended next steps"),
+    _add_table(document, ("Level 1 package report", "Member decision value"), (
+        ("SalINTEL", "What the available evidence supports, contradicts or leaves unknown for the agreed boundary"),
+        ("SalTHIRA", "Which scenarios and capability gaps merit attention, using stated targets and limits"),
+        ("SalOPS", "Feasible options, owners and separately quoted services where suitable"),
+        ("SalCAPA", "One traceable decision summary with priorities, next actions and proof to collect"),
     ), widths=(2.35, 4.05))
 
     document.add_heading("Human Review and Decision Points", level=1)
@@ -308,16 +307,16 @@ def _professional_body(document, fields, result, package) -> None:
     document.add_heading("Recommended Immediate Actions", level=1)
     _add_table(document, ("Timing", "Action", "Responsible party"), (
         ("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"),
-        ("Within 5 business days", "Conduct a qualification and validation interview.", "Salus and Protected Member"),
-        ("After interview", "Request only the evidence needed to resolve priority findings and gaps.", "Salus"),
-        ("After evidence review", "Confirm or revise service sequence, scope, level, schedule, and specialists.", "Authorized Salus reviewer"),
-        ("Before engagement", "Approve scope, commercial terms, information handling, and points of contact.", "Salus and Protected Member"),
+        ("After scope review", "Confirm the covered unit, Access eligibility and a written fixed quote.", "Salus and decision owner"),
+        ("Before paid work", "Approve scope, fee, handling and contacts in a written agreement.", "Salus and decision owner"),
+        ("After agreement", "Request only the records needed for the agreed Level 1 boundary.", "Salus"),
+        ("After assessment", "Review the four reports, options and any separately proposed service.", "Salus and decision owner"),
     ), widths=(1.45, 3.35, 1.6))
 
     document.add_heading("Decision Required", level=1)
     document.add_paragraph(
-        "The next decision is whether to authorize a Salus qualification and validation review. "
-        "That review determines the appropriate package and evidence needed before work is proposed."
+        "The next decision is whether to correct the draft boundary or request a fixed written quote "
+        "for the Level 1 SalCAPA package. Paid assessment work begins only after agreement."
     )
 
     document.add_heading("Important Notice", level=1)
@@ -340,7 +339,7 @@ def _professional_body(document, fields, result, package) -> None:
         ("Need score", "A relative priority within this submission; not probability or consequence"),
         ("Reported need", "A condition that may require improvement or validation"),
         ("Information gap", "An unknown that could alter findings, priorities, scope, or recommendations"),
-        ("Service level", "A preliminary indication of engagement depth; subject to human review"),
+        ("Separate service", "An optional proposal with its own scope and authority; not a package-level label"),
     ), widths=(1.75, 4.65))
     document.add_heading("Quality and Evidence Principles", level=2)
     _add_bullets(document, (
@@ -354,8 +353,8 @@ def _professional_body(document, fields, result, package) -> None:
     document.add_paragraph(str(package.get("rationale") or "Service recommendations require Salus professional validation."))
     service_rows = []
     for service in package.get("services") or []:
-        service_rows.append((service.get("title", "Service"), f"Level {service.get('level', '')}", service.get("why", "")))
-    _add_table(document, ("Possible separate service", "Potential depth", "Preliminary rationale"), service_rows, widths=(2.1, 1.0, 3.3))
+        service_rows.append((service.get("title", "Service"), "Quote pending", service.get("why", "")))
+    _add_table(document, ("Possible separate service", "Offer status", "Preliminary rationale"), service_rows, widths=(2.1, 1.0, 3.3))
     document.add_heading("Limitations", level=2)
     document.add_paragraph(
         "This report does not contain enough validated evidence to support final findings about "
@@ -870,10 +869,10 @@ def render_protection_advisor_pdf(
             story += bullets(f"{item['choice']} — {item['effect']}" for item in receipt["choices"])
     story += [P(f"The possible paid next step is {primary.get('title', 'Professional Review')}. {primary.get('summary', '')}"), P("Why start here: " + str(primary.get("why", ""))), P("Recommended Sequence", h1), T(("Phase", "Service", "Purpose"), _sequence_rows(package), (.65 * inch, 2.45 * inch, 3.0 * inch), centered_columns=(0,))]
     if package.get("later_phase_services"):
-        story.append(P("Additional Later Phase Services", h1))
+        story.append(P("Other Services to Discuss After Salus Review", h1))
     for service in package.get("later_phase_services") or []:
-        story.append(P(f"{service.get('title', 'Service')} - Level {service.get('level', '')} {service.get('level_name', '')}. {service.get('summary', '')}"))
-    story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Deliverables", h1), T(("Deliverable", "Purpose"), (("Validated assessment record", "Separates verified facts, reported conditions, inferences, and unknowns"), ("Capability and dependency map", "Shows essential functions, supporting resources, failure points, and alternates"), ("Prioritized improvement plan", "Identifies actions, owners, sequence, dependencies, and completion measures"), ("Exercise and validation plan", "Tests priority capabilities and creates defensible evidence"), ("Executive briefing", "Presents decisions, risks, resource implications, and next steps")), (2.2 * inch, 3.9 * inch)), P("Human Review and Decision Points", h1), P("No automated recommendation becomes a final scope, assurance statement, price, contract commitment, or protective decision without authorized Salus review. The reviewer confirms service selection, level, specialists, deliverables, schedule, pricing basis, handling controls, and eligibility."), P("Recommended Immediate Actions", h1), T(("Timing", "Action", "Responsible party"), (("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"), ("Within 5 business days", "Conduct a qualification and validation interview.", "Salus and Protected Member"), ("After interview", "Request only evidence needed to resolve priority findings and gaps.", "Salus"), ("After evidence review", "Confirm or revise sequence, scope, level, schedule, and specialists.", "Authorized Salus reviewer"), ("Before engagement", "Approve scope, commercial terms, handling, and points of contact.", "Salus and Protected Member")), (1.3 * inch, 3.35 * inch, 1.45 * inch)), P("Decision Required", h1), P("The next decision is whether to authorize a Salus qualification and validation review. That review determines the appropriate package and evidence needed before work is proposed."), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor screens reported conditions against 32 core capabilities across Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize professional review; they do not independently establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Reported-need indicator; higher means more need, not measured readiness"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Service level", "Preliminary engagement depth; subject to human review")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Possible separate service", "Potential depth", "Preliminary rationale"), _service_rows(package), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
+        story.append(P(f"{service.get('title', 'Service')} - separate quote if suitable. {service.get('summary', '')}"))
+    story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Level 1 Reports", h1), T(("Report", "Member decision value"), (("SalINTEL", "Available evidence, contradictions and unknowns for the agreed boundary"), ("SalTHIRA", "Priority scenarios, capability targets and qualified gaps"), ("SalOPS", "Options, owners and separately quoted services where suitable"), ("SalCAPA", "One traceable decision summary with priorities, next actions and proof")), (2.2 * inch, 3.9 * inch)), P("Human Review and Decision Points", h1), P("No automated recommendation becomes a final scope, assurance statement, price, contract commitment, or protective decision without authorized Salus review. The reviewer confirms service selection, level, specialists, deliverables, schedule, pricing basis, handling controls, and eligibility."), P("Recommended Immediate Actions", h1), T(("Timing", "Action", "Responsible party"), (("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"), ("After scope review", "Confirm boundary, eligibility and a fixed written quote.", "Salus and decision owner"), ("Before paid work", "Approve the written scope, fee, handling and contacts.", "Salus and decision owner"), ("After agreement", "Request only records needed for the agreed Level 1 boundary.", "Salus"), ("After assessment", "Review the four reports, options and any separately proposed service.", "Salus and decision owner")), (1.3 * inch, 3.35 * inch, 1.45 * inch)), P("Decision Required", h1), P("The next decision is whether to correct the draft boundary or request a fixed written quote for the Level 1 SalCAPA package. Paid assessment work begins only after agreement."), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor screens reported conditions against 32 core capabilities across Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize professional review; they do not independently establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Reported-need indicator; higher means more need, not measured readiness"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Separate service", "Optional proposal with its own scope and authority; not a package-level label")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Possible separate service", "Offer status", "Preliminary rationale"), _service_rows(package), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
     # Appendices can follow the decision on the same page. Reserving a new
     # page for each one left large, unhelpful blank areas in short reports.
     for index in reversed(range(len(story) - 1)):

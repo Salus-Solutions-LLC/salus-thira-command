@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory() as td:
     assert '<aside class="assessment-important"><strong>Important notice:</strong>' in page.text
     assert 'document.getElementById("assessment").scrollIntoView' in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
-    assert "Possible later-phase services" in page.text
+    assert "Other services to discuss after Salus review" in page.text
     shell_html=_page()
     assert "/static/salus-reticle.svg" in shell_html
     assert '<header class="salus-header">' in shell_html
