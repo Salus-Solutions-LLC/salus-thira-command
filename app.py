@@ -748,6 +748,24 @@ def init_db():
       FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_report_versions_scope ON report_versions(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_agreement_artifacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL UNIQUE,
+      content_sha256 TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      scan_status TEXT NOT NULL,
+      retention_until TEXT NOT NULL DEFAULT '',
+      legal_hold INTEGER NOT NULL DEFAULT 0,
+      uploaded_by TEXT NOT NULL,
+      uploaded_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,assessment_id,content_sha256)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_agreement_scope ON package_agreement_artifacts(tenant_id,assessment_id,id);
     CREATE TABLE IF NOT EXISTS package_quote_versions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -760,6 +778,15 @@ def init_db():
       covered_operation TEXT NOT NULL,
       exclusions TEXT NOT NULL,
       scope_basis TEXT NOT NULL,
+      included_work TEXT NOT NULL DEFAULT '',
+      report_deliverables TEXT NOT NULL DEFAULT '',
+      member_inputs TEXT NOT NULL DEFAULT '',
+      evidence_allowance TEXT NOT NULL DEFAULT '',
+      clarification_allowance TEXT NOT NULL DEFAULT '',
+      field_specialist_terms TEXT NOT NULL DEFAULT '',
+      payment_terms TEXT NOT NULL DEFAULT '',
+      tax_treatment TEXT NOT NULL DEFAULT '',
+      change_triggers TEXT NOT NULL DEFAULT '',
       decision_owner TEXT NOT NULL,
       source_receipt_id TEXT NOT NULL DEFAULT '',
       fee_cents INTEGER NOT NULL,
@@ -770,6 +797,7 @@ def init_db():
       capacity_confirmed INTEGER NOT NULL,
       access_eligibility_confirmed INTEGER NOT NULL,
       access_eligibility_basis TEXT NOT NULL DEFAULT '',
+      agreement_artifact_id INTEGER NOT NULL DEFAULT 0,
       agreement_reference TEXT NOT NULL,
       agreement_sha256 TEXT NOT NULL,
       separate_services_excluded INTEGER NOT NULL,
@@ -778,9 +806,26 @@ def init_db():
       approved_at TEXT NOT NULL,
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
       FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (agreement_artifact_id) REFERENCES package_agreement_artifacts(id) ON DELETE RESTRICT,
       UNIQUE (tenant_id,assessment_id,version_no)
     );
     CREATE INDEX IF NOT EXISTS idx_package_quote_scope ON package_quote_versions(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_agreement_downloads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      agreement_artifact_id INTEGER NOT NULL,
+      member_user_id INTEGER NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      downloaded_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (agreement_artifact_id) REFERENCES package_agreement_artifacts(id) ON DELETE RESTRICT,
+      FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_agreement_download_scope ON package_agreement_downloads(tenant_id,assessment_id,quote_id,member_user_id);
     CREATE TABLE IF NOT EXISTS package_acceptances (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -789,6 +834,7 @@ def init_db():
       quote_sha256 TEXT NOT NULL,
       agreement_sha256 TEXT NOT NULL,
       member_user_id INTEGER NOT NULL,
+      agreement_download_id INTEGER NOT NULL DEFAULT 0,
       member_authority_basis TEXT NOT NULL,
       idempotency_key TEXT NOT NULL,
       accepted_at TEXT NOT NULL,
@@ -796,6 +842,7 @@ def init_db():
       FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
       FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
       FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      FOREIGN KEY (agreement_download_id) REFERENCES package_agreement_downloads(id) ON DELETE RESTRICT,
       UNIQUE (tenant_id,assessment_id,idempotency_key),
       UNIQUE (quote_id)
     );
@@ -1420,6 +1467,10 @@ def init_db():
     ensure_column('assessments','requested_package_level','INTEGER NOT NULL DEFAULT 0')
     ensure_column('assessments','requested_scope_band',"TEXT NOT NULL DEFAULT ''")
     ensure_column('assessments','requested_access_variant',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('package_quote_versions','agreement_artifact_id','INTEGER NOT NULL DEFAULT 0')
+    for field in ('included_work','report_deliverables','member_inputs','evidence_allowance','clarification_allowance','field_specialist_terms','payment_terms','tax_treatment','change_triggers'):
+        ensure_column('package_quote_versions',field,"TEXT NOT NULL DEFAULT ''")
+    ensure_column('package_acceptances','agreement_download_id','INTEGER NOT NULL DEFAULT 0')
     ensure_column('ops_service_catalog','industry_profile_id','INTEGER')
     ensure_column('ops_service_catalog','industry_profile_key_snapshot',"TEXT NOT NULL DEFAULT ''")
     ensure_column('ops_service_catalog','industry_profile_version_snapshot','INTEGER')
@@ -1533,6 +1584,15 @@ class PackageQuoteIn(BaseModel):
     covered_operation: str = Field(min_length=1,max_length=240)
     exclusions: str = Field(min_length=1,max_length=2000)
     scope_basis: str = Field(min_length=1,max_length=2000)
+    included_work: str = Field(min_length=1,max_length=2000)
+    report_deliverables: Literal['SalINTEL, SalTHIRA, SalOPS, SalCAPA'] = 'SalINTEL, SalTHIRA, SalOPS, SalCAPA'
+    member_inputs: str = Field(min_length=1,max_length=2000)
+    evidence_allowance: str = Field(min_length=1,max_length=2000)
+    clarification_allowance: str = Field(min_length=1,max_length=2000)
+    field_specialist_terms: str = Field(min_length=1,max_length=2000)
+    payment_terms: str = Field(min_length=1,max_length=2000)
+    tax_treatment: str = Field(min_length=1,max_length=2000)
+    change_triggers: str = Field(min_length=1,max_length=2000)
     decision_owner: str = Field(min_length=1,max_length=160)
     source_receipt_id: str = Field(default='',max_length=160)
     fee_cents: int = Field(gt=0,le=1_000_000_000)
@@ -1543,6 +1603,7 @@ class PackageQuoteIn(BaseModel):
     capacity_confirmed: bool
     access_eligibility_confirmed: bool = False
     access_eligibility_basis: str = Field(default='',max_length=2000)
+    agreement_artifact_id: int = Field(gt=0)
     agreement_reference: str = Field(min_length=1,max_length=240)
     agreement_sha256: str = Field(pattern=r'^[a-fA-F0-9]{64}$')
     separate_services_excluded: bool
@@ -3179,7 +3240,7 @@ def create_backup_archive(request:Request, reason:str='Manual backup'):
     manifest={'format':'salus-thira-portable-backup-v1','created_at':now(),'created_by':actor(request),'tenant_id':tid,'reason':reason,'application_version':APP_VERSION,'database_backend':DB_BACKEND,'files':[]}
     with zipfile.ZipFile(final,'w',compression=zipfile.ZIP_DEFLATED) as z:
         manifest['files'].append({'path':'records.json','sha256':hashlib.sha256(records_bytes).hexdigest(),'size_bytes':len(records_bytes)}); z.writestr('records.json',records_bytes)
-        stored_records=records.get('evidence_attachments',[])+records.get('materials',[])
+        stored_records=records.get('evidence_attachments',[])+records.get('materials',[])+records.get('package_agreement_artifacts',[])
         backed_up_objects=set()
         for item in sorted(stored_records,key=lambda x:str(x.get('stored_name',''))):
             fn=str(item.get('stored_name','')).strip()
@@ -3188,6 +3249,8 @@ def create_backup_archive(request:Request, reason:str='Manual backup'):
             except Exception as exc:
                 error_id=uuid.uuid4().hex; record_internal_failure('backup governed material read',error_id,exc)
                 raise HTTPException(409,f'Backup cannot read a governed material object. Reference: {error_id}')
+            if item.get('content_sha256') and hashlib.sha256(b).hexdigest()!=item['content_sha256']:
+                raise HTTPException(409,'Backup stopped because a package agreement failed integrity verification.')
             backed_up_objects.add(fn)
             arc=f'attachments/{fn}'; manifest['files'].append({'path':arc,'sha256':hashlib.sha256(b).hexdigest(),'size_bytes':len(b)}); z.writestr(arc,b)
         z.writestr('manifest.json',json.dumps(manifest,indent=2,sort_keys=True))
@@ -3203,6 +3266,12 @@ def verify_backup_file(path:str):
         if 'records.json' in z.namelist():
             try:
                 package=json.loads(z.read('records.json').decode('utf-8')); records=package.get('tables',{}); errors.extend(validate_records(records,manifest.get('tenant_id')))
+                for agreement in records.get('package_agreement_artifacts',[]):
+                    archive_path='attachments/'+str(agreement.get('stored_name') or '')
+                    if archive_path not in z.namelist():
+                        errors.append(f'Missing package agreement artifact {agreement.get("id")}')
+                    elif hashlib.sha256(z.read(archive_path)).hexdigest()!=agreement.get('content_sha256'):
+                        errors.append(f'Package agreement artifact hash mismatch {agreement.get("id")}')
             except Exception as exc:
                 error_id=uuid.uuid4().hex; record_internal_failure('backup record validation',error_id,exc)
                 errors.append(f'Record package invalid. Reference: {error_id}')
@@ -3222,7 +3291,7 @@ def dr_validate_backup_file(path:str):
             assessment_count=len(records.get('assessments',[]))
             attachment_count=len({
                 str(row.get('stored_name','')).strip()
-                for table in ('evidence_attachments','materials')
+                for table in ('evidence_attachments','materials','package_agreement_artifacts')
                 for row in records.get(table,[])
                 if str(row.get('stored_name','')).strip()
             })
@@ -3312,6 +3381,7 @@ def restore_backup(backup_id:int,restore_request_id:int,request:Request):
             conn=db()
             old_keys=[r['stored_name'] for r in conn.execute('SELECT ea.stored_name FROM evidence_attachments ea JOIN assessments a ON a.id=ea.assessment_id WHERE a.tenant_id=?',(tid,))]
             old_keys.extend(r['stored_name'] for r in conn.execute("SELECT stored_name FROM materials WHERE tenant_id=? AND stored_name<>''",(tid,)))
+            old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_agreement_artifacts WHERE tenant_id=?',(tid,)))
             old_keys=list(dict.fromkeys(old_keys)); conn.close()
             new_objects={}
             for item in z.namelist():
@@ -4848,6 +4918,77 @@ def create_assessment(p:AssessmentIn, request:Request):
     })
     return _member_assessment_view(result) if protected_member_request(request) else result
 
+@app.post('/api/assessments/{assessment_id}/package-agreements')
+async def upload_package_agreement(assessment_id:int,request:Request,file:UploadFile=File(...)):
+    require_package_commercial_candidate(); require(request,'decide')
+    require_salus_component_authority(request,'Package agreement')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus reviewer must register the agreement.')
+    assessment_row_for_request(request,assessment_id)
+    content=await file.read(5*1024*1024+1)
+    if len(content)>5*1024*1024: raise HTTPException(413,'Agreement PDF exceeds 5 MB.')
+    if not content.startswith(b'%PDF-'): raise HTTPException(422,'The agreement must be a PDF.')
+    original=safe_filename(file.filename or 'package-agreement.pdf')
+    if not original.lower().endswith('.pdf'): raise HTTPException(422,'The agreement filename must end in .pdf.')
+    scan=scan_bytes(content,original)
+    if not scan['ok'] or scan['status']!='Clean':
+        security_event(request,'PACKAGE_AGREEMENT_REJECTED','High' if scan['status']=='Infected' else 'Medium',f'status={scan["status"]}')
+        raise HTTPException(422 if scan['status']=='Infected' else 503,'The agreement could not pass the file security check.')
+    tid=tenant_id(request); digest=hashlib.sha256(content).hexdigest(); conn=db()
+    existing=conn.execute('SELECT * FROM package_agreement_artifacts WHERE tenant_id=? AND assessment_id=? AND content_sha256=?',(tid,assessment_id,digest)).fetchone()
+    if existing: conn.close(); return {k:existing[k] for k in ('id','assessment_id','original_name','content_sha256','size_bytes','uploaded_at')}
+    stored=f'tenant-{tid}/assessment-{assessment_id}/package-agreements/{uuid.uuid4().hex}_{digest[:16]}.pdf'
+    try:
+        storage.put_bytes(stored,content)
+        retention_until=(_iso_now_dt()+timedelta(days=RETENTION_DEFAULT_DAYS)).replace(microsecond=0).isoformat().replace('+00:00','Z') if RETENTION_DEFAULT_DAYS>0 else ''
+        uploaded_at=now()
+        cur=conn.execute('INSERT INTO package_agreement_artifacts(tenant_id,assessment_id,original_name,stored_name,content_sha256,size_bytes,scan_status,retention_until,legal_hold,uploaded_by,uploaded_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',(tid,assessment_id,original,stored,digest,len(content),scan['status'],retention_until,0,actor(request),uploaded_at))
+        audit(conn,'PACKAGE_AGREEMENT','assessment',assessment_id,f'artifact_id={cur.lastrowid}; sha256={digest}',actor(request)); conn.commit()
+        return {'id':cur.lastrowid,'assessment_id':assessment_id,'original_name':original,'content_sha256':digest,'size_bytes':len(content),'uploaded_at':uploaded_at}
+    except Exception as exc:
+        conn.rollback()
+        try: storage.delete(stored)
+        except Exception: pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8); record_internal_failure('package agreement upload',error_id,exc)
+        raise HTTPException(503,f'Agreement storage is unavailable. Reference: {error_id}') from exc
+    finally:
+        conn.close()
+
+@app.get('/api/package-agreements/{artifact_id}/download')
+def download_package_agreement(artifact_id:int,request:Request):
+    require(request,'read')
+    conn=db(); item=conn.execute('SELECT * FROM package_agreement_artifacts WHERE id=? AND tenant_id=?',(artifact_id,tenant_id(request))).fetchone()
+    if not item: conn.close(); raise HTTPException(404,'Agreement not found.')
+    assessment_row_for_request(request,item['assessment_id'])
+    member=protected_member_request(request)
+    if member and (role(request)!='Client Executive' or auth_context(request)['auth_mode'] not in ('session','oidc')):
+        conn.close(); raise HTTPException(403,'Only the signed-in Member decision owner may retrieve this agreement.')
+    quote=conn.execute('SELECT * FROM package_quote_versions WHERE tenant_id=? AND assessment_id=? AND agreement_artifact_id=? ORDER BY version_no DESC LIMIT 1',(tenant_id(request),item['assessment_id'],artifact_id)).fetchone()
+    if member and not quote: conn.close(); raise HTTPException(404,'The agreement is not attached to a Member quote.')
+    if quote:
+        try: verified_package_quote(quote,request)
+        except Exception: conn.close(); raise
+    conn.close()
+    try: data=storage.get_bytes(item['stored_name'])
+    except FileNotFoundError: raise HTTPException(404,'Stored agreement is missing.')
+    except Exception as exc:
+        security_event(request,'PACKAGE_AGREEMENT_READ_FAILURE','High',type(exc).__name__)
+        raise HTTPException(503,'Agreement storage is unavailable.') from exc
+    if hashlib.sha256(data).hexdigest()!=item['content_sha256']:
+        security_event(request,'PACKAGE_AGREEMENT_HASH_MISMATCH','Critical',f'artifact_id={artifact_id}')
+        raise HTTPException(409,'Agreement integrity verification failed.')
+    conn=db()
+    try:
+        if member:
+            ctx=auth_context(request)
+            conn.execute('INSERT INTO package_agreement_downloads(tenant_id,assessment_id,quote_id,agreement_artifact_id,member_user_id,content_sha256,downloaded_at) VALUES(?,?,?,?,?,?,?)',(tenant_id(request),item['assessment_id'],quote['id'],artifact_id,ctx['user_id'],item['content_sha256'],now()))
+        audit(conn,'PACKAGE_AGREEMENT_DOWNLOAD','assessment',item['assessment_id'],f'artifact_id={artifact_id}; sha256={item["content_sha256"]}',actor(request))
+        conn.commit()
+    finally:
+        conn.close()
+    return Response(content=data,media_type='application/pdf',headers={'Content-Disposition':f'attachment; filename="{safe_filename(item["original_name"])}"','X-Content-SHA256':item['content_sha256']})
+
 @app.get('/api/assessments/{assessment_id}/package-quote')
 def get_package_quote(assessment_id:int,request:Request):
     require(request,'read'); assessment=assessment_row_for_request(request,assessment_id)
@@ -4893,6 +5034,13 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
     data['assessment_id']=assessment_id; data['tenant_id']=tenant_id(request)
     conn=db()
     try:
+        agreement=conn.execute('SELECT * FROM package_agreement_artifacts WHERE id=? AND tenant_id=? AND assessment_id=?',(p.agreement_artifact_id,tenant_id(request),assessment_id)).fetchone()
+        if not agreement or agreement['content_sha256'].lower()!=p.agreement_sha256.lower():
+            raise HTTPException(409,'Register and verify the exact agreement PDF before quoting.')
+        try: agreement_bytes=storage.get_bytes(agreement['stored_name'])
+        except Exception as exc: raise HTTPException(503,'The stored agreement is unavailable.') from exc
+        if hashlib.sha256(agreement_bytes).hexdigest()!=agreement['content_sha256']:
+            raise HTTPException(409,'The stored agreement failed integrity verification.')
         accepted=conn.execute('SELECT id FROM package_acceptances WHERE tenant_id=? AND assessment_id=? LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
         if accepted:
             raise HTTPException(409,'An authorized package cannot be requoted without a reviewed amendment workflow.')
@@ -4920,7 +5068,10 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
     try:
         prior=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND idempotency_key=?',(tenant_id(request),assessment_id,p.idempotency_key)).fetchone()
         if prior:
-            if prior['quote_id']==p.quote_id and prior['quote_sha256']==p.quote_sha256 and prior['member_user_id']==ctx['user_id']:
+            prior_quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(prior['quote_id'],tenant_id(request),assessment_id)).fetchone()
+            if prior_quote: verified_package_quote(prior_quote,request)
+            if (prior_quote and prior['quote_id']==p.quote_id and prior['quote_sha256']==p.quote_sha256
+                and prior['agreement_sha256']==p.agreement_sha256.lower() and prior['member_user_id']==ctx['user_id']):
                 return {'status':'Authorized','quote_id':p.quote_id,'accepted_at':prior['accepted_at'],'idempotent':True}
             raise HTTPException(409,'This acceptance key was already used for another decision.')
         quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(p.quote_id,tenant_id(request),assessment_id)).fetchone()
@@ -4935,7 +5086,9 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
             raise HTTPException(409,'This quote has expired; request a current written quote.')
         existing=conn.execute('SELECT id FROM package_acceptances WHERE quote_id=?',(p.quote_id,)).fetchone()
         if existing: raise HTTPException(409,'This quote was already accepted.')
-        ts=now(); cur=conn.execute('INSERT INTO package_acceptances(tenant_id,assessment_id,quote_id,quote_sha256,agreement_sha256,member_user_id,member_authority_basis,idempotency_key,accepted_at) VALUES(?,?,?,?,?,?,?,?,?)',(tenant_id(request),assessment_id,p.quote_id,p.quote_sha256,p.agreement_sha256.lower(),ctx['user_id'],p.member_authority_basis.strip(),p.idempotency_key,ts))
+        download=conn.execute('SELECT id FROM package_agreement_downloads WHERE tenant_id=? AND assessment_id=? AND quote_id=? AND agreement_artifact_id=? AND member_user_id=? AND content_sha256=? ORDER BY id DESC LIMIT 1',(tenant_id(request),assessment_id,p.quote_id,quote['agreement_artifact_id'],ctx['user_id'],quote['agreement_sha256'].lower())).fetchone()
+        if not download: raise HTTPException(409,'Download the exact agreement PDF before accepting this quote.')
+        ts=now(); cur=conn.execute('INSERT INTO package_acceptances(tenant_id,assessment_id,quote_id,quote_sha256,agreement_sha256,member_user_id,agreement_download_id,member_authority_basis,idempotency_key,accepted_at) VALUES(?,?,?,?,?,?,?,?,?,?)',(tenant_id(request),assessment_id,p.quote_id,p.quote_sha256,p.agreement_sha256.lower(),ctx['user_id'],download['id'],p.member_authority_basis.strip(),p.idempotency_key,ts))
         audit(conn,'PACKAGE_ACCEPT','assessment',assessment_id,f'acceptance_id={cur.lastrowid}; quote_id={p.quote_id}; quote_sha256={p.quote_sha256}',actor(request))
         conn.commit()
         return {'status':'Authorized','quote_id':p.quote_id,'accepted_at':ts,'idempotent':False}

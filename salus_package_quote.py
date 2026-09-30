@@ -22,6 +22,10 @@ def validate_quote(data: dict, requested: dict) -> None:
         raise ValueError('Name the covered operation and the Member decision owner.')
     if not data['exclusions'].strip() or not data['scope_basis'].strip():
         raise ValueError('Name the exclusions and the basis for this scope.')
+    for field in ('included_work','member_inputs','evidence_allowance','clarification_allowance',
+                  'field_specialist_terms','payment_terms','tax_treatment','change_triggers'):
+        if not data[field].strip():
+            raise ValueError(f'The written quote must state {field.replace("_", " ")}.')
     if not data['agreement_reference'].strip() or len(data['agreement_sha256']) != 64:
         raise ValueError('Identify the exact agreement version and its SHA-256 digest.')
     if not data['capacity_confirmed']:

@@ -11,12 +11,14 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
     env.update({
         'SALUS_DB_PATH': str(tmp_path / 'candidate.db'),
         'SALUS_LOCAL_STORAGE_DIR': str(tmp_path / 'attachments'),
+        'SALUS_BACKUP_DIR': str(tmp_path / 'backups'),
         'SALUS_SEED_DEMO': '0',
         'SALUS_AUTH_MODE': 'prototype',
         'SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED': '1',
         'PYTHONPATH': os.getcwd(),
     })
     program = textwrap.dedent('''
+        import hashlib
         from fastapi.testclient import TestClient
         import app
         director = TestClient(app.app, headers={'X-Salus-Role':'Assessment Director'})
@@ -28,13 +30,29 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         })
         assert response.status_code == 200, response.text
         assessment_id = response.json()['id']
+        app.scan_bytes=lambda content,filename:{'ok':True,'status':'Clean'}
+        pdf=b'%PDF-1.4\\n1 0 obj<</Type/Catalog>>endobj\\n%%EOF'
+        agreement_digest=hashlib.sha256(pdf).hexdigest()
+        upload=director.post(f'/api/assessments/{assessment_id}/package-agreements',files={'file':('Agreement.pdf',pdf,'application/pdf')})
+        assert upload.status_code==200, upload.text
+        agreement_id=upload.json()['id']
+        repeated=director.post(f'/api/assessments/{assessment_id}/package-agreements',files={'file':('Agreement.pdf',pdf,'application/pdf')})
+        assert repeated.status_code==200 and repeated.json()['id']==agreement_id
         quote = dict(assessment_version=1,level=1,band='A',variant='Access',
             covered_operation='One named operation',exclusions='Other sites and functions',
-            scope_basis='Reviewed one decision unit and basic records',decision_owner='Director',
+            scope_basis='Reviewed one decision unit and basic records',
+            included_work='Bounded source review, capability and option assessment',
+            member_inputs='Short staged records packet and one decision owner',
+            evidence_allowance='Named basic records and official sources for the agreed boundary',
+            clarification_allowance='One remote clarification',
+            field_specialist_terms='No field visit or specialist certification included',
+            payment_terms='Payment under signed agreement',tax_treatment='Tax under signed agreement',
+            change_triggers='Added site, different operation or requested field work requires written change',
+            decision_owner='Director',
             source_receipt_id='SPA-EXAMPLE',fee_cents=150000,currency='USD',
             valid_until='2099-01-01',capacity_confirmed=True,
             access_eligibility_confirmed=True,access_eligibility_basis='One simple operation',
-            agreement_reference='AGREEMENT-1',agreement_sha256='a'*64,
+            agreement_artifact_id=agreement_id,agreement_reference='AGREEMENT-1',agreement_sha256=agreement_digest,
             separate_services_excluded=True)
         url=f'/api/assessments/{assessment_id}/package-quote'
         app.PACKAGE_COMMERCIAL_WORKFLOW_ENABLED=False
@@ -58,7 +76,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.execute('UPDATE package_quote_versions SET fee_cents=? WHERE id=?',(150000,issued['id']))
         conn.commit(); conn.close()
         acceptance=dict(quote_id=issued['id'],quote_sha256=issued['content_sha256'],
-            agreement_sha256='a'*64,member_authority_basis='Authorized Member executive',
+            agreement_sha256=agreement_digest,member_authority_basis='Authorized Member executive',
             idempotency_key='member-acceptance-0001',accept_quote_and_agreement=True)
         assert director.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance).status_code==403
         conn=app.db()
@@ -69,6 +87,17 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.commit(); conn.close()
         app.AUTH_MODE='session'
         member=TestClient(app.app,cookies={'salus_session':'test-cookie'})
+        missing_delivery=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
+        assert missing_delivery.status_code==409, missing_delivery.text
+        conn=app.db()
+        stored=conn.execute('SELECT stored_name FROM package_agreement_artifacts WHERE id=?',(agreement_id,)).fetchone()['stored_name']
+        conn.close()
+        app.storage.put_bytes(stored,b'%PDF-corrupted')
+        assert member.get(f'/api/package-agreements/{agreement_id}/download').status_code==409
+        app.storage.put_bytes(stored,pdf)
+        agreement_copy=member.get(f'/api/package-agreements/{agreement_id}/download')
+        assert agreement_copy.status_code==200 and agreement_copy.content==pdf
+        assert agreement_copy.headers['X-Content-SHA256']==agreement_digest
         stale=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json={**acceptance,'quote_sha256':'b'*64})
         assert stale.status_code==409, stale.text
         accepted=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
@@ -82,12 +111,21 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert director.post(url,json=quote).status_code==409
         other_tenant=TestClient(app.app,headers={'X-Salus-Role':'Assessment Director','X-Salus-Tenant':'2'})
         assert other_tenant.get(url).status_code==403
+        admin=TestClient(app.app,headers={'X-Salus-Role':'System Administrator'})
+        backup=admin.post('/api/admin/backups')
+        assert backup.status_code==200, backup.text
+        validation=admin.post(f"/api/admin/backups/{backup.json()['id']}/dr-validate")
+        assert validation.status_code==200 and validation.json()['ok'], validation.text
         conn=app.db()
         assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_agreement_artifacts').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_agreement_downloads').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
         from portable_backup import collect_tenant_records, replace_tenant_records, validate_records
         records=collect_tenant_records(conn,1)
         assert len(records['package_quote_versions'])==1
+        assert len(records['package_agreement_artifacts'])==1
+        assert len(records['package_agreement_downloads'])==1
         assert len(records['package_acceptances'])==1
         assert not validate_records(records,1)
         replace_tenant_records(conn,1,records)
