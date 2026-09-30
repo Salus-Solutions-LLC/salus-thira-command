@@ -5122,6 +5122,82 @@ def review_advisor_package_handoff(assessment_id:int,handoff_key:str,p:PackageHa
     finally:
         conn.close()
 
+@app.get('/api/assessments/{assessment_id}/advisor-package-handoff/{handoff_key}/review-packet')
+def advisor_package_handoff_review_packet(assessment_id:int,handoff_key:str,request:Request):
+    require_package_commercial_candidate()
+    require(request,'read'); require_salus_component_authority(request,'Advisor package handoff')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus reviewer must inspect this handoff.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        handoff=conn.execute('SELECT * FROM advisor_package_handoffs WHERE handoff_key=? AND tenant_id=? AND assessment_id=?',
+            (handoff_key,tenant_id(request),assessment_id)).fetchone()
+        if not handoff or handoff['status'] not in ('Claimed','Reviewed'):
+            raise HTTPException(404,'Handoff is unavailable for review.')
+        source=conn.execute('''SELECT s.organization_name,p.package_json
+            FROM advisor_public_submissions s
+            JOIN advisor_public_service_profiles p ON p.submission_key=s.submission_key
+            JOIN advisor_public_sessions a ON a.session_key=s.session_key
+            WHERE s.session_key=? AND s.submission_key=? AND a.status='Submitted' AND a.deleted_at='' ''',
+            (handoff['session_key'],handoff['submission_key'])).fetchone()
+        if not source or hashlib.sha256(source['package_json'].encode('utf-8')).hexdigest()!=handoff['package_sha256']:
+            raise HTTPException(409,'The prospect scope changed; a new review is required.')
+        receipt=(json.loads(source['package_json']).get('scope_receipt') or {})
+        if str(receipt.get('receipt_id') or '')!=handoff['receipt_id']:
+            raise HTTPException(409,'The receipt identity changed; a new review is required.')
+        return {
+            'handoff_key':handoff_key,'status':handoff['status'],
+            'prospect_receipt':{'id':handoff['receipt_id'],'revision':handoff['revision_no'],
+                                'sha256':handoff['receipt_sha256'],
+                                'organization':source['organization_name'],
+                                'requested_boundary':receipt.get('requested_boundary',''),
+                                'requested_location':receipt.get('requested_location',''),
+                                'possible_path':receipt.get('possible_path','')},
+            'member_request':{'assessment_id':assessment_id,'assessment_version':assessment['version'],
+                              'organization':assessment['organization'],
+                              'covered_operation':assessment['covered_operation'],
+                              'exclusions':assessment['exclusions'],
+                              'level':assessment['requested_package_level'],
+                              'band':assessment['requested_scope_band']},
+            'review_limit':'A matching name or receipt does not prove contracting authority or authorize a purchase.'
+        }
+    finally:
+        conn.close()
+
+@app.get('/api/assessments/{assessment_id}/advisor-package-handoff/{handoff_key}/receipt.pdf')
+def advisor_package_handoff_review_receipt(assessment_id:int,handoff_key:str,request:Request):
+    require_package_commercial_candidate()
+    require(request,'read'); require_salus_component_authority(request,'Advisor package handoff')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus reviewer must inspect this receipt.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        handoff=conn.execute('SELECT * FROM advisor_package_handoffs WHERE handoff_key=? AND tenant_id=? AND assessment_id=?',
+            (handoff_key,tenant_id(request),assessment_id)).fetchone()
+        if not handoff or handoff['status'] not in ('Claimed','Reviewed'):
+            raise HTTPException(404,'Handoff is unavailable for review.')
+        snapshot=conn.execute('''SELECT item_id,content_sha256,content_size
+            FROM advisor_public_scope_receipt_snapshots WHERE session_key=? AND revision_no=?''',
+            (handoff['session_key'],handoff['revision_no'])).fetchone()
+        source=conn.execute('SELECT status,deleted_at FROM advisor_public_sessions WHERE session_key=?',
+            (handoff['session_key'],)).fetchone()
+        if not snapshot or snapshot['content_sha256']!=handoff['receipt_sha256'] or not source or source['status']!='Submitted' or source['deleted_at']:
+            raise HTTPException(409,'The saved receipt is no longer available for review.')
+        import public_protection_advisor as advisor
+        try:
+            content=advisor.read_member_pdf(str(snapshot['item_id']),str(snapshot['content_sha256']),int(snapshot['content_size']))
+        except advisor.M365ReportError as exc:
+            raise HTTPException(503,'The saved receipt could not be verified.') from exc
+        download_name=safe_filename(f'Salus-Scope-Receipt-{handoff["receipt_id"]}-R{handoff["revision_no"]}.pdf')
+        return Response(content=content,media_type='application/pdf',headers={
+            'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
+            'Content-Disposition':f'attachment; filename="{download_name}"',
+            'X-Content-SHA256':handoff['receipt_sha256']})
+    finally:
+        conn.close()
+
 @app.post('/api/assessments/{assessment_id}/package-quote')
 def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
     require_package_commercial_candidate()

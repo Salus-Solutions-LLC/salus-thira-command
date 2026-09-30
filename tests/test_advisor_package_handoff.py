@@ -17,7 +17,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         'PYTHONPATH': os.getcwd(),
     })
     program = textwrap.dedent("""
-        import json
+        import hashlib,json
         from fastapi.testclient import TestClient
         import app
         import public_protection_advisor as advisor
@@ -33,6 +33,8 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         conn=app.db()
         session='SPA-SESSION-TEST'; account='SPA-ACCOUNT-TEST'
         submission='SPA-SUBMISSION-TEST'; receipt='SPA-RECEIPT-TEST'
+        receipt_bytes=b'%PDF-1.4\\nreview-copy\\n%%EOF'
+        receipt_digest=hashlib.sha256(receipt_bytes).hexdigest()
         conn.execute('''INSERT INTO advisor_public_sessions
           (session_key,token_sha256,csrf_sha256,organization_type,primary_consent,
            secondary_deidentified_consent,consent_notice_version,retention_policy_version,
@@ -68,7 +70,9 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
           (profile_key,submission_key,profile_version,profile_json,profile_sha256,
            package_recommendation_version,package_json,created_at) VALUES(?,?,?,?,?,?,?,?)''',
           ('SPA-PROFILE-TEST',submission,'profile-v1','{}',advisor._sha('{}'),'package-v1',
-           json.dumps({'scope_receipt':{'receipt_id':receipt}}),app.now()))
+           json.dumps({'scope_receipt':{'receipt_id':receipt,
+             'requested_boundary':'One operation','requested_location':'One site',
+             'possible_path':'Level 1A Access'}}),app.now()))
         conn.execute('''INSERT INTO advisor_public_report_identity_revisions
           (revision_key,account_key,session_key,revision_no,protected_member_code_name,
            project_code_name,handling_profile,handling_status,created_by,created_at,content_sha256)
@@ -78,9 +82,12 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         conn.execute('''INSERT INTO advisor_public_scope_receipt_snapshots
           (session_key,revision_no,package_version,template_version,item_id,content_sha256,
            content_size,created_at) VALUES(?,?,?,?,?,?,?,?)''',
-          (session,1,'package-v1','receipt-v1','item-1','d'*64,12,app.now()))
+          (session,1,'package-v1','receipt-v1','item-1',receipt_digest,len(receipt_bytes),app.now()))
         conn.commit();conn.close()
-        advisor.read_member_pdf=lambda item_id,digest,size:b'verified-pdf'
+        def read_receipt(item_id,digest,size):
+            assert item_id=='item-1' and digest==receipt_digest and size==len(receipt_bytes)
+            return receipt_bytes
+        advisor.read_member_pdf=read_receipt
         advisor.delete_member_pdf=lambda item_id:None
         prospect=TestClient(app.app,headers={'x-csrf-token':'csrf'},cookies={
           'salus_advisor_session':'session-cookie','salus_advisor_account':'account-cookie'})
@@ -164,6 +171,21 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==409
         reviewer=TestClient(app.app,cookies={'salus_session':'reviewer-cookie'})
         review_url=f"/api/assessments/{assessment_id}/advisor-package-handoff/{handoff['handoff_key']}/review"
+        packet_url=f"/api/assessments/{assessment_id}/advisor-package-handoff/{handoff['handoff_key']}/review-packet"
+        receipt_url=f"/api/assessments/{assessment_id}/advisor-package-handoff/{handoff['handoff_key']}/receipt.pdf"
+        assert member.get(packet_url).status_code==403
+        packet=reviewer.get(packet_url)
+        assert packet.status_code==200,packet.text
+        assert packet.json()['prospect_receipt']['requested_boundary']=='One operation'
+        assert packet.json()['member_request']['covered_operation']=='One operation'
+        receipt_copy=reviewer.get(receipt_url)
+        assert receipt_copy.status_code==200 and receipt_copy.content==receipt_bytes
+        assert receipt_copy.headers['X-Content-SHA256']==receipt_digest
+        def unavailable_receipt(item_id,digest,size):
+            raise advisor.M365ReportError('unavailable')
+        advisor.read_member_pdf=unavailable_receipt
+        assert reviewer.get(receipt_url).status_code==503
+        advisor.read_member_pdf=read_receipt
         review={'assessment_version':1,'organization_match_basis':'Confirmed organization from controlled records',
           'covered_boundary_basis':'Matched one named operation and exclusions',
           'decision_role_basis':'Confirmed Member role for quote preparation only',
@@ -190,6 +212,8 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM advisor_package_handoffs').fetchone()[0]==1
         conn.close()
         assert prospect.post('/public/protection-advisor/package-handoff/withdraw',json=withdrawal).json()=={'withdrawn':True}
+        assert reviewer.get(packet_url).status_code==404
+        assert reviewer.get(receipt_url).status_code==404
         assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==409
         second=prospect.post('/public/protection-advisor/package-handoff',json=payload)
         assert second.status_code==200,second.text
