@@ -177,6 +177,13 @@ async function entityView(key){
       }catch(error){quotePanel.innerHTML='<h2>Your package quote</h2><p>No current approved quote is available for this selected assessment. Salus must confirm the scope and capacity before offering one.</p>';}
     }
     if(systemMode.package_handoff_candidate_available && ['Assessment Director','System Administrator'].includes(currentRole) && rows.some(r=>r.id===activeAssessmentId)){
+      const releasePanel=document.createElement('div'); releasePanel.className='card'; releasePanel.style.marginTop='16px';
+      releasePanel.innerHTML='<h2>Four-report release check</h2><p>Checking the current package reports and open approval steps…</p>';
+      $('#content').appendChild(releasePanel);
+      try{
+        const readiness=await api(`/api/assessments/${activeAssessmentId}/package-release-readiness`);
+        releasePanel.innerHTML=`<h2>Four-report release check</h2><p><strong>${esc(readiness.status)}</strong> — These checks show what Salus still needs before any report can be issued. A saved draft or comparison is not approval.</p><p>${readiness.reports.length?readiness.reports.map(item=>`${esc(item.product)} version ${Number(item.version_no)} (${esc(item.status)})`).join(' · '):'No working package reports are registered yet.'}</p><ul>${readiness.blockers.map(item=>`<li>${esc(item)}</li>`).join('')}</ul>`;
+      }catch(error){releasePanel.innerHTML='<h2>Four-report release check</h2><p>Release status is unavailable for this selected assessment. No report should be treated as issued from this screen.</p>';}
       const reviewPanel=document.createElement('div'); reviewPanel.className='card'; reviewPanel.style.marginTop='16px';
       reviewPanel.innerHTML='<h2>Protection Advisor receipts awaiting Salus review</h2><p>Compare the prospect receipt with the Member request. Record three separate reasons for a match. This review only prepares a quote; it does not approve a purchase.</p><div id="advisor-review-list">Loading claimed receipts…</div><div id="advisor-review-detail"></div>';
       $('#content').appendChild(reviewPanel);
