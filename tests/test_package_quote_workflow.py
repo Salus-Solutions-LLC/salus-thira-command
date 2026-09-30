@@ -70,6 +70,20 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         issued=response.json()
         assert issued['fee_cents']==150000 and issued['version_no']==1
         assert director.get(url).json()['status']=='Quoted'
+        # A quoted boundary cannot be overwritten by the ordinary assessment editor.
+        for changed in ({'covered_operation':'Different operation'},
+                        {'exclusions':'Different exclusions'},
+                        {'purpose':'Different purpose'}):
+            blocked=director.put(f'/api/assessments/{assessment_id}',json=changed)
+            assert blocked.status_code==409, blocked.text
+        # Earlier data may contain a same-version drift; read and acceptance must fail closed.
+        conn=app.db()
+        conn.execute('UPDATE assessments SET covered_operation=? WHERE id=?',('Different operation',assessment_id))
+        conn.commit();conn.close()
+        assert director.get(url).json()['status']=='Scope changed — new quote required'
+        conn=app.db()
+        conn.execute('UPDATE assessments SET covered_operation=? WHERE id=?',('One named operation',assessment_id))
+        conn.commit();conn.close()
         conn=app.db()
         conn.execute('UPDATE package_quote_versions SET source_receipt_id=? WHERE id=?',('SPA-EXAMPLE',issued['id']))
         conn.commit(); conn.close()
@@ -96,6 +110,14 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.commit(); conn.close()
         app.AUTH_MODE='session'
         member=TestClient(app.app,cookies={'salus_session':'test-cookie'})
+        conn=app.db()
+        conn.execute('UPDATE assessments SET exclusions=? WHERE id=?',('Different exclusions',assessment_id))
+        conn.commit();conn.close()
+        assert member.get(url).json()['status']=='Scope changed — new quote required'
+        assert member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance).status_code==409
+        conn=app.db()
+        conn.execute('UPDATE assessments SET exclusions=? WHERE id=?',('Other sites and functions',assessment_id))
+        conn.commit();conn.close()
         missing_delivery=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
         assert missing_delivery.status_code==409, missing_delivery.text
         conn=app.db()

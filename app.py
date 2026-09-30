@@ -5011,9 +5011,15 @@ def get_package_quote(assessment_id:int,request:Request):
     except Exception: conn.close(); raise
     acceptance=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND quote_id=?',(tenant_id(request),assessment_id,quote['id'])).fetchone()
     conn.close(); result=dict(quote)
-    if acceptance and quote['assessment_version']!=assessment['version']: result['status']='Authorized original scope — amendment required'
+    scope_matches=(quote['assessment_version']==assessment['version']
+        and quote['covered_operation']==assessment['covered_operation']
+        and quote['exclusions']==assessment['exclusions']
+        and quote['level']==assessment['requested_package_level']
+        and quote['band']==assessment['requested_scope_band']
+        and quote['variant']==assessment['requested_access_variant'])
+    if acceptance and not scope_matches: result['status']='Authorized original scope — amendment required'
     elif acceptance: result['status']='Authorized'
-    elif quote['assessment_version']!=assessment['version']: result['status']='Scope changed — new quote required'
+    elif not scope_matches: result['status']='Scope changed — new quote required'
     elif date.fromisoformat(quote['valid_until']) < datetime.now(timezone.utc).date(): result['status']='Expired — new quote required'
     else: result['status']='Quoted'
     result['accepted_at']=acceptance['accepted_at'] if acceptance else ''
@@ -5289,7 +5295,12 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
         if quote['source_receipt_id']:
             raise HTTPException(409,'This quote has an unverified Protection Advisor receipt and cannot be accepted.')
         latest=conn.execute('SELECT MAX(version_no) n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',(tenant_id(request),assessment_id)).fetchone()['n']
-        if quote['version_no']!=latest or quote['assessment_version']!=assessment['version']:
+        if (quote['version_no']!=latest or quote['assessment_version']!=assessment['version']
+            or quote['covered_operation']!=assessment['covered_operation']
+            or quote['exclusions']!=assessment['exclusions']
+            or quote['level']!=assessment['requested_package_level']
+            or quote['band']!=assessment['requested_scope_band']
+            or quote['variant']!=assessment['requested_access_variant']):
             raise HTTPException(409,'This quote has been superseded by a changed scope or a newer quote.')
         if quote['content_sha256']!=p.quote_sha256 or quote['agreement_sha256'].lower()!=p.agreement_sha256.lower():
             raise HTTPException(409,'The quote or agreement version does not match the accepted copy.')
@@ -6026,10 +6037,11 @@ def update_entity(table:str,entity_id:int,payload:dict[str,Any],request:Request)
             conn.close(); raise HTTPException(409,'Assessment reassessment lifecycle fields are controlled. Use the assessment reassessment review action rather than editing review currency directly.')
         if 'status' in payload and str(payload['status'])!=str(old['status']):
             conn.close(); raise HTTPException(409,'Use the controlled workflow transition action to change assessment status.')
-        if old['scope_locked']:
-            protected={'purpose','mission','scope','covered_operation','requested_package_level','requested_scope_band','requested_access_variant','exclusions'}
-            if any(k in payload and str(payload[k])!=str(old[k]) for k in protected):
-                conn.close(); raise HTTPException(409,'Scope is locked. Create an authorized scope/version change rather than overwriting mission, purpose, scope, or exclusions.')
+        protected={'purpose','mission','scope','covered_operation','requested_package_level','requested_scope_band','requested_access_variant','exclusions'}
+        if any(k in payload and str(payload[k])!=str(old[k]) for k in protected):
+            quote_exists=conn.execute('SELECT 1 FROM package_quote_versions WHERE tenant_id=? AND assessment_id=? LIMIT 1',(old['tenant_id'],entity_id)).fetchone()
+            if old['scope_locked'] or quote_exists:
+                conn.close(); raise HTTPException(409,'This assessment has a locked scope or a package quote. Use an authorized scope/version change; start a new assessment if the covered operation or package path must change.')
     columns={r['name'] for r in conn.execute(f'PRAGMA table_info({table})')}
     immutable={'id','created_at'}
     if table in CHILD_ASSESSMENT_TABLES: immutable.add('assessment_id')
