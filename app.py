@@ -1622,6 +1622,14 @@ class PackageHandoffClaimIn(BaseModel):
     claim_code: str = Field(min_length=32,max_length=120)
     confirm_requested_boundary: Literal[True]
 
+class PackageHandoffReviewIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    assessment_version: int = Field(gt=0)
+    organization_match_basis: str = Field(min_length=12,max_length=1000)
+    covered_boundary_basis: str = Field(min_length=12,max_length=1000)
+    decision_role_basis: str = Field(min_length=12,max_length=1000)
+    confirm_exact_receipt: Literal[True]
+
 def verified_package_quote(row,request:Request):
     content={key:row[key] for key in PackageQuoteIn.model_fields}
     for key in ('capacity_confirmed','access_eligibility_confirmed','separate_services_excluded'):
@@ -5037,7 +5045,7 @@ def claim_advisor_package_handoff(assessment_id:int,p:PackageHandoffClaimIn,requ
             or submission['submission_key']!=handoff['submission_key'] or not snapshot
             or snapshot['content_sha256']!=handoff['receipt_sha256']):
             raise HTTPException(409,'The consented receipt is no longer available for a package handoff.')
-        other=conn.execute("SELECT 1 FROM advisor_package_handoffs WHERE submission_key=? AND status='Claimed' LIMIT 1",(handoff['submission_key'],)).fetchone()
+        other=conn.execute("SELECT 1 FROM advisor_package_handoffs WHERE submission_key=? AND status IN ('Claimed','Reviewed') LIMIT 1",(handoff['submission_key'],)).fetchone()
         if other: raise HTTPException(409,'This receipt has already been claimed for review.')
         claimed_at=now()
         updated=conn.execute("UPDATE advisor_package_handoffs SET status='Claimed',tenant_id=?,assessment_id=?,member_user_id=?,claimed_at=? WHERE handoff_key=? AND status='Pending'",(tenant_id(request),assessment_id,ctx['user_id'],claimed_at,handoff['handoff_key']))
@@ -5046,6 +5054,71 @@ def claim_advisor_package_handoff(assessment_id:int,p:PackageHandoffClaimIn,requ
         audit(conn,'ADVISOR_PACKAGE_HANDOFF_CLAIM','assessment',assessment_id,f'handoff_key={handoff["handoff_key"]}; receipt_revision={handoff["revision_no"]}',actor(request))
         conn.commit()
         return {'handoff_key':handoff['handoff_key'],'status':'Awaiting Salus identity, authority and scope review','receipt_id':handoff['receipt_id'],'receipt_revision':handoff['revision_no']}
+    finally:
+        conn.close()
+
+@app.post('/api/assessments/{assessment_id}/advisor-package-handoff/{handoff_key}/review')
+def review_advisor_package_handoff(assessment_id:int,handoff_key:str,p:PackageHandoffReviewIn,request:Request):
+    """Record a Salus scope match for quote preparation, never contract authority."""
+    require_package_commercial_candidate()
+    require(request,'decide'); require_salus_component_authority(request,'Advisor package handoff')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus reviewer must check the package handoff.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    if int(assessment['version'])!=p.assessment_version:
+        raise HTTPException(409,'The requested scope changed; review the current assessment before linking a receipt.')
+    conn=db()
+    try:
+        handoff=conn.execute('SELECT * FROM advisor_package_handoffs WHERE handoff_key=? AND tenant_id=? AND assessment_id=?',
+            (handoff_key,tenant_id(request),assessment_id)).fetchone()
+        if not handoff or handoff['status']!='Claimed':
+            raise HTTPException(409,'This receipt has not been claimed for Salus review.')
+        source=conn.execute('''SELECT s.status,s.deleted_at,a.status account_status,a.email_verified_at,
+                     aa.identifiable_retention_consent,aa.detailed_assessment_acknowledged,
+                     b.submission_key,p.profile_sha256,p.profile_json,p.package_json
+                 FROM advisor_public_sessions s
+                 JOIN advisor_public_accounts a ON a.account_key=?
+                 JOIN advisor_public_account_assessments aa ON aa.account_key=a.account_key AND aa.session_key=s.session_key
+                 JOIN advisor_public_submissions b ON b.session_key=s.session_key
+                 JOIN advisor_public_service_profiles p ON p.submission_key=b.submission_key
+                 WHERE s.session_key=?''',(handoff['account_key'],handoff['session_key'])).fetchone()
+        snapshot=conn.execute('''SELECT content_sha256 FROM advisor_public_scope_receipt_snapshots
+            WHERE session_key=? AND revision_no=?''',(handoff['session_key'],handoff['revision_no'])).fetchone()
+        latest=conn.execute('''SELECT MAX(revision_no) revision_no FROM advisor_public_report_identity_revisions
+            WHERE session_key=?''',(handoff['session_key'],)).fetchone()
+        member=conn.execute('SELECT tenant_id,role,status FROM users WHERE id=?',(handoff['member_user_id'],)).fetchone()
+        if (not source or source['status']!='Submitted' or source['deleted_at'] or
+            source['account_status']!='Active' or not source['email_verified_at'] or
+            not source['identifiable_retention_consent'] or not source['detailed_assessment_acknowledged'] or
+            source['submission_key']!=handoff['submission_key'] or
+            source['profile_sha256']!=handoff['profile_sha256'] or
+            hashlib.sha256(source['profile_json'].encode('utf-8')).hexdigest()!=source['profile_sha256'] or
+            hashlib.sha256(source['package_json'].encode('utf-8')).hexdigest()!=handoff['package_sha256'] or
+            not snapshot or
+            snapshot['content_sha256']!=handoff['receipt_sha256'] or not latest or
+            latest['revision_no']!=handoff['revision_no'] or not member or
+            member['tenant_id']!=tenant_id(request) or member['role']!='Client Executive' or member['status']!='Active'):
+            raise HTTPException(409,'The prospect consent, Member claim or exact receipt changed; request a new review.')
+        source_receipt=str((json.loads(source['package_json']).get('scope_receipt') or {}).get('receipt_id') or '')
+        if source_receipt!=handoff['receipt_id']:
+            raise HTTPException(409,'The saved receipt identity changed; request a new review.')
+        basis=json.dumps({
+            'organization_match':p.organization_match_basis.strip(),
+            'covered_boundary':p.covered_boundary_basis.strip(),
+            'decision_role':p.decision_role_basis.strip(),
+        },sort_keys=True,separators=(',',':'))
+        reviewed_at=now()
+        updated=conn.execute('''UPDATE advisor_package_handoffs
+            SET status='Reviewed',reviewed_at=?,reviewed_by=?,review_basis=?,reviewed_assessment_version=?
+            WHERE handoff_key=? AND status='Claimed' ''',
+            (reviewed_at,actor(request),basis,p.assessment_version,handoff_key))
+        if updated.rowcount!=1: raise HTTPException(409,'The handoff state changed during review.')
+        audit(conn,'ADVISOR_PACKAGE_HANDOFF_REVIEW','assessment',assessment_id,
+            f'handoff_key={handoff_key}; receipt_revision={handoff["revision_no"]}; assessment_version={p.assessment_version}',actor(request))
+        conn.commit()
+        return {'handoff_key':handoff_key,'status':'Reviewed for quote preparation only',
+                'receipt_id':handoff['receipt_id'],'receipt_revision':handoff['revision_no'],
+                'assessment_version':p.assessment_version,'reviewed_at':reviewed_at}
     finally:
         conn.close()
 

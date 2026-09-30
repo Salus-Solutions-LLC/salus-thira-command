@@ -750,6 +750,7 @@ def _initialize(conn: Any) -> None:
       revision_no INTEGER NOT NULL,
       receipt_sha256 TEXT NOT NULL,
       profile_sha256 TEXT NOT NULL,
+      package_sha256 TEXT NOT NULL DEFAULT '',
       transfer_notice_version TEXT NOT NULL,
       consented_at TEXT NOT NULL,
       claim_token_sha256 TEXT NOT NULL UNIQUE,
@@ -758,11 +759,25 @@ def _initialize(conn: Any) -> None:
       tenant_id INTEGER,
       assessment_id INTEGER,
       member_user_id INTEGER,
-      claimed_at TEXT NOT NULL DEFAULT ''
+      claimed_at TEXT NOT NULL DEFAULT '',
+      reviewed_at TEXT NOT NULL DEFAULT '',
+      reviewed_by TEXT NOT NULL DEFAULT '',
+      review_basis TEXT NOT NULL DEFAULT '',
+      reviewed_assessment_version INTEGER NOT NULL DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS idx_advisor_package_handoff_source
       ON advisor_package_handoffs(session_key,status);
     """)
+    handoff_columns = {row["name"] for row in conn.execute("PRAGMA table_info(advisor_package_handoffs)")}
+    for column, definition in (
+        ("reviewed_at", "TEXT NOT NULL DEFAULT ''"),
+        ("reviewed_by", "TEXT NOT NULL DEFAULT ''"),
+        ("review_basis", "TEXT NOT NULL DEFAULT ''"),
+        ("reviewed_assessment_version", "INTEGER NOT NULL DEFAULT 0"),
+        ("package_sha256", "TEXT NOT NULL DEFAULT ''"),
+    ):
+        if column not in handoff_columns:
+            conn.execute(f"ALTER TABLE advisor_package_handoffs ADD COLUMN {column} {definition}")
     initialize_engagement_schema(conn)
 
 
@@ -2872,7 +2887,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             if receipt_id != "SPA-RECEIPT-" + str(source["submission_key"]).removeprefix("SPA-SUBMISSION-"):
                 raise HTTPException(409, "Receipt identity needs Salus review")
             claimed = conn.execute(
-                "SELECT 1 FROM advisor_package_handoffs WHERE submission_key=? AND status='Claimed' LIMIT 1",
+                "SELECT 1 FROM advisor_package_handoffs WHERE submission_key=? AND status IN ('Claimed','Reviewed') LIMIT 1",
                 (source["submission_key"],),
             ).fetchone()
             if claimed:
@@ -2897,11 +2912,12 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             conn.execute(
                 """INSERT INTO advisor_package_handoffs
                    (handoff_key,session_key,account_key,submission_key,receipt_id,revision_no,
-                    receipt_sha256,profile_sha256,transfer_notice_version,consented_at,
+                    receipt_sha256,profile_sha256,package_sha256,transfer_notice_version,consented_at,
                     claim_token_sha256,claim_expires_at,status)
-                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (handoff_key,session["session_key"],account["account_key"],source["submission_key"],
                  receipt_id,command.receipt_revision,snapshot["content_sha256"],source["profile_sha256"],
+                 _sha(source["package_json"]),
                  PACKAGE_TRANSFER_NOTICE_VERSION,_utc_text(issued),_sha(token),
                  _utc_text(issued+timedelta(hours=24)),"Pending"),
             )
@@ -2931,7 +2947,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             deleted = conn.execute(
                 """DELETE FROM advisor_package_handoffs
                     WHERE handoff_key=? AND session_key=? AND account_key=?
-                      AND status IN ('Pending','Claimed')""",
+                      AND status IN ('Pending','Claimed','Reviewed')""",
                 (command.handoff_key, session["session_key"], account["account_key"]),
             )
             if deleted.rowcount:

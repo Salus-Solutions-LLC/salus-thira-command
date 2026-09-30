@@ -67,7 +67,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         conn.execute('''INSERT INTO advisor_public_service_profiles
           (profile_key,submission_key,profile_version,profile_json,profile_sha256,
            package_recommendation_version,package_json,created_at) VALUES(?,?,?,?,?,?,?,?)''',
-          ('SPA-PROFILE-TEST',submission,'profile-v1','{}','b'*64,'package-v1',
+          ('SPA-PROFILE-TEST',submission,'profile-v1','{}',advisor._sha('{}'),'package-v1',
            json.dumps({'scope_receipt':{'receipt_id':receipt}}),app.now()))
         conn.execute('''INSERT INTO advisor_public_report_identity_revisions
           (revision_key,account_key,session_key,revision_no,protected_member_code_name,
@@ -125,6 +125,13 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
           VALUES(?,?,?,?,?,?,?)''',(1,'member-exec','Member Executive','Client Executive','Active',app.now(),app.now())).lastrowid
         conn.execute('''INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at)
           VALUES(?,?,?,?,?)''',(user_id,app._hash_token('member-cookie'),'2099-01-01T00:00:00Z',app.now(),app.now()))
+        reviewer_id=conn.execute('''INSERT INTO users
+          (tenant_id,username,display_name,role,status,created_at,updated_at)
+          VALUES(?,?,?,?,?,?,?)''',(1,'salus-reviewer','Salus Reviewer','Assessment Director',
+          'Active',app.now(),app.now())).lastrowid
+        conn.execute('''INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at)
+          VALUES(?,?,?,?,?)''',(reviewer_id,app._hash_token('reviewer-cookie'),
+          '2099-01-01T00:00:00Z',app.now(),app.now()))
         conn.execute('INSERT OR IGNORE INTO tenants(id,name,slug,status,created_at) VALUES(?,?,?,?,?)',
           (2,'Other tenant','other-tenant','Active',app.now()))
         other_id=conn.execute('''INSERT INTO users
@@ -155,6 +162,28 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert claimed.status_code==200,claimed.text
         assert claimed.json()['status'].startswith('Awaiting Salus')
         assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==409
+        reviewer=TestClient(app.app,cookies={'salus_session':'reviewer-cookie'})
+        review_url=f"/api/assessments/{assessment_id}/advisor-package-handoff/{handoff['handoff_key']}/review"
+        review={'assessment_version':1,'organization_match_basis':'Confirmed organization from controlled records',
+          'covered_boundary_basis':'Matched one named operation and exclusions',
+          'decision_role_basis':'Confirmed Member role for quote preparation only',
+          'confirm_exact_receipt':True}
+        assert member.post(review_url,json=review).status_code==403
+        assert reviewer.post(review_url,json={**review,'assessment_version':2}).status_code==409
+        conn=app.db()
+        conn.execute('UPDATE advisor_public_service_profiles SET profile_json=? WHERE submission_key=?',
+          ('{"changed":true}',submission))
+        conn.commit();conn.close()
+        assert reviewer.post(review_url,json=review).status_code==409
+        conn=app.db()
+        conn.execute('UPDATE advisor_public_service_profiles SET profile_json=? WHERE submission_key=?',
+          ('{}',submission))
+        conn.commit();conn.close()
+        reviewed=reviewer.post(review_url,json=review)
+        assert reviewed.status_code==200,reviewed.text
+        assert reviewed.json()['status']=='Reviewed for quote preparation only'
+        assert reviewer.post(review_url,json=review).status_code==409
+        assert prospect.post('/public/protection-advisor/package-handoff',json=payload).status_code==409
         withdrawal={'handoff_key':handoff['handoff_key']}
         assert other_account.post('/public/protection-advisor/package-handoff/withdraw',json=withdrawal).status_code==403
         conn=app.db()
