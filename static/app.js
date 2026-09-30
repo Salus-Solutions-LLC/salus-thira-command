@@ -21,6 +21,7 @@ async function getActiveAssessment(){const rows=await api('/api/assessments'); i
 function scopedUrl(key){return key==='assessments'||!activeAssessmentId?'/api/'+key:`/api/${key}?assessment_id=${activeAssessmentId}`;}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function fmtMoney(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(v||0))}
+function fmtPackageDate(value){if(!value)return 'set in the written scope';const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value);if(!match)return String(value);return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]))));}
 function badge(v){return `<span class="badge ${String(v||'').toLowerCase()}">${esc(v)}</span>`}
 function setView(v){
   currentView=v;
@@ -147,6 +148,14 @@ async function entityView(key){
         }catch(error){status.textContent='The code could not be used for this assessment. Check that it is current and contact Salus if you need help.';}
         finally{button.disabled=false;}
       };
+      const quotePanel=document.createElement('div'); quotePanel.className='card'; quotePanel.style.marginTop='16px';
+      quotePanel.innerHTML='<h2>Your package quote</h2><p>Loading the current quote for this assessment…</p>';
+      $('#content').appendChild(quotePanel);
+      try{
+        const quote=await api(`/api/assessments/${activeAssessmentId}/package-quote`);
+        const fee=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(quote.fee_cents)/100);
+        quotePanel.innerHTML=`<h2>Your package quote</h2><p><strong>${esc(quote.status)}</strong> · Level ${Number(quote.level)}${esc(quote.band)} ${esc(quote.variant||'')} · ${fee}</p><p><strong>Covered work:</strong> ${esc(quote.covered_operation)}<br><strong>Excluded:</strong> ${esc(quote.exclusions)}<br><strong>Included:</strong> ${esc(quote.included_work)}<br><strong>Reports:</strong> ${esc(quote.report_deliverables)}</p><p><strong>Your inputs:</strong> ${esc(quote.member_inputs)}<br><strong>Evidence and clarification:</strong> ${esc(quote.evidence_allowance)}; ${esc(quote.clarification_allowance)}</p><p><strong>Valid through:</strong> ${esc(fmtPackageDate(quote.valid_until))}<br><strong>Start and delivery:</strong> ${esc(fmtPackageDate(quote.start_date))} / ${esc(fmtPackageDate(quote.delivery_date))}<br><strong>Changes:</strong> ${esc(quote.change_triggers)}</p><p>Separate SalOPS services require their own quote. Read the exact agreement before making any decision.</p><a href="/api/package-agreements/${Number(quote.agreement_artifact_id)}/download" target="_blank" rel="noopener">Download the written agreement</a>`;
+      }catch(error){quotePanel.innerHTML='<h2>Your package quote</h2><p>No current approved quote is available for this selected assessment. Salus must confirm the scope and capacity before offering one.</p>';}
     }
     if(systemMode.package_handoff_candidate_available && ['Assessment Director','System Administrator'].includes(currentRole) && rows.some(r=>r.id===activeAssessmentId)){
       const reviewPanel=document.createElement('div'); reviewPanel.className='card'; reviewPanel.style.marginTop='16px';
