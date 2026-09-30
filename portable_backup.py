@@ -142,6 +142,8 @@ def validate_records(records, tenant_id:int|None=None):
     for row in records.get('package_quote_versions',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package quote {row.get("id")} crosses the tenant boundary')
         if len(str(row.get('content_sha256','')))!=64: errors.append(f'package quote {row.get("id")} has invalid content digest')
+        scope_hash=row.get('assessment_scope_sha256','')
+        if scope_hash and len(str(scope_hash))!=64: errors.append(f'package quote {row.get("id")} has invalid scope digest')
         if int(row.get('agreement_artifact_id',0)) not in agreement_ids: errors.append(f'package quote {row.get("id")} has invalid agreement_artifact_id')
     for row in records.get('package_agreement_downloads',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package agreement download {row.get("id")} crosses the tenant boundary')

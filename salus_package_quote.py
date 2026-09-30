@@ -48,3 +48,13 @@ def validate_quote(data: dict, requested: dict) -> None:
 def quote_digest(data: dict) -> str:
     canonical = json.dumps(data, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
     return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
+
+def assessment_scope_digest(assessment: dict) -> str:
+    """Bind a quote to the complete governed assessment decision boundary."""
+    keys = ('version', 'purpose', 'mission', 'scope', 'covered_operation',
+            'exclusions', 'requested_package_level', 'requested_scope_band',
+            'requested_access_variant')
+    canonical = json.dumps({key: assessment[key] for key in keys},
+                           sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode('utf-8')).hexdigest()

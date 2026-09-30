@@ -14,7 +14,7 @@ from storage import build_storage, StorageError
 from security_controls import scan_bytes, retention_active, AV_MODE, AV_REQUIRED
 from secret_provider import secret, readiness as secret_readiness
 from salus_package_path import validate_requested_package_path
-from salus_package_quote import validate_quote, quote_digest
+from salus_package_quote import validate_quote, quote_digest, assessment_scope_digest
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
 from managed_database import runtime_database_status, managed_target_status
@@ -772,6 +772,7 @@ def init_db():
       assessment_id INTEGER NOT NULL,
       version_no INTEGER NOT NULL,
       assessment_version INTEGER NOT NULL,
+      assessment_scope_sha256 TEXT NOT NULL DEFAULT '',
       level INTEGER NOT NULL,
       band TEXT NOT NULL,
       variant TEXT NOT NULL,
@@ -1468,6 +1469,7 @@ def init_db():
     ensure_column('assessments','requested_scope_band',"TEXT NOT NULL DEFAULT ''")
     ensure_column('assessments','requested_access_variant',"TEXT NOT NULL DEFAULT ''")
     ensure_column('package_quote_versions','agreement_artifact_id','INTEGER NOT NULL DEFAULT 0')
+    ensure_column('package_quote_versions','assessment_scope_sha256',"TEXT NOT NULL DEFAULT ''")
     for field in ('included_work','report_deliverables','member_inputs','evidence_allowance','clarification_allowance','field_specialist_terms','payment_terms','tax_treatment','change_triggers'):
         ensure_column('package_quote_versions',field,"TEXT NOT NULL DEFAULT ''")
     ensure_column('package_acceptances','agreement_download_id','INTEGER NOT NULL DEFAULT 0')
@@ -1488,6 +1490,7 @@ def init_db():
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.7.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.8.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.9.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.10.0',now()))
 
     # v0.6 tenant/bootstrap migration. Existing records are assigned to the default tenant.
     if conn.execute('SELECT COUNT(*) c FROM tenants').fetchone()['c'] == 0:
@@ -1632,6 +1635,8 @@ class PackageHandoffReviewIn(BaseModel):
 
 def verified_package_quote(row,request:Request):
     content={key:row[key] for key in PackageQuoteIn.model_fields}
+    if row['assessment_scope_sha256']:
+        content['assessment_scope_sha256']=row['assessment_scope_sha256']
     for key in ('capacity_confirmed','access_eligibility_confirmed','separate_services_excluded'):
         content[key]=bool(content[key])
     content.update(assessment_id=row['assessment_id'],tenant_id=row['tenant_id'],version_no=row['version_no'])
@@ -5018,14 +5023,18 @@ def get_package_quote(assessment_id:int,request:Request):
     except Exception: conn.close(); raise
     acceptance=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND quote_id=?',(tenant_id(request),assessment_id,quote['id'])).fetchone()
     conn.close(); result=dict(quote)
-    scope_matches=(quote['assessment_version']==assessment['version']
+    scope_matches=(bool(quote['assessment_scope_sha256'])
+        and quote['assessment_version']==assessment['version']
         and quote['covered_operation']==assessment['covered_operation']
         and quote['exclusions']==assessment['exclusions']
         and quote['level']==assessment['requested_package_level']
         and quote['band']==assessment['requested_scope_band']
-        and quote['variant']==assessment['requested_access_variant'])
-    if acceptance and not scope_matches: result['status']='Authorized original scope — amendment required'
+        and quote['variant']==assessment['requested_access_variant']
+        and quote['assessment_scope_sha256']==assessment_scope_digest(assessment))
+    if acceptance and not quote['assessment_scope_sha256']: result['status']='Authorized terms — scope proof requires review'
+    elif acceptance and not scope_matches: result['status']='Authorized original scope — amendment required'
     elif acceptance: result['status']='Authorized'
+    elif not quote['assessment_scope_sha256']: result['status']='Scope proof missing — new quote required'
     elif not scope_matches: result['status']='Scope changed — new quote required'
     elif date.fromisoformat(quote['valid_until']) < datetime.now(timezone.utc).date(): result['status']='Expired — new quote required'
     else: result['status']='Quoted'
@@ -5269,6 +5278,7 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
             raise HTTPException(409,'The assessment scope changed while preparing this quote. Review the current boundary and agreement.')
         try: validate_quote(data,current)
         except ValueError as exc: raise HTTPException(409,'The requested package path changed while preparing this quote.') from exc
+        data['assessment_scope_sha256']=assessment_scope_digest(current)
         accepted=conn.execute('SELECT id FROM package_acceptances WHERE tenant_id=? AND assessment_id=? LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
         if accepted:
             raise HTTPException(409,'An authorized package cannot be requoted without a reviewed amendment workflow.')
@@ -5317,7 +5327,9 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
             or quote['exclusions']!=assessment['exclusions']
             or quote['level']!=assessment['requested_package_level']
             or quote['band']!=assessment['requested_scope_band']
-            or quote['variant']!=assessment['requested_access_variant']):
+            or quote['variant']!=assessment['requested_access_variant']
+            or not quote['assessment_scope_sha256']
+            or quote['assessment_scope_sha256']!=assessment_scope_digest(assessment)):
             raise HTTPException(409,'This quote has been superseded by a changed scope or a newer quote.')
         if quote['content_sha256']!=p.quote_sha256 or quote['agreement_sha256'].lower()!=p.agreement_sha256.lower():
             raise HTTPException(409,'The quote or agreement version does not match the accepted copy.')

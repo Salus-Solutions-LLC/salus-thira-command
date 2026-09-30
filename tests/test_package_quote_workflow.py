@@ -85,7 +85,21 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert response.status_code == 200, response.text
         issued=response.json()
         assert issued['fee_cents']==150000 and issued['version_no']==1
+        assert len(issued['assessment_scope_sha256'])==64
         assert director.get(url).json()['status']=='Quoted'
+        legacy_content={key:issued[key] for key in app.PackageQuoteIn.model_fields}
+        for key in ('capacity_confirmed','access_eligibility_confirmed','separate_services_excluded'):
+            legacy_content[key]=bool(legacy_content[key])
+        legacy_content.update(assessment_id=assessment_id,tenant_id=1,version_no=1)
+        legacy_digest=app.quote_digest(legacy_content)
+        conn=app.db()
+        conn.execute('UPDATE package_quote_versions SET assessment_scope_sha256=?,content_sha256=? WHERE id=?',('',legacy_digest,issued['id']))
+        conn.commit();conn.close()
+        assert director.get(url).json()['status']=='Scope proof missing — new quote required'
+        conn=app.db()
+        conn.execute('UPDATE package_quote_versions SET assessment_scope_sha256=?,content_sha256=? WHERE id=?',
+                     (issued['assessment_scope_sha256'],issued['content_sha256'],issued['id']))
+        conn.commit();conn.close()
         # A quoted boundary cannot be overwritten by the ordinary assessment editor.
         for changed in ({'covered_operation':'Different operation'},
                         {'exclusions':'Different exclusions'},
@@ -99,6 +113,13 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert director.get(url).json()['status']=='Scope changed — new quote required'
         conn=app.db()
         conn.execute('UPDATE assessments SET covered_operation=? WHERE id=?',('One named operation',assessment_id))
+        conn.commit();conn.close()
+        conn=app.db()
+        conn.execute('UPDATE assessments SET purpose=? WHERE id=?',('Changed purpose without version bump',assessment_id))
+        conn.commit();conn.close()
+        assert director.get(url).json()['status']=='Scope changed — new quote required'
+        conn=app.db()
+        conn.execute('UPDATE assessments SET purpose=? WHERE id=?',('',assessment_id))
         conn.commit();conn.close()
         conn=app.db()
         conn.execute('UPDATE package_quote_versions SET source_receipt_id=? WHERE id=?',('SPA-EXAMPLE',issued['id']))
@@ -126,6 +147,14 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.commit(); conn.close()
         app.AUTH_MODE='session'
         member=TestClient(app.app,cookies={'salus_session':'test-cookie'})
+        conn=app.db()
+        conn.execute('UPDATE assessments SET purpose=? WHERE id=?',('Different decision purpose',assessment_id))
+        conn.commit();conn.close()
+        purpose_drift=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
+        assert purpose_drift.status_code==409 and 'superseded' in purpose_drift.text, purpose_drift.text
+        conn=app.db()
+        conn.execute('UPDATE assessments SET purpose=? WHERE id=?',('',assessment_id))
+        conn.commit();conn.close()
         original_scope_read=app.assessment_row_for_request
         def change_scope_after_access_check(request, aid):
             row=original_scope_read(request,aid)
