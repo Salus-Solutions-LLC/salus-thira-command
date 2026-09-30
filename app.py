@@ -3036,7 +3036,7 @@ def backfill_baseline_versions():
 backfill_baseline_versions()
 
 @app.get('/api/system/mode')
-def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target')}
+def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':PACKAGE_COMMERCIAL_WORKFLOW_ENABLED and ENVIRONMENT!='production' and AUTH_MODE in ('session','oidc')}
 
 @app.get('/api/auth/oidc/start')
 def oidc_start(request:Request):
@@ -5054,6 +5054,24 @@ def claim_advisor_package_handoff(assessment_id:int,p:PackageHandoffClaimIn,requ
         audit(conn,'ADVISOR_PACKAGE_HANDOFF_CLAIM','assessment',assessment_id,f'handoff_key={handoff["handoff_key"]}; receipt_revision={handoff["revision_no"]}',actor(request))
         conn.commit()
         return {'handoff_key':handoff['handoff_key'],'status':'Awaiting Salus identity, authority and scope review','receipt_id':handoff['receipt_id'],'receipt_revision':handoff['revision_no']}
+    finally:
+        conn.close()
+
+@app.get('/api/assessments/{assessment_id}/advisor-package-handoffs')
+def list_advisor_package_handoffs_for_review(assessment_id:int,request:Request):
+    """Show only tenant-scoped claimed receipts to authorized Salus reviewers."""
+    require_package_commercial_candidate()
+    require(request,'read'); require_salus_component_authority(request,'Advisor package handoff')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus reviewer must inspect this handoff.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        rows=conn.execute('''SELECT handoff_key,status,receipt_id,revision_no,claimed_at,reviewed_at,
+                            reviewed_assessment_version FROM advisor_package_handoffs
+                            WHERE tenant_id=? AND assessment_id=? AND status IN ('Claimed','Reviewed')
+                            ORDER BY claimed_at DESC LIMIT 100''',(tenant_id(request),assessment_id)).fetchall()
+        return {'handoffs':[dict(row) for row in rows]}
     finally:
         conn.close()
 

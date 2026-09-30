@@ -22,6 +22,12 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         import app
         import public_protection_advisor as advisor
 
+        assert app.system_mode()['package_handoff_candidate_available'] is False
+        dashboard_js=open('static/app.js',encoding='utf-8').read()
+        assert 'Connect a Protection Advisor receipt' in dashboard_js
+        assert 'systemMode.package_handoff_candidate_available' in dashboard_js
+        assert '/advisor-package-handoff' in dashboard_js
+
         page=advisor._page(include_shell=False)
         assert 'handoffEnabled="1"' in page and '__HANDOFF_ENABLED__' not in page
         assert 'Read the transfer notice' in page and 'Withdraw this handoff' in page
@@ -161,6 +167,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
           '2099-01-01T00:00:00Z',app.now(),app.now()))
         conn.commit();conn.close()
         app.AUTH_MODE='session'
+        assert app.system_mode()['package_handoff_candidate_available'] is True
         member=TestClient(app.app,cookies={'salus_session':'member-cookie'})
         claim={'claim_code':handoff['claim_code'],'confirm_requested_boundary':True}
         other_member=TestClient(app.app,cookies={'salus_session':'other-member-cookie'})
@@ -175,6 +182,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
           ('2099-01-01T00:00:00Z',handoff['handoff_key']))
         conn.commit();conn.close()
         app.ENVIRONMENT='production'
+        assert app.system_mode()['package_handoff_candidate_available'] is False
         assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==503
         app.ENVIRONMENT='development'
         claimed=member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim)
@@ -182,6 +190,12 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert claimed.json()['status'].startswith('Awaiting Salus')
         assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==409
         reviewer=TestClient(app.app,cookies={'salus_session':'reviewer-cookie'})
+        queue_url=f'/api/assessments/{assessment_id}/advisor-package-handoffs'
+        assert member.get(queue_url).status_code==403
+        queue=reviewer.get(queue_url)
+        assert queue.status_code==200 and len(queue.json()['handoffs'])==1
+        assert queue.json()['handoffs'][0]['handoff_key']==handoff['handoff_key']
+        assert 'claim_code' not in queue.text and 'member@example.org' not in queue.text
         review_url=f"/api/assessments/{assessment_id}/advisor-package-handoff/{handoff['handoff_key']}/review"
         packet_url=f"/api/assessments/{assessment_id}/advisor-package-handoff/{handoff['handoff_key']}/review-packet"
         receipt_url=f"/api/assessments/{assessment_id}/advisor-package-handoff/{handoff['handoff_key']}/receipt.pdf"
@@ -224,6 +238,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM advisor_package_handoffs').fetchone()[0]==1
         conn.close()
         assert prospect.post('/public/protection-advisor/package-handoff/withdraw',json=withdrawal).json()=={'withdrawn':True}
+        assert reviewer.get(queue_url).json()['handoffs']==[]
         assert reviewer.get(packet_url).status_code==404
         assert reviewer.get(receipt_url).status_code==404
         assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==409
