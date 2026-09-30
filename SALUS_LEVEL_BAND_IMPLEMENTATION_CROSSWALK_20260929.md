@@ -1,5 +1,9 @@
 # Salus level × band implementation crosswalk
 
+## 30 September 2026 exact draft-check update
+
+Draft PR #589 head `4fe8180742f2f244e4f2cde165212cffe580355d` passed GitHub Public Protection Advisor run 385 and the new Salus package rollout run 2. The latter covers 22 portable local tests including the fictional Level 1→2→3 quote, report issue, receipt and predecessor chain; it excludes the professional PDF module that needs Arial/Times files absent from the Linux runner. The prior Windows full local suite passed 28/28. The four on-disk candidate Word files passed the expanded structural audit, including 32/32 marked table header rows; their corrected exact hashes appear in `proposals/level_band_templates/artifact.md`. None of these checks supplies native Word, full accessibility, actual Protected Member/browser, live PostgreSQL/Microsoft 365/Azure/Wix or qualified release proof. Current public Protection Advisor copy still describes a free assessment in the retrieved page view. The package API remains disabled in production, and the Azure activation still points to release/v3.202. These facts update gate status below; they do not approve a public offer or issue a report.
+
 **Status:** Controlled implementation work, 29 September 2026. **Authority:** SAL-D084–SAL-D089 and the Program Charter. **Handling:** Salus Internal Confidential. This record distinguishes approved method, edited source and released behavior.
 
 ## Whole-program shortest release path — 30 September 2026

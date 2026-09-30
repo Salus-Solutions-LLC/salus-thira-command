@@ -9,6 +9,7 @@ from zipfile import ZipFile
 
 from docx import Document
 from pypdf import PdfReader
+from docx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = ROOT / 'proposals' / 'level_band_templates'
@@ -59,6 +60,14 @@ def inspect(product, source, expected_hash):
     heading_count = sum(paragraph.style.name.startswith('Heading') for paragraph in document.paragraphs)
     if heading_count < 10:
         issues.append('Expected semantic heading structure missing')
+    table_count = len(document.tables)
+    table_headers = sum(bool(table.rows and table.rows[0]._tr.find('.//' + qn('w:tblHeader')) is not None)
+                        for table in document.tables)
+    if table_headers != table_count:
+        issues.append(f'{table_count - table_headers} tables lack a marked header row')
+    section_count = len(document.sections)
+    if section_count != 3:
+        issues.append(f'Expected three Word sections; found {section_count}')
     pages = PdfReader(str(pdf)).pages
     expected_pages = 9 if product == 'SalINTEL' else 6
     if len(pages) != expected_pages:
@@ -84,6 +93,7 @@ def inspect(product, source, expected_hash):
             'changed_package_members': changed, 'pages': len(pages), 'blank_second_page': not page_text[1].strip(),
             'nonblank_page_footers_checked': sum(footers), 'fonts': fonts,
             'word_title_styles': title_styles, 'semantic_heading_count': heading_count,
+            'word_sections': section_count, 'tables': table_count, 'marked_table_headers': table_headers,
             'body_drawings': drawings, 'body_image_alts': len(image_alts), 'issues': issues}
 
 

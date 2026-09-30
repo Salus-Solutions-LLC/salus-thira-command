@@ -30,14 +30,14 @@ All four references use letter paper, three sections, a confidential cover and a
 
 ## 30 September 2026 exact candidate check
 
-The four candidates were regenerated after adding `Salus Solutions logo` as the Word image's alternate description. The source templates were read but not changed. `proposals/qa/audit_level_band_templates.py` verified each registered reference hash, Word ZIP integrity, unchanged package members outside `word/document.xml` and `word/styles.xml`, semantic `Title` paragraph, heading styles, logo description, a fresh LibreOffice render, blank page 2, every nonblank `page X of Y` footer, and embedded Arial/Times New Roman font names. All 23 nonblank pages of the current exact render were visually inspected at reading size, and all four page-two images were text-empty by extraction; no clipping was observed. The current Word/PDF hashes are:
+The four candidates include `Salus Solutions logo` as the Word image's alternate description. The source templates were read but not changed. On 30 September, `proposals/qa/audit_level_band_templates.py` rechecked the on-disk candidates against each registered reference hash, Word ZIP integrity, unchanged package members outside `word/document.xml` and `word/styles.xml`, semantic `Title` and heading styles, three Word sections, marked header rows in every table, logo description, the existing LibreOffice QA PDFs, blank page 2, every nonblank `page X of Y` footer, and rendered Arial/Times New Roman font names. The prior all-page reading-size visual inspection found no clipping. The exact **current on-disk** Word/PDF hashes are below; an earlier version of this table listed Word hashes that did not match the on-disk candidates and is superseded by this audited record:
 
 | Product | Candidate DOCX SHA-256 | Fresh QA PDF SHA-256 | Pages |
 |---|---|---|---:|
-| SalINTEL™ | `3169BF0C0612F707EABF94C7C7EF6A65CD6AB2712136C2656DAECC53038A9379` | `4664705373E3561EEEBD8558493085D50EBC27FA4B4EE373EA548F76C1E1661D` | 9 |
-| SalTHIRA™ | `EE1FC1CB3CCA000A88F5C39925B8F5C2DFD95529C28D24CB48B456F5AC0906AB` | `7FD2C33845CDD3EA22E97B1923DAF695CC7E0C5EBB3469F193235E0005824B94` | 6 |
-| SalOPS™ | `6D0CE308D1FF12EB9CE542654129DD4016F86444DA4F52248D1F66E31CDB525E` | `A9BCDFD7A091044767788A8C091E02353C54A22FFAB55F193E37AC683672D0F1` | 6 |
-| SalCAPA™ | `8A6F1FFE6DD4F1DA58C14C10C30FF9F36CFB7CD628C14CCBB5B44FBFD2BED8BA` | `0D25EEFFA40C484E87611B87AF41D776DCE7EC70621FF93543CD0E39F3056128` | 6 |
+| SalINTEL™ | `B3BA98980D41C89460F9999AD535C075C30C8069A459A4E0312E42D8353E3DED` | `4664705373E3561EEEBD8558493085D50EBC27FA4B4EE373EA548F76C1E1661D` | 9 |
+| SalTHIRA™ | `22EB073BDDDAC890409BED5896F01052C08D48B2F2CA4CB739E5874A0A2FEEB6` | `7FD2C33845CDD3EA22E97B1923DAF695CC7E0C5EBB3469F193235E0005824B94` | 6 |
+| SalOPS™ | `00050972FA263FD27BA5C4070EEEB2E045C98AA30AE615910A44948C252BDB44` | `A9BCDFD7A091044767788A8C091E02353C54A22FFAB55F193E37AC683672D0F1` | 6 |
+| SalCAPA™ | `2D9C8BB72AEC82D14902684CC35783A9E5EDC3F9590B08C3CF27AFCDA74AFBF3` | `0D25EEFFA40C484E87611B87AF41D776DCE7EC70621FF93543CD0E39F3056128` | 6 |
 
 These are still candidate templates. Native Microsoft Word rendering was attempted on 30 September 2026 but the local service session returned COM error `0x80070520` (no logon session). Accessibility-tool and screen-reader review, populated-report checks, template access control, approval and governed publication remain open. The fresh QA PDFs are review byproducts and are not Member deliverables.
 
