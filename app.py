@@ -1038,6 +1038,32 @@ def init_db():
       UNIQUE (tenant_id,idempotency_key)
     );
     CREATE INDEX IF NOT EXISTS idx_package_report_acknowledgments ON package_report_issue_acknowledgments(tenant_id,assessment_id,issue_id);
+    CREATE TABLE IF NOT EXISTS package_predecessor_qualifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      issue_id INTEGER NOT NULL,
+      issue_sha256 TEXT NOT NULL,
+      acknowledgment_id INTEGER NOT NULL,
+      acknowledgment_sha256 TEXT NOT NULL,
+      quote_id INTEGER NOT NULL,
+      level INTEGER NOT NULL,
+      band TEXT NOT NULL,
+      covered_operation TEXT NOT NULL,
+      exclusions TEXT NOT NULL,
+      assessment_scope_sha256 TEXT NOT NULL,
+      qualification_basis TEXT NOT NULL,
+      limitations_disposition TEXT NOT NULL,
+      reviewer_user_id INTEGER NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      qualified_at TEXT NOT NULL,
+      FOREIGN KEY (issue_id) REFERENCES package_report_issue_packets(id) ON DELETE RESTRICT,
+      FOREIGN KEY (acknowledgment_id) REFERENCES package_report_issue_acknowledgments(id) ON DELETE RESTRICT,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (reviewer_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,issue_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_predecessors ON package_predecessor_qualifications(tenant_id,assessment_id,id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -2677,6 +2703,14 @@ class PackageReportAcknowledgmentIn(BaseModel):
     confirm_reviewed_limitations: Literal[True]
     acknowledgment_note: str = Field(min_length=20,max_length=1000)
     idempotency_key: str = Field(min_length=8,max_length=100)
+
+class PackagePredecessorQualificationIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    issue_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    acknowledgment_id: int = Field(gt=0)
+    qualification_basis: str = Field(min_length=40,max_length=4000)
+    limitations_disposition: str = Field(min_length=40,max_length=4000)
+    confirm_independent_review: Literal[True]
 
 ROLE_PERMISSIONS={
     'System Administrator': {'read','write','decide','admin'},
@@ -5999,15 +6033,7 @@ def issue_package_reports(assessment_id:int,p:PackageReportIssueIn,request:Reque
     finally:
         conn.rollback();conn.close()
 
-def verified_package_issue(conn,issue_id:int,request:Request):
-    row=conn.execute('SELECT * FROM package_report_issue_packets WHERE id=? AND tenant_id=?',
-        (issue_id,tenant_id(request))).fetchone()
-    if not row: raise HTTPException(404,'Issued package not found.')
-    ctx=auth_context(request)
-    if (role(request)!='Client Executive' or ctx['auth_mode'] not in ('session','oidc')
-            or ctx.get('user_id')!=row['recipient_user_id']):
-        raise HTTPException(403,'This issued package is restricted to its named Protected Member recipient.')
-    assessment_row_for_request(request,row['assessment_id'])
+def verified_package_issue_record(row):
     try:
         reports=json.loads(row['reports_json'])
         record={'assessment_id':row['assessment_id'],'quote_id':row['quote_id'],
@@ -6020,7 +6046,18 @@ def verified_package_issue(conn,issue_id:int,request:Request):
             raise ValueError('issue digest or report set')
     except (ValueError,TypeError,KeyError,AttributeError) as exc:
         raise HTTPException(409,'The issued package failed integrity verification.') from exc
-    return row,reports
+    return reports
+
+def verified_package_issue(conn,issue_id:int,request:Request):
+    row=conn.execute('SELECT * FROM package_report_issue_packets WHERE id=? AND tenant_id=?',
+        (issue_id,tenant_id(request))).fetchone()
+    if not row: raise HTTPException(404,'Issued package not found.')
+    ctx=auth_context(request)
+    if (role(request)!='Client Executive' or ctx['auth_mode'] not in ('session','oidc')
+            or ctx.get('user_id')!=row['recipient_user_id']):
+        raise HTTPException(403,'This issued package is restricted to its named Protected Member recipient.')
+    assessment_row_for_request(request,row['assessment_id'])
+    return row,verified_package_issue_record(row)
 
 @app.get('/api/assessments/{assessment_id}/package-issues')
 def list_member_package_issues(assessment_id:int,request:Request):
@@ -6151,6 +6188,83 @@ def acknowledge_issued_package(issue_id:int,p:PackageReportAcknowledgmentIn,requ
         return {'id':cur.lastrowid,'status':'Acknowledged','record_sha256':digest,
             'acknowledged_at':ts,'idempotent':False,
             'notice':'Your receipt and review of the stated report limitations are recorded. This does not accept risk or authorize further services.'}
+    finally:
+        conn.rollback();conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-predecessor-qualifications')
+def qualify_package_predecessor(assessment_id:int,p:PackagePredecessorQualificationIn,request:Request):
+    require_package_commercial_candidate();require(request,'decide')
+    ctx=auth_context(request)
+    if (role(request) not in ('System Administrator','Assessment Director')
+            or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'A named Salus qualification reviewer is required.')
+    assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    conn=db();tid=tenant_id(request)
+    try:
+        lock_package_assessment(conn,assessment_id)
+        issue=conn.execute('''SELECT * FROM package_report_issue_packets WHERE tenant_id=?
+            AND assessment_id=? ORDER BY id DESC LIMIT 1''',(tid,assessment_id)).fetchone()
+        if not issue or issue['record_sha256']!=p.issue_sha256:
+            raise HTTPException(409,'Qualify only the latest exact four-report issue.')
+        reports=verified_package_issue_record(issue)
+        if issue['issued_by_user_id']==ctx['user_id']:
+            raise HTTPException(403,'The issue authority cannot independently qualify the same package.')
+        acknowledgment=conn.execute('''SELECT * FROM package_report_issue_acknowledgments
+            WHERE id=? AND tenant_id=? AND issue_id=?''',(p.acknowledgment_id,tid,issue['id'])).fetchone()
+        if not acknowledgment or acknowledgment['recipient_user_id']!=issue['recipient_user_id']:
+            raise HTTPException(409,'The named Member receipt acknowledgment is missing.')
+        acknowledgment_record={key:acknowledgment[key] for key in
+            ('issue_id','issue_sha256','recipient_user_id','acknowledgment_note','idempotency_key')}
+        acknowledgment_digest=hashlib.sha256(json.dumps(acknowledgment_record,
+            sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        if (acknowledgment['issue_sha256']!=issue['record_sha256']
+                or acknowledgment_digest!=acknowledgment['record_sha256']):
+            raise HTTPException(409,'The Member acknowledgment failed integrity verification.')
+        quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=?',
+            (issue['quote_id'],tid)).fetchone()
+        if not quote or quote['assessment_id']!=assessment_id:
+            raise HTTPException(409,'The predecessor quote is unavailable.')
+        verified_package_quote(quote,request)
+        if (quote['assessment_scope_sha256']!=issue['assessment_scope_sha256']
+                or quote['level'] not in (1,2)):
+            raise HTTPException(409,'Only an exact issued Level 1 or Level 2 package can qualify its successor.')
+        for product,snapshot in reports.items():
+            report=conn.execute('''SELECT * FROM package_product_report_versions
+                WHERE tenant_id=? AND assessment_id=? AND product=? ORDER BY version_no DESC LIMIT 1''',
+                (tid,assessment_id,product)).fetchone()
+            if (not report or report['id']!=snapshot['report_id'] or report['status']!='Issued'
+                    or report['quote_id']!=quote['id']
+                    or report['content_sha256']!=snapshot['content_sha256']):
+                raise HTTPException(409,f'{product}: a later or changed report prevents predecessor qualification.')
+        basis=p.qualification_basis.strip();limitations=p.limitations_disposition.strip()
+        if len(basis)<40 or len(limitations)<40:
+            raise HTTPException(422,'Record the independent qualification basis and unresolved limitations.')
+        record={'assessment_id':assessment_id,'issue_id':issue['id'],
+            'issue_sha256':issue['record_sha256'],'acknowledgment_id':acknowledgment['id'],
+            'acknowledgment_sha256':acknowledgment['record_sha256'],'quote_id':quote['id'],
+            'level':quote['level'],'band':quote['band'],
+            'covered_operation':quote['covered_operation'],'exclusions':quote['exclusions'],
+            'assessment_scope_sha256':quote['assessment_scope_sha256'],
+            'qualification_basis':basis,'limitations_disposition':limitations,
+            'reviewer_user_id':ctx['user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('''SELECT * FROM package_predecessor_qualifications
+            WHERE tenant_id=? AND issue_id=?''',(tid,issue['id'])).fetchone()
+        if prior:
+            if prior['record_sha256']==digest:
+                return {'id':prior['id'],'status':'Qualified','record_sha256':digest,
+                    'qualified_at':prior['qualified_at'],'idempotent':True}
+            raise HTTPException(409,'This issued package already has a different qualification decision.')
+        ts=now();fields=['tenant_id']+list(record)+['record_sha256','qualified_at']
+        values=[tid]+list(record.values())+[digest,ts]
+        cur=conn.execute(f"INSERT INTO package_predecessor_qualifications({','.join(fields)}) VALUES({','.join('?' for _ in fields)})",values)
+        audit(conn,'PACKAGE_PREDECESSOR_QUALIFY','assessment',assessment_id,
+            f'qualification_id={cur.lastrowid}; issue_id={issue["id"]}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':'Qualified','record_sha256':digest,
+            'qualified_at':ts,'idempotent':False,
+            'notice':'This records a predecessor review. A later quote still needs an exact-scope prerequisite check and separate authorization.'}
     finally:
         conn.rollback();conn.close()
 

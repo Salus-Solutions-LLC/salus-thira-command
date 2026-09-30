@@ -4,12 +4,12 @@ from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
-    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
+    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','package_predecessor_qualifications','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
     'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','salintel_investigations','salintel_investigation_items','salintel_investigation_events','materials','material_links','material_events','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
-    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
+    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','package_predecessor_qualifications','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
 
 def _rows(conn, sql, params=()):
@@ -336,6 +336,30 @@ def validate_records(records, tenant_id:int|None=None):
                 raise ValueError('missing report delivery')
         except (ValueError,KeyError,TypeError,AttributeError):
             errors.append(f'package issue acknowledgment {row.get("id")} has invalid receipt proof')
+    acknowledgments={int(r['id']):r for r in records.get('package_report_issue_acknowledgments',[])
+        if r.get('id') is not None}
+    for row in records.get('package_predecessor_qualifications',[]):
+        issue=issue_by_id.get(int(row.get('issue_id') or 0))
+        acknowledgment=acknowledgments.get(int(row.get('acknowledgment_id') or 0))
+        try:
+            keys=('assessment_id','issue_id','issue_sha256','acknowledgment_id',
+                'acknowledgment_sha256','quote_id','level','band','covered_operation',
+                'exclusions','assessment_scope_sha256','qualification_basis',
+                'limitations_disposition','reviewer_user_id')
+            record={key:row[key] for key in keys}
+            digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if (int(row.get('tenant_id',-1))!=int(tenant_id) or issue is None
+                    or acknowledgment is None or row['assessment_id']!=issue['assessment_id']
+                    or row['issue_sha256']!=issue['record_sha256']
+                    or row['acknowledgment_sha256']!=acknowledgment['record_sha256']
+                    or acknowledgment['issue_id']!=issue['id'] or row['quote_id']!=issue['quote_id']
+                    or row['quote_id'] not in quote_ids or row['level'] not in (1,2)
+                    or row['reviewer_user_id'] not in users
+                    or row['reviewer_user_id']==issue['issued_by_user_id']
+                    or row['record_sha256']!=digest):
+                raise ValueError('predecessor boundary')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package predecessor qualification {row.get("id")} has invalid predecessor proof')
     for row in records.get('identity_acceptance_events',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'identity_acceptance_event {row.get("event_key")} crosses the tenant boundary')
         if int(row.get('user_id',-1)) not in users: errors.append(f'identity_acceptance_event {row.get("event_key")} has invalid user_id')
@@ -499,6 +523,7 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('UPDATE materials SET parent_material_id=NULL,duplicate_of_material_id=NULL WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM materials WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_predecessor_qualifications WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_report_issue_acknowledgments WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_report_issue_deliveries WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_report_issue_packets WHERE tenant_id=?',(tenant_id,))

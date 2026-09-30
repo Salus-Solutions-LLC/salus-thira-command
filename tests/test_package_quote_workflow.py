@@ -442,11 +442,25 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
             'acknowledgment_note':'Fictional recipient confirms receipt and review of limitations.',
             'idempotency_key':'fictional-receipt-001'}
         assert member.post(acknowledgment_url,json=acknowledgment_payload).status_code==409
+        predecessor_url=f'/api/assessments/{assessment_id}/package-predecessor-qualifications'
+        predecessor_payload={'issue_sha256':issued_packet.json()['record_sha256'],
+            'acknowledgment_id':1,
+            'qualification_basis':'Fictional independent review of exact Level 1 issue and successor boundary.',
+            'limitations_disposition':'Fictional open limitations recorded for review before any Level 2 quote.',
+            'confirm_independent_review':True}
+        assert assigned_owner.post(predecessor_url,json=predecessor_payload).status_code==409
         for product in ('SalTHIRA','SalOPS','SalCAPA'):
             delivered=member.get(f'/api/package-issues/{issued_packet.json()["id"]}/reports/{product}.docx')
             assert delivered.status_code==200,delivered.text
         acknowledged=member.post(acknowledgment_url,json=acknowledgment_payload)
         assert acknowledged.status_code==200 and acknowledged.json()['status']=='Acknowledged',acknowledged.text
+        predecessor_payload['acknowledgment_id']=acknowledged.json()['id']
+        assert reviewer.post(predecessor_url,json=predecessor_payload).status_code==403
+        qualified=assigned_owner.post(predecessor_url,json=predecessor_payload)
+        assert qualified.status_code==200 and qualified.json()['status']=='Qualified',qualified.text
+        assert assigned_owner.post(predecessor_url,json=predecessor_payload).json()['idempotent'] is True
+        assert assigned_owner.post(predecessor_url,json={**predecessor_payload,
+            'limitations_disposition':'Fictional changed limits cannot overwrite a qualification record.'}).status_code==409
         assert member.get(issue_url).json()['issues'][0]['acknowledged_at']==acknowledged.json()['acknowledged_at']
         assert member.post(acknowledgment_url,json=acknowledgment_payload).json()['idempotent'] is True
         assert member.post(acknowledgment_url,json={**acknowledgment_payload,
@@ -487,6 +501,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert other_tenant.get(report_url).status_code==403
         assert other_tenant.get(issue_url).status_code==403
         assert other_tenant.post(acknowledgment_url,json=acknowledgment_payload).status_code==403
+        assert other_tenant.post(predecessor_url,json=predecessor_payload).status_code==403
         assert other_tenant.get(qa_archive_url).status_code in (403,404)
         assert other_tenant.get(reconciliation_url).status_code in (403,404)
         assert other_tenant.get(preflight_url).status_code==403
@@ -509,6 +524,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_report_issue_packets').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_issue_acknowledgments').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_predecessor_qualifications').fetchone()[0]==1
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
@@ -527,6 +543,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len(records['package_report_issue_packets'])==1
         assert len(records['package_report_issue_deliveries'])==5
         assert len(records['package_report_issue_acknowledgments'])==1
+        assert len(records['package_predecessor_qualifications'])==1
         assert not validate_records(records,1)
         original_manifest_hash=records['package_report_qa_evidence'][0]['manifest_sha256']
         records['package_report_qa_evidence'][0]['manifest_sha256']='0'*64
@@ -544,6 +561,10 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         records['package_report_issue_acknowledgments'][0]['acknowledgment_note']='Altered receipt.'
         assert any('invalid receipt proof' in error for error in validate_records(records,1))
         records['package_report_issue_acknowledgments'][0]['acknowledgment_note']=original_ack_note
+        original_qual_limit=records['package_predecessor_qualifications'][0]['limitations_disposition']
+        records['package_predecessor_qualifications'][0]['limitations_disposition']='Altered limits.'
+        assert any('invalid predecessor proof' in error for error in validate_records(records,1))
+        records['package_predecessor_qualifications'][0]['limitations_disposition']=original_qual_limit
         replace_tenant_records(conn,1,records)
         conn.commit()
         assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==1
@@ -557,6 +578,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_report_issue_packets').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_issue_acknowledgments').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_predecessor_qualifications').fetchone()[0]==1
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
