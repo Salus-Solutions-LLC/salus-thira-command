@@ -9,11 +9,12 @@ import urllib.parse
 import httpx, jwt
 from azure.identity import ManagedIdentityCredential
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from storage import build_storage, StorageError
 from security_controls import scan_bytes, retention_active, AV_MODE, AV_REQUIRED
 from secret_provider import secret, readiness as secret_readiness
 from salus_package_path import validate_requested_package_path
+from salus_package_quote import validate_quote, quote_digest
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
 from managed_database import runtime_database_status, managed_target_status
@@ -746,6 +747,58 @@ def init_db():
       FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_report_versions_scope ON report_versions(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_quote_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      version_no INTEGER NOT NULL,
+      assessment_version INTEGER NOT NULL,
+      level INTEGER NOT NULL,
+      band TEXT NOT NULL,
+      variant TEXT NOT NULL,
+      covered_operation TEXT NOT NULL,
+      exclusions TEXT NOT NULL,
+      scope_basis TEXT NOT NULL,
+      decision_owner TEXT NOT NULL,
+      source_receipt_id TEXT NOT NULL DEFAULT '',
+      fee_cents INTEGER NOT NULL,
+      currency TEXT NOT NULL,
+      valid_until TEXT NOT NULL,
+      start_date TEXT NOT NULL DEFAULT '',
+      delivery_date TEXT NOT NULL DEFAULT '',
+      capacity_confirmed INTEGER NOT NULL,
+      access_eligibility_confirmed INTEGER NOT NULL,
+      access_eligibility_basis TEXT NOT NULL DEFAULT '',
+      agreement_reference TEXT NOT NULL,
+      agreement_sha256 TEXT NOT NULL,
+      separate_services_excluded INTEGER NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      approved_by TEXT NOT NULL,
+      approved_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      UNIQUE (tenant_id,assessment_id,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_quote_scope ON package_quote_versions(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_acceptances (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      quote_sha256 TEXT NOT NULL,
+      agreement_sha256 TEXT NOT NULL,
+      member_user_id INTEGER NOT NULL,
+      member_authority_basis TEXT NOT NULL,
+      idempotency_key TEXT NOT NULL,
+      accepted_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,assessment_id,idempotency_key),
+      UNIQUE (quote_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_acceptance_scope ON package_acceptances(tenant_id,assessment_id,id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -1469,6 +1522,48 @@ class AssessmentIn(BaseModel):
     @classmethod
     def normalized_text(cls, value: str) -> str:
         return value.strip()
+
+class PackageQuoteIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    assessment_version: int = Field(gt=0)
+    level: Literal[1,2,3]
+    band: Literal['A','B','C']
+    variant: Literal['','Access','Standard'] = ''
+    covered_operation: str = Field(min_length=1,max_length=240)
+    exclusions: str = Field(min_length=1,max_length=2000)
+    scope_basis: str = Field(min_length=1,max_length=2000)
+    decision_owner: str = Field(min_length=1,max_length=160)
+    source_receipt_id: str = Field(default='',max_length=160)
+    fee_cents: int = Field(gt=0,le=1_000_000_000)
+    currency: Literal['USD'] = 'USD'
+    valid_until: str = Field(min_length=10,max_length=10)
+    start_date: str = Field(default='',max_length=10)
+    delivery_date: str = Field(default='',max_length=10)
+    capacity_confirmed: bool
+    access_eligibility_confirmed: bool = False
+    access_eligibility_basis: str = Field(default='',max_length=2000)
+    agreement_reference: str = Field(min_length=1,max_length=240)
+    agreement_sha256: str = Field(pattern=r'^[a-fA-F0-9]{64}$')
+    separate_services_excluded: bool
+
+class PackageAcceptanceIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    quote_id: int = Field(gt=0)
+    quote_sha256: str = Field(pattern=r'^[a-fA-F0-9]{64}$')
+    agreement_sha256: str = Field(pattern=r'^[a-fA-F0-9]{64}$')
+    member_authority_basis: str = Field(min_length=3,max_length=1000)
+    idempotency_key: str = Field(pattern=r'^[A-Za-z0-9_-]{16,120}$')
+    accept_quote_and_agreement: Literal[True]
+
+def verified_package_quote(row,request:Request):
+    content={key:row[key] for key in PackageQuoteIn.model_fields}
+    for key in ('capacity_confirmed','access_eligibility_confirmed','separate_services_excluded'):
+        content[key]=bool(content[key])
+    content.update(assessment_id=row['assessment_id'],tenant_id=row['tenant_id'],version_no=row['version_no'])
+    if quote_digest(content)!=row['content_sha256']:
+        security_event(request,'PACKAGE_QUOTE_INTEGRITY_FAILURE','High',f'quote_id={row["id"]}')
+        raise HTTPException(409,'The quote failed integrity verification.')
+    return row
 
 class ThreatIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -4747,6 +4842,98 @@ def create_assessment(p:AssessmentIn, request:Request):
         'version':1,
     })
     return _member_assessment_view(result) if protected_member_request(request) else result
+
+@app.get('/api/assessments/{assessment_id}/package-quote')
+def get_package_quote(assessment_id:int,request:Request):
+    require(request,'read'); assessment=assessment_row_for_request(request,assessment_id)
+    conn=db(); quote=conn.execute('SELECT * FROM package_quote_versions WHERE tenant_id=? AND assessment_id=? ORDER BY version_no DESC LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
+    if not quote: conn.close(); raise HTTPException(404,'No fixed package quote has been approved.')
+    try: verified_package_quote(quote,request)
+    except Exception: conn.close(); raise
+    acceptance=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND quote_id=?',(tenant_id(request),assessment_id,quote['id'])).fetchone()
+    conn.close(); result=dict(quote)
+    if acceptance and quote['assessment_version']!=assessment['version']: result['status']='Authorized original scope — amendment required'
+    elif acceptance: result['status']='Authorized'
+    elif quote['assessment_version']!=assessment['version']: result['status']='Scope changed — new quote required'
+    elif date.fromisoformat(quote['valid_until']) < datetime.now(timezone.utc).date(): result['status']='Expired — new quote required'
+    else: result['status']='Quoted'
+    result['accepted_at']=acceptance['accepted_at'] if acceptance else ''
+    if protected_member_request(request):
+        for key in ('access_eligibility_basis','approved_by','scope_basis'):
+            result.pop(key,None)
+    return result
+
+@app.post('/api/assessments/{assessment_id}/package-quote')
+def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
+    require(request,'decide'); require_salus_component_authority(request,'Package quote')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus commercial reviewer must approve the quote.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    if int(assessment['version'])!=p.assessment_version:
+        raise HTTPException(409,'The assessment scope changed; review the current version before quoting.')
+    if p.level>1:
+        raise HTTPException(409,'Level 2 and 3 quotes require a qualified issued predecessor and are held until that gate is implemented.')
+    if not p.separate_services_excluded:
+        raise HTTPException(422,'Separately proposed SalOPS services must be excluded from this package fee.')
+    data=p.model_dump(); data['covered_operation']=data['covered_operation'].strip()
+    try:
+        _normalize_date(data['valid_until'],'Quote validity date',required=True)
+        if data['start_date']: _normalize_date(data['start_date'],'Package start date',required=True)
+        if data['delivery_date']: _normalize_date(data['delivery_date'],'Package delivery date',required=True)
+        validate_quote(data,assessment)
+    except ValueError as exc: raise HTTPException(422,str(exc)) from exc
+    if data['covered_operation']!=assessment['covered_operation'] or data['exclusions'].strip()!=assessment['exclusions']:
+        raise HTTPException(409,'The quoted operation and exclusions must match the recorded assessment boundary.')
+    data['assessment_id']=assessment_id; data['tenant_id']=tenant_id(request)
+    conn=db()
+    try:
+        accepted=conn.execute('SELECT id FROM package_acceptances WHERE tenant_id=? AND assessment_id=? LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
+        if accepted:
+            raise HTTPException(409,'An authorized package cannot be requoted without a reviewed amendment workflow.')
+        version=conn.execute('SELECT COALESCE(MAX(version_no),0)+1 n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',(tenant_id(request),assessment_id)).fetchone()['n']
+        data['version_no']=version
+        digest=quote_digest(data)
+        columns=list(data)+['content_sha256','approved_by','approved_at']
+        values=list(data.values())+[digest,actor(request),now()]
+        cur=conn.execute(f"INSERT INTO package_quote_versions({','.join(columns)}) VALUES({','.join('?' for _ in columns)})",values)
+        audit(conn,'PACKAGE_QUOTE','assessment',assessment_id,f'quote_id={cur.lastrowid}; version={version}; sha256={digest}',actor(request))
+        conn.commit(); row=dict(conn.execute('SELECT * FROM package_quote_versions WHERE id=?',(cur.lastrowid,)).fetchone())
+        return row
+    finally:
+        conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-acceptance')
+def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request):
+    require_protected_member_authority(request,'package_acceptance')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A verified Protected Member sign-in is required to accept a package quote.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        prior=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND idempotency_key=?',(tenant_id(request),assessment_id,p.idempotency_key)).fetchone()
+        if prior:
+            if prior['quote_id']==p.quote_id and prior['quote_sha256']==p.quote_sha256 and prior['member_user_id']==ctx['user_id']:
+                return {'status':'Authorized','quote_id':p.quote_id,'accepted_at':prior['accepted_at'],'idempotent':True}
+            raise HTTPException(409,'This acceptance key was already used for another decision.')
+        quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(p.quote_id,tenant_id(request),assessment_id)).fetchone()
+        if not quote: raise HTTPException(404,'Package quote not found.')
+        verified_package_quote(quote,request)
+        latest=conn.execute('SELECT MAX(version_no) n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',(tenant_id(request),assessment_id)).fetchone()['n']
+        if quote['version_no']!=latest or quote['assessment_version']!=assessment['version']:
+            raise HTTPException(409,'This quote has been superseded by a changed scope or a newer quote.')
+        if quote['content_sha256']!=p.quote_sha256 or quote['agreement_sha256'].lower()!=p.agreement_sha256.lower():
+            raise HTTPException(409,'The quote or agreement version does not match the accepted copy.')
+        if date.fromisoformat(quote['valid_until']) < datetime.now(timezone.utc).date():
+            raise HTTPException(409,'This quote has expired; request a current written quote.')
+        existing=conn.execute('SELECT id FROM package_acceptances WHERE quote_id=?',(p.quote_id,)).fetchone()
+        if existing: raise HTTPException(409,'This quote was already accepted.')
+        ts=now(); cur=conn.execute('INSERT INTO package_acceptances(tenant_id,assessment_id,quote_id,quote_sha256,agreement_sha256,member_user_id,member_authority_basis,idempotency_key,accepted_at) VALUES(?,?,?,?,?,?,?,?,?)',(tenant_id(request),assessment_id,p.quote_id,p.quote_sha256,p.agreement_sha256.lower(),ctx['user_id'],p.member_authority_basis.strip(),p.idempotency_key,ts))
+        audit(conn,'PACKAGE_ACCEPT','assessment',assessment_id,f'acceptance_id={cur.lastrowid}; quote_id={p.quote_id}; quote_sha256={p.quote_sha256}',actor(request))
+        conn.commit()
+        return {'status':'Authorized','quote_id':p.quote_id,'accepted_at':ts,'idempotent':False}
+    finally:
+        conn.close()
 
 @app.post('/api/assessments/{assessment_id}/reassessment-review')
 def review_assessment_reassessment(assessment_id:int,p:AssessmentReassessmentReviewIn,request:Request):
