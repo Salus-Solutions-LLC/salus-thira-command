@@ -1640,6 +1640,13 @@ def verified_package_quote(row,request:Request):
         raise HTTPException(409,'The quote failed integrity verification.')
     return row
 
+def lock_package_assessment(conn, assessment_id:int):
+    """Serialize a package-boundary decision with other assessment writes."""
+    if is_sqlite():
+        conn.execute('BEGIN IMMEDIATE')
+    else:
+        conn.execute('SELECT id FROM assessments WHERE id=? FOR UPDATE',(assessment_id,))
+
 def require_package_commercial_candidate():
     if not PACKAGE_COMMERCIAL_WORKFLOW_ENABLED or ENVIRONMENT=='production':
         raise HTTPException(503,'Package quotes and acceptance are held for governed agreement delivery and release review.')
@@ -5256,6 +5263,12 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
         except Exception as exc: raise HTTPException(503,'The stored agreement is unavailable.') from exc
         if hashlib.sha256(agreement_bytes).hexdigest()!=agreement['content_sha256']:
             raise HTTPException(409,'The stored agreement failed integrity verification.')
+        lock_package_assessment(conn,assessment_id)
+        current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tenant_id(request))).fetchone()
+        if not current or current['version']!=p.assessment_version or current['covered_operation']!=data['covered_operation'] or current['exclusions']!=data['exclusions']:
+            raise HTTPException(409,'The assessment scope changed while preparing this quote. Review the current boundary and agreement.')
+        try: validate_quote(data,current)
+        except ValueError as exc: raise HTTPException(409,'The requested package path changed while preparing this quote.') from exc
         accepted=conn.execute('SELECT id FROM package_acceptances WHERE tenant_id=? AND assessment_id=? LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
         if accepted:
             raise HTTPException(409,'An authorized package cannot be requoted without a reviewed amendment workflow.')
@@ -5269,6 +5282,7 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
         conn.commit(); row=dict(conn.execute('SELECT * FROM package_quote_versions WHERE id=?',(cur.lastrowid,)).fetchone())
         return row
     finally:
+        conn.rollback()
         conn.close()
 
 @app.post('/api/assessments/{assessment_id}/package-acceptance')
@@ -5278,9 +5292,12 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
     ctx=auth_context(request)
     if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
         raise HTTPException(403,'A verified Protected Member sign-in is required to accept a package quote.')
-    assessment=assessment_row_for_request(request,assessment_id)
+    assessment_row_for_request(request,assessment_id)
     conn=db()
     try:
+        lock_package_assessment(conn,assessment_id)
+        assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tenant_id(request))).fetchone()
+        if not assessment: raise HTTPException(404,'Assessment not found.')
         prior=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND idempotency_key=?',(tenant_id(request),assessment_id,p.idempotency_key)).fetchone()
         if prior:
             prior_quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(prior['quote_id'],tenant_id(request),assessment_id)).fetchone()
@@ -5315,6 +5332,7 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
         conn.commit()
         return {'status':'Authorized','quote_id':p.quote_id,'accepted_at':ts,'idempotent':False}
     finally:
+        conn.rollback()
         conn.close()
 
 @app.post('/api/assessments/{assessment_id}/reassessment-review')
@@ -6006,7 +6024,10 @@ def update_entity(table:str,entity_id:int,payload:dict[str,Any],request:Request)
     allowed={'assessments','threats','scenarios','capabilities','evidence','gaps','improvements','accepted_risks','reassessment_triggers'}
     if table not in allowed: raise HTTPException(404)
     table=sql_table_name(table)
-    conn=db(); old=conn.execute(f'SELECT * FROM {table} WHERE id=?',(entity_id,)).fetchone()
+    if table=='assessments': assessment_row_for_request(request,entity_id)
+    conn=db()
+    if table=='assessments': lock_package_assessment(conn,entity_id)
+    old=conn.execute(f'SELECT * FROM {table} WHERE id=?',(entity_id,)).fetchone()
     if not old: conn.close(); raise HTTPException(404)
     aid=entity_assessment_id(table,old); assessment_row_for_request(request,aid)
     if table in CHILD_ASSESSMENT_TABLES and 'assessment_id' in payload:

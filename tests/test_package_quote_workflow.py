@@ -65,6 +65,22 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert unverified.status_code==409, unverified.text
         bad=director.post(url,json={**quote,'access_eligibility_confirmed':False})
         assert bad.status_code == 422, bad.text
+        # A concurrent boundary edit after the initial validation must stop issue.
+        original_read=app.storage.get_bytes
+        def change_scope_during_agreement_read(name):
+            content=original_read(name)
+            conn=app.db()
+            conn.execute('UPDATE assessments SET covered_operation=? WHERE id=?',('Changed while quoting',assessment_id))
+            conn.commit();conn.close()
+            return content
+        app.storage.get_bytes=change_scope_during_agreement_read
+        raced=director.post(url,json=quote)
+        assert raced.status_code==409, raced.text
+        app.storage.get_bytes=original_read
+        conn=app.db()
+        assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==0
+        conn.execute('UPDATE assessments SET covered_operation=? WHERE id=?',('One named operation',assessment_id))
+        conn.commit();conn.close()
         response=director.post(url,json=quote)
         assert response.status_code == 200, response.text
         issued=response.json()
@@ -110,6 +126,20 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.commit(); conn.close()
         app.AUTH_MODE='session'
         member=TestClient(app.app,cookies={'salus_session':'test-cookie'})
+        original_scope_read=app.assessment_row_for_request
+        def change_scope_after_access_check(request, aid):
+            row=original_scope_read(request,aid)
+            app.assessment_row_for_request=original_scope_read
+            conn=app.db()
+            conn.execute('UPDATE assessments SET exclusions=? WHERE id=?',('Changed before acceptance lock',assessment_id))
+            conn.commit();conn.close()
+            return row
+        app.assessment_row_for_request=change_scope_after_access_check
+        assert member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance).status_code==409
+        conn=app.db()
+        assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==0
+        conn.execute('UPDATE assessments SET exclusions=? WHERE id=?',('Other sites and functions',assessment_id))
+        conn.commit();conn.close()
         conn=app.db()
         conn.execute('UPDATE assessments SET exclusions=? WHERE id=?',('Different exclusions',assessment_id))
         conn.commit();conn.close()
