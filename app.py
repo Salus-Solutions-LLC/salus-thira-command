@@ -873,6 +873,29 @@ def init_db():
       UNIQUE (tenant_id,assessment_id,quote_id,item_key)
     );
     CREATE INDEX IF NOT EXISTS idx_package_intake_scope ON package_intake_requests(tenant_id,assessment_id,quote_id,id);
+    CREATE TABLE IF NOT EXISTS package_intake_uploads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      intake_request_id INTEGER NOT NULL,
+      member_user_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL UNIQUE,
+      content_sha256 TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      scan_status TEXT NOT NULL,
+      retention_until TEXT NOT NULL,
+      legal_hold INTEGER NOT NULL DEFAULT 0,
+      uploaded_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (intake_request_id) REFERENCES package_intake_requests(id) ON DELETE RESTRICT,
+      FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,intake_request_id,content_sha256)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_intake_upload_scope ON package_intake_uploads(tenant_id,assessment_id,quote_id,intake_request_id,id);
     CREATE TABLE IF NOT EXISTS package_product_report_versions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -3651,7 +3674,8 @@ def create_backup_archive(request:Request, reason:str='Manual backup'):
     with zipfile.ZipFile(final,'w',compression=zipfile.ZIP_DEFLATED) as z:
         manifest['files'].append({'path':'records.json','sha256':hashlib.sha256(records_bytes).hexdigest(),'size_bytes':len(records_bytes)}); z.writestr('records.json',records_bytes)
         stored_records=(records.get('evidence_attachments',[])+records.get('materials',[])
-            +records.get('package_agreement_artifacts',[])+records.get('package_product_report_versions',[])
+            +records.get('package_agreement_artifacts',[])+records.get('package_intake_uploads',[])
+            +records.get('package_product_report_versions',[])
             +records.get('package_report_qa_evidence',[]))
         backed_up_objects=set()
         for item in sorted(stored_records,key=lambda x:str(x.get('stored_name',''))):
@@ -3685,6 +3709,12 @@ def verify_backup_file(path:str):
                         errors.append(f'Missing package agreement artifact {agreement.get("id")}')
                     elif hashlib.sha256(z.read(archive_path)).hexdigest()!=agreement.get('content_sha256'):
                         errors.append(f'Package agreement artifact hash mismatch {agreement.get("id")}')
+                for upload in records.get('package_intake_uploads',[]):
+                    archive_path='attachments/'+str(upload.get('stored_name') or '')
+                    if archive_path not in z.namelist():
+                        errors.append(f'Missing package intake file {upload.get("id")}')
+                    elif hashlib.sha256(z.read(archive_path)).hexdigest()!=upload.get('content_sha256'):
+                        errors.append(f'Package intake file hash mismatch {upload.get("id")}')
                 for report in records.get('package_product_report_versions',[]):
                     archive_path='attachments/'+str(report.get('stored_name') or '')
                     if archive_path not in z.namelist():
@@ -3716,7 +3746,7 @@ def dr_validate_backup_file(path:str):
             assessment_count=len(records.get('assessments',[]))
             attachment_count=len({
                 str(row.get('stored_name','')).strip()
-                for table in ('evidence_attachments','materials','package_agreement_artifacts','package_product_report_versions','package_report_qa_evidence')
+                for table in ('evidence_attachments','materials','package_agreement_artifacts','package_intake_uploads','package_product_report_versions','package_report_qa_evidence')
                 for row in records.get(table,[])
                 if str(row.get('stored_name','')).strip()
             })
@@ -3807,6 +3837,7 @@ def restore_backup(backup_id:int,restore_request_id:int,request:Request):
             old_keys=[r['stored_name'] for r in conn.execute('SELECT ea.stored_name FROM evidence_attachments ea JOIN assessments a ON a.id=ea.assessment_id WHERE a.tenant_id=?',(tid,))]
             old_keys.extend(r['stored_name'] for r in conn.execute("SELECT stored_name FROM materials WHERE tenant_id=? AND stored_name<>''",(tid,)))
             old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_agreement_artifacts WHERE tenant_id=?',(tid,)))
+            old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_intake_uploads WHERE tenant_id=?',(tid,)))
             old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_product_report_versions WHERE tenant_id=?',(tid,)))
             old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_report_qa_evidence WHERE tenant_id=?',(tid,)))
             old_keys=list(dict.fromkeys(old_keys)); conn.close()
@@ -5801,9 +5832,13 @@ def get_package_intake(assessment_id:int,request:Request):
         rows=[dict(r) for r in conn.execute('''SELECT id,item_key,catalog_version,title,decision_use,requested_form,
             acceptable_equivalent,request_reason,status,requested_at,responded_at FROM package_intake_requests
             WHERE tenant_id=? AND assessment_id=? AND quote_id=? ORDER BY id''',(tenant_id(request),assessment_id,quote['id']))]
+        uploads=[dict(r) for r in conn.execute('''SELECT id,intake_request_id,original_name,content_sha256,size_bytes,uploaded_at
+            FROM package_intake_uploads WHERE tenant_id=? AND assessment_id=? AND quote_id=? ORDER BY id''',
+            (tenant_id(request),assessment_id,quote['id']))]
         return {'quote_id':quote['id'],'catalog_version':PACKAGE_INTAKE_VERSION,'items':rows,
+                'uploads':uploads,
                 'catalog':package_intake_catalog() if role(request) in ('System Administrator','Assessment Director') else [],
-                'notice':'Only selected items are requested. Do not send personal directories, credentials, medical records or sensitive annexes through this response.'}
+                'notice':'Only selected items are requested. Do not upload personal directories, credentials, medical records or sensitive annexes. Ask Salus for separate protected handling when needed.'}
     finally: conn.close()
 
 @app.post('/api/assessments/{assessment_id}/package-intake')
@@ -5846,6 +5881,9 @@ def respond_package_intake(assessment_id:int,item_id:int,p:PackageIntakeResponse
         quote=authorized_package_intake(conn,assessment_id,request)
         item=conn.execute('SELECT * FROM package_intake_requests WHERE id=? AND tenant_id=? AND assessment_id=? AND quote_id=?',(item_id,tenant_id(request),assessment_id,quote['id'])).fetchone()
         if not item: raise HTTPException(404,'Requested item not found in this package.')
+        if conn.execute('SELECT 1 FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=? LIMIT 1',
+            (tenant_id(request),item_id)).fetchone():
+            raise HTTPException(409,'A file was already received for this item. Ask Salus to reconcile it before marking the item unavailable.')
         if item['status']!=p.status:
             conn.execute('UPDATE package_intake_requests SET status=?,response_user_id=?,responded_at=? WHERE id=?',(p.status,ctx['user_id'],now(),item_id))
             audit(conn,'PACKAGE_INTAKE_RESPONSE','assessment',assessment_id,f'item_id={item_id}; status={p.status}',actor(request))
@@ -5853,6 +5891,106 @@ def respond_package_intake(assessment_id:int,item_id:int,p:PackageIntakeResponse
         return {'item_id':item_id,'status':p.status}
     finally:
         conn.rollback();conn.close()
+
+PACKAGE_INTAKE_ALLOWED_EXTENSIONS={'.pdf','.docx','.xlsx','.csv','.txt','.png','.jpg','.jpeg'}
+
+@app.post('/api/assessments/{assessment_id}/package-intake/{item_id}/files')
+async def upload_package_intake_file(assessment_id:int,item_id:int,request:Request,file:UploadFile=File(...)):
+    require_package_commercial_candidate(); require_protected_member_authority(request,'package_intake_upload')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A signed-in Protected Member decision owner is required.')
+    assessment_row_for_request(request,assessment_id)
+    original=safe_filename(file.filename or '')
+    if Path(original).suffix.lower() not in PACKAGE_INTAKE_ALLOWED_EXTENSIONS:
+        raise HTTPException(422,'Use a PDF, Office document, CSV, text file or image for this records request.')
+    content=await file.read(MAX_ATTACHMENT_BYTES+1)
+    if not content or len(content)>MAX_ATTACHMENT_BYTES:
+        raise HTTPException(413,'The file must be nonempty and no larger than 25 MB.')
+    scan=scan_bytes(content,original)
+    if not scan['ok'] or scan['status']!='Clean':
+        security_event(request,'PACKAGE_INTAKE_UPLOAD_REJECTED','High' if scan['status']=='Infected' else 'Medium',
+            f'status={scan["status"]}')
+        raise HTTPException(422 if scan['status']=='Infected' else 503,'The file could not pass the security check.')
+    digest=hashlib.sha256(content).hexdigest(); tid=tenant_id(request); conn=db(); stored=''
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        item=conn.execute('''SELECT id,status FROM package_intake_requests
+            WHERE id=? AND tenant_id=? AND assessment_id=? AND quote_id=?''',
+            (item_id,tid,assessment_id,quote['id'])).fetchone()
+        if not item: raise HTTPException(404,'This item was not requested for the authorized package.')
+        if item['status'] in ('Not held','Not known','Prefer to discuss'):
+            raise HTTPException(409,'Review this item with Salus before sending a file.')
+        existing=conn.execute('''SELECT id,intake_request_id,original_name,content_sha256,size_bytes,uploaded_at
+            FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=? AND content_sha256=?''',
+            (tid,item_id,digest)).fetchone()
+        if existing: return dict(existing)
+        file_count=conn.execute('SELECT COUNT(*) AS n FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=?',
+            (tid,item_id)).fetchone()['n']
+        if file_count>=5:
+            raise HTTPException(409,'This item has five files. Ask Salus to review before sending more.')
+        stored=f'tenant-{tid}/assessment-{assessment_id}/package-intake/quote-{quote["id"]}/item-{item_id}/{uuid.uuid4().hex}_{digest[:16]}'
+        storage.put_bytes(stored,content)
+        retention_until=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
+        uploaded_at=now()
+        cur=conn.execute('''INSERT INTO package_intake_uploads
+            (tenant_id,assessment_id,quote_id,intake_request_id,member_user_id,original_name,stored_name,
+             content_sha256,size_bytes,scan_status,retention_until,legal_hold,uploaded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (tid,assessment_id,quote['id'],item_id,ctx['user_id'],original,stored,digest,len(content),
+             scan['status'],retention_until,0,uploaded_at))
+        conn.execute('UPDATE package_intake_requests SET status=?,response_user_id=?,responded_at=? WHERE id=?',
+            ('Provided',ctx['user_id'],uploaded_at,item_id))
+        audit(conn,'PACKAGE_INTAKE_FILE','assessment',assessment_id,
+            f'item_id={item_id}; file_id={cur.lastrowid}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'intake_request_id':item_id,'original_name':original,
+                'content_sha256':digest,'size_bytes':len(content),'uploaded_at':uploaded_at}
+    except Exception as exc:
+        conn.rollback()
+        if stored:
+            try: storage.delete(stored)
+            except Exception: pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8); record_internal_failure('package intake upload',error_id,exc)
+        raise HTTPException(503,f'Package intake storage is unavailable. Reference: {error_id}') from exc
+    finally: conn.close()
+
+@app.get('/api/package-intake-files/{file_id}/download')
+def download_package_intake_file(file_id:int,request:Request):
+    require_package_commercial_candidate(); require(request,'read')
+    conn=db()
+    try:
+        row=conn.execute('SELECT * FROM package_intake_uploads WHERE id=? AND tenant_id=?',
+            (file_id,tenant_id(request))).fetchone()
+        if not row: raise HTTPException(404,'Requested file not found.')
+        assessment_row_for_request(request,row['assessment_id'])
+        if protected_member_request(request):
+            require_protected_member_authority(request,'package_intake_download')
+            if auth_context(request)['auth_mode'] not in ('session','oidc'):
+                raise HTTPException(403,'A signed-in Protected Member decision owner is required.')
+        quote=authorized_package_intake(conn,row['assessment_id'],request)
+        if row['quote_id']!=quote['id']:
+            raise HTTPException(409,'This file belongs to a previous package scope.')
+    finally: conn.close()
+    try: data=storage.get_bytes(row['stored_name'])
+    except FileNotFoundError: raise HTTPException(404,'Stored file is missing.')
+    except Exception as exc:
+        security_event(request,'PACKAGE_INTAKE_STORAGE_READ_FAILURE','High',type(exc).__name__)
+        raise HTTPException(503,'Package intake storage is unavailable.') from exc
+    if hashlib.sha256(data).hexdigest()!=row['content_sha256']:
+        security_event(request,'PACKAGE_INTAKE_HASH_MISMATCH','Critical',f'file_id={file_id}')
+        raise HTTPException(409,'File integrity verification failed.')
+    conn=db()
+    try:
+        audit(conn,'PACKAGE_INTAKE_DOWNLOAD','assessment',row['assessment_id'],
+            f'file_id={file_id}; sha256={row["content_sha256"]}',actor(request))
+        conn.commit()
+    finally: conn.close()
+    return Response(content=data,media_type='application/octet-stream',headers={
+        'Content-Disposition':f'attachment; filename="{safe_filename(row["original_name"])}"',
+        'X-Content-SHA256':row['content_sha256'],'X-Content-Type-Options':'nosniff'})
 
 PACKAGE_REPORT_PRODUCTS={'SalINTEL','SalTHIRA','SalOPS','SalCAPA'}
 PACKAGE_REPORT_DRAFT_ROLES={'System Administrator','Assessment Director','Lead Assessor'}

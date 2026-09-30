@@ -615,6 +615,27 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert member.get(preflight_url).status_code==403
         assert member.patch(retention_url,json={'legal_hold':True,'reason':'No Member retention authority in this candidate.'}).status_code==403
         assert 'response_user_id' not in requested.json()['items'][0]
+        upload_item=requested.json()['items'][1]['id']
+        upload_path=f'{intake_url}/{upload_item}/files'
+        upload_bytes=b'%PDF-1.4\nfictional requested record\n%%EOF'
+        uploaded=member.post(upload_path,files={'file':('Example-Plan.pdf',upload_bytes,'application/pdf')})
+        assert uploaded.status_code==200,uploaded.text
+        file_id=uploaded.json()['id']
+        assert uploaded.json()['content_sha256']==hashlib.sha256(upload_bytes).hexdigest()
+        repeated_upload=member.post(upload_path,files={'file':('Example-Plan.pdf',upload_bytes,'application/pdf')})
+        assert repeated_upload.status_code==200 and repeated_upload.json()['id']==file_id
+        assert member.get(intake_url).json()['items'][1]['status']=='Provided'
+        assert member.get(intake_url).json()['uploads'][0]['id']==file_id
+        received=member.get(f'/api/package-intake-files/{file_id}/download')
+        assert received.status_code==200 and received.content==upload_bytes
+        assert received.headers['x-content-sha256']==uploaded.json()['content_sha256']
+        assert member.patch(f'{intake_url}/{upload_item}',json={'status':'Not held'}).status_code==409
+        assert member.post(upload_path,files={'file':('bad.exe',b'not allowed','application/octet-stream')}).status_code==422
+        original_scan=app.scan_bytes
+        app.scan_bytes=lambda content,filename:{'ok':False,'status':'Infected'}
+        assert member.post(upload_path,files={'file':('Blocked.pdf',b'fictional blocked content','application/pdf')}).status_code==422
+        app.scan_bytes=original_scan
+        assert director.post(upload_path,files={'file':('Example-Plan.pdf',upload_bytes,'application/pdf')}).status_code in (401,403)
         item_id=requested.json()['items'][0]['id']
         response=member.patch(f'{intake_url}/{item_id}',json={'status':'Not held'})
         assert response.status_code==200 and response.json()['status']=='Not held',response.text
@@ -626,6 +647,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         other_tenant=TestClient(app.app,headers={'X-Salus-Role':'Assessment Director','X-Salus-Tenant':'2'})
         assert other_tenant.get(url).status_code==403
         assert other_tenant.get(intake_url).status_code==403
+        assert other_tenant.get(f'/api/package-intake-files/{file_id}/download').status_code==404
         assert other_tenant.get(report_url).status_code==403
         assert other_tenant.get(issue_url).status_code==403
         assert other_tenant.post(acknowledgment_url,json=acknowledgment_payload).status_code==403
@@ -645,6 +667,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==3
         assert conn.execute('SELECT COUNT(*) FROM package_quote_predecessor_links').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_intake_uploads').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==9
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==9
         assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==3
@@ -665,6 +688,12 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len(records['package_acceptances'])==3
         assert len(records['package_quote_predecessor_links'])==2
         assert len(records['package_intake_requests'])==2
+        assert len(records['package_intake_uploads'])==1
+        saved_intake_upload=records['package_intake_uploads'][0]
+        invalid_intake=dict(saved_intake_upload); invalid_intake['quote_id']=999999
+        records['package_intake_uploads']=[invalid_intake]
+        assert any('package intake file' in error for error in validate_records(records,1))
+        records['package_intake_uploads']=[saved_intake_upload]
         assert len(records['package_product_report_versions'])==9
         assert len(records['package_report_conformance'])==9
         assert len(records['package_report_reconciliations'])==3
@@ -705,6 +734,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==3
         assert conn.execute('SELECT COUNT(*) FROM package_quote_predecessor_links').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_intake_uploads').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==9
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==9
         assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==3

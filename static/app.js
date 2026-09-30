@@ -163,7 +163,34 @@ async function entityView(key){
           $('#content').appendChild(intakePanel);
           try{
             const intake=await api(`/api/assessments/${activeAssessmentId}/package-intake`);
-            intakePanel.innerHTML=`<h2>Your Level 1 records request</h2><p>Salus has selected only the items needed for your agreed scope. An existing equivalent or short description is fine. If you do not have an item, tell us below. Do not enter personal directories, passwords, medical records or sensitive plans here.</p>${intake.items.length?intake.items.map(item=>`<section class="notice" style="margin-bottom:12px"><h3>${esc(item.title)}</h3><p><strong>Why:</strong> ${esc(item.decision_use)}<br><strong>Requested:</strong> ${esc(item.requested_form)}<br><strong>Equivalent:</strong> ${esc(item.acceptable_equivalent)}<br><strong>Status:</strong> <span id="intake-status-${Number(item.id)}">${esc(item.status)}</span></p><div class="row-actions">${['Not held','Not known','Prefer to discuss'].map(status=>`<button class="btn secondary" type="button" data-intake-id="${Number(item.id)}" data-intake-status="${esc(status)}">${esc(status)}</button>`).join('')}</div></section>`).join(''):'<p>Salus has not selected any records for this scope yet.</p>'}<p class="subtle">A secure file-transfer route and any sensitive handling instructions will be provided separately.</p>`;
+            intakePanel.innerHTML=`<h2>Your Level 1 records request</h2><p>Salus has selected only the items needed for your agreed scope. An existing equivalent or short description is fine. If you do not have an item, tell us below. Do not enter personal directories, passwords, medical records or sensitive plans here.</p>${intake.items.length?intake.items.map(item=>`<section class="notice" style="margin-bottom:12px"><h3>${esc(item.title)}</h3><p><strong>Why:</strong> ${esc(item.decision_use)}<br><strong>Requested:</strong> ${esc(item.requested_form)}<br><strong>Equivalent:</strong> ${esc(item.acceptable_equivalent)}<br><strong>Status:</strong> <span id="intake-status-${Number(item.id)}">${esc(item.status)}</span></p><div class="row-actions">${['Not held','Not known','Prefer to discuss'].map(status=>`<button class="btn secondary" type="button" data-intake-id="${Number(item.id)}" data-intake-status="${esc(status)}">${esc(status)}</button>`).join('')}</div></section>`).join(''):'<p>Salus has not selected any records for this scope yet.</p>'}<p class="subtle">For sensitive records or annexes, ask Salus for a separate protected handling route.</p>`;
+            intake.items.forEach(item=>{
+              const section=intakePanel.querySelector(`#intake-status-${Number(item.id)}`)?.closest('section');
+              if(!section)return;
+              const files=intake.uploads.filter(upload=>Number(upload.intake_request_id)===Number(item.id));
+              const form=document.createElement('form');
+              form.innerHTML=`<label>Send this requested record (PDF, Office document, CSV, text or image; up to 25 MB each, five per item)<input type="file" name="file" accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg" required></label><button class="btn secondary" type="submit">Upload file</button><div role="status" aria-live="polite"></div>`;
+              const list=document.createElement('div');
+              list.innerHTML=files.map(upload=>`<p><a href="/api/package-intake-files/${Number(upload.id)}/download">${esc(upload.original_name)}</a> — received</p>`).join('');
+              section.append(form,list);
+              form.onsubmit=async event=>{
+                event.preventDefault();const button=form.querySelector('button'),status=form.querySelector('[role="status"]');
+                const selected=form.elements.namedItem('file').files?.[0];if(!selected)return;
+                button.disabled=true;status.textContent='Checking and saving the file…';
+                try{
+                  const body=new FormData();body.append('file',selected);
+                  const response=await fetch(`/api/assessments/${activeAssessmentId}/package-intake/${Number(item.id)}/files`,{method:'POST',headers:authHeaders(),body});
+                  if(!response.ok)throw new Error('Upload failed');
+                  const saved=await response.json();
+                  intakePanel.querySelector(`#intake-status-${Number(item.id)}`).textContent='Provided';
+                  if(!list.querySelector(`a[href="/api/package-intake-files/${Number(saved.id)}/download"]`)){
+                    list.insertAdjacentHTML('beforeend',`<p><a href="/api/package-intake-files/${Number(saved.id)}/download">${esc(saved.original_name)}</a> — received</p>`);
+                  }
+                  form.reset();status.textContent='File received. Salus will review its relevance and handling.';
+                }catch(error){status.textContent='The file was not saved. Check its type and size, or contact Salus for protected handling.';}
+                finally{button.disabled=false;}
+              };
+            });
             intakePanel.querySelectorAll('button[data-intake-id]').forEach(button=>button.onclick=async()=>{
               button.disabled=true;
               try{
@@ -198,7 +225,7 @@ async function entityView(key){
       try{
         const intake=await api(`/api/assessments/${activeAssessmentId}/package-intake`);
         const requested=new Set(intake.items.map(item=>item.item_key));
-        intakeReview.innerHTML=`<h2>Tailor the Level 1 records request</h2><p>Select only records that could change this Member's agreed decision. The Member can identify missing records; secure file transfer is arranged separately. Existing requests will not be duplicated.</p><form id="package-intake-select">${intake.catalog.map(item=>`<label class="advisor-confirm" data-guidance-enhanced="true"><input type="checkbox" name="item_key" value="${esc(item.key)}" ${requested.has(item.key)?'disabled':''}><span><strong>${esc(item.title)}</strong> — ${esc(item.decision_use)}${requested.has(item.key)?' (already requested)':''}</span></label>`).join('')}<label data-guidance-enhanced="true">Why these items matter for this agreed boundary<textarea name="request_reason" minlength="12" maxlength="1000" required></textarea></label><div class="form-actions"><button class="btn">Send selected request</button></div></form><div id="package-intake-result" role="status" aria-live="polite"></div>`;
+        intakeReview.innerHTML=`<h2>Tailor the Level 1 records request</h2><p>Select only records that could change this Member's agreed decision. The Member can identify missing records or upload a requested non-sensitive file after authorization. Existing requests will not be duplicated.</p><form id="package-intake-select">${intake.catalog.map(item=>`<label class="advisor-confirm" data-guidance-enhanced="true"><input type="checkbox" name="item_key" value="${esc(item.key)}" ${requested.has(item.key)?'disabled':''}><span><strong>${esc(item.title)}</strong> — ${esc(item.decision_use)}${requested.has(item.key)?' (already requested)':''}</span></label>`).join('')}<label data-guidance-enhanced="true">Why these items matter for this agreed boundary<textarea name="request_reason" minlength="12" maxlength="1000" required></textarea></label><div class="form-actions"><button class="btn">Send selected request</button></div></form><div id="package-intake-result" role="status" aria-live="polite"></div>`;
         intakeReview.querySelector('form').onsubmit=async event=>{
           event.preventDefault();const form=event.currentTarget,selected=[...form.querySelectorAll('input[name="item_key"]:checked')].map(input=>input.value),status=intakeReview.querySelector('#package-intake-result');
           if(!selected.length){status.textContent='Select at least one new item.';return;}
