@@ -5735,7 +5735,9 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
         data['version_no']=version
         digest=quote_digest(data)
         columns=list(data)+['content_sha256','approved_by','approved_at']
-        values=list(data.values())+[digest,actor(request),now()]
+        integer_flags={'capacity_confirmed','access_eligibility_confirmed','separate_services_excluded'}
+        values=[int(data[key]) if key in integer_flags else data[key] for key in data]
+        values += [digest,actor(request),now()]
         cur=conn.execute(f"INSERT INTO package_quote_versions({','.join(columns)}) VALUES({','.join('?' for _ in columns)})",values)
         if predecessor:
             link_record={'assessment_id':assessment_id,'quote_id':cur.lastrowid,
