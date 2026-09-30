@@ -1617,6 +1617,11 @@ class PackageAcceptanceIn(BaseModel):
     idempotency_key: str = Field(pattern=r'^[A-Za-z0-9_-]{16,120}$')
     accept_quote_and_agreement: Literal[True]
 
+class PackageHandoffClaimIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    claim_code: str = Field(min_length=32,max_length=120)
+    confirm_requested_boundary: Literal[True]
+
 def verified_package_quote(row,request:Request):
     content={key:row[key] for key in PackageQuoteIn.model_fields}
     for key in ('capacity_confirmed','access_eligibility_confirmed','separate_services_excluded'):
@@ -5008,6 +5013,41 @@ def get_package_quote(assessment_id:int,request:Request):
         for key in ('access_eligibility_basis','approved_by','scope_basis'):
             result.pop(key,None)
     return result
+
+@app.post('/api/assessments/{assessment_id}/advisor-package-handoff')
+def claim_advisor_package_handoff(assessment_id:int,p:PackageHandoffClaimIn,request:Request):
+    """Record a claimed prospect receipt; Salus has not approved its scope or authority."""
+    require_package_commercial_candidate()
+    require_protected_member_authority(request,'advisor_package_handoff')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A signed-in Protected Member decision owner is required.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        handoff=conn.execute('SELECT * FROM advisor_package_handoffs WHERE claim_token_sha256=?',(_hash_token(p.claim_code),)).fetchone()
+        if not handoff or handoff['status']!='Pending' or handoff['claim_expires_at']<=now():
+            raise HTTPException(409,'This package handoff is unavailable or expired.')
+        source=conn.execute('SELECT status,deleted_at FROM advisor_public_sessions WHERE session_key=?',(handoff['session_key'],)).fetchone()
+        account=conn.execute('SELECT status,email_verified_at FROM advisor_public_accounts WHERE account_key=?',(handoff['account_key'],)).fetchone()
+        submission=conn.execute('SELECT submission_key FROM advisor_public_submissions WHERE session_key=?',(handoff['session_key'],)).fetchone()
+        snapshot=conn.execute('SELECT content_sha256 FROM advisor_public_scope_receipt_snapshots WHERE session_key=? AND revision_no=?',(handoff['session_key'],handoff['revision_no'])).fetchone()
+        if (not source or source['status']!='Submitted' or source['deleted_at'] or not account
+            or account['status']!='Active' or not account['email_verified_at'] or not submission
+            or submission['submission_key']!=handoff['submission_key'] or not snapshot
+            or snapshot['content_sha256']!=handoff['receipt_sha256']):
+            raise HTTPException(409,'The consented receipt is no longer available for a package handoff.')
+        other=conn.execute("SELECT 1 FROM advisor_package_handoffs WHERE submission_key=? AND status='Claimed' LIMIT 1",(handoff['submission_key'],)).fetchone()
+        if other: raise HTTPException(409,'This receipt has already been claimed for review.')
+        claimed_at=now()
+        updated=conn.execute("UPDATE advisor_package_handoffs SET status='Claimed',tenant_id=?,assessment_id=?,member_user_id=?,claimed_at=? WHERE handoff_key=? AND status='Pending'",(tenant_id(request),assessment_id,ctx['user_id'],claimed_at,handoff['handoff_key']))
+        if updated.rowcount!=1:
+            raise HTTPException(409,'This package handoff was already claimed.')
+        audit(conn,'ADVISOR_PACKAGE_HANDOFF_CLAIM','assessment',assessment_id,f'handoff_key={handoff["handoff_key"]}; receipt_revision={handoff["revision_no"]}',actor(request))
+        conn.commit()
+        return {'handoff_key':handoff['handoff_key'],'status':'Awaiting Salus identity, authority and scope review','receipt_id':handoff['receipt_id'],'receipt_revision':handoff['revision_no']}
+    finally:
+        conn.close()
 
 @app.post('/api/assessments/{assessment_id}/package-quote')
 def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):

@@ -1,6 +1,6 @@
 """Public, isolated Salus Protection Advisor pilot.
 
-Issue #290. This module intentionally has no Protected Member tenant relationship.
+Issue #290. This module has no automatic Protected Member tenant relationship.
 It persists only consented prospect assessment records and preserves versioned,
 append-only answer lineage. Recommendations are preliminary and non-binding.
 """
@@ -41,6 +41,7 @@ QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.2.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.1.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
+PACKAGE_TRANSFER_NOTICE_VERSION = "SPA-PACKAGE-TRANSFER-0.1.0"
 REPORT_TEMPLATE_VERSION = "SPA-REPORT-TEMPLATE-1.4.0"
 SCOPE_RECEIPT_PDF_VERSION = "SPA-SCOPE-RECEIPT-PDF-0.2.0"
 HANDLING_PROFILES = {
@@ -60,6 +61,13 @@ class AdvisorPerformanceEvent(BaseModel):
     model_config = ConfigDict(extra="forbid")
     duration_ms: int = Field(ge=0, le=120000)
     navigation_type: str = Field(default="navigate", pattern=r"^(navigate|reload|back_forward|prerender)$")
+
+
+class PackageTransferConsentCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    receipt_revision: int = Field(ge=1)
+    transfer_notice_version: str
+    consent_to_package_handoff: bool
 
 
 ORGANIZATION_TYPES = {
@@ -719,6 +727,27 @@ def _initialize(conn: Any) -> None:
       PRIMARY KEY (session_key,revision_no),
       FOREIGN KEY (session_key) REFERENCES advisor_public_sessions(session_key) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS advisor_package_handoffs (
+      handoff_key TEXT PRIMARY KEY,
+      session_key TEXT NOT NULL,
+      account_key TEXT NOT NULL,
+      submission_key TEXT NOT NULL,
+      receipt_id TEXT NOT NULL,
+      revision_no INTEGER NOT NULL,
+      receipt_sha256 TEXT NOT NULL,
+      profile_sha256 TEXT NOT NULL,
+      transfer_notice_version TEXT NOT NULL,
+      consented_at TEXT NOT NULL,
+      claim_token_sha256 TEXT NOT NULL UNIQUE,
+      claim_expires_at TEXT NOT NULL,
+      status TEXT NOT NULL,
+      tenant_id INTEGER,
+      assessment_id INTEGER,
+      member_user_id INTEGER,
+      claimed_at TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_advisor_package_handoff_source
+      ON advisor_package_handoffs(session_key,status);
     """)
     initialize_engagement_schema(conn)
 
@@ -2785,6 +2814,85 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
         finally:
             conn.close()
 
+    @app.post("/public/protection-advisor/package-handoff")
+    def consent_package_handoff(command: PackageTransferConsentCommand, request: Request) -> dict[str, Any]:
+        """Create a short-lived, prospect-consented claim; no Member link is approved here."""
+        ctx["require_package_commercial_candidate"]()
+        limited(request, request.cookies.get("salus_advisor_session", ""))
+        if not command.consent_to_package_handoff or command.transfer_notice_version != PACKAGE_TRANSFER_NOTICE_VERSION:
+            raise HTTPException(422, "Confirm the current package-transfer notice before sharing a receipt")
+        conn = ctx["db"]()
+        try:
+            session, _ = _session(conn, request)
+            account = _account_session(conn, request)
+            _require_account_assessment(conn, account["account_key"], session["session_key"])
+            if session["status"] != "Submitted" or not account["email_verified_at"]:
+                raise HTTPException(409, "Submit Part 2 and verify the account email before requesting a handoff")
+            source = conn.execute(
+                """SELECT s.submission_key,p.profile_sha256,p.package_json
+                     FROM advisor_public_submissions s
+                     JOIN advisor_public_service_profiles p ON p.submission_key=s.submission_key
+                    WHERE s.session_key=?""", (session["session_key"],),
+            ).fetchone()
+            identity = _latest_report_identity(conn, session["session_key"])
+            snapshot = conn.execute(
+                """SELECT * FROM advisor_public_scope_receipt_snapshots
+                    WHERE session_key=? AND revision_no=?""",
+                (session["session_key"], command.receipt_revision),
+            ).fetchone()
+            if not source or not identity or command.receipt_revision != int(identity["revision_no"]) or not snapshot:
+                raise HTTPException(409, "Download the current saved receipt before requesting a handoff")
+            receipt_id = str((json.loads(source["package_json"]).get("scope_receipt") or {}).get("receipt_id") or "")
+            if receipt_id != "SPA-RECEIPT-" + str(source["submission_key"]).removeprefix("SPA-SUBMISSION-"):
+                raise HTTPException(409, "Receipt identity needs Salus review")
+            claimed = conn.execute(
+                "SELECT 1 FROM advisor_package_handoffs WHERE submission_key=? AND status='Claimed' LIMIT 1",
+                (source["submission_key"],),
+            ).fetchone()
+            if claimed:
+                raise HTTPException(409, "This receipt is already awaiting Salus package review")
+            pending = conn.execute(
+                "SELECT claim_expires_at FROM advisor_package_handoffs WHERE session_key=? AND status='Pending' LIMIT 1",
+                (session["session_key"],),
+            ).fetchone()
+            if pending and pending["claim_expires_at"] > _utc_text(_utc_now()):
+                raise HTTPException(409, "A package handoff code is already active for this receipt")
+            try:
+                read_member_pdf(str(snapshot["item_id"]), str(snapshot["content_sha256"]), int(snapshot["content_size"]))
+            except M365ReportError as exc:
+                raise HTTPException(503, "The saved receipt could not be verified") from exc
+            token = secrets.token_urlsafe(32)
+            issued = _utc_now()
+            handoff_key = "SPA-HANDOFF-" + secrets.token_hex(16).upper()
+            conn.execute(
+                "DELETE FROM advisor_package_handoffs WHERE session_key=? AND status='Pending' AND claim_expires_at<=?",
+                (session["session_key"], _utc_text(issued)),
+            )
+            conn.execute(
+                """INSERT INTO advisor_package_handoffs
+                   (handoff_key,session_key,account_key,submission_key,receipt_id,revision_no,
+                    receipt_sha256,profile_sha256,transfer_notice_version,consented_at,
+                    claim_token_sha256,claim_expires_at,status)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (handoff_key,session["session_key"],account["account_key"],source["submission_key"],
+                 receipt_id,command.receipt_revision,snapshot["content_sha256"],source["profile_sha256"],
+                 PACKAGE_TRANSFER_NOTICE_VERSION,_utc_text(issued),_sha(token),
+                 _utc_text(issued+timedelta(hours=24)),"Pending"),
+            )
+            conn.execute(
+                "INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
+                ("SPA-EVENT-"+secrets.token_hex(16).upper(),session["session_key"],
+                 "Package Transfer Consented",_utc_text(issued),
+                 _sha(_json({"handoff_key":handoff_key,"receipt_id":receipt_id,
+                             "revision":command.receipt_revision,"notice":PACKAGE_TRANSFER_NOTICE_VERSION}))),
+            )
+            conn.commit()
+            return {"handoff_key":handoff_key,"claim_code":token,"receipt_id":receipt_id,
+                    "receipt_revision":command.receipt_revision,"expires_at":_utc_text(issued+timedelta(hours=24)),
+                    "status":"Pending Member claim and Salus review"}
+        finally:
+            conn.close()
+
     @app.post("/public/protection-advisor/delete")
     async def delete_public_assessment(request: Request) -> dict[str, Any]:
         limited(request, request.cookies.get("salus_advisor_session", ""))
@@ -2807,6 +2915,8 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             deleted = _utc_text(_utc_now())
             conn.execute("DELETE FROM advisor_public_member_report_snapshots WHERE session_key=?",(session["session_key"],))
             conn.execute("DELETE FROM advisor_public_scope_receipt_snapshots WHERE session_key=?",(session["session_key"],))
+            # Deletion withdraws every unapproved draft package handoff.
+            conn.execute("DELETE FROM advisor_package_handoffs WHERE session_key=?",(session["session_key"],))
             conn.execute("DELETE FROM advisor_public_submissions WHERE session_key=?",(session["session_key"],))
             conn.execute("DELETE FROM advisor_public_answer_revisions WHERE session_key=?",(session["session_key"],))
             conn.execute("UPDATE advisor_public_sessions SET status='Deleted',deleted_at=? WHERE session_key=?",(deleted,session["session_key"]))
