@@ -5023,6 +5023,8 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
     if not p.separate_services_excluded:
         raise HTTPException(422,'Separately proposed SalOPS services must be excluded from this package fee.')
     data=p.model_dump(); data['covered_operation']=data['covered_operation'].strip()
+    if data['source_receipt_id']:
+        raise HTTPException(409,'Protection Advisor receipt linkage is not yet verified; leave the source receipt blank until the consented handoff is available.')
     try:
         _normalize_date(data['valid_until'],'Quote validity date',required=True)
         if data['start_date']: _normalize_date(data['start_date'],'Package start date',required=True)
@@ -5077,6 +5079,8 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
         quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(p.quote_id,tenant_id(request),assessment_id)).fetchone()
         if not quote: raise HTTPException(404,'Package quote not found.')
         verified_package_quote(quote,request)
+        if quote['source_receipt_id']:
+            raise HTTPException(409,'This quote has an unverified Protection Advisor receipt and cannot be accepted.')
         latest=conn.execute('SELECT MAX(version_no) n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',(tenant_id(request),assessment_id)).fetchone()['n']
         if quote['version_no']!=latest or quote['assessment_version']!=assessment['version']:
             raise HTTPException(409,'This quote has been superseded by a changed scope or a newer quote.')

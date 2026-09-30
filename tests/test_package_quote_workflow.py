@@ -49,7 +49,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
             payment_terms='Payment under signed agreement',tax_treatment='Tax under signed agreement',
             change_triggers='Added site, different operation or requested field work requires written change',
             decision_owner='Director',
-            source_receipt_id='SPA-EXAMPLE',fee_cents=150000,currency='USD',
+            source_receipt_id='',fee_cents=150000,currency='USD',
             valid_until='2099-01-01',capacity_confirmed=True,
             access_eligibility_confirmed=True,access_eligibility_basis='One simple operation',
             agreement_artifact_id=agreement_id,agreement_reference='AGREEMENT-1',agreement_sha256=agreement_digest,
@@ -61,6 +61,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         app.ENVIRONMENT='production'
         assert director.post(url,json=quote).status_code==503
         app.ENVIRONMENT='development'
+        unverified=director.post(url,json={**quote,'source_receipt_id':'SPA-EXAMPLE'})
+        assert unverified.status_code==409, unverified.text
         bad=director.post(url,json={**quote,'access_eligibility_confirmed':False})
         assert bad.status_code == 422, bad.text
         response=director.post(url,json=quote)
@@ -68,6 +70,13 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         issued=response.json()
         assert issued['fee_cents']==150000 and issued['version_no']==1
         assert director.get(url).json()['status']=='Quoted'
+        conn=app.db()
+        conn.execute('UPDATE package_quote_versions SET source_receipt_id=? WHERE id=?',('SPA-EXAMPLE',issued['id']))
+        conn.commit(); conn.close()
+        assert director.get(url).status_code==409
+        conn=app.db()
+        conn.execute('UPDATE package_quote_versions SET source_receipt_id=? WHERE id=?',('',issued['id']))
+        conn.commit(); conn.close()
         conn=app.db()
         conn.execute('UPDATE package_quote_versions SET fee_cents=? WHERE id=?',(150001,issued['id']))
         conn.commit(); conn.close()
