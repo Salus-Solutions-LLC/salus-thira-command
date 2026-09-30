@@ -617,7 +617,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert 'response_user_id' not in requested.json()['items'][0]
         upload_item=requested.json()['items'][1]['id']
         upload_path=f'{intake_url}/{upload_item}/files'
-        upload_bytes=b'%PDF-1.4\nfictional requested record\n%%EOF'
+        upload_bytes=b'%PDF-1.4\\nfictional requested record\\n%%EOF'
         uploaded=member.post(upload_path,files={'file':('Example-Plan.pdf',upload_bytes,'application/pdf')})
         assert uploaded.status_code==200,uploaded.text
         file_id=uploaded.json()['id']
