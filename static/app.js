@@ -158,6 +158,22 @@ async function entityView(key){
         const quoteHeading=currentQuote?'Your package quote':'Previous package quote — no current offer';
         const statusNotice=currentQuote?'':'<p class="notice">This quote is historical. Salus must review the changed scope or issue a new written quote before a new decision.</p>';
         quotePanel.innerHTML=`<h2>${quoteHeading}</h2>${statusNotice}<p><strong>${esc(quote.status)}</strong> · Level ${Number(quote.level)}${esc(quote.band)} ${esc(quote.variant||'')} · ${fee}</p><p><strong>Covered work:</strong> ${esc(quote.covered_operation)}<br><strong>Excluded:</strong> ${esc(quote.exclusions)}<br><strong>Included:</strong> ${esc(quote.included_work)}<br><strong>Reports:</strong> ${esc(quote.report_deliverables)}</p><p><strong>Your inputs:</strong> ${esc(quote.member_inputs)}<br><strong>Evidence and clarification:</strong> ${esc(quote.evidence_allowance)}; ${esc(quote.clarification_allowance)}</p><p><strong>Valid through:</strong> ${esc(fmtPackageDate(quote.valid_until))}<br><strong>Start and delivery:</strong> ${esc(fmtPackageDate(quote.start_date))} / ${esc(fmtPackageDate(quote.delivery_date))}<br><strong>Changes:</strong> ${esc(quote.change_triggers)}</p><p>Separate SalOPS services require their own quote. Read the exact agreement before making any decision.</p><a href="/api/package-agreements/${Number(quote.agreement_artifact_id)}/download" target="_blank" rel="noopener">Download the ${currentQuote?'written':'historical'} agreement</a>`;
+        if(quote.status==='Authorized'){
+          const intakePanel=document.createElement('div'); intakePanel.className='card'; intakePanel.style.marginTop='16px';
+          $('#content').appendChild(intakePanel);
+          try{
+            const intake=await api(`/api/assessments/${activeAssessmentId}/package-intake`);
+            intakePanel.innerHTML=`<h2>Your Level 1 records request</h2><p>Salus has selected only the items needed for your agreed scope. An existing equivalent or short description is fine. If you do not have an item, tell us below. Do not enter personal directories, passwords, medical records or sensitive plans here.</p>${intake.items.length?intake.items.map(item=>`<section class="notice" style="margin-bottom:12px"><h3>${esc(item.title)}</h3><p><strong>Why:</strong> ${esc(item.decision_use)}<br><strong>Requested:</strong> ${esc(item.requested_form)}<br><strong>Equivalent:</strong> ${esc(item.acceptable_equivalent)}<br><strong>Status:</strong> <span id="intake-status-${Number(item.id)}">${esc(item.status)}</span></p><div class="row-actions">${['Not held','Not known','Prefer to discuss'].map(status=>`<button class="btn secondary" type="button" data-intake-id="${Number(item.id)}" data-intake-status="${esc(status)}">${esc(status)}</button>`).join('')}</div></section>`).join(''):'<p>Salus has not selected any records for this scope yet.</p>'}<p class="subtle">A secure file-transfer route and any sensitive handling instructions will be provided separately.</p>`;
+            intakePanel.querySelectorAll('button[data-intake-id]').forEach(button=>button.onclick=async()=>{
+              button.disabled=true;
+              try{
+                const result=await api(`/api/assessments/${activeAssessmentId}/package-intake/${Number(button.dataset.intakeId)}`,{method:'PATCH',body:JSON.stringify({status:button.dataset.intakeStatus})});
+                intakePanel.querySelector(`#intake-status-${Number(result.item_id)}`).textContent=result.status;
+              }catch(error){button.closest('section').insertAdjacentHTML('beforeend','<p role="alert">This response was not saved. Please try again or contact Salus.</p>');}
+              finally{button.disabled=false;}
+            });
+          }catch(error){intakePanel.innerHTML='<h2>Your Level 1 records request</h2><p>The records list is temporarily unavailable. Please contact Salus before sending files.</p>';}
+        }
       }catch(error){quotePanel.innerHTML='<h2>Your package quote</h2><p>No current approved quote is available for this selected assessment. Salus must confirm the scope and capacity before offering one.</p>';}
     }
     if(systemMode.package_handoff_candidate_available && ['Assessment Director','System Administrator'].includes(currentRole) && rows.some(r=>r.id===activeAssessmentId)){
@@ -170,6 +186,21 @@ async function entityView(key){
         list.innerHTML=claimed.handoffs.length?claimed.handoffs.map((h,i)=>`<div class="row-actions"><span>${esc(h.receipt_id)} · revision ${Number(h.revision_no)} · ${esc(h.status)}</span><button class="btn secondary" type="button" data-handoff-index="${i}">Compare</button></div>`).join(''):'<p>No claimed receipts for this assessment.</p>';
         list.querySelectorAll('button[data-handoff-index]').forEach(button=>button.onclick=()=>showAdvisorHandoffReview(activeAssessmentId,claimed.handoffs[Number(button.dataset.handoffIndex)],reviewPanel));
       }catch(error){reviewPanel.querySelector('#advisor-review-list').textContent='Claimed receipts are unavailable. Please contact Salus support.';}
+      const intakeReview=document.createElement('div'); intakeReview.className='card'; intakeReview.style.marginTop='16px';
+      $('#content').appendChild(intakeReview);
+      try{
+        const intake=await api(`/api/assessments/${activeAssessmentId}/package-intake`);
+        const requested=new Set(intake.items.map(item=>item.item_key));
+        intakeReview.innerHTML=`<h2>Tailor the Level 1 records request</h2><p>Select only records that could change this Member's agreed decision. The Member can identify missing records; secure file transfer is arranged separately. Existing requests will not be duplicated.</p><form id="package-intake-select">${intake.catalog.map(item=>`<label class="advisor-confirm" data-guidance-enhanced="true"><input type="checkbox" name="item_key" value="${esc(item.key)}" ${requested.has(item.key)?'disabled':''}><span><strong>${esc(item.title)}</strong> — ${esc(item.decision_use)}${requested.has(item.key)?' (already requested)':''}</span></label>`).join('')}<label data-guidance-enhanced="true">Why these items matter for this agreed boundary<textarea name="request_reason" minlength="12" maxlength="1000" required></textarea></label><div class="form-actions"><button class="btn">Send selected request</button></div></form><div id="package-intake-result" role="status" aria-live="polite"></div>`;
+        intakeReview.querySelector('form').onsubmit=async event=>{
+          event.preventDefault();const form=event.currentTarget,selected=[...form.querySelectorAll('input[name="item_key"]:checked')].map(input=>input.value),status=intakeReview.querySelector('#package-intake-result');
+          if(!selected.length){status.textContent='Select at least one new item.';return;}
+          const button=form.querySelector('button');button.disabled=true;
+          try{await api(`/api/assessments/${activeAssessmentId}/package-intake`,{method:'POST',body:JSON.stringify({item_keys:selected,request_reason:form.elements.namedItem('request_reason').value.trim()})});status.textContent='Selected records requested for this authorized package.';selected.forEach(key=>{const input=[...form.querySelectorAll('input[name="item_key"]')].find(item=>item.value===key);if(input)input.disabled=true;});form.reset();}
+          catch(error){status.textContent='The request was not saved. Check the selected scope and try again.';}
+          finally{button.disabled=false;}
+        };
+      }catch(error){intakeReview.innerHTML='<h2>Level 1 records request</h2><p>Records may be requested after the Member has authorized this package and its scope is current.</p>';}
     }
   }else{
   $('#content').innerHTML=`<div class="split"><div class="card">${editor}</div><div><div class="section-title"><h2>${c.title} Register</h2><span class="subtle">${rows.length} records</span></div>${entityTable(key,c,rows)}</div></div>`;

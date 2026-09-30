@@ -147,6 +147,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.commit(); conn.close()
         app.AUTH_MODE='session'
         member=TestClient(app.app,cookies={'salus_session':'test-cookie'})
+        intake_url=f'/api/assessments/{assessment_id}/package-intake'
+        assert member.get(intake_url).status_code==409
         conn=app.db()
         conn.execute('UPDATE assessments SET purpose=? WHERE id=?',('Different decision purpose',assessment_id))
         conn.commit();conn.close()
@@ -195,12 +197,29 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert accepted.json()['status']=='Authorized'
         retry=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
         assert retry.status_code==200 and retry.json()['idempotent'] is True, retry.text
+        assert member.get(intake_url).json()['items']==[]
+        assert member.post(intake_url,json={'item_keys':['GOV'],'request_reason':'Needed to confirm authority'}).status_code==403
+        app.AUTH_MODE='prototype'
+        selected=director.post(intake_url,json={'item_keys':['GOV','FUN'],'request_reason':'Needed to confirm authority and essential work'})
+        assert selected.status_code==200,selected.text
+        repeated=director.post(intake_url,json={'item_keys':['GOV','FUN'],'request_reason':'Needed to confirm authority and essential work'})
+        assert repeated.status_code==200,repeated.text
+        app.AUTH_MODE='session'
+        requested=member.get(intake_url)
+        assert requested.status_code==200 and len(requested.json()['items'])==2,requested.text
+        assert requested.json()['catalog']==[]
+        assert 'response_user_id' not in requested.json()['items'][0]
+        item_id=requested.json()['items'][0]['id']
+        response=member.patch(f'{intake_url}/{item_id}',json={'status':'Not held'})
+        assert response.status_code==200 and response.json()['status']=='Not held',response.text
+        assert member.get(intake_url).json()['items'][0]['status']=='Not held'
         assert member.get(url).json()['status']=='Authorized'
         assert director.post(url,json=quote).status_code==401
         app.AUTH_MODE='prototype'
         assert director.post(url,json=quote).status_code==409
         other_tenant=TestClient(app.app,headers={'X-Salus-Role':'Assessment Director','X-Salus-Tenant':'2'})
         assert other_tenant.get(url).status_code==403
+        assert other_tenant.get(intake_url).status_code==403
         admin=TestClient(app.app,headers={'X-Salus-Role':'System Administrator'})
         backup=admin.post('/api/admin/backups')
         assert backup.status_code==200, backup.text
@@ -211,17 +230,22 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_agreement_artifacts').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_agreement_downloads').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
+        assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
         from portable_backup import collect_tenant_records, replace_tenant_records, validate_records
         records=collect_tenant_records(conn,1)
         assert len(records['package_quote_versions'])==1
         assert len(records['package_agreement_artifacts'])==1
         assert len(records['package_agreement_downloads'])==1
         assert len(records['package_acceptances'])==1
+        assert len(records['package_intake_requests'])==2
         assert not validate_records(records,1)
         replace_tenant_records(conn,1,records)
         conn.commit()
         assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
+        assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
         conn.close()
         # A historical Executive snapshot cannot stand in for four issued package reports.
         conn=app.db()

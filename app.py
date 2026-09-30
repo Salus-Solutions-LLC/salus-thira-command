@@ -15,6 +15,7 @@ from security_controls import scan_bytes, retention_active, AV_MODE, AV_REQUIRED
 from secret_provider import secret, readiness as secret_readiness
 from salus_package_path import validate_requested_package_path
 from salus_package_quote import validate_quote, quote_digest, assessment_scope_digest
+from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
 from managed_database import runtime_database_status, managed_target_status
@@ -848,6 +849,30 @@ def init_db():
       UNIQUE (quote_id)
     );
     CREATE INDEX IF NOT EXISTS idx_package_acceptance_scope ON package_acceptances(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_intake_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      item_key TEXT NOT NULL,
+      catalog_version TEXT NOT NULL,
+      title TEXT NOT NULL,
+      decision_use TEXT NOT NULL,
+      requested_form TEXT NOT NULL,
+      acceptable_equivalent TEXT NOT NULL,
+      request_reason TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Requested',
+      requested_by TEXT NOT NULL,
+      requested_at TEXT NOT NULL,
+      response_user_id INTEGER,
+      responded_at TEXT NOT NULL DEFAULT '',
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (response_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,assessment_id,quote_id,item_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_intake_scope ON package_intake_requests(tenant_id,assessment_id,quote_id,id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -1491,6 +1516,7 @@ def init_db():
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.8.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.9.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.10.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.11.0',now()))
 
     # v0.6 tenant/bootstrap migration. Existing records are assigned to the default tenant.
     if conn.execute('SELECT COUNT(*) c FROM tenants').fetchone()['c'] == 0:
@@ -1619,6 +1645,15 @@ class PackageAcceptanceIn(BaseModel):
     member_authority_basis: str = Field(min_length=3,max_length=1000)
     idempotency_key: str = Field(pattern=r'^[A-Za-z0-9_-]{16,120}$')
     accept_quote_and_agreement: Literal[True]
+
+class PackageIntakeSelectionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    item_keys: list[str] = Field(min_length=1,max_length=11)
+    request_reason: str = Field(min_length=12,max_length=1000)
+
+class PackageIntakeResponseIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    status: Literal['Not held','Not known','Prefer to discuss']
 
 class PackageHandoffClaimIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -5346,6 +5381,81 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
     finally:
         conn.rollback()
         conn.close()
+
+def authorized_package_intake(conn,assessment_id:int,request:Request):
+    assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tenant_id(request))).fetchone()
+    accepted=conn.execute('''SELECT q.* FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
+        WHERE a.tenant_id=? AND a.assessment_id=? ORDER BY a.id DESC LIMIT 1''',(tenant_id(request),assessment_id)).fetchone()
+    if not assessment or not accepted: raise HTTPException(409,'The Level 1 intake opens after an authorized package agreement.')
+    verified_package_quote(accepted,request)
+    if (not accepted['assessment_scope_sha256'] or accepted['assessment_scope_sha256']!=assessment_scope_digest(assessment)
+        or accepted['assessment_version']!=assessment['version']):
+        raise HTTPException(409,'The authorized scope changed; review the written package before requesting more records.')
+    return accepted
+
+@app.get('/api/assessments/{assessment_id}/package-intake')
+def get_package_intake(assessment_id:int,request:Request):
+    require_package_commercial_candidate(); require(request,'read'); assessment_row_for_request(request,assessment_id)
+    if protected_member_request(request) and (role(request)!='Client Executive' or auth_context(request)['auth_mode'] not in ('session','oidc')):
+        raise HTTPException(403,'A signed-in Protected Member decision owner is required.')
+    conn=db()
+    try:
+        quote=authorized_package_intake(conn,assessment_id,request)
+        rows=[dict(r) for r in conn.execute('''SELECT id,item_key,catalog_version,title,decision_use,requested_form,
+            acceptable_equivalent,request_reason,status,requested_at,responded_at FROM package_intake_requests
+            WHERE tenant_id=? AND assessment_id=? AND quote_id=? ORDER BY id''',(tenant_id(request),assessment_id,quote['id']))]
+        return {'quote_id':quote['id'],'catalog_version':PACKAGE_INTAKE_VERSION,'items':rows,
+                'catalog':package_intake_catalog() if role(request) in ('System Administrator','Assessment Director') else [],
+                'notice':'Only selected items are requested. Do not send personal directories, credentials, medical records or sensitive annexes through this response.'}
+    finally: conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-intake')
+def select_package_intake(assessment_id:int,p:PackageIntakeSelectionIn,request:Request):
+    require_package_commercial_candidate(); require(request,'decide'); require_salus_component_authority(request,'Package intake')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'Only an authorized Salus reviewer may tailor the records request.')
+    assessment_row_for_request(request,assessment_id)
+    keys=list(dict.fromkeys(p.item_keys))
+    if len(keys)!=len(p.item_keys) or any(key not in PACKAGE_INTAKE_ITEMS for key in keys):
+        raise HTTPException(422,'Select distinct items from the approved Level 1 records menu.')
+    if len(p.request_reason.strip())<12:
+        raise HTTPException(422,'State why these records are needed for the agreed decision.')
+    conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        for key in keys:
+            title,purpose,requested,equivalent=PACKAGE_INTAKE_ITEMS[key]
+            conn.execute('''INSERT INTO package_intake_requests
+                (tenant_id,assessment_id,quote_id,item_key,catalog_version,title,decision_use,requested_form,acceptable_equivalent,request_reason,status,requested_by,requested_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,'Requested',?,?) ON CONFLICT(tenant_id,assessment_id,quote_id,item_key) DO NOTHING''',
+                (tenant_id(request),assessment_id,quote['id'],key,PACKAGE_INTAKE_VERSION,title,purpose,requested,equivalent,p.request_reason.strip(),actor(request),now()))
+        audit(conn,'PACKAGE_INTAKE_REQUEST','assessment',assessment_id,f'quote_id={quote["id"]}; keys={",".join(keys)}',actor(request))
+        conn.commit()
+        return {'quote_id':quote['id'],'requested_keys':keys,'status':'Requested'}
+    finally:
+        conn.rollback();conn.close()
+
+@app.patch('/api/assessments/{assessment_id}/package-intake/{item_id}')
+def respond_package_intake(assessment_id:int,item_id:int,p:PackageIntakeResponseIn,request:Request):
+    require_package_commercial_candidate(); require_protected_member_authority(request,'package_intake_response')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A signed-in Protected Member decision owner is required.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        item=conn.execute('SELECT * FROM package_intake_requests WHERE id=? AND tenant_id=? AND assessment_id=? AND quote_id=?',(item_id,tenant_id(request),assessment_id,quote['id'])).fetchone()
+        if not item: raise HTTPException(404,'Requested item not found in this package.')
+        if item['status']!=p.status:
+            conn.execute('UPDATE package_intake_requests SET status=?,response_user_id=?,responded_at=? WHERE id=?',(p.status,ctx['user_id'],now(),item_id))
+            audit(conn,'PACKAGE_INTAKE_RESPONSE','assessment',assessment_id,f'item_id={item_id}; status={p.status}',actor(request))
+            conn.commit()
+        return {'item_id':item_id,'status':p.status}
+    finally:
+        conn.rollback();conn.close()
 
 @app.post('/api/assessments/{assessment_id}/reassessment-review')
 def review_assessment_reassessment(assessment_id:int,p:AssessmentReassessmentReviewIn,request:Request):
