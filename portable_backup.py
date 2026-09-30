@@ -3,12 +3,12 @@ from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
-    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
+    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
     'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','salintel_investigations','salintel_investigation_items','salintel_investigation_events','materials','material_links','material_events','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
-    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
+    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
 
 def _rows(conn, sql, params=()):
@@ -160,6 +160,17 @@ def validate_records(records, tenant_id:int|None=None):
         if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package intake {row.get("id")} has invalid quote_id')
         if row.get('response_user_id') not in (None,'') and int(row['response_user_id']) not in users:
             errors.append(f'package intake {row.get("id")} has invalid response_user_id')
+    report_ids={int(r['id']) for r in records.get('package_product_report_versions',[]) if r.get('id') is not None}
+    for row in records.get('package_product_report_versions',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package product report {row.get("id")} crosses the tenant boundary')
+        if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package product report {row.get("id")} has invalid quote_id')
+        if row.get('product') not in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+            errors.append(f'package product report {row.get("id")} has invalid product')
+        if row.get('status')!='Draft': errors.append(f'package product report {row.get("id")} has an unsupported release state')
+        if len(str(row.get('content_sha256','')))!=64 or not row.get('stored_name'):
+            errors.append(f'package product report {row.get("id")} has invalid storage proof')
+        if row.get('supersedes_id') not in (None,'') and int(row['supersedes_id']) not in report_ids:
+            errors.append(f'package product report {row.get("id")} has invalid supersession link')
     for row in records.get('identity_acceptance_events',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'identity_acceptance_event {row.get("event_key")} crosses the tenant boundary')
         if int(row.get('user_id',-1)) not in users: errors.append(f'identity_acceptance_event {row.get("event_key")} has invalid user_id')
@@ -323,6 +334,8 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('UPDATE materials SET parent_material_id=NULL,duplicate_of_material_id=NULL WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM materials WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
+    conn.execute('UPDATE package_product_report_versions SET supersedes_id=NULL WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_product_report_versions WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_intake_requests WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_acceptances WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_agreement_downloads WHERE tenant_id=?',(tenant_id,))

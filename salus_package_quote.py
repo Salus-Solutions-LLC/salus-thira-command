@@ -52,7 +52,7 @@ def quote_digest(data: dict) -> str:
 
 def assessment_scope_digest(assessment: dict) -> str:
     """Bind a quote to the complete governed assessment decision boundary."""
-    keys = ('version', 'purpose', 'mission', 'scope', 'covered_operation',
+    keys = ('version', 'organization', 'purpose', 'mission', 'scope', 'covered_operation',
             'exclusions', 'requested_package_level', 'requested_scope_band',
             'requested_access_variant')
     canonical = json.dumps({key: assessment[key] for key in keys},

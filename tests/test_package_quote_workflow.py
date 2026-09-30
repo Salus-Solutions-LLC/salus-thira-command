@@ -18,7 +18,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         'PYTHONPATH': os.getcwd(),
     })
     program = textwrap.dedent('''
-        import hashlib
+        import hashlib,io
+        from docx import Document
         from fastapi.testclient import TestClient
         import app
         director = TestClient(app.app, headers={'X-Salus-Role':'Assessment Director'})
@@ -103,6 +104,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         # A quoted boundary cannot be overwritten by the ordinary assessment editor.
         for changed in ({'covered_operation':'Different operation'},
                         {'exclusions':'Different exclusions'},
+                        {'organization':'Different organization'},
                         {'purpose':'Different purpose'}):
             blocked=director.put(f'/api/assessments/{assessment_id}',json=changed)
             assert blocked.status_code==409, blocked.text
@@ -120,6 +122,13 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert director.get(url).json()['status']=='Scope changed — new quote required'
         conn=app.db()
         conn.execute('UPDATE assessments SET purpose=? WHERE id=?',('',assessment_id))
+        conn.commit();conn.close()
+        conn=app.db()
+        conn.execute('UPDATE assessments SET organization=? WHERE id=?',('Other organization',assessment_id))
+        conn.commit();conn.close()
+        assert director.get(url).json()['status']=='Scope changed — new quote required'
+        conn=app.db()
+        conn.execute('UPDATE assessments SET organization=? WHERE id=?',('Example Member',assessment_id))
         conn.commit();conn.close()
         conn=app.db()
         conn.execute('UPDATE package_quote_versions SET source_receipt_id=? WHERE id=?',('SPA-EXAMPLE',issued['id']))
@@ -204,10 +213,55 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert selected.status_code==200,selected.text
         repeated=director.post(intake_url,json={'item_keys':['GOV','FUN'],'request_reason':'Needed to confirm authority and essential work'})
         assert repeated.status_code==200,repeated.text
+        report_url=f'/api/assessments/{assessment_id}/package-reports'
+        def word_bytes(product):
+            buf=io.BytesIO()
+            document=Document()
+            document.add_paragraph(f'Fictional {product} working draft')
+            document.save(buf)
+            return buf.getvalue()
+        for product in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+            content=word_bytes(product)
+            draft=director.post(f'{report_url}/{product}/draft',data={'method_version':'approved-method-v1','template_version':'candidate-template-v1'},
+                files={'file':(f'{product}.docx',content,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')})
+            assert draft.status_code==200,draft.text
+            assert draft.json()['status']=='Draft' and draft.json()['version_no']==1
+            assert draft.json()['display_title']==f'Example Member - {product} Level 1A Access'
+            duplicate=director.post(f'{report_url}/{product}/draft',data={'method_version':'approved-method-v1','template_version':'candidate-template-v1'},
+                files={'file':(f'{product}.docx',content,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')})
+            assert duplicate.status_code==200 and duplicate.json()['id']==draft.json()['id'],duplicate.text
+            saved=director.get(f'/api/package-reports/{draft.json()["id"]}/draft.docx')
+            assert saved.status_code==200 and saved.content==content
+        revised=director.post(f'{report_url}/SalINTEL/draft',data={'method_version':'approved-method-v1','template_version':'candidate-template-v1'},
+            files={'file':('SalINTEL revised.docx',word_bytes('SalINTEL revision'),'application/vnd.openxmlformats-officedocument.wordprocessingml.document')})
+        assert revised.status_code==200 and revised.json()['version_no']==2,revised.text
+        report_rows=director.get(report_url).json()['reports']
+        assert len(report_rows)==5
+        intel_rows=[row for row in report_rows if row['product']=='SalINTEL']
+        assert len({row['report_identity'] for row in intel_rows})==1
+        assert len({row['display_title'] for row in intel_rows})==1
+        assert intel_rows[1]['supersedes_id']==intel_rows[0]['id']
         app.AUTH_MODE='session'
+        conn=app.db()
+        salus_user=conn.execute('INSERT INTO users(tenant_id,username,display_name,role,created_at,updated_at) VALUES(1,?,?,?,?,?)',
+            ('fictional-report-owner','Fictional report owner','Assessment Director',app.now(),app.now())).lastrowid
+        conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',
+            (salus_user,app._hash_token('fictional-report-session'),'2099-01-01T00:00:00Z',app.now(),app.now()))
+        conn.commit();conn.close()
+        assigned_owner=TestClient(app.app,cookies={'salus_session':'fictional-report-session'})
+        assert assigned_owner.get(report_url).status_code==403
+        assert assigned_owner.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==403
+        conn=app.db()
+        conn.execute('INSERT INTO assessment_access(user_id,assessment_id,created_at) VALUES(?,?,?)',
+                     (salus_user,assessment_id,app.now()))
+        conn.commit();conn.close()
+        assert assigned_owner.get(report_url).status_code==200
+        assert assigned_owner.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==200
         requested=member.get(intake_url)
         assert requested.status_code==200 and len(requested.json()['items'])==2,requested.text
         assert requested.json()['catalog']==[]
+        assert member.get(report_url).status_code==403
+        assert member.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==403
         assert 'response_user_id' not in requested.json()['items'][0]
         item_id=requested.json()['items'][0]['id']
         response=member.patch(f'{intake_url}/{item_id}',json={'status':'Not held'})
@@ -220,6 +274,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         other_tenant=TestClient(app.app,headers={'X-Salus-Role':'Assessment Director','X-Salus-Tenant':'2'})
         assert other_tenant.get(url).status_code==403
         assert other_tenant.get(intake_url).status_code==403
+        assert other_tenant.get(report_url).status_code==403
         admin=TestClient(app.app,headers={'X-Salus-Role':'System Administrator'})
         backup=admin.post('/api/admin/backups')
         assert backup.status_code==200, backup.text
@@ -231,6 +286,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_agreement_downloads').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
         from portable_backup import collect_tenant_records, replace_tenant_records, validate_records
         records=collect_tenant_records(conn,1)
@@ -239,12 +295,14 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len(records['package_agreement_downloads'])==1
         assert len(records['package_acceptances'])==1
         assert len(records['package_intake_requests'])==2
+        assert len(records['package_product_report_versions'])==5
         assert not validate_records(records,1)
         replace_tenant_records(conn,1,records)
         conn.commit()
         assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
         conn.close()
         # A historical Executive snapshot cannot stand in for four issued package reports.

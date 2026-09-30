@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, HTMLResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -873,6 +873,33 @@ def init_db():
       UNIQUE (tenant_id,assessment_id,quote_id,item_key)
     );
     CREATE INDEX IF NOT EXISTS idx_package_intake_scope ON package_intake_requests(tenant_id,assessment_id,quote_id,id);
+    CREATE TABLE IF NOT EXISTS package_product_report_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      product TEXT NOT NULL,
+      report_identity TEXT NOT NULL,
+      display_title TEXT NOT NULL,
+      version_no INTEGER NOT NULL,
+      assessment_scope_sha256 TEXT NOT NULL,
+      method_version TEXT NOT NULL,
+      template_version TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL UNIQUE,
+      content_sha256 TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Draft',
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      supersedes_id INTEGER,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (supersedes_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,assessment_id,product,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_product_report_scope ON package_product_report_versions(tenant_id,assessment_id,product,id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -1495,6 +1522,7 @@ def init_db():
     ensure_column('assessments','requested_access_variant',"TEXT NOT NULL DEFAULT ''")
     ensure_column('package_quote_versions','agreement_artifact_id','INTEGER NOT NULL DEFAULT 0')
     ensure_column('package_quote_versions','assessment_scope_sha256',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('package_product_report_versions','display_title',"TEXT NOT NULL DEFAULT ''")
     for field in ('included_work','report_deliverables','member_inputs','evidence_allowance','clarification_allowance','field_specialist_terms','payment_terms','tax_treatment','change_triggers'):
         ensure_column('package_quote_versions',field,"TEXT NOT NULL DEFAULT ''")
     ensure_column('package_acceptances','agreement_download_id','INTEGER NOT NULL DEFAULT 0')
@@ -1517,6 +1545,7 @@ def init_db():
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.9.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.10.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.11.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.12.0',now()))
 
     # v0.6 tenant/bootstrap migration. Existing records are assigned to the default tenant.
     if conn.execute('SELECT COUNT(*) c FROM tenants').fetchone()['c'] == 0:
@@ -3300,7 +3329,8 @@ def create_backup_archive(request:Request, reason:str='Manual backup'):
     manifest={'format':'salus-thira-portable-backup-v1','created_at':now(),'created_by':actor(request),'tenant_id':tid,'reason':reason,'application_version':APP_VERSION,'database_backend':DB_BACKEND,'files':[]}
     with zipfile.ZipFile(final,'w',compression=zipfile.ZIP_DEFLATED) as z:
         manifest['files'].append({'path':'records.json','sha256':hashlib.sha256(records_bytes).hexdigest(),'size_bytes':len(records_bytes)}); z.writestr('records.json',records_bytes)
-        stored_records=records.get('evidence_attachments',[])+records.get('materials',[])+records.get('package_agreement_artifacts',[])
+        stored_records=(records.get('evidence_attachments',[])+records.get('materials',[])
+            +records.get('package_agreement_artifacts',[])+records.get('package_product_report_versions',[]))
         backed_up_objects=set()
         for item in sorted(stored_records,key=lambda x:str(x.get('stored_name',''))):
             fn=str(item.get('stored_name','')).strip()
@@ -3310,7 +3340,7 @@ def create_backup_archive(request:Request, reason:str='Manual backup'):
                 error_id=uuid.uuid4().hex; record_internal_failure('backup governed material read',error_id,exc)
                 raise HTTPException(409,f'Backup cannot read a governed material object. Reference: {error_id}')
             if item.get('content_sha256') and hashlib.sha256(b).hexdigest()!=item['content_sha256']:
-                raise HTTPException(409,'Backup stopped because a package agreement failed integrity verification.')
+                raise HTTPException(409,'Backup stopped because a governed artifact failed integrity verification.')
             backed_up_objects.add(fn)
             arc=f'attachments/{fn}'; manifest['files'].append({'path':arc,'sha256':hashlib.sha256(b).hexdigest(),'size_bytes':len(b)}); z.writestr(arc,b)
         z.writestr('manifest.json',json.dumps(manifest,indent=2,sort_keys=True))
@@ -3332,6 +3362,12 @@ def verify_backup_file(path:str):
                         errors.append(f'Missing package agreement artifact {agreement.get("id")}')
                     elif hashlib.sha256(z.read(archive_path)).hexdigest()!=agreement.get('content_sha256'):
                         errors.append(f'Package agreement artifact hash mismatch {agreement.get("id")}')
+                for report in records.get('package_product_report_versions',[]):
+                    archive_path='attachments/'+str(report.get('stored_name') or '')
+                    if archive_path not in z.namelist():
+                        errors.append(f'Missing package product report {report.get("id")}')
+                    elif hashlib.sha256(z.read(archive_path)).hexdigest()!=report.get('content_sha256'):
+                        errors.append(f'Package product report hash mismatch {report.get("id")}')
             except Exception as exc:
                 error_id=uuid.uuid4().hex; record_internal_failure('backup record validation',error_id,exc)
                 errors.append(f'Record package invalid. Reference: {error_id}')
@@ -3351,7 +3387,7 @@ def dr_validate_backup_file(path:str):
             assessment_count=len(records.get('assessments',[]))
             attachment_count=len({
                 str(row.get('stored_name','')).strip()
-                for table in ('evidence_attachments','materials','package_agreement_artifacts')
+                for table in ('evidence_attachments','materials','package_agreement_artifacts','package_product_report_versions')
                 for row in records.get(table,[])
                 if str(row.get('stored_name','')).strip()
             })
@@ -3442,6 +3478,7 @@ def restore_backup(backup_id:int,restore_request_id:int,request:Request):
             old_keys=[r['stored_name'] for r in conn.execute('SELECT ea.stored_name FROM evidence_attachments ea JOIN assessments a ON a.id=ea.assessment_id WHERE a.tenant_id=?',(tid,))]
             old_keys.extend(r['stored_name'] for r in conn.execute("SELECT stored_name FROM materials WHERE tenant_id=? AND stored_name<>''",(tid,)))
             old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_agreement_artifacts WHERE tenant_id=?',(tid,)))
+            old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_product_report_versions WHERE tenant_id=?',(tid,)))
             old_keys=list(dict.fromkeys(old_keys)); conn.close()
             new_objects={}
             for item in z.namelist():
@@ -5457,6 +5494,121 @@ def respond_package_intake(assessment_id:int,item_id:int,p:PackageIntakeResponse
     finally:
         conn.rollback();conn.close()
 
+PACKAGE_REPORT_PRODUCTS={'SalINTEL','SalTHIRA','SalOPS','SalCAPA'}
+PACKAGE_REPORT_DRAFT_ROLES={'System Administrator','Assessment Director','Lead Assessor'}
+
+def require_package_report_assignment(request:Request,assessment_id:int):
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or role(request)=='System Administrator': return
+    conn=db()
+    try:
+        allowed=conn.execute('SELECT 1 FROM assessment_access WHERE user_id=? AND assessment_id=?',(ctx.get('user_id'),assessment_id)).fetchone()
+    finally: conn.close()
+    if not allowed: raise HTTPException(403,'An explicit assessment assignment is required for working reports.')
+
+def check_package_docx(content:bytes):
+    if len(content)>10*1024*1024: raise HTTPException(413,'Draft Word report exceeds 10 MB.')
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            names=set(archive.namelist())
+            if not {'[Content_Types].xml','word/document.xml'}<=names or any('vbaproject.bin' in name.lower() for name in names):
+                raise HTTPException(422,'The draft must be a macro-free Word .docx document.')
+            if sum(item.file_size for item in archive.infolist())>150*1024*1024:
+                raise HTTPException(413,'The draft Word report expands beyond the review limit.')
+            if archive.testzip() is not None: raise HTTPException(422,'The draft Word report is damaged.')
+    except (zipfile.BadZipFile, OSError) as exc:
+        raise HTTPException(422,'The draft must be a valid Word .docx document.') from exc
+
+@app.get('/api/assessments/{assessment_id}/package-reports')
+def list_package_product_reports(assessment_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read'); assessment_row_for_request(request,assessment_id)
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES: raise HTTPException(403,'Working reports are restricted to assigned Salus report owners.')
+    require_package_report_assignment(request,assessment_id)
+    conn=db()
+    try:
+        rows=[dict(row) for row in conn.execute('''SELECT id,quote_id,product,report_identity,display_title,version_no,
+          assessment_scope_sha256,method_version,template_version,original_name,content_sha256,size_bytes,
+          status,created_by,created_at,supersedes_id FROM package_product_report_versions
+          WHERE tenant_id=? AND assessment_id=? ORDER BY product,version_no''',(tenant_id(request),assessment_id))]
+        return {'reports':rows,'notice':'Draft registration is not qualified review, issue, or predecessor proof.'}
+    finally: conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-reports/{product}/draft')
+async def register_package_product_draft(assessment_id:int,product:str,request:Request,
+        file:UploadFile=File(...),method_version:str=Form(...),template_version:str=Form(...)):
+    require_package_commercial_candidate();require(request,'write');require_salus_component_authority(request,'Package report')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'A Salus report owner must register a working report.')
+    if product not in PACKAGE_REPORT_PRODUCTS: raise HTTPException(404,'Unknown package report product.')
+    assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    method_version=method_version.strip();template_version=template_version.strip()
+    if not method_version or not template_version or len(method_version)>120 or len(template_version)>120:
+        raise HTTPException(422,'Name the exact method and template versions for this working draft.')
+    original=safe_filename(file.filename or '')
+    if not original.lower().endswith('.docx'): raise HTTPException(422,'A working package report must be a Word .docx file.')
+    content=await file.read(10*1024*1024+1)
+    check_package_docx(content)
+    scan=scan_bytes(content,original)
+    if not scan['ok'] or scan['status']!='Clean':
+        raise HTTPException(422 if scan['status']=='Infected' else 503,'The draft Word report could not pass the file security check.')
+    digest=hashlib.sha256(content).hexdigest();tid=tenant_id(request);conn=db();stored=''
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        existing=conn.execute('''SELECT * FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+            AND quote_id=? AND product=? AND content_sha256=? AND method_version=? AND template_version=?''',
+            (tid,assessment_id,quote['id'],product,digest,method_version,template_version)).fetchone()
+        if existing:
+            return {key:existing[key] for key in ('id','product','report_identity','display_title','version_no','content_sha256','status')}
+        previous=conn.execute('''SELECT id,version_no FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+            AND product=? ORDER BY version_no DESC LIMIT 1''',(tid,assessment_id,product)).fetchone()
+        version=previous['version_no']+1 if previous else 1
+        identity=f'PKG-{assessment_id}-{product}'
+        assessment=conn.execute('SELECT organization FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tid)).fetchone()
+        suffix=f' Level {quote["level"]}{quote["band"]}'
+        if quote['level']==1 and quote['band']=='A': suffix+=f' {quote["variant"]}'
+        display_title=f'{assessment["organization"]} - {product}{suffix}'
+        stored=f'tenant-{tid}/assessment-{assessment_id}/package-reports/{product}/{uuid.uuid4().hex}_{digest[:16]}.docx'
+        storage.put_bytes(stored,content)
+        cur=conn.execute('''INSERT INTO package_product_report_versions
+            (tenant_id,assessment_id,quote_id,product,report_identity,display_title,version_no,assessment_scope_sha256,
+             method_version,template_version,original_name,stored_name,content_sha256,size_bytes,status,created_by,created_at,supersedes_id)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Draft',?,?,?)''',
+            (tid,assessment_id,quote['id'],product,identity,display_title,version,quote['assessment_scope_sha256'],
+             method_version,template_version,original,stored,digest,len(content),actor(request),now(),previous['id'] if previous else None))
+        audit(conn,'PACKAGE_REPORT_DRAFT','assessment',assessment_id,f'product={product}; version={version}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'product':product,'report_identity':identity,'display_title':display_title,'version_no':version,'content_sha256':digest,'status':'Draft'}
+    except Exception as exc:
+        conn.rollback()
+        if stored:
+            try: storage.delete(stored)
+            except Exception: pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8);record_internal_failure('package report draft',error_id,exc)
+        raise HTTPException(503,f'Working report storage is unavailable. Reference: {error_id}') from exc
+    finally: conn.close()
+
+@app.get('/api/package-reports/{report_id}/draft.docx')
+def download_package_product_draft(report_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES: raise HTTPException(403,'Working reports are restricted to assigned Salus report owners.')
+    conn=db()
+    try:
+        row=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',(report_id,tenant_id(request))).fetchone()
+    finally: conn.close()
+    if not row: raise HTTPException(404,'Working report not found.')
+    assessment_row_for_request(request,row['assessment_id']);require_package_report_assignment(request,row['assessment_id'])
+    try: content=storage.get_bytes(row['stored_name'])
+    except Exception as exc: raise HTTPException(503,'Working report storage is unavailable.') from exc
+    if hashlib.sha256(content).hexdigest()!=row['content_sha256']:
+        security_event(request,'PACKAGE_REPORT_DRAFT_HASH_MISMATCH','High',f'report_id={report_id}')
+        raise HTTPException(409,'Working report integrity verification failed.')
+    return Response(content=content,media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        headers={'Content-Disposition':f'attachment; filename="{safe_filename(row["original_name"])}"',
+                 'X-Content-SHA256':row['content_sha256'],'Cache-Control':'no-store'})
+
 @app.post('/api/assessments/{assessment_id}/reassessment-review')
 def review_assessment_reassessment(assessment_id:int,p:AssessmentReassessmentReviewIn,request:Request):
     require(request,'decide'); assessment_row_for_request(request,assessment_id); next_date=_normalize_date(p.next_reassessment_date,'Next assessment reassessment date',required=True); outcome=(p.review_outcome or '').strip()
@@ -6180,7 +6332,7 @@ def update_entity(table:str,entity_id:int,payload:dict[str,Any],request:Request)
             conn.close(); raise HTTPException(409,'Assessment reassessment lifecycle fields are controlled. Use the assessment reassessment review action rather than editing review currency directly.')
         if 'status' in payload and str(payload['status'])!=str(old['status']):
             conn.close(); raise HTTPException(409,'Use the controlled workflow transition action to change assessment status.')
-        protected={'purpose','mission','scope','covered_operation','requested_package_level','requested_scope_band','requested_access_variant','exclusions'}
+        protected={'organization','purpose','mission','scope','covered_operation','requested_package_level','requested_scope_band','requested_access_variant','exclusions'}
         if any(k in payload and str(payload[k])!=str(old[k]) for k in protected):
             quote_exists=conn.execute('SELECT 1 FROM package_quote_versions WHERE tenant_id=? AND assessment_id=? LIMIT 1',(old['tenant_id'],entity_id)).fetchone()
             if old['scope_locked'] or quote_exists:
