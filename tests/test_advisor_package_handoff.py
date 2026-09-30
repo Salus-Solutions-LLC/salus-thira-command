@@ -165,6 +165,13 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         conn.execute('''INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at)
           VALUES(?,?,?,?,?)''',(other_id,app._hash_token('other-member-cookie'),
           '2099-01-01T00:00:00Z',app.now(),app.now()))
+        other_reviewer_id=conn.execute('''INSERT INTO users
+          (tenant_id,username,display_name,role,status,created_at,updated_at)
+          VALUES(?,?,?,?,?,?,?)''',(2,'other-reviewer','Other Reviewer','Assessment Director',
+          'Active',app.now(),app.now())).lastrowid
+        conn.execute('''INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at)
+          VALUES(?,?,?,?,?)''',(other_reviewer_id,app._hash_token('other-reviewer-cookie'),
+          '2099-01-01T00:00:00Z',app.now(),app.now()))
         conn.commit();conn.close()
         app.AUTH_MODE='session'
         assert app.system_mode()['package_handoff_candidate_available'] is True
@@ -190,8 +197,10 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert claimed.json()['status'].startswith('Awaiting Salus')
         assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==409
         reviewer=TestClient(app.app,cookies={'salus_session':'reviewer-cookie'})
+        other_reviewer=TestClient(app.app,cookies={'salus_session':'other-reviewer-cookie'})
         queue_url=f'/api/assessments/{assessment_id}/advisor-package-handoffs'
         assert member.get(queue_url).status_code==403
+        assert other_reviewer.get(queue_url).status_code==403
         queue=reviewer.get(queue_url)
         assert queue.status_code==200 and len(queue.json()['handoffs'])==1
         assert queue.json()['handoffs'][0]['handoff_key']==handoff['handoff_key']
