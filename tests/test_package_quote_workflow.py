@@ -436,6 +436,22 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert doc_delivery.status_code==200 and pdf_delivery.status_code==200
         assert hashlib.sha256(doc_delivery.content).hexdigest()==revised.json()['content_sha256']
         assert hashlib.sha256(pdf_delivery.content).hexdigest()==hashlib.sha256(rendered_pdf).hexdigest()
+        acknowledgment_url=f'/api/package-issues/{issued_packet.json()["id"]}/acknowledgment'
+        acknowledgment_payload={'issue_sha256':issued_packet.json()['record_sha256'],
+            'confirm_received':True,'confirm_reviewed_limitations':True,
+            'acknowledgment_note':'Fictional recipient confirms receipt and review of limitations.',
+            'idempotency_key':'fictional-receipt-001'}
+        assert member.post(acknowledgment_url,json=acknowledgment_payload).status_code==409
+        for product in ('SalTHIRA','SalOPS','SalCAPA'):
+            delivered=member.get(f'/api/package-issues/{issued_packet.json()["id"]}/reports/{product}.docx')
+            assert delivered.status_code==200,delivered.text
+        acknowledged=member.post(acknowledgment_url,json=acknowledgment_payload)
+        assert acknowledged.status_code==200 and acknowledged.json()['status']=='Acknowledged',acknowledged.text
+        assert member.get(issue_url).json()['issues'][0]['acknowledged_at']==acknowledged.json()['acknowledged_at']
+        assert member.post(acknowledgment_url,json=acknowledgment_payload).json()['idempotent'] is True
+        assert member.post(acknowledgment_url,json={**acknowledgment_payload,
+            'acknowledgment_note':'A different fictional decision using the same key.'}).status_code==409
+        assert reviewer.post(acknowledgment_url,json=acknowledgment_payload).status_code==403
         conn=app.db()
         conn.execute('UPDATE package_report_issue_packets SET issue_basis=? WHERE id=?',
             ('Altered issue basis without a new immutable release.',issued_packet.json()['id']))
@@ -470,6 +486,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert other_tenant.get(intake_url).status_code==403
         assert other_tenant.get(report_url).status_code==403
         assert other_tenant.get(issue_url).status_code==403
+        assert other_tenant.post(acknowledgment_url,json=acknowledgment_payload).status_code==403
         assert other_tenant.get(qa_archive_url).status_code in (403,404)
         assert other_tenant.get(reconciliation_url).status_code in (403,404)
         assert other_tenant.get(preflight_url).status_code==403
@@ -490,7 +507,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==4
         assert conn.execute('SELECT COUNT(*) FROM package_report_issue_packets').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==5
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_acknowledgments').fetchone()[0]==1
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
@@ -507,7 +525,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len(records['package_report_qa_evidence'])==5
         assert len(records['package_report_qa_reviews'])==4
         assert len(records['package_report_issue_packets'])==1
-        assert len(records['package_report_issue_deliveries'])==2
+        assert len(records['package_report_issue_deliveries'])==5
+        assert len(records['package_report_issue_acknowledgments'])==1
         assert not validate_records(records,1)
         original_manifest_hash=records['package_report_qa_evidence'][0]['manifest_sha256']
         records['package_report_qa_evidence'][0]['manifest_sha256']='0'*64
@@ -521,6 +540,10 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         records['package_report_conformance'][0]['summary']='Altered after the conformance record was created.'
         assert any('immutable matrix verification' in error for error in validate_records(records,1))
         records['package_report_conformance'][0]['summary']=original_summary
+        original_ack_note=records['package_report_issue_acknowledgments'][0]['acknowledgment_note']
+        records['package_report_issue_acknowledgments'][0]['acknowledgment_note']='Altered receipt.'
+        assert any('invalid receipt proof' in error for error in validate_records(records,1))
+        records['package_report_issue_acknowledgments'][0]['acknowledgment_note']=original_ack_note
         replace_tenant_records(conn,1,records)
         conn.commit()
         assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==1
@@ -532,7 +555,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==4
         assert conn.execute('SELECT COUNT(*) FROM package_report_issue_packets').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==5
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_acknowledgments').fetchone()[0]==1
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'

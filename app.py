@@ -1021,6 +1021,23 @@ def init_db():
       FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE RESTRICT
     );
     CREATE INDEX IF NOT EXISTS idx_package_report_deliveries ON package_report_issue_deliveries(tenant_id,issue_id,recipient_user_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_issue_acknowledgments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      issue_id INTEGER NOT NULL,
+      issue_sha256 TEXT NOT NULL,
+      recipient_user_id INTEGER NOT NULL,
+      acknowledgment_note TEXT NOT NULL,
+      idempotency_key TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      acknowledged_at TEXT NOT NULL,
+      FOREIGN KEY (issue_id) REFERENCES package_report_issue_packets(id) ON DELETE RESTRICT,
+      FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,issue_id),
+      UNIQUE (tenant_id,idempotency_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_acknowledgments ON package_report_issue_acknowledgments(tenant_id,assessment_id,issue_id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -2652,6 +2669,14 @@ class PackageReportIssueIn(BaseModel):
     recipient_user_id: int = Field(gt=0)
     issue_basis: str = Field(min_length=40,max_length=4000)
     confirm_qualified_release: Literal[True]
+
+class PackageReportAcknowledgmentIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    issue_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    confirm_received: Literal[True]
+    confirm_reviewed_limitations: Literal[True]
+    acknowledgment_note: str = Field(min_length=20,max_length=1000)
+    idempotency_key: str = Field(min_length=8,max_length=100)
 
 ROLE_PERMISSIONS={
     'System Administrator': {'read','write','decide','admin'},
@@ -6012,7 +6037,11 @@ def list_member_package_issues(assessment_id:int,request:Request):
         result=[]
         for item in rows:
             issue,reports=verified_package_issue(conn,item['id'],request)
+            acknowledgment=conn.execute('''SELECT acknowledged_at FROM package_report_issue_acknowledgments
+                WHERE tenant_id=? AND issue_id=? AND recipient_user_id=?''',
+                (tenant_id(request),issue['id'],ctx['user_id'])).fetchone()
             result.append({'id':issue['id'],'issued_at':issue['issued_at'],
+                'acknowledged_at':acknowledgment['acknowledged_at'] if acknowledgment else None,
                 'reports':{product:{'report_id':value['report_id'],'version_no':value['version_no']}
                     for product,value in reports.items()}})
         return {'issues':result,'notice':'Download the exact issued documents for your authorized package.'}
@@ -6065,6 +6094,63 @@ def download_issued_package_report(issue_id:int,product:str,format:str,request:R
         return Response(content=content,media_type=media,headers={
             'Content-Disposition':f'attachment; filename="{filename}"',
             'X-Content-SHA256':expected,'Cache-Control':'no-store'})
+    finally:
+        conn.rollback();conn.close()
+
+@app.post('/api/package-issues/{issue_id}/acknowledgment')
+def acknowledge_issued_package(issue_id:int,p:PackageReportAcknowledgmentIn,request:Request):
+    require_package_commercial_candidate()
+    require_protected_member_authority(request,'package_report_acknowledgment')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A signed-in Protected Member recipient is required.')
+    conn=db()
+    try:
+        issue,reports=verified_package_issue(conn,issue_id,request)
+        lock_package_assessment(conn,issue['assessment_id'])
+        issue,reports=verified_package_issue(conn,issue_id,request)
+        if p.issue_sha256!=issue['record_sha256']:
+            raise HTTPException(409,'The issued package version changed. Review its current documents.')
+        note=p.acknowledgment_note.strip()
+        if len(note)<20:
+            raise HTTPException(422,'Give a meaningful receipt and limitations acknowledgment.')
+        record={'issue_id':issue_id,'issue_sha256':p.issue_sha256,
+            'recipient_user_id':ctx['user_id'],'acknowledgment_note':note,
+            'idempotency_key':p.idempotency_key}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('''SELECT * FROM package_report_issue_acknowledgments
+            WHERE tenant_id=? AND (issue_id=? OR idempotency_key=?)''',
+            (tenant_id(request),issue_id,p.idempotency_key)).fetchone()
+        if prior:
+            if (prior['issue_id']==issue_id and prior['recipient_user_id']==ctx['user_id']
+                    and prior['record_sha256']==digest):
+                return {'id':prior['id'],'status':'Acknowledged','record_sha256':digest,
+                    'acknowledged_at':prior['acknowledged_at'],'idempotent':True}
+            raise HTTPException(409,'This issue or acknowledgment key already has another decision.')
+        downloads=conn.execute('''SELECT product,format,report_id,content_sha256
+            FROM package_report_issue_deliveries WHERE tenant_id=? AND issue_id=?
+            AND recipient_user_id=?''',(tenant_id(request),issue_id,ctx['user_id'])).fetchall()
+        downloaded=set()
+        for item in downloads:
+            snapshot=reports.get(item['product'])
+            if (snapshot and item['report_id']==snapshot['report_id']
+                    and item['content_sha256']==snapshot['content_sha256' if item['format']=='docx' else 'pdf_sha256']):
+                downloaded.add(item['product'])
+        missing=PACKAGE_REPORT_PRODUCTS-downloaded
+        if missing:
+            raise HTTPException(409,'Download each of the four exact issued reports before acknowledging receipt: '+', '.join(sorted(missing)))
+        ts=now()
+        cur=conn.execute('''INSERT INTO package_report_issue_acknowledgments
+            (tenant_id,assessment_id,issue_id,issue_sha256,recipient_user_id,
+             acknowledgment_note,idempotency_key,record_sha256,acknowledged_at)
+            VALUES(?,?,?,?,?,?,?,?,?)''',(tenant_id(request),issue['assessment_id'],issue_id,
+             p.issue_sha256,ctx['user_id'],note,p.idempotency_key,digest,ts))
+        audit(conn,'PACKAGE_REPORT_ACKNOWLEDGMENT','assessment',issue['assessment_id'],
+            f'issue_id={issue_id}; acknowledgment_id={cur.lastrowid}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':'Acknowledged','record_sha256':digest,
+            'acknowledged_at':ts,'idempotent':False,
+            'notice':'Your receipt and review of the stated report limitations are recorded. This does not accept risk or authorize further services.'}
     finally:
         conn.rollback();conn.close()
 
