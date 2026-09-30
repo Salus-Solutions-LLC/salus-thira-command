@@ -273,7 +273,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.execute('UPDATE package_member_authority_reviews SET member_user_id=? WHERE quote_id=?',
             (reviewer_id,issued['id']))
         conn.commit();conn.close()
-        assert member.get(url).json()['status']=='Signer proof changed — review required'
+        assert member.get(url).status_code==403
         assert member.get(intake_url).status_code==409
         conn=app.db()
         conn.execute('UPDATE package_member_authority_reviews SET member_user_id=? WHERE quote_id=?',
