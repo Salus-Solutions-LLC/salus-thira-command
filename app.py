@@ -11,7 +11,7 @@ from azure.identity import ManagedIdentityCredential
 from pathlib import Path
 from datetime import date, datetime, timedelta, timezone
 from storage import build_storage, StorageError
-from security_controls import scan_bytes, retention_active, AV_MODE, AV_REQUIRED
+from security_controls import scan_bytes, retention_active, scanner_configuration, AV_MODE, AV_REQUIRED
 from secret_provider import secret, readiness as secret_readiness
 from salus_package_path import validate_requested_package_path
 from salus_package_quote import validate_quote, quote_digest, assessment_scope_digest
@@ -2977,11 +2977,13 @@ def production_readiness():
     runtime_db=runtime_database_status(DB_PATH)
     managed_db=managed_target_status()
     oidc_status=oidc_federation_status() if AUTH_MODE=='oidc' else {'configured':False,'healthy':False,'mode':OIDC_CLIENT_AUTH_METHOD,'provider':OIDC_PROVIDER_NAME}
+    scanner_status=scanner_configuration()
     if ENVIRONMENT=='production':
         if AUTH_MODE not in ('session','oidc'): issues.append('Production requires session or OIDC authentication.')
         if not COOKIE_SECURE: issues.append('SALUS_COOKIE_SECURE=1 is required in production.')
         if STORAGE_BACKEND=='local': issues.append('Managed object storage is required for production; local evidence storage is not production-grade.')
         if not AV_REQUIRED: issues.append('SALUS_REQUIRE_AV=1 should be enabled for production evidence uploads.')
+        if PACKAGE_COMMERCIAL_WORKFLOW_ENABLED and not scanner_status['configured']: issues.append('A configured malware scanner executable is required for production package uploads; verify signatures and scan results before release.')
         if AUTH_MODE=='oidc' and not oidc_configured(): issues.append('OIDC mode is selected but provider configuration is incomplete.')
         if AUTH_MODE=='oidc' and OIDC_CLIENT_AUTH_METHOD!='managed_identity': issues.append('Production OIDC must use managed identity federation without a client secret.')
         if AUTH_MODE=='oidc' and OIDC_AUTO_PROVISION: issues.append('Production OIDC automatic user provisioning must remain disabled.')
@@ -3007,7 +3009,7 @@ def production_readiness():
     def public_status(value):
         allowed=('configured','healthy','enabled','backend','provider','mode','target')
         return {key:value[key] for key in allowed if key in value and isinstance(value[key],(str,bool,int,float,type(None)))}
-    return {'ready':not blocking,'version':APP_VERSION,'environment':ENVIRONMENT,'auth_mode':AUTH_MODE,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'secret_provider':public_status(secret_status),'rate_limit':public_status(rate_status),'telemetry':public_status(telemetry_status),'runtime_database':public_status(runtime_db),'managed_database_target':public_status(managed_db),'oidc':public_status(oidc_status),'issues':issues}
+    return {'ready':not blocking,'version':APP_VERSION,'environment':ENVIRONMENT,'auth_mode':AUTH_MODE,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'package_scanner':scanner_status,'secret_provider':public_status(secret_status),'rate_limit':public_status(rate_status),'telemetry':public_status(telemetry_status),'runtime_database':public_status(runtime_db),'managed_database_target':public_status(managed_db),'oidc':public_status(oidc_status),'issues':issues}
 
 @app.get('/health/live')
 def health_live(): return {'status':'ok','version':APP_VERSION}

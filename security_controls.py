@@ -1,10 +1,24 @@
-import os, subprocess, tempfile
+import os, shutil, subprocess, tempfile
 from pathlib import Path
 from datetime import datetime, timezone
 
 AV_MODE=os.getenv('SALUS_AV_MODE','off').strip().lower()
 AV_REQUIRED=os.getenv('SALUS_REQUIRE_AV','0').strip().lower() in ('1','true','yes')
 CLAMSCAN_PATH=os.getenv('SALUS_CLAMSCAN_PATH','clamscan')
+
+def scanner_configuration():
+    """Report scanner configuration only; signature currency needs a live scan."""
+    if AV_MODE!='clamav':
+        return {'mode':AV_MODE,'configured':False}
+    executable=shutil.which(CLAMSCAN_PATH)
+    if not executable:
+        return {'mode':AV_MODE,'configured':False}
+    try:
+        version=subprocess.run([executable,'--version'],capture_output=True,text=True,timeout=2)
+        configured=version.returncode==0 and version.stdout.startswith('ClamAV ')
+    except (OSError,subprocess.TimeoutExpired):
+        configured=False
+    return {'mode':AV_MODE,'configured':configured}
 
 def scan_bytes(data: bytes, filename: str='upload.bin'):
     if AV_MODE in ('off','none',''):
