@@ -17,10 +17,18 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         'PYTHONPATH': os.getcwd(),
     })
     program = textwrap.dedent("""
-        import hashlib,json
+        import hashlib,json,os
         from fastapi.testclient import TestClient
         import app
         import public_protection_advisor as advisor
+
+        page=advisor._page(include_shell=False)
+        assert 'handoffEnabled="1"' in page and '__HANDOFF_ENABLED__' not in page
+        assert 'Read the transfer notice' in page and 'Withdraw this handoff' in page
+        assert 'id="handoffPanel"' in page and 'body.print-part2 main>*:not(#package)' in page
+        os.environ['SALUS_ENV']='production'
+        assert 'handoffEnabled="0"' in advisor._page(include_shell=False)
+        os.environ['SALUS_ENV']='development'
 
         director=TestClient(app.app,headers={'X-Salus-Role':'Assessment Director'})
         created=director.post('/api/assessments',json={
@@ -121,6 +129,10 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         handoff=consent.json()
         assert handoff['status'].startswith('Pending') and handoff['receipt_id']==receipt
         assert 'email' not in handoff
+        listed=prospect.get('/public/protection-advisor/package-handoffs')
+        assert listed.status_code==200 and listed.json()['handoffs'][0]['handoff_key']==handoff['handoff_key']
+        assert 'claim_code' not in listed.text
+        assert other_account.get('/public/protection-advisor/package-handoffs').status_code==403
         assert prospect.post('/public/protection-advisor/package-handoff',json=payload).status_code==409
         conn=app.db()
         saved=conn.execute('SELECT * FROM advisor_package_handoffs WHERE handoff_key=?',

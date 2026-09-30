@@ -41,14 +41,15 @@ QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.2.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.1.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
-PACKAGE_TRANSFER_NOTICE_VERSION = "SPA-PACKAGE-TRANSFER-0.1.0"
+PACKAGE_TRANSFER_NOTICE_VERSION = "SPA-PACKAGE-TRANSFER-0.2.0"
 PACKAGE_TRANSFER_NOTICE_TEXT = (
     "I ask Salus to share the identified Protection Advisor scope receipt and the minimum "
     "information needed to review my requested Level 1 package with an authorized Protected "
     "Member decision owner. This request does not purchase an assessment, approve a price, "
     "authorize file transfer, or prove anyone's contracting authority. Salus must confirm "
     "the organization, scope, decision owner and written terms. I may withdraw this request "
-    "before Salus approves a package handoff, without deleting my Advisor profile. The claim "
+    "while it remains a draft handoff without deleting my Advisor profile. A later written "
+    "package agreement, if I authorize one, controls any necessary contract record. The claim "
     "code expires after 24 hours."
 )
 REPORT_TEMPLATE_VERSION = "SPA-REPORT-TEMPLATE-1.4.0"
@@ -1056,11 +1057,13 @@ def _page(include_shell: bool = True) -> str:
 button,label,select,input,textarea{font-family:Arial,Helvetica,sans-serif}.muted{color:#536675}.panel{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
 label{display:block;font-weight:600;margin:18px 0 7px}label[hidden]{display:none!important}select,input[type=text],input[type=email],input[type=password],textarea{width:100%;font-size:1rem;padding:13px;border:1px solid #8d9aa3;border-radius:7px;min-height:48px}select{padding-right:38px;background-color:#fff}select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
 textarea{min-height:100px}.check,.choice{display:flex;gap:12px;align-items:flex-start;font-family:inherit;font-weight:400}.check input,.choice input{margin-top:7px}
+#handoffCode{overflow-wrap:anywhere}
 button,.action{border:0;background:none;color:var(--orange);font:1.05rem Arial,Helvetica,sans-serif;padding:14px 0;cursor:pointer;text-align:left;text-decoration:none;display:inline-block;margin-right:26px}
 button:disabled{color:#888;cursor:not-allowed}#start>button,#assessment #nextQuestion,#assessment #reviewResults{background:var(--orange);color:#fff;padding:12px 18px;border-radius:4px;text-align:center;margin-top:8px}#assessment #nextQuestion:disabled{background:#eef1f3;color:#536675}.question{display:block;width:100%;min-width:0;margin:0;padding:20px 0;border:0;border-bottom:1px solid var(--line)}.question legend{font:700 1.12rem/1.45 Arial,Helvetica,sans-serif;color:var(--blue);padding:0}.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
 .choices label{display:flex;align-items:flex-start;gap:11px;font:400 1rem/1.4 Arial,Helvetica,sans-serif;margin:0;padding:13px 14px;border:1px solid #b9c7cf;border-radius:8px;background:#fff;cursor:pointer;min-height:52px}.choices label:hover{border-color:var(--blue);background:#f5f9fb}.choices label:has(input:checked){border-color:var(--blue);background:#edf5f9;box-shadow:inset 4px 0 var(--orange)}.choices input{width:18px;height:18px;margin:2px 0 0;flex:none;accent-color:var(--blue)}.choices label:focus-within{outline:3px solid var(--orange);outline-offset:2px}.profile-section{margin:30px 0 12px;padding-top:18px;border-top:1px solid var(--line);color:var(--blue)}.profile-choice-field{border:0;border-top:1px solid var(--line);margin:22px 0;padding:14px 0 0;min-width:0}.profile-choice-field legend{font:700 1rem/1.4 Arial,Helvetica,sans-serif;color:var(--blue);padding-right:8px}.profile-choice-field .choices{grid-template-columns:repeat(2,minmax(0,1fr))}.profile-choice-field .choices label{min-height:50px}@media(max-width:700px){.profile-choice-field .choices{grid-template-columns:1fr}}#profile>label{max-width:760px}#profile>label:has(textarea){max-width:920px}.question-progress{font:700 .8rem Arial,Helvetica,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin:18px 0 8px}.question-nav{display:flex;gap:28px;align-items:center;flex-wrap:wrap;margin-top:18px}.question-nav button{margin:0}.hidden{display:none}.error{color:#a12612}.result{background:var(--soft);padding:24px;margin-top:24px}.route{border-left:3px solid var(--blue);padding:4px 20px;margin:28px 0}
 .report-identity-summary{border:1px solid #b9c7cf;border-left:5px solid var(--orange);border-radius:6px;background:#fff;padding:20px 24px;margin:20px 0 28px}.report-identity-summary h3{margin:0 0 8px;color:var(--blue)}.report-identity-summary p{margin:0 0 12px;line-height:1.55}.report-edit-action{font-weight:700;background:#a83d16;color:#fff;padding:12px 18px;border-radius:4px;margin:4px 0 0}.report-edit-action:hover,.report-edit-action:focus-visible{background:#853016;color:#fff}.report-edit-action:focus-visible,.report-identity-editor summary:focus-visible{outline:3px solid var(--blue);outline-offset:3px}.report-identity-editor{margin:12px 0 26px;padding:14px 18px;border:1px solid var(--line);background:#fff;scroll-margin-top:24px}.report-identity-editor summary{color:var(--blue);cursor:pointer}.report-identity-editor[open] summary{margin-bottom:16px}.report-identity-editor label{display:block;margin:16px 0 0;font-weight:600;line-height:1.4}.report-identity-editor label input,.report-identity-editor label select{display:block;width:100%;max-width:680px;min-height:48px;margin:7px 0 0;padding:12px 13px;border:1px solid #8d9aa3;border-radius:7px;font:inherit;font-weight:400;background:#fff}.report-identity-editor label select{max-width:none}.report-identity-editor>button{margin-top:14px}.package-item{padding:16px 0;border-bottom:1px solid var(--line)}.eyebrow{font:700 .78rem Arial,Helvetica,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
 .visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}.handling-fields{border-left:3px solid var(--blue);padding-left:18px;margin:20px 0}.print-actions{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}.print-meta{font:400 .82rem Arial,Helvetica,sans-serif;color:#536675;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:18px}.print-brand{display:flex;align-items:center;gap:12px;margin-bottom:18px;color:#000;font:400 24px Arial,Helvetica,sans-serif}.print-brand img{width:52px;height:52px}.print-report-title{font:300 28px Arial,Helvetica,sans-serif;color:var(--blue);margin:10px 0}.print-identifiers{font:400 14px/1.45 Arial,Helvetica,sans-serif}.print-classification{font-weight:700;color:#7b2d20}.print-watermark{display:none}.print-footer{font:400 11px Arial,Helvetica,sans-serif;border-top:1px solid #777;margin-top:28px;padding-top:8px;display:flex;justify-content:space-between;gap:12px}.print-confidential{font-weight:700;color:#7b2d20}@media(max-width:700px){.question-nav{gap:12px}.question-nav button{flex:1 1 150px}.choices{grid-template-columns:1fr}.choices label{min-height:48px}.print-actions button{width:100%;margin-right:0}}@media print{@page{size:letter;margin:.65in}.salus-header,.print-actions,.route,.action,.report-identity-summary,.report-identity-editor,body.print-part1 main>*:not(#result),body.print-part2 main>*:not(#package){display:none!important}body.print-part1 #result,body.print-part2 #package{display:block!important;background:#fff!important;padding:0!important;margin:0!important;color:#111!important}.print-watermark{display:block;position:fixed;top:38%;left:12%;transform:rotate(-48deg);font:700 76px Arial,Helvetica,sans-serif;color:rgba(90,90,90,.12);z-index:-1}.print-brand,.print-identifiers,.print-footer{break-inside:avoid}.package-item{break-inside:avoid}a{color:#111!important;text-decoration:none!important}}__EMBED_CSS__
+@media print{#handoffPanel{display:none!important}}
 </style></head><body><main>
 __SALUS_HEADER__
 __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountLogin(event)">Return to Your Part 2 Profile &gt;</a></p>
@@ -1151,10 +1154,27 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <p class="muted">Do not enter passwords, financial account information, medical records, government identifiers, classified information, detailed hazardous-material inventories, access-control details, or information whose disclosure could create an immediate security risk.</p>
 <p id="draftStatus" class="muted">Changes will be saved to your Part 2 account.</p><button onclick="saveDraft()">Save Progress &gt;</button><button onclick="logoutAccount()">Sign Out &gt;</button><br><button onclick="submitProfile()">Prepare My Tailored Preliminary Package &gt;</button><p id="submitError" class="error"></p></section>
 <section id="package" class="hidden result"></section>
+<section id="handoffPanel" class="hidden panel" aria-label="Optional package handoff">
+<h2>Optional: share your draft scope for Level 1 review</h2>
+<p>Only do this if you want an authorized decision owner to request a Salus package review. Sharing a code does not buy an assessment or approve a price.</p>
+<button type="button" onclick="loadPackageHandoffNotice()">Read the transfer notice &gt;</button>
+<div id="handoffNoticeBlock" class="hidden"><p id="handoffNoticeText"></p>
+<label class="check"><input id="handoffConsent" type="checkbox"> I agree to share this saved scope receipt for package review.</label>
+<button type="button" onclick="createPackageHandoff()">Create a 24-hour handoff code &gt;</button></div>
+<p id="handoffStatus" class="muted" role="status" aria-live="polite"></p>
+<p id="handoffCodeBlock" class="hidden"><strong>One-time code:</strong> <code id="handoffCode"></code><br>Give this code only to your authorized decision owner through a secure channel. It will not appear again after you leave this page.</p>
+<button id="withdrawHandoffButton" class="hidden" type="button" onclick="withdrawPackageHandoff()">Withdraw this handoff &gt;</button>
+</section>
 <section class="panel"><h2>Important notice</h2><p>Protection Advisor provides preliminary educational and decision-support information. It is not an emergency reporting service, completed THIRA, professional security assessment, legal or insurance advice, or guarantee against loss. Salus professionals review information, evidence, context, scope, recommendations, and pricing before issuing formal findings or proposals.</p></section>
 </main><script>
 let csrf="",questions=[],questionIndex=0,answerStates={},advisorResultReference="",reportIdentity={},accountEmailCurrent="";
+const handoffEnabled="__HANDOFF_ENABLED__"==="1";let handoffNoticeVersion="",activeHandoffKey="";
 async function call(path,opts={}){opts.headers={"Content-Type":"application/json",...(csrf?{"X-CSRF-Token":csrf}:{}),...(opts.headers||{})};const r=await fetch(path,opts);const data=await r.json().catch(()=>({detail:"Request failed"}));if(!r.ok){const detail=data.detail;const message=Array.isArray(detail)?detail.map(item=>item.msg||"Invalid value").join(" "):(typeof detail==="string"?detail:"Request failed");throw new Error(message)}return data}
+async function refreshPackageHandoff(){if(!handoffEnabled)return;handoffPanel.classList.remove("hidden");try{const data=await call("/public/protection-advisor/package-handoffs");const current=(data.handoffs||[])[0];activeHandoffKey=current?current.handoff_key:"";withdrawHandoffButton.classList.toggle("hidden",!current);handoffStatus.textContent=current?"Saved receipt "+current.receipt_id+", revision "+current.revision_no+": "+current.status+". If you lost an active code, withdraw it before requesting another.":"No active package handoff. This step is optional."}catch(x){handoffStatus.textContent=x.message}}
+async function loadPackageHandoffNotice(){handoffStatus.textContent="";try{const data=await call("/public/protection-advisor/package-handoff/notice");handoffNoticeVersion=data.version;handoffNoticeText.textContent=data.notice;handoffNoticeBlock.classList.remove("hidden")}catch(x){handoffStatus.textContent=x.message}}
+async function createPackageHandoff(){handoffStatus.textContent="";if(!handoffConsent.checked){handoffStatus.textContent="Read the notice and check the consent box first.";return}try{const data=await call("/public/protection-advisor/package-handoff",{method:"POST",body:JSON.stringify({receipt_revision:reportIdentity.revision_no,transfer_notice_version:handoffNoticeVersion,consent_to_package_handoff:true})});activeHandoffKey=data.handoff_key;handoffCode.textContent=data.claim_code;handoffCodeBlock.classList.remove("hidden");withdrawHandoffButton.classList.remove("hidden");handoffConsent.checked=false;handoffStatus.textContent="Code created for saved receipt "+data.receipt_id+". It expires after 24 hours. Salus must still review the match and written scope."}catch(x){handoffStatus.textContent=x.message}}
+async function withdrawPackageHandoff(){handoffStatus.textContent="";if(!activeHandoffKey)return;try{await call("/public/protection-advisor/package-handoff/withdraw",{method:"POST",body:JSON.stringify({handoff_key:activeHandoffKey})});activeHandoffKey="";handoffCode.textContent="";handoffCodeBlock.classList.add("hidden");withdrawHandoffButton.classList.add("hidden");handoffStatus.textContent="Handoff withdrawn. Your Advisor profile remains available."}catch(x){handoffStatus.textContent=x.message}}
+if(handoffEnabled){const resultPanel=document.getElementById("package");new MutationObserver(()=>{if(!resultPanel.classList.contains("hidden")&&resultPanel.innerHTML)refreshPackageHandoff()}).observe(resultPanel,{attributes:true,childList:true})}
 async function startAssessment(){startError.textContent="";try{const data=await call("/public/protection-advisor/session",{method:"POST",body:JSON.stringify({organization_type:orgType.value,primary_consent:primary.checked,secondary_deidentified_consent:secondary.checked})});csrf=data.csrf_token;questions=data.questions;questionIndex=0;answerStates={};start.classList.add("hidden");assessment.classList.remove("hidden");renderQuestions();requestAnimationFrame(()=>window.scrollTo(0,0))}catch(x){startError.textContent=x.message}}
 function answerLabel(s){return s==="Validated"?"Yes — recently tested":s==="Documented"?"Yes — documented, not recently tested":s==="Partially"?"Some parts are in place":s==="No"?"No — not in place":s==="Unknown"?"Not sure":s==="Not Applicable"?"Does not apply":s==="Declined"?"Prefer not to answer":s}
 function renderQuestions(){if(!questions.length)return;const q=questions[questionIndex];questionProgress.textContent="Question "+(questionIndex+1)+" of "+questions.length;document.getElementById("questions").innerHTML='<fieldset class="question"><legend>'+(questionIndex+1)+'. '+escapeAdvisorHtml(q.text)+'</legend><div class="choices">'+["Validated","Documented","Partially","No","Unknown","Not Applicable","Declined"].map(s=>'<label><input type="radio" name="'+q.key+'" value="'+s+'" '+(answerStates[q.key]===s?"checked":"")+' onchange="saveAnswer(this.name,this.value)"> '+answerLabel(s)+'</label>').join("")+'</div></fieldset>';previousQuestion.disabled=questionIndex===0;nextQuestion.classList.toggle("hidden",questionIndex===questions.length-1);reviewResults.classList.toggle("hidden",questionIndex!==questions.length-1)}
@@ -1244,7 +1264,7 @@ const reportProtectionAdvisorLoad=()=>setTimeout(()=>{
 },0);
 new ResizeObserver(reportProtectionAdvisorHeight).observe(document.documentElement);
 window.addEventListener("load",()=>{reportProtectionAdvisorHeight();reportProtectionAdvisorLoad()});
-</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header() if include_shell else "").replace("__PAGE_INTRO__", page_intro).replace("__EMBED_CSS__", embed_css)
+</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header() if include_shell else "").replace("__PAGE_INTRO__", page_intro).replace("__EMBED_CSS__", embed_css).replace("__HANDOFF_ENABLED__", "1" if os.getenv("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED", "0").lower() in ("1","true","yes") and os.getenv("SALUS_ENV","development").lower() != "production" else "0")
 
 
 def _service_catalog_page() -> str:
@@ -2932,6 +2952,25 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             return {"handoff_key":handoff_key,"claim_code":token,"receipt_id":receipt_id,
                     "receipt_revision":command.receipt_revision,"expires_at":_utc_text(issued+timedelta(hours=24)),
                     "status":"Pending Member claim and Salus review"}
+        finally:
+            conn.close()
+
+    @app.get("/public/protection-advisor/package-handoffs")
+    def list_package_handoffs(request: Request) -> dict[str, Any]:
+        ctx["require_package_commercial_candidate"]()
+        conn = ctx["db"]()
+        try:
+            session, _ = _session(conn, request)
+            account = _account_session(conn, request)
+            _require_account_assessment(conn, account["account_key"], session["session_key"])
+            rows = conn.execute(
+                """SELECT handoff_key,receipt_id,revision_no,claim_expires_at,status
+                     FROM advisor_package_handoffs
+                    WHERE session_key=? AND account_key=? AND status IN ('Pending','Claimed','Reviewed')
+                    ORDER BY consented_at DESC""",
+                (session["session_key"], account["account_key"]),
+            ).fetchall()
+            return {"handoffs": [dict(row) for row in rows]}
         finally:
             conn.close()
 
