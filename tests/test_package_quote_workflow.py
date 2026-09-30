@@ -15,7 +15,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         'SALUS_SEED_DEMO': '0',
         'SALUS_AUTH_MODE': 'prototype',
         'SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED': '1',
-        'PYTHONPATH': os.getcwd(),
+        'PYTHONPATH': os.pathsep.join(filter(None, (os.getcwd(), env.get('PYTHONPATH', '')))),
     })
     program = textwrap.dedent('''
         import hashlib,io
@@ -241,6 +241,23 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len({row['report_identity'] for row in intel_rows})==1
         assert len({row['display_title'] for row in intel_rows})==1
         assert intel_rows[1]['supersedes_id']==intel_rows[0]['id']
+        current={product:max((row for row in report_rows if row['product']==product),
+            key=lambda row:row['version_no']) for product in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA')}
+        reconciliation_url=f'/api/package-reports/{current["SalCAPA"]["id"]}/source-reconciliation'
+        sources={product:{'report_id':current[product]['id'],'content_sha256':current[product]['content_sha256'],
+            'alignment':'Unresolved' if product=='SalINTEL' else 'Aligned',
+            'explanation':'Fictional exact-version comparison; the open item needs qualified review.'}
+            for product in ('SalINTEL','SalTHIRA','SalOPS')}
+        comparison={'salcapa_sha256':current['SalCAPA']['content_sha256'],'sources':sources,
+            'summary':'Fictional SalCAPA comparison records an unresolved SalINTEL item; no report is issued.'}
+        assert director.post(reconciliation_url,json={**comparison,'sources':{'SalINTEL':sources['SalINTEL']}}).status_code==422
+        stale_sources={**sources,'SalINTEL':{**sources['SalINTEL'],'report_id':intel_rows[0]['id'],
+            'content_sha256':intel_rows[0]['content_sha256']}}
+        assert director.post(reconciliation_url,json={**comparison,'sources':stale_sources}).status_code==409
+        reconciled=director.post(reconciliation_url,json=comparison)
+        assert reconciled.status_code==200 and reconciled.json()['comparison_status']=='Open',reconciled.text
+        assert director.post(reconciliation_url,json=comparison).json()['idempotent'] is True
+        assert len(director.get(reconciliation_url).json()['records'])==1
         qa_url=f'/api/package-reports/{revised.json()["id"]}/conformance'
         checks={key:{'status':'Pending','reason':'Exact-version evidence remains to be reviewed.'}
                 for key in app.PACKAGE_REPORT_QA_KEYS}
@@ -279,12 +296,14 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert assigned_owner.get(report_url).status_code==200
         assert assigned_owner.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==200
         assert assigned_owner.get(qa_url).status_code==200
+        assert assigned_owner.get(reconciliation_url).status_code==200
         requested=member.get(intake_url)
         assert requested.status_code==200 and len(requested.json()['items'])==2,requested.text
         assert requested.json()['catalog']==[]
         assert member.get(report_url).status_code==403
         assert member.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==403
         assert member.get(qa_url).status_code==403
+        assert member.get(reconciliation_url).status_code==403
         assert member.patch(retention_url,json={'legal_hold':True,'reason':'No Member retention authority in this candidate.'}).status_code==403
         assert 'response_user_id' not in requested.json()['items'][0]
         item_id=requested.json()['items'][0]['id']
@@ -299,6 +318,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert other_tenant.get(url).status_code==403
         assert other_tenant.get(intake_url).status_code==403
         assert other_tenant.get(report_url).status_code==403
+        assert other_tenant.get(reconciliation_url).status_code in (403,404)
         admin=TestClient(app.app,headers={'X-Salus-Role':'System Administrator'})
         backup=admin.post('/api/admin/backups')
         assert backup.status_code==200, backup.text
@@ -312,6 +332,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==1
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
@@ -324,7 +345,12 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len(records['package_intake_requests'])==2
         assert len(records['package_product_report_versions'])==5
         assert len(records['package_report_conformance'])==1
+        assert len(records['package_report_reconciliations'])==1
         assert not validate_records(records,1)
+        original_comparison=records['package_report_reconciliations'][0]['summary']
+        records['package_report_reconciliations'][0]['summary']='Altered after the source comparison was created.'
+        assert any('immutable source verification' in error for error in validate_records(records,1))
+        records['package_report_reconciliations'][0]['summary']=original_comparison
         original_summary=records['package_report_conformance'][0]['summary']
         records['package_report_conformance'][0]['summary']='Altered after the conformance record was created.'
         assert any('immutable matrix verification' in error for error in validate_records(records,1))
@@ -336,6 +362,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==1
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'

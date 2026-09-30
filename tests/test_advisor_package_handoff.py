@@ -14,7 +14,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         'SALUS_SEED_DEMO': '0',
         'SALUS_AUTH_MODE': 'prototype',
         'SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED': '1',
-        'PYTHONPATH': os.getcwd(),
+        'PYTHONPATH': os.pathsep.join(filter(None, (os.getcwd(), env.get('PYTHONPATH', '')))),
     })
     program = textwrap.dedent("""
         import hashlib,json,os

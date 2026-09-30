@@ -920,6 +920,25 @@ def init_db():
       FOREIGN KEY (report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT
     );
     CREATE INDEX IF NOT EXISTS idx_package_report_conformance_report ON package_report_conformance(tenant_id,report_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_reconciliations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      salcapa_report_id INTEGER NOT NULL,
+      salcapa_sha256 TEXT NOT NULL,
+      sources_json TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      comparison_status TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL UNIQUE,
+      recorded_by TEXT NOT NULL,
+      recorded_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (salcapa_report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_reconciliation ON package_report_reconciliations(tenant_id,salcapa_report_id,id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -2515,6 +2534,19 @@ class PackageReportConformanceIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     content_sha256: str = Field(min_length=64,max_length=64,pattern=r'^[0-9a-f]{64}$')
     checks: dict[str,dict[str,str]]
+    summary: str = Field(min_length=20,max_length=4000)
+
+class PackageSourceDispositionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    report_id: int = Field(gt=0)
+    content_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    alignment: Literal['Aligned','Qualified difference','Unresolved']
+    explanation: str = Field(min_length=20,max_length=2000)
+
+class PackageReportReconciliationIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    salcapa_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    sources: dict[str,PackageSourceDispositionIn]
     summary: str = Field(min_length=20,max_length=4000)
 
 class PackageReportRetentionIn(BaseModel):
@@ -5756,6 +5788,81 @@ def record_package_report_conformance(report_id:int,p:PackageReportConformanceIn
         conn.commit()
         return {'id':cur.lastrowid,'matrix_status':matrix_status,'record_sha256':record_sha,'idempotent':False,
             'notice':'This record does not approve, issue or qualify the report.'}
+    finally: conn.close()
+
+@app.get('/api/package-reports/{report_id}/source-reconciliation')
+def list_package_report_reconciliation(report_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Working report reconciliation is restricted to Salus report owners.')
+    conn=db()
+    try:
+        report=conn.execute('SELECT assessment_id,product FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not report or report['product']!='SalCAPA': raise HTTPException(404,'Working SalCAPA report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        rows=[dict(row) for row in conn.execute('SELECT * FROM package_report_reconciliations WHERE tenant_id=? AND salcapa_report_id=? ORDER BY id',
+            (tenant_id(request),report_id))]
+        for row in rows: row['sources']=json.loads(row.pop('sources_json'))
+        return {'records':rows,'notice':'A source comparison is not qualified review, issue or predecessor proof.'}
+    finally: conn.close()
+
+@app.post('/api/package-reports/{report_id}/source-reconciliation')
+def record_package_report_reconciliation(report_id:int,p:PackageReportReconciliationIn,request:Request):
+    require_package_commercial_candidate();require(request,'write')
+    if role(request) not in {'System Administrator','Assessment Director'}:
+        raise HTTPException(403,'A Salus report reviewer must record the source comparison.')
+    if set(p.sources)!={'SalINTEL','SalTHIRA','SalOPS'}:
+        raise HTTPException(422,'Compare SalCAPA with each of its three exact source reports.')
+    tid=tenant_id(request);conn=db()
+    try:
+        report=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tid)).fetchone()
+        if not report or report['product']!='SalCAPA': raise HTTPException(404,'Working SalCAPA report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        lock_package_assessment(conn,report['assessment_id'])
+        quote=authorized_package_intake(conn,report['assessment_id'],request)
+        if (quote['id']!=report['quote_id'] or quote['assessment_scope_sha256']!=report['assessment_scope_sha256']
+                or report['status']!='Draft' or p.salcapa_sha256!=report['content_sha256']):
+            raise HTTPException(409,'The SalCAPA document or authorized package boundary changed.')
+        selected={'SalCAPA':report}
+        for product in ('SalINTEL','SalTHIRA','SalOPS'):
+            source=conn.execute('''SELECT * FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+                AND product=? ORDER BY version_no DESC LIMIT 1''',(tid,report['assessment_id'],product)).fetchone()
+            supplied=p.sources[product]
+            if (not source or source['id']!=supplied.report_id or source['content_sha256']!=supplied.content_sha256
+                    or source['quote_id']!=quote['id'] or source['assessment_scope_sha256']!=report['assessment_scope_sha256']
+                    or source['status']!='Draft'):
+                raise HTTPException(409,f'The current {product} source version or package boundary changed.')
+            selected[product]=source
+        latest_capa=conn.execute('''SELECT id FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+            AND product='SalCAPA' ORDER BY version_no DESC LIMIT 1''',(tid,report['assessment_id'])).fetchone()
+        if latest_capa['id']!=report_id: raise HTTPException(409,'Compare the current SalCAPA version.')
+        for product,item in selected.items():
+            try: content=storage.get_bytes(item['stored_name'])
+            except Exception as exc: raise HTTPException(503,'Working report storage is unavailable.') from exc
+            if hashlib.sha256(content).hexdigest()!=item['content_sha256']:
+                security_event(request,'PACKAGE_RECONCILIATION_HASH_MISMATCH','High',f'report_id={item["id"]}')
+                raise HTTPException(409,f'{product} document integrity verification failed.')
+        sources={product:p.sources[product].model_dump() for product in ('SalINTEL','SalTHIRA','SalOPS')}
+        summary=p.summary.strip()
+        comparison_status='Open' if any(item['alignment']=='Unresolved' for item in sources.values()) else 'Compared'
+        digest=hashlib.sha256(json.dumps({'salcapa_report_id':report_id,'salcapa_sha256':p.salcapa_sha256,
+            'sources':sources,'summary':summary},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('SELECT id,comparison_status FROM package_report_reconciliations WHERE tenant_id=? AND record_sha256=?',
+            (tid,digest)).fetchone()
+        if prior: return {'id':prior['id'],'comparison_status':prior['comparison_status'],'record_sha256':digest,'idempotent':True}
+        cur=conn.execute('''INSERT INTO package_report_reconciliations
+            (tenant_id,assessment_id,quote_id,salcapa_report_id,salcapa_sha256,sources_json,summary,comparison_status,record_sha256,recorded_by,recorded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?)''',(tid,report['assessment_id'],quote['id'],report_id,p.salcapa_sha256,
+            json.dumps(sources,sort_keys=True,separators=(',',':')),summary,comparison_status,digest,actor(request),now()))
+        audit(conn,'PACKAGE_REPORT_SOURCE_RECONCILIATION','assessment',report['assessment_id'],
+            f'salcapa_report_id={report_id}; comparison={comparison_status}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'comparison_status':comparison_status,'record_sha256':digest,'idempotent':False,
+            'notice':'This comparison does not approve or issue any report.'}
     finally: conn.close()
 
 @app.post('/api/assessments/{assessment_id}/reassessment-review')
