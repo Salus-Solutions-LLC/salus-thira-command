@@ -70,6 +70,11 @@ class PackageTransferConsentCommand(BaseModel):
     consent_to_package_handoff: bool
 
 
+class PackageTransferWithdrawalCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    handoff_key: str = Field(pattern=r"^SPA-HANDOFF-[A-F0-9]{32}$")
+
+
 ORGANIZATION_TYPES = {
     "Business", "Faith-Based Organization", "School or Educational Institution",
     "Nonprofit or Community Organization", "Healthcare or Human Services",
@@ -2890,6 +2895,32 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             return {"handoff_key":handoff_key,"claim_code":token,"receipt_id":receipt_id,
                     "receipt_revision":command.receipt_revision,"expires_at":_utc_text(issued+timedelta(hours=24)),
                     "status":"Pending Member claim and Salus review"}
+        finally:
+            conn.close()
+
+    @app.post("/public/protection-advisor/package-handoff/withdraw")
+    def withdraw_package_handoff(command: PackageTransferWithdrawalCommand, request: Request) -> dict[str, bool]:
+        ctx["require_package_commercial_candidate"]()
+        limited(request, request.cookies.get("salus_advisor_session", ""))
+        conn = ctx["db"]()
+        try:
+            session, _ = _session(conn, request)
+            account = _account_session(conn, request)
+            _require_account_assessment(conn, account["account_key"], session["session_key"])
+            deleted = conn.execute(
+                """DELETE FROM advisor_package_handoffs
+                    WHERE handoff_key=? AND session_key=? AND account_key=?
+                      AND status IN ('Pending','Claimed')""",
+                (command.handoff_key, session["session_key"], account["account_key"]),
+            )
+            if deleted.rowcount:
+                conn.execute(
+                    "INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
+                    ("SPA-EVENT-"+secrets.token_hex(16).upper(),session["session_key"],
+                     "Package Transfer Withdrawn",_utc_text(_utc_now()),_sha(command.handoff_key)),
+                )
+            conn.commit()
+            return {"withdrawn": True}
         finally:
             conn.close()
 

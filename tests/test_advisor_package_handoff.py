@@ -46,6 +46,14 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         conn.execute('''INSERT INTO advisor_public_account_sessions
           (token_sha256,account_key,created_at,expires_at,revoked_at) VALUES(?,?,?,?,?)''',
           (advisor._sha('account-cookie'),account,app.now(),'2099-01-01T00:00:00Z',''))
+        conn.execute('''INSERT INTO advisor_public_accounts
+          (account_key,email,password_salt,password_hash,status,created_at,email_verified_at)
+          VALUES(?,?,?,?,?,?,?)''',('SPA-ACCOUNT-OTHER','other@example.org','salt','hash',
+          'Active',app.now(),app.now()))
+        conn.execute('''INSERT INTO advisor_public_account_sessions
+          (token_sha256,account_key,created_at,expires_at,revoked_at) VALUES(?,?,?,?,?)''',
+          (advisor._sha('other-account-cookie'),'SPA-ACCOUNT-OTHER',app.now(),
+           '2099-01-01T00:00:00Z',''))
         conn.execute('''INSERT INTO advisor_public_account_assessments
           (account_key,session_key,detailed_assessment_acknowledged,identifiable_retention_consent,acknowledged_at)
           VALUES(?,?,?,?,?)''',(account,session,1,1,app.now()))
@@ -87,8 +95,8 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
           'salus_advisor_session':'session-cookie','salus_advisor_account':'account-cookie'})
         assert wrong.post('/public/protection-advisor/package-handoff',json=payload).status_code==403
         other_account=TestClient(app.app,headers={'x-csrf-token':'csrf'},cookies={
-          'salus_advisor_session':'session-cookie','salus_advisor_account':'wrong-account'})
-        assert other_account.post('/public/protection-advisor/package-handoff',json=payload).status_code==401
+          'salus_advisor_session':'session-cookie','salus_advisor_account':'other-account-cookie'})
+        assert other_account.post('/public/protection-advisor/package-handoff',json=payload).status_code==403
         conn=app.db()
         conn.execute("UPDATE advisor_public_accounts SET email_verified_at='' WHERE account_key=?",(account,))
         conn.commit();conn.close()
@@ -127,6 +135,15 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         claim={'claim_code':handoff['claim_code'],'confirm_requested_boundary':True}
         other_member=TestClient(app.app,cookies={'salus_session':'other-member-cookie'})
         assert other_member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==403
+        conn=app.db()
+        conn.execute('UPDATE advisor_package_handoffs SET claim_expires_at=? WHERE handoff_key=?',
+          ('2000-01-01T00:00:00Z',handoff['handoff_key']))
+        conn.commit();conn.close()
+        assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==409
+        conn=app.db()
+        conn.execute('UPDATE advisor_package_handoffs SET claim_expires_at=? WHERE handoff_key=?',
+          ('2099-01-01T00:00:00Z',handoff['handoff_key']))
+        conn.commit();conn.close()
         app.ENVIRONMENT='production'
         assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==503
         app.ENVIRONMENT='development'
@@ -134,6 +151,16 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert claimed.status_code==200,claimed.text
         assert claimed.json()['status'].startswith('Awaiting Salus')
         assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==409
+        withdrawal={'handoff_key':handoff['handoff_key']}
+        assert other_account.post('/public/protection-advisor/package-handoff/withdraw',json=withdrawal).status_code==403
+        conn=app.db()
+        assert conn.execute('SELECT COUNT(*) FROM advisor_package_handoffs').fetchone()[0]==1
+        conn.close()
+        assert prospect.post('/public/protection-advisor/package-handoff/withdraw',json=withdrawal).json()=={'withdrawn':True}
+        assert member.post(f'/api/assessments/{assessment_id}/advisor-package-handoff',json=claim).status_code==409
+        second=prospect.post('/public/protection-advisor/package-handoff',json=payload)
+        assert second.status_code==200,second.text
+        assert second.json()['handoff_key']!=handoff['handoff_key']
         deleted=prospect.post('/public/protection-advisor/delete')
         assert deleted.status_code==200,deleted.text
         conn=app.db()
