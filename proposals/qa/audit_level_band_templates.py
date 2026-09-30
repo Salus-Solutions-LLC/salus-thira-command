@@ -30,7 +30,7 @@ def fonts_on_page(page):
 
 def inspect(product, source, expected_hash):
     candidate = TEMPLATES / f'{product} Level Band Template Candidate.docx'
-    pdf = ROOT / 'proposals' / 'qa' / f'template_exact_{product}' / f'{candidate.stem}.pdf'
+    pdf = ROOT / 'proposals' / 'qa' / f'template_current_{product}' / f'{candidate.stem}.pdf'
     issues = []
     source_sha = hashlib.sha256(source.read_bytes()).hexdigest().upper()
     candidate_sha = hashlib.sha256(candidate.read_bytes()).hexdigest().upper()
