@@ -241,6 +241,26 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len({row['report_identity'] for row in intel_rows})==1
         assert len({row['display_title'] for row in intel_rows})==1
         assert intel_rows[1]['supersedes_id']==intel_rows[0]['id']
+        qa_url=f'/api/package-reports/{revised.json()["id"]}/conformance'
+        checks={key:{'status':'Pending','reason':'Exact-version evidence remains to be reviewed.'}
+                for key in app.PACKAGE_REPORT_QA_KEYS}
+        qa_payload={'content_sha256':revised.json()['content_sha256'],'checks':checks,
+                    'summary':'All Charter items are recorded as pending until exact evidence is reviewed.'}
+        assert director.post(qa_url,json={**qa_payload,'checks':{'accessibility':checks['accessibility']}}).status_code==422
+        assert director.post(qa_url,json={**qa_payload,'content_sha256':'a'*64}).status_code==409
+        qa=director.post(qa_url,json=qa_payload)
+        assert qa.status_code==200 and qa.json()['matrix_status']=='Open',qa.text
+        assert director.post(qa_url,json=qa_payload).json()['idempotent'] is True
+        assert len(director.get(qa_url).json()['records'])==1
+        assert director.get(report_url).json()['reports'][-1]['status']=='Draft'
+        retention_url=f'/api/package-reports/{revised.json()["id"]}/retention'
+        assert director.patch(retention_url,json={'retention_until':'2030-01-01T00:00:00Z',
+            'reason':'Fictional request to shorten retention must be stopped.'}).status_code==409
+        held=director.patch(retention_url,json={'retention_until':'2099-01-01T00:00:00Z','legal_hold':True,
+            'reason':'Fictional legal preservation and extended retention review.'})
+        assert held.status_code==200 and held.json()['legal_hold'] is True,held.text
+        assert director.patch(retention_url,json={'retention_until':'2098-01-01T00:00:00Z',
+            'reason':'Fictional request to shorten extended retention.'}).status_code==409
         app.AUTH_MODE='session'
         conn=app.db()
         salus_user=conn.execute('INSERT INTO users(tenant_id,username,display_name,role,created_at,updated_at) VALUES(1,?,?,?,?,?)',
@@ -251,17 +271,21 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assigned_owner=TestClient(app.app,cookies={'salus_session':'fictional-report-session'})
         assert assigned_owner.get(report_url).status_code==403
         assert assigned_owner.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==403
+        assert assigned_owner.get(qa_url).status_code==403
         conn=app.db()
         conn.execute('INSERT INTO assessment_access(user_id,assessment_id,created_at) VALUES(?,?,?)',
                      (salus_user,assessment_id,app.now()))
         conn.commit();conn.close()
         assert assigned_owner.get(report_url).status_code==200
         assert assigned_owner.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==200
+        assert assigned_owner.get(qa_url).status_code==200
         requested=member.get(intake_url)
         assert requested.status_code==200 and len(requested.json()['items'])==2,requested.text
         assert requested.json()['catalog']==[]
         assert member.get(report_url).status_code==403
         assert member.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==403
+        assert member.get(qa_url).status_code==403
+        assert member.patch(retention_url,json={'legal_hold':True,'reason':'No Member retention authority in this candidate.'}).status_code==403
         assert 'response_user_id' not in requested.json()['items'][0]
         item_id=requested.json()['items'][0]['id']
         response=member.patch(f'{intake_url}/{item_id}',json={'status':'Not held'})
@@ -287,6 +311,9 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
+        assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==1
+        assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
+            (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
         from portable_backup import collect_tenant_records, replace_tenant_records, validate_records
         records=collect_tenant_records(conn,1)
@@ -296,13 +323,21 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len(records['package_acceptances'])==1
         assert len(records['package_intake_requests'])==2
         assert len(records['package_product_report_versions'])==5
+        assert len(records['package_report_conformance'])==1
         assert not validate_records(records,1)
+        original_summary=records['package_report_conformance'][0]['summary']
+        records['package_report_conformance'][0]['summary']='Altered after the conformance record was created.'
+        assert any('immutable matrix verification' in error for error in validate_records(records,1))
+        records['package_report_conformance'][0]['summary']=original_summary
         replace_tenant_records(conn,1,records)
         conn.commit()
         assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
+        assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==1
+        assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
+            (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
         conn.close()
         # A historical Executive snapshot cannot stand in for four issued package reports.

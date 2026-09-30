@@ -890,6 +890,9 @@ def init_db():
       content_sha256 TEXT NOT NULL,
       size_bytes INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'Draft',
+      retention_until TEXT NOT NULL DEFAULT '',
+      legal_hold INTEGER NOT NULL DEFAULT 0,
+      disposition_status TEXT NOT NULL DEFAULT 'Active',
       created_by TEXT NOT NULL,
       created_at TEXT NOT NULL,
       supersedes_id INTEGER,
@@ -900,6 +903,23 @@ def init_db():
       UNIQUE (tenant_id,assessment_id,product,version_no)
     );
     CREATE INDEX IF NOT EXISTS idx_package_product_report_scope ON package_product_report_versions(tenant_id,assessment_id,product,id);
+    CREATE TABLE IF NOT EXISTS package_report_conformance (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      report_id INTEGER NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      checks_json TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      matrix_status TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL UNIQUE,
+      recorded_by TEXT NOT NULL,
+      recorded_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_conformance_report ON package_report_conformance(tenant_id,report_id,id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -1523,6 +1543,11 @@ def init_db():
     ensure_column('package_quote_versions','agreement_artifact_id','INTEGER NOT NULL DEFAULT 0')
     ensure_column('package_quote_versions','assessment_scope_sha256',"TEXT NOT NULL DEFAULT ''")
     ensure_column('package_product_report_versions','display_title',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('package_product_report_versions','retention_until',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('package_product_report_versions','legal_hold','INTEGER NOT NULL DEFAULT 0')
+    ensure_column('package_product_report_versions','disposition_status',"TEXT NOT NULL DEFAULT 'Active'")
+    report_retention=(datetime.now(timezone.utc)+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
+    conn.execute("UPDATE package_product_report_versions SET retention_until=? WHERE retention_until=''",(report_retention,))
     for field in ('included_work','report_deliverables','member_inputs','evidence_allowance','clarification_allowance','field_specialist_terms','payment_terms','tax_treatment','change_triggers'):
         ensure_column('package_quote_versions',field,"TEXT NOT NULL DEFAULT ''")
     ensure_column('package_acceptances','agreement_download_id','INTEGER NOT NULL DEFAULT 0')
@@ -1546,6 +1571,8 @@ def init_db():
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.10.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.11.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.12.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.13.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.14.0',now()))
 
     # v0.6 tenant/bootstrap migration. Existing records are assigned to the default tenant.
     if conn.execute('SELECT COUNT(*) c FROM tenants').fetchone()['c'] == 0:
@@ -2483,6 +2510,18 @@ class AttachmentGovernanceIn(BaseModel):
     retention_until: Optional[str] = None
     legal_hold: Optional[bool] = None
     disposition_status: Optional[str] = None
+
+class PackageReportConformanceIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    content_sha256: str = Field(min_length=64,max_length=64,pattern=r'^[0-9a-f]{64}$')
+    checks: dict[str,dict[str,str]]
+    summary: str = Field(min_length=20,max_length=4000)
+
+class PackageReportRetentionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    retention_until: Optional[str] = Field(default=None,max_length=40)
+    legal_hold: Optional[Literal[True]] = None
+    reason: str = Field(min_length=20,max_length=2000)
 
 ROLE_PERMISSIONS={
     'System Administrator': {'read','write','decide','admin'},
@@ -5496,6 +5535,12 @@ def respond_package_intake(assessment_id:int,item_id:int,p:PackageIntakeResponse
 
 PACKAGE_REPORT_PRODUCTS={'SalINTEL','SalTHIRA','SalOPS','SalCAPA'}
 PACKAGE_REPORT_DRAFT_ROLES={'System Administrator','Assessment Director','Lead Assessor'}
+PACKAGE_REPORT_QA_KEYS=(
+    'level_status_and_handoffs','evidence_and_provenance','uncertainty_and_contradictions',
+    'protected_member_isolation','confidentiality_and_audience','approved_title_and_brand',
+    'arial_headings_times_body','cover_blank_second_page_page_x_of_y','accessibility',
+    'all_rendered_pages','docx_pdf_print_parity','method_and_template_version',
+    'qualified_review_and_release_authority')
 
 def require_package_report_assignment(request:Request,assessment_id:int):
     ctx=auth_context(request)
@@ -5528,7 +5573,7 @@ def list_package_product_reports(assessment_id:int,request:Request):
     try:
         rows=[dict(row) for row in conn.execute('''SELECT id,quote_id,product,report_identity,display_title,version_no,
           assessment_scope_sha256,method_version,template_version,original_name,content_sha256,size_bytes,
-          status,created_by,created_at,supersedes_id FROM package_product_report_versions
+          status,retention_until,legal_hold,disposition_status,created_by,created_at,supersedes_id FROM package_product_report_versions
           WHERE tenant_id=? AND assessment_id=? ORDER BY product,version_no''',(tenant_id(request),assessment_id))]
         return {'reports':rows,'notice':'Draft registration is not qualified review, issue, or predecessor proof.'}
     finally: conn.close()
@@ -5571,12 +5616,13 @@ async def register_package_product_draft(assessment_id:int,product:str,request:R
         display_title=f'{assessment["organization"]} - {product}{suffix}'
         stored=f'tenant-{tid}/assessment-{assessment_id}/package-reports/{product}/{uuid.uuid4().hex}_{digest[:16]}.docx'
         storage.put_bytes(stored,content)
+        retention_until=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
         cur=conn.execute('''INSERT INTO package_product_report_versions
             (tenant_id,assessment_id,quote_id,product,report_identity,display_title,version_no,assessment_scope_sha256,
-             method_version,template_version,original_name,stored_name,content_sha256,size_bytes,status,created_by,created_at,supersedes_id)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Draft',?,?,?)''',
+             method_version,template_version,original_name,stored_name,content_sha256,size_bytes,status,retention_until,legal_hold,disposition_status,created_by,created_at,supersedes_id)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Draft',?,0,'Active',?,?,?)''',
             (tid,assessment_id,quote['id'],product,identity,display_title,version,quote['assessment_scope_sha256'],
-             method_version,template_version,original,stored,digest,len(content),actor(request),now(),previous['id'] if previous else None))
+             method_version,template_version,original,stored,digest,len(content),retention_until,actor(request),now(),previous['id'] if previous else None))
         audit(conn,'PACKAGE_REPORT_DRAFT','assessment',assessment_id,f'product={product}; version={version}; sha256={digest}',actor(request))
         conn.commit()
         return {'id':cur.lastrowid,'product':product,'report_identity':identity,'display_title':display_title,'version_no':version,'content_sha256':digest,'status':'Draft'}
@@ -5608,6 +5654,109 @@ def download_package_product_draft(report_id:int,request:Request):
     return Response(content=content,media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         headers={'Content-Disposition':f'attachment; filename="{safe_filename(row["original_name"])}"',
                  'X-Content-SHA256':row['content_sha256'],'Cache-Control':'no-store'})
+
+@app.get('/api/package-reports/{report_id}/conformance')
+def list_package_report_conformance(report_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES: raise HTTPException(403,'Working report conformance is restricted to Salus report owners.')
+    conn=db()
+    try:
+        report=conn.execute('SELECT assessment_id FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not report: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        rows=[dict(row) for row in conn.execute('SELECT * FROM package_report_conformance WHERE tenant_id=? AND report_id=? ORDER BY id',
+            (tenant_id(request),report_id))]
+        for row in rows: row['checks']=json.loads(row.pop('checks_json'))
+        return {'records':rows,'required_checks':PACKAGE_REPORT_QA_KEYS,
+            'notice':'A recorded matrix does not approve, issue or qualify a package report.'}
+    finally: conn.close()
+
+@app.patch('/api/package-reports/{report_id}/retention')
+def extend_package_report_retention(report_id:int,p:PackageReportRetentionIn,request:Request):
+    require_package_commercial_candidate();require(request,'decide')
+    if role(request) not in {'System Administrator','Assessment Director'}:
+        raise HTTPException(403,'Package report retention requires a Salus decision owner.')
+    if p.retention_until is None and p.legal_hold is None:
+        raise HTTPException(422,'Extend retention or place a legal hold.')
+    new_until=None
+    if p.retention_until is not None:
+        try:
+            parsed=datetime.fromisoformat(p.retention_until.replace('Z','+00:00'))
+            if parsed.tzinfo is None: raise ValueError('Timezone required')
+            if parsed.astimezone(timezone.utc)<=_iso_now_dt():
+                raise HTTPException(422,'Extended retention must end in the future.')
+            new_until=parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+        except ValueError as exc: raise HTTPException(422,'Use an explicit UTC retention timestamp.') from exc
+    conn=db()
+    try:
+        row=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not row: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,row['assessment_id'])
+        require_package_report_assignment(request,row['assessment_id'])
+        lock_package_assessment(conn,row['assessment_id'])
+        if new_until and row['retention_until'] and new_until<row['retention_until']:
+            raise HTTPException(409,'Working report retention cannot be shortened through this route.')
+        target_until=new_until or row['retention_until']
+        target_hold=1 if p.legal_hold else row['legal_hold']
+        if target_until!=row['retention_until'] or target_hold!=row['legal_hold']:
+            conn.execute('UPDATE package_product_report_versions SET retention_until=?,legal_hold=? WHERE id=?',
+                (target_until,target_hold,report_id))
+            audit(conn,'PACKAGE_REPORT_RETENTION','assessment',row['assessment_id'],
+                f'report_id={report_id}; retention_until={target_until}; legal_hold={target_hold}; reason={p.reason.strip()}',actor(request))
+            conn.commit()
+        return {'id':report_id,'retention_until':target_until,'legal_hold':bool(target_hold),
+            'notice':'This route cannot delete a report or clear a legal hold.'}
+    finally: conn.close()
+
+@app.post('/api/package-reports/{report_id}/conformance')
+def record_package_report_conformance(report_id:int,p:PackageReportConformanceIn,request:Request):
+    require_package_commercial_candidate();require(request,'write')
+    if role(request) not in {'System Administrator','Assessment Director'}:
+        raise HTTPException(403,'A Salus report reviewer must record the conformance matrix.')
+    if set(p.checks)!=set(PACKAGE_REPORT_QA_KEYS):
+        raise HTTPException(422,'The report conformance matrix requires every current Charter check.')
+    for key,item in p.checks.items():
+        if set(item)!={'status','reason'} or item['status'] not in ('Met','Pending','Not applicable') or not 8<=len(item['reason'].strip())<=2000:
+            raise HTTPException(422,f'{key} needs a valid status and a specific evidence, gate or applicability reason.')
+    conn=db()
+    try:
+        row=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not row: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,row['assessment_id'])
+        require_package_report_assignment(request,row['assessment_id'])
+        lock_package_assessment(conn,row['assessment_id'])
+        quote=authorized_package_intake(conn,row['assessment_id'],request)
+        if quote['id']!=row['quote_id'] or quote['assessment_scope_sha256']!=row['assessment_scope_sha256']:
+            raise HTTPException(409,'The working report belongs to a changed package boundary.')
+        if p.content_sha256!=row['content_sha256'] or row['status']!='Draft':
+            raise HTTPException(409,'The conformance record must bind to the exact named working document.')
+        try: content=storage.get_bytes(row['stored_name'])
+        except Exception as exc: raise HTTPException(503,'Working report storage is unavailable.') from exc
+        if hashlib.sha256(content).hexdigest()!=row['content_sha256']:
+            security_event(request,'PACKAGE_REPORT_QA_HASH_MISMATCH','High',f'report_id={report_id}')
+            raise HTTPException(409,'Working report integrity verification failed.')
+        checks_json=json.dumps({key:p.checks[key] for key in PACKAGE_REPORT_QA_KEYS},sort_keys=True,separators=(',',':'))
+        summary=p.summary.strip()
+        record_sha=hashlib.sha256(json.dumps({'report_id':report_id,'content_sha256':p.content_sha256,
+            'checks':json.loads(checks_json),'summary':summary},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('SELECT * FROM package_report_conformance WHERE record_sha256=? AND tenant_id=?',
+            (record_sha,tenant_id(request))).fetchone()
+        if prior: return {'id':prior['id'],'matrix_status':prior['matrix_status'],'record_sha256':record_sha,'idempotent':True}
+        matrix_status='Open' if any(item['status']=='Pending' for item in p.checks.values()) else 'Marked'
+        cur=conn.execute('''INSERT INTO package_report_conformance
+            (tenant_id,assessment_id,report_id,content_sha256,checks_json,summary,matrix_status,record_sha256,recorded_by,recorded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?)''',(tenant_id(request),row['assessment_id'],report_id,p.content_sha256,
+            checks_json,summary,matrix_status,record_sha,actor(request),now()))
+        audit(conn,'PACKAGE_REPORT_CONFORMANCE','assessment',row['assessment_id'],
+            f'report_id={report_id}; matrix={matrix_status}; sha256={record_sha}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'matrix_status':matrix_status,'record_sha256':record_sha,'idempotent':False,
+            'notice':'This record does not approve, issue or qualify the report.'}
+    finally: conn.close()
 
 @app.post('/api/assessments/{assessment_id}/reassessment-review')
 def review_assessment_reassessment(assessment_id:int,p:AssessmentReassessmentReviewIn,request:Request):
