@@ -14,3 +14,16 @@ All four references use letter paper, three sections, a confidential cover and a
 **Editable slots:** title on cover; cover status/version sentence to mark candidate lineage; first executive/BLUF prompt to demand exact level/band, covered decision unit, exclusions and evidence status. All other bracketed instructions remain for later controlled template review. The proposed title uses `Level [path]`; before a Member issue the author replaces `[path]` with `1A Access`, `1A Standard`, `1B`, `1C`, `2A` etc. and replaces customer name. The exact front matter and executive summary must state the chosen path. A template is never an issued report.
 
 **Fidelity gates:** reference hash, ZIP integrity, unaffected package-part hashes, section count, blank page 2, every nonblank page footer `page X of Y`, font check, all-page render and visual comparison. Any layout change outside the edited text, broken page, accessibility defect or unresolved placeholder in a proposed Member issue blocks promotion.
+
+## 30 September 2026 exact candidate check
+
+The four candidates were regenerated after adding `Salus Solutions logo` as the Word image's alternate description. The source templates were read but not changed. `proposals/qa/audit_level_band_templates.py` verified each registered reference hash, Word ZIP integrity, unchanged package members outside `word/document.xml` and `word/styles.xml`, semantic `Title` paragraph, heading styles, logo description, a fresh LibreOffice render, blank page 2, every nonblank `page X of Y` footer, and embedded Arial/Times New Roman font names. All 23 nonblank pages of the current exact render were visually inspected at reading size, and all four page-two images were text-empty by extraction; no clipping was observed. The current Word/PDF hashes are:
+
+| Product | Candidate DOCX SHA-256 | Fresh QA PDF SHA-256 | Pages |
+|---|---|---|---:|
+| SalINTEL™ | `3169BF0C0612F707EABF94C7C7EF6A65CD6AB2712136C2656DAECC53038A9379` | `4664705373E3561EEEBD8558493085D50EBC27FA4B4EE373EA548F76C1E1661D` | 9 |
+| SalTHIRA™ | `EE1FC1CB3CCA000A88F5C39925B8F5C2DFD95529C28D24CB48B456F5AC0906AB` | `7FD2C33845CDD3EA22E97B1923DAF695CC7E0C5EBB3469F193235E0005824B94` | 6 |
+| SalOPS™ | `6D0CE308D1FF12EB9CE542654129DD4016F86444DA4F52248D1F66E31CDB525E` | `A9BCDFD7A091044767788A8C091E02353C54A22FFAB55F193E37AC683672D0F1` | 6 |
+| SalCAPA™ | `8A6F1FFE6DD4F1DA58C14C10C30FF9F36CFB7CD628C14CCBB5B44FBFD2BED8BA` | `0D25EEFFA40C484E87611B87AF41D776DCE7EC70621FF93543CD0E39F3056128` | 6 |
+
+These are still candidate templates. Native Microsoft Word rendering was attempted on 30 September 2026 but the local service session returned COM error `0x80070520` (no logon session). Accessibility-tool and screen-reader review, populated-report checks, template access control, approval and governed publication remain open. The fresh QA PDFs are review byproducts and are not Member deliverables.

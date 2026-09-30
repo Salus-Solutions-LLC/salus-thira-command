@@ -62,6 +62,10 @@ def build() -> None:
                     for old, new in replacements.items():
                         assert xml.count(old) == 1, (source, old, xml.count(old))
                         xml = xml.replace(old, new, 1)
+                    logo = '<wp:docPr id="1" name="Picture 1"/>'
+                    assert xml.count(logo) == 1, (source, 'Salus logo alternate description')
+                    xml = xml.replace(logo,
+                        '<wp:docPr id="1" name="Picture 1" title="Salus Solutions" descr="Salus Solutions logo"/>', 1)
                     data = xml.encode("utf-8")
                 elif info.filename == "word/styles.xml":
                     # The reference Heading/Title styles specify Arial but
