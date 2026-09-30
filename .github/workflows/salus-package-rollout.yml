@@ -80,3 +80,18 @@ jobs:
       - run: python -m pytest -q -p no:cacheprovider tests --ignore=tests/test_protection_advisor_professional_report.py
       - run: python -m compileall -q app.py public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py salus_package_path.py salus_package_quote.py salus_package_intake.py portable_backup.py proposals/qa/audit_level_band_templates.py
       - run: node --check static/app.js
+
+  professional-report-windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt pytest==8.4.2
+      # Windows provides the Arial and Times New Roman font files required by
+      # the professional Protection Advisor PDF tests. This is still a source
+      # regression check, not native Word or populated-report acceptance.
+      - run: python -m pytest -q -p no:cacheprovider tests
