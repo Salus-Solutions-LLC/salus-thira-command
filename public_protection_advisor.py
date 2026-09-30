@@ -25,7 +25,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from telemetry import emit as emit_telemetry
 from protection_advisor_report_artifact import prepare_review_artifact
-from protection_advisor_docx_report import render_protection_advisor_pdf
+from protection_advisor_docx_report import render_protection_advisor_pdf, render_scope_receipt_pdf
 from protection_advisor_engagements import (
     create_assessment_scope,
     initialize_engagement_schema,
@@ -42,6 +42,7 @@ RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.1.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
 REPORT_TEMPLATE_VERSION = "SPA-REPORT-TEMPLATE-1.3.0"
+SCOPE_RECEIPT_PDF_VERSION = "SPA-SCOPE-RECEIPT-PDF-0.1.0"
 HANDLING_PROFILES = {
     "Commercial Confidential", "Government Sensitive", "Federal CUI",
     "Government Contractor CUI", "Specialized Regulated Information",
@@ -706,6 +707,18 @@ def _initialize(conn: Any) -> None:
       PRIMARY KEY (session_key,revision_no),
       FOREIGN KEY (session_key) REFERENCES advisor_public_sessions(session_key) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS advisor_public_scope_receipt_snapshots (
+      session_key TEXT NOT NULL,
+      revision_no INTEGER NOT NULL,
+      package_version TEXT NOT NULL,
+      template_version TEXT NOT NULL,
+      item_id TEXT NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      content_size INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (session_key,revision_no),
+      FOREIGN KEY (session_key) REFERENCES advisor_public_sessions(session_key) ON DELETE CASCADE
+    );
     """)
     initialize_engagement_schema(conn)
 
@@ -1093,7 +1106,7 @@ function escapeAdvisorHtml(value){return String(value||"").replace(/[&<>"']/g,ch
 function handlingPresentation(identity){if(!identity||!identity.handling_profile)return {banner:"CONFIDENTIAL — SALUS PROTECTED INFORMATION",watermark:"CONFIDENTIAL",note:""};if(identity.handling_status==="Approved"||identity.handling_status==="Approved by Default Policy"){const cui=identity.handling_profile.includes("CUI");return {banner:cui?"CONTROLLED UNCLASSIFIED INFORMATION (CUI)":identity.handling_profile.toUpperCase(),watermark:cui?"CUI":"CONFIDENTIAL",note:""};}return {banner:"CONFIDENTIAL — SALUS PROTECTED INFORMATION",watermark:"CONFIDENTIAL",note:"Requested handling profile: "+identity.handling_profile+" — awaiting authorized Salus review."}}
 function advisorTimestamp(value){const date=value?new Date(value):new Date();if(Number.isNaN(date.getTime()))return "Not available";const iso=date.toISOString();return iso.slice(8,10)+"-"+iso.slice(5,7)+"-"+iso.slice(0,4)+" "+iso.slice(11,16)+" UTC"}
 function advisorPrintMeta(part,reference,confidential,identity={}){const handling=handlingPresentation(identity);const prepared=advisorTimestamp();const identifiers=confidential?'<div class="print-identifiers"><strong>Protected Member:</strong> '+escapeAdvisorHtml(identity.protected_member_code_name)+'<br><strong>Project:</strong> '+escapeAdvisorHtml(identity.project_code_name)+'<br><strong>Report Reference:</strong> '+escapeAdvisorHtml(reference)+'<br><strong>Prepared:</strong> '+escapeAdvisorHtml(prepared)+'<br><strong>Report Template:</strong> SPA-REPORT-TEMPLATE-1.3.0<br><span class="print-classification">'+escapeAdvisorHtml(handling.banner)+'</span>'+(handling.note?'<br>'+escapeAdvisorHtml(handling.note):'')+'</div>':'<div class="print-identifiers"><strong>Anonymous Report Reference:</strong> '+escapeAdvisorHtml(reference)+'<br><strong>Prepared:</strong> '+escapeAdvisorHtml(prepared)+'<br><strong>ANONYMOUS PRELIMINARY SUMMARY</strong></div>';return '<div class="print-meta"><div class="print-watermark">'+escapeAdvisorHtml(confidential?handling.watermark:"ANONYMOUS")+'</div><div class="print-brand"><img src="/static/salus-reticle.svg" alt=""><span>Salus Solutions</span></div><div class="print-report-title">Protection Advisor™</div><strong>'+escapeAdvisorHtml(part)+'</strong>'+identifiers+'<p>This preliminary educational and decision-support output is not an emergency report, completed SalTHIRA™, professional certification, legal or insurance advice, or guarantee of safety.</p></div>'}
-async function downloadAdvisorReport(){const status=document.getElementById("detailedReportStatus");if(status)status.textContent="Preparing your scope and readiness report…";try{const response=await fetch("/public/protection-advisor/report.pdf",{method:"GET",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});if(!response.ok){let message="Report download failed";try{const error=await response.json();if(error.detail)message=error.detail}catch(_){}throw new Error(message)}const blob=await response.blob();if(blob.type&&blob.type!=="application/pdf")throw new Error("The report service did not return a PDF");const disposition=response.headers.get("content-disposition")||"";const match=disposition.match(/filename="?([^";]+)"?/i);const filename=match?match[1]:"Salus-Protection-Advisor-Report.pdf";const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);if(status)status.textContent="Scope and readiness report downloaded."}catch(error){if(status)status.textContent=error.message||"Report download failed"}}
+async function downloadAdvisorReport(kind="report"){const isReceipt=kind==="receipt";const status=document.getElementById("detailedReportStatus");if(status)status.textContent=isReceipt?"Preparing your one-page scope receipt…":"Preparing your scope and readiness report…";try{const response=await fetch(isReceipt?"/public/protection-advisor/scope-receipt.pdf":"/public/protection-advisor/report.pdf",{method:"GET",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});if(!response.ok){let message="Report download failed";try{const error=await response.json();if(error.detail)message=error.detail}catch(_){}throw new Error(message)}const blob=await response.blob();if(blob.type&&blob.type!=="application/pdf")throw new Error("The report service did not return a PDF");const disposition=response.headers.get("content-disposition")||"";const match=disposition.match(/filename="?([^";]+)"?/i);const filename=match?match[1]:(isReceipt?"Salus-Scope-Receipt.pdf":"Salus-Protection-Advisor-Report.pdf");const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);if(status)status.textContent=isReceipt?"One-page scope receipt downloaded.":"Scope and readiness report downloaded."}catch(error){if(status)status.textContent=error.message||"Report download failed"}}
 function printAdvisor(scope){if(scope==="part2"){downloadAdvisorReport();return}document.body.classList.remove("print-part1","print-part2");document.body.classList.add("print-part1");window.print();setTimeout(()=>document.body.classList.remove("print-part1"),0)}
 async function preliminaryResult(){assessmentError.textContent="";try{const data=await call("/public/protection-advisor/preliminary",{method:"POST",body:"{}"});const r=data.result;advisorResultReference=data.result_reference;assessment.classList.add("hidden");result.classList.remove("hidden");paths.classList.toggle("hidden",Boolean(accountEmailCurrent));result.innerHTML=advisorPrintMeta("Part 1 — Anonymous Preliminary Summary",advisorResultReference,false)+'<p class="eyebrow">Your Anonymous Preliminary Summary</p><h2>'+r.recommendation+'</h2><p>'+r.notice+'</p><p><strong>Potential attention areas:</strong> '+r.attention_count+'. <strong>Indicated strengths:</strong> '+r.strength_count+'. <strong>Information gaps:</strong> '+r.information_gap_count+'.</p><p>'+r.manual_next_step+'</p>'+hypothesisMarkup(r.preliminary_hypothesis)+'<div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part1&quot;)">Print or Save Preliminary Summary &gt;</button></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';if(accountEmailCurrent){showProfileForAccount(accountEmailCurrent,{})}else{result.scrollIntoView({behavior:"smooth"})}reportProtectionAdvisorHeight()}catch(x){assessmentError.textContent=x.message}}
 function showProfileAgreement(event){event.preventDefault();profileAgreement.classList.remove("hidden");profileAgreement.scrollIntoView({behavior:"smooth"})}
@@ -1102,7 +1115,7 @@ function confirmProfile(){profileAgreementError.textContent="";if(!detailAck.che
 function showProfileForAccount(email,draft){accountEmailCurrent=email;detailAck.checked=true;identifiableConsent.checked=true;accountAccess.classList.add("hidden");contactEmail.value=email;contactEmail.readOnly=true;hydrateDraft(draft||{});profile.classList.remove("hidden");profile.scrollIntoView({behavior:"smooth"});enableAutosave()}
 async function createAccount(){accountError.textContent="";try{if(accountPassword.value!==accountPasswordConfirm.value)throw new Error("Passwords do not match");const data=await call("/public/protection-advisor/account",{method:"POST",body:JSON.stringify({email:accountEmail.value,password:accountPassword.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked})});showProfileForAccount(data.email,data.draft)}catch(x){accountError.textContent=x.message}}
 function hypothesisMarkup(h){if(!h)return "";return '<section class="package-item"><h3>Preliminary working hypothesis and Level 1 action</h3><p><strong>Reported basis:</strong> '+escapeAdvisorHtml(h.reported_basis)+'</p><p><strong>Assumption:</strong> '+escapeAdvisorHtml(h.working_assumption)+'</p><p><strong>Action:</strong> '+escapeAdvisorHtml(h.level_1_action)+'</p><ul>'+(h.checklist||[]).map(item=>'<li>'+escapeAdvisorHtml(item)+'</li>').join("")+'</ul><p class="muted">This is a screening hypothesis, not a verified finding.</p></section>'}
-function scopeReceiptMarkup(r){if(!r)return '';return '<section class="package-item"><h3>Draft scope and preparation</h3><p class="muted">'+escapeAdvisorHtml(r.receipt_id||'Draft ID pending')+' · '+escapeAdvisorHtml(r.version||'')+'</p><p>'+escapeAdvisorHtml(r.lead_sentence||'')+'</p><p><strong>Requested operation:</strong> '+escapeAdvisorHtml(r.requested_boundary)+'</p><p><strong>Requested location:</strong> '+escapeAdvisorHtml(r.requested_location)+'</p><p><strong>Possible path:</strong> '+escapeAdvisorHtml(r.possible_path)+'</p><p>'+escapeAdvisorHtml(r.outside_boundary)+'</p><p><strong>What to prepare:</strong></p><ul>'+(r.member_prepares||[]).map(item=>'<li>'+escapeAdvisorHtml(item)+'</li>').join('')+'</ul><p>'+escapeAdvisorHtml(r.salus_deliverable)+'</p><p><strong>Price:</strong> '+escapeAdvisorHtml(r.price_state)+'</p><p><strong>Decision role:</strong> '+escapeAdvisorHtml(r.decision_owner)+'</p><p><strong>Next:</strong> '+escapeAdvisorHtml(r.next_step)+'</p><h4>Five steps</h4><ol>'+(r.milestones||[]).map(m=>'<li><strong>'+escapeAdvisorHtml(m.step)+'</strong> — '+escapeAdvisorHtml(m.owner)+'. '+escapeAdvisorHtml(m.complete_when)+'</li>').join('')+'</ol><h4>Your choices</h4><ul>'+(r.choices||[]).map(c=>'<li><strong>'+escapeAdvisorHtml(c.choice)+'</strong> — '+escapeAdvisorHtml(c.effect)+'</li>').join('')+'</ul><p class="muted">'+escapeAdvisorHtml(r.status)+'</p></section>'}
+function scopeReceiptMarkup(r){if(!r)return '';return '<section class="package-item"><h3>Draft scope and preparation</h3><p class="muted">'+escapeAdvisorHtml(r.receipt_id||'Draft ID pending')+' · '+escapeAdvisorHtml(r.version||'')+'</p><p>'+escapeAdvisorHtml(r.lead_sentence||'')+'</p><p><strong>Requested operation:</strong> '+escapeAdvisorHtml(r.requested_boundary)+'</p><p><strong>Requested location:</strong> '+escapeAdvisorHtml(r.requested_location)+'</p><p><strong>Possible path:</strong> '+escapeAdvisorHtml(r.possible_path)+'</p><p>'+escapeAdvisorHtml(r.outside_boundary)+'</p><p><strong>What to prepare:</strong></p><ul>'+(r.member_prepares||[]).map(item=>'<li>'+escapeAdvisorHtml(item)+'</li>').join('')+'</ul><p>'+escapeAdvisorHtml(r.salus_deliverable)+'</p><p><strong>Price:</strong> '+escapeAdvisorHtml(r.price_state)+'</p><p><strong>Decision role:</strong> '+escapeAdvisorHtml(r.decision_owner)+'</p><p><strong>Next:</strong> '+escapeAdvisorHtml(r.next_step)+'</p><h4>Five steps</h4><ol>'+(r.milestones||[]).map(m=>'<li><strong>'+escapeAdvisorHtml(m.step)+'</strong> — '+escapeAdvisorHtml(m.owner)+'. '+escapeAdvisorHtml(m.complete_when)+'</li>').join('')+'</ol><h4>Your choices</h4><ul>'+(r.choices||[]).map(c=>'<li><strong>'+escapeAdvisorHtml(c.choice)+'</strong> — '+escapeAdvisorHtml(c.effect)+'</li>').join('')+'</ul><div class="print-actions"><button type="button" onclick="downloadAdvisorReport(&quot;receipt&quot;)">Download one-page scope receipt &gt;</button></div><p class="muted">'+escapeAdvisorHtml(r.status)+'</p></section>'}
 function packageMarkup(p){const path=p.provisional_path;const pathHtml=path?'<section class="package-item"><h3>'+escapeAdvisorHtml(path.label)+' — scope to confirm</h3><p>'+escapeAdvisorHtml(path.reason)+'</p><p><strong>Next:</strong> '+escapeAdvisorHtml(path.next_step)+'</p><p class="muted">'+escapeAdvisorHtml(path.status)+'</p></section>':'';return '<h2>'+escapeAdvisorHtml(p.title)+'</h2><p>'+escapeAdvisorHtml(p.rationale)+'</p>'+pathHtml+scopeReceiptMarkup(p.scope_receipt)+p.services.map(s=>'<div class="package-item"><h3>'+s.title+' — Level '+s.level+'</h3><p>'+s.summary+'</p><p><strong>Why this level:</strong> '+s.why+'</p><p><strong>Core capabilities addressed:</strong> '+s.capabilities.join(", ")+'</p></div>').join("")+(p.later_phase_services.length?'<h3>Possible later-phase services</h3><p>'+p.later_phase_services.map(s=>s.title+' — Level '+s.level).join("; ")+'</p>':'')+'<p><strong>Suggested sequence:</strong> '+p.sequence.join(" → ")+'</p><p>'+p.notice+'</p><a class="action" href="https://www.salus.solutions/contact">Discuss This Package With Salus &gt;</a>'}
 function openReportIdentityEditor(){const editor=document.getElementById('reportIdentityEditor');if(!editor)return;editor.open=true;editor.scrollIntoView({behavior:'smooth',block:'start'});editor.querySelector('input')?.focus({preventScroll:true})}
 function identityEditorMarkup(i){return '<details id="reportIdentityEditor" class="notice report-identity-editor"><summary><strong>Edit code names and report handling &gt;</strong></summary><p class="muted">Changes create a new immutable revision. A controlled-information request remains Confidential unless an authorized Salus reviewer approves the marking.</p><label>Protected Member Code Name<input id="retainedMemberCode" value="'+escapeAdvisorHtml(i.protected_member_code_name||"")+'" maxlength="80"></label><label>Project Code Name<input id="retainedProjectCode" value="'+escapeAdvisorHtml(i.project_code_name||"")+'" maxlength="80"></label><label>Requested report-handling profile<select id="retainedHandlingProfile">'+["Commercial Confidential","Government Sensitive","Federal CUI","Government Contractor CUI","Specialized Regulated Information"].map(v=>'<option'+(v===i.handling_profile?' selected':'')+'>'+v+'</option>').join("")+'</select></label><label>Handling authority<input id="retainedHandlingAuthority" value="'+escapeAdvisorHtml(i.handling_authority||"")+'" maxlength="240"></label><label>Designating agency<input id="retainedDesignatingAgency" value="'+escapeAdvisorHtml(i.designating_agency||"")+'" maxlength="160"></label><label>Contract or task-order reference<input id="retainedContractReference" value="'+escapeAdvisorHtml(i.contract_reference||"")+'" maxlength="160"></label><label>Dissemination controls<input id="retainedDisseminationControls" value="'+escapeAdvisorHtml(i.dissemination_controls||"")+'" maxlength="240"></label><button type="button" onclick="updateReportIdentity()">Save New Revision &gt;</button><p id="identityUpdateStatus" class="muted"></p></details>'}
@@ -2641,6 +2654,137 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
         finally:
             conn.close()
 
+    @app.get("/public/protection-advisor/scope-receipt.pdf")
+    def download_public_scope_receipt(request: Request, revision: int | None = None) -> Response:
+        """Return an exact saved one-page provisional receipt to its account."""
+        limited(request, request.cookies.get("salus_advisor_account", ""))
+        conn = ctx["db"]()
+        try:
+            session, _ = _session(conn, request)
+            account = _account_session(conn, request)
+            _require_account_assessment(conn, account["account_key"], session["session_key"])
+            if session["status"] != "Submitted":
+                raise HTTPException(409, "Submit Part 2 before downloading the scope receipt")
+            row = conn.execute(
+                """SELECT s.submission_key,p.profile_json,p.package_json,p.package_recommendation_version
+                     FROM advisor_public_submissions s
+                     JOIN advisor_public_service_profiles p ON p.submission_key=s.submission_key
+                    WHERE s.session_key=?""",
+                (session["session_key"],),
+            ).fetchone()
+            latest_identity = _latest_report_identity(conn, session["session_key"])
+            if not row or not latest_identity:
+                raise HTTPException(409, "Submitted scope receipt is unavailable")
+            if revision is not None and revision < 1:
+                raise HTTPException(400, "Choose a valid receipt revision")
+            revision_no = revision or int(latest_identity["revision_no"])
+            identity = conn.execute(
+                """SELECT * FROM advisor_public_report_identity_revisions
+                    WHERE session_key=? AND revision_no=?""",
+                (session["session_key"], revision_no),
+            ).fetchone()
+            if not identity:
+                raise HTTPException(404, "Receipt revision not found")
+            snapshot = conn.execute(
+                """SELECT * FROM advisor_public_scope_receipt_snapshots
+                    WHERE session_key=? AND revision_no=?""",
+                (session["session_key"], revision_no),
+            ).fetchone()
+            package = json.loads(row["package_json"])
+            receipt = package.get("scope_receipt") or {}
+            receipt_id = str(receipt.get("receipt_id") or "")
+            if not receipt_id.startswith("SPA-RECEIPT-"):
+                raise HTTPException(409, "The submitted scope receipt needs Salus review")
+            if snapshot is None:
+                # An older identity without its saved original cannot be
+                # reconstructed using today's renderer or handling data.
+                if (revision_no != int(latest_identity["revision_no"])
+                        or row["package_recommendation_version"] != PACKAGE_RECOMMENDATION_VERSION
+                        or receipt.get("version") != "SPA-SCOPE-RECEIPT-0.2.0"):
+                    raise HTTPException(409, "This earlier receipt needs Salus review")
+                identity_version_payload = {
+                    key: identity[key] for key in (
+                        "protected_member_code_name", "project_code_name", "handling_profile",
+                        "handling_status", "handling_authority", "designating_agency",
+                        "contract_reference", "dissemination_controls", "revision_no",
+                        "created_by", "created_at", "decision_note",
+                    )
+                }
+                identity_version_payload["report_template_version"] = REPORT_TEMPLATE_VERSION
+                if identity["content_sha256"] != _sha(_json(identity_version_payload)):
+                    raise HTTPException(409, "This earlier receipt needs Salus review")
+                output_dir = os.getenv("SALUS_ADVISOR_REPORT_OUTPUT_DIR", "").strip()
+                if not output_dir:
+                    raise HTTPException(503, "Receipt delivery is temporarily unavailable")
+                profile = json.loads(row["profile_json"])
+                handling = "CUI" if "CUI" in str(identity["handling_profile"]) else "Confidential"
+                context = build_report_context(
+                    client_code_name=str(identity["protected_member_code_name"]),
+                    project_code_name=str(identity["project_code_name"]),
+                    organization_type=session["organization_type"],
+                    government_or_public_service_role=str(profile.get("external_requirements") or "Not provided"),
+                    assessment_authority_or_sponsor=str(profile.get("decision_authority") or "Not provided"),
+                    information_handling=handling,
+                    report_reference="SPA-REPORT-" + row["submission_key"].removeprefix("SPA-SUBMISSION-"),
+                    generated_at=_utc_now(),
+                )
+                Path(output_dir).mkdir(parents=True, exist_ok=True)
+                with tempfile.TemporaryDirectory(prefix="spa-receipt-", dir=output_dir) as temporary:
+                    path = Path(temporary) / "scope-receipt.pdf"
+                    try:
+                        render_scope_receipt_pdf(output_path=path, context=context, receipt=receipt)
+                        stored = store_member_pdf(receipt_id, revision_no, path.read_bytes())
+                    except (M365ReportError, RuntimeError) as exc:
+                        raise HTTPException(503, "Receipt delivery needs Salus review") from exc
+                try:
+                    conn.execute(
+                        """INSERT INTO advisor_public_scope_receipt_snapshots
+                           (session_key,revision_no,package_version,template_version,item_id,
+                            content_sha256,content_size,created_at)
+                           VALUES(?,?,?,?,?,?,?,?) ON CONFLICT (session_key,revision_no) DO NOTHING""",
+                        (session["session_key"], revision_no, row["package_recommendation_version"],
+                         SCOPE_RECEIPT_PDF_VERSION, stored["item_id"], stored["sha256"],
+                         stored["size"], _utc_text(_utc_now())),
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    try:
+                        delete_member_pdf(str(stored["item_id"]))
+                    except M365ReportError:
+                        pass
+                    raise
+                snapshot = conn.execute(
+                    """SELECT * FROM advisor_public_scope_receipt_snapshots
+                        WHERE session_key=? AND revision_no=?""",
+                    (session["session_key"], revision_no),
+                ).fetchone()
+                if str(snapshot["item_id"]) != str(stored["item_id"]):
+                    try:
+                        delete_member_pdf(str(stored["item_id"]))
+                    except M365ReportError as exc:
+                        raise HTTPException(503, "A duplicate receipt needs Salus review") from exc
+            try:
+                content = read_member_pdf(str(snapshot["item_id"]),
+                                          str(snapshot["content_sha256"]),
+                                          int(snapshot["content_size"]))
+            except M365ReportError as exc:
+                raise HTTPException(503, "The saved receipt could not be verified") from exc
+            conn.execute(
+                "INSERT INTO advisor_public_lifecycle_events VALUES(?,?,?,?,?)",
+                ("SPA-EVENT-" + secrets.token_hex(16).upper(), session["session_key"],
+                 "Scope Receipt Downloaded", _utc_text(_utc_now()),
+                 _sha(_json({"receipt_id": receipt_id, "revision": revision_no}))),
+            )
+            conn.commit()
+            return Response(
+                content=content, media_type="application/pdf",
+                headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+                         "Content-Disposition": f'attachment; filename="Salus-Scope-Receipt-{receipt_id}-R{revision_no}.pdf"'},
+            )
+        finally:
+            conn.close()
+
     @app.post("/public/protection-advisor/delete")
     async def delete_public_assessment(request: Request) -> dict[str, Any]:
         limited(request, request.cookies.get("salus_advisor_session", ""))
@@ -2651,6 +2795,10 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 "SELECT item_id FROM advisor_public_member_report_snapshots WHERE session_key=?",
                 (session["session_key"],),
             ).fetchall()
+            snapshots += conn.execute(
+                "SELECT item_id FROM advisor_public_scope_receipt_snapshots WHERE session_key=?",
+                (session["session_key"],),
+            ).fetchall()
             try:
                 for snapshot in snapshots:
                     delete_member_pdf(str(snapshot["item_id"]))
@@ -2658,6 +2806,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 raise HTTPException(503, "The saved report could not be removed. Please contact Salus.") from exc
             deleted = _utc_text(_utc_now())
             conn.execute("DELETE FROM advisor_public_member_report_snapshots WHERE session_key=?",(session["session_key"],))
+            conn.execute("DELETE FROM advisor_public_scope_receipt_snapshots WHERE session_key=?",(session["session_key"],))
             conn.execute("DELETE FROM advisor_public_submissions WHERE session_key=?",(session["session_key"],))
             conn.execute("DELETE FROM advisor_public_answer_revisions WHERE session_key=?",(session["session_key"],))
             conn.execute("UPDATE advisor_public_sessions SET status='Deleted',deleted_at=? WHERE session_key=?",(deleted,session["session_key"]))

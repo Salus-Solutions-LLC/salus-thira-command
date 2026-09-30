@@ -117,6 +117,14 @@ normal.font.size = Pt(11)
 normal.font.color.rgb = RGBColor(0, 0, 0)
 normal.paragraph_format.space_after = Pt(4)
 normal.paragraph_format.line_spacing = 1.10
+def clear_theme_font(style):
+    rfonts = style.element.rPr.rFonts
+    if rfonts is not None:
+        for attr in ("asciiTheme", "hAnsiTheme", "eastAsiaTheme", "cstheme"):
+            rfonts.attrib.pop(qn("w:" + attr), None)
+
+
+clear_theme_font(normal)
 for name, size, before, after in [("Title", 22, 0, 12), ("Heading 1", 15, 14, 7), ("Heading 2", 12.5, 10, 5)]:
     st = styles[name]
     st.font.name = "Arial"
@@ -126,8 +134,17 @@ for name, size, before, after in [("Title", 22, 0, 12), ("Heading 1", 15, 14, 7)
     st.paragraph_format.space_before = Pt(before)
     st.paragraph_format.space_after = Pt(after)
     st.paragraph_format.keep_with_next = True
+    clear_theme_font(st)
 
 # Confidential cover. Page 2 remains wholly blank.
+sec1.different_first_page_header_footer = True
+cover_footer = sec1.first_page_footer.paragraphs[0]
+cover_footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+cover_run = cover_footer.add_run("Salus Internal Confidential  |  page ")
+cover_run.font.name, cover_run.font.size = "Times New Roman", Pt(9)
+field(cover_footer, "PAGE")
+cover_footer.add_run(" of ")
+field(cover_footer, "NUMPAGES")
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before = Pt(95)

@@ -94,7 +94,8 @@ with tempfile.TemporaryDirectory() as td:
     assert 'onclick="printAdvisor(&quot;part1&quot;)"' in embedded.text
     assert embedded.text.count('onclick="printAdvisor(&quot;part2&quot;)"') == 2
     assert embedded.text.count("Download Scope and Readiness Report") == 2
-    assert 'fetch("/public/protection-advisor/report.pdf"' in embedded.text
+    assert '"/public/protection-advisor/scope-receipt.pdf":"/public/protection-advisor/report.pdf"' in embedded.text
+    assert "Download one-page scope receipt" in embedded.text
     assert 'credentials:"same-origin"' in embedded.text
     assert 'headers:{"X-CSRF-Token":csrf}' in embedded.text
     assert "response.blob()" in embedded.text
@@ -401,7 +402,7 @@ with tempfile.TemporaryDirectory() as td:
         Path(output_path).write_bytes(b"%PDF-1.4\n" + context.project_code_name.encode("utf-8"))
 
     def fake_store(reference, revision_no, content):
-        item_id = f"ITEM-{revision_no:03d}-TEST"
+        item_id = f"ITEM-{reference.split('-')[1]}-{revision_no:03d}-TEST"
         saved_pdfs[item_id] = content
         return {"item_id": item_id, "sha256": hashlib.sha256(content).hexdigest(),
                 "size": len(content), "filename": f"{reference}-R{revision_no}.pdf"}
@@ -416,6 +417,14 @@ with tempfile.TemporaryDirectory() as td:
     advisor_module.store_member_pdf = fake_store
     advisor_module.read_member_pdf = fake_read
     advisor_module.delete_member_pdf = lambda item_id: saved_pdfs.pop(item_id)
+    receipt_render_count = []
+
+    def fake_receipt_render(*, output_path, context, receipt):
+        receipt_render_count.append(context.project_code_name)
+        Path(output_path).write_bytes(b"%PDF-1.4\n" + receipt["receipt_id"].encode("utf-8")
+                                      + b"\n" + context.project_code_name.encode("utf-8"))
+
+    advisor_module.render_scope_receipt_pdf = fake_receipt_render
     latest_pdf = client.get("/public/protection-advisor/report.pdf", headers=headers)
     assert latest_pdf.status_code == 200, latest_pdf.text
     assert b"Steady Harbor Two" in latest_pdf.content
@@ -440,8 +449,17 @@ with tempfile.TemporaryDirectory() as td:
     assert newest_pdf.status_code == 200, newest_pdf.text
     assert b"Steady Harbor Three" in newest_pdf.content
     assert render_count == ["Steady Harbor Two", "Steady Harbor Three"]
+    latest_receipt = client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
+    assert latest_receipt.status_code == 200, latest_receipt.text
+    assert b"Steady Harbor Three" in latest_receipt.content
+    same_receipt = client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
+    assert same_receipt.content == latest_receipt.content
+    assert receipt_render_count == ["Steady Harbor Three"]
+    missing_old_receipt = client.get("/public/protection-advisor/scope-receipt.pdf?revision=2", headers=headers)
+    assert missing_old_receipt.status_code == 409
     conn = sqlite3.connect(db_path)
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_member_report_snapshots").fetchone()[0] == 2
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_scope_receipt_snapshots").fetchone()[0] == 1
     conn.close()
 
     review_page_html=_review_page([review_row])
@@ -496,11 +514,14 @@ with tempfile.TemporaryDirectory() as td:
 
     deleted=client.post("/public/protection-advisor/delete",headers=headers,json={})
     assert deleted.status_code==200,deleted.text
+    assert not saved_pdfs
     conn=sqlite3.connect(db_path)
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_submissions").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_answer_revisions").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_notification_outbox").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_service_profiles").fetchone()[0]==0
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_member_report_snapshots").fetchone()[0]==0
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_scope_receipt_snapshots").fetchone()[0]==0
     assert conn.execute("SELECT status FROM advisor_public_sessions").fetchone()[0]=="Deleted"
     conn.close()
 

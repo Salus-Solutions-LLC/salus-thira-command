@@ -34,7 +34,7 @@ def _client() -> GovernedM365Reports:
 
 
 def store_member_pdf(report_reference: str, revision_no: int, content: bytes) -> dict[str, str | int]:
-    if not re.fullmatch(r"SPA-REPORT-[A-Z0-9-]+", report_reference) or revision_no < 1:
+    if not re.fullmatch(r"SPA-(?:REPORT|RECEIPT)-[A-Z0-9-]+", report_reference) or revision_no < 1:
         raise M365ReportError("Protection Advisor report identity is invalid")
     client = _client()
     if not content.startswith(b"%PDF") or len(content) > client.config.max_file_bytes:

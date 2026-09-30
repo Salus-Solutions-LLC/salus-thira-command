@@ -158,7 +158,7 @@ def test_pdf_total_pages_follow_long_wrapped_report(tmp_path: Path):
 
 def test_public_part_two_control_does_not_print_the_webpage():
     source = Path("public_protection_advisor.py").read_text(encoding="utf-8")
-    assert 'fetch("/public/protection-advisor/report.pdf"' in source
+    assert '"/public/protection-advisor/scope-receipt.pdf":"/public/protection-advisor/report.pdf"' in source
     assert 'window.location.assign("/public/protection-advisor/report.pdf")' not in source
     assert 'scope==="part2"' in source
 
