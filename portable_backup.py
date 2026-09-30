@@ -4,12 +4,12 @@ from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
-    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_intake_uploads','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','package_predecessor_qualifications','package_quote_predecessor_links','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
+    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_member_authority_reviews','package_acceptances','package_intake_requests','package_intake_uploads','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','package_predecessor_qualifications','package_quote_predecessor_links','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
     'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','salintel_investigations','salintel_investigation_items','salintel_investigation_events','materials','material_links','material_events','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
-    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_intake_uploads','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','package_predecessor_qualifications','package_quote_predecessor_links','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
+    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_member_authority_reviews','package_acceptances','package_intake_requests','package_intake_uploads','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','package_predecessor_qualifications','package_quote_predecessor_links','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
 
 def _rows(conn, sql, params=()):
@@ -151,11 +151,27 @@ def validate_records(records, tenant_id:int|None=None):
         if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package agreement download {row.get("id")} has invalid quote_id')
         if int(row.get('agreement_artifact_id',-1)) not in agreement_ids: errors.append(f'package agreement download {row.get("id")} has invalid agreement_artifact_id')
         if int(row.get('member_user_id',-1)) not in users: errors.append(f'package agreement download {row.get("id")} has invalid member_user_id')
+    reviews={int(r['quote_id']):r for r in records.get('package_member_authority_reviews',[]) if r.get('quote_id') is not None}
+    for row in records.get('package_member_authority_reviews',[]):
+        try:
+            quote=next(r for r in records.get('package_quote_versions',[]) if r['id']==row['quote_id'])
+            content={key:row[key] for key in ('tenant_id','assessment_id','quote_id','member_user_id',
+                'authority_basis','evidence_reference','reviewed_by_user_id','reviewed_at')}
+            digest=hashlib.sha256(json.dumps(content,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if (int(row['tenant_id'])!=int(tenant_id) or row['assessment_id']!=quote['assessment_id']
+                    or row['member_user_id'] not in users or row['reviewed_by_user_id'] not in users
+                    or row['record_sha256']!=digest):
+                raise ValueError('signer review boundary')
+        except (ValueError,KeyError,TypeError,AttributeError,StopIteration):
+            errors.append(f'package member signer review {row.get("id")} has invalid proof')
     for row in records.get('package_acceptances',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package acceptance {row.get("id")} crosses the tenant boundary')
         if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package acceptance {row.get("id")} has invalid quote_id')
         if int(row.get('member_user_id',-1)) not in users: errors.append(f'package acceptance {row.get("id")} has invalid member_user_id')
         if int(row.get('agreement_download_id',0)) not in download_ids: errors.append(f'package acceptance {row.get("id")} has invalid agreement_download_id')
+        review=reviews.get(int(row.get('quote_id') or 0))
+        if not review or review['member_user_id']!=row.get('member_user_id'):
+            errors.append(f'package acceptance {row.get("id")} has no matching signer review')
     for row in records.get('package_intake_requests',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package intake {row.get("id")} crosses the tenant boundary')
         if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package intake {row.get("id")} has invalid quote_id')
@@ -574,6 +590,7 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('DELETE FROM package_intake_uploads WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_intake_requests WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_acceptances WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_member_authority_reviews WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_agreement_downloads WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_quote_versions WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_agreement_artifacts WHERE tenant_id=?',(tenant_id,))

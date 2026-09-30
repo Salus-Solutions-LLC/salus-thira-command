@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Exact-quote Member signer review candidate
+
+- **Completed in the draft:** Added a tenant-scoped, immutable Salus signer-review record for one exact quote and active Client Executive account. A named signed-in Salus Director/administrator must record the claimed authority basis and external evidence reference; acceptance and idempotent retry recheck the record digest and signer. A changed self-asserted authority basis on retry now fails. Portable tenant backup/restore includes the review and checks its quote, account and digest links. Fictional regression cases cover missing review, wrong role, exact retry, altered review, and Level 1/2/3 acceptance. This closes a candidate workflow gap where a Member's own authority statement alone could create `Authorized` status. It does **not** validate external legal authority, executed terms or live identity mapping.
+- **Verification and next action:** Local Python compilation and whitespace checks passed; the bundled local Python lacks the application and pytest dependencies, so full regression execution awaits exact-head GitHub CI. The candidate is unmerged and production locked. Engineering owns CI, migration, authenticated browser, tenant backup/restore and rollback proof. Qualified Salus commercial/legal reviewers own the real external signer evidence and contract authority decision. Continue exact-template, scanner and Wix release gates; the stopped Tierra Linda project remains untouched.
+
 ## 30 September 2026 — Wix preview URL identified; draft still inaccessible
 
 - The authenticated Wix site connector returned the existing Classic Editor site's `editorUrl` and `previewUrl` through the documented Get Editor URLs method. This confirms the target site and a supported way for an authorized collaborator to reach its unpublished preview; it does **not** expose page-element editing through the REST connector.

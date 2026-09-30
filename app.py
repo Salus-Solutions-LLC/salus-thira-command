@@ -828,6 +828,24 @@ def init_db():
       FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT
     );
     CREATE INDEX IF NOT EXISTS idx_package_agreement_download_scope ON package_agreement_downloads(tenant_id,assessment_id,quote_id,member_user_id);
+    CREATE TABLE IF NOT EXISTS package_member_authority_reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL UNIQUE,
+      member_user_id INTEGER NOT NULL,
+      authority_basis TEXT NOT NULL,
+      evidence_reference TEXT NOT NULL,
+      reviewed_by_user_id INTEGER NOT NULL,
+      reviewed_at TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_member_authority_scope ON package_member_authority_reviews(tenant_id,assessment_id,quote_id);
     CREATE TABLE IF NOT EXISTS package_acceptances (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -1885,6 +1903,14 @@ class PackageAcceptanceIn(BaseModel):
     idempotency_key: str = Field(pattern=r'^[A-Za-z0-9_-]{16,120}$')
     accept_quote_and_agreement: Literal[True]
 
+class PackageMemberAuthorityReviewIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    quote_id: int = Field(gt=0)
+    member_user_id: int = Field(gt=0)
+    authority_basis: str = Field(min_length=12,max_length=1000)
+    evidence_reference: str = Field(min_length=8,max_length=500)
+    confirm_external_authority: Literal[True]
+
 class PackageIntakeSelectionIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     item_keys: list[str] = Field(min_length=1,max_length=11)
@@ -1924,6 +1950,21 @@ def verified_package_quote(conn,row,request:Request):
             or agreement['scan_status']!='Clean'):
         raise HTTPException(409,'The quoted agreement has not passed the file security check.')
     return row
+
+def _member_authority_review_digest(row):
+    fields=('tenant_id','assessment_id','quote_id','member_user_id','authority_basis',
+            'evidence_reference','reviewed_by_user_id','reviewed_at')
+    content={key:row[key] for key in fields}
+    return hashlib.sha256(json.dumps(content,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+
+def verified_member_authority_review(conn,quote,member_user_id:int):
+    review=conn.execute('''SELECT * FROM package_member_authority_reviews
+        WHERE tenant_id=? AND assessment_id=? AND quote_id=?''',
+        (quote['tenant_id'],quote['assessment_id'],quote['id'])).fetchone()
+    if (not review or review['member_user_id']!=member_user_id
+            or review['record_sha256']!=_member_authority_review_digest(review)):
+        raise HTTPException(409,'Salus must verify this Member signer for the exact quote before acceptance.')
+    return review
 
 def lock_package_assessment(conn, assessment_id:int):
     """Serialize a package-boundary decision with other assessment writes."""
@@ -5479,6 +5520,10 @@ def get_package_quote(assessment_id:int,request:Request):
             except HTTPException: predecessor_valid=False
     except Exception: conn.close(); raise
     acceptance=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND quote_id=?',(tenant_id(request),assessment_id,quote['id'])).fetchone()
+    signer_valid=True
+    if acceptance:
+        try: verified_member_authority_review(conn,quote,acceptance['member_user_id'])
+        except HTTPException: signer_valid=False
     conn.close(); result=dict(quote)
     scope_matches=(bool(quote['assessment_scope_sha256'])
         and quote['assessment_version']==assessment['version']
@@ -5489,6 +5534,7 @@ def get_package_quote(assessment_id:int,request:Request):
         and quote['variant']==assessment['requested_access_variant']
         and quote['assessment_scope_sha256']==assessment_scope_digest(assessment))
     if not predecessor_valid: result['status']='Predecessor changed — review required'
+    elif acceptance and not signer_valid: result['status']='Signer proof changed — review required'
     elif acceptance and not quote['assessment_scope_sha256']: result['status']='Authorized terms — scope proof requires review'
     elif acceptance and not scope_matches: result['status']='Authorized original scope — amendment required'
     elif acceptance: result['status']='Authorized'
@@ -5771,6 +5817,63 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
         conn.rollback()
         conn.close()
 
+@app.post('/api/assessments/{assessment_id}/package-member-authority')
+def review_package_member_authority(assessment_id:int,p:PackageMemberAuthorityReviewIn,request:Request):
+    """Bind one Salus-reviewed Member signer to an exact quote."""
+    require_package_commercial_candidate()
+    require(request,'decide'); require_salus_component_authority(request,'Member signer review')
+    ctx=auth_context(request)
+    if (ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')
+            or role(request) not in ('System Administrator','Assessment Director')):
+        raise HTTPException(403,'A named authorized Salus reviewer must verify Member signing authority.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',
+            (p.quote_id,tenant_id(request),assessment_id)).fetchone()
+        if not quote: raise HTTPException(404,'Package quote not found.')
+        verified_package_quote(conn,quote,request)
+        current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+            (assessment_id,tenant_id(request))).fetchone()
+        latest=conn.execute('SELECT MAX(version_no) n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',
+            (tenant_id(request),assessment_id)).fetchone()['n']
+        if (not current or quote['version_no']!=latest or quote['assessment_version']!=current['version']
+                or quote['assessment_scope_sha256']!=assessment_scope_digest(current)):
+            raise HTTPException(409,'Review the current quote and boundary before verifying a signer.')
+        member=conn.execute('SELECT id FROM users WHERE id=? AND tenant_id=? AND role=? AND status=?',
+            (p.member_user_id,tenant_id(request),'Client Executive','Active')).fetchone()
+        if not member: raise HTTPException(409,'Select an active Client Executive in this Protected Member account.')
+        basis=p.authority_basis.strip(); reference=p.evidence_reference.strip()
+        if len(basis)<12 or len(reference)<8:
+            raise HTTPException(422,'Record the authority basis and evidence reference.')
+        prior=conn.execute('SELECT * FROM package_member_authority_reviews WHERE quote_id=?',
+            (p.quote_id,)).fetchone()
+        if prior:
+            if (prior['record_sha256']==_member_authority_review_digest(prior)
+                    and prior['member_user_id']==p.member_user_id
+                    and prior['authority_basis']==basis and prior['evidence_reference']==reference):
+                return {'id':prior['id'],'quote_id':p.quote_id,'record_sha256':prior['record_sha256'],
+                    'status':'Signer reviewed','idempotent':True}
+            raise HTTPException(409,'This quote already has a different signer review; issue a new quote version.')
+        accepted=conn.execute('SELECT id FROM package_acceptances WHERE quote_id=?',(p.quote_id,)).fetchone()
+        if accepted: raise HTTPException(409,'An accepted quote cannot receive a new signer review.')
+        record={'tenant_id':tenant_id(request),'assessment_id':assessment_id,'quote_id':p.quote_id,
+            'member_user_id':p.member_user_id,'authority_basis':basis,'evidence_reference':reference,
+            'reviewed_by_user_id':ctx['user_id'],'reviewed_at':now()}
+        digest=_member_authority_review_digest(record)
+        cur=conn.execute('''INSERT INTO package_member_authority_reviews
+            (tenant_id,assessment_id,quote_id,member_user_id,authority_basis,evidence_reference,
+             reviewed_by_user_id,reviewed_at,record_sha256) VALUES(?,?,?,?,?,?,?,?,?)''',
+            tuple(record.values())+(digest,))
+        audit(conn,'PACKAGE_MEMBER_AUTHORITY','assessment',assessment_id,
+            f'quote_id={p.quote_id}; signer_user_id={p.member_user_id}; review_sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'quote_id':p.quote_id,'record_sha256':digest,
+            'status':'Signer reviewed','idempotent':False}
+    finally:
+        conn.rollback(); conn.close()
+
 @app.post('/api/assessments/{assessment_id}/package-acceptance')
 def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request):
     require_package_commercial_candidate()
@@ -5792,12 +5895,15 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
                 if prior_quote['level']>1:
                     verified_quote_predecessor_link(conn,prior_quote,request,assessment)
             if (prior_quote and prior['quote_id']==p.quote_id and prior['quote_sha256']==p.quote_sha256
-                and prior['agreement_sha256']==p.agreement_sha256.lower() and prior['member_user_id']==ctx['user_id']):
+                and prior['agreement_sha256']==p.agreement_sha256.lower() and prior['member_user_id']==ctx['user_id']
+                and prior['member_authority_basis']==p.member_authority_basis.strip()):
+                verified_member_authority_review(conn,prior_quote,ctx['user_id'])
                 return {'status':'Authorized','quote_id':p.quote_id,'accepted_at':prior['accepted_at'],'idempotent':True}
             raise HTTPException(409,'This acceptance key was already used for another decision.')
         quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(p.quote_id,tenant_id(request),assessment_id)).fetchone()
         if not quote: raise HTTPException(404,'Package quote not found.')
         verified_package_quote(conn,quote,request)
+        verified_member_authority_review(conn,quote,ctx['user_id'])
         if quote['level']>1: verified_quote_predecessor_link(conn,quote,request,assessment)
         if quote['source_receipt_id']:
             raise HTTPException(409,'This quote has an unverified Protection Advisor receipt and cannot be accepted.')
@@ -5829,10 +5935,11 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
 
 def authorized_package_intake(conn,assessment_id:int,request:Request):
     assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tenant_id(request))).fetchone()
-    accepted=conn.execute('''SELECT q.* FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
+    accepted=conn.execute('''SELECT q.*,a.member_user_id accepted_member_user_id FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
         WHERE a.tenant_id=? AND a.assessment_id=? ORDER BY a.id DESC LIMIT 1''',(tenant_id(request),assessment_id)).fetchone()
     if not assessment or not accepted: raise HTTPException(409,'The package intake opens after an authorized agreement.')
     verified_package_quote(conn,accepted,request)
+    verified_member_authority_review(conn,accepted,accepted['accepted_member_user_id'])
     if accepted['level']>1: verified_quote_predecessor_link(conn,accepted,request,assessment)
     if (not accepted['assessment_scope_sha256'] or accepted['assessment_scope_sha256']!=assessment_scope_digest(assessment)
         or accepted['assessment_version']!=assessment['version']):

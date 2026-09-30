@@ -166,9 +166,27 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
             (1,'member-exec','Member Executive','Client Executive','Active',app.now(),app.now())).lastrowid
         conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',
             (user_id,app._hash_token('test-cookie'),'2099-01-01T00:00:00Z',app.now(),app.now()))
+        reviewer_id=conn.execute('INSERT INTO users(tenant_id,username,display_name,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
+            (1,'salus-reviewer','Salus Reviewer','Assessment Director','Active',app.now(),app.now())).lastrowid
+        conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',
+            (reviewer_id,app._hash_token('reviewer-cookie'),'2099-01-01T00:00:00Z',app.now(),app.now()))
         conn.commit(); conn.close()
         app.AUTH_MODE='session'
         member=TestClient(app.app,cookies={'salus_session':'test-cookie'})
+        reviewer=TestClient(app.app,cookies={'salus_session':'reviewer-cookie'})
+        review_url=f'/api/assessments/{assessment_id}/package-member-authority'
+        authority_review={'quote_id':issued['id'],'member_user_id':user_id,
+            'authority_basis':'Reviewed board delegation for this agreement',
+            'evidence_reference':'BOARD-AUTHORITY-RECORD-1','confirm_external_authority':True}
+        without_review=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
+        assert without_review.status_code==409 and 'verify this Member signer' in without_review.text,without_review.text
+        assert director.post(review_url,json=authority_review).status_code==401
+        bad_signer=reviewer.post(review_url,json={**authority_review,'member_user_id':reviewer_id})
+        assert bad_signer.status_code==409,bad_signer.text
+        reviewed=reviewer.post(review_url,json=authority_review)
+        assert reviewed.status_code==200 and reviewed.json()['idempotent'] is False,reviewed.text
+        repeated_review=reviewer.post(review_url,json=authority_review)
+        assert repeated_review.status_code==200 and repeated_review.json()['idempotent'] is True,repeated_review.text
         intake_url=f'/api/assessments/{assessment_id}/package-intake'
         assert member.get(intake_url).status_code==409
         conn=app.db()
@@ -222,6 +240,16 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         agreement_copy=member.get(f'/api/package-agreements/{agreement_id}/download')
         assert agreement_copy.status_code==200 and agreement_copy.content==pdf
         assert agreement_copy.headers['X-Content-SHA256']==agreement_digest
+        conn=app.db()
+        conn.execute('UPDATE package_member_authority_reviews SET authority_basis=? WHERE quote_id=?',
+            ('Changed after review',issued['id']))
+        conn.commit();conn.close()
+        altered_review=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
+        assert altered_review.status_code==409 and 'verify this Member signer' in altered_review.text,altered_review.text
+        conn=app.db()
+        conn.execute('UPDATE package_member_authority_reviews SET authority_basis=? WHERE quote_id=?',
+            (authority_review['authority_basis'],issued['id']))
+        conn.commit();conn.close()
         stale=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json={**acceptance,'quote_sha256':'b'*64})
         assert stale.status_code==409, stale.text
         accepted=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
@@ -229,6 +257,19 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert accepted.json()['status']=='Authorized'
         retry=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
         assert retry.status_code==200 and retry.json()['idempotent'] is True, retry.text
+        changed_basis=member.post(f'/api/assessments/{assessment_id}/package-acceptance',
+            json={**acceptance,'member_authority_basis':'Different claimed authority'})
+        assert changed_basis.status_code==409,changed_basis.text
+        conn=app.db()
+        conn.execute('UPDATE package_member_authority_reviews SET member_user_id=? WHERE quote_id=?',
+            (reviewer_id,issued['id']))
+        conn.commit();conn.close()
+        assert member.get(url).json()['status']=='Signer proof changed — review required'
+        assert member.get(intake_url).status_code==409
+        conn=app.db()
+        conn.execute('UPDATE package_member_authority_reviews SET member_user_id=? WHERE quote_id=?',
+            (user_id,issued['id']))
+        conn.commit();conn.close()
         assert member.get(intake_url).json()['items']==[]
         assert member.post(intake_url,json={'item_keys':['GOV'],'request_reason':'Needed to confirm authority'}).status_code==403
         app.AUTH_MODE='prototype'
@@ -507,6 +548,10 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
             'predecessor_qualification_id':0}).status_code==409
         focused=assigned_owner.post(next_quote_url,json=next_quote)
         assert focused.status_code==200 and focused.json()['level']==2,focused.text
+        focused_review=assigned_owner.post(
+            f'/api/assessments/{next_assessment_id}/package-member-authority',
+            json={**authority_review,'quote_id':focused.json()['id']})
+        assert focused_review.status_code==200,focused_review.text
         assert assigned_owner.get(next_quote_url).json()['status']=='Quoted'
         next_agreement_download=member.get(
             f'/api/package-agreements/{next_agreement.json()["id"]}/download')
@@ -604,6 +649,9 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
                 'agreement_reference':'DEEP-AGREEMENT-1',
                 'predecessor_qualification_id':level2_qualification.json()['id']})
         assert level3_quote.status_code==200 and level3_quote.json()['level']==3,level3_quote.text
+        deep_review=assigned_owner.post(f'/api/assessments/{level3_id}/package-member-authority',
+            json={**authority_review,'quote_id':level3_quote.json()['id']})
+        assert deep_review.status_code==200,deep_review.text
         assert member.get(f'/api/package-agreements/{level3_agreement.json()["id"]}/download').status_code==200
         level3_accept=member.post(f'/api/assessments/{level3_id}/package-acceptance',json={
             **acceptance,'quote_id':level3_quote.json()['id'],
