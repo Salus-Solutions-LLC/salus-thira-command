@@ -30,6 +30,14 @@ One governed package identity binds the Protected Member and tenant, decision ow
 5. Secure transfer starts after authorization. Request a short first packet and record missing material as missing; do not require personal directories or sensitive individual records by default.
 6. Report generation may remain draft during work, but issue and distribution require exact-version human approval. The SalCAPA summary links the four approved report IDs and tells the Member which options are included recommendations and which are separately proposed services.
 
+### Four-product report and predecessor proof
+
+The current `report_versions` table holds an Executive snapshot of an assessment. Its `Released` state does **not** prove a SalINTEL™, SalTHIRA™, SalOPS™ or SalCAPA™ package report was issued, and must never qualify Level 2 or Level 3 entry. Add a separate governed package/report lineage record before removing the Level 2/3 quote block. Preserve any historical Executive snapshot as its own identity; do not relabel it or create duplicate Member reports.
+
+For each of the four products, the lineage record must bind one package and tenant, its exact level/band/variant and covered/excluded decision boundary, assessment/scope version, product report ID and immutable version, approved method and template version, original document location and SHA-256, status, qualified reviewer, approving and issuing authority, recipient/issue timestamp and supersession link. The SalCAPA™ record additionally names the exact issued SalINTEL™, SalTHIRA™ and SalOPS™ versions it summarizes and records any returned conflict. Use new report versions under the same product identity when a change requires revision.
+
+A predecessor qualification decision may be recorded only after the four distinct products have passed their own review and release gates, the SalCAPA™ report reconciles the other three, the signed prior package boundary and authorization match the issued scope, and the qualified reviewer has assessed unresolved limitations and any changed boundary for the next level. Store the prior package ID, four report IDs/versions/hashes, decision unit and exclusions, qualification basis, reviewer, decision date and immutable digest. A merely requested level, accepted quote, Executive snapshot, draft report, filename or database status without exact document/recipient proof is insufficient. Revalidate the predecessor at the next quote and again at Member acceptance; a changed or withdrawn issue must fail closed until a new qualified decision is recorded.
+
 ## Required implementation evidence
 
 - Tenant-scoped tables or governed records for scope versions, commercial approval, Member acceptance, predecessor qualification, four-report links, and status events. Include actor, role, timestamp, source/decision basis and content hash. Use idempotency keys for accept/retry operations.

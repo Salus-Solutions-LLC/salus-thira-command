@@ -142,6 +142,26 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
         conn.close()
+        # A historical Executive snapshot cannot stand in for four issued package reports.
+        conn=app.db()
+        snapshot='{}'
+        conn.execute("""INSERT INTO report_versions
+          (tenant_id,assessment_id,assessment_version,report_type,status,snapshot_json,
+           snapshot_sha256,created_by,created_at,released_by,released_at)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+          (1,assessment_id,1,'Executive','Released',snapshot,
+           hashlib.sha256(snapshot.encode()).hexdigest(),'Fixture',app.now(),'Fixture',app.now()))
+        conn.commit();conn.close()
+        next_scope=director.post('/api/assessments',json={
+            'name':'Focused follow-up','organization':'Example Member',
+            'covered_operation':'One named operation','exclusions':'Other sites and functions',
+            'requested_package_level':2,'requested_scope_band':'A'})
+        assert next_scope.status_code==200,next_scope.text
+        next_id=next_scope.json()['id']
+        next_quote={**quote,'level':2,'variant':'','fee_cents':500000,
+                    'access_eligibility_confirmed':False,'access_eligibility_basis':''}
+        blocked=director.post(f'/api/assessments/{next_id}/package-quote',json=next_quote)
+        assert blocked.status_code==409 and 'qualified issued predecessor' in blocked.text
     ''')
     result = subprocess.run([sys.executable, '-c', program], env=env, text=True, capture_output=True, timeout=45)
     assert result.returncode == 0, result.stdout + result.stderr
