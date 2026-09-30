@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Exact-version CI repair propagated
+
+- PR #587 acceptance assertions now match its own earlier page and recommendation version; its local smoke passed. This stacked PR #589 retains its newer visible heading and recommendation-version assertions while incorporating the predecessor commit. The PR #589 public Advisor smoke and full local suite **28/28** passed on this reconciled tree; GitHub CI must still run on each exact head. All three PRs remain draft and no Member offer or report is published. Next action: verify PR #587 and #589 CI, then complete the specific template, price, predecessor, secure intake, live integration and governed release gates. Owner: engineering, document/product/privacy reviewers, qualified release authority and Marc for reserved decisions.
+
 ## 30 September 2026 — Draft release chain reconciled through PR #587
 
 - PR #574 now has a conflict-free candidate head `64d149b`; PR #587 now has a conflict-free candidate head `506961c`. Both remain draft and unpublished. PR #589 is reconciled against the new #587 base. The only textual merge conflict in this step was this continuity record. The earlier history and Member separation below are preserved. The full isolated local suite passed **28/28** on the merged #589 tree. Next: push and verify the exact #589 head, then complete the remaining approved-template, predecessor, intake, live integration, privacy, document, pricing and release gates before any production publication. Owner: Salus engineering, qualified document/release reviewers and Marc for reserved commercial decisions.
@@ -100,6 +104,11 @@
 - **Open release gates and owners:** Salus product owner confirms exact A/B/C eligibility, quote and change triggers and approves the non-Access price schedule; design owner completes the one-page receipt and Level 1 staged intake; report owner links four governed runtime templates and package identity; engineering completes predecessor, authorization and report-link workflow, migration, secure storage and retention; privacy/security and document QA verify exact outputs and isolation; release owner runs governed CI, Azure and Wix acceptance and rollback. Marc/qualified approvers decide protected promotion. No acceptance is inferred from local tests. Persistent uninterrupted work is not implemented by this candidate; do not claim it is.
 - **Next action:** implement the versioned quote/authorization/predecessor/four-report-link workflow from the new contract; validate the exact receipt/report routes against a configured least-privilege Microsoft 365 test folder and adversarial account-isolation cases; complete native Word/accessibility and Member comprehension QA, then governed draft-PR review before any promotion. Do not modify the stopped Tierra Linda reports.
 - **Follow-up:** same-chat hourly heartbeat `continue-salus-package-rollout` is active for this unfinished Member-neutral objective and stays quiet absent material change or a gate. It is an intermittent fallback only; SAL-D079 persistent uninterrupted processing is still unmet. The separate Tierra Linda heartbeat remains paused under Marc's stop instruction.
+
+## 30 September 2026 — Intermediate PR acceptance check repaired
+
+- The PR #587 Linux Public Protection Advisor workflow failed on an obsolete visible heading assertion; a second assertion expected package recommendation version `3.0.0` while this intermediate branch implements `2.1.0`. Both assertions now match this exact branch's current page and package. The local public Protection Advisor smoke passed. This does not approve the later business rollout or release Member reports. Next: push this intermediate correction, confirm CI, then reconcile the stacked #589 head. Owner: engineering and qualified release reviewer.
+
 
 ## 30 September 2026 — Stacked PR #587 base reconciliation
 
