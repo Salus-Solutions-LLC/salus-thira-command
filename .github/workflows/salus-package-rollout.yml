@@ -11,9 +11,21 @@ on:
       - salus_package_quote.py
       - salus_package_intake.py
       - portable_backup.py
-      - static/app.js
+      - database.py
+      - security_controls.py
+      - storage.py
+      - requirements.txt
+      - static/**
       - tests/**
       - proposals/level_band_templates/build_candidates.py
+      - proposals/qa/audit_level_band_templates.py
+      - proposals/level_band_templates/artifact.md
+      - SALUS_PROGRAM_CHARTER.md
+      - SALUS_DECISION_REGISTER.md
+      - APPROVED_ARTIFACTS.md
+      - SALUS_CHAT_STARTUP_PROTOCOL.md
+      - CURRENT_HANDOFF.md
+      - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
       - .github/workflows/salus-package-rollout.yml
   push:
     branches:
@@ -27,9 +39,21 @@ on:
       - salus_package_quote.py
       - salus_package_intake.py
       - portable_backup.py
-      - static/app.js
+      - database.py
+      - security_controls.py
+      - storage.py
+      - requirements.txt
+      - static/**
       - tests/**
       - proposals/level_band_templates/build_candidates.py
+      - proposals/qa/audit_level_band_templates.py
+      - proposals/level_band_templates/artifact.md
+      - SALUS_PROGRAM_CHARTER.md
+      - SALUS_DECISION_REGISTER.md
+      - APPROVED_ARTIFACTS.md
+      - SALUS_CHAT_STARTUP_PROTOCOL.md
+      - CURRENT_HANDOFF.md
+      - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
       - .github/workflows/salus-package-rollout.yml
 
 permissions:
@@ -54,5 +78,5 @@ jobs:
       # files that the Linux runner does not contain. Keep their exact-output
       # release review separate; do not substitute another font in this job.
       - run: python -m pytest -q -p no:cacheprovider tests --ignore=tests/test_protection_advisor_professional_report.py
-      - run: python -m compileall -q app.py public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py salus_package_path.py salus_package_quote.py salus_package_intake.py portable_backup.py
+      - run: python -m compileall -q app.py public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py salus_package_path.py salus_package_quote.py salus_package_intake.py portable_backup.py proposals/qa/audit_level_band_templates.py
       - run: node --check static/app.js
