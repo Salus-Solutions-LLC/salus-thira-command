@@ -1,0 +1,55 @@
+name: Salus package rollout
+
+on:
+  pull_request:
+    paths:
+      - app.py
+      - public_protection_advisor.py
+      - protection_advisor_member_reports.py
+      - advisor_report_config.py
+      - salus_package_path.py
+      - salus_package_quote.py
+      - salus_package_intake.py
+      - portable_backup.py
+      - static/app.js
+      - tests/**
+      - proposals/level_band_templates/build_candidates.py
+      - .github/workflows/salus-package-rollout.yml
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - app.py
+      - public_protection_advisor.py
+      - protection_advisor_member_reports.py
+      - advisor_report_config.py
+      - salus_package_path.py
+      - salus_package_quote.py
+      - salus_package_intake.py
+      - portable_backup.py
+      - static/app.js
+      - tests/**
+      - proposals/level_band_templates/build_candidates.py
+      - .github/workflows/salus-package-rollout.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salus-package-rollout-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  complete-local-sequence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt pytest==8.4.2
+      - run: python -m pytest -q -p no:cacheprovider tests
+      - run: python -m compileall -q app.py public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py salus_package_path.py salus_package_quote.py salus_package_intake.py portable_backup.py
+      - run: node --check static/app.js
