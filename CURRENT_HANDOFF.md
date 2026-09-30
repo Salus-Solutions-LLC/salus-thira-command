@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Exact-head package regression trigger
+
+- **Completed and version:** Expanded `.github/workflows/salus-package-rollout.yml` so changes to package dependencies, the candidate document audit and its record, and the governing rollout records trigger the same portable regression suite. Draft PR #589 code/document head `0d92e1339d5475e88d619149aab8a5a02f4834bf` passed GitHub **Salus package rollout run 6** and **Public Protection Advisor run 389**. The former still excludes the three professional-report tests that require Arial/Times font files absent on the Linux runner; the separate prior Windows full local suite passed 28/28. No Member data was used. This handoff update itself will create a later draft head; release CI must be checked on that exact head before promotion.
+- **Open gate, owner and next action:** The production package switch remains locked. Engineering/security must test live PostgreSQL migration, Microsoft 365 and object storage, signed-in tenant isolation, secure Member intake transfer and rollback on a frozen candidate. Qualified document/product reviewers must accept native Word, accessibility, populated four-report outputs, exact buyer/contract wording and service capacity. The release owner must then verify the immutable Azure image and Wix copy/live behavior. The stopped Tierra Linda engagement remains closed. Marc's approval to proceed is recorded; no production release or public offer is inferred from this draft check.
+
 ## 30 September 2026 — Whole-scope publication audit and package CI gate
 
 - **Objective and authority:** Marc instructed completion and publication of the entire Level 1/2/3 × A/B/C Salus rollout and stated approval to proceed. Reinspected the Program Charter, Decision Register, Approved Artifacts, Startup Protocol, handoff, approved business model and exact PR stack. The three draft PRs remain open and mergeable: #574 `64d149b`, #587 `515debb`, #589 from the current branch. No production image, Wix page or controlled Word replacement was published. Tierra Linda remains stopped and no Member file was used.
