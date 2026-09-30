@@ -14,9 +14,9 @@ SPECS = {
         "5A99C3F0A3DB126F101407617AABA7CB8EB098C3D704E436B01C5D8520BB1959",
         {
             "SalINTEL™ Facility Assessment — [Level 1 / Level 2 / Level 3]": "[Protected Member customer name] - SalINTEL Level [path]",
-            "Approved sequential-package report template | Version 1.0 | 27 September 2026": "Level and band template candidate 1.1 | 29 September 2026 | SAL-D089",
+            "Approved sequential-package report template | Version 1.0 | 27 September 2026": "Level and band template candidate 1.2 | 30 September 2026 | SAL-D088–D090",
             "Status: approved member-neutral report template.": "Status: member-neutral candidate derived from approved template v1.0.",
-            "This is the Level __ SalINTEL report, with working/qualified/issued and prerequisite status.": "This is the Level [path] SalINTEL report for [covered operation and included/excluded units], with working/qualified/issued and prerequisite status.",
+            "This is the Level __ SalINTEL report, with working/qualified/issued and prerequisite status.": "This is the Level [path] SalINTEL report for [covered operation and included/excluded units], with working/qualified/issued and prerequisite status. Identify A as one integrated decision unit, B as separately analyzed units or operating profiles with a comparison, or C as a named group with group priorities. For Level 1A distinguish Access from Standard; Access includes two decision-driving scenarios and the full qualified four-report sequence at the selected price when eligible. State the specific Member decision enabled, what was actually examined, proof limits, exclusions, and the next optional step. Do not imply field validation at Level 1, specialist assurance at Level 2, or implementation services in the assessment fee.",
         },
     ),
     "SalTHIRA": (
@@ -24,9 +24,10 @@ SPECS = {
         "29B896804C44B56D5A32BA377FE557B676649FAC88C83D674BE77EA088B81FF8",
         {
             "[Protected Member customer name] - SalTHIRA Level [1, 2, or 3]": "[Protected Member customer name] - SalTHIRA Level [path]",
-            "Controlled template version 1.0 | 27 September 2026": "Level and band candidate 1.1 | 29 September 2026",
+            "Controlled template version 1.0 | 27 September 2026": "Level and band candidate 1.2 | 30 September 2026",
             "Bottom Line Up Front (BLUF) - Level [1, 2, or 3] ranked judgment": "Bottom Line Up Front (BLUF) - Level [path] ranked judgment",
             "state the represented level, package status, ranked priorities": "state the exact level and band, covered operation and exclusions, package status, ranked priorities",
+            "Explain the member mission, leading risks, current capability, recovery posture, same-level SalOPS options, and what Level 2 or Level 3 would validate.": "Explain the member mission, leading risks, current capability, recovery posture, decision enabled by this path and same-level SalOPS options. For A assess one integrated decision unit; for B compare separately analyzed units or operating profiles; for C rank the named group's priorities. Distinguish Level 1 source-bound judgment from Level 2 field validation and Level 3 authorized specialist proof. State what remains uncertain and what the next optional level would change.",
         },
     ),
     "SalOPS": (
@@ -34,8 +35,8 @@ SPECS = {
         "4CE3DB45CA2C39BF28D278296D23CCEC322AC4E7738793D95B7170EC12170043",
         {
             "[Protected Member customer name] - SalOPS Level [1, 2, or 3]": "[Protected Member customer name] - SalOPS Level [path]",
-            "Member-neutral working report template | 27 September 2026": "Level and band template candidate 1.1 | 29 September 2026 | SAL-D089",
-            "State the represented level, package and predecessor-report status.": "State the exact level and band, covered operation and exclusions, package and predecessor-report status.",
+            "Member-neutral working report template | 27 September 2026": "Level and band template candidate 1.2 | 30 September 2026 | SAL-D088–D090",
+            "State the represented level, package and predecessor-report status.": "State the exact level and band, covered operation and exclusions, package and predecessor-report status. For A name the one integrated decision unit; for B distinguish shared and unit-specific actions; for C rank group-wide resource choices. State which options support this level's findings, which implementation help requires a separate quote and authorization, and what evidence would justify the next optional level.",
         },
     ),
     "SalCAPA": (
@@ -43,8 +44,8 @@ SPECS = {
         "A1FAE0F2187C0B7DE74246DE70203B6F40F172434BC197127EF30E907153D3A1",
         {
             "[Protected Member customer name] - SalCAPA Level [1, 2, or 3]": "[Protected Member customer name] - SalCAPA Level [path]",
-            "Integrated decision summary working template | 27 September 2026": "Level and band template candidate 1.1 | 29 September 2026 | SAL-D089",
-            "state represented level and completion status;": "state the exact level and band, covered operation and exclusions, and completion status;",
+            "Integrated decision summary working template | 27 September 2026": "Level and band template candidate 1.2 | 30 September 2026 | SAL-D088–D090",
+            "state represented level and completion status;": "state the exact level and band, covered operation and exclusions, and completion status; distinguish Access from Standard within Level 1A, an integrated A decision from a B unit comparison and a C group priority decision; identify the four included reports, Member decision enabled, proof limits and separately authorized implementation help;",
         },
     ),
 }

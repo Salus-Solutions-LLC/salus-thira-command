@@ -507,6 +507,88 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
             json=next_acceptance)
         assert accepted_level2.status_code==200 and accepted_level2.json()['status']=='Authorized',accepted_level2.text
         assert member.get(f'/api/assessments/{next_assessment_id}/package-intake').status_code==200
+        conn=app.db()
+        conn.execute('INSERT INTO assessment_access(user_id,assessment_id,created_at) VALUES(?,?,?)',
+            (reviewer_id,next_assessment_id,app.now()))
+        conn.commit();conn.close()
+        level2_report_url=f'/api/assessments/{next_assessment_id}/package-reports'
+        level2_reports={}
+        for product in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+            draft=assigned_owner.post(f'{level2_report_url}/{product}/draft',
+                data={'method_version':'approved-method-v1','template_version':'candidate-template-v1'},
+                files={'file':(f'Level2-{product}.docx',word_bytes(f'Level 2 {product}'),
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document')})
+            assert draft.status_code==200,draft.text
+            row=draft.json();level2_reports[product]=row
+            assert row['display_title']==f'Example Member - {product} Level 2A'
+            matrix=reviewer.post(f'/api/package-reports/{row["id"]}/conformance',
+                json={'content_sha256':row['content_sha256'],'checks':complete_checks,
+                    'summary':'Fictional exact-version Level 2 Charter review for chain testing.'})
+            assert matrix.status_code==200,matrix.text
+            archive=assigned_owner.post(f'/api/package-reports/{row["id"]}/qa-evidence',
+                files={'file':(f'Level2-{product}-qa.zip',qa_zip({**complete_manifest,
+                    'report_sha256':row['content_sha256']}),'application/zip')})
+            assert archive.status_code==200,archive.text
+            reviewed=reviewer.post(f'/api/package-reports/{row["id"]}/qa-reviews',
+                json={**review_payload,'evidence_id':archive.json()['id']})
+            assert reviewed.status_code==200,reviewed.text
+        level2_sources={product:{'report_id':level2_reports[product]['id'],
+            'content_sha256':level2_reports[product]['content_sha256'],'alignment':'Aligned',
+            'explanation':'Fictional Level 2 exact-source comparison for the chain.'}
+            for product in ('SalINTEL','SalTHIRA','SalOPS')}
+        level2_comparison=reviewer.post(
+            f'/api/package-reports/{level2_reports["SalCAPA"]["id"]}/source-reconciliation',
+            json={'salcapa_sha256':level2_reports['SalCAPA']['content_sha256'],
+                'sources':level2_sources,'summary':'Fictional Level 2 comparison of all three source reports.'})
+        assert level2_comparison.status_code==200,level2_comparison.text
+        level2_issue=reviewer.post(f'/api/assessments/{next_assessment_id}/package-issues',
+            json={'report_ids':{product:row['id'] for product,row in level2_reports.items()},
+                'recipient_user_id':user_id,
+                'issue_basis':'Fictional independent Level 2 release decision for the exact four reports.',
+                'confirm_qualified_release':True})
+        assert level2_issue.status_code==200 and level2_issue.json()['status']=='Issued',level2_issue.text
+        for product in level2_reports:
+            delivered=member.get(f'/api/package-issues/{level2_issue.json()["id"]}/reports/{product}.docx')
+            assert delivered.status_code==200,delivered.text
+        level2_ack=member.post(f'/api/package-issues/{level2_issue.json()["id"]}/acknowledgment',
+            json={'issue_sha256':level2_issue.json()['record_sha256'],
+                'confirm_received':True,'confirm_reviewed_limitations':True,
+                'acknowledgment_note':'Fictional Member confirms Level 2 receipt and limits.',
+                'idempotency_key':'fictional-level2-receipt'})
+        assert level2_ack.status_code==200,level2_ack.text
+        level2_qualification=assigned_owner.post(
+            f'/api/assessments/{next_assessment_id}/package-predecessor-qualifications',
+            json={'issue_sha256':level2_issue.json()['record_sha256'],
+                'acknowledgment_id':level2_ack.json()['id'],
+                'qualification_basis':'Fictional independent Level 2 review of the exact issued package.',
+                'limitations_disposition':'Fictional Level 2 limitations remain visible to the Level 3 buyer.',
+                'confirm_independent_review':True})
+        assert level2_qualification.status_code==200,level2_qualification.text
+        level3_assessment=assigned_owner.post('/api/assessments',json={
+            'name':'Deep same-boundary review','organization':'Example Member',
+            'covered_operation':'One named operation','exclusions':'Other sites and functions',
+            'requested_package_level':3,'requested_scope_band':'A','requested_access_variant':''})
+        assert level3_assessment.status_code==200,level3_assessment.text
+        level3_id=level3_assessment.json()['id']
+        conn=app.db()
+        conn.execute('INSERT INTO assessment_access(user_id,assessment_id,created_at) VALUES(?,?,?)',
+            (salus_user,level3_id,app.now()))
+        conn.commit();conn.close()
+        level3_agreement=assigned_owner.post(f'/api/assessments/{level3_id}/package-agreements',
+            files={'file':('Deep-Agreement.pdf',pdf,'application/pdf')})
+        assert level3_agreement.status_code==200,level3_agreement.text
+        level3_quote=assigned_owner.post(f'/api/assessments/{level3_id}/package-quote',
+            json={**next_quote,'level':3,'fee_cents':1250000,
+                'agreement_artifact_id':level3_agreement.json()['id'],
+                'agreement_reference':'DEEP-AGREEMENT-1',
+                'predecessor_qualification_id':level2_qualification.json()['id']})
+        assert level3_quote.status_code==200 and level3_quote.json()['level']==3,level3_quote.text
+        assert member.get(f'/api/package-agreements/{level3_agreement.json()["id"]}/download').status_code==200
+        level3_accept=member.post(f'/api/assessments/{level3_id}/package-acceptance',json={
+            **acceptance,'quote_id':level3_quote.json()['id'],
+            'quote_sha256':level3_quote.json()['content_sha256'],
+            'idempotency_key':'member-acceptance-level3'})
+        assert level3_accept.status_code==200 and level3_accept.json()['status']=='Authorized',level3_accept.text
         assert member.get(issue_url).json()['issues'][0]['acknowledged_at']==acknowledged.json()['acknowledged_at']
         assert member.post(acknowledgment_url,json=acknowledgment_payload).json()['idempotent'] is True
         assert member.post(acknowledgment_url,json={**acknowledgment_payload,
@@ -557,41 +639,41 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         validation=admin.post(f"/api/admin/backups/{backup.json()['id']}/dr-validate")
         assert validation.status_code==200 and validation.json()['ok'], validation.text
         conn=app.db()
-        assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_agreement_artifacts').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_agreement_downloads').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_quote_predecessor_links').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==3
+        assert conn.execute('SELECT COUNT(*) FROM package_agreement_artifacts').fetchone()[0]==3
+        assert conn.execute('SELECT COUNT(*) FROM package_agreement_downloads').fetchone()[0]==3
+        assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==3
+        assert conn.execute('SELECT COUNT(*) FROM package_quote_predecessor_links').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
-        assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==5
-        assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==5
-        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==4
-        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_packets').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==5
-        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_acknowledgments').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_predecessor_qualifications').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==9
+        assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==9
+        assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==3
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==9
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==8
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_packets').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==9
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_acknowledgments').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_predecessor_qualifications').fetchone()[0]==2
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
         from portable_backup import collect_tenant_records, replace_tenant_records, validate_records
         records=collect_tenant_records(conn,1)
-        assert len(records['package_quote_versions'])==2
-        assert len(records['package_agreement_artifacts'])==2
-        assert len(records['package_agreement_downloads'])==2
-        assert len(records['package_acceptances'])==2
-        assert len(records['package_quote_predecessor_links'])==1
+        assert len(records['package_quote_versions'])==3
+        assert len(records['package_agreement_artifacts'])==3
+        assert len(records['package_agreement_downloads'])==3
+        assert len(records['package_acceptances'])==3
+        assert len(records['package_quote_predecessor_links'])==2
         assert len(records['package_intake_requests'])==2
-        assert len(records['package_product_report_versions'])==5
-        assert len(records['package_report_conformance'])==5
-        assert len(records['package_report_reconciliations'])==2
-        assert len(records['package_report_qa_evidence'])==5
-        assert len(records['package_report_qa_reviews'])==4
-        assert len(records['package_report_issue_packets'])==1
-        assert len(records['package_report_issue_deliveries'])==5
-        assert len(records['package_report_issue_acknowledgments'])==1
-        assert len(records['package_predecessor_qualifications'])==1
+        assert len(records['package_product_report_versions'])==9
+        assert len(records['package_report_conformance'])==9
+        assert len(records['package_report_reconciliations'])==3
+        assert len(records['package_report_qa_evidence'])==9
+        assert len(records['package_report_qa_reviews'])==8
+        assert len(records['package_report_issue_packets'])==2
+        assert len(records['package_report_issue_deliveries'])==9
+        assert len(records['package_report_issue_acknowledgments'])==2
+        assert len(records['package_predecessor_qualifications'])==2
         assert not validate_records(records,1)
         original_manifest_hash=records['package_report_qa_evidence'][0]['manifest_sha256']
         records['package_report_qa_evidence'][0]['manifest_sha256']='0'*64
@@ -619,19 +701,19 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         records['package_quote_predecessor_links'][0]['qualification_sha256']=original_link_sha
         replace_tenant_records(conn,1,records)
         conn.commit()
-        assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_quote_predecessor_links').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==3
+        assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==3
+        assert conn.execute('SELECT COUNT(*) FROM package_quote_predecessor_links').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
-        assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==5
-        assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==5
-        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==4
-        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_packets').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==5
-        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_acknowledgments').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_predecessor_qualifications').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==9
+        assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==9
+        assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==3
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==9
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==8
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_packets').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==9
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_acknowledgments').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_predecessor_qualifications').fetchone()[0]==2
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'

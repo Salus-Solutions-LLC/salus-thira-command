@@ -1,5 +1,18 @@
 # Level and band report template candidate contract
 
+## 30 September 2026 scope reconciliation candidate 1.2
+
+The four successor candidates now state how the selected path changes the Member decision: A covers one integrated decision unit, B compares separately analyzed units or operating profiles, and C ranks a named group's priorities. SalINTEL™ distinguishes eligible Level 1A Access from Standard and names the full four-report sequence; SalTHIRA™ distinguishes source-bound Level 1, field-validated Level 2 and authorized specialist Level 3 proof; SalOPS™ separates recommendations from separately quoted implementation; SalCAPA™ names the four reports, Member decision, proof limits and implementation authority. These are prompts for the report author, not completed findings or approved buyer copy. The registered references remain intact.
+
+| Product | Candidate 1.2 DOCX SHA-256 | Rendered QA PDF SHA-256 | Pages |
+|---|---|---|---:|
+| SalINTEL™ | `B3BA98980D41C89460F9999AD535C075C30C8069A459A4E0312E42D8353E3DED` | `E196222056CC6FDE3073BB6613468FB67C0DB1A9F9D855EB1F7F285A08731AE8` | 9 |
+| SalTHIRA™ | `22EB073BDDDAC890409BED5896F01052C08D48B2F2CA4CB739E5874A0A2FEEB6` | `329B2D8BF0EE6717A58374338D374DD445DD86ED91850BB64C06052E4A0664C8` | 6 |
+| SalOPS™ | `00050972FA263FD27BA5C4070EEEB2E045C98AA30AE615910A44948C252BDB44` | `1A80F43B134E8C0EA8603F005E5D578D63862BE8FD8FE81384A86BEF4A7678C4` | 6 |
+| SalCAPA™ | `2D9C8BB72AEC82D14902684CC35783A9E5EDC3F9590B08C3CF27AFCDA74AFBF3` | `7083925182CF7759CCF79B67DD5158D5A9D053D11AB99475A311E64CE05B1406` | 6 |
+
+The exact PDFs have a text-empty page two and `page X of Y` on every other page. All 27 page images were screened in contact sheets for gross layout, and the corrected SalTHIRA page 5 was inspected at reading size. Full native Word, accessibility and populated-report review, exact qualified template approval, access control and governed publication remain open. The root Protection Advisor example remains the approved visual reference; the Part 1 and Part 2 questionnaire and staged intake review copies already carry the provisional band and four-report handoff. Their exact-version release review remains open.
+
 **Authority:** SAL-D088–SAL-D090. **Purpose:** Prepare four member-neutral title and opening-prompt candidates while retaining the exact registered Word references and all issued reports. These candidates do not supersede approved binary templates until governed visual, content, access and release review.
 
 | Product | Retained reference in local `work/` | SHA-256 | Baseline sections / content |
