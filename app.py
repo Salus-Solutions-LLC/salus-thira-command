@@ -1064,6 +1064,20 @@ def init_db():
       UNIQUE (tenant_id,issue_id)
     );
     CREATE INDEX IF NOT EXISTS idx_package_predecessors ON package_predecessor_qualifications(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_quote_predecessor_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      qualification_id INTEGER NOT NULL,
+      qualification_sha256 TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      linked_at TEXT NOT NULL,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (qualification_id) REFERENCES package_predecessor_qualifications(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,quote_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_quote_predecessors ON package_quote_predecessor_links(tenant_id,assessment_id,quote_id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -1809,6 +1823,7 @@ class PackageQuoteIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     assessment_version: int = Field(gt=0)
     level: Literal[1,2,3]
+    predecessor_qualification_id: int = Field(default=0,ge=0)
     band: Literal['A','B','C']
     variant: Literal['','Access','Standard'] = ''
     covered_operation: str = Field(min_length=1,max_length=240)
@@ -1870,7 +1885,7 @@ class PackageHandoffReviewIn(BaseModel):
     confirm_exact_receipt: Literal[True]
 
 def verified_package_quote(row,request:Request):
-    content={key:row[key] for key in PackageQuoteIn.model_fields}
+    content={key:row[key] for key in PackageQuoteIn.model_fields if key!='predecessor_qualification_id'}
     if row['assessment_scope_sha256']:
         content['assessment_scope_sha256']=row['assessment_scope_sha256']
     for key in ('capacity_confirmed','access_eligibility_confirmed','separate_services_excluded'):
@@ -1887,6 +1902,84 @@ def lock_package_assessment(conn, assessment_id:int):
         conn.execute('BEGIN IMMEDIATE')
     else:
         conn.execute('SELECT id FROM assessments WHERE id=? FOR UPDATE',(assessment_id,))
+
+def verified_package_predecessor(conn,qualification_id:int,request:Request,current,level:int):
+    tid=tenant_id(request)
+    qualification=conn.execute('''SELECT * FROM package_predecessor_qualifications
+        WHERE id=? AND tenant_id=?''',(qualification_id,tid)).fetchone()
+    if not qualification: raise HTTPException(409,'A qualified prior package is required.')
+    keys=('assessment_id','issue_id','issue_sha256','acknowledgment_id',
+        'acknowledgment_sha256','quote_id','level','band','covered_operation',
+        'exclusions','assessment_scope_sha256','qualification_basis',
+        'limitations_disposition','reviewer_user_id')
+    record={key:qualification[key] for key in keys}
+    if hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()!=qualification['record_sha256']:
+        raise HTTPException(409,'The predecessor qualification failed integrity verification.')
+    prior_assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+        (qualification['assessment_id'],tid)).fetchone()
+    issue=conn.execute('''SELECT * FROM package_report_issue_packets WHERE id=? AND tenant_id=?''',
+        (qualification['issue_id'],tid)).fetchone()
+    acknowledgment=conn.execute('''SELECT * FROM package_report_issue_acknowledgments
+        WHERE id=? AND tenant_id=?''',(qualification['acknowledgment_id'],tid)).fetchone()
+    prior_quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=?',
+        (qualification['quote_id'],tid)).fetchone()
+    reviewer=conn.execute('SELECT role,status FROM users WHERE id=? AND tenant_id=?',
+        (qualification['reviewer_user_id'],tid)).fetchone()
+    if not prior_assessment or not issue or not acknowledgment or not prior_quote or not reviewer:
+        raise HTTPException(409,'The predecessor source package is incomplete.')
+    reports=verified_package_issue_record(issue)
+    latest=conn.execute('''SELECT id FROM package_report_issue_packets WHERE tenant_id=?
+        AND assessment_id=? ORDER BY id DESC LIMIT 1''',(tid,qualification['assessment_id'])).fetchone()
+    acknowledgment_record={key:acknowledgment[key] for key in
+        ('issue_id','issue_sha256','recipient_user_id','acknowledgment_note','idempotency_key')}
+    acknowledgment_digest=hashlib.sha256(json.dumps(acknowledgment_record,
+        sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    if (not latest or latest['id']!=issue['id'] or issue['assessment_id']!=prior_assessment['id']
+            or qualification['issue_sha256']!=issue['record_sha256']
+            or acknowledgment['issue_id']!=issue['id']
+            or acknowledgment['issue_sha256']!=issue['record_sha256']
+            or acknowledgment['recipient_user_id']!=issue['recipient_user_id']
+            or acknowledgment['record_sha256']!=acknowledgment_digest
+            or qualification['acknowledgment_sha256']!=acknowledgment_digest
+            or qualification['reviewer_user_id']==issue['issued_by_user_id']
+            or qualification['quote_id']!=issue['quote_id']
+            or prior_quote['assessment_id']!=prior_assessment['id']
+            or qualification['level']!=prior_quote['level']
+            or qualification['band']!=prior_quote['band']
+            or qualification['assessment_scope_sha256']!=prior_quote['assessment_scope_sha256']
+            or qualification['assessment_scope_sha256']!=assessment_scope_digest(prior_assessment)
+            or reviewer['status']!='Active'
+            or reviewer['role'] not in ('System Administrator','Assessment Director')
+            or qualification['level']!=level-1
+            or qualification['assessment_id']==current['id']
+            or prior_assessment['organization']!=current['organization']
+            or qualification['covered_operation']!=current['covered_operation']
+            or qualification['exclusions']!=current['exclusions']):
+        raise HTTPException(409,'The predecessor does not match this Member, sequence or decision boundary.')
+    verified_package_quote(prior_quote,request)
+    for product,snapshot in reports.items():
+        report=conn.execute('''SELECT * FROM package_product_report_versions
+            WHERE tenant_id=? AND assessment_id=? AND product=? ORDER BY version_no DESC LIMIT 1''',
+            (tid,prior_assessment['id'],product)).fetchone()
+        if (not report or report['id']!=snapshot['report_id'] or report['status']!='Issued'
+                or report['content_sha256']!=snapshot['content_sha256']):
+            raise HTTPException(409,f'{product}: the predecessor report changed.')
+    return qualification
+
+def verified_quote_predecessor_link(conn,quote,request:Request,current):
+    link=conn.execute('''SELECT * FROM package_quote_predecessor_links WHERE tenant_id=?
+        AND quote_id=? AND assessment_id=?''',(tenant_id(request),quote['id'],current['id'])).fetchone()
+    if not link: raise HTTPException(409,'The later-level quote lacks its predecessor link.')
+    record={'assessment_id':link['assessment_id'],'quote_id':link['quote_id'],
+        'qualification_id':link['qualification_id'],
+        'qualification_sha256':link['qualification_sha256']}
+    digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    if digest!=link['record_sha256']:
+        raise HTTPException(409,'The predecessor quote link failed integrity verification.')
+    qualification=verified_package_predecessor(conn,link['qualification_id'],request,current,quote['level'])
+    if qualification['record_sha256']!=link['qualification_sha256']:
+        raise HTTPException(409,'The predecessor qualification version changed.')
+    return link
 
 def require_package_commercial_candidate():
     if not PACKAGE_COMMERCIAL_WORKFLOW_ENABLED or ENVIRONMENT=='production':
@@ -5301,7 +5394,12 @@ def download_package_agreement(artifact_id:int,request:Request):
     quote=conn.execute('SELECT * FROM package_quote_versions WHERE tenant_id=? AND assessment_id=? AND agreement_artifact_id=? ORDER BY version_no DESC LIMIT 1',(tenant_id(request),item['assessment_id'],artifact_id)).fetchone()
     if member and not quote: conn.close(); raise HTTPException(404,'The agreement is not attached to a Member quote.')
     if quote:
-        try: verified_package_quote(quote,request)
+        try:
+            verified_package_quote(quote,request)
+            if quote['level']>1:
+                current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+                    (item['assessment_id'],tenant_id(request))).fetchone()
+                verified_quote_predecessor_link(conn,quote,request,current)
         except Exception: conn.close(); raise
     conn.close()
     try: data=storage.get_bytes(item['stored_name'])
@@ -5328,7 +5426,12 @@ def get_package_quote(assessment_id:int,request:Request):
     require(request,'read'); assessment=assessment_row_for_request(request,assessment_id)
     conn=db(); quote=conn.execute('SELECT * FROM package_quote_versions WHERE tenant_id=? AND assessment_id=? ORDER BY version_no DESC LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
     if not quote: conn.close(); raise HTTPException(404,'No fixed package quote has been approved.')
-    try: verified_package_quote(quote,request)
+    try:
+        verified_package_quote(quote,request)
+        predecessor_valid=True
+        if quote['level']>1:
+            try: verified_quote_predecessor_link(conn,quote,request,assessment)
+            except HTTPException: predecessor_valid=False
     except Exception: conn.close(); raise
     acceptance=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND quote_id=?',(tenant_id(request),assessment_id,quote['id'])).fetchone()
     conn.close(); result=dict(quote)
@@ -5340,7 +5443,8 @@ def get_package_quote(assessment_id:int,request:Request):
         and quote['band']==assessment['requested_scope_band']
         and quote['variant']==assessment['requested_access_variant']
         and quote['assessment_scope_sha256']==assessment_scope_digest(assessment))
-    if acceptance and not quote['assessment_scope_sha256']: result['status']='Authorized terms — scope proof requires review'
+    if not predecessor_valid: result['status']='Predecessor changed — review required'
+    elif acceptance and not quote['assessment_scope_sha256']: result['status']='Authorized terms — scope proof requires review'
     elif acceptance and not scope_matches: result['status']='Authorized original scope — amendment required'
     elif acceptance: result['status']='Authorized'
     elif not quote['assessment_scope_sha256']: result['status']='Scope proof missing — new quote required'
@@ -5556,11 +5660,14 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
     assessment=assessment_row_for_request(request,assessment_id)
     if int(assessment['version'])!=p.assessment_version:
         raise HTTPException(409,'The assessment scope changed; review the current version before quoting.')
-    if p.level>1:
-        raise HTTPException(409,'Level 2 and 3 quotes require a qualified issued predecessor and are held until that gate is implemented.')
+    if p.level>1 and not p.predecessor_qualification_id:
+        raise HTTPException(409,'Level 2 and 3 quotes require an exact qualified prior package.')
+    if p.level==1 and p.predecessor_qualification_id:
+        raise HTTPException(422,'Level 1 is the first package and has no predecessor.')
     if not p.separate_services_excluded:
         raise HTTPException(422,'Separately proposed SalOPS services must be excluded from this package fee.')
-    data=p.model_dump(); data['covered_operation']=data['covered_operation'].strip()
+    data=p.model_dump(); predecessor_id=data.pop('predecessor_qualification_id')
+    data['covered_operation']=data['covered_operation'].strip()
     if data['source_receipt_id']:
         raise HTTPException(409,'Protection Advisor receipt linkage is not yet verified; leave the source receipt blank until the consented handoff is available.')
     try:
@@ -5587,6 +5694,8 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
             raise HTTPException(409,'The assessment scope changed while preparing this quote. Review the current boundary and agreement.')
         try: validate_quote(data,current)
         except ValueError as exc: raise HTTPException(409,'The requested package path changed while preparing this quote.') from exc
+        predecessor=(verified_package_predecessor(conn,predecessor_id,request,current,p.level)
+            if p.level>1 else None)
         data['assessment_scope_sha256']=assessment_scope_digest(current)
         accepted=conn.execute('SELECT id FROM package_acceptances WHERE tenant_id=? AND assessment_id=? LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
         if accepted:
@@ -5597,6 +5706,15 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
         columns=list(data)+['content_sha256','approved_by','approved_at']
         values=list(data.values())+[digest,actor(request),now()]
         cur=conn.execute(f"INSERT INTO package_quote_versions({','.join(columns)}) VALUES({','.join('?' for _ in columns)})",values)
+        if predecessor:
+            link_record={'assessment_id':assessment_id,'quote_id':cur.lastrowid,
+                'qualification_id':predecessor['id'],
+                'qualification_sha256':predecessor['record_sha256']}
+            link_digest=hashlib.sha256(json.dumps(link_record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            conn.execute('''INSERT INTO package_quote_predecessor_links
+                (tenant_id,assessment_id,quote_id,qualification_id,qualification_sha256,record_sha256,linked_at)
+                VALUES(?,?,?,?,?,?,?)''',(tenant_id(request),assessment_id,cur.lastrowid,
+                predecessor['id'],predecessor['record_sha256'],link_digest,now()))
         audit(conn,'PACKAGE_QUOTE','assessment',assessment_id,f'quote_id={cur.lastrowid}; version={version}; sha256={digest}',actor(request))
         conn.commit(); row=dict(conn.execute('SELECT * FROM package_quote_versions WHERE id=?',(cur.lastrowid,)).fetchone())
         return row
@@ -5620,7 +5738,10 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
         prior=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND idempotency_key=?',(tenant_id(request),assessment_id,p.idempotency_key)).fetchone()
         if prior:
             prior_quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(prior['quote_id'],tenant_id(request),assessment_id)).fetchone()
-            if prior_quote: verified_package_quote(prior_quote,request)
+            if prior_quote:
+                verified_package_quote(prior_quote,request)
+                if prior_quote['level']>1:
+                    verified_quote_predecessor_link(conn,prior_quote,request,assessment)
             if (prior_quote and prior['quote_id']==p.quote_id and prior['quote_sha256']==p.quote_sha256
                 and prior['agreement_sha256']==p.agreement_sha256.lower() and prior['member_user_id']==ctx['user_id']):
                 return {'status':'Authorized','quote_id':p.quote_id,'accepted_at':prior['accepted_at'],'idempotent':True}
@@ -5628,6 +5749,7 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
         quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(p.quote_id,tenant_id(request),assessment_id)).fetchone()
         if not quote: raise HTTPException(404,'Package quote not found.')
         verified_package_quote(quote,request)
+        if quote['level']>1: verified_quote_predecessor_link(conn,quote,request,assessment)
         if quote['source_receipt_id']:
             raise HTTPException(409,'This quote has an unverified Protection Advisor receipt and cannot be accepted.')
         latest=conn.execute('SELECT MAX(version_no) n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',(tenant_id(request),assessment_id)).fetchone()['n']
@@ -5660,8 +5782,9 @@ def authorized_package_intake(conn,assessment_id:int,request:Request):
     assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tenant_id(request))).fetchone()
     accepted=conn.execute('''SELECT q.* FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
         WHERE a.tenant_id=? AND a.assessment_id=? ORDER BY a.id DESC LIMIT 1''',(tenant_id(request),assessment_id)).fetchone()
-    if not assessment or not accepted: raise HTTPException(409,'The Level 1 intake opens after an authorized package agreement.')
+    if not assessment or not accepted: raise HTTPException(409,'The package intake opens after an authorized agreement.')
     verified_package_quote(accepted,request)
+    if accepted['level']>1: verified_quote_predecessor_link(conn,accepted,request,assessment)
     if (not accepted['assessment_scope_sha256'] or accepted['assessment_scope_sha256']!=assessment_scope_digest(assessment)
         or accepted['assessment_version']!=assessment['version']):
         raise HTTPException(409,'The authorized scope changed; review the written package before requesting more records.')

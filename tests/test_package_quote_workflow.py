@@ -89,7 +89,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert issued['fee_cents']==150000 and issued['version_no']==1
         assert len(issued['assessment_scope_sha256'])==64
         assert director.get(url).json()['status']=='Quoted'
-        legacy_content={key:issued[key] for key in app.PackageQuoteIn.model_fields}
+        legacy_content={key:issued[key] for key in app.PackageQuoteIn.model_fields
+            if key!='predecessor_qualification_id'}
         for key in ('capacity_confirmed','access_eligibility_confirmed','separate_services_excluded'):
             legacy_content[key]=bool(legacy_content[key])
         legacy_content.update(assessment_id=assessment_id,tenant_id=1,version_no=1)
@@ -461,6 +462,51 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert assigned_owner.post(predecessor_url,json=predecessor_payload).json()['idempotent'] is True
         assert assigned_owner.post(predecessor_url,json={**predecessor_payload,
             'limitations_disposition':'Fictional changed limits cannot overwrite a qualification record.'}).status_code==409
+        next_assessment=assigned_owner.post('/api/assessments',json={
+            'name':'Focused same-boundary review','organization':'Example Member',
+            'covered_operation':'One named operation','exclusions':'Other sites and functions',
+            'requested_package_level':2,'requested_scope_band':'A',
+            'requested_access_variant':''})
+        assert next_assessment.status_code==200,next_assessment.text
+        next_assessment_id=next_assessment.json()['id']
+        conn=app.db()
+        conn.execute('INSERT INTO assessment_access(user_id,assessment_id,created_at) VALUES(?,?,?)',
+            (salus_user,next_assessment_id,app.now()))
+        conn.commit();conn.close()
+        next_agreement=assigned_owner.post(f'/api/assessments/{next_assessment_id}/package-agreements',
+            files={'file':('Focused-Agreement.pdf',pdf,'application/pdf')})
+        assert next_agreement.status_code==200,next_agreement.text
+        next_quote={**quote,'level':2,'band':'A','variant':'','fee_cents':850000,
+            'access_eligibility_confirmed':False,'access_eligibility_basis':'',
+            'agreement_artifact_id':next_agreement.json()['id'],
+            'agreement_reference':'FOCUSED-AGREEMENT-1',
+            'predecessor_qualification_id':qualified.json()['id']}
+        next_quote_url=f'/api/assessments/{next_assessment_id}/package-quote'
+        assert assigned_owner.post(next_quote_url,json={**next_quote,
+            'predecessor_qualification_id':0}).status_code==409
+        focused=assigned_owner.post(next_quote_url,json=next_quote)
+        assert focused.status_code==200 and focused.json()['level']==2,focused.text
+        assert assigned_owner.get(next_quote_url).json()['status']=='Quoted'
+        next_agreement_download=member.get(
+            f'/api/package-agreements/{next_agreement.json()["id"]}/download')
+        assert next_agreement_download.status_code==200,next_agreement_download.text
+        next_acceptance={**acceptance,'quote_id':focused.json()['id'],
+            'quote_sha256':focused.json()['content_sha256'],
+            'idempotency_key':'member-acceptance-level2'}
+        conn=app.db()
+        conn.execute('UPDATE package_predecessor_qualifications SET qualification_basis=? WHERE id=?',
+            ('Altered predecessor qualification after quote issue.',qualified.json()['id']))
+        conn.commit();conn.close()
+        assert member.post(f'/api/assessments/{next_assessment_id}/package-acceptance',
+            json=next_acceptance).status_code==409
+        conn=app.db()
+        conn.execute('UPDATE package_predecessor_qualifications SET qualification_basis=? WHERE id=?',
+            (predecessor_payload['qualification_basis'],qualified.json()['id']))
+        conn.commit();conn.close()
+        accepted_level2=member.post(f'/api/assessments/{next_assessment_id}/package-acceptance',
+            json=next_acceptance)
+        assert accepted_level2.status_code==200 and accepted_level2.json()['status']=='Authorized',accepted_level2.text
+        assert member.get(f'/api/assessments/{next_assessment_id}/package-intake').status_code==200
         assert member.get(issue_url).json()['issues'][0]['acknowledged_at']==acknowledged.json()['acknowledged_at']
         assert member.post(acknowledgment_url,json=acknowledgment_payload).json()['idempotent'] is True
         assert member.post(acknowledgment_url,json={**acknowledgment_payload,
@@ -511,10 +557,11 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         validation=admin.post(f"/api/admin/backups/{backup.json()['id']}/dr-validate")
         assert validation.status_code==200 and validation.json()['ok'], validation.text
         conn=app.db()
-        assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_agreement_artifacts').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_agreement_downloads').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_agreement_artifacts').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_agreement_downloads').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_quote_predecessor_links').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==5
@@ -530,10 +577,11 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
         from portable_backup import collect_tenant_records, replace_tenant_records, validate_records
         records=collect_tenant_records(conn,1)
-        assert len(records['package_quote_versions'])==1
-        assert len(records['package_agreement_artifacts'])==1
-        assert len(records['package_agreement_downloads'])==1
-        assert len(records['package_acceptances'])==1
+        assert len(records['package_quote_versions'])==2
+        assert len(records['package_agreement_artifacts'])==2
+        assert len(records['package_agreement_downloads'])==2
+        assert len(records['package_acceptances'])==2
+        assert len(records['package_quote_predecessor_links'])==1
         assert len(records['package_intake_requests'])==2
         assert len(records['package_product_report_versions'])==5
         assert len(records['package_report_conformance'])==5
@@ -565,10 +613,15 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         records['package_predecessor_qualifications'][0]['limitations_disposition']='Altered limits.'
         assert any('invalid predecessor proof' in error for error in validate_records(records,1))
         records['package_predecessor_qualifications'][0]['limitations_disposition']=original_qual_limit
+        original_link_sha=records['package_quote_predecessor_links'][0]['qualification_sha256']
+        records['package_quote_predecessor_links'][0]['qualification_sha256']='0'*64
+        assert any('invalid prerequisite proof' in error for error in validate_records(records,1))
+        records['package_quote_predecessor_links'][0]['qualification_sha256']=original_link_sha
         replace_tenant_records(conn,1,records)
         conn.commit()
-        assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_quote_predecessor_links').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==5
@@ -602,7 +655,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         next_quote={**quote,'level':2,'variant':'','fee_cents':500000,
                     'access_eligibility_confirmed':False,'access_eligibility_basis':''}
         blocked=director.post(f'/api/assessments/{next_id}/package-quote',json=next_quote)
-        assert blocked.status_code==409 and 'qualified issued predecessor' in blocked.text
+        assert blocked.status_code==409 and 'exact qualified prior package' in blocked.text
     ''')
     child = tmp_path / 'workflow_child.py'
     child.write_text(program, encoding='utf-8')
