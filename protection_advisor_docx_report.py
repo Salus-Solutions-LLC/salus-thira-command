@@ -244,7 +244,8 @@ def _professional_body(document, fields, result, package) -> None:
         for label, key in (("Requested operation", "requested_boundary"),
                            ("Requested location", "requested_location"),
                            ("Outside the proposed boundary", "outside_boundary"),
-                           ("Price", "price_state"), ("Decision role", "decision_owner"),
+                           ("Price", "price_state"), ("Schedule", "schedule_state"),
+                           ("Decision role", "decision_owner"),
                            ("Next step", "next_step")):
             document.add_paragraph(f"{label}: {receipt.get(key, 'To confirm')}")
         document.add_paragraph("What to prepare:")
@@ -858,6 +859,7 @@ def render_protection_advisor_pdf(
         story += bullets(receipt.get("member_prepares") or [])
         story += [P(str(receipt.get("salus_deliverable", ""))),
                   P("Price: " + str(receipt.get("price_state", "To confirm"))),
+                  P("Schedule: " + str(receipt.get("schedule_state", "Dates to confirm in writing"))),
                   P("Decision role: " + str(receipt.get("decision_owner", "To confirm"))),
                   P("Next: " + str(receipt.get("next_step", ""))),
                   P(str(receipt.get("status", "Draft for Salus review")))]
@@ -965,6 +967,7 @@ def render_scope_receipt_pdf(
             ("Possible path", str(receipt.get("possible_path") or "To confirm")),
             ("What you receive", str(receipt.get("salus_deliverable") or "To confirm")),
             ("Price", str(receipt.get("price_state") or "Written quote pending")),
+            ("Schedule", str(receipt.get("schedule_state") or "Dates to confirm in writing")),
             ("Decision role", str(receipt.get("decision_owner") or "To confirm")),
         ]),
         paragraph("What to prepare", heading),

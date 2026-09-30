@@ -122,7 +122,7 @@ with tempfile.TemporaryDirectory() as td:
     assert 'id="reportIdentityEditor"' in embedded.text
     assert "Edit code names and report handling" in embedded.text
     assert "Update report code names or requested handling" in embedded.text
-    assert "SPA-REPORT-TEMPLATE-1.3.0" in embedded.text
+    assert "SPA-REPORT-TEMPLATE-1.4.0" in embedded.text
     assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in embedded.text
     assert 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' in embedded.text
     assert "frame-ancestors https://www.salus.solutions https://salus.solutions" in embedded.headers["content-security-policy"]
@@ -268,7 +268,7 @@ with tempfile.TemporaryDirectory() as td:
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
-    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.4.0"
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.5.0"
     assert package["primary_service"]["title"]=="Level 1 SalCAPA™ Package"
     assert package["primary_service"]["level"]==1
     assert package["provisional_path"]["band"]=="B"
@@ -276,6 +276,7 @@ with tempfile.TemporaryDirectory() as td:
     assert package["scope_receipt"]["requested_boundary"]=="Two named manufacturing and fulfillment sites"
     assert "organization chart" in package["scope_receipt"]["member_prepares"][0]
     assert package["scope_receipt"]["receipt_id"].startswith("SPA-RECEIPT-")
+    assert "written scope" in package["scope_receipt"]["schedule_state"]
     assert len(package["scope_receipt"]["milestones"]) == 5
     assert len(package["scope_receipt"]["choices"]) == 4
     assert package["sequence"][0]=="Level 1 SalCAPA™ package — four coordinated reports"

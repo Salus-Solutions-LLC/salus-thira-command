@@ -60,7 +60,7 @@ def draft_level_1_scope_receipt(profile: dict, path: dict[str, str]) -> dict:
     price = ('$1,500 if Salus confirms Level 1A Access eligibility and the written scope'
              if path['band'] == 'A' else 'a written price after Salus confirms the scope')
     return {
-        'version': 'SPA-SCOPE-RECEIPT-0.2.0',
+        'version': 'SPA-SCOPE-RECEIPT-0.3.0',
         'receipt_id': '',  # Bound to the single submission identity at save time.
         'status': 'Draft for Salus review — no assessment or purchase authorized',
         'lead_sentence': f'{path["label"]} is a starting point for {boundary}; the price is {price}.',
@@ -76,6 +76,7 @@ def draft_level_1_scope_receipt(profile: dict, path: dict[str, str]) -> dict:
         'salus_deliverable': 'A qualified Level 1 package contains separate SalINTEL, SalTHIRA, SalOPS and SalCAPA reports for the agreed boundary.',
         'price_state': ('Level 1A Access is $1,500 only if Salus confirms eligibility and the written scope.'
                         if path['band'] == 'A' else 'Salus will give a written price after confirming the scope.'),
+        'schedule_state': 'Start and delivery dates are set in the written scope after Salus confirms capacity and receives authorization.',
         'decision_owner': str(profile.get('decision_authority') or 'Authorized role to confirm'),
         'next_step': 'Review the boundary and available records with Salus; then accept or decline a written scope and fee.',
         'milestones': [
