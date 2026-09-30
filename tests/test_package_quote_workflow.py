@@ -357,6 +357,46 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert assigned_owner.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==200
         assert assigned_owner.get(qa_url).status_code==200
         assert assigned_owner.get(qa_archive_url).status_code==200
+        review_url=f'/api/package-reports/{revised.json()["id"]}/qa-reviews'
+        complete_manifest={**manifest,'pages':[
+            {'page':number,'checked_full_size':True,'note':'Fictional full-size check recorded.'}
+            for number in range(1,4)],'native_word':'Checked','accessibility':'Checked',
+            'parity':'Checked','notes':'Fictional completed QA candidate; independent decision remains separate.'}
+        reviewed_archive=assigned_owner.post(qa_archive_url,files={'file':(
+            'qa-complete.zip',qa_zip(complete_manifest),'application/zip')})
+        assert reviewed_archive.status_code==200,reviewed_archive.text
+        review_payload={'evidence_id':reviewed_archive.json()['id'],'decision':'Reviewed',
+            'checks':{key:True for key in app.PACKAGE_REPORT_REVIEW_KEYS},
+            'qualification_basis':'Fictional reviewer qualification record for the test only.',
+            'review_note':'Fictional exact-version review of every page and offered output.'}
+        assert assigned_owner.post(review_url,json=review_payload).status_code==409
+        conn=app.db()
+        reviewer_id=conn.execute('INSERT INTO users(tenant_id,username,display_name,role,created_at,updated_at) VALUES(1,?,?,?,?,?)',
+            ('fictional-independent-reviewer','Fictional independent reviewer','Assessment Director',app.now(),app.now())).lastrowid
+        conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',
+            (reviewer_id,app._hash_token('fictional-review-session'),'2099-01-01T00:00:00Z',app.now(),app.now()))
+        conn.execute('INSERT INTO assessment_access(user_id,assessment_id,created_at) VALUES(?,?,?)',
+            (reviewer_id,assessment_id,app.now()))
+        conn.commit();conn.close()
+        reviewer=TestClient(app.app,cookies={'salus_session':'fictional-review-session'})
+        assert reviewer.post(review_url,json={**review_payload,
+            'evidence_id':submitted.json()['id']}).status_code==409
+        assert reviewer.post(review_url,json={**review_payload,
+            'checks':{**review_payload['checks'],'accessibility':False}}).status_code==422
+        review=reviewer.post(review_url,json=review_payload)
+        assert review.status_code==200 and review.json()['decision']=='Reviewed',review.text
+        assert reviewer.post(review_url,json=review_payload).json()['idempotent'] is True
+        assert len(reviewer.get(review_url).json()['records'])==1
+        conn=app.db()
+        conn.execute('UPDATE package_report_qa_reviews SET review_note=? WHERE id=?',
+            ('Altered QA review without a new immutable record.',review.json()['id']))
+        conn.commit();conn.close()
+        assert any('SalINTEL: the independent QA review failed its integrity check.'==item
+            for item in reviewer.get(preflight_url).json()['blockers'])
+        conn=app.db()
+        conn.execute('UPDATE package_report_qa_reviews SET review_note=? WHERE id=?',
+            (review_payload['review_note'],review.json()['id']))
+        conn.commit();conn.close()
         assert assigned_owner.get(reconciliation_url).status_code==200
         assert assigned_owner.get(preflight_url).status_code==200
         requested=member.get(intake_url)
@@ -366,6 +406,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert member.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==403
         assert member.get(qa_url).status_code==403
         assert member.get(qa_archive_url).status_code==403
+        assert member.get(review_url).status_code==403
         assert member.get(reconciliation_url).status_code==403
         assert member.get(preflight_url).status_code==403
         assert member.patch(retention_url,json={'legal_hold':True,'reason':'No Member retention authority in this candidate.'}).status_code==403
@@ -399,7 +440,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==1
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
@@ -413,7 +455,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len(records['package_product_report_versions'])==5
         assert len(records['package_report_conformance'])==1
         assert len(records['package_report_reconciliations'])==1
-        assert len(records['package_report_qa_evidence'])==1
+        assert len(records['package_report_qa_evidence'])==2
+        assert len(records['package_report_qa_reviews'])==1
         assert not validate_records(records,1)
         original_manifest_hash=records['package_report_qa_evidence'][0]['manifest_sha256']
         records['package_report_qa_evidence'][0]['manifest_sha256']='0'*64
@@ -435,7 +478,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==1
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'

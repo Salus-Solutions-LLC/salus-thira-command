@@ -954,6 +954,7 @@ def init_db():
       retention_until TEXT NOT NULL,
       legal_hold INTEGER NOT NULL DEFAULT 0,
       submitted_by TEXT NOT NULL,
+      submitted_user_id INTEGER,
       submitted_at TEXT NOT NULL,
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
       FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
@@ -961,6 +962,27 @@ def init_db():
       UNIQUE (tenant_id,report_id,archive_sha256)
     );
     CREATE INDEX IF NOT EXISTS idx_package_report_qa_evidence ON package_report_qa_evidence(tenant_id,report_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_qa_reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      report_id INTEGER NOT NULL,
+      evidence_id INTEGER NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      archive_sha256 TEXT NOT NULL,
+      decision TEXT NOT NULL,
+      checks_json TEXT NOT NULL,
+      qualification_basis TEXT NOT NULL,
+      review_note TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      reviewer_user_id INTEGER NOT NULL,
+      reviewer_at TEXT NOT NULL,
+      FOREIGN KEY (report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (evidence_id) REFERENCES package_report_qa_evidence(id) ON DELETE RESTRICT,
+      FOREIGN KEY (reviewer_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,evidence_id,record_sha256)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_qa_reviews ON package_report_qa_reviews(tenant_id,report_id,id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -1587,6 +1609,7 @@ def init_db():
     ensure_column('package_product_report_versions','retention_until',"TEXT NOT NULL DEFAULT ''")
     ensure_column('package_product_report_versions','legal_hold','INTEGER NOT NULL DEFAULT 0')
     ensure_column('package_product_report_versions','disposition_status',"TEXT NOT NULL DEFAULT 'Active'")
+    ensure_column('package_report_qa_evidence','submitted_user_id','INTEGER')
     report_retention=(datetime.now(timezone.utc)+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
     conn.execute("UPDATE package_product_report_versions SET retention_until=? WHERE retention_until=''",(report_retention,))
     for field in ('included_work','report_deliverables','member_inputs','evidence_allowance','clarification_allowance','field_specialist_terms','payment_terms','tax_treatment','change_triggers'):
@@ -2576,6 +2599,14 @@ class PackageReportRetentionIn(BaseModel):
     retention_until: Optional[str] = Field(default=None,max_length=40)
     legal_hold: Optional[Literal[True]] = None
     reason: str = Field(min_length=20,max_length=2000)
+
+class PackageReportQaReviewIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    evidence_id: int = Field(gt=0)
+    decision: Literal['Reviewed','Returned']
+    checks: dict[str,bool]
+    qualification_basis: str = Field(min_length=20,max_length=2000)
+    review_note: str = Field(min_length=20,max_length=4000)
 
 ROLE_PERMISSIONS={
     'System Administrator': {'read','write','decide','admin'},
@@ -5604,6 +5635,7 @@ PACKAGE_REPORT_QA_KEYS=(
     'arial_headings_times_body','cover_blank_second_page_page_x_of_y','accessibility',
     'all_rendered_pages','docx_pdf_print_parity','method_and_template_version',
     'qualified_review_and_release_authority')
+PACKAGE_REPORT_REVIEW_KEYS=('all_pages','native_word','accessibility','format_parity','member_isolation')
 
 def require_package_report_assignment(request:Request,assessment_id:int):
     ctx=auth_context(request)
@@ -5757,6 +5789,26 @@ def package_release_readiness(assessment_id:int,request:Request):
                 elif (any(not page.get('checked_full_size') for page in manifest.get('pages',[]))
                         or any(manifest.get(key)!='Checked' for key in ('native_word','accessibility','parity'))):
                     blockers.append(f'{product}: rendered page, accessibility or format parity review is pending.')
+                review=conn.execute('''SELECT * FROM package_report_qa_reviews WHERE tenant_id=?
+                    AND report_id=? AND evidence_id=? ORDER BY id DESC LIMIT 1''',(tid,row['id'],qa['id'])).fetchone()
+                if not review:
+                    blockers.append(f'{product}: independent exact-version QA review is missing.')
+                else:
+                    try:
+                        review_checks=json.loads(review['checks_json'])
+                        review_record={key:review[key] for key in ('report_id','evidence_id','content_sha256',
+                            'archive_sha256','decision','qualification_basis','review_note','reviewer_user_id')}
+                        review_record['checks']=review_checks
+                        valid_review=(review['content_sha256']==row['content_sha256']
+                            and review['archive_sha256']==qa['archive_sha256']
+                            and review['reviewer_user_id']!=qa['submitted_user_id']
+                            and set(review_checks)==set(PACKAGE_REPORT_REVIEW_KEYS)
+                            and hashlib.sha256(json.dumps(review_record,sort_keys=True,separators=(',',':')).encode()).hexdigest()==review['record_sha256'])
+                    except (ValueError,TypeError,KeyError,AttributeError): valid_review=False
+                    if not valid_review:
+                        blockers.append(f'{product}: the independent QA review failed its integrity check.')
+                    elif review['decision']!='Reviewed' or not all(review_checks.values()):
+                        blockers.append(f'{product}: independent QA returned the report for correction.')
         capa=reports.get('SalCAPA')
         if capa:
             comparison=conn.execute('''SELECT * FROM package_report_reconciliations
@@ -5945,10 +5997,11 @@ async def submit_package_report_qa_evidence(report_id:int,request:Request,file:U
         retention_until=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
         cur=conn.execute('''INSERT INTO package_report_qa_evidence
             (tenant_id,assessment_id,report_id,content_sha256,stored_name,archive_sha256,archive_size_bytes,
-             manifest_json,manifest_sha256,status,retention_until,legal_hold,submitted_by,submitted_at)
-            VALUES(?,?,?,?,?,?,?,?,?,'Submitted',?,0,?,?)''',
+             manifest_json,manifest_sha256,status,retention_until,legal_hold,submitted_by,submitted_user_id,submitted_at)
+            VALUES(?,?,?,?,?,?,?,?,?,'Submitted',?,0,?,?,?)''',
             (tid,report['assessment_id'],report_id,report['content_sha256'],stored,digest,len(content),
-             manifest_json,hashlib.sha256(manifest_json.encode()).hexdigest(),retention_until,actor(request),now()))
+             manifest_json,hashlib.sha256(manifest_json.encode()).hexdigest(),retention_until,actor(request),
+             auth_context(request).get('user_id'),now()))
         audit(conn,'PACKAGE_REPORT_QA_SUBMISSION','assessment',report['assessment_id'],
             f'report_id={report_id}; archive_sha256={digest}',actor(request))
         conn.commit()
@@ -5984,6 +6037,98 @@ def download_package_report_qa_evidence(evidence_id:int,request:Request):
     return Response(content=content,media_type='application/zip',headers={
         'Content-Disposition':f'attachment; filename="package-report-qa-{evidence_id}.zip"',
         'X-Content-SHA256':row['archive_sha256'],'Cache-Control':'no-store'})
+
+@app.get('/api/package-reports/{report_id}/qa-reviews')
+def list_package_report_qa_reviews(report_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Report QA reviews are restricted to assigned Salus report owners.')
+    conn=db()
+    try:
+        report=conn.execute('SELECT assessment_id FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not report: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        rows=[dict(row) for row in conn.execute('''SELECT id,report_id,evidence_id,content_sha256,
+            archive_sha256,decision,checks_json,qualification_basis,review_note,record_sha256,
+            reviewer_user_id,reviewer_at FROM package_report_qa_reviews
+            WHERE tenant_id=? AND report_id=? ORDER BY id''',(tenant_id(request),report_id))]
+        for row in rows: row['checks']=json.loads(row.pop('checks_json'))
+        return {'records':rows,'notice':'A review record does not issue or deliver a report.'}
+    finally: conn.close()
+
+@app.post('/api/package-reports/{report_id}/qa-reviews')
+def record_package_report_qa_review(report_id:int,p:PackageReportQaReviewIn,request:Request):
+    require_package_commercial_candidate();require(request,'decide')
+    ctx=auth_context(request)
+    if (role(request) not in ('System Administrator','Assessment Director')
+            or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'An authenticated Salus review decision owner is required.')
+    if set(p.checks)!=set(PACKAGE_REPORT_REVIEW_KEYS) or any(type(value) is not bool for value in p.checks.values()):
+        raise HTTPException(422,'Record each required report review check as true or false.')
+    if p.decision=='Reviewed' and not all(p.checks.values()):
+        raise HTTPException(422,'Return the report when a review check remains incomplete.')
+    tid=tenant_id(request);conn=db()
+    try:
+        report=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',(report_id,tid)).fetchone()
+        if not report: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        lock_package_assessment(conn,report['assessment_id'])
+        quote=authorized_package_intake(conn,report['assessment_id'],request)
+        latest=conn.execute('''SELECT id FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+            AND product=? ORDER BY version_no DESC LIMIT 1''',(tid,report['assessment_id'],report['product'])).fetchone()
+        if (report['status']!='Draft' or latest['id']!=report_id or report['quote_id']!=quote['id']
+                or report['assessment_scope_sha256']!=quote['assessment_scope_sha256']):
+            raise HTTPException(409,'The review must name the current authorized working report.')
+        evidence=conn.execute('''SELECT * FROM package_report_qa_evidence WHERE id=? AND tenant_id=?
+            AND report_id=?''',(p.evidence_id,tid,report_id)).fetchone()
+        if not evidence or evidence['content_sha256']!=report['content_sha256']:
+            raise HTTPException(409,'The review must name QA evidence for this exact Word version.')
+        newest=conn.execute('''SELECT id FROM package_report_qa_evidence WHERE tenant_id=? AND report_id=?
+            ORDER BY id DESC LIMIT 1''',(tid,report_id)).fetchone()
+        if newest['id']!=p.evidence_id:
+            raise HTTPException(409,'The review must use the current QA archive for this report.')
+        if not evidence['submitted_user_id'] or evidence['submitted_user_id']==ctx['user_id']:
+            raise HTTPException(409,'Independent review requires a different authenticated evidence submitter.')
+        try:
+            word=storage.get_bytes(report['stored_name'])
+            archive=storage.get_bytes(evidence['stored_name'])
+        except Exception as exc: raise HTTPException(503,'Exact report review evidence is unavailable.') from exc
+        if (hashlib.sha256(word).hexdigest()!=report['content_sha256']
+                or hashlib.sha256(archive).hexdigest()!=evidence['archive_sha256']):
+            raise HTTPException(409,'Exact report review evidence failed integrity verification.')
+        manifest_json,_=inspect_package_qa_archive(archive,report['content_sha256'])
+        if hashlib.sha256(manifest_json.encode()).hexdigest()!=evidence['manifest_sha256']:
+            raise HTTPException(409,'The report QA manifest failed integrity verification.')
+        manifest=json.loads(manifest_json)
+        if p.decision=='Reviewed' and (not all(page['checked_full_size'] for page in manifest['pages'])
+                or any(manifest[key]!='Checked' for key in ('native_word','accessibility','parity'))):
+            raise HTTPException(409,'The QA archive still records pending page or format checks.')
+        checks={key:p.checks[key] for key in PACKAGE_REPORT_REVIEW_KEYS}
+        record={'report_id':report_id,'evidence_id':p.evidence_id,'content_sha256':report['content_sha256'],
+            'archive_sha256':evidence['archive_sha256'],'decision':p.decision,'checks':checks,
+            'qualification_basis':p.qualification_basis.strip(),'review_note':p.review_note.strip(),
+            'reviewer_user_id':ctx['user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('SELECT id FROM package_report_qa_reviews WHERE tenant_id=? AND evidence_id=? AND record_sha256=?',
+            (tid,p.evidence_id,digest)).fetchone()
+        if prior: return {'id':prior['id'],'decision':p.decision,'record_sha256':digest,'idempotent':True}
+        cur=conn.execute('''INSERT INTO package_report_qa_reviews
+            (tenant_id,assessment_id,report_id,evidence_id,content_sha256,archive_sha256,decision,
+             checks_json,qualification_basis,review_note,record_sha256,reviewer_user_id,reviewer_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,report['assessment_id'],report_id,p.evidence_id,
+             report['content_sha256'],evidence['archive_sha256'],p.decision,
+             json.dumps(checks,sort_keys=True,separators=(',',':')),record['qualification_basis'],
+             record['review_note'],digest,ctx['user_id'],now()))
+        audit(conn,'PACKAGE_REPORT_QA_REVIEW','assessment',report['assessment_id'],
+            f'report_id={report_id}; evidence_id={p.evidence_id}; decision={p.decision}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'decision':p.decision,'record_sha256':digest,'idempotent':False,
+            'notice':'This review record does not issue, deliver or qualify a later package.'}
+    finally:
+        conn.rollback();conn.close()
 
 @app.patch('/api/package-reports/{report_id}/retention')
 def extend_package_report_retention(report_id:int,p:PackageReportRetentionIn,request:Request):

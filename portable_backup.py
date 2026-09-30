@@ -4,12 +4,12 @@ from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
-    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
+    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
     'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','salintel_investigations','salintel_investigation_items','salintel_investigation_events','materials','material_links','material_events','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
-    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
+    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
 
 def _rows(conn, sql, params=()):
@@ -238,6 +238,34 @@ def validate_records(records, tenant_id:int|None=None):
                 raise ValueError('QA evidence proof')
         except (ValueError,KeyError,TypeError,AttributeError):
             errors.append(f'package QA evidence {row.get("id")} has invalid immutable proof')
+        if row.get('submitted_user_id') is not None and int(row['submitted_user_id']) not in users:
+            errors.append(f'package QA evidence {row.get("id")} has invalid submitter')
+    evidence_by_id={int(r['id']):r for r in records.get('package_report_qa_evidence',[]) if r.get('id') is not None}
+    for row in records.get('package_report_qa_reviews',[]):
+        evidence=evidence_by_id.get(int(row.get('evidence_id') or 0))
+        report=report_by_id.get(int(row.get('report_id') or 0))
+        if (int(row.get('tenant_id',-1))!=int(tenant_id) or evidence is None or report is None
+                or evidence['report_id']!=row['report_id']
+                or int(row.get('assessment_id',-1))!=int(report['assessment_id'])
+                or row.get('content_sha256')!=report['content_sha256']
+                or row.get('archive_sha256')!=evidence['archive_sha256']
+                or int(row.get('reviewer_user_id') or 0) not in users
+                or row.get('reviewer_user_id')==evidence.get('submitted_user_id')):
+            errors.append(f'package QA review {row.get("id")} crosses its reviewer or report boundary')
+        try:
+            checks=json.loads(row['checks_json'])
+            if (set(checks)!={'all_pages','native_word','accessibility','format_parity','member_isolation'}
+                    or any(type(value) is not bool for value in checks.values())
+                    or row.get('decision') not in ('Reviewed','Returned')
+                    or row['decision']=='Reviewed' and not all(checks.values())):
+                raise ValueError('review checks')
+            record={key:row[key] for key in ('report_id','evidence_id','content_sha256','archive_sha256',
+                'decision','qualification_basis','review_note','reviewer_user_id')}
+            record['checks']=checks
+            if hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()!=row.get('record_sha256'):
+                raise ValueError('review digest')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package QA review {row.get("id")} has invalid immutable proof')
     for row in records.get('identity_acceptance_events',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'identity_acceptance_event {row.get("event_key")} crosses the tenant boundary')
         if int(row.get('user_id',-1)) not in users: errors.append(f'identity_acceptance_event {row.get("event_key")} has invalid user_id')
@@ -401,6 +429,7 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('UPDATE materials SET parent_material_id=NULL,duplicate_of_material_id=NULL WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM materials WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_report_qa_reviews WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_report_qa_evidence WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_report_reconciliations WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_report_conformance WHERE tenant_id=?',(tenant_id,))
