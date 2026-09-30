@@ -5638,12 +5638,24 @@ def package_release_readiness(assessment_id:int,request:Request):
                 if hashlib.sha256(saved).hexdigest()!=row['content_sha256']:
                     security_event(request,'PACKAGE_PREFLIGHT_HASH_MISMATCH','High',f'report_id={row["id"]}')
                     blockers.append(f'{product}: the saved Word file failed its integrity check.')
-            matrix=conn.execute('''SELECT matrix_status,content_sha256 FROM package_report_conformance
+            matrix=conn.execute('''SELECT matrix_status,content_sha256,checks_json,summary,record_sha256 FROM package_report_conformance
                 WHERE tenant_id=? AND report_id=? ORDER BY id DESC LIMIT 1''',(tid,row['id'])).fetchone()
             if not matrix or matrix['content_sha256']!=row['content_sha256']:
                 blockers.append(f'{product}: the exact-version Charter check is missing.')
-            elif matrix['matrix_status']!='Marked':
-                blockers.append(f'{product}: the Charter check still has pending items.')
+            else:
+                try:
+                    checks=json.loads(matrix['checks_json'])
+                    expected=hashlib.sha256(json.dumps({'report_id':row['id'],
+                        'content_sha256':matrix['content_sha256'],'checks':checks,
+                        'summary':matrix['summary']},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+                    expected_status='Open' if any(item['status']=='Pending' for item in checks.values()) else 'Marked'
+                    valid=(set(checks)==set(PACKAGE_REPORT_QA_KEYS) and expected==matrix['record_sha256']
+                        and expected_status==matrix['matrix_status'])
+                except (ValueError,TypeError,KeyError,AttributeError): valid=False
+                if not valid:
+                    blockers.append(f'{product}: the saved Charter check failed its integrity check.')
+                elif matrix['matrix_status']!='Marked':
+                    blockers.append(f'{product}: the Charter check still has pending items.')
         capa=reports.get('SalCAPA')
         if capa:
             comparison=conn.execute('''SELECT * FROM package_report_reconciliations

@@ -285,6 +285,16 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert qa.status_code==200 and qa.json()['matrix_status']=='Open',qa.text
         assert director.post(qa_url,json=qa_payload).json()['idempotent'] is True
         assert len(director.get(qa_url).json()['records'])==1
+        conn=app.db()
+        conn.execute('UPDATE package_report_conformance SET summary=? WHERE id=?',
+            ('Altered Charter review without a new immutable record.',qa.json()['id']))
+        conn.commit();conn.close()
+        assert any('SalINTEL: the saved Charter check failed its integrity check.'==item
+            for item in director.get(preflight_url).json()['blockers'])
+        conn=app.db()
+        conn.execute('UPDATE package_report_conformance SET summary=? WHERE id=?',
+            (qa_payload['summary'],qa.json()['id']))
+        conn.commit();conn.close()
         assert director.get(report_url).json()['reports'][-1]['status']=='Draft'
         retention_url=f'/api/package-reports/{revised.json()["id"]}/retention'
         assert director.patch(retention_url,json={'retention_until':'2030-01-01T00:00:00Z',
