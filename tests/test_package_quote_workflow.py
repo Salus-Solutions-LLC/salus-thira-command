@@ -170,16 +170,22 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
             (1,'salus-reviewer','Salus Reviewer','Assessment Director','Active',app.now(),app.now())).lastrowid
         conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',
             (reviewer_id,app._hash_token('reviewer-cookie'),'2099-01-01T00:00:00Z',app.now(),app.now()))
+        other_member_id=conn.execute('INSERT INTO users(tenant_id,username,display_name,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
+            (1,'other-exec','Other Member Executive','Client Executive','Active',app.now(),app.now())).lastrowid
+        conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',
+            (other_member_id,app._hash_token('other-cookie'),'2099-01-01T00:00:00Z',app.now(),app.now()))
         conn.commit(); conn.close()
         app.AUTH_MODE='session'
         member=TestClient(app.app,cookies={'salus_session':'test-cookie'})
         reviewer=TestClient(app.app,cookies={'salus_session':'reviewer-cookie'})
+        other_member=TestClient(app.app,cookies={'salus_session':'other-cookie'})
         review_url=f'/api/assessments/{assessment_id}/package-member-authority'
         authority_review={'quote_id':issued['id'],'member_user_id':user_id,
             'authority_basis':'Reviewed board delegation for this agreement',
             'evidence_reference':'BOARD-AUTHORITY-RECORD-1','confirm_external_authority':True}
         without_review=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
         assert without_review.status_code==409 and 'verify this Member signer' in without_review.text,without_review.text
+        assert member.get(url).json()['status']=='Awaiting Salus signer review'
         assert director.post(review_url,json=authority_review).status_code==401
         bad_signer=reviewer.post(review_url,json={**authority_review,'member_user_id':reviewer_id})
         assert bad_signer.status_code==409,bad_signer.text
@@ -187,6 +193,9 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert reviewed.status_code==200 and reviewed.json()['idempotent'] is False,reviewed.text
         repeated_review=reviewer.post(review_url,json=authority_review)
         assert repeated_review.status_code==200 and repeated_review.json()['idempotent'] is True,repeated_review.text
+        assert member.get(url).json()['status']=='Quoted'
+        assert other_member.get(url).status_code==403
+        assert other_member.get(f'/api/package-agreements/{agreement_id}/download').status_code==409
         intake_url=f'/api/assessments/{assessment_id}/package-intake'
         assert member.get(intake_url).status_code==409
         conn=app.db()

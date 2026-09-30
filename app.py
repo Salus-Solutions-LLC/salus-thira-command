@@ -5480,6 +5480,8 @@ def download_package_agreement(artifact_id:int,request:Request):
     if quote:
         try:
             verified_package_quote(conn,quote,request)
+            if member:
+                verified_member_authority_review(conn,quote,auth_context(request)['user_id'])
             if quote['level']>1:
                 current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
                     (item['assessment_id'],tenant_id(request))).fetchone()
@@ -5520,6 +5522,11 @@ def get_package_quote(assessment_id:int,request:Request):
             except HTTPException: predecessor_valid=False
     except Exception: conn.close(); raise
     acceptance=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND quote_id=?',(tenant_id(request),assessment_id,quote['id'])).fetchone()
+    signer_review=conn.execute('SELECT * FROM package_member_authority_reviews WHERE tenant_id=? AND assessment_id=? AND quote_id=?',
+        (tenant_id(request),assessment_id,quote['id'])).fetchone()
+    if protected_member_request(request) and signer_review and signer_review['member_user_id']!=auth_context(request)['user_id']:
+        conn.close(); raise HTTPException(403,'This quote belongs to another reviewed Member decision owner.')
+    review_valid=bool(signer_review and signer_review['record_sha256']==_member_authority_review_digest(signer_review))
     signer_valid=True
     if acceptance:
         try: verified_member_authority_review(conn,quote,acceptance['member_user_id'])
@@ -5538,6 +5545,7 @@ def get_package_quote(assessment_id:int,request:Request):
     elif acceptance and not quote['assessment_scope_sha256']: result['status']='Authorized terms — scope proof requires review'
     elif acceptance and not scope_matches: result['status']='Authorized original scope — amendment required'
     elif acceptance: result['status']='Authorized'
+    elif protected_member_request(request) and not review_valid: result['status']='Awaiting Salus signer review'
     elif not quote['assessment_scope_sha256']: result['status']='Scope proof missing — new quote required'
     elif not scope_matches: result['status']='Scope changed — new quote required'
     elif date.fromisoformat(quote['valid_until']) < datetime.now(timezone.utc).date(): result['status']='Expired — new quote required'
