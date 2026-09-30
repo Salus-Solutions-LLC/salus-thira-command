@@ -939,6 +939,28 @@ def init_db():
       FOREIGN KEY (salcapa_report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT
     );
     CREATE INDEX IF NOT EXISTS idx_package_report_reconciliation ON package_report_reconciliations(tenant_id,salcapa_report_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_qa_evidence (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      report_id INTEGER NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      stored_name TEXT NOT NULL UNIQUE,
+      archive_sha256 TEXT NOT NULL,
+      archive_size_bytes INTEGER NOT NULL,
+      manifest_json TEXT NOT NULL,
+      manifest_sha256 TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Submitted',
+      retention_until TEXT NOT NULL,
+      legal_hold INTEGER NOT NULL DEFAULT 0,
+      submitted_by TEXT NOT NULL,
+      submitted_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,report_id,archive_sha256)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_qa_evidence ON package_report_qa_evidence(tenant_id,report_id,id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -3401,7 +3423,8 @@ def create_backup_archive(request:Request, reason:str='Manual backup'):
     with zipfile.ZipFile(final,'w',compression=zipfile.ZIP_DEFLATED) as z:
         manifest['files'].append({'path':'records.json','sha256':hashlib.sha256(records_bytes).hexdigest(),'size_bytes':len(records_bytes)}); z.writestr('records.json',records_bytes)
         stored_records=(records.get('evidence_attachments',[])+records.get('materials',[])
-            +records.get('package_agreement_artifacts',[])+records.get('package_product_report_versions',[]))
+            +records.get('package_agreement_artifacts',[])+records.get('package_product_report_versions',[])
+            +records.get('package_report_qa_evidence',[]))
         backed_up_objects=set()
         for item in sorted(stored_records,key=lambda x:str(x.get('stored_name',''))):
             fn=str(item.get('stored_name','')).strip()
@@ -3410,7 +3433,8 @@ def create_backup_archive(request:Request, reason:str='Manual backup'):
             except Exception as exc:
                 error_id=uuid.uuid4().hex; record_internal_failure('backup governed material read',error_id,exc)
                 raise HTTPException(409,f'Backup cannot read a governed material object. Reference: {error_id}')
-            if item.get('content_sha256') and hashlib.sha256(b).hexdigest()!=item['content_sha256']:
+            expected_object_sha=item.get('archive_sha256') if item.get('archive_sha256') else item.get('content_sha256')
+            if expected_object_sha and hashlib.sha256(b).hexdigest()!=expected_object_sha:
                 raise HTTPException(409,'Backup stopped because a governed artifact failed integrity verification.')
             backed_up_objects.add(fn)
             arc=f'attachments/{fn}'; manifest['files'].append({'path':arc,'sha256':hashlib.sha256(b).hexdigest(),'size_bytes':len(b)}); z.writestr(arc,b)
@@ -3439,6 +3463,12 @@ def verify_backup_file(path:str):
                         errors.append(f'Missing package product report {report.get("id")}')
                     elif hashlib.sha256(z.read(archive_path)).hexdigest()!=report.get('content_sha256'):
                         errors.append(f'Package product report hash mismatch {report.get("id")}')
+                for evidence in records.get('package_report_qa_evidence',[]):
+                    archive_path='attachments/'+str(evidence.get('stored_name') or '')
+                    if archive_path not in z.namelist():
+                        errors.append(f'Missing package report QA evidence {evidence.get("id")}')
+                    elif hashlib.sha256(z.read(archive_path)).hexdigest()!=evidence.get('archive_sha256'):
+                        errors.append(f'Package report QA evidence hash mismatch {evidence.get("id")}')
             except Exception as exc:
                 error_id=uuid.uuid4().hex; record_internal_failure('backup record validation',error_id,exc)
                 errors.append(f'Record package invalid. Reference: {error_id}')
@@ -3458,7 +3488,7 @@ def dr_validate_backup_file(path:str):
             assessment_count=len(records.get('assessments',[]))
             attachment_count=len({
                 str(row.get('stored_name','')).strip()
-                for table in ('evidence_attachments','materials','package_agreement_artifacts','package_product_report_versions')
+                for table in ('evidence_attachments','materials','package_agreement_artifacts','package_product_report_versions','package_report_qa_evidence')
                 for row in records.get(table,[])
                 if str(row.get('stored_name','')).strip()
             })
@@ -3550,6 +3580,7 @@ def restore_backup(backup_id:int,restore_request_id:int,request:Request):
             old_keys.extend(r['stored_name'] for r in conn.execute("SELECT stored_name FROM materials WHERE tenant_id=? AND stored_name<>''",(tid,)))
             old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_agreement_artifacts WHERE tenant_id=?',(tid,)))
             old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_product_report_versions WHERE tenant_id=?',(tid,)))
+            old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_report_qa_evidence WHERE tenant_id=?',(tid,)))
             old_keys=list(dict.fromkeys(old_keys)); conn.close()
             new_objects={}
             for item in z.namelist():
@@ -5596,6 +5627,55 @@ def check_package_docx(content:bytes):
     except (zipfile.BadZipFile, OSError) as exc:
         raise HTTPException(422,'The draft must be a valid Word .docx document.') from exc
 
+def inspect_package_qa_archive(content:bytes,report_sha256:str):
+    """Bind a rendered PDF and page log to a draft; do not qualify the review."""
+    from pypdf import PdfReader
+    if len(content)>50*1024*1024: raise HTTPException(413,'Report QA archive exceeds 50 MB.')
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            infos=archive.infolist()
+            if len(infos)!=2 or {item.filename for item in infos}!={'manifest.json','rendered.pdf'}:
+                raise HTTPException(422,'Report QA archive must contain only manifest.json and rendered.pdf.')
+            if any(item.file_size>50*1024*1024 for item in infos) or sum(item.file_size for item in infos)>60*1024*1024:
+                raise HTTPException(413,'Report QA archive expands beyond its review limit.')
+            if archive.testzip() is not None: raise HTTPException(422,'Report QA archive is damaged.')
+            manifest_bytes=archive.read('manifest.json');pdf=archive.read('rendered.pdf')
+    except (zipfile.BadZipFile,OSError,RuntimeError) as exc:
+        raise HTTPException(422,'Report QA archive is not a readable ZIP file.') from exc
+    if len(manifest_bytes)>250_000 or not pdf.startswith(b'%PDF-'):
+        raise HTTPException(422,'Report QA manifest or PDF is invalid.')
+    try:
+        manifest=json.loads(manifest_bytes)
+        if not isinstance(manifest,dict) or set(manifest)!={
+                'report_sha256','pdf_sha256','renderer','pages','native_word','accessibility','parity','notes'}:
+            raise ValueError('manifest fields')
+        if manifest['report_sha256']!=report_sha256 or manifest['pdf_sha256']!=hashlib.sha256(pdf).hexdigest():
+            raise ValueError('source or PDF hash')
+        if (not isinstance(manifest['renderer'],str) or not 3<=len(manifest['renderer'].strip())<=120
+                or not isinstance(manifest['notes'],str) or len(manifest['notes'])>4000):
+            raise ValueError('renderer or notes')
+        if any(manifest[key] not in ('Pending','Checked') for key in ('native_word','accessibility','parity')):
+            raise ValueError('review states')
+        reader=PdfReader(io.BytesIO(pdf),strict=True)
+        count=len(reader.pages)
+        if not 3<=count<=1000 or not isinstance(manifest['pages'],list) or len(manifest['pages'])!=count:
+            raise ValueError('page count')
+        for number,(item,page) in enumerate(zip(manifest['pages'],reader.pages),1):
+            if (not isinstance(item,dict) or set(item)!={'page','checked_full_size','note'}
+                    or type(item['page']) is not int or item['page']!=number
+                    or type(item['checked_full_size']) is not bool or not isinstance(item['note'],str)
+                    or len(item['note'])>500):
+                raise ValueError('page inspection log')
+            text_content=page.extract_text() or ''
+            if number==2 and text_content.strip(): raise ValueError('second page is not blank')
+            if number!=2 and not re.search(rf'page\s+{number}\s+of\s+{count}',text_content,re.IGNORECASE):
+                raise ValueError('page count footer')
+    except (ValueError,KeyError,TypeError,AttributeError,IndexError) as exc:
+        raise HTTPException(422,'Report QA evidence does not match the exact Word file, PDF pages or page log.') from exc
+    except Exception as exc:
+        raise HTTPException(422,'Report QA PDF could not be inspected.') from exc
+    return json.dumps(manifest,sort_keys=True,separators=(',',':')),pdf
+
 @app.get('/api/assessments/{assessment_id}/package-reports')
 def list_package_product_reports(assessment_id:int,request:Request):
     require_package_commercial_candidate();require(request,'read'); assessment_row_for_request(request,assessment_id)
@@ -5656,6 +5736,27 @@ def package_release_readiness(assessment_id:int,request:Request):
                     blockers.append(f'{product}: the saved Charter check failed its integrity check.')
                 elif matrix['matrix_status']!='Marked':
                     blockers.append(f'{product}: the Charter check still has pending items.')
+            qa=conn.execute('''SELECT * FROM package_report_qa_evidence WHERE tenant_id=? AND report_id=?
+                ORDER BY id DESC LIMIT 1''',(tid,row['id'])).fetchone()
+            if not qa or qa['content_sha256']!=row['content_sha256']:
+                blockers.append(f'{product}: exact-version rendered QA evidence is missing.')
+            else:
+                try:
+                    manifest=json.loads(qa['manifest_json'])
+                    canonical=json.dumps(manifest,sort_keys=True,separators=(',',':'))
+                    valid=(manifest.get('report_sha256')==row['content_sha256']
+                        and hashlib.sha256(canonical.encode()).hexdigest()==qa['manifest_sha256']
+                        and qa['status']=='Submitted')
+                    if valid:
+                        archive=storage.get_bytes(qa['stored_name'])
+                        valid=hashlib.sha256(archive).hexdigest()==qa['archive_sha256']
+                except Exception:
+                    valid=False
+                if not valid:
+                    blockers.append(f'{product}: rendered QA evidence failed its integrity check.')
+                elif (any(not page.get('checked_full_size') for page in manifest.get('pages',[]))
+                        or any(manifest.get(key)!='Checked' for key in ('native_word','accessibility','parity'))):
+                    blockers.append(f'{product}: rendered page, accessibility or format parity review is pending.')
         capa=reports.get('SalCAPA')
         if capa:
             comparison=conn.execute('''SELECT * FROM package_report_reconciliations
@@ -5783,6 +5884,106 @@ def list_package_report_conformance(report_id:int,request:Request):
         return {'records':rows,'required_checks':PACKAGE_REPORT_QA_KEYS,
             'notice':'A recorded matrix does not approve, issue or qualify a package report.'}
     finally: conn.close()
+
+@app.get('/api/package-reports/{report_id}/qa-evidence')
+def list_package_report_qa_evidence(report_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Report QA evidence is restricted to assigned Salus report owners.')
+    conn=db()
+    try:
+        report=conn.execute('SELECT assessment_id FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not report: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        rows=[dict(row) for row in conn.execute('''SELECT id,report_id,content_sha256,archive_sha256,
+            archive_size_bytes,manifest_json,manifest_sha256,status,retention_until,legal_hold,submitted_by,submitted_at
+            FROM package_report_qa_evidence WHERE tenant_id=? AND report_id=? ORDER BY id''',
+            (tenant_id(request),report_id))]
+        for row in rows: row['manifest']=json.loads(row.pop('manifest_json'))
+        return {'records':rows,'notice':'Submitted QA evidence is not independent review or release approval.'}
+    finally: conn.close()
+
+@app.post('/api/package-reports/{report_id}/qa-evidence')
+async def submit_package_report_qa_evidence(report_id:int,request:Request,file:UploadFile=File(...)):
+    require_package_commercial_candidate();require(request,'write');require_salus_component_authority(request,'Package report QA')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'A Salus report owner must submit QA evidence.')
+    original=safe_filename(file.filename or '')
+    if not original.lower().endswith('.zip'): raise HTTPException(422,'Report QA evidence must be a ZIP archive.')
+    content=await file.read(50*1024*1024+1)
+    if len(content)>50*1024*1024: raise HTTPException(413,'Report QA archive exceeds 50 MB.')
+    tid=tenant_id(request);conn=db();stored=''
+    try:
+        report=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',(report_id,tid)).fetchone()
+        if not report: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        lock_package_assessment(conn,report['assessment_id'])
+        quote=authorized_package_intake(conn,report['assessment_id'],request)
+        latest=conn.execute('''SELECT id FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+            AND product=? ORDER BY version_no DESC LIMIT 1''',(tid,report['assessment_id'],report['product'])).fetchone()
+        if (report['status']!='Draft' or latest['id']!=report_id or report['quote_id']!=quote['id']
+                or report['assessment_scope_sha256']!=quote['assessment_scope_sha256']):
+            raise HTTPException(409,'QA evidence must name the current working report and authorized package.')
+        try: word=storage.get_bytes(report['stored_name'])
+        except Exception as exc: raise HTTPException(503,'Working report storage is unavailable.') from exc
+        if hashlib.sha256(word).hexdigest()!=report['content_sha256']:
+            raise HTTPException(409,'The working Word report failed integrity verification.')
+        manifest_json,pdf=inspect_package_qa_archive(content,report['content_sha256'])
+        for name,data in ((original,content),('rendered.pdf',pdf)):
+            scan=scan_bytes(data,name)
+            if not scan['ok'] or scan['status']!='Clean':
+                raise HTTPException(422 if scan['status']=='Infected' else 503,'Report QA evidence could not pass the file security check.')
+        digest=hashlib.sha256(content).hexdigest()
+        prior=conn.execute('SELECT id,status FROM package_report_qa_evidence WHERE tenant_id=? AND report_id=? AND archive_sha256=?',
+            (tid,report_id,digest)).fetchone()
+        if prior: return {'id':prior['id'],'status':prior['status'],'archive_sha256':digest,'idempotent':True}
+        stored=f'tenant-{tid}/assessment-{report["assessment_id"]}/package-report-qa/{report_id}/{uuid.uuid4().hex}_{digest[:16]}.zip'
+        storage.put_bytes(stored,content)
+        retention_until=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
+        cur=conn.execute('''INSERT INTO package_report_qa_evidence
+            (tenant_id,assessment_id,report_id,content_sha256,stored_name,archive_sha256,archive_size_bytes,
+             manifest_json,manifest_sha256,status,retention_until,legal_hold,submitted_by,submitted_at)
+            VALUES(?,?,?,?,?,?,?,?,?,'Submitted',?,0,?,?)''',
+            (tid,report['assessment_id'],report_id,report['content_sha256'],stored,digest,len(content),
+             manifest_json,hashlib.sha256(manifest_json.encode()).hexdigest(),retention_until,actor(request),now()))
+        audit(conn,'PACKAGE_REPORT_QA_SUBMISSION','assessment',report['assessment_id'],
+            f'report_id={report_id}; archive_sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':'Submitted','archive_sha256':digest,'idempotent':False,
+            'notice':'Archive integrity was screened. Independent QA and issue authority remain open.'}
+    except Exception as exc:
+        conn.rollback()
+        if stored:
+            try: storage.delete(stored)
+            except Exception: pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8);record_internal_failure('package report QA evidence',error_id,exc)
+        raise HTTPException(503,f'Report QA evidence storage is unavailable. Reference: {error_id}') from exc
+    finally: conn.close()
+
+@app.get('/api/package-report-qa/{evidence_id}/archive.zip')
+def download_package_report_qa_evidence(evidence_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Report QA evidence is restricted to assigned Salus report owners.')
+    conn=db()
+    try: row=conn.execute('SELECT * FROM package_report_qa_evidence WHERE id=? AND tenant_id=?',
+        (evidence_id,tenant_id(request))).fetchone()
+    finally: conn.close()
+    if not row: raise HTTPException(404,'Report QA evidence not found.')
+    assessment_row_for_request(request,row['assessment_id'])
+    require_package_report_assignment(request,row['assessment_id'])
+    try: content=storage.get_bytes(row['stored_name'])
+    except Exception as exc: raise HTTPException(503,'Report QA evidence storage is unavailable.') from exc
+    if hashlib.sha256(content).hexdigest()!=row['archive_sha256']:
+        security_event(request,'PACKAGE_REPORT_QA_HASH_MISMATCH','High',f'evidence_id={evidence_id}')
+        raise HTTPException(409,'Report QA archive integrity verification failed.')
+    return Response(content=content,media_type='application/zip',headers={
+        'Content-Disposition':f'attachment; filename="package-report-qa-{evidence_id}.zip"',
+        'X-Content-SHA256':row['archive_sha256'],'Cache-Control':'no-store'})
 
 @app.patch('/api/package-reports/{report_id}/retention')
 def extend_package_report_retention(report_id:int,p:PackageReportRetentionIn,request:Request):

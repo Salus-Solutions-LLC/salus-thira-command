@@ -18,8 +18,9 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         'PYTHONPATH': os.pathsep.join(filter(None, (os.getcwd(), env.get('PYTHONPATH', '')))),
     })
     program = textwrap.dedent('''
-        import hashlib,io
+        import hashlib,io,json,zipfile
         from docx import Document
+        from reportlab.pdfgen import canvas
         from fastapi.testclient import TestClient
         import app
         director = TestClient(app.app, headers={'X-Salus-Role':'Assessment Director'})
@@ -295,6 +296,38 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.execute('UPDATE package_report_conformance SET summary=? WHERE id=?',
             (qa_payload['summary'],qa.json()['id']))
         conn.commit();conn.close()
+        qa_archive_url=f'/api/package-reports/{revised.json()["id"]}/qa-evidence'
+        pdf_buffer=io.BytesIO()
+        pdf_canvas=canvas.Canvas(pdf_buffer)
+        pdf_canvas.drawString(60,40,'page 1 of 3')
+        pdf_canvas.showPage()
+        pdf_canvas.showPage()
+        pdf_canvas.drawString(60,40,'page 3 of 3')
+        pdf_canvas.save()
+        rendered_pdf=pdf_buffer.getvalue()
+        page_log=[{'page':number,'checked_full_size':False,'note':'Fictional review remains pending.'}
+            for number in range(1,4)]
+        manifest={'report_sha256':revised.json()['content_sha256'],
+            'pdf_sha256':hashlib.sha256(rendered_pdf).hexdigest(),
+            'renderer':'Fictional ReportLab renderer','pages':page_log,'native_word':'Pending',
+            'accessibility':'Pending','parity':'Pending','notes':'Candidate archive; no qualified review.'}
+        def qa_zip(metadata):
+            out=io.BytesIO()
+            with zipfile.ZipFile(out,'w',compression=zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr('manifest.json',json.dumps(metadata))
+                archive.writestr('rendered.pdf',rendered_pdf)
+            return out.getvalue()
+        assert director.post(qa_archive_url,files={'file':('qa.zip',qa_zip({**manifest,
+            'report_sha256':'0'*64}),'application/zip')}).status_code==422
+        qa_bytes=qa_zip(manifest)
+        submitted=director.post(qa_archive_url,files={'file':('qa.zip',qa_bytes,'application/zip')})
+        assert submitted.status_code==200 and submitted.json()['status']=='Submitted',submitted.text
+        assert any('SalINTEL: rendered page, accessibility or format parity review is pending.'==item
+            for item in director.get(preflight_url).json()['blockers'])
+        assert director.post(qa_archive_url,files={'file':('qa.zip',qa_bytes,'application/zip')}).json()['idempotent'] is True
+        assert len(director.get(qa_archive_url).json()['records'])==1
+        downloaded=director.get(f'/api/package-report-qa/{submitted.json()["id"]}/archive.zip')
+        assert downloaded.status_code==200 and downloaded.content==qa_bytes
         assert director.get(report_url).json()['reports'][-1]['status']=='Draft'
         retention_url=f'/api/package-reports/{revised.json()["id"]}/retention'
         assert director.patch(retention_url,json={'retention_until':'2030-01-01T00:00:00Z',
@@ -315,6 +348,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert assigned_owner.get(report_url).status_code==403
         assert assigned_owner.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==403
         assert assigned_owner.get(qa_url).status_code==403
+        assert assigned_owner.get(qa_archive_url).status_code==403
         conn=app.db()
         conn.execute('INSERT INTO assessment_access(user_id,assessment_id,created_at) VALUES(?,?,?)',
                      (salus_user,assessment_id,app.now()))
@@ -322,6 +356,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert assigned_owner.get(report_url).status_code==200
         assert assigned_owner.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==200
         assert assigned_owner.get(qa_url).status_code==200
+        assert assigned_owner.get(qa_archive_url).status_code==200
         assert assigned_owner.get(reconciliation_url).status_code==200
         assert assigned_owner.get(preflight_url).status_code==200
         requested=member.get(intake_url)
@@ -330,6 +365,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert member.get(report_url).status_code==403
         assert member.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==403
         assert member.get(qa_url).status_code==403
+        assert member.get(qa_archive_url).status_code==403
         assert member.get(reconciliation_url).status_code==403
         assert member.get(preflight_url).status_code==403
         assert member.patch(retention_url,json={'legal_hold':True,'reason':'No Member retention authority in this candidate.'}).status_code==403
@@ -346,6 +382,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert other_tenant.get(url).status_code==403
         assert other_tenant.get(intake_url).status_code==403
         assert other_tenant.get(report_url).status_code==403
+        assert other_tenant.get(qa_archive_url).status_code in (403,404)
         assert other_tenant.get(reconciliation_url).status_code in (403,404)
         assert other_tenant.get(preflight_url).status_code==403
         admin=TestClient(app.app,headers={'X-Salus-Role':'System Administrator'})
@@ -362,6 +399,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==1
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
@@ -375,7 +413,12 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len(records['package_product_report_versions'])==5
         assert len(records['package_report_conformance'])==1
         assert len(records['package_report_reconciliations'])==1
+        assert len(records['package_report_qa_evidence'])==1
         assert not validate_records(records,1)
+        original_manifest_hash=records['package_report_qa_evidence'][0]['manifest_sha256']
+        records['package_report_qa_evidence'][0]['manifest_sha256']='0'*64
+        assert any('invalid immutable proof' in error for error in validate_records(records,1))
+        records['package_report_qa_evidence'][0]['manifest_sha256']=original_manifest_hash
         original_comparison=records['package_report_reconciliations'][0]['summary']
         records['package_report_reconciliations'][0]['summary']='Altered after the source comparison was created.'
         assert any('immutable source verification' in error for error in validate_records(records,1))
@@ -392,6 +435,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==1
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
