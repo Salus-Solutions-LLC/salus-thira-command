@@ -399,6 +399,52 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.commit();conn.close()
         assert assigned_owner.get(reconciliation_url).status_code==200
         assert assigned_owner.get(preflight_url).status_code==200
+        issue_url=f'/api/assessments/{assessment_id}/package-issues'
+        issue_payload={'report_ids':{product:current[product]['id'] for product in current},
+            'recipient_user_id':user_id,
+            'issue_basis':'Fictional qualified issue basis for the exact four reports and named recipient.',
+            'confirm_qualified_release':True}
+        assert reviewer.post(issue_url,json=issue_payload).status_code==409
+        complete_checks={key:{'status':'Met','reason':'Fictional exact-version review evidence for this test.'}
+            for key in app.PACKAGE_REPORT_QA_KEYS}
+        for product,row in current.items():
+            matrix_url=f'/api/package-reports/{row["id"]}/conformance'
+            matrix=reviewer.post(matrix_url,json={'content_sha256':row['content_sha256'],
+                'checks':complete_checks,'summary':'Fictional complete Charter review for issue-path testing.'})
+            assert matrix.status_code==200,matrix.text
+            if product=='SalINTEL': continue
+            other_manifest={**complete_manifest,'report_sha256':row['content_sha256']}
+            other_qa_url=f'/api/package-reports/{row["id"]}/qa-evidence'
+            other_archive=assigned_owner.post(other_qa_url,files={'file':(
+                f'{product}-qa.zip',qa_zip(other_manifest),'application/zip')})
+            assert other_archive.status_code==200,other_archive.text
+            other_review=reviewer.post(f'/api/package-reports/{row["id"]}/qa-reviews',
+                json={**review_payload,'evidence_id':other_archive.json()['id']})
+            assert other_review.status_code==200,other_review.text
+        aligned={product:{**value,'alignment':'Aligned'} for product,value in sources.items()}
+        compared=reviewer.post(reconciliation_url,json={**comparison,'sources':aligned,
+            'summary':'Fictional complete source comparison for the exact four-report issue path.'})
+        assert compared.status_code==200 and compared.json()['comparison_status']=='Compared',compared.text
+        assert reviewer.get(preflight_url).json()['technical_blockers']==[]
+        issued_packet=reviewer.post(issue_url,json=issue_payload)
+        assert issued_packet.status_code==200 and issued_packet.json()['status']=='Issued',issued_packet.text
+        assert reviewer.post(issue_url,json=issue_payload).json()['idempotent'] is True
+        assert assigned_owner.get(issue_url).status_code==403
+        assert member.get(issue_url).json()['issues'][0]['id']==issued_packet.json()['id']
+        doc_delivery=member.get(f'/api/package-issues/{issued_packet.json()["id"]}/reports/SalINTEL.docx')
+        pdf_delivery=member.get(f'/api/package-issues/{issued_packet.json()["id"]}/reports/SalINTEL.pdf')
+        assert doc_delivery.status_code==200 and pdf_delivery.status_code==200
+        assert hashlib.sha256(doc_delivery.content).hexdigest()==revised.json()['content_sha256']
+        assert hashlib.sha256(pdf_delivery.content).hexdigest()==hashlib.sha256(rendered_pdf).hexdigest()
+        conn=app.db()
+        conn.execute('UPDATE package_report_issue_packets SET issue_basis=? WHERE id=?',
+            ('Altered issue basis without a new immutable release.',issued_packet.json()['id']))
+        conn.commit();conn.close()
+        assert member.get(issue_url).status_code==409
+        conn=app.db()
+        conn.execute('UPDATE package_report_issue_packets SET issue_basis=? WHERE id=?',
+            (issue_payload['issue_basis'],issued_packet.json()['id']))
+        conn.commit();conn.close()
         requested=member.get(intake_url)
         assert requested.status_code==200 and len(requested.json()['items'])==2,requested.text
         assert requested.json()['catalog']==[]
@@ -423,6 +469,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert other_tenant.get(url).status_code==403
         assert other_tenant.get(intake_url).status_code==403
         assert other_tenant.get(report_url).status_code==403
+        assert other_tenant.get(issue_url).status_code==403
         assert other_tenant.get(qa_archive_url).status_code in (403,404)
         assert other_tenant.get(reconciliation_url).status_code in (403,404)
         assert other_tenant.get(preflight_url).status_code==403
@@ -438,10 +485,12 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
-        assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==5
+        assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==5
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==4
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_packets').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==2
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
@@ -453,10 +502,12 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len(records['package_acceptances'])==1
         assert len(records['package_intake_requests'])==2
         assert len(records['package_product_report_versions'])==5
-        assert len(records['package_report_conformance'])==1
-        assert len(records['package_report_reconciliations'])==1
-        assert len(records['package_report_qa_evidence'])==2
-        assert len(records['package_report_qa_reviews'])==1
+        assert len(records['package_report_conformance'])==5
+        assert len(records['package_report_reconciliations'])==2
+        assert len(records['package_report_qa_evidence'])==5
+        assert len(records['package_report_qa_reviews'])==4
+        assert len(records['package_report_issue_packets'])==1
+        assert len(records['package_report_issue_deliveries'])==2
         assert not validate_records(records,1)
         original_manifest_hash=records['package_report_qa_evidence'][0]['manifest_sha256']
         records['package_report_qa_evidence'][0]['manifest_sha256']='0'*64
@@ -476,10 +527,12 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==5
-        assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==1
-        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==2
-        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==5
+        assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==2
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_evidence').fetchone()[0]==5
+        assert conn.execute('SELECT COUNT(*) FROM package_report_qa_reviews').fetchone()[0]==4
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_packets').fetchone()[0]==1
+        assert conn.execute('SELECT COUNT(*) FROM package_report_issue_deliveries').fetchone()[0]==2
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
@@ -505,5 +558,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         blocked=director.post(f'/api/assessments/{next_id}/package-quote',json=next_quote)
         assert blocked.status_code==409 and 'qualified issued predecessor' in blocked.text
     ''')
-    result = subprocess.run([sys.executable, '-c', program], env=env, text=True, capture_output=True, timeout=45)
+    child = tmp_path / 'workflow_child.py'
+    child.write_text(program, encoding='utf-8')
+    result = subprocess.run([sys.executable, str(child)], env=env, text=True, capture_output=True, timeout=45)
     assert result.returncode == 0, result.stdout + result.stderr

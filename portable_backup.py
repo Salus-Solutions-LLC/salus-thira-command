@@ -4,12 +4,12 @@ from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
-    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
+    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
 RESTORE_ORDER = [
     'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','salintel_investigations','salintel_investigation_items','salintel_investigation_events','materials','material_links','material_events','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
-    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
+    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_acceptances','package_intake_requests','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
 
 def _rows(conn, sql, params=()):
@@ -167,7 +167,7 @@ def validate_records(records, tenant_id:int|None=None):
         if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package product report {row.get("id")} has invalid quote_id')
         if row.get('product') not in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
             errors.append(f'package product report {row.get("id")} has invalid product')
-        if row.get('status')!='Draft': errors.append(f'package product report {row.get("id")} has an unsupported release state')
+        if row.get('status') not in ('Draft','Issued'): errors.append(f'package product report {row.get("id")} has an unsupported release state')
         if len(str(row.get('content_sha256','')))!=64 or not row.get('stored_name'):
             errors.append(f'package product report {row.get("id")} has invalid storage proof')
         if row.get('disposition_status')!='Active' or row.get('legal_hold') not in (0,1) or not row.get('retention_until'):
@@ -266,6 +266,57 @@ def validate_records(records, tenant_id:int|None=None):
                 raise ValueError('review digest')
         except (ValueError,KeyError,TypeError,AttributeError):
             errors.append(f'package QA review {row.get("id")} has invalid immutable proof')
+    conformance_by_id={int(r['id']):r for r in records.get('package_report_conformance',[]) if r.get('id') is not None}
+    review_by_id={int(r['id']):r for r in records.get('package_report_qa_reviews',[]) if r.get('id') is not None}
+    comparison_by_id={int(r['id']):r for r in records.get('package_report_reconciliations',[]) if r.get('id') is not None}
+    issue_by_id={int(r['id']):r for r in records.get('package_report_issue_packets',[]) if r.get('id') is not None}
+    issued_report_ids=set()
+    for row in records.get('package_report_issue_packets',[]):
+        try:
+            reports=json.loads(row['reports_json'])
+            record={key:row[key] for key in ('assessment_id','quote_id','assessment_scope_sha256',
+                'recipient_user_id','comparison_id','issue_basis','issued_by_user_id')}
+            record['reports']=reports
+            if (int(row.get('tenant_id',-1))!=int(tenant_id)
+                    or row['quote_id'] not in quote_ids or row['recipient_user_id'] not in users
+                    or row['issued_by_user_id'] not in users
+                    or row['comparison_id'] not in comparison_by_id
+                    or row.get('supersedes_id') not in (None,'') and int(row['supersedes_id']) not in issue_by_id
+                    or set(reports)!={'SalINTEL','SalTHIRA','SalOPS','SalCAPA'}
+                    or hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()!=row['record_sha256']):
+                raise ValueError('issue boundary')
+            for product,snapshot in reports.items():
+                report=report_by_id.get(int(snapshot['report_id']))
+                evidence=evidence_by_id.get(int(snapshot['qa_evidence_id']))
+                review=review_by_id.get(int(snapshot['qa_review_id']))
+                conformance=conformance_by_id.get(int(snapshot['conformance_id']))
+                if (report is None or report['assessment_id']!=row['assessment_id']
+                        or report['quote_id']!=row['quote_id'] or report['product']!=product
+                        or report['status']!='Issued' or report['content_sha256']!=snapshot['content_sha256']
+                        or report['version_no']!=snapshot['version_no']
+                        or evidence is None or evidence['report_id']!=report['id']
+                        or json.loads(evidence['manifest_json'])['pdf_sha256']!=snapshot['pdf_sha256']
+                        or review is None or review['evidence_id']!=evidence['id'] or review['decision']!='Reviewed'
+                        or conformance is None or conformance['report_id']!=report['id']):
+                    raise ValueError('report issue link')
+                issued_report_ids.add(report['id'])
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package issue {row.get("id")} has invalid immutable report proof')
+    for row in records.get('package_product_report_versions',[]):
+        if row.get('status')=='Issued' and row['id'] not in issued_report_ids:
+            errors.append(f'package product report {row.get("id")} lacks its issue packet')
+    for row in records.get('package_report_issue_deliveries',[]):
+        issue=issue_by_id.get(int(row.get('issue_id') or 0))
+        try:
+            snapshot=json.loads(issue['reports_json'])[row['product']] if issue else None
+            expected=(snapshot['content_sha256'] if row['format']=='docx' else snapshot['pdf_sha256'])
+            if (int(row.get('tenant_id',-1))!=int(tenant_id) or issue is None
+                    or row['assessment_id']!=issue['assessment_id']
+                    or row['recipient_user_id']!=issue['recipient_user_id']
+                    or row['report_id']!=snapshot['report_id'] or row['content_sha256']!=expected):
+                raise ValueError('delivery boundary')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package issue delivery {row.get("id")} crosses its issue boundary')
     for row in records.get('identity_acceptance_events',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'identity_acceptance_event {row.get("event_key")} crosses the tenant boundary')
         if int(row.get('user_id',-1)) not in users: errors.append(f'identity_acceptance_event {row.get("event_key")} has invalid user_id')
@@ -429,6 +480,8 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('UPDATE materials SET parent_material_id=NULL,duplicate_of_material_id=NULL WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM materials WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_report_issue_deliveries WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_report_issue_packets WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_report_qa_reviews WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_report_qa_evidence WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_report_reconciliations WHERE tenant_id=?',(tenant_id,))

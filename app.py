@@ -983,6 +983,44 @@ def init_db():
       UNIQUE (tenant_id,evidence_id,record_sha256)
     );
     CREATE INDEX IF NOT EXISTS idx_package_report_qa_reviews ON package_report_qa_reviews(tenant_id,report_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_issue_packets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      assessment_scope_sha256 TEXT NOT NULL,
+      recipient_user_id INTEGER NOT NULL,
+      reports_json TEXT NOT NULL,
+      comparison_id INTEGER NOT NULL,
+      issue_basis TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      issued_by_user_id INTEGER NOT NULL,
+      issued_at TEXT NOT NULL,
+      supersedes_id INTEGER,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      FOREIGN KEY (comparison_id) REFERENCES package_report_reconciliations(id) ON DELETE RESTRICT,
+      FOREIGN KEY (issued_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      FOREIGN KEY (supersedes_id) REFERENCES package_report_issue_packets(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,assessment_id,record_sha256)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_issues ON package_report_issue_packets(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_issue_deliveries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      issue_id INTEGER NOT NULL,
+      report_id INTEGER NOT NULL,
+      product TEXT NOT NULL,
+      format TEXT NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      recipient_user_id INTEGER NOT NULL,
+      downloaded_at TEXT NOT NULL,
+      FOREIGN KEY (issue_id) REFERENCES package_report_issue_packets(id) ON DELETE RESTRICT,
+      FOREIGN KEY (report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_deliveries ON package_report_issue_deliveries(tenant_id,issue_id,recipient_user_id,id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -2607,6 +2645,13 @@ class PackageReportQaReviewIn(BaseModel):
     checks: dict[str,bool]
     qualification_basis: str = Field(min_length=20,max_length=2000)
     review_note: str = Field(min_length=20,max_length=4000)
+
+class PackageReportIssueIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    report_ids: dict[str,int]
+    recipient_user_id: int = Field(gt=0)
+    issue_basis: str = Field(min_length=40,max_length=4000)
+    confirm_qualified_release: Literal[True]
 
 ROLE_PERMISSIONS={
     'System Administrator': {'read','write','decide','admin'},
@@ -5831,16 +5876,197 @@ def package_release_readiness(assessment_id:int,request:Request):
                     blockers.append('SalCAPA: the saved comparison failed its integrity check.')
                 if comparison['comparison_status']!='Compared':
                     blockers.append('SalCAPA: a source difference remains unresolved.')
+        technical_blockers=list(blockers)
         blockers.extend((
             'Independent qualified review and exact rendered/accessibility evidence are not recorded as approved.',
-            'Controlled report issue and authorized recipient delivery proof are not implemented.',
+            'Controlled report issue and authorized recipient delivery proof have not been accepted in production.',
             'A qualified predecessor decision for a later package is not implemented.',
         ))
         return {'status':'Blocked','reports':[{ 'product':product,'report_id':row['id'],
             'version_no':row['version_no'],'content_sha256':row['content_sha256'],'status':row['status']}
-            for product,row in reports.items()], 'blockers':blockers,
+            for product,row in reports.items()], 'blockers':blockers,'technical_blockers':technical_blockers,
             'notice':'This is an internal checklist. It does not approve, issue or deliver a report.'}
     finally: conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-issues')
+def issue_package_reports(assessment_id:int,p:PackageReportIssueIn,request:Request):
+    require_package_commercial_candidate();require(request,'decide')
+    ctx=auth_context(request)
+    if (role(request) not in ('System Administrator','Assessment Director')
+            or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'A named Salus report issuing authority is required.')
+    if set(p.report_ids)!=PACKAGE_REPORT_PRODUCTS or any(type(value) is not int or value<1 for value in p.report_ids.values()):
+        raise HTTPException(422,'Name the four exact product report IDs for this issue.')
+    assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    tid=tenant_id(request);conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        acceptance=conn.execute('''SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=?
+            AND quote_id=? ORDER BY id DESC LIMIT 1''',(tid,assessment_id,quote['id'])).fetchone()
+        if not acceptance or acceptance['member_user_id']!=p.recipient_user_id:
+            raise HTTPException(409,'The issue recipient must be the signed package decision owner.')
+        recipient=conn.execute('SELECT status,role FROM users WHERE id=? AND tenant_id=?',
+            (p.recipient_user_id,tid)).fetchone()
+        if not recipient or recipient['status']!='Active' or recipient['role']!='Client Executive':
+            raise HTTPException(409,'The approved Protected Member recipient is not active.')
+        readiness=package_release_readiness(assessment_id,request)
+        if readiness['technical_blockers']:
+            raise HTTPException(409,'Exact report release checks remain open: '+'; '.join(readiness['technical_blockers']))
+        reports={};snapshots={}
+        for product in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+            row=conn.execute('''SELECT * FROM package_product_report_versions WHERE tenant_id=?
+                AND assessment_id=? AND product=? ORDER BY version_no DESC LIMIT 1''',
+                (tid,assessment_id,product)).fetchone()
+            if (not row or row['id']!=p.report_ids[product] or row['quote_id']!=quote['id']
+                    or row['assessment_scope_sha256']!=quote['assessment_scope_sha256']
+                    or row['status'] not in ('Draft','Issued')):
+                raise HTTPException(409,f'{product}: the exact current report or package boundary changed.')
+            conformance=conn.execute('''SELECT * FROM package_report_conformance WHERE tenant_id=?
+                AND report_id=? ORDER BY id DESC LIMIT 1''',(tid,row['id'])).fetchone()
+            qa=conn.execute('''SELECT * FROM package_report_qa_evidence WHERE tenant_id=?
+                AND report_id=? ORDER BY id DESC LIMIT 1''',(tid,row['id'])).fetchone()
+            review=conn.execute('''SELECT * FROM package_report_qa_reviews WHERE tenant_id=?
+                AND report_id=? AND evidence_id=? ORDER BY id DESC LIMIT 1''',
+                (tid,row['id'],qa['id'] if qa else 0)).fetchone()
+            if not conformance or not qa or not review or review['decision']!='Reviewed':
+                raise HTTPException(409,f'{product}: exact conformance or independent review is missing.')
+            checks=json.loads(conformance['checks_json'])
+            if checks['qualified_review_and_release_authority']['status']!='Met':
+                raise HTTPException(409,f'{product}: qualified release authority is not marked met.')
+            manifest=json.loads(qa['manifest_json'])
+            snapshots[product]={'report_id':row['id'],'version_no':row['version_no'],
+                'content_sha256':row['content_sha256'],'pdf_sha256':manifest['pdf_sha256'],
+                'conformance_id':conformance['id'],'qa_evidence_id':qa['id'],'qa_review_id':review['id']}
+            reports[product]=row
+        comparison=conn.execute('''SELECT * FROM package_report_reconciliations WHERE tenant_id=?
+            AND salcapa_report_id=? ORDER BY id DESC LIMIT 1''',(tid,reports['SalCAPA']['id'])).fetchone()
+        if not comparison or comparison['comparison_status']!='Compared':
+            raise HTTPException(409,'The four-report source comparison is not complete.')
+        record={'assessment_id':assessment_id,'quote_id':quote['id'],
+            'assessment_scope_sha256':quote['assessment_scope_sha256'],
+            'recipient_user_id':p.recipient_user_id,'reports':snapshots,
+            'comparison_id':comparison['id'],'issue_basis':p.issue_basis.strip(),
+            'issued_by_user_id':ctx['user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('''SELECT id FROM package_report_issue_packets WHERE tenant_id=?
+            AND assessment_id=? AND record_sha256=?''',(tid,assessment_id,digest)).fetchone()
+        if prior: return {'id':prior['id'],'status':'Issued','record_sha256':digest,'idempotent':True}
+        if any(row['status']!='Draft' for row in reports.values()):
+            raise HTTPException(409,'An issued report cannot be silently reissued under a changed packet.')
+        previous=conn.execute('''SELECT id FROM package_report_issue_packets WHERE tenant_id=?
+            AND assessment_id=? ORDER BY id DESC LIMIT 1''',(tid,assessment_id)).fetchone()
+        cur=conn.execute('''INSERT INTO package_report_issue_packets
+            (tenant_id,assessment_id,quote_id,assessment_scope_sha256,recipient_user_id,
+             reports_json,comparison_id,issue_basis,record_sha256,issued_by_user_id,issued_at,supersedes_id)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,assessment_id,quote['id'],
+             quote['assessment_scope_sha256'],p.recipient_user_id,
+             json.dumps(snapshots,sort_keys=True,separators=(',',':')),comparison['id'],
+             record['issue_basis'],digest,ctx['user_id'],now(),previous['id'] if previous else None))
+        for row in reports.values():
+            conn.execute("UPDATE package_product_report_versions SET status='Issued' WHERE id=? AND status='Draft'",(row['id'],))
+        audit(conn,'PACKAGE_REPORT_ISSUE','assessment',assessment_id,
+            f'issue_id={cur.lastrowid}; quote_id={quote["id"]}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':'Issued','record_sha256':digest,'idempotent':False,
+            'notice':'The four exact reports are issued to the named recipient; download proof is recorded separately.'}
+    finally:
+        conn.rollback();conn.close()
+
+def verified_package_issue(conn,issue_id:int,request:Request):
+    row=conn.execute('SELECT * FROM package_report_issue_packets WHERE id=? AND tenant_id=?',
+        (issue_id,tenant_id(request))).fetchone()
+    if not row: raise HTTPException(404,'Issued package not found.')
+    ctx=auth_context(request)
+    if (role(request)!='Client Executive' or ctx['auth_mode'] not in ('session','oidc')
+            or ctx.get('user_id')!=row['recipient_user_id']):
+        raise HTTPException(403,'This issued package is restricted to its named Protected Member recipient.')
+    assessment_row_for_request(request,row['assessment_id'])
+    try:
+        reports=json.loads(row['reports_json'])
+        record={'assessment_id':row['assessment_id'],'quote_id':row['quote_id'],
+            'assessment_scope_sha256':row['assessment_scope_sha256'],
+            'recipient_user_id':row['recipient_user_id'],'reports':reports,
+            'comparison_id':row['comparison_id'],'issue_basis':row['issue_basis'],
+            'issued_by_user_id':row['issued_by_user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        if digest!=row['record_sha256'] or set(reports)!=PACKAGE_REPORT_PRODUCTS:
+            raise ValueError('issue digest or report set')
+    except (ValueError,TypeError,KeyError,AttributeError) as exc:
+        raise HTTPException(409,'The issued package failed integrity verification.') from exc
+    return row,reports
+
+@app.get('/api/assessments/{assessment_id}/package-issues')
+def list_member_package_issues(assessment_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    ctx=auth_context(request)
+    if role(request)!='Client Executive' or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A signed-in Protected Member recipient is required.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        rows=conn.execute('''SELECT id FROM package_report_issue_packets WHERE tenant_id=?
+            AND assessment_id=? AND recipient_user_id=? ORDER BY id''',
+            (tenant_id(request),assessment_id,ctx['user_id'])).fetchall()
+        result=[]
+        for item in rows:
+            issue,reports=verified_package_issue(conn,item['id'],request)
+            result.append({'id':issue['id'],'issued_at':issue['issued_at'],
+                'reports':{product:{'report_id':value['report_id'],'version_no':value['version_no']}
+                    for product,value in reports.items()}})
+        return {'issues':result,'notice':'Download the exact issued documents for your authorized package.'}
+    finally: conn.close()
+
+@app.get('/api/package-issues/{issue_id}/reports/{product}.{format}')
+def download_issued_package_report(issue_id:int,product:str,format:str,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if product not in PACKAGE_REPORT_PRODUCTS or format not in ('docx','pdf'):
+        raise HTTPException(404,'Unknown issued report format.')
+    conn=db()
+    try:
+        issue,reports=verified_package_issue(conn,issue_id,request)
+        snapshot=reports[product]
+        report=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (snapshot['report_id'],tenant_id(request))).fetchone()
+        if (not report or report['assessment_id']!=issue['assessment_id']
+                or report['quote_id']!=issue['quote_id'] or report['product']!=product
+                or report['status']!='Issued' or report['content_sha256']!=snapshot['content_sha256']):
+            raise HTTPException(409,'The issued report no longer matches its release record.')
+        try:
+            if format=='docx':
+                content=storage.get_bytes(report['stored_name']);expected=snapshot['content_sha256']
+            else:
+                evidence=conn.execute('SELECT * FROM package_report_qa_evidence WHERE id=? AND tenant_id=?',
+                    (snapshot['qa_evidence_id'],tenant_id(request))).fetchone()
+                if not evidence or evidence['report_id']!=report['id'] or evidence['archive_sha256']=='':
+                    raise HTTPException(409,'The issued PDF evidence is missing.')
+                archive=storage.get_bytes(evidence['stored_name'])
+                if hashlib.sha256(archive).hexdigest()!=evidence['archive_sha256']:
+                    raise HTTPException(409,'The issued PDF archive failed integrity verification.')
+                with zipfile.ZipFile(io.BytesIO(archive)) as z: content=z.read('rendered.pdf')
+                expected=snapshot['pdf_sha256']
+        except HTTPException: raise
+        except Exception as exc: raise HTTPException(503,'The issued report is unavailable.') from exc
+        if hashlib.sha256(content).hexdigest()!=expected:
+            security_event(request,'PACKAGE_ISSUED_REPORT_HASH_MISMATCH','High',f'issue_id={issue_id}; product={product}')
+            raise HTTPException(409,'The issued report failed integrity verification.')
+        conn.execute('''INSERT INTO package_report_issue_deliveries
+            (tenant_id,assessment_id,issue_id,report_id,product,format,content_sha256,
+             recipient_user_id,downloaded_at) VALUES(?,?,?,?,?,?,?,?,?)''',
+            (tenant_id(request),issue['assessment_id'],issue_id,report['id'],product,format,
+             expected,issue['recipient_user_id'],now()))
+        audit(conn,'PACKAGE_REPORT_DOWNLOAD','assessment',issue['assessment_id'],
+            f'issue_id={issue_id}; report_id={report["id"]}; format={format}; sha256={expected}',actor(request))
+        conn.commit()
+        media=('application/pdf' if format=='pdf' else
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        filename=safe_filename(report['display_title'])+'.'+format
+        return Response(content=content,media_type=media,headers={
+            'Content-Disposition':f'attachment; filename="{filename}"',
+            'X-Content-SHA256':expected,'Cache-Control':'no-store'})
+    finally:
+        conn.rollback();conn.close()
 
 @app.post('/api/assessments/{assessment_id}/package-reports/{product}/draft')
 async def register_package_product_draft(assessment_id:int,product:str,request:Request,
