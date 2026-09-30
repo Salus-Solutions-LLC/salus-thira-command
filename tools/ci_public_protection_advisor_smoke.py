@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory() as td:
     assert '<aside class="assessment-important"><strong>Important notice:</strong>' in page.text
     assert 'document.getElementById("assessment").scrollIntoView' in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
-    assert "Possible separately scoped services" in page.text
+    assert "Possible later-phase services" in page.text
     shell_html=_page()
     assert "/static/salus-reticle.svg" in shell_html
     assert '<header class="salus-header">' in shell_html
@@ -263,7 +263,7 @@ with tempfile.TemporaryDirectory() as td:
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
-    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-3.0.0"
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.1.0"
     assert package["primary_service"]["title"]=="Integrated Salus Assessment"
     assert package["primary_service"]["level"]==1
     assert package["sequence"][0]=="Integrated Salus Assessment — Level 1 Initial Pass"

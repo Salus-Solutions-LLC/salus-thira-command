@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Intermediate PR acceptance check repaired
+
+- The PR #587 Linux Public Protection Advisor workflow failed on an obsolete visible heading assertion; a second assertion expected package recommendation version `3.0.0` while this intermediate branch implements `2.1.0`. Both assertions now match this exact branch's current page and package. The local public Protection Advisor smoke passed. This does not approve the later business rollout or release Member reports. Next: push this intermediate correction, confirm CI, then reconcile the stacked #589 head. Owner: engineering and qualified release reviewer.
+
 ## 30 September 2026 — Stacked PR #587 base reconciliation
 
 - Draft PR #587 depends on the updated #574 head. The merge conflict was confined to this continuity record; resolution retained the 29 September Tierra Linda cutoff account, the #574 base-resolution entry and the 28 September development method history. Tierra Linda remains stopped and no Member report was edited by this merge.
