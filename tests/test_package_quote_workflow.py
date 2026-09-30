@@ -630,6 +630,16 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert received.status_code==200 and received.content==upload_bytes
         assert received.headers['x-content-sha256']==uploaded.json()['content_sha256']
         assert member.patch(f'{intake_url}/{upload_item}',json={'status':'Not held'}).status_code==409
+        intake_retention=f'/api/package-intake-files/{file_id}/retention'
+        assert member.patch(intake_retention,json={'legal_hold':True,
+            'reason':'A Member cannot set the internal legal retention status.'}).status_code==403
+        assert assigned_owner.patch(intake_retention,json={'retention_until':'2030-01-01T00:00:00Z',
+            'reason':'Fictional attempt to shorten the default intake retention.'}).status_code==409
+        preserved=assigned_owner.patch(intake_retention,json={'retention_until':'2099-01-01T00:00:00Z',
+            'legal_hold':True,'reason':'Fictional Salus preservation and longer retention decision.'})
+        assert preserved.status_code==200 and preserved.json()['legal_hold'] is True,preserved.text
+        assert assigned_owner.patch(intake_retention,json={'retention_until':'2098-01-01T00:00:00Z',
+            'reason':'Fictional attempt to shorten extended intake retention.'}).status_code==409
         assert member.post(upload_path,files={'file':('bad.exe',b'not allowed','application/octet-stream')}).status_code==422
         original_scan=app.scan_bytes
         app.scan_bytes=lambda content,filename:{'ok':False,'status':'Infected'}
@@ -648,6 +658,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert other_tenant.get(url).status_code==403
         assert other_tenant.get(intake_url).status_code==403
         assert other_tenant.get(f'/api/package-intake-files/{file_id}/download').status_code==404
+        assert other_tenant.patch(intake_retention,json={'legal_hold':True,
+            'reason':'Fictional cross-tenant preservation attempt must fail.'}).status_code in (403,404)
         assert other_tenant.get(report_url).status_code==403
         assert other_tenant.get(issue_url).status_code==403
         assert other_tenant.post(acknowledgment_url,json=acknowledgment_payload).status_code==403
@@ -668,6 +680,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM package_quote_predecessor_links').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_intake_requests').fetchone()[0]==2
         assert conn.execute('SELECT COUNT(*) FROM package_intake_uploads').fetchone()[0]==1
+        assert conn.execute('SELECT legal_hold FROM package_intake_uploads WHERE id=?',(file_id,)).fetchone()[0]==1
         assert conn.execute('SELECT COUNT(*) FROM package_product_report_versions').fetchone()[0]==9
         assert conn.execute('SELECT COUNT(*) FROM package_report_conformance').fetchone()[0]==9
         assert conn.execute('SELECT COUNT(*) FROM package_report_reconciliations').fetchone()[0]==3

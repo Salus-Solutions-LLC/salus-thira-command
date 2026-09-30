@@ -5992,6 +5992,44 @@ def download_package_intake_file(file_id:int,request:Request):
         'Content-Disposition':f'attachment; filename="{safe_filename(row["original_name"])}"',
         'X-Content-SHA256':row['content_sha256'],'X-Content-Type-Options':'nosniff'})
 
+@app.patch('/api/package-intake-files/{file_id}/retention')
+def extend_package_intake_file_retention(file_id:int,p:PackageReportRetentionIn,request:Request):
+    require_package_commercial_candidate(); require(request,'decide')
+    if role(request) not in {'System Administrator','Assessment Director'}:
+        raise HTTPException(403,'Package intake retention requires a Salus decision owner.')
+    if p.retention_until is None and p.legal_hold is None:
+        raise HTTPException(422,'Extend retention or place a legal hold.')
+    new_until=None
+    if p.retention_until is not None:
+        try:
+            parsed=datetime.fromisoformat(p.retention_until.replace('Z','+00:00'))
+            if parsed.tzinfo is None: raise ValueError('Timezone required')
+            if parsed.astimezone(timezone.utc)<=_iso_now_dt():
+                raise HTTPException(422,'Extended retention must end in the future.')
+            new_until=parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+        except ValueError as exc: raise HTTPException(422,'Use an explicit UTC retention timestamp.') from exc
+    conn=db()
+    try:
+        row=conn.execute('SELECT * FROM package_intake_uploads WHERE id=? AND tenant_id=?',
+            (file_id,tenant_id(request))).fetchone()
+        if not row: raise HTTPException(404,'Package intake file not found.')
+        assessment_row_for_request(request,row['assessment_id'])
+        require_package_report_assignment(request,row['assessment_id'])
+        lock_package_assessment(conn,row['assessment_id'])
+        if new_until and row['retention_until'] and new_until<row['retention_until']:
+            raise HTTPException(409,'Package intake retention cannot be shortened through this route.')
+        target_until=new_until or row['retention_until']
+        target_hold=1 if p.legal_hold else row['legal_hold']
+        if target_until!=row['retention_until'] or target_hold!=row['legal_hold']:
+            conn.execute('UPDATE package_intake_uploads SET retention_until=?,legal_hold=? WHERE id=?',
+                (target_until,target_hold,file_id))
+            audit(conn,'PACKAGE_INTAKE_RETENTION','assessment',row['assessment_id'],
+                f'file_id={file_id}; retention_until={target_until}; legal_hold={target_hold}; reason={p.reason.strip()}',actor(request))
+            conn.commit()
+        return {'id':file_id,'retention_until':target_until,'legal_hold':bool(target_hold),
+            'notice':'This route cannot delete a file or clear a legal hold.'}
+    finally: conn.close()
+
 PACKAGE_REPORT_PRODUCTS={'SalINTEL','SalTHIRA','SalOPS','SalCAPA'}
 PACKAGE_REPORT_DRAFT_ROLES={'System Administrator','Assessment Director','Lead Assessor'}
 PACKAGE_REPORT_QA_KEYS=(
