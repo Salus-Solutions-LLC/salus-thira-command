@@ -431,6 +431,9 @@ with tempfile.TemporaryDirectory() as td:
     again_pdf = client.get("/public/protection-advisor/report.pdf", headers=headers)
     assert again_pdf.content == latest_pdf.content
     assert render_count == ["Steady Harbor Two"]
+    first_saved_receipt = client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
+    assert first_saved_receipt.status_code == 200, first_saved_receipt.text
+    assert b"Steady Harbor Two" in first_saved_receipt.content
     # A prior identity that was never issued has no original PDF to retrieve.
     first_pdf = client.get("/public/protection-advisor/report.pdf?revision=1", headers=headers)
     assert first_pdf.status_code == 409, first_pdf.text
@@ -454,12 +457,15 @@ with tempfile.TemporaryDirectory() as td:
     assert b"Steady Harbor Three" in latest_receipt.content
     same_receipt = client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
     assert same_receipt.content == latest_receipt.content
-    assert receipt_render_count == ["Steady Harbor Three"]
-    missing_old_receipt = client.get("/public/protection-advisor/scope-receipt.pdf?revision=2", headers=headers)
+    assert receipt_render_count == ["Steady Harbor Two", "Steady Harbor Three"]
+    prior_receipt = client.get("/public/protection-advisor/scope-receipt.pdf?revision=2", headers=headers)
+    assert prior_receipt.status_code == 200
+    assert prior_receipt.content == first_saved_receipt.content
+    missing_old_receipt = client.get("/public/protection-advisor/scope-receipt.pdf?revision=1", headers=headers)
     assert missing_old_receipt.status_code == 409
     conn = sqlite3.connect(db_path)
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_member_report_snapshots").fetchone()[0] == 2
-    assert conn.execute("SELECT COUNT(*) FROM advisor_public_scope_receipt_snapshots").fetchone()[0] == 1
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_scope_receipt_snapshots").fetchone()[0] == 2
     conn.close()
 
     review_page_html=_review_page([review_row])
