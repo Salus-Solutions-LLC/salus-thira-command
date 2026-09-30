@@ -37,6 +37,7 @@ SESSION_HOURS = int(os.getenv('SALUS_SESSION_HOURS', '12'))
 ALLOW_RESTORE = os.getenv('SALUS_ALLOW_RESTORE', '0').lower() in ('1','true','yes')
 COOKIE_SECURE = os.getenv('SALUS_COOKIE_SECURE', '0').lower() in ('1','true','yes')
 ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
+PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED','0').lower() in ('1','true','yes')
 RETENTION_DEFAULT_DAYS = int(os.getenv('SALUS_RETENTION_DEFAULT_DAYS','2555'))
 OIDC_DISCOVERY_URL = os.getenv('SALUS_OIDC_DISCOVERY_URL','').strip()
 OIDC_CLIENT_ID = os.getenv('SALUS_OIDC_CLIENT_ID','').strip()
@@ -1564,6 +1565,10 @@ def verified_package_quote(row,request:Request):
         security_event(request,'PACKAGE_QUOTE_INTEGRITY_FAILURE','High',f'quote_id={row["id"]}')
         raise HTTPException(409,'The quote failed integrity verification.')
     return row
+
+def require_package_commercial_candidate():
+    if not PACKAGE_COMMERCIAL_WORKFLOW_ENABLED or ENVIRONMENT=='production':
+        raise HTTPException(503,'Package quotes and acceptance are held for governed agreement delivery and release review.')
 
 class ThreatIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -4865,6 +4870,7 @@ def get_package_quote(assessment_id:int,request:Request):
 
 @app.post('/api/assessments/{assessment_id}/package-quote')
 def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
+    require_package_commercial_candidate()
     require(request,'decide'); require_salus_component_authority(request,'Package quote')
     if role(request) not in ('System Administrator','Assessment Director'):
         raise HTTPException(403,'An authorized Salus commercial reviewer must approve the quote.')
@@ -4904,6 +4910,7 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
 
 @app.post('/api/assessments/{assessment_id}/package-acceptance')
 def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request):
+    require_package_commercial_candidate()
     require_protected_member_authority(request,'package_acceptance')
     ctx=auth_context(request)
     if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):

@@ -13,6 +13,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         'SALUS_LOCAL_STORAGE_DIR': str(tmp_path / 'attachments'),
         'SALUS_SEED_DEMO': '0',
         'SALUS_AUTH_MODE': 'prototype',
+        'SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED': '1',
         'PYTHONPATH': os.getcwd(),
     })
     program = textwrap.dedent('''
@@ -36,6 +37,12 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
             agreement_reference='AGREEMENT-1',agreement_sha256='a'*64,
             separate_services_excluded=True)
         url=f'/api/assessments/{assessment_id}/package-quote'
+        app.PACKAGE_COMMERCIAL_WORKFLOW_ENABLED=False
+        assert director.post(url,json=quote).status_code==503
+        app.PACKAGE_COMMERCIAL_WORKFLOW_ENABLED=True
+        app.ENVIRONMENT='production'
+        assert director.post(url,json=quote).status_code==503
+        app.ENVIRONMENT='development'
         bad=director.post(url,json={**quote,'access_eligibility_confirmed':False})
         assert bad.status_code == 422, bad.text
         response=director.post(url,json=quote)
