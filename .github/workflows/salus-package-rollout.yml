@@ -95,3 +95,34 @@ jobs:
       # the professional Protection Advisor PDF tests. This is still a source
       # regression check, not native Word or populated-report acceptance.
       - run: python -m pytest -q -p no:cacheprovider tests
+
+  package-postgres-transaction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: salus_package_ci
+          POSTGRES_USER: salus
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U salus -d salus_package_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      SALUS_DB_BACKEND: postgres
+      SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salus_package_ci
+      SALUS_AUTH_MODE: prototype
+      SALUS_SEED_DEMO: '0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt pytest==8.4.2
+      - run: python -m pytest -q -p no:cacheprovider tests/test_package_quote_workflow.py
