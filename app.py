@@ -5610,6 +5610,73 @@ def list_package_product_reports(assessment_id:int,request:Request):
         return {'reports':rows,'notice':'Draft registration is not qualified review, issue, or predecessor proof.'}
     finally: conn.close()
 
+@app.get('/api/assessments/{assessment_id}/package-release-readiness')
+def package_release_readiness(assessment_id:int,request:Request):
+    """Show exact draft gates; this endpoint never authorizes report issue."""
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Package release review is restricted to Salus report owners.')
+    assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    conn=db()
+    try:
+        quote=authorized_package_intake(conn,assessment_id,request)
+        tid=tenant_id(request);reports={};blockers=[]
+        for product in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+            row=conn.execute('''SELECT * FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+                AND product=? ORDER BY version_no DESC LIMIT 1''',(tid,assessment_id,product)).fetchone()
+            if not row:
+                blockers.append(f'{product}: a working Word report is missing.')
+                continue
+            reports[product]=row
+            if (row['quote_id']!=quote['id'] or row['assessment_scope_sha256']!=quote['assessment_scope_sha256']):
+                blockers.append(f'{product}: the report belongs to an older package boundary.')
+            try: saved=storage.get_bytes(row['stored_name'])
+            except Exception:
+                blockers.append(f'{product}: the saved Word file is unavailable.')
+            else:
+                if hashlib.sha256(saved).hexdigest()!=row['content_sha256']:
+                    security_event(request,'PACKAGE_PREFLIGHT_HASH_MISMATCH','High',f'report_id={row["id"]}')
+                    blockers.append(f'{product}: the saved Word file failed its integrity check.')
+            matrix=conn.execute('''SELECT matrix_status,content_sha256 FROM package_report_conformance
+                WHERE tenant_id=? AND report_id=? ORDER BY id DESC LIMIT 1''',(tid,row['id'])).fetchone()
+            if not matrix or matrix['content_sha256']!=row['content_sha256']:
+                blockers.append(f'{product}: the exact-version Charter check is missing.')
+            elif matrix['matrix_status']!='Marked':
+                blockers.append(f'{product}: the Charter check still has pending items.')
+        capa=reports.get('SalCAPA')
+        if capa:
+            comparison=conn.execute('''SELECT * FROM package_report_reconciliations
+                WHERE tenant_id=? AND salcapa_report_id=? ORDER BY id DESC LIMIT 1''',(tid,capa['id'])).fetchone()
+            if not comparison or comparison['salcapa_sha256']!=capa['content_sha256']:
+                blockers.append('SalCAPA: comparison with the other three current reports is missing.')
+            else:
+                source_ids={product:(reports[product]['id'] if product in reports else None)
+                    for product in ('SalINTEL','SalTHIRA','SalOPS')}
+                try: recorded=json.loads(comparison['sources_json'])
+                except (ValueError,TypeError): recorded={}
+                if not isinstance(recorded,dict) or any(
+                        not isinstance(recorded.get(product),dict)
+                        or recorded[product].get('report_id')!=source_ids[product] for product in source_ids):
+                    blockers.append('SalCAPA: the comparison refers to an older source report.')
+                expected_digest=hashlib.sha256(json.dumps({'salcapa_report_id':capa['id'],
+                    'salcapa_sha256':comparison['salcapa_sha256'],'sources':recorded,
+                    'summary':comparison['summary']},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+                if expected_digest!=comparison['record_sha256']:
+                    blockers.append('SalCAPA: the saved comparison failed its integrity check.')
+                if comparison['comparison_status']!='Compared':
+                    blockers.append('SalCAPA: a source difference remains unresolved.')
+        blockers.extend((
+            'Independent qualified review and exact rendered/accessibility evidence are not recorded as approved.',
+            'Controlled report issue and authorized recipient delivery proof are not implemented.',
+            'A qualified predecessor decision for a later package is not implemented.',
+        ))
+        return {'status':'Blocked','reports':[{ 'product':product,'report_id':row['id'],
+            'version_no':row['version_no'],'content_sha256':row['content_sha256'],'status':row['status']}
+            for product,row in reports.items()], 'blockers':blockers,
+            'notice':'This is an internal checklist. It does not approve, issue or deliver a report.'}
+    finally: conn.close()
+
 @app.post('/api/assessments/{assessment_id}/package-reports/{product}/draft')
 async def register_package_product_draft(assessment_id:int,product:str,request:Request,
         file:UploadFile=File(...),method_version:str=Form(...),template_version:str=Form(...)):

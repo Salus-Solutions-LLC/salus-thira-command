@@ -258,6 +258,22 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert reconciled.status_code==200 and reconciled.json()['comparison_status']=='Open',reconciled.text
         assert director.post(reconciliation_url,json=comparison).json()['idempotent'] is True
         assert len(director.get(reconciliation_url).json()['records'])==1
+        preflight_url=f'/api/assessments/{assessment_id}/package-release-readiness'
+        preflight=director.get(preflight_url)
+        assert preflight.status_code==200 and preflight.json()['status']=='Blocked',preflight.text
+        assert len(preflight.json()['reports'])==4
+        assert any('SalCAPA: a source difference remains unresolved.' in item for item in preflight.json()['blockers'])
+        assert any('recipient delivery proof' in item for item in preflight.json()['blockers'])
+        conn=app.db()
+        conn.execute('UPDATE package_report_reconciliations SET summary=? WHERE id=?',
+            ('Altered comparison without a new immutable record.',reconciled.json()['id']))
+        conn.commit();conn.close()
+        assert any('comparison failed its integrity check' in item
+            for item in director.get(preflight_url).json()['blockers'])
+        conn=app.db()
+        conn.execute('UPDATE package_report_reconciliations SET summary=? WHERE id=?',
+            (comparison['summary'],reconciled.json()['id']))
+        conn.commit();conn.close()
         qa_url=f'/api/package-reports/{revised.json()["id"]}/conformance'
         checks={key:{'status':'Pending','reason':'Exact-version evidence remains to be reviewed.'}
                 for key in app.PACKAGE_REPORT_QA_KEYS}
@@ -297,6 +313,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert assigned_owner.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==200
         assert assigned_owner.get(qa_url).status_code==200
         assert assigned_owner.get(reconciliation_url).status_code==200
+        assert assigned_owner.get(preflight_url).status_code==200
         requested=member.get(intake_url)
         assert requested.status_code==200 and len(requested.json()['items'])==2,requested.text
         assert requested.json()['catalog']==[]
@@ -304,6 +321,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert member.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==403
         assert member.get(qa_url).status_code==403
         assert member.get(reconciliation_url).status_code==403
+        assert member.get(preflight_url).status_code==403
         assert member.patch(retention_url,json={'legal_hold':True,'reason':'No Member retention authority in this candidate.'}).status_code==403
         assert 'response_user_id' not in requested.json()['items'][0]
         item_id=requested.json()['items'][0]['id']
@@ -319,6 +337,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert other_tenant.get(intake_url).status_code==403
         assert other_tenant.get(report_url).status_code==403
         assert other_tenant.get(reconciliation_url).status_code in (403,404)
+        assert other_tenant.get(preflight_url).status_code==403
         admin=TestClient(app.app,headers={'X-Salus-Role':'System Administrator'})
         backup=admin.post('/api/admin/backups')
         assert backup.status_code==200, backup.text

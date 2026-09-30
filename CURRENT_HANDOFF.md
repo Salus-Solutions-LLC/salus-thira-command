@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Internal package release-readiness view
+
+- **Objective and authority:** Continued the Member-neutral Level 1/2/3 × A/B/C rollout from `0803dcc` in existing draft PR #589. Inspected the Charter, Decision Register, Approved Artifacts, Startup Protocol, handoff and package contract. No Protected Member file was used; Tierra Linda remains stopped. The production package workflow remains locked and the existing deployment is unchanged.
+- **Candidate work and proof:** Added an assigned-Salus-only internal readiness view that names the four current report IDs/versions and shows missing or stale Word bytes, package boundary, Charter matrices and SalCAPA source comparison in plain language. It verifies saved report hashes and detects a tampered comparison digest. It always says `Blocked` while independent qualified QA, controlled issue and recipient proof, and predecessor qualification are unimplemented. A Protected Member cannot access it. Fictional local tests cover open comparison, tampering and role/tenant denial; all **28 local tests passed**. Python syntax and Git whitespace checks remain part of the local verification.
+- **Next action and owner:** Engineering must record independently reviewed exact-version rendered/accessibility and parity proof, qualified human release decisions, recipient-specific issue/delivery, and Level 2/3 predecessor decisions, then verify live Protection Advisor/intake and governed PostgreSQL/Azure/Wix behavior. Qualified reviewers and Marc own report, template and production approvals; commercial owner owns unapproved prices and eligibility. This draft view is not a client report, issue authorization or deployment. Preserve unrelated QA files.
+
 ## 30 September 2026 — Exact SalCAPA source comparison candidate
 
 - **Objective and authority:** Continued the Member-neutral Level 1/2/3 × A/B/C rollout in draft PR #589 from commit `5a8e31c`. Inspected the Charter, Decision Register, Approved Artifacts, Startup Protocol, current handoff and package authorization contract. Tierra Linda remains stopped; no Protected Member data was used. The approved same-level three-report-to-SalCAPA handoff controls this increment. Existing production status is unchanged.
