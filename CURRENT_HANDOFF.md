@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Level and band template boundary challenge
+
+- **Objective and authority:** Resumed the Member-neutral Level 1/2/3 × A/B/C rollout on existing draft PR #589 after inspecting the Charter, Decision Register, Approved Artifacts, Startup Protocol and prior handoff. The current branch began at `c9dfbd0`. No Tierra Linda or other Protected Member source was used. Existing live production and qualified template status are unchanged.
+- **Completed:** Created a reproducible fictional long-name/multi-location Level 3C boundary fixture for each of the four exact candidate Word templates. LibreOffice rendered SalINTEL as 9 pages and the other three as 6 pages each, the same counts as the unfilled candidates. All four second pages were text-empty, all 23 nonblank pages retained `page X of Y`, and the four covers plus page-3 openings were visually inspected without observed title collision or clipping. `proposals/level_band_templates/artifact.md` records the bounded result; generated DOCX/PDF/PNG QA files stay local and are not Member outputs.
+- **Open gate, owner and next action:** Engineering/document QA must inspect fully populated long narrative and table variants, semantic accessibility and screen-reader behavior, native Word/PDF/print parity, and controlled template storage. Qualified reviewers and Marc control template/report issue; the commercial owner controls remaining prices and eligibility. Engineering next closes the real recipient/issue and predecessor controls, live Protection Advisor and intake integration, and governed Azure/Wix verification before production release. The draft PR is neither deployed nor accepted as an issued template or public offer.
+
 ## 30 September 2026 — Four Word candidate accessibility correction and fresh render
 
 - **Scope and authority:** Continued the Member-neutral package rollout under the five governing records and registered four template references. No Tierra Linda or other Member file was edited. The four candidate DOCX identities in `proposals/level_band_templates/` were regenerated from their unchanged registered originals after a read-only check found that each logo drawing lacked alternate description. The builder now gives the logo a plain `Salus Solutions logo` description; no approved binary or issued report was overwritten.

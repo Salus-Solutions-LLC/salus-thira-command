@@ -27,3 +27,7 @@ The four candidates were regenerated after adding `Salus Solutions logo` as the 
 | SalCAPA™ | `8A6F1FFE6DD4F1DA58C14C10C30FF9F36CFB7CD628C14CCBB5B44FBFD2BED8BA` | `0D25EEFFA40C484E87611B87AF41D776DCE7EC70621FF93543CD0E39F3056128` | 6 |
 
 These are still candidate templates. Native Microsoft Word rendering was attempted on 30 September 2026 but the local service session returned COM error `0x80070520` (no logon session). Accessibility-tool and screen-reader review, populated-report checks, template access control, approval and governed publication remain open. The fresh QA PDFs are review byproducts and are not Member deliverables.
+
+## Fictional long-boundary layout challenge
+
+On 30 September 2026, `proposals/qa/stress_level_band_templates.py` inserted a long fictional organization name, Level 3C, and a multi-location covered/excluded-operation description into the available cover and opening slots. It did not populate findings, decisions or later tables. LibreOffice produced 9 SalINTEL and 6 pages for each other product, matching the unfilled candidates. Each page 2 was text-empty and all 23 nonblank pages retained `page X of Y`. The four covers and four page-3 openings were visually checked in the exact stress PDF render; the long name wrapped without visible collision or clipping. These results cover boundary typography only, not a completed report, longer narrative or tables, native Word, accessibility, PDF/print parity or template promotion. Generated fixtures stay local and are not Member deliverables.
