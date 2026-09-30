@@ -42,6 +42,15 @@ RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.1.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
 PACKAGE_TRANSFER_NOTICE_VERSION = "SPA-PACKAGE-TRANSFER-0.1.0"
+PACKAGE_TRANSFER_NOTICE_TEXT = (
+    "I ask Salus to share the identified Protection Advisor scope receipt and the minimum "
+    "information needed to review my requested Level 1 package with an authorized Protected "
+    "Member decision owner. This request does not purchase an assessment, approve a price, "
+    "authorize file transfer, or prove anyone's contracting authority. Salus must confirm "
+    "the organization, scope, decision owner and written terms. I may withdraw this request "
+    "before Salus approves a package handoff, without deleting my Advisor profile. The claim "
+    "code expires after 24 hours."
+)
 REPORT_TEMPLATE_VERSION = "SPA-REPORT-TEMPLATE-1.4.0"
 SCOPE_RECEIPT_PDF_VERSION = "SPA-SCOPE-RECEIPT-PDF-0.2.0"
 HANDLING_PROFILES = {
@@ -66,7 +75,7 @@ class AdvisorPerformanceEvent(BaseModel):
 class PackageTransferConsentCommand(BaseModel):
     model_config = ConfigDict(extra="forbid")
     receipt_revision: int = Field(ge=1)
-    transfer_notice_version: str
+    transfer_notice_version: str = Field(max_length=80)
     consent_to_package_handoff: bool
 
 
@@ -2816,6 +2825,18 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
                          "Content-Disposition": f'attachment; filename="Salus-Scope-Receipt-{receipt_id}-R{revision_no}.pdf"'},
             )
+        finally:
+            conn.close()
+
+    @app.get("/public/protection-advisor/package-handoff/notice")
+    def package_handoff_notice(request: Request) -> dict[str, str]:
+        ctx["require_package_commercial_candidate"]()
+        conn = ctx["db"]()
+        try:
+            session, _ = _session(conn, request)
+            account = _account_session(conn, request)
+            _require_account_assessment(conn, account["account_key"], session["session_key"])
+            return {"version": PACKAGE_TRANSFER_NOTICE_VERSION, "notice": PACKAGE_TRANSFER_NOTICE_TEXT}
         finally:
             conn.close()
 

@@ -87,8 +87,12 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         payload={'receipt_revision':1,'transfer_notice_version':advisor.PACKAGE_TRANSFER_NOTICE_VERSION,
                  'consent_to_package_handoff':True}
         app.ENVIRONMENT='production'
+        assert prospect.get('/public/protection-advisor/package-handoff/notice').status_code==503
         assert prospect.post('/public/protection-advisor/package-handoff',json=payload).status_code==503
         app.ENVIRONMENT='development'
+        notice=prospect.get('/public/protection-advisor/package-handoff/notice')
+        assert notice.status_code==200 and notice.json()['version']==advisor.PACKAGE_TRANSFER_NOTICE_VERSION
+        assert 'does not purchase an assessment' in notice.json()['notice']
         assert prospect.post('/public/protection-advisor/package-handoff',json={**payload,
           'consent_to_package_handoff':False}).status_code==422
         wrong=TestClient(app.app,headers={'x-csrf-token':'wrong'},cookies={
