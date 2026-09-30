@@ -2,6 +2,12 @@
 
 | Artifact | Role | Authority status |
 |---|---|---|
+| `SALUS_ENTERPRISE_DECISION_TO_PROOF_OPERATING_STANDARD.md` | Integrating operating sequence and decision record across Salus research, analysis, service delivery, reporting, pricing and learning | Approved direction from Marc, 28 September 2026 (SAL-D062); method only, not software deployment, service authorization or issued Member report |
+| `SALUS_DECISION_RECORD_WORKSHEET.md` | Controlled member-neutral analyst and reviewer form for the SAL-D062 evidence-to-action-to-proof chain | Approved application of SAL-D062, 28 September 2026; a completed copy belongs in an authorized Member/internal record, not this enterprise repository, and requires human qualification |
+| `SALUS_DECISION_TO_PROOF_IMPLEMENTATION_CROSSWALK.md` | Tracks application and separate acceptance gates for personnel, Advisor, four reports, dashboard, pricing and marketing | SAL-D062 implementation tracker, 28 September 2026; recorded requirements and current limits, not proof that each surface is live or released |
+| `SALUS_THOUGHT_LEADER_RECONCILIATION_20260928.md` | Bounded member-neutral primary-source and opposing-question ledger across the supplied domains, with source locators, application and open verification queue | Research companion for SAL-D061, 28 September 2026; only the Charter and product-standard text is approved method. Not an approved roster, exhaustive review, Member finding or report release |
+| `SALUS_THOUGHT_LEADER_RESEARCH_STANDARD.md` | Member-neutral fresh research, source verification, contrasting-view and Salus reconciliation method | Approved direction from Marc, 28 September 2026 (SAL-D060); supplied Word rosters are candidate sources pending full intake and independent verification, not approved doctrine or issued findings |
+| `SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md` | Member-neutral imagery, infrastructure-map, spatial provenance, restricted-overlay and Level 1–3 product handoff method | Approved direction from Marc, 28 September 2026 (SAL-D056); site-specific overlay, exact Word templates, live features and issued reports require separate validation/release |
 | `SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md` | Approved staged Level 1 and conditional Level 2/3 information-request and 18-lens product crosswalk | Approved direction from Marc, 28 September 2026 (SAL-D053); generic control, not Member source-completeness proof or issued report |
 | `SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md` | Approved member-neutral Protection Advisor and four-product integration design for organizational-health findings and Level 1–3 handoffs | Approved by Marc, 28 September 2026 (SAL-D052); exact live questionnaire, scoring, Word/PDF reports and deployment require separate governed release |
 | `proposals/SALUS_ORGANIZATIONAL_HEALTH_ASSESSMENT_METHOD_20260928.md` | Approved member-neutral organizational-health, leadership and command assessment method; apply with the Program Charter and four product standards, preserving Member-specific applicability and release gates | Approved by Marc, 28 September 2026 (SAL-D051); not a Member finding, issued report or deployed workflow |
@@ -35,6 +41,10 @@ Four local v2 Word candidates add the paired analytical narrative and action che
 The approved example report controls the intended professional standard. Production outputs may adapt dynamic text, page count, and section length to the submission, but must preserve its substantive architecture, writing quality, visual treatment, and decision usefulness.
 
 The earlier `Salus-Protection-Advisor-SPA-REPORT-0F5A2329FDE1FB4C2453CAD5F5DD6E81` DOCX/PDF pair is explicitly **not approved** as a content or design authority. It is a technical pipeline test artifact only.
+
+## SAL-D057–SAL-D058 method authorities
+
+`SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md` is the approved member-neutral method for inbound survival inputs and outbound products/services at Levels 1–3. SAL-D058 in the Program Charter states the practical safety, security and wellbeing promise tied to the Salus namesake. These approvals do not approve a Protected Member finding, supplier assurance, specific price, marketing claim, revised Word binary or deployed feature. Existing controlled template identities and release gates remain in force.
 
 ## Artifact-control rule
 

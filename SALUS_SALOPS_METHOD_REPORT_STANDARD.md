@@ -67,3 +67,23 @@ Each material SalOPS™ option and recommendation uses the same stable ID in a p
 ## Approval and release boundary
 
 The approved enterprise method and report structure are reusable. The working `SalOPS Report Template DRAFT.docx` and `Tierra Linda Ranch - SalOPS Level 1.docx` remain design references, not approved populated reports or operational orders. Qualify the exact member evidence, reconcile same-level inputs, complete analyst and authorized human review, perform the report-specific conformance check, and issue only through the governed record. Preserve member isolation, immutable release/version history and SAL-D027 impact review.
+
+## SAL-D056 location-dependent options
+
+Distinguish map-screened options from field, owner and specialist validated work. Recommend specific route, lifeline, access, monitoring, continuity and responder-coordination steps with accountable owner, prerequisite, authority, safe-stop condition and proof. A mapped pipeline is never an excavation locate; a mapped route is never proof of access or load capacity. Keep precise private access and critical-system overlays restricted. Link each proposed task to the same-level SalINTEL™ source and SalTHIRA™ scenario/target/gap; separately authorize execution under `SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md`.
+
+## SAL-D057 supply-chain operating options
+
+Turn same-level supply-chain findings into bounded options for inventory, verified alternate suppliers/routes, demand shaping, safe minimum output, emergency purchasing/cash, supplier/utility coordination, monitoring, exercise and recovery. Each proposed checklist names the material/output, owner, qualification and legal gates, lead time, competing resources, measurable proof, safe-stop rule and separately approved cost/action. Do not portray a generic alternate supplier or public market report as assured capacity. Carry the same chain and recommendation IDs under `SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md`.
+
+## SAL-D060 current external thinking in operating options
+
+For material SalOPS™ options, review relevant thought-leader work anew under `SALUS_THOUGHT_LEADER_RESEARCH_STANDARD.md` and compare it with current Salus authority, qualified Member evidence, operational capacity, rights and specialist standards. Explain the supported mechanism and tradeoff in the option record; record why a proposed model is unsuitable when applicable. An external idea alone does not authorize staffing, tactics, expenditure, price or a service commitment. Feed measured outcomes and contradictions back into the governed learning record.
+
+## SAL-D061 proof of people, communication and functional recovery
+
+For a material option, state the specific performance mechanism: who receives an early warning or near miss, who can decide under stress, what information/constraint must reach the operator, what minimum service remains available and when usable function returns. Test message understanding, accessible and backup reach, practical authority and competence, correlated resource loss, adverse effects of the intervention and its no-action comparison. A training record, purchased device, repair, sent message or closed ticket alone is not proof. Carry an owner, authority, completion evidence and scenario retest into the corrective-action record; reopen a failed or prematurely closed action. Keep physical-protection performance detail restricted and use qualified specialists for decision-changing technical claims. Apply `SALUS_THOUGHT_LEADER_RECONCILIATION_20260928.md` as a dated source challenge; require Member evidence and separate authorization for action.
+
+## SAL-D062 service delivery and proof contract
+
+Every recommended or separately authorized SalOPS™ service uses the same decision ID as its SalINTEL™ source and SalTHIRA™ gap. Before an offer, verify actual catalog authority, licensing, personnel/partner capacity, scope, estimated resources and measurable acceptance. Before performance, record Member authorization, accountable Salus lead, safety/stop conditions, communication and escalation, information permissions and change control. During delivery, record actual work, deviations and costs. At closure, compare a witnessed or otherwise qualified outcome with the approved target, record residual risk and retest trigger, and return the proof and open actions to SalCAPA™. Marketing, referral, quote, Member selection, authorization, performance and validated result are separate states; never infer a later state from an earlier one. Apply `SALUS_ENTERPRISE_DECISION_TO_PROOF_OPERATING_STANDARD.md`.

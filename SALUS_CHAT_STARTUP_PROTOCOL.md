@@ -34,9 +34,17 @@ At startup, inspect the current candidate-record queue and recently approved dec
 
 Before creating or materially revising a report, identify its governed record ID and current version, approved method/template versions, and applicable improvements since the last release. Document the impact decision for active drafts and issued versions. Apply approved changes to the working report; revise or supplement an issued version through controlled review and release, retaining its predecessor. For every report version, complete and retain the SAL-D043 Charter conformance matrix: met, pending with release gate, or not applicable with reason. Check approved name, level/status, product content and handoff, provenance, contradictions, Protected Member handling, confidentiality, Arial/Times New Roman style, cover and blank second page where applicable, page X of Y, accessibility, rendered pages, and DOCX/PDF/print parity where offered. Correct defects before delivery and clearly label any working document with open release gates. Verify DOCX/PDF/print substance and rendered-page quality. Update SalCAPA's report impact and delivery status when that workflow exists; until then, record the same evidence in the handoff and governed records.
 
+Apply SAL-D059 when closing that matrix: inspect informative-image alternative text, table headers, headings and reading order, relevant navigation/links and every rendered page at full size; compare each offered DOCX/PDF/print form. Record the exact hash/version, tested scope, defects and reviewer. Contact sheets, automated checks and sampled pages alone do not establish release readiness.
+
 ## Required learning check
 
 For every material assessment, service or methodology change, record what prior knowledge was used, what new evidence confirmed or challenged it, what member-neutral lesson may transfer to other sectors or domains, and what restriction or human approval controls reuse. Preserve customer originals in their engagement boundary. Do not claim every possible source was reviewed; record the actual collection boundary and unresolved unknowns. See SAL-D025 and the Program Charter.
+
+Apply SAL-D060 before material Salus decisions and deliverables: consult the controlled thought-leader source registry, conduct a fresh dated search of relevant primary work and credible opposing views, record the selected/excluded lenses and search limits, and reconcile decision-changing ideas against current Salus authority, evidence and Member context. Route any proposed improvement through the governed candidate, human approval and report-impact process. A supplied list is a research lead, not verified doctrine; if it is unavailable, record the access gap and continue with otherwise available primary sources.
+
+For material capability or recovery work, use SAL-D061 to screen actual and emergent roles, upward reporting, expertise, accessible message understanding, minimum-function restoration, system interactions and verified corrective-action closure. The 28 September 2026 reconciliation is a bounded research companion, not a verified roster or Member finding; recheck relevant original works and Member evidence for the present decision.
+
+Apply SAL-D062 for material Salus or Protected Member work: state the decision and authority, source/contrary evidence and falsifier, approved product/level path, specific recommendation and checklist, separate service authorization, observed proof and residual risk. Use the shared operating standard's record fields and preserve one ID across same-level products. Check report and live-system impact separately; method adoption does not establish deployment or a released Member outcome.
 
 ## Mandatory closeout checklist
 
@@ -63,6 +71,13 @@ The final handoff must identify:
 
 If a new chat lacks a file, repository, account connection, or permission needed to verify current state, it must say so. It must not fill the gap by guessing, silently redesigning, or treating old chat memory as authoritative.
 
+## SAL-D057 supply-chain continuity
+
+For an assessment involving essential products, services or daily survival inputs, inspect `SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md` after the controlling records. Identify the exact Member output and critical input, ordinary versus stressed operating minimum, source/date and confidence, potential common-mode dependencies, proposed time-to-survive/time-to-recover test, same-level four-product chain ID and controlled action/proof. Record the public-data search boundary and unresolved supplier facts. Do not treat a market feed as an individual supplier assurance, a candidate Word revision as an issued report, or a proposed monitoring cadence as a live service. Include the Salus namesake safety/security/wellbeing outcome where it helps the Member understand the decision; avoid unsupported guarantees.
+
 ## SAL-D055 analytical recommendation continuity
 
 On a Salus assessment, report or questionnaire task, inspect `SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md` and `SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md` after the five controlling records. Before a material report handoff, identify which source-bound questions led to working assumptions and which assumptions led to paired narrative/checklist recommendations. Preserve stable IDs, Member decision/action states, validation triggers and report versions. State whether a requirement is approved method, local candidate, live feature or issued Member finding. If a current report or questionnaire lacks the approved pattern, record an SAL-D027 impact and the exact artifact/release gate rather than claiming completion from Charter text alone.
+# SAL-D056 spatial-source startup check
+
+For a location-dependent assessment, identify the confirmed AOI/boundary status, authorized Member map boundary, current spatial-source dates and restricted overlay location before claiming proximity or route exposure. Read `SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md`; record source coverage, missing owner/field validation and report-impact decisions in the handoff. Do not expose private access or critical-system locations in ordinary chat handoffs.

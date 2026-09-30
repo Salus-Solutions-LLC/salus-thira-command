@@ -31,6 +31,10 @@ Offer a secure, staged upload and a “not held / not known / prefer to discuss�
 
 ## 3. Lens-specific conditional information
 
+### Supply-chain collection and SalTHIRA handoff [SAL-D057]
+
+At Level 1 ask for the Member's essential products/services and minimum acceptable operation, then only the critical inputs and outbound commitments that could change a decision: ordinary and stress usage, usable stock, lead and replenishment time, qualified substitutes, animal or human welfare floors, supplier/route/site concentration, responsible role and last interruption. Use an existing inventory, purchase or incident record in place of a new form. Salus acquires dated public market, utility, transportation, disease, drought, trade or regulatory context itself; it does not treat these as a supplier-specific assurance. A Level 2 request names the selected chain and seeks usage, contracts, supplier and route confirmation, recovery tests and financial consequences. Level 3 requests detailed multi-tier, correlated scenario and exercise proof only under approved scope. Each request links `supply_chain_id` to a minimum-output target, SalTHIRA capability/gap, SalOPS option and evidence that would validate it. Sensitive supplier, price and security data stay within the Member's restricted record. The low-burden Protection Advisor Part 1 can ask which essential output most worries the Member and whether one input/route is hard to replace; detailed records wait for an authorized assessment.
+
 This table operationalizes SAL-D050's 18 perspectives. Level 1 screens each for applicability and records a reason; it does not demand each document. The second column identifies decision-changing follow-up for a focused Level 2 or approved Level 3 scope.
 
 | Lens | Level 1 screen or available evidence | Conditional validation or specialist trigger |
@@ -95,3 +99,7 @@ The chat-source ledger is a source-coverage record, not a substitute for the Mem
 ## 9. SAL-D055 assumption-to-action collection fields
 
 For each priority decision, append to the existing Member-specific record: `question_id, evidence/source_id, finding_status, contradiction_id, assumption_id, basis, alternative, confidence_limit, true_false_decision_effect, scenario_target_gap_id, recommendation_id, narrative_version, checklist_step_id, owner, approval_state, time_or_trigger, resource_dependency, safe_stop, proof, validation_source, review_due, next_level_decision`. Collect only fields applicable to the decision; do not request everything from the Member. Salus forms a clearly labeled analytical assumption from the available authorized evidence and specifies what would disprove it. The tailored SalINTEL™ missing-information table names which assumption or recommendation each request could change. SalTHIRA™, SalOPS™ and SalCAPA™ use the same IDs and disposition rather than retyping a conflicting recommendation. A generic request, a questionnaire answer and a missing permit remain unverified until qualified review.
+
+## 10. SAL-D056 spatial and infrastructure evidence
+
+For a named decision, record `AOI/boundary status, protected location tier, map/layer/source version, acquisition/access date, scale/resolution/positional uncertainty, license, observed/assumed exposure, contradiction, asset/function/scenario/capability ID, owner/field validation, next-level test`. Salus obtains lawful public layers itself. After Level 1 authorization, request only relevant private boundary and asset/route/utility records through a restricted route. Do not burden anonymous Protection Advisor Part 1 with map uploads. Without a confirmed boundary, mark site proximity and overlap unknown and seek minimum proof. Follow `SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md`.
