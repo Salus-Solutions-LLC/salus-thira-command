@@ -33,8 +33,15 @@ def _sequence_rows(package):
     rows = []
     for index, label in enumerate(package.get("sequence") or [], 1):
         name = str(label).split(" — Level", 1)[0].split(" - Level", 1)[0].strip()
-        rows.append((index, label, summaries.get(name) or
-                     "Validate the scope, implement approved work, and document the result."))
+        first_summary = str((package.get("primary_service") or {}).get("summary", "")).strip() if index == 1 else ""
+        fallback = (
+            "Check selected Level 1 questions through approved visits, interviews or records."
+            if index == 2 else
+            "Use separately approved specialist work or testing to support a named decision."
+            if index == 3 else
+            "Confirm the scope and document the decision."
+        )
+        rows.append((index, label, first_summary or summaries.get(name) or fallback))
     return rows
 
 
@@ -48,7 +55,8 @@ def _mission_rows(scores):
 
 
 def _service_rows(package):
-    return tuple((item.get("title", "Service"), f"Level {item.get('level', '')} possible depth", item.get("why", "")) for item in package.get("services") or [])
+    rows = tuple((item.get("title", "Service"), f"Level {item.get('level', '')} possible depth", item.get("why", "")) for item in package.get("services") or [])
+    return rows or (("None identified yet", "To be determined", "Salus will review any separate service need with the Protected Member."),)
 
 
 def _add_table(document, headers, rows, widths=None):
@@ -114,8 +122,8 @@ def _professional_body(document, fields, result, package) -> None:
     attention = result.get("attention_topics") or []
     primary = package.get("primary_service") or {}
 
-    document.add_heading("Protection Advisor Assessment Report", level=1)
-    document.add_paragraph("Preliminary results and recommended protection package")
+    document.add_heading("Protection Advisor Scope and Readiness Report", level=1)
+    document.add_paragraph("Preliminary profile and proposed Level 1 SalCAPA package for Salus review")
     _add_table(document, ("Report detail", "Value"), (
         ("Protected Member code name", fields["ClientCodeName"]),
         ("Project code name", fields["ProjectCodeName"]),
@@ -127,7 +135,7 @@ def _professional_body(document, fields, result, package) -> None:
 
     document.add_heading("Executive Summary", level=1)
     document.add_paragraph(
-        f"The assessment recorded {result.get('strength_count', 0)} positive indicators, "
+        f"The questionnaire recorded {result.get('strength_count', 0)} positive indicators, "
         f"{result.get('attention_count', 0)} conditions requiring attention, and "
         f"{result.get('information_gap_count', 0)} material information gaps. "
         "These results support a connected review of protection, preparedness, continuity, "
@@ -147,7 +155,7 @@ def _professional_body(document, fields, result, package) -> None:
             f"{primary.get('summary', '')}"
         )
 
-    document.add_heading("Assessment Snapshot", level=1)
+    document.add_heading("Readiness Snapshot", level=1)
     _add_table(document, ("Measure", "Result", "Interpretation"), (
         ("Overall result", result.get("recommendation", "Professional review recommended"), "Preliminary decision-support result"),
         ("Positive indicators", result.get("strength_count", 0), "Reported practices that may support improvement"),
@@ -219,12 +227,42 @@ def _professional_body(document, fields, result, package) -> None:
         _add_bullets(document, hypothesis.get("checklist") or ())
 
     document.add_heading("Recommended Protection Package", level=1)
+    provisional_path = package.get("provisional_path") or {}
+    if provisional_path:
+        document.add_heading("Possible Level 1 Scope Band", level=2)
+        document.add_paragraph(
+            f"{provisional_path.get('label', 'To confirm')}. "
+            f"{provisional_path.get('reason', '')} "
+            f"{provisional_path.get('next_step', '')} "
+            "This is a starting suggestion; Salus must confirm the scope and written fee."
+        )
+    receipt = package.get("scope_receipt") or {}
+    if receipt:
+        document.add_heading("Draft Scope and Preparation", level=2)
+        document.add_paragraph(f"Receipt {receipt.get('receipt_id') or 'ID pending'} · {receipt.get('version', '')}")
+        document.add_paragraph(str(receipt.get("lead_sentence", "")))
+        for label, key in (("Requested operation", "requested_boundary"),
+                           ("Requested location", "requested_location"),
+                           ("Outside the proposed boundary", "outside_boundary"),
+                           ("Price", "price_state"), ("Decision role", "decision_owner"),
+                           ("Next step", "next_step")):
+            document.add_paragraph(f"{label}: {receipt.get(key, 'To confirm')}")
+        document.add_paragraph("What to prepare:")
+        _add_bullets(document, receipt.get("member_prepares") or ())
+        document.add_paragraph(str(receipt.get("salus_deliverable", "")))
+        if receipt.get("milestones"):
+            document.add_paragraph("Five steps:")
+            _add_bullets(document, (f"{item['step']} — {item['owner']}. {item['complete_when']}" for item in receipt["milestones"]))
+        if receipt.get("choices"):
+            document.add_paragraph("Your choices:")
+            _add_bullets(document, (f"{item['choice']} — {item['effect']}" for item in receipt["choices"]))
+        document.add_paragraph(str(receipt.get("status", "Draft for Salus review")))
     if primary:
         document.add_paragraph(
-            f"The preliminary lead engagement is {primary.get('title', 'Professional Review')} - "
-            f"Level {primary.get('level', '')} {primary.get('level_name', '')}. {primary.get('summary', '')}"
+            f"The possible paid next step is {primary.get('title', 'Professional Review')}. "
+            f"{primary.get('summary', '')}"
         )
-        document.add_paragraph(f"Why this leads the package. {primary.get('why', '')}")
+        document.add_paragraph(f"Why start here: {primary.get('why', '')}")
     document.add_paragraph("All new Protected Members begin with the Level 1 integrated assessment. Level 2 and Level 3 require qualified prior packages. Additional Salus services are separate, optional scopes that require review and authorization.")
     sequence = package.get("sequence") or []
     document.add_heading("Recommended Sequence", level=1)
@@ -498,6 +536,7 @@ def render_protection_advisor_docx(
     document = Document(str(source))
     fields = context.as_template_fields()
     substitutions = {
+        "Protection Advisor AssessmentTM": "Protection Advisor Scope and Readiness Report",
         "(place client code name here)": fields["ClientCodeName"],
         "(place project code name here)": fields["ProjectCodeName"],
         "(place date and time here)": fields["GeneratedAt"],
@@ -723,14 +762,14 @@ def render_protection_advisor_pdf(
         canvas.drawString(4.22 * inch, .30 * inch, "www.Salus.Solutions")
 
     def page_frame(canvas, doc):
-        canvas.setTitle("Protection Advisor Assessment Report")
+        canvas.setTitle("Protection Advisor Scope and Readiness Report")
         canvas.setAuthor("Salus Solutions")
 
     doc = BaseDocTemplate(str(destination), pagesize=letter, leftMargin=.7 * inch, rightMargin=.7 * inch, topMargin=.7 * inch, bottomMargin=.65 * inch, lang="en-US")
     frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="body")
     doc.addPageTemplates(PageTemplate(id="Salus", frames=(frame,), onPage=page_frame))
     story = [Spacer(1, .45 * inch), P("SALUS SOLUTIONS", subtitle), Spacer(1, .08 * inch),
-             P("Protection Advisor Assessment Report", title), P("Preliminary results and recommended protection package", subtitle), Spacer(1, .25 * inch)]
+             P("Protection Advisor Scope and Readiness Report", title), P("Preliminary profile and proposed Level 1 SalCAPA package for Salus review", subtitle), Spacer(1, .25 * inch)]
     story.append(T(("Report detail", "Value"), (
         ("Protected Member code name", fields["ClientCodeName"]), ("Project code name", fields["ProjectCodeName"]),
         ("Report reference", fields["ReportReference"]), ("Prepared", fields["GeneratedAt"]),
@@ -746,7 +785,7 @@ def render_protection_advisor_pdf(
     priority_names = [str(item.get("capability", "")).strip() for item in capabilities[:6]]
     priority_names = [name for name in priority_names if name]
     sequence = [str(item).strip() for item in (package.get("sequence") or []) if str(item).strip()]
-    story += [P("Protection Advisor Assessment Report", h1), P("Preliminary results and recommended protection package", subtitle),
+    story += [P("Protection Advisor Scope and Readiness Report", h1), P("Preliminary profile and proposed Level 1 SalCAPA package for Salus review", subtitle),
               T(("Report detail", "Value"), (
                   ("Protected Member code name", fields["ClientCodeName"]),
                   ("Project code name", fields["ProjectCodeName"]),
@@ -772,7 +811,7 @@ def render_protection_advisor_pdf(
                    if len(sequence) > 1 else "")
                 + "The sequence remains preliminary until Salus validates the operating environment, "
                   "evidence, authorities, resources, and priorities."),
-              PageBreak(), P("Assessment Snapshot", h1),
+              PageBreak(), P("Readiness Snapshot", h1),
               T(("Measure", "Result", "Interpretation"), (
                   ("Overall result", result.get("recommendation", "Professional review recommended"), "Preliminary decision-support result"),
                   ("Positive indicators", result.get("strength_count", 0), "Reported practices that may support improvement"),
@@ -799,9 +838,171 @@ def render_protection_advisor_pdf(
             if hypothesis.get(key):
                 story.append(P(str(hypothesis[key])))
         story += bullets(hypothesis.get("checklist") or ())
-    story += [PageBreak(), P("Recommended Protection Package", h1), P(f"The preliminary lead engagement is {primary.get('title', 'Professional Review')} - Level {primary.get('level', '')} {primary.get('level_name', '')}. {primary.get('summary', '')}"), P("Why this leads the package. " + str(primary.get("why", ""))), P("Recommended Sequence", h1), T(("Phase", "Service", "Purpose"), _sequence_rows(package), (.65 * inch, 2.45 * inch, 3.0 * inch), centered_columns=(0,)), P("Additional Later Phase Services", h1)]
+    story += [PageBreak(), P("Recommended Protection Package", h1)]
+    provisional_path = package.get("provisional_path") or {}
+    if provisional_path:
+        story.append(P(
+            "Possible Level 1 scope band. " + str(provisional_path.get("label", "To confirm"))
+            + ". " + str(provisional_path.get("reason", "")) + " "
+            + str(provisional_path.get("next_step", ""))
+            + " This is a starting suggestion; Salus must confirm the scope and written fee."
+        ))
+    receipt = package.get("scope_receipt") or {}
+    if receipt:
+        story += [P("Draft scope and preparation", h2),
+                  P("Receipt " + str(receipt.get("receipt_id") or "ID pending") + " · " + str(receipt.get("version", ""))),
+                  P(str(receipt.get("lead_sentence", ""))),
+                  P("Requested operation: " + str(receipt.get("requested_boundary", "To confirm"))),
+                  P("Requested location: " + str(receipt.get("requested_location", "To confirm"))),
+                  P(str(receipt.get("outside_boundary", ""))),
+                  P("What to prepare", h2)]
+        story += bullets(receipt.get("member_prepares") or [])
+        story += [P(str(receipt.get("salus_deliverable", ""))),
+                  P("Price: " + str(receipt.get("price_state", "To confirm"))),
+                  P("Decision role: " + str(receipt.get("decision_owner", "To confirm"))),
+                  P("Next: " + str(receipt.get("next_step", ""))),
+                  P(str(receipt.get("status", "Draft for Salus review")))]
+        if receipt.get("milestones"):
+            story.append(P("Five steps", h2))
+            story += bullets(f"{item['step']} — {item['owner']}. {item['complete_when']}" for item in receipt["milestones"])
+        if receipt.get("choices"):
+            story.append(P("Your choices", h2))
+            story += bullets(f"{item['choice']} — {item['effect']}" for item in receipt["choices"])
+    story += [P(f"The possible paid next step is {primary.get('title', 'Professional Review')}. {primary.get('summary', '')}"), P("Why start here: " + str(primary.get("why", ""))), P("Recommended Sequence", h1), T(("Phase", "Service", "Purpose"), _sequence_rows(package), (.65 * inch, 2.45 * inch, 3.0 * inch), centered_columns=(0,))]
+    if package.get("later_phase_services"):
+        story.append(P("Additional Later Phase Services", h1))
     for service in package.get("later_phase_services") or []:
         story.append(P(f"{service.get('title', 'Service')} - Level {service.get('level', '')} {service.get('level_name', '')}. {service.get('summary', '')}"))
     story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Deliverables", h1), T(("Deliverable", "Purpose"), (("Validated assessment record", "Separates verified facts, reported conditions, inferences, and unknowns"), ("Capability and dependency map", "Shows essential functions, supporting resources, failure points, and alternates"), ("Prioritized improvement plan", "Identifies actions, owners, sequence, dependencies, and completion measures"), ("Exercise and validation plan", "Tests priority capabilities and creates defensible evidence"), ("Executive briefing", "Presents decisions, risks, resource implications, and next steps")), (2.2 * inch, 3.9 * inch)), P("Human Review and Decision Points", h1), P("No automated recommendation becomes a final scope, assurance statement, price, contract commitment, or protective decision without authorized Salus review. The reviewer confirms service selection, level, specialists, deliverables, schedule, pricing basis, handling controls, and eligibility."), P("Recommended Immediate Actions", h1), T(("Timing", "Action", "Responsible party"), (("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"), ("Within 5 business days", "Conduct a qualification and validation interview.", "Salus and Protected Member"), ("After interview", "Request only evidence needed to resolve priority findings and gaps.", "Salus"), ("After evidence review", "Confirm or revise sequence, scope, level, schedule, and specialists.", "Authorized Salus reviewer"), ("Before engagement", "Approve scope, commercial terms, handling, and points of contact.", "Salus and Protected Member")), (1.3 * inch, 3.35 * inch, 1.45 * inch)), P("Decision Required", h1), P("The next decision is whether to authorize a Salus qualification and validation review. That review determines the appropriate package and evidence needed before work is proposed."), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor screens reported conditions against 32 core capabilities across Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize professional review; they do not independently establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Reported-need indicator; higher means more need, not measured readiness"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Service level", "Preliminary engagement depth; subject to human review")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Possible separate service", "Potential depth", "Preliminary rationale"), _service_rows(package), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
+    # Appendices can follow the decision on the same page. Reserving a new
+    # page for each one left large, unhelpful blank areas in short reports.
+    for index in reversed(range(len(story) - 1)):
+        if (isinstance(story[index], PageBreak)
+                and isinstance(story[index + 1], Paragraph)
+                and story[index + 1].getPlainText().startswith("Appendix ")):
+            story.pop(index)
+    # Keep short headings with their explanation at page boundaries.
+    for heading_text in ("Decision Required", "Important Notice",
+                         "Appendix A Assessment Method", "Appendix B Preliminary Service Rationale"):
+        for index in range(len(story) - 1):
+            if isinstance(story[index], Paragraph) and story[index].getPlainText() == heading_text:
+                story[index:index + 2] = [KeepTogether(story[index:index + 2])]
+                break
     doc.build(story, canvasmaker=NumberedCanvas)
+    return destination
+
+
+def render_scope_receipt_pdf(
+    *,
+    output_path: str | os.PathLike[str],
+    context: ProtectionAdvisorReportContext,
+    receipt: dict,
+) -> Path:
+    """Render the provisional scope receipt as one page or fail closed."""
+    from xml.sax.saxutils import escape
+
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    font_dir = Path(os.environ.get(
+        "SALUS_REPORT_FONT_DIR",
+        r"C:\Windows\Fonts" if os.name == "nt" else "/usr/share/fonts/truetype/msttcorefonts",
+    ))
+    for name, filename in (("SalusBody", "times.ttf"),
+                           ("SalusHeader", "arial.ttf"),
+                           ("SalusHeader-Bold", "arialbd.ttf")):
+        path = font_dir / filename
+        if not path.is_file():
+            raise RuntimeError(f"Required embedded report font is missing: {path}")
+        pdfmetrics.registerFont(TTFont(name, str(path)))
+
+    fields = context.as_template_fields()
+    body = ParagraphStyle("ReceiptBody", fontName="SalusBody", fontSize=8.7,
+                          leading=11.4, spaceAfter=3)
+    small = ParagraphStyle("ReceiptSmall", parent=body, fontSize=8.1, leading=10)
+    heading = ParagraphStyle("ReceiptHeading", parent=body, fontName="SalusHeader-Bold",
+                             fontSize=10, leading=12, spaceBefore=5, spaceAfter=3)
+    title = ParagraphStyle("ReceiptTitle", parent=heading, fontSize=15, leading=18,
+                           alignment=TA_CENTER, spaceBefore=0, spaceAfter=4)
+
+    def paragraph(value: object, style=body) -> Paragraph:
+        return Paragraph(escape(str(value or "")), style)
+
+    def table(headers: tuple[str, str], rows: list[tuple[str, str]]) -> Table:
+        cells = [[paragraph(label, heading) for label in headers]]
+        cells += [[paragraph(left, small), paragraph(right, small)] for left, right in rows]
+        result = Table(cells, colWidths=(1.45 * inch, 5.45 * inch), hAlign="LEFT")
+        result.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E7EEF3")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LINEBELOW", (0, 0), (-1, 0), .5, colors.HexColor("#17365D")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 3),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ]))
+        return result
+
+    story = [
+        paragraph("Salus Solutions | Confidential scope receipt", title),
+        paragraph(f"{receipt.get('receipt_id') or 'Draft ID pending'} | "
+                  f"{receipt.get('version') or 'Version pending'} | "
+                  f"{fields['GeneratedAt']}", small),
+        paragraph(f"Protected Member: {fields['ClientCodeName']} | "
+                  f"Project: {fields['ProjectCodeName']}", small),
+        paragraph(receipt.get("lead_sentence"), body),
+        table(("Scope item", "Provisional answer"), [
+            ("Covered", str(receipt.get("requested_boundary") or "To confirm") +
+             " at " + str(receipt.get("requested_location") or "location to confirm")),
+            ("Outside scope", str(receipt.get("outside_boundary") or "To confirm")),
+            ("Possible path", str(receipt.get("possible_path") or "To confirm")),
+            ("What you receive", str(receipt.get("salus_deliverable") or "To confirm")),
+            ("Price", str(receipt.get("price_state") or "Written quote pending")),
+            ("Decision role", str(receipt.get("decision_owner") or "To confirm")),
+        ]),
+        paragraph("What to prepare", heading),
+        *[paragraph("• " + str(item), small) for item in receipt.get("member_prepares") or ()],
+        paragraph("Five steps", heading),
+        table(("Step and owner", "Completion point"), [
+            (f"{index}. {item.get('step', '')} — {item.get('owner', '')}",
+             str(item.get("complete_when", "")))
+            for index, item in enumerate(receipt.get("milestones") or (), 1)
+        ]),
+        paragraph("Your choices", heading),
+        table(("Choice", "What happens"), [
+            (str(item.get("choice", "")), str(item.get("effect", "")))
+            for item in receipt.get("choices") or ()
+        ]),
+        Spacer(1, 4),
+        paragraph(receipt.get("status") or "Draft for Salus review", small),
+        paragraph("This receipt is a preparation aid, not a contract, completed assessment, "
+                  "fixed quote or authorization to begin paid work. Salus confirms the "
+                  "boundary, eligibility and written fee before an agreement.", small),
+    ]
+
+    def draw_footer(canvas, document):
+        if document.page > 1:
+            raise RuntimeError("Scope receipt exceeds one page; revise the scope with Salus")
+        canvas.saveState()
+        canvas.setFont("SalusBody", 8)
+        canvas.drawString(.8 * inch, .40 * inch, "Salus Solutions | Confidential")
+        canvas.drawRightString(7.7 * inch, .40 * inch, "page 1 of 1")
+        canvas.restoreState()
+
+    document = SimpleDocTemplate(str(destination), pagesize=letter,
+                                 leftMargin=.8 * inch, rightMargin=.8 * inch,
+                                 topMargin=.55 * inch, bottomMargin=.65 * inch)
+    try:
+        document.build(story, onFirstPage=draw_footer, onLaterPages=draw_footer)
+    except Exception:
+        destination.unlink(missing_ok=True)
+        raise
     return destination

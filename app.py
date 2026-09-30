@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from storage import build_storage, StorageError
 from security_controls import scan_bytes, retention_active, AV_MODE, AV_REQUIRED
 from secret_provider import secret, readiness as secret_readiness
+from salus_package_path import validate_requested_package_path
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
 from managed_database import runtime_database_status, managed_target_status
@@ -268,6 +269,10 @@ def init_db():
       purpose TEXT NOT NULL DEFAULT '',
       mission TEXT NOT NULL DEFAULT '',
       scope TEXT NOT NULL DEFAULT '',
+      covered_operation TEXT NOT NULL DEFAULT '',
+      requested_package_level INTEGER NOT NULL DEFAULT 0,
+      requested_scope_band TEXT NOT NULL DEFAULT '',
+      requested_access_variant TEXT NOT NULL DEFAULT '',
       exclusions TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'Draft',
       executive_sponsor TEXT NOT NULL DEFAULT '',
@@ -1357,6 +1362,10 @@ def init_db():
     ensure_column('assessments','industry_defaults_snapshot_json',"TEXT NOT NULL DEFAULT '{}'")
     ensure_column('assessments','industry_profile_applied_by',"TEXT NOT NULL DEFAULT ''")
     ensure_column('assessments','industry_profile_applied_at',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('assessments','covered_operation',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('assessments','requested_package_level','INTEGER NOT NULL DEFAULT 0')
+    ensure_column('assessments','requested_scope_band',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('assessments','requested_access_variant',"TEXT NOT NULL DEFAULT ''")
     ensure_column('ops_service_catalog','industry_profile_id','INTEGER')
     ensure_column('ops_service_catalog','industry_profile_key_snapshot',"TEXT NOT NULL DEFAULT ''")
     ensure_column('ops_service_catalog','industry_profile_version_snapshot','INTEGER')
@@ -1435,6 +1444,10 @@ class AssessmentIn(BaseModel):
     purpose: str = Field(default='', max_length=2000)
     mission: str = Field(default='', max_length=2000)
     scope: str = Field(default='', max_length=4000)
+    covered_operation: str = Field(default='', max_length=240)
+    requested_package_level: Literal[0,1,2,3] = 0
+    requested_scope_band: Literal['','A','B','C'] = ''
+    requested_access_variant: Literal['','Access','Standard'] = ''
     exclusions: str = Field(default='', max_length=2000)
     executive_sponsor: str = Field(default='', max_length=160)
     assessment_director: str = Field(default='', max_length=160)
@@ -1452,7 +1465,7 @@ class AssessmentIn(BaseModel):
         if not normalized: raise ValueError('A non-empty value is required.')
         return normalized
 
-    @field_validator('assessment_type','purpose','mission','scope','exclusions','executive_sponsor','assessment_director','lead_assessor')
+    @field_validator('assessment_type','purpose','mission','scope','covered_operation','exclusions','executive_sponsor','assessment_director','lead_assessor')
     @classmethod
     def normalized_text(cls, value: str) -> str:
         return value.strip()
@@ -4703,6 +4716,8 @@ def insert_model(table:str, payload:BaseModel, user_name:str='prototype-user', e
 @app.post('/api/assessments')
 def create_assessment(p:AssessmentIn, request:Request):
     require(request,'write')
+    try: validate_requested_package_path(p.requested_package_level,p.requested_scope_band,p.requested_access_variant)
+    except ValueError as exc: raise HTTPException(422,str(exc)) from exc
     start_date=_normalize_date(p.start_date,'Assessment start date')
     target_completion=_normalize_date(p.target_completion,'Assessment target completion date')
     reassessment_date=_normalize_date(p.reassessment_date,'Assessment reassessment date')
@@ -5442,13 +5457,19 @@ def update_entity(table:str,entity_id:int,payload:dict[str,Any],request:Request)
         merged=dict(old); merged.update(payload)
         validate_capability_measurement(merged.get('measurement_type'),merged.get('comparator'),merged.get('required_standard'),merged.get('current_performance'))
     if table=='assessments':
+        requested=dict(old); requested.update(payload)
+        try:
+            requested_level=int(requested['requested_package_level'])
+            validate_requested_package_path(requested_level,requested['requested_scope_band'],requested['requested_access_variant'])
+        except (ValueError,TypeError) as exc:
+            conn.close(); raise HTTPException(422,str(exc)) from exc
         governed_reassessment={'reassessment_date','reassessment_lifecycle_status','reassessment_overdue_reason','reassessment_overdue_at','last_reassessment_review_at','last_reassessment_review_by'}
         if any(k in payload and str(payload.get(k) or '')!=str(old[k] or '') for k in governed_reassessment):
             conn.close(); raise HTTPException(409,'Assessment reassessment lifecycle fields are controlled. Use the assessment reassessment review action rather than editing review currency directly.')
         if 'status' in payload and str(payload['status'])!=str(old['status']):
             conn.close(); raise HTTPException(409,'Use the controlled workflow transition action to change assessment status.')
         if old['scope_locked']:
-            protected={'purpose','mission','scope','exclusions'}
+            protected={'purpose','mission','scope','covered_operation','requested_package_level','requested_scope_band','requested_access_variant','exclusions'}
             if any(k in payload and str(payload[k])!=str(old[k]) for k in protected):
                 conn.close(); raise HTTPException(409,'Scope is locked. Create an authorized scope/version change rather than overwriting mission, purpose, scope, or exclusions.')
     columns={r['name'] for r in conn.execute(f'PRAGMA table_info({table})')}

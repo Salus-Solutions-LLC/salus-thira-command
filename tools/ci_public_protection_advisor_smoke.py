@@ -50,9 +50,9 @@ with tempfile.TemporaryDirectory() as td:
     assert page.status_code==200
     assert "Protection Advisor" in page.text
     assert "Anonymous Protection Readiness Review" in page.text
-    assert "Understand the detailed assessment" in page.text
-    assert "answer truthfully from my current knowledge" in page.text
-    assert "Return to Your Part 2 Assessment" in page.text
+    assert "Understand the scope and readiness profile" in page.text
+    assert "answer from my current knowledge without guessing" in page.text
+    assert "Return to Your Part 2 Profile" in page.text
     assert 'onchange="saveAnswer(this.name,this.value)"' in page.text
     assert 'id="questionProgress"' in page.text
     assert 'id="previousQuestion"' in page.text
@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory() as td:
     assert '<aside class="assessment-important"><strong>Important notice:</strong>' in page.text
     assert 'document.getElementById("assessment").scrollIntoView' in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
-    assert "Possible separately scoped services" in page.text
+    assert "Possible later-phase services" in page.text
     shell_html=_page()
     assert "/static/salus-reticle.svg" in shell_html
     assert '<header class="salus-header">' in shell_html
@@ -90,10 +90,10 @@ with tempfile.TemporaryDirectory() as td:
     assert "salus-protection-advisor-height" in embedded.text
     assert "preferred_min_height:900" in embedded.text
     assert "Print or Save Preliminary Summary" in embedded.text
-    assert "Download Professional Detailed Report" in embedded.text
+    assert "Download Scope and Readiness Report" in embedded.text
     assert 'onclick="printAdvisor(&quot;part1&quot;)"' in embedded.text
     assert embedded.text.count('onclick="printAdvisor(&quot;part2&quot;)"') == 2
-    assert embedded.text.count("Download Professional Detailed Report") == 2
+    assert embedded.text.count("Download Scope and Readiness Report") == 2
     assert 'fetch("/public/protection-advisor/report.pdf"' in embedded.text
     assert 'credentials:"same-origin"' in embedded.text
     assert 'headers:{"X-CSRF-Token":csrf}' in embedded.text
@@ -102,8 +102,8 @@ with tempfile.TemporaryDirectory() as td:
     assert "link.download=filename" in embedded.text
     assert 'window.location.assign("/public/protection-advisor/report.pdf")' not in embedded.text
     assert 'id="relationshipWorkspace"' in embedded.text
-    assert "Your assessments and engagements" in embedded.text
-    assert "Start New Assessment" in embedded.text
+    assert "Your Protection Advisor records" in embedded.text
+    assert "Start New Record" in embedded.text
     assert 'fetch("/public/protection-advisor/assessments"' not in embedded.text
     assert 'call("/public/protection-advisor/assessments"' in embedded.text
     assert 'call("/public/protection-advisor/assessments/select"' in embedded.text
@@ -121,7 +121,7 @@ with tempfile.TemporaryDirectory() as td:
     assert 'id="reportIdentityEditor"' in embedded.text
     assert "Edit code names and report handling" in embedded.text
     assert "Update report code names or requested handling" in embedded.text
-    assert "SPA-REPORT-TEMPLATE-1.1.0" in embedded.text
+    assert "SPA-REPORT-TEMPLATE-1.3.0" in embedded.text
     assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in embedded.text
     assert 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' in embedded.text
     assert "frame-ancestors https://www.salus.solutions https://salus.solutions" in embedded.headers["content-security-policy"]
@@ -156,7 +156,7 @@ with tempfile.TemporaryDirectory() as td:
     csrf=payload["csrf_token"]
     headers={"X-CSRF-Token":csrf}
     questions=payload["questions"]
-    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
+    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.2.0"
     assert len([q for q in questions if q["key"] not in {"volunteer_roles","public_access"}])==28
     assert any(q["key"]=="volunteer_roles" for q in questions)
     assert all(q["capabilities"] and q["mission_areas"] and q["services"] for q in questions)
@@ -240,6 +240,10 @@ with tempfile.TemporaryDirectory() as td:
         "detailed_assessment_acknowledged":True,
         "identifiable_retention_consent":True,
         "facility_scope":"Several facilities",
+        "covered_operation":"Two named manufacturing and fulfillment sites",
+        "decision_units":"Two",
+        "separate_findings":"Yes",
+        "group_priorities":"No",
         "facility_locations":"Central Texas",
         "personnel_range":"101–500",
         "affected_population_range":"501–2,500",
@@ -263,10 +267,17 @@ with tempfile.TemporaryDirectory() as td:
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
-    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-3.0.0"
-    assert package["primary_service"]["title"]=="Integrated Salus Assessment"
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.4.0"
+    assert package["primary_service"]["title"]=="Level 1 SalCAPA™ Package"
     assert package["primary_service"]["level"]==1
-    assert package["sequence"][0]=="Integrated Salus Assessment — Level 1 Initial Pass"
+    assert package["provisional_path"]["band"]=="B"
+    assert "written quote" in package["provisional_path"]["next_step"]
+    assert package["scope_receipt"]["requested_boundary"]=="Two named manufacturing and fulfillment sites"
+    assert "organization chart" in package["scope_receipt"]["member_prepares"][0]
+    assert package["scope_receipt"]["receipt_id"].startswith("SPA-RECEIPT-")
+    assert len(package["scope_receipt"]["milestones"]) == 5
+    assert len(package["scope_receipt"]["choices"]) == 4
+    assert package["sequence"][0]=="Level 1 SalCAPA™ package — four coordinated reports"
     assert result["preliminary_hypothesis"]["working_assumption"]
     assert 1<=len(package["services"])<=4
     assert all(item["level"]>=1 for item in package["services"])
@@ -284,7 +295,7 @@ with tempfile.TemporaryDirectory() as td:
     engagement_scope=submitted.json()["engagement_scope"]
     assert engagement_scope["organization_name"]=="Public Pilot Organization"
     assert engagement_scope["engagement_name"]=="Steady Harbor"
-    assert engagement_scope["functional_area"]=="Facility or operational protection improvements"
+    assert engagement_scope["functional_area"]=="Two named manufacturing and fulfillment sites"
 
     # The 24-hour advisor token is a security credential, not a result-retention limit.
     # Even after that token's stored expiry, a fresh account login must recover the
@@ -361,8 +372,8 @@ with tempfile.TemporaryDirectory() as td:
     account=conn.execute("SELECT * FROM advisor_public_accounts").fetchone()
     assert account["email"]=="contact@example.com"
     assert session["status"]=="Submitted"
-    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
-    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.0.0"
+    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.2.0"
+    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.1.0"
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_profile_drafts").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_portfolios").fetchone()[0]==1
     assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_engagements").fetchone()[0]==1
@@ -375,6 +386,62 @@ with tempfile.TemporaryDirectory() as td:
     review_row=dict(submission)
     review_row["notification_state"]="Pending"
     submission_key=submission["submission_key"]
+    conn.close()
+
+    # The account receives the exact PDF bytes for an identity revision on
+    # repeat download; a newer identity revision does not overwrite it.
+    import hashlib
+    import public_protection_advisor as advisor_module
+    os.environ["SALUS_ADVISOR_REPORT_OUTPUT_DIR"] = td
+    saved_pdfs = {}
+    render_count = []
+
+    def fake_render(*, output_path, context, result, package):
+        render_count.append(context.project_code_name)
+        Path(output_path).write_bytes(b"%PDF-1.4\n" + context.project_code_name.encode("utf-8"))
+
+    def fake_store(reference, revision_no, content):
+        item_id = f"ITEM-{revision_no:03d}-TEST"
+        saved_pdfs[item_id] = content
+        return {"item_id": item_id, "sha256": hashlib.sha256(content).hexdigest(),
+                "size": len(content), "filename": f"{reference}-R{revision_no}.pdf"}
+
+    def fake_read(item_id, expected_sha256, expected_size):
+        content = saved_pdfs[item_id]
+        assert len(content) == expected_size
+        assert hashlib.sha256(content).hexdigest() == expected_sha256
+        return content
+
+    advisor_module.render_protection_advisor_pdf = fake_render
+    advisor_module.store_member_pdf = fake_store
+    advisor_module.read_member_pdf = fake_read
+    advisor_module.delete_member_pdf = lambda item_id: saved_pdfs.pop(item_id)
+    latest_pdf = client.get("/public/protection-advisor/report.pdf", headers=headers)
+    assert latest_pdf.status_code == 200, latest_pdf.text
+    assert b"Steady Harbor Two" in latest_pdf.content
+    again_pdf = client.get("/public/protection-advisor/report.pdf", headers=headers)
+    assert again_pdf.content == latest_pdf.content
+    assert render_count == ["Steady Harbor Two"]
+    # A prior identity that was never issued has no original PDF to retrieve.
+    first_pdf = client.get("/public/protection-advisor/report.pdf?revision=1", headers=headers)
+    assert first_pdf.status_code == 409, first_pdf.text
+    newer = client.post("/public/protection-advisor/report-identity",headers=headers,json={
+        "protected_member_code_name":"Blue Lantern",
+        "project_code_name":"Steady Harbor Three",
+        "handling_profile":"Commercial Confidential",
+        "handling_authority":"","designating_agency":"","contract_reference":"",
+        "dissemination_controls":"Authorized recipients only",
+    })
+    assert newer.status_code == 200, newer.text
+    prior_pdf = client.get("/public/protection-advisor/report.pdf?revision=2", headers=headers)
+    assert prior_pdf.status_code == 200, prior_pdf.text
+    assert prior_pdf.content == latest_pdf.content
+    newest_pdf = client.get("/public/protection-advisor/report.pdf", headers=headers)
+    assert newest_pdf.status_code == 200, newest_pdf.text
+    assert b"Steady Harbor Three" in newest_pdf.content
+    assert render_count == ["Steady Harbor Two", "Steady Harbor Three"]
+    conn = sqlite3.connect(db_path)
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_member_report_snapshots").fetchone()[0] == 2
     conn.close()
 
     review_page_html=_review_page([review_row])
@@ -478,7 +545,7 @@ with tempfile.TemporaryDirectory() as report_td:
         for cell in row.cells
         for paragraph in cell.paragraphs
     )
-    assert "Protection Advisor Assessment Report" in "\n".join(rendered_text)
+    assert "Protection Advisor Scope and Readiness Report" in "\n".join(rendered_text)
 
     results_footer = rendered.sections[-1].footer
     image_relationships = [
