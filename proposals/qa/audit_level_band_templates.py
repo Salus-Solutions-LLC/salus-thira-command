@@ -14,7 +14,7 @@ from docx.oxml.ns import qn
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = ROOT / 'proposals' / 'level_band_templates'
 sys.path.insert(0, str(TEMPLATES))
-from build_candidates import SPECS  # noqa: E402
+from build_candidates import SPECS, SECTION_RULES  # noqa: E402
 
 
 def fonts_on_page(page):
@@ -30,7 +30,8 @@ def fonts_on_page(page):
 
 def inspect(product, source, expected_hash):
     candidate = TEMPLATES / f'{product} Level Band Template Candidate.docx'
-    pdf = ROOT / 'proposals' / 'qa' / f'template_current_{product}' / f'{candidate.stem}.pdf'
+    render_dir = 'template_current_v13b_SalTHIRA' if product == 'SalTHIRA' else f'template_current_v13_{product}'
+    pdf = ROOT / 'proposals' / 'qa' / render_dir / f'{candidate.stem}.pdf'
     issues = []
     source_sha = hashlib.sha256(source.read_bytes()).hexdigest().upper()
     candidate_sha = hashlib.sha256(candidate.read_bytes()).hexdigest().upper()
@@ -53,8 +54,12 @@ def inspect(product, source, expected_hash):
         if drawings and len(image_alts) < drawings:
             issues.append('A drawing lacks alternate description in the document body')
     document = Document(candidate)
-    if document.core_properties.title != f'{product} Level and Band Report Template Candidate 1.2':
+    if document.core_properties.title != f'{product} Level and Band Report Template Candidate 1.3':
         issues.append('Accessible Word document title missing')
+    expected_path_rules = len(SECTION_RULES[product])
+    actual_path_rules = sum('Path-specific authoring:' in paragraph.text for paragraph in document.paragraphs)
+    if actual_path_rules != expected_path_rules:
+        issues.append(f'Expected {expected_path_rules} substantive path rules; found {actual_path_rules}')
     word_cover = '\n'.join(paragraph.text for paragraph in document.paragraphs[:8])
     word_candidate = re.search(r'\bcandidate\s+(\d+\.\d+)\b', word_cover, flags=re.I)
     if not word_candidate:
@@ -103,6 +108,7 @@ def inspect(product, source, expected_hash):
             'nonblank_page_footers_checked': sum(footers), 'fonts': fonts,
             'word_title_styles': title_styles, 'semantic_heading_count': heading_count,
             'word_sections': section_count, 'tables': table_count, 'marked_table_headers': table_headers,
+            'substantive_path_rules': actual_path_rules,
             'body_drawings': drawings, 'body_image_alts': len(image_alts), 'issues': issues}
 
 

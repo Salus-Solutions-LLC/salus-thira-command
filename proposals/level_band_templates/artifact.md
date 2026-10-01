@@ -1,8 +1,21 @@
 # Level and band report template candidate contract
 
+## 1 October 2026 candidate 1.3 substantive path pass
+
+Candidate 1.3 adds path-specific authoring instructions inside substantive sections of the four existing Word report identities. It requires separate unit evidence before Band B comparisons or Band C group judgments, retains the full 32-capability/five-area applicability screen for eligible Access, distinguishes source-bound Level 1 from authorized Level 2/3 proof, links options to the same-level decision and separates recommendations from performed work. The retained reference content and all package parts outside `word/document.xml`, `word/styles.xml` and `docProps/core.xml` remain unchanged. These are still *authoring prompts*, not ten finished path-specific Member reports.
+
+| Product | Current candidate 1.3 DOCX SHA-256 | Current LibreOffice QA PDF SHA-256 | Pages | Added substantive section rules |
+|---|---|---|---:|---:|
+| SalINTEL™ | `E923379865A933632AA2D100AFB8E1A638DC9FC0E08267839E16DC833B59A444` | `46AE0EFE0819C19DD471C0D74F61974D3AB6FA512BEA844BCFB81E79F34B5B17` | 9 | 5 |
+| SalTHIRA™ | `F9016228282CBE3F275B3F67C98AD6D2069AFED00358D3A003960044C5E6E5CF` | `2DDAE9E7A5E19B0F4572585BAB97233A68AA293BBD785493F6FD68CAE813FA51` | 6 | 3 |
+| SalOPS™ | `A3A6AF22AAA315A11F6887C0276E023900669D155D0BACE76FD385FC3A3B6E2F` | `A6D97A364C6DE2C8F4EBE501B9CCAE0036344D63371BC739C84957DFD29436C8` | 6 | 4 |
+| SalCAPA™ | `82DED4A785A92D890DEFE1805CC223AFB0C28CA833D4FCDDD67718FF5AC90857` | `5F23E11D9652EC9045AAD01ED5BC06470F05661DD18FCB45F2D043592D4CC24B` | 6 | 5 |
+
+The updated exact-version structural/rendered audit passed: four reference hashes, ZIP/package-part fidelity, document titles, semantic headings, all 32 table headers, logo alternate descriptions, three sections, blank page two, Arial/Times New Roman rendered fonts and all 23 nonblank `page X of Y` footers. The nine pages containing added section prompts were inspected at reading size without observed collision or clipping. The first SalTHIRA render spilled its last two sections to an almost empty seventh page; its section rules were shortened and the final six-page version rerendered and rechecked. Full all-page visual/native Word, accessibility/screen-reader, realistic populated path comparison, qualified content and governed binary acceptance remain open. Candidate 1.2 hashes below are historical and superseded for current review.
+
 ## Scope-integration status — 1 October 2026
 
-The new business scope is **partially integrated in four local Word candidates**, not yet promoted into the registered report templates or a live Member-facing release. Each candidate has the prospective `Level [path]` report title and an opening instruction for the covered decision unit, exclusions, proof depth, Member decision and next step. These are shared authoring candidates; there are not ten separately accepted path-specific template binaries. The registered source bodies were deliberately preserved outside the narrow title/opening edits. Therefore their later sections still require a section-by-section Level × band authoring and acceptance pass against SAL-D088–SAL-D090 before the suite can be called fully integrated.
+The new business scope is **partially integrated in four local Word candidates**, not yet promoted into the registered report templates or a live Member-facing release. Each candidate has the prospective `Level [path]` report title, opening guidance and selected substantive section instructions for the covered decision unit, exclusions, proof depth, Member decision and next step. These are shared authoring candidates; there are not ten separately accepted path-specific template binaries. The registered source bodies remain in place. Every later section still needs a realistic path-specific population and acceptance pass against SAL-D088–SAL-D090 before the suite can be called fully integrated.
 
 | Product | Candidate integration | Still to verify before promotion |
 |---|---|---|
