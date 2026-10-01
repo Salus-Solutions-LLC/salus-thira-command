@@ -23,6 +23,9 @@ from database import connect_database, backend_name, is_sqlite, is_postgres
 from portable_backup import collect_tenant_records, validate_records, replace_tenant_records
 from salus_scan_quarantine import AzureScanQuarantine, QuarantineError
 from salus_scan_results import defender_event_matches_pending, defender_result_for_pending, qualified_clean_quarantine_object
+from salus_scan_inventory import (compare_quarantine_versions,
+                                  list_azure_quarantine_versions,
+                                  record_inventory_exceptions)
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.getenv('SALUS_DB_PATH', os.path.join(BASE_DIR, 'thira.db'))
@@ -963,6 +966,22 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_package_intake_pending_scope ON package_intake_pending_scans(tenant_id,assessment_id,quote_id,intake_request_id,status,id);
     CREATE INDEX IF NOT EXISTS idx_package_intake_pending_timeout ON package_intake_pending_scans(status,received_at,id);
+    CREATE TABLE IF NOT EXISTS package_quarantine_inventory_exceptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exception_key TEXT NOT NULL UNIQUE,
+      account_url TEXT NOT NULL,
+      exception_type TEXT NOT NULL,
+      blob_name TEXT NOT NULL,
+      blob_version_id TEXT NOT NULL,
+      candidate_tenant_id INTEGER,
+      status TEXT NOT NULL DEFAULT 'Open',
+      first_seen TEXT NOT NULL,
+      last_seen TEXT NOT NULL,
+      assigned_to TEXT NOT NULL DEFAULT '',
+      disposition TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_quarantine_exception_status
+      ON package_quarantine_inventory_exceptions(status,last_seen,id);
     CREATE TABLE IF NOT EXISTS package_product_report_versions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -6136,6 +6155,38 @@ def reconcile_stale_package_scans(*, max_age_hours:int=24, limit:int=100):
         finally:
             conn.rollback();conn.close()
     return held
+
+def inspect_package_quarantine_inventory(*, quarantine=None, max_versions:int=10000):
+    """Record restricted discrepancies; do not release or delete originals.
+
+    Run with a designated quarantine-reader identity during a controlled audit.
+    Concurrent staging may cause a provisional orphan; reviewers recheck the
+    exact version before assigning custody or authorizing disposition.
+    """
+    if PACKAGE_SCAN_MODE!='defender':
+        raise QuarantineError('The governed quarantine inventory is not configured.')
+    reader=quarantine or package_quarantine(for_worker=True)
+    conn=db()
+    try:
+        ledger=[dict(row) for row in conn.execute('''SELECT tenant_id,blob_name,
+            blob_version_id,size_bytes,legal_hold FROM package_intake_pending_scans''')]
+    finally:
+        conn.close()
+    result=compare_quarantine_versions(
+        ledger,list_azure_quarantine_versions(reader.container),max_versions=max_versions)
+    conn=db()
+    try:
+        recorded=record_inventory_exceptions(
+            conn,reader.account_url,ledger,result,detected_at=now())
+        conn.commit()
+    finally:
+        conn.rollback();conn.close()
+    return {
+        'ledger_count':result['ledger_count'],
+        'azure_version_count':result['azure_version_count'],
+        'azure_bytes':result['azure_bytes'],
+        'exceptions_observed':recorded,
+    }
 
 def process_package_scan_result(event:dict, *, quarantine=None, expected_topic:str=''):
     """Apply a trusted-queue result to one exact quarantined small upload.

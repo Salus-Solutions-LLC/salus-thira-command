@@ -1,9 +1,11 @@
 from types import SimpleNamespace
+import sqlite3
 
 import pytest
 
 from salus_scan_inventory import (InventoryError, compare_quarantine_versions,
-                                  list_azure_quarantine_versions)
+                                  list_azure_quarantine_versions,
+                                  record_inventory_exceptions)
 
 
 def test_orphan_and_missing_versions_are_not_hidden_by_a_clean_copy():
@@ -54,3 +56,33 @@ def test_azure_listing_includes_versions_and_hold_state():
 
     assert list(list_azure_quarantine_versions(Container())) == [
         {'name': 'tenant-1/a', 'version_id': 'v1', 'size_bytes': 10, 'legal_hold': True}]
+
+
+def test_restricted_exceptions_are_idempotent_and_orphans_unassigned():
+    conn = sqlite3.connect(':memory:')
+    conn.execute('''CREATE TABLE package_quarantine_inventory_exceptions (
+        id INTEGER PRIMARY KEY, exception_key TEXT UNIQUE, account_url TEXT,
+        exception_type TEXT, blob_name TEXT, blob_version_id TEXT,
+        candidate_tenant_id INTEGER, status TEXT, first_seen TEXT,
+        last_seen TEXT, assigned_to TEXT DEFAULT '', disposition TEXT DEFAULT '')''')
+    ledger = [{'tenant_id': 7, 'blob_name': 'tenant-7/a',
+               'blob_version_id': 'v1', 'size_bytes': 10, 'legal_hold': 1}]
+    listed = [{'name': 'tenant-7/a', 'version_id': 'v1',
+               'size_bytes': 10, 'legal_hold': False},
+              {'name': 'tenant-unknown/orphan', 'version_id': 'v2',
+               'size_bytes': 4, 'legal_hold': False}]
+    result = compare_quarantine_versions(ledger, listed)
+    account = 'https://scanner.blob.core.windows.net'
+    assert record_inventory_exceptions(conn, account, ledger, result,
+                                       detected_at='2026-10-01T01:00:00Z') == 2
+    conn.execute("UPDATE package_quarantine_inventory_exceptions SET status='Reviewed'")
+    assert record_inventory_exceptions(conn, account, ledger, result,
+                                       detected_at='2026-10-01T02:00:00Z') == 2
+    rows = conn.execute('''SELECT exception_type,candidate_tenant_id,status,
+        first_seen,last_seen FROM package_quarantine_inventory_exceptions
+        ORDER BY exception_type''').fetchall()
+    assert rows == [
+        ('HoldMismatch', 7, 'Open', '2026-10-01T01:00:00Z', '2026-10-01T02:00:00Z'),
+        ('Unlinked', None, 'Open', '2026-10-01T01:00:00Z', '2026-10-01T02:00:00Z'),
+    ]
+    conn.close()

@@ -5,6 +5,7 @@ review every exception before any separate, authorized disposition action.
 """
 
 from collections.abc import Iterable
+import hashlib
 
 
 class InventoryError(RuntimeError):
@@ -81,3 +82,46 @@ def list_azure_quarantine_versions(container):
             'size_bytes': blob.size,
             'legal_hold': getattr(blob, 'has_legal_hold', None),
         }
+
+
+_EXCEPTION_FIELDS = {
+    'unlinked_versions': 'Unlinked',
+    'missing_versions': 'Missing',
+    'size_mismatches': 'SizeMismatch',
+    'hold_mismatches': 'HoldMismatch',
+}
+
+
+def record_inventory_exceptions(conn, account_url: str, ledger_rows: Iterable[dict],
+                                comparison: dict, *, detected_at: str) -> int:
+    """Persist exact restricted exceptions without assigning an orphan to a Member.
+
+    The caller owns the transaction. Repeated observations update last_seen and
+    reopen a recurring exception; nothing is auto-disposed or client-visible.
+    """
+    if not isinstance(account_url, str) or not account_url.startswith('https://'):
+        raise InventoryError('The inventory account is invalid.')
+    if not isinstance(detected_at, str) or not detected_at:
+        raise InventoryError('The inventory time is missing.')
+    tenants = {}
+    for row in ledger_rows:
+        key = _key(row, azure=False)
+        tenant = row.get('tenant_id')
+        if type(tenant) is not int or tenant < 1:
+            raise InventoryError('The ledger tenant scope is invalid.')
+        tenants[key] = tenant
+    recorded = 0
+    for field, kind in _EXCEPTION_FIELDS.items():
+        for name, version in comparison[field]:
+            key = hashlib.sha256(
+                f'{account_url}\x00{kind}\x00{name}\x00{version}'.encode('utf-8')).hexdigest()
+            conn.execute('''INSERT INTO package_quarantine_inventory_exceptions
+                (exception_key,account_url,exception_type,blob_name,blob_version_id,
+                 candidate_tenant_id,status,first_seen,last_seen)
+                VALUES(?,?,?,?,?,?,'Open',?,?)
+                ON CONFLICT(exception_key) DO UPDATE SET
+                  last_seen=excluded.last_seen,status='Open' ''',
+                (key,account_url,kind,name,version,tenants.get((name,version)),
+                 detected_at,detected_at))
+            recorded += 1
+    return recorded
