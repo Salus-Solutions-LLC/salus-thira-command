@@ -101,7 +101,15 @@ jq -nc --arg email "$EMAIL" --arg password "$PASSWORD" '{email:$email,password:$
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' \
   -d @"$WORK/login.json" "$BASE/public/protection-advisor/login" > "$WORK/login-result.json"
 CSRF="$(jq -r '.csrf_token' "$WORK/login-result.json")"
-jq -e '.authenticated==true and (.questions|length)==9 and (.answers|length)==9 and .draft.organization_name=="Salus Fictional Acceptance Organization"' "$WORK/login-result.json" >/dev/null
+jq -e '.authenticated==true and (.questions|length)==28 and (.answers|length)==9 and .draft.organization_name=="Salus Fictional Acceptance Organization"' "$WORK/login-result.json" >/dev/null
+
+STAGE="consented Part 2 capability questions"
+while IFS= read -r key; do
+  jq -nc --arg k "$key" '{question_key:$k,answer_state:"Unknown",note:"Governed fictional launch-acceptance response."}' > "$WORK/answer.json"
+  curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
+    -d @"$WORK/answer.json" "$BASE/public/protection-advisor/answer" > "$WORK/answer-result.json"
+  jq -e '.saved==true' "$WORK/answer-result.json" >/dev/null
+done < <(jq -r '.questions[].key as $key | select(.answers[$key] == null) | $key' "$WORK/login-result.json")
 
 STAGE="submission and notifications"
 jq -nc --arg email "$EMAIL" '{protected_member_code_name:"Fictional Acceptance Member",project_code_name:"Automated Acceptance",handling_profile:"Commercial Confidential",organization_name:"Salus Fictional Acceptance Organization",contact_name:"Fictional Acceptance Reviewer",contact_email:$email,detailed_assessment_acknowledged:true,identifiable_retention_consent:true,facility_scope:"Multiple facilities",facility_locations:"Fictional locations only",personnel_range:"101-500",affected_population_range:"501-2,000",annual_revenue_range:"$25M-$100M",specific_activities:["Hazardous materials, fuels, chemicals, or regulated waste","Sensitive information, technology, research, or intellectual property"],essential_functions:"Fictional essential operations",maximum_tolerable_downtime:"24 hours",existing_program_maturity:"Developing",internal_implementation_capacity:"Limited",primary_objective:"Prioritize protection improvements",external_requirements:"Contractual and regulatory requirements",recent_concerns:"Fictional acceptance concerns",desired_timing:"Within 90 days",decision_authority:"Executive leadership",investment_range:"$50,000-$150,000"}' > "$WORK/submit.json"

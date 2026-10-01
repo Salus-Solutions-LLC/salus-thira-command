@@ -1,4 +1,4 @@
-from public_protection_advisor import _capability_results, _package_recommendation, _questions, _result
+from public_protection_advisor import _capability_results, _package_recommendation, _part2_questions, _questions, _result
 
 
 def test_high_need_still_begins_with_integrated_level_one():
@@ -46,3 +46,18 @@ def test_old_questionnaire_session_keeps_its_original_questions():
     questions = _questions("Business", "SPA-PUBLIC-QUESTIONNAIRE-2.2.0")
     assert len(questions) == 28
     assert questions[0]["text"].startswith("Do you maintain a current list")
+
+
+def test_consented_second_part_completes_framework_without_reasking_first_part():
+    first = _questions("Business")
+    second = _part2_questions("Business")
+    assert len(first) == 9
+    assert len(second) == 28
+    assert {q["key"] for q in first} <= {q["key"] for q in second}
+    assert all(next(q for q in second if q["key"] == item["key"])["text"] == item["text"] for item in first)
+    answers = {q["key"]: {"answer_state": "Unknown"} for q in second}
+    answers[second[0]["key"]] = {"answer_state": "No"}
+    rows, areas = _capability_results(second, answers)
+    assert len(rows) == 32
+    assert any(row["need_score"] is not None for row in rows)
+    assert set(areas) == {"Prevention", "Protection", "Mitigation", "Response", "Recovery"}

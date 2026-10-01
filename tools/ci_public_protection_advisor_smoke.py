@@ -51,6 +51,7 @@ with tempfile.TemporaryDirectory() as td:
     assert "Protection Advisor" in page.text
     assert "Anonymous Protection Readiness Review" in page.text
     assert "Understand the scope and readiness profile" in page.text
+    assert "19 more readiness questions" in page.text
     assert "answer from my current knowledge without guessing" in page.text
     assert "Return to Your Part 2 Profile" in page.text
     assert 'onchange="saveAnswer(this.name,this.value)"' in page.text
@@ -178,6 +179,12 @@ with tempfile.TemporaryDirectory() as td:
     assert set(preliminary_result["mission_area_scores"])=={
         "Prevention","Protection","Mitigation","Response","Recovery"
     }
+    assert all(value is None for value in preliminary_result["mission_area_scores"].values())
+    first_part2_only=next(row for row in QUESTION_BLUEPRINTS if row[0] not in {q["key"] for q in questions})
+    premature=client.post("/public/protection-advisor/answer",headers=headers,json={
+        "question_key":first_part2_only[0],"answer_state":"No","note":""
+    })
+    assert premature.status_code==400
 
     no_account=client.post("/public/protection-advisor/submit",headers=headers,json={
         "protected_member_code_name":"Blocked Member","project_code_name":"Blocked Project",
@@ -205,6 +212,9 @@ with tempfile.TemporaryDirectory() as td:
     })
     assert created.status_code==200,created.text
     assert created.json()["authenticated"] is True
+    assert len(created.json()["questions"])==30  # 28 common and two faith/public additions
+    assert len(created.json()["answers"])==len(questions)
+    assert {cap for q in created.json()["questions"] for cap in q["capabilities"]}==set(CORE_CAPABILITIES)
 
     draft=client.post("/public/protection-advisor/draft",headers=headers,json={
         "fields":{"protected_member_code_name":"Blue Lantern","project_code_name":"Steady Harbor",
@@ -226,6 +236,15 @@ with tempfile.TemporaryDirectory() as td:
     assert resumed_payload["draft"]["protected_member_code_name"]=="Blue Lantern"
     assert resumed_payload["draft"]["project_code_name"]=="Steady Harbor"
     headers={"X-CSRF-Token":resumed_payload["csrf_token"]}
+    assert len(resumed_payload["questions"])==30
+    assert len(resumed_payload["answers"])==len(questions)
+    for q in resumed_payload["questions"]:
+        if q["key"] in resumed_payload["answers"]:
+            continue
+        saved=client.post("/public/protection-advisor/answer",headers=headers,json={
+            "question_key":q["key"],"answer_state":"Unknown","note":""
+        })
+        assert saved.status_code==200,(q,saved.text)
 
     submitted=client.post("/public/protection-advisor/submit",headers=headers,json={
         "protected_member_code_name":"Blue Lantern",
@@ -281,6 +300,7 @@ with tempfile.TemporaryDirectory() as td:
     assert len(package["scope_receipt"]["choices"]) == 4
     assert package["sequence"][0]=="Level 1 SalCAPA™ package — four coordinated reports"
     assert result["preliminary_hypothesis"]["working_assumption"]
+    assert any(value is not None for value in result["mission_area_scores"].values())
     assert 1<=len(package["services"])<=4
     assert all(item["level"]>=1 for item in package["services"])
     assert all(item["capabilities"] and item["why"] for item in package["services"])
