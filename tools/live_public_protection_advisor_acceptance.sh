@@ -50,9 +50,9 @@ jq -nc '{organization_type:"Business",primary_consent:true,secondary_deidentifie
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' \
   -d @"$WORK/start.json" "$BASE/public/protection-advisor/session" > "$WORK/session.json"
 CSRF="$(jq -r '.csrf_token' "$WORK/session.json")"
-jq -e '.questionnaire_version=="SPA-PUBLIC-QUESTIONNAIRE-2.2.0" and (.questions|length)==28' "$WORK/session.json" >/dev/null
+jq -e '.questionnaire_version=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0" and (.questions|length)==9' "$WORK/session.json" >/dev/null
 jq -e '[.questions[].mission_areas[]]|unique|sort == ["Mitigation","Prevention","Protection","Recovery","Response"]' "$WORK/session.json" >/dev/null
-jq -e '[.questions[].capabilities[]]|unique|length == 32' "$WORK/session.json" >/dev/null
+jq -e '[.questions[].capabilities[]]|unique|length == 18' "$WORK/session.json" >/dev/null
 
 STAGE="question answers"
 index=0
@@ -101,7 +101,7 @@ jq -nc --arg email "$EMAIL" --arg password "$PASSWORD" '{email:$email,password:$
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' \
   -d @"$WORK/login.json" "$BASE/public/protection-advisor/login" > "$WORK/login-result.json"
 CSRF="$(jq -r '.csrf_token' "$WORK/login-result.json")"
-jq -e '.authenticated==true and (.questions|length)==28 and (.answers|length)==28 and .draft.organization_name=="Salus Fictional Acceptance Organization"' "$WORK/login-result.json" >/dev/null
+jq -e '.authenticated==true and (.questions|length)==9 and (.answers|length)==9 and .draft.organization_name=="Salus Fictional Acceptance Organization"' "$WORK/login-result.json" >/dev/null
 
 STAGE="submission and notifications"
 jq -nc --arg email "$EMAIL" '{protected_member_code_name:"Fictional Acceptance Member",project_code_name:"Automated Acceptance",handling_profile:"Commercial Confidential",organization_name:"Salus Fictional Acceptance Organization",contact_name:"Fictional Acceptance Reviewer",contact_email:$email,detailed_assessment_acknowledged:true,identifiable_retention_consent:true,facility_scope:"Multiple facilities",facility_locations:"Fictional locations only",personnel_range:"101-500",affected_population_range:"501-2,000",annual_revenue_range:"$25M-$100M",specific_activities:["Hazardous materials, fuels, chemicals, or regulated waste","Sensitive information, technology, research, or intellectual property"],essential_functions:"Fictional essential operations",maximum_tolerable_downtime:"24 hours",existing_program_maturity:"Developing",internal_implementation_capacity:"Limited",primary_objective:"Prioritize protection improvements",external_requirements:"Contractual and regulatory requirements",recent_concerns:"Fictional acceptance concerns",desired_timing:"Within 90 days",decision_authority:"Executive leadership",investment_range:"$50,000-$150,000"}' > "$WORK/submit.json"
@@ -137,7 +137,7 @@ curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CS
 jq -e '.deleted==true' "$WORK/delete-result.json" >/dev/null
 DELETED=1
 
-ACCEPTANCE="$(jq -nc --arg email "$EMAIL" --argjson acceptance "$SUMMARY" '{public_page_security_headers:true,questionnaire_version:"SPA-PUBLIC-QUESTIONNAIRE-2.2.0",questions:28,core_capabilities:32,mission_areas:5,primary_consent:true,secondary_deidentified_consent:false,account_email:$email,email_verification:"Delivered",save_resume:true,submission:$acceptance,test_content_deleted:true}')"
+ACCEPTANCE="$(jq -nc --arg email "$EMAIL" --argjson acceptance "$SUMMARY" '{public_page_security_headers:true,questionnaire_version:"SPA-PUBLIC-QUESTIONNAIRE-2.3.0",questions:9,core_capability_framework:32,directly_mapped_capabilities:18,mission_areas:5,primary_consent:true,secondary_deidentified_consent:false,account_email:$email,email_verification:"Delivered",save_resume:true,submission:$acceptance,test_content_deleted:true}')"
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   {
     echo "### Protection Advisor live acceptance"

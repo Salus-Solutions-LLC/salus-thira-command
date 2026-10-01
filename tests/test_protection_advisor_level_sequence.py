@@ -27,3 +27,22 @@ def test_unknown_remains_a_gap_without_inventing_need_or_a_service():
     package = _package_recommendation(questions, answers, {})
     assert package["primary_service"]["level"] == 1
     assert package["services"] == []
+
+
+def test_short_public_screen_does_not_invent_capability_scores():
+    questions = _questions("Business")
+    assert len(questions) == 9
+    answers = {question["key"]: {"answer_state": "No"} for question in questions}
+    rows, areas = _capability_results(questions, answers)
+    assert len(rows) == 32
+    assert all(row["need_score"] is None and row["information_gap"] for row in rows)
+    assert all(score is None for score in areas.values())
+    result = _result(questions, answers)
+    assert result["attention_count"] == 9
+    assert result["priority_capabilities"] == []
+
+
+def test_old_questionnaire_session_keeps_its_original_questions():
+    questions = _questions("Business", "SPA-PUBLIC-QUESTIONNAIRE-2.2.0")
+    assert len(questions) == 28
+    assert questions[0]["text"].startswith("Do you maintain a current list")

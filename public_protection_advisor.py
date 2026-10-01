@@ -37,7 +37,7 @@ from protection_advisor_member_reports import delete_member_pdf, read_member_pdf
 from salcapa_m365_reports import M365ReportError
 from salus_package_path import draft_level_1_scope_receipt, suggest_provisional_level_1_path
 
-QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.2.0"
+QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.1.0"
 CONSENT_NOTICE_VERSION = "SPA-PUBLIC-CONSENT-1.0.0"
 RETENTION_POLICY_VERSION = "SPA-PROSPECT-RETENTION-INDEFINITE-1.0.0"
@@ -172,6 +172,21 @@ QUESTION_BLUEPRINTS = (
     ("supplier_integrity", "Are critical suppliers, contractors, products, transportation routes, and replacement resources evaluated for integrity, availability, concentration, and disruption risk?", "protection", ("Supply Chain Integrity and Security", "Logistics and Supply Chain Management", "Critical Transportation"), ("continuity", "protective_intelligence"), 1.5),
     ("community_recovery", "Do recovery plans address employees and families, customers or members, health and social needs, temporary operations, economic effects, housing or relocation, and community consequences?", "recovery", ("Community Resilience", "Economic Recovery", "Health and Social Services", "Housing"), ("continuity", "planning"), 1.5),
 )
+
+# The public first screen is short and educational. Keep the complete legacy
+# blueprint for existing sessions and for the contracted Level 1 method; a
+# short answer must not become a 32-capability rating by extrapolation.
+PART1_SCREEN_TEXT = {
+    'risk_list': 'Have you identified the disruptions most likely to affect the work you do?',
+    'reporting': 'Is there a clear way for people to report safety or security concerns?',
+    'decision_authority': 'If the usual leader is unavailable, does someone else know who decides and what they may approve?',
+    'dependency_map': 'Do you know which people, places, utilities, technology, suppliers and routes your essential work depends on?',
+    'integrated_test': 'Have you practiced a disruption with the people and systems you would actually use?',
+    'degraded_communications': 'Could you reach staff and affected people if power, internet or phones fail?',
+    'continuity': 'Could your most important work continue if a key place, system, supplier or person is unavailable?',
+    'recovery_targets': 'Have you decided which essential services to restore first and how quickly?',
+    'life_safety_response': 'Do people know what to do for fire, medical emergency, evacuation or shelter?',
+}
 
 ACTIVITY_OPTIONS = {
     "Precious metals or other high-value materials",
@@ -508,8 +523,17 @@ def _question_row(row: tuple[Any, ...]) -> dict[str, Any]:
     }
 
 
-def _questions(org_type: str) -> list[dict[str, Any]]:
-    rows = [_question_row(row) for row in QUESTION_BLUEPRINTS]
+def _questions(org_type: str, questionnaire_version: str = QUESTIONNAIRE_VERSION) -> list[dict[str, Any]]:
+    if questionnaire_version == QUESTIONNAIRE_VERSION:
+        rows = []
+        for row in QUESTION_BLUEPRINTS:
+            if row[0] in PART1_SCREEN_TEXT:
+                question = _question_row(row)
+                question['text'] = PART1_SCREEN_TEXT[row[0]]
+                rows.append(question)
+    else:
+        # A resumed or retained older session must see its original questions.
+        rows = [_question_row(row) for row in QUESTION_BLUEPRINTS]
     if org_type == "Faith-Based Organization":
         rows.append(_question_row(FAITH_QUESTION))
     if org_type == "School or Educational Institution":
@@ -545,14 +569,16 @@ def _capability_results(
         for capability in question["capabilities"]:
             totals[capability]["need"] += need * question["weight"]
             totals[capability]["possible"] += 3.0 * question["weight"]
+    short_screen = len(questions) < len(QUESTION_BLUEPRINTS)
     capability_rows = []
     for name, values in totals.items():
-        score = round(100 * values["need"] / values["possible"]) if values["possible"] else None
+        score = (round(100 * values["need"] / values["possible"])
+                 if values["possible"] and not short_screen else None)
         capability_rows.append({
             "capability": name,
             "mission_areas": list(CORE_CAPABILITIES[name]),
             "need_score": score,
-            "information_gap": values["unknown"] > 0,
+            "information_gap": short_screen or values["unknown"] > 0,
         })
     capability_rows.sort(key=lambda row: (row["need_score"] is None, -(row["need_score"] or 0), row["capability"]))
     mission_scores: dict[str, int | None] = {}
@@ -864,7 +890,7 @@ def _account_assessment_payload(conn: Any, account: Any, session: Any, csrf: str
         ).fetchone()
         answers = _current_answers(conn, session["session_key"])
         payload.update({
-            "questions": _questions(session["organization_type"]),
+            "questions": _questions(session["organization_type"], session["questionnaire_version"]),
             "answers": {key: row["answer_state"] for key, row in answers.items()},
             "draft": json.loads(draft["draft_json"]) if draft else {},
         })
@@ -981,6 +1007,11 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
             "level_1_action": "In a Level 1 SalCAPA assessment, select a critical capability and verify its owner, evidence, and recent performance.",
             "checklist": ["Select the critical capability.", "Identify the responsible owner and evidence.", "Document the validation result and any follow-up."],
         }
+    short_screen_notice = (
+        "This short educational screen does not assess every capability or establish readiness. Unasked topics remain unknown. "
+        if len(questions) < len(QUESTION_BLUEPRINTS) else
+        "This preliminary questionnaire does not establish readiness. "
+    )
     return {
         "status": "Preliminary — Salus Review Required",
         "recommendation": level,
@@ -993,7 +1024,7 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
         "priority_capabilities": [row for row in capability_rows if row["need_score"] is not None and row["need_score"] > 0][:8],
         "mission_area_scores": mission_scores,
         "core_capabilities_considered": len(CORE_CAPABILITIES),
-        "notice": "This result is preliminary and non-binding. A paid assessment begins with a qualified Level 1 SalCAPA™ package; Level 2 and Level 3 are conditional, sequential options. A Salus professional must review scope, evidence, services, and any price.",
+        "notice": short_screen_notice + "A paid assessment begins with a qualified Level 1 SalCAPA™ package; Level 2 and Level 3 are conditional, sequential options. A Salus professional must review scope, evidence, services, and any price.",
         "manual_next_step": "Qualification, scoping, proposal, onboarding, and service delivery remain human-controlled.",
     }
 
@@ -2138,7 +2169,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 })
             else:
                 payload.update({
-                    "questions": _questions(linked["organization_type"]),
+                    "questions": _questions(linked["organization_type"], linked["questionnaire_version"]),
                     "answers": {key: row["answer_state"] for key, row in answers.items()},
                     "draft": json.loads(draft["draft_json"]) if draft else {},
                 })
@@ -2352,7 +2383,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
         conn = ctx["db"]()
         try:
             session, _ = _session(conn, request)
-            allowed = {q["key"] for q in _questions(session["organization_type"])}
+            allowed = {q["key"] for q in _questions(session["organization_type"], session["questionnaire_version"])}
             if command.question_key not in allowed:
                 raise HTTPException(400, "Question is not part of this assessment")
             row = conn.execute("SELECT COALESCE(MAX(revision_no),0) n FROM advisor_public_answer_revisions WHERE session_key=? AND question_key=?",(session["session_key"],command.question_key)).fetchone()
@@ -2374,7 +2405,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             session, _ = _session(conn, request)
             if session["status"] != "Active":
                 raise HTTPException(409, "Assessment has already been submitted")
-            questions = _questions(session["organization_type"])
+            questions = _questions(session["organization_type"], session["questionnaire_version"])
             answers = _current_answers(conn, session["session_key"])
             missing = [q["key"] for q in questions if q["key"] not in answers]
             if missing:
@@ -2399,7 +2430,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 raise HTTPException(400, "Contact email must match the signed-in Part 2 account")
             if session["status"] != "Active":
                 raise HTTPException(409, "Assessment has already been submitted")
-            questions = _questions(session["organization_type"])
+            questions = _questions(session["organization_type"], session["questionnaire_version"])
             answers = _current_answers(conn, session["session_key"])
             missing = [q["key"] for q in questions if q["key"] not in answers]
             if missing:

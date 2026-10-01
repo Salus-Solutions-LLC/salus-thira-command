@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 1 October 2026 — Short Protection Advisor Part 1 candidate and scanner CI
+
+- Exact scanner-worker source head `fa3bbbdb91a207ba1aeb727d9ab1ad6458140393` passed Public Protection Advisor run 481 and Salus package rollout run 98. This confirms source regression checks, not a live Azure worker or alert.
+- Corrected the next draft Part 1 path to questionnaire `SPA-PUBLIC-QUESTIONNAIRE-2.3.0`: nine plain-language common questions, with existing 2.2.0 sessions retaining the original 28. The 32-capability framework stays available for later assessment, but the short screen now withholds numeric capability and five-area ratings; unasked subjects are explicitly unassessed. The live acceptance script and report wording were aligned. Python syntax and whitespace checks passed. Exact-head application CI remains open at this handoff.
+- The local Part 1 Word review copy was aligned to the nine questions and version 2.3.0. SHA-256 `02F36532C216D240CA43D3BEE1DA7AD55112C0B35CA64E254095EDA9A7813794`. LibreOffice rendered five pages; each was inspected, page 2 is blank, and the page footers follow `page X of 5`. See `proposals/qa/PART1_QUESTIONNAIRE_230_CANDIDATE.md`. Native Word still fails with `0x80070520`; exact template, accessibility and Member approval remain open. No Word review copy or web questionnaire was published.
+- **Next action and owner:** Engineering owns exact-head CI, version/resume and signed-in browser checks, followed by governed live integration; document/qualified reviewers own native Word, accessibility and Member comprehension. The scanner still lacks paid-service activation, real quarantine scan and alert proof. The operations alert mailbox and authenticated Wix Editor operator remain unresolved. Production remains `release/v3.202` with package routes locked; Tierra Linda and the paused large-batch work remain stopped.
+
 ## 1 October 2026 — Bounded mixed-result queue correction and exact document review
 
 - Rechecked exact previous head `54fa86bd950c3b190d2bd1492ad7f54dbcfc85ff`: Public Protection Advisor run 480 (`36823969082`) and Salus package rollout run 97 (`36823968937`) completed successfully. No production, Wix or paid Azure release followed from those checks.

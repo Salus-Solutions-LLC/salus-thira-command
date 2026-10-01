@@ -137,8 +137,8 @@ def _professional_body(document, fields, result, package) -> None:
     document.add_paragraph(
         f"The questionnaire recorded {result.get('strength_count', 0)} positive indicators, "
         f"{result.get('attention_count', 0)} conditions requiring attention, and "
-        f"{result.get('information_gap_count', 0)} material information gaps. "
-        "These results support a connected review of protection, preparedness, continuity, "
+        f"{result.get('information_gap_count', 0)} unknown answers. "
+        "Topics not asked about also remain unassessed. These results support a connected review of protection, preparedness, continuity, "
         "response, and recovery rather than isolated corrective projects."
     )
     if capabilities:
@@ -161,7 +161,7 @@ def _professional_body(document, fields, result, package) -> None:
         ("Positive indicators", result.get("strength_count", 0), "Reported practices that may support improvement"),
         ("Conditions requiring attention", result.get("attention_count", 0), "Potential gaps, weaknesses, or unvalidated capability"),
         ("Information gaps", result.get("information_gap_count", 0), "Unknowns that could materially change conclusions"),
-        ("Core capabilities considered", result.get("core_capabilities_considered", 32), "Capabilities screened across five mission areas; not validated"),
+        ("Core capability framework", result.get("core_capabilities_considered", 32), "Question mapping only; unasked capabilities are unassessed"),
     ), widths=(2.1, 1.35, 2.95))
 
     document.add_heading("Mission Area Profile", level=1)
@@ -169,7 +169,7 @@ def _professional_body(document, fields, result, package) -> None:
         "The five mission areas group work to prevent harm, protect people and assets, limit consequences, "
         "respond, and restore essential functions. These scores reflect reported need from answered questions only; "
         "they are not audit grades or measured capability. Higher values mean more reported need. "
-        "Missing answers are information gaps, not evidence of a deficit."
+        "Unknown answers and capabilities not asked about remain unassessed, not deficits."
     )
     _add_table(document, ("Mission area", "Reported need", "Preliminary interpretation"), _mission_rows(scores), widths=(2.0, 1.5, 2.9))
     document.add_page_break()
@@ -191,6 +191,8 @@ def _professional_body(document, fields, result, package) -> None:
             ", ".join(item.get("mission_areas") or []),
             "Information incomplete" if item.get("information_gap") else "Reported need",
         ))
+    if not cap_rows:
+        cap_rows.append(("—", "No capability ranking from this short screen", "Unknown", "All five areas", "Needs Level 1 evidence"))
     _add_table(document, ("Priority", "Capability", "Need", "Mission areas", "Basis"), cap_rows, widths=(.8, 1.9, .8, 1.6, 1.3))
     document.add_paragraph(
         "Need scores rank the relative urgency of review within this submission. They are not "
@@ -330,9 +332,10 @@ def _professional_body(document, fields, result, package) -> None:
     document.add_page_break()
     document.add_heading("Appendix A Assessment Method", level=1)
     document.add_paragraph(
-        "Protection Advisor screens reported conditions against 32 core capabilities across "
-        "Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize "
-        "professional review; they do not independently establish risk, compliance, or readiness."
+        "Protection Advisor maps its questions to a 32-capability framework across Prevention, "
+        "Protection, Mitigation, Response, and Recovery. A short screen does not directly assess "
+        "every capability; unasked topics remain unknown. Any scores organize professional review "
+        "and do not establish risk, compliance, or readiness."
     )
     document.add_heading("Interpretation Rules", level=2)
     _add_table(document, ("Element", "How it should be interpreted"), (
@@ -797,8 +800,8 @@ def render_protection_advisor_pdf(
               P("Executive Summary", h1),
               P(f"The assessment recorded {result.get('strength_count', 0)} positive indicators; "
                 f"{result.get('attention_count', 0)} conditions require attention and "
-                f"{result.get('information_gap_count', 0)} material information gaps prevent a final "
-                "determination of readiness. The results support one connected review of protection, "
+                f"{result.get('information_gap_count', 0)} answers were unknown. Unasked capabilities "
+                "also remain unassessed, so these results cannot establish readiness. They support one connected review of protection, "
                 "preparedness, continuity, response, and recovery."),
               P(("The highest preliminary capability priorities are " + ", ".join(priority_names) + ". "
                  "They identify where professional validation should begin across the five mission areas; "
@@ -817,15 +820,15 @@ def render_protection_advisor_pdf(
                   ("Positive indicators", result.get("strength_count", 0), "Reported practices that may support improvement"),
                   ("Conditions requiring attention", result.get("attention_count", 0), "Potential gaps or unvalidated capability"),
                   ("Information gaps", result.get("information_gap_count", 0), "Unknowns that could change conclusions"),
-                  ("Core capabilities", result.get("core_capabilities_considered", 32), "Screened across five mission areas; not validated"),
+                  ("Core capability framework", result.get("core_capabilities_considered", 32), "Question mapping; unasked capabilities unassessed"),
               ), (1.75 * inch, 1.45 * inch, 2.9 * inch), centered_columns=(1,)),
               P("Mission Area Profile", h1),
-              P("The five mission areas group work to prevent harm, protect people and assets, limit consequences, respond, and restore essential functions. Scores reflect reported need from answered questions only: higher means more need, not more readiness. Unknown answers remain information gaps."),
+              P("The five mission areas group work to prevent harm, protect people and assets, limit consequences, respond, and restore essential functions. Any shown scores reflect reported need from answered questions only: higher means more need, not more readiness. Unknown answers and unasked capabilities remain unassessed."),
               T(("Mission area", "Reported need", "Preliminary interpretation"), _mission_rows(scores), (1.8 * inch, 1.15 * inch, 3.15 * inch), centered_columns=(1,)),
               P("Primary Conclusions", h1)]
     story += bullets(("Treat protection, emergency planning, continuity, and capability validation as one integrated program.", "Test reported capability against current evidence and performance under realistic stress.", "Validate authority, succession, escalation, dependencies, and alternate arrangements.", "Require authorized Salus review before final scope, price, or assurance statements."))
     story += [PageBreak(), P("Priority Capability Findings", h1),
-              T(("Priority", "Capability", "Need", "Mission areas", "Basis"), tuple((i, x.get("capability", ""), x.get("need_score", ""), ", ".join(x.get("mission_areas") or []), "Information incomplete" if x.get("information_gap") else "Reported need") for i, x in enumerate(capabilities, 1)), (.8 * inch, 1.85 * inch, .55 * inch, 1.65 * inch, 1.25 * inch), centered_columns=(0, 2)),
+              T(("Priority", "Capability", "Need", "Mission areas", "Basis"), tuple((i, x.get("capability", ""), x.get("need_score", ""), ", ".join(x.get("mission_areas") or []), "Information incomplete" if x.get("information_gap") else "Reported need") for i, x in enumerate(capabilities, 1)) or (("—", "No capability ranking from this short screen", "Unknown", "All five areas", "Needs Level 1 evidence"),), (.8 * inch, 1.85 * inch, .55 * inch, 1.65 * inch, 1.25 * inch), centered_columns=(0, 2)),
               P("Need scores rank review urgency within this submission. They are not probability estimates, compliance findings, or final measures of readiness."), P("Conditions Requiring Attention", h1)]
     story += bullets(result.get("attention_topics") or ("No specific attention topic was preserved in this preliminary record.",))
     story += [PageBreak(), P("Information Gaps", h1), P("These issues could materially change the assessment and should be resolved before a final opinion, scope, or price is issued.")]
@@ -874,7 +877,7 @@ def render_protection_advisor_pdf(
         story.append(P("Other Services to Discuss After Salus Review", h1))
     for service in package.get("later_phase_services") or []:
         story.append(P(f"{service.get('title', 'Service')} - separate quote if suitable. {service.get('summary', '')}"))
-    story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Level 1 Reports", h1), T(("Report", "Member decision value"), (("SalINTEL", "Available evidence, contradictions and unknowns for the agreed boundary"), ("SalTHIRA", "Priority scenarios, capability targets and qualified gaps"), ("SalOPS", "Options, owners and separately quoted services where suitable"), ("SalCAPA", "One traceable decision summary with priorities, next actions and proof")), (2.2 * inch, 3.9 * inch)), P("Human Review and Decision Points", h1), P("No automated recommendation becomes a final scope, assurance statement, price, contract commitment, or protective decision without authorized Salus review. The reviewer confirms service selection, level, specialists, deliverables, schedule, pricing basis, handling controls, and eligibility."), P("Recommended Immediate Actions", h1), T(("Timing", "Action", "Responsible party"), (("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"), ("After scope review", "Confirm boundary, eligibility and a fixed written quote.", "Salus and decision owner"), ("Before paid work", "Approve the written scope, fee, handling and contacts.", "Salus and decision owner"), ("After agreement", "Request only records needed for the agreed Level 1 boundary.", "Salus"), ("After assessment", "Review the four reports, options and any separately proposed service.", "Salus and decision owner")), (1.3 * inch, 3.35 * inch, 1.45 * inch)), P("Decision Required", h1), P("The next decision is whether to correct the draft boundary or request a fixed written quote for the Level 1 SalCAPA package. Paid assessment work begins only after agreement."), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor screens reported conditions against 32 core capabilities across Prevention, Protection, Mitigation, Response, and Recovery. Scores and rankings organize professional review; they do not independently establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Reported-need indicator; higher means more need, not measured readiness"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Separate service", "Optional proposal with its own scope and authority; not a package-level label")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Possible separate service", "Offer status", "Preliminary rationale"), _service_rows(package), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
+    story += [PageBreak(), P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Proposed Level 1 Reports", h1), T(("Report", "Member decision value"), (("SalINTEL", "Available evidence, contradictions and unknowns for the agreed boundary"), ("SalTHIRA", "Priority scenarios, capability targets and qualified gaps"), ("SalOPS", "Options, owners and separately quoted services where suitable"), ("SalCAPA", "One traceable decision summary with priorities, next actions and proof")), (2.2 * inch, 3.9 * inch)), P("Human Review and Decision Points", h1), P("No automated recommendation becomes a final scope, assurance statement, price, contract commitment, or protective decision without authorized Salus review. The reviewer confirms service selection, level, specialists, deliverables, schedule, pricing basis, handling controls, and eligibility."), P("Recommended Immediate Actions", h1), T(("Timing", "Action", "Responsible party"), (("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"), ("After scope review", "Confirm boundary, eligibility and a fixed written quote.", "Salus and decision owner"), ("Before paid work", "Approve the written scope, fee, handling and contacts.", "Salus and decision owner"), ("After agreement", "Request only records needed for the agreed Level 1 boundary.", "Salus"), ("After assessment", "Review the four reports, options and any separately proposed service.", "Salus and decision owner")), (1.3 * inch, 3.35 * inch, 1.45 * inch)), P("Decision Required", h1), P("The next decision is whether to correct the draft boundary or request a fixed written quote for the Level 1 SalCAPA package. Paid assessment work begins only after agreement."), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor maps its questions to a 32-capability framework across Prevention, Protection, Mitigation, Response, and Recovery. A short screen leaves unasked capabilities unknown. Any scores only organize professional review; they do not establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Reported-need indicator; higher means more need, not measured readiness"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Separate service", "Optional proposal with its own scope and authority; not a package-level label")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Possible separate service", "Offer status", "Preliminary rationale"), _service_rows(package), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
     # Appendices can follow the decision on the same page. Reserving a new
     # page for each one left large, unhelpful blank areas in short reports.
     for index in reversed(range(len(story) - 1)):

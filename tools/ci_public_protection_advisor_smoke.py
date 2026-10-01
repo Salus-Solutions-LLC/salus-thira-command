@@ -157,8 +157,8 @@ with tempfile.TemporaryDirectory() as td:
     csrf=payload["csrf_token"]
     headers={"X-CSRF-Token":csrf}
     questions=payload["questions"]
-    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.2.0"
-    assert len([q for q in questions if q["key"] not in {"volunteer_roles","public_access"}])==28
+    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
+    assert len([q for q in questions if q["key"] not in {"volunteer_roles","public_access"}])==9
     assert any(q["key"]=="volunteer_roles" for q in questions)
     assert all(q["capabilities"] and q["mission_areas"] and q["services"] for q in questions)
 
@@ -374,7 +374,7 @@ with tempfile.TemporaryDirectory() as td:
     account=conn.execute("SELECT * FROM advisor_public_accounts").fetchone()
     assert account["email"]=="contact@example.com"
     assert session["status"]=="Submitted"
-    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.2.0"
+    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
     assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.1.0"
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_profile_drafts").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_portfolios").fetchone()[0]==1
@@ -484,10 +484,10 @@ with tempfile.TemporaryDirectory() as td:
     business_questions=_questions("Business")
     validated={q["key"]:{"answer_state":"Validated"} for q in business_questions}
     cyber_answers={k:dict(v) for k,v in validated.items()}
-    for key in ("dependency_map","continuity","cyber_resilience","supplier_integrity"):
+    for key in ("dependency_map","continuity","degraded_communications","recovery_targets"):
         cyber_answers[key]={"answer_state":"No"}
     threat_answers={k:dict(v) for k,v in validated.items()}
-    for key in ("reporting","warning_thresholds","protective_controls"):
+    for key in ("reporting","decision_authority","life_safety_response"):
         threat_answers[key]={"answer_state":"No"}
 
     base_profile={
