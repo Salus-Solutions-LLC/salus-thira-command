@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Large-batch work remains paused
+
+- Marc clarified that the existing large-batch work order was paused because it was taking too long and costing too much. Do not restart issue #520's backlog, worker, load testing or Azure spend as part of scanner acquisition. The earlier handoff section below records the linkage and historical progress, but its instruction to prove both paths before activation is superseded: a bounded direct-upload scanner path may advance through its own controlled gates without full batch completion. `docs/AZURE_DEFENDER_STORAGE_SCANNER.md` now states this boundary. Owner/next action: Salus engineering confines the current scanner effort to explicitly authorized direct-upload scope and keeps #520 deferred until Marc separately resumes it.
+
 ## 30 September 2026 — Existing large-batch intake reconciled with scanner design
 
 - **Correction:** Issue [#520](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/520) is the existing authoritative work order for dependable nested SalCAPA batch ingestion. SAL-D023 and SAL-D024 already require its durable ledger, retries, ZIP/member lineage, archive verification and Member/engagement separation. The v3.202 live worker demonstrated a bounded 20-file pass; the 10,000-file drain, oversize, restart/throttle and isolation gates remain open. The `candidate_count=12950` field is total stored candidate rows, not remaining backlog. Do not create another large-batch intake system or count the Defender scanner module as completion of #520.
