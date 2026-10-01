@@ -807,6 +807,36 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert len(records['package_intake_requests'])==2
         assert len(records['package_intake_uploads'])==1
         saved_intake_upload=records['package_intake_uploads'][0]
+        pending_bytes=b'fictional unscanned original'
+        pending_digest=hashlib.sha256(pending_bytes).hexdigest()
+        pending_name=(f'tenant-1/assessment-{saved_intake_upload["assessment_id"]}/'
+                      f'quote-{saved_intake_upload["quote_id"]}/'
+                      f'item-{saved_intake_upload["intake_request_id"]}/'+ 'a'*32+'_'+pending_digest[:16])
+        conn.execute("""INSERT INTO package_intake_pending_scans
+            (tenant_id,assessment_id,quote_id,intake_request_id,member_user_id,original_name,
+             blob_name,blob_uri,blob_version_id,etag,content_sha256,size_bytes,status,
+             retention_until,legal_hold,received_at,updated_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (1,saved_intake_upload['assessment_id'],saved_intake_upload['quote_id'],
+             saved_intake_upload['intake_request_id'],
+             saved_intake_upload['member_user_id'],'pending.txt',pending_name,
+             'https://salusquarantine.blob.core.windows.net/quarantine/'+pending_name,
+             'v1','"0xE1"',pending_digest,len(pending_bytes),'Pending',
+             saved_intake_upload['retention_until'],0,app.now(),app.now()))
+        conn.commit()
+        records=collect_tenant_records(conn,1)
+        assert len(records['package_intake_pending_scans'])==1
+        assert not validate_records(records,1)
+        tampered_pending=dict(records['package_intake_pending_scans'][0])
+        tampered_pending['blob_version_id']=''
+        records['package_intake_pending_scans']=[tampered_pending]
+        assert any('package pending scan' in error for error in validate_records(records,1))
+        records['package_intake_pending_scans']=[dict(tampered_pending,blob_version_id='v1')]
+        held_backup=admin.post('/api/admin/backups')
+        assert held_backup.status_code==200,held_backup.text
+        held_dr=admin.post(f"/api/admin/backups/{held_backup.json()['id']}/dr-validate")
+        assert held_dr.status_code==200 and not held_dr.json()['ok']
+        assert any('Quarantined originals' in error for error in held_dr.json()['errors'])
         invalid_intake=dict(saved_intake_upload); invalid_intake['quote_id']=999999
         records['package_intake_uploads']=[invalid_intake]
         assert any('package intake file' in error for error in validate_records(records,1))
@@ -847,6 +877,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         records['package_quote_predecessor_links'][0]['qualification_sha256']=original_link_sha
         replace_tenant_records(conn,1,records)
         conn.commit()
+        assert conn.execute('SELECT status FROM package_intake_pending_scans WHERE tenant_id=1').fetchone()[0]=='Reconcile'
         assert conn.execute('SELECT COUNT(*) FROM package_quote_versions').fetchone()[0]==3
         assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==3
         assert conn.execute('SELECT COUNT(*) FROM package_quote_predecessor_links').fetchone()[0]==2

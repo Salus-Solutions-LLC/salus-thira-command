@@ -914,6 +914,39 @@ def init_db():
       UNIQUE (tenant_id,intake_request_id,content_sha256)
     );
     CREATE INDEX IF NOT EXISTS idx_package_intake_upload_scope ON package_intake_uploads(tenant_id,assessment_id,quote_id,intake_request_id,id);
+    CREATE TABLE IF NOT EXISTS package_intake_pending_scans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      intake_request_id INTEGER NOT NULL,
+      member_user_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      blob_name TEXT NOT NULL,
+      blob_uri TEXT NOT NULL,
+      blob_version_id TEXT NOT NULL,
+      etag TEXT NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Pending',
+      scan_event_id TEXT NOT NULL DEFAULT '',
+      scan_result TEXT NOT NULL DEFAULT '',
+      scanned_at TEXT NOT NULL DEFAULT '',
+      promoted_upload_id INTEGER,
+      retention_until TEXT NOT NULL,
+      legal_hold INTEGER NOT NULL DEFAULT 0,
+      received_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (intake_request_id) REFERENCES package_intake_requests(id) ON DELETE RESTRICT,
+      FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      FOREIGN KEY (promoted_upload_id) REFERENCES package_intake_uploads(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,intake_request_id,content_sha256),
+      UNIQUE (blob_uri,blob_version_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_intake_pending_scope ON package_intake_pending_scans(tenant_id,assessment_id,quote_id,intake_request_id,status,id);
     CREATE TABLE IF NOT EXISTS package_product_report_versions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -3792,6 +3825,8 @@ def dr_validate_backup_file(path:str):
     with zipfile.ZipFile(path,'r') as z:
         if 'records.json' in z.namelist():
             package=json.loads(z.read('records.json').decode('utf-8')); records=package.get('tables',{}); db_integrity='portable-record-integrity-ok'
+            if any(row.get('status')!='Promoted' for row in records.get('package_intake_pending_scans',[])):
+                errors.append('Quarantined originals are external to this backup; verify exact blob versions and reconcile held scans before recovery acceptance.')
             assessment_count=len(records.get('assessments',[]))
             attachment_count=len({
                 str(row.get('stored_name','')).strip()

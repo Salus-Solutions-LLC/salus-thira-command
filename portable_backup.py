@@ -1,16 +1,21 @@
 import hashlib
 import json
+import re
+from urllib.parse import urlsplit
 from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
     'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_member_authority_reviews','package_acceptances','package_intake_requests','package_intake_uploads','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','package_predecessor_qualifications','package_quote_predecessor_links','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
+ASSESSMENT_TABLES.append('package_intake_pending_scans')
 RESTORE_ORDER = [
     'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','salintel_investigations','salintel_investigation_items','salintel_investigation_events','materials','material_links','material_events','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
     'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_agreement_downloads','package_member_authority_reviews','package_acceptances','package_intake_requests','package_intake_uploads','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','package_predecessor_qualifications','package_quote_predecessor_links','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
+RESTORE_ORDER.insert(RESTORE_ORDER.index('package_intake_uploads')+1,
+                     'package_intake_pending_scans')
 
 def _rows(conn, sql, params=()):
     return [dict(r) for r in conn.execute(sql, params)]
@@ -189,6 +194,45 @@ def validate_records(records, tenant_id:int|None=None):
             errors.append(f'package intake file {row.get("id")} has invalid storage proof')
         if row.get('scan_status')!='Clean' or row.get('legal_hold') not in (0,1) or not row.get('retention_until'):
             errors.append(f'package intake file {row.get("id")} has incomplete handling proof')
+    clean_uploads={int(r['id']):r for r in records.get('package_intake_uploads',[]) if r.get('id') is not None}
+    for row in records.get('package_intake_pending_scans',[]):
+        marker=f'package pending scan {row.get("id")}'
+        try:
+            request=intake_by_id.get(int(row['intake_request_id']))
+            if (int(row['tenant_id'])!=int(tenant_id) or not request
+                    or int(row['assessment_id'])!=int(request['assessment_id'])
+                    or int(row['quote_id'])!=int(request['quote_id'])
+                    or int(row['member_user_id']) not in users):
+                errors.append(f'{marker} crosses its authorized request or uploader boundary')
+            digest=row['content_sha256']
+            name=row['blob_name']
+            scope=(f'tenant-{row["tenant_id"]}/assessment-{row["assessment_id"]}/'
+                   f'quote-{row["quote_id"]}/item-{row["intake_request_id"]}/')
+            uri=urlsplit(row['blob_uri'])
+            if (not isinstance(digest,str) or not re.fullmatch(r'[0-9a-f]{64}',digest)
+                    or not isinstance(name,str) or not name.startswith(scope)
+                    or not re.fullmatch(r'[0-9a-f]{32}_[0-9a-f]{16}',name[len(scope):])
+                    or not name.endswith('_'+digest[:16])
+                    or uri.scheme!='https' or not re.fullmatch(r'[a-z0-9]{3,24}\.blob\.core\.windows\.net',uri.netloc)
+                    or uri.path!='/quarantine/'+name or uri.query or uri.fragment
+                    or not row['blob_version_id'] or not row['etag']
+                    or not 0<int(row['size_bytes'])<=25*1024*1024):
+                errors.append(f'{marker} has invalid external quarantine proof')
+            if (row['status'] not in ('Pending','Malicious','Unscanned','Reconcile','Promoted')
+                    or row['legal_hold'] not in (0,1) or not row['retention_until']
+                    or not row['received_at'] or not row['updated_at']):
+                errors.append(f'{marker} has invalid hold or retention state')
+            promoted=row.get('promoted_upload_id')
+            if row['status']=='Promoted':
+                clean=clean_uploads.get(int(promoted or 0))
+                if (not clean or int(clean['tenant_id'])!=int(row['tenant_id'])
+                        or int(clean['intake_request_id'])!=int(row['intake_request_id'])
+                        or clean['content_sha256']!=digest):
+                    errors.append(f'{marker} has no matching clean evidence record')
+            elif promoted is not None:
+                errors.append(f'{marker} links evidence before clean promotion')
+        except (KeyError,ValueError,TypeError,AttributeError):
+            errors.append(f'{marker} has incomplete quarantine metadata')
     report_ids={int(r['id']) for r in records.get('package_product_report_versions',[]) if r.get('id') is not None}
     for row in records.get('package_product_report_versions',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package product report {row.get("id")} crosses the tenant boundary')
@@ -587,6 +631,7 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('DELETE FROM package_report_conformance WHERE tenant_id=?',(tenant_id,))
     conn.execute('UPDATE package_product_report_versions SET supersedes_id=NULL WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_product_report_versions WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_intake_pending_scans WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_intake_uploads WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_intake_requests WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM package_acceptances WHERE tenant_id=?',(tenant_id,))
@@ -621,5 +666,10 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     if updates:
         conn.execute('UPDATE tenants SET '+','.join(f'{k}=?' for k in updates)+' WHERE id=?',tuple(updates.values())+(tenant_id,))
     for table in RESTORE_ORDER:
-        for row in records.get(table,[]): _insert_row(conn,table,row)
+        for row in records.get(table,[]):
+            if table=='package_intake_pending_scans' and row['status']=='Pending':
+                # A portable backup does not contain quarantined bytes or a fresh scan.
+                row={**row,'status':'Reconcile','scan_event_id':'',
+                     'scan_result':'','scanned_at':''}
+            _insert_row(conn,table,row)
     _reset_postgres_sequences(conn)
