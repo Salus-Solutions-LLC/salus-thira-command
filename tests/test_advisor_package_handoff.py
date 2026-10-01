@@ -21,6 +21,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         from fastapi.testclient import TestClient
         import app
         import public_protection_advisor as advisor
+        import portable_backup
 
         assert app.system_mode()['package_handoff_candidate_available'] is False
         dashboard_js=open('static/app.js',encoding='utf-8').read()
@@ -302,6 +303,16 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert linked['handoff_key']==handoff['handoff_key']
         assert linked['receipt_sha256']==receipt_digest
         assert linked['assessment_scope_sha256']==saved['reviewed_assessment_scope_sha256']
+        backup=portable_backup.collect_tenant_records(conn,1)
+        assert len(backup['package_quote_advisor_receipt_links'])==1
+        baseline=portable_backup.validate_records(backup,1)
+        assert not any('Advisor receipt link' in error for error in baseline),baseline
+        backup['package_quote_advisor_receipt_links'][0]['receipt_sha256']='0'*64
+        assert any('Advisor receipt link' in error for error in
+          portable_backup.validate_records(backup,1))
+        backup['package_quote_advisor_receipt_links']=[]
+        assert any('Advisor receipt link count' in error for error in
+          portable_backup.validate_records(backup,1))
         conn.execute('UPDATE package_quote_advisor_receipt_links SET receipt_sha256=? WHERE quote_id=?',
           ('0'*64,quoted.json()['id']))
         conn.commit()
