@@ -484,6 +484,35 @@ with tempfile.TemporaryDirectory() as td:
     assert prior_receipt.content == first_saved_receipt.content
     missing_old_receipt = client.get("/public/protection-advisor/scope-receipt.pdf?revision=1", headers=headers)
     assert missing_old_receipt.status_code == 409
+    # An Advisor session cookie alone cannot retrieve a retained Member receipt.
+    other_client = TestClient(app_module.app)
+    original_session_cookie = client.cookies.get("salus_advisor_session")
+    assert original_session_cookie
+    other_client.cookies.set("salus_advisor_session", original_session_cookie)
+    no_account_receipt = other_client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
+    assert no_account_receipt.status_code == 401
+    # Even another valid Part 2 account cannot pair its login with this session.
+    separate_client = TestClient(app_module.app)
+    other_started = separate_client.post("/public/protection-advisor/session", json={
+        "organization_type":"Business", "primary_consent":True,
+        "secondary_deidentified_consent":False,
+    })
+    assert other_started.status_code == 200, other_started.text
+    other_headers = {"X-CSRF-Token":other_started.json()["csrf_token"]}
+    other_account = separate_client.post("/public/protection-advisor/account", headers=other_headers, json={
+        "email":"other-contact@example.com", "password":"Separate-Account-2026",
+        "detailed_assessment_acknowledged":True, "identifiable_retention_consent":True,
+    })
+    assert other_account.status_code == 200, other_account.text
+    separate_account_cookie = separate_client.cookies.get("salus_advisor_account")
+    assert separate_account_cookie
+    separate_client.cookies.clear()
+    separate_client.cookies.set("salus_advisor_session", original_session_cookie)
+    separate_client.cookies.set("salus_advisor_account", separate_account_cookie)
+    cross_account_receipt = separate_client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
+    assert cross_account_receipt.status_code == 403
+    cross_account_older = separate_client.get("/public/protection-advisor/scope-receipt.pdf?revision=2", headers=headers)
+    assert cross_account_older.status_code == 403
     conn = sqlite3.connect(db_path)
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_member_report_snapshots").fetchone()[0] == 2
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_scope_receipt_snapshots").fetchone()[0] == 2
