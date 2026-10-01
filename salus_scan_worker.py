@@ -59,10 +59,23 @@ def poll_once(*, queue_client=None, process_event=None):
     return 'Empty'
 
 
+def main(*, poll=None, reconcile=None):
+    # Azure and processing exceptions can include a Blob URL or Member path.
+    # Report only the failure class in routine job output; keep the item held.
+    try:
+        result = (poll or poll_once)()
+        if result not in ('Acknowledged', 'Empty', 'Held'):
+            raise RuntimeError('Unknown scan-result worker outcome.')
+        if reconcile is None:
+            from app import reconcile_stale_package_scans
+            reconcile = reconcile_stale_package_scans
+        reconcile()
+    except Exception as exc:
+        print(json.dumps({'scan_result_job': 'failed',
+                          'error_type': type(exc).__name__}, sort_keys=True))
+        return 1
+    return 2 if result == 'Held' else 0
+
+
 if __name__ == '__main__':
-    # A supervised job invokes bounded cycles and owns restart/telemetry.
-    result = poll_once()
-    from app import reconcile_stale_package_scans
-    reconcile_stale_package_scans()
-    if result == 'Held':
-        raise SystemExit(2)
+    raise SystemExit(main())

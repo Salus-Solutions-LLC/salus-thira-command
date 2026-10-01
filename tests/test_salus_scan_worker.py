@@ -1,6 +1,6 @@
 import json
 
-from salus_scan_worker import process_queue_message, poll_once
+from salus_scan_worker import main, process_queue_message, poll_once
 
 
 class Message:
@@ -41,6 +41,19 @@ def test_queue_never_acks_malformed_or_partial_message():
     assert not process_queue_message('[]', process_event=lambda event: 'Promoted')
     assert not process_queue_message(json.dumps([{'id': 1}, {'id': 2}]),
         process_event=lambda event: 'Promoted' if event['id'] == 1 else 'Reconcile')
+
+
+def test_scheduled_result_worker_failure_redacts_sensitive_exception(capsys):
+    def fail():
+        raise RuntimeError('private/member/path?sig=secret')
+
+    assert main(poll=fail, reconcile=lambda: None) == 1
+    output = capsys.readouterr().out
+    assert 'private/member' not in output
+    assert 'secret' not in output
+    assert '"error_type": "RuntimeError"' in output
+    assert main(poll=lambda: 'Held', reconcile=lambda: None) == 2
+    assert main(poll=lambda: 'Acknowledged', reconcile=lambda: None) == 0
 
 
 def test_web_and_worker_select_separate_quarantine_identities(monkeypatch):
