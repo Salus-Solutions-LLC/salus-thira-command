@@ -13,12 +13,17 @@ class Message:
 
 class Queue:
     def __init__(self, content):
-        self.message = Message(content)
+        self.messages = [Message(value) for value in
+                         (content if isinstance(content, list) else [content])]
+        for index, message in enumerate(self.messages, 1):
+            message.id = f'message-{index}'
+            message.pop_receipt = f'receipt-{index}'
         self.deleted = []
 
     def receive_messages(self, **kwargs):
-        assert kwargs == {'messages_per_page': 1, 'visibility_timeout': 120}
-        return iter([self.message])
+        assert kwargs == {'messages_per_page': 5, 'max_messages': 5,
+                          'visibility_timeout': 120}
+        return iter(self.messages)
 
     def delete_message(self, message_id, receipt):
         self.deleted.append((message_id, receipt))
@@ -34,6 +39,27 @@ def test_queue_ack_requires_durable_result(monkeypatch):
     queue = Queue(json.dumps([{'id': 'event-1'}]))
     assert poll_once(queue_client=queue, process_event=lambda event: 'Unmatched') == 'Held'
     assert not queue.deleted
+
+
+def test_held_message_does_not_starve_later_clean_result(monkeypatch):
+    monkeypatch.setenv('SALUS_SCAN_RESULTS_QUEUE_URL',
+                       'https://salusquarantine.queue.core.windows.net/scan-results')
+    monkeypatch.setenv('SALUS_SCAN_RESULT_TOPIC_ID', '/subscriptions/test/topic')
+    queue = Queue(['{broken', json.dumps({'id': 'clean'}),
+                   json.dumps({'id': 'unmatched'})])
+    assert poll_once(queue_client=queue,
+                     process_event=lambda event: 'Promoted' if event['id'] == 'clean'
+                     else 'Unmatched') == 'Held'
+    assert queue.deleted == [('message-2', 'receipt-2')]
+
+
+def test_queue_poll_is_bounded_to_five_messages(monkeypatch):
+    monkeypatch.setenv('SALUS_SCAN_RESULTS_QUEUE_URL',
+                       'https://salusquarantine.queue.core.windows.net/scan-results')
+    monkeypatch.setenv('SALUS_SCAN_RESULT_TOPIC_ID', '/subscriptions/test/topic')
+    queue = Queue([json.dumps({'id': str(index)}) for index in range(6)])
+    assert poll_once(queue_client=queue, process_event=lambda event: 'Promoted') == 'Acknowledged'
+    assert len(queue.deleted) == 5
 
 
 def test_queue_never_acks_malformed_or_partial_message():

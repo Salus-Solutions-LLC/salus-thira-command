@@ -7,6 +7,7 @@ Unknown and failed results stay on the queue for a governed reconciliation path.
 import json
 import os
 import re
+from itertools import islice
 
 
 _QUEUE_URL = re.compile(r'https://[a-z0-9]{3,24}\.queue\.core\.windows\.net/scan-results\Z')
@@ -34,7 +35,7 @@ def process_queue_message(content, *, process_event):
 
 
 def poll_once(*, queue_client=None, process_event=None):
-    """Receive one result; acknowledge only after a durable state transition."""
+    """Check a bounded group; one held message must not starve later results."""
     queue_url = os.getenv('SALUS_SCAN_RESULTS_QUEUE_URL', '').strip()
     topic = os.getenv('SALUS_SCAN_RESULT_TOPIC_ID', '').strip()
     if not _QUEUE_URL.fullmatch(queue_url) or not topic.startswith('/subscriptions/'):
@@ -50,13 +51,16 @@ def poll_once(*, queue_client=None, process_event=None):
     if process_event is None:
         from app import process_package_scan_result
         process_event = lambda event: process_package_scan_result(event, expected_topic=topic)
-    messages = queue_client.receive_messages(messages_per_page=1, visibility_timeout=120)
-    for message in messages:
+    messages = queue_client.receive_messages(messages_per_page=5, max_messages=5,
+                                             visibility_timeout=120)
+    held = acknowledged = False
+    for message in islice(messages, 5):
         if not process_queue_message(message.content, process_event=process_event):
-            return 'Held'
+            held = True
+            continue
         queue_client.delete_message(message.id, message.pop_receipt)
-        return 'Acknowledged'
-    return 'Empty'
+        acknowledged = True
+    return 'Held' if held else 'Acknowledged' if acknowledged else 'Empty'
 
 
 def main(*, poll=None, reconcile=None):
