@@ -11,7 +11,7 @@ from protection_advisor_report_contract import build_report_context
 
 
 RESULT = {
-    "recommendation": "Level 1 Initial Pass recommended",
+    "recommendation": "Level 1 SalCAPA™ package recommended",
     "strength_count": 6,
     "attention_count": 16,
     "information_gap_count": 5,
@@ -29,8 +29,8 @@ RESULT = {
 }
 
 PACKAGE = {
-    "primary_service": {"title": "Integrated Salus Assessment", "level": 1, "level_name": "Initial Pass", "summary": "A Level 1 assessment across the four Salus products.", "why": "Every new Protected Member begins with Level 1."},
-    "sequence": ["Integrated Salus Assessment — Level 1 Initial Pass", "Focused Assessment — Level 2 if qualified Level 1 findings warrant it"],
+    "primary_service": {"title": "Level 1 SalCAPA™ Package", "level": 1, "level_name": "Level 1", "summary": "A Level 1 assessment across the four Salus products.", "why": "Every new Protected Member begins with Level 1."},
+    "sequence": ["Level 1 SalCAPA™ package — four coordinated reports", "Level 2 package — after qualified Level 1 work"],
     "later_phase_services": [],
     "services": [{"title": "Emergency Planning and Crisis Communications", "level": 3, "why": "Connected gaps require comprehensive validation."}],
     "rationale": "The proposed sequence addresses connected capability needs.",
@@ -66,6 +66,7 @@ def test_professional_docx_body_contains_approved_sections_without_json(tmp_path
     assert '"primary_service"' not in text
     assert "Preliminary Working Hypothesis and Level 1 Action" in text
     assert "Review a representative decision handoff in Level 1." in text
+    assert "Level 1 Level 1" not in text
 
 
 def test_template_based_docx_has_blank_second_page_and_required_font_styles(tmp_path: Path):
@@ -98,6 +99,7 @@ def test_participant_pdf_uses_professional_report_model(tmp_path: Path):
         page.extract_text() or "" for page in reader.pages
     )
     assert len(reader.pages) >= 8
+    assert "Level 1 Level 1" not in "\n".join(page.extract_text() or "" for page in reader.pages)
     page_count = len(reader.pages)
     assert f"page 1 of {page_count}" in (reader.pages[0].extract_text() or "")
     assert not (reader.pages[1].extract_text() or "").strip()

@@ -1042,7 +1042,7 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
         elif state in {"Unknown", "Declined"}:
             unknowns.append(question["text"])
     capability_rows, mission_scores = _capability_results(questions, answers)
-    level = "Level 1 Initial Pass recommended"
+    level = "Level 1 SalCAPA™ package recommended"
     priority = next((q for q in questions if answers.get(q["key"], {}).get("answer_state") in {"No", "Partially"}), None)
     if priority is None:
         priority = next((q for q in questions if answers.get(q["key"], {}).get("answer_state") in {"Unknown", "Declined"}), None)
@@ -1384,7 +1384,7 @@ def _service_catalog_page() -> str:
 {items}</main></body></html>"""
 
 
-SERVICE_LEVEL_NAMES = {1: "Initial Pass", 2: "Focused Assessment", 3: "Deep Dive"}
+SERVICE_LEVEL_NAMES = {1: "Level 1", 2: "Level 2", 3: "Level 3"}
 SERVICE_DEFAULT_CAPABILITIES = {
     "salthira": ("Threats and Hazards Identification", "Risk and Disaster Resilience Assessment"),
     "facility": ("Physical Protective Measures", "Access Control and Identity Verification"),
@@ -1583,7 +1583,7 @@ def _package_recommendation(
         "key": "integrated_level_1",
         "title": "Level 1 SalCAPA™ Package",
         "level": 1,
-        "level_name": "Initial Pass",
+        "level_name": "Level 1",
         "summary": "Four connected Level 1 reports: SalINTEL™, SalTHIRA™, SalOPS™ and a SalCAPA™ decision summary for the agreed boundary.",
         "why": "Every Protected Member starts with a qualified Level 1 package. Reported needs and unknowns set its priorities; they do not waive the prerequisite.",
         "capabilities": [],

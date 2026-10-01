@@ -15,6 +15,16 @@ _TEMPLATE_NAME = "Protection Advisor Report Template.docx"
 _INSERT_MARKER = "(insert Protective Advisor report part 1 and protective advisor report part 2 here)"
 
 
+def _primary_service_label(primary: dict) -> str:
+    title = str(primary.get("title") or "a qualification and validation review").strip()
+    level = primary.get("level")
+    if not level or f"Level {level}" in title:
+        return title
+    level_name = str(primary.get("level_name") or "").strip()
+    suffix = "" if not level_name or level_name == f"Level {level}" else f" ({level_name})"
+    return f"{title} at Level {level}{suffix}"
+
+
 def _add_bullets(document, items) -> None:
     for item in items:
         # The approved production template may not define Word's built-in
@@ -150,8 +160,7 @@ def _professional_body(document, fields, result, package) -> None:
         )
     if primary:
         document.add_paragraph(
-            f"Salus recommends beginning with {primary.get('title', 'a qualification and validation review')} "
-            f"at Level {primary.get('level', '')} {primary.get('level_name', '')}. "
+            f"Salus recommends beginning with {_primary_service_label(primary)}. "
             f"{primary.get('summary', '')}"
         )
 
@@ -605,7 +614,7 @@ def render_protection_advisor_docx(
             "primary_service": {
                 "title": "Protection Advisor Professional Review",
                 "level": 1,
-                "level_name": "Initial Pass",
+                "level_name": "Level 1",
                 "summary": part2_text.strip(),
                 "why": "The supplied preliminary narrative requires authorized Salus validation.",
             },
@@ -808,8 +817,7 @@ def render_protection_advisor_pdf(
                  "They identify where professional validation should begin across the five mission areas; "
                  "they do not establish a confirmed deficiency or threat.") if priority_names else
                 "The preliminary capability priorities require Salus professional validation against current evidence."),
-              P(f"Salus recommends beginning with {primary.get('title', 'a qualification and validation review')} "
-                f"at Level {primary.get('level', '')} {primary.get('level_name', '')}. "
+              P(f"Salus recommends beginning with {_primary_service_label(primary)}. "
                 f"{primary.get('summary', '')} "
                 + ("The proposed sequence continues with " + "; ".join(sequence[1:4]) + ". "
                    if len(sequence) > 1 else "")
