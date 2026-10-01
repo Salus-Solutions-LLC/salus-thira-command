@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 1 October 2026 — Protection Advisor answer-save navigation correction
+
+- **Fixed in draft:** Part 1 and Part 2 question navigation now waits for the current answer save before advancing, and the preliminary/result action waits before reading answers. A failed answer save leaves the Member on the question and displays the server error instead of proceeding as though the answer persisted. Saves are ordered when a choice changes quickly. This is a candidate reliability correction, not a claim that the earlier stale-cookie 401 demonstrated a live race.
+- **Verification:** The current embedded JavaScript passed Node syntax validation, Python compilation and Git whitespace checks. The current public Protection Advisor smoke passed, and the six focused professional-report tests passed locally. The fictional PDF layout and naming check belongs to the preceding entry. No new live form, scanner, Azure image, or Member-facing release test was performed for this correction.
+- **Release state and next action:** Commit and push the scoped correction on draft PR #589, obtain exact-head CI, then complete governed Advisor-only release review, frozen image, live Part 1/Part 2 and report/accessibility acceptance, and rollback proof. Live is last verified `3.202`; Wix informational copy is published. Purchase and upload remain closed, Tierra Linda remains stopped, and large-batch #520 remains paused.
+
 ## 1 October 2026 — Advisor Level 1 name and rendered-report correction
 
 - **Fixed in draft:** A fictional current-source report render still called the recommended first purchase `Level 1 Initial Pass`. The current public Advisor recommendation and primary package now use `Level 1 SalCAPA™ package`/`Level 1` under SAL-D089. The professional PDF/DOCX report composer no longer repeats a level already present in the service title; its executive summary now reads `Salus recommends beginning with Level 1 SalCAPA™ Package.` Historical issued records were not rewritten. This correction is limited to the current public Advisor and report composer; legacy policy-model labels require their own impact review before any separate release.
