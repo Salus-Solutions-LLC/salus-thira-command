@@ -17,7 +17,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         'PYTHONPATH': os.pathsep.join(filter(None, (os.getcwd(), env.get('PYTHONPATH', '')))),
     })
     program = textwrap.dedent("""
-        import hashlib,json,os
+        import copy,hashlib,json,os
         from fastapi.testclient import TestClient
         import app
         import public_protection_advisor as advisor
@@ -307,12 +307,20 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert len(backup['package_quote_advisor_receipt_links'])==1
         baseline=portable_backup.validate_records(backup,1)
         assert not any('Advisor receipt link' in error for error in baseline),baseline
+        pristine=copy.deepcopy(backup)
         backup['package_quote_advisor_receipt_links'][0]['receipt_sha256']='0'*64
         assert any('Advisor receipt link' in error for error in
           portable_backup.validate_records(backup,1))
         backup['package_quote_advisor_receipt_links']=[]
         assert any('Advisor receipt link count' in error for error in
           portable_backup.validate_records(backup,1))
+        portable_backup.replace_tenant_records(conn,1,pristine)
+        conn.commit()
+        restored=conn.execute('SELECT * FROM package_quote_advisor_receipt_links WHERE quote_id=?',
+          (quoted.json()['id'],)).fetchone()
+        assert restored['record_sha256']==linked['record_sha256']
+        assert restored['receipt_sha256']==receipt_digest
+        assert reviewer.get(quote_url).json()['status']=='Quoted'
         conn.execute('UPDATE package_quote_advisor_receipt_links SET receipt_sha256=? WHERE quote_id=?',
           ('0'*64,quoted.json()['id']))
         conn.commit()
