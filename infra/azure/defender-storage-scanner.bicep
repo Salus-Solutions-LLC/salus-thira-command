@@ -279,10 +279,10 @@ resource scanWorkerJob 'Microsoft.App/jobs@2025-01-01' = {
     workloadProfileName: 'Consumption'
     configuration: {
       triggerType: 'Schedule'
-      replicaTimeout: 300
+      replicaTimeout: 60
       replicaRetryLimit: 0
       scheduleTriggerConfig: {
-        cronExpression: '* * * * *'
+        cronExpression: '*/5 * * * *'
         parallelism: 1
         replicaCompletionCount: 1
       }
