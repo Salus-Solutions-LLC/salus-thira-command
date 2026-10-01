@@ -320,7 +320,15 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
           (quoted.json()['id'],)).fetchone()
         assert restored['record_sha256']==linked['record_sha256']
         assert restored['receipt_sha256']==receipt_digest
-        assert reviewer.get(quote_url).json()['status']=='Quoted'
+        assert reviewer.get(quote_url).status_code==401
+        for restored_user_id,token in ((user_id,'member-cookie'),(reviewer_id,'reviewer-cookie')):
+            conn.execute('''INSERT INTO auth_sessions(user_id,token_hash,expires_at,created_at,last_seen_at)
+              VALUES(?,?,?,?,?)''',(restored_user_id,app._hash_token(token),
+              '2099-01-01T00:00:00Z',app.now(),app.now()))
+        conn.commit()
+        restored_quote=reviewer.get(quote_url)
+        assert restored_quote.status_code==200,restored_quote.text
+        assert restored_quote.json()['status']=='Quoted'
         conn.execute('UPDATE package_quote_advisor_receipt_links SET receipt_sha256=? WHERE quote_id=?',
           ('0'*64,quoted.json()['id']))
         conn.commit()
