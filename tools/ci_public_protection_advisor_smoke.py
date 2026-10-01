@@ -230,6 +230,8 @@ with tempfile.TemporaryDirectory() as td:
     assert created.json()["authenticated"] is True
     assert len(created.json()["questions"])==30  # 28 common and two faith/public additions
     assert len(created.json()["answers"])==len(questions)
+    assert sum(q["part2_new"] for q in created.json()["questions"])==19
+    assert all(not q["part2_new"] for q in created.json()["questions"] if q["key"] in {row["key"] for row in questions})
     assert {cap for q in created.json()["questions"] for cap in q["capabilities"]}==set(CORE_CAPABILITIES)
 
     draft=client.post("/public/protection-advisor/draft",headers=headers,json={
