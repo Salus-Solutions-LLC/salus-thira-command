@@ -7,7 +7,12 @@ integration; those require separate release evidence.
 """
 
 import json
+import os
+import re
+import shutil
+import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -21,16 +26,43 @@ _EICAR_HEX = (
 )
 
 
+def current_daily_signatures(database_dir=None, now_utc=None):
+    """Fail closed unless sigtool verifies a recent official daily database."""
+    directory = Path(database_dir or os.getenv('SALUS_CLAMAV_DATABASE_DIR', '/var/lib/clamav'))
+    database = next((directory / name for name in ('daily.cld', 'daily.cvd')
+                     if (directory / name).is_file()), None)
+    sigtool = shutil.which('sigtool')
+    if database is None or not sigtool:
+        return False
+    try:
+        result = subprocess.run([sigtool, '--info', str(database)], capture_output=True,
+                                text=True, timeout=10)
+        if result.returncode != 0 or 'Verification OK.' not in result.stdout:
+            return False
+        match = re.search(r'^Build time:\s*(.+)$', result.stdout, re.MULTILINE)
+        if not match:
+            return False
+        built = datetime.strptime(match.group(1).strip(), '%d %b %Y %H:%M %z')
+        age = (now_utc or datetime.now(timezone.utc)) - built.astimezone(timezone.utc)
+        return -timedelta(hours=1) <= age <= timedelta(hours=72)
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return False
+
+
 def scanner_proof():
     configuration = security_controls.scanner_configuration()
     result = {
         'mode': configuration.get('mode'),
         'configured': bool(configuration.get('configured')),
+        'signatures_current': False,
         'clean_detected': False,
         'test_threat_detected': False,
         'passed': False,
     }
     if result['mode'] != 'clamav' or not result['configured']:
+        return result
+    result['signatures_current'] = current_daily_signatures()
+    if not result['signatures_current']:
         return result
 
     clean = security_controls.scan_bytes(b'Salus package scanner clean test.\n', 'salus-clean.txt')
