@@ -1187,6 +1187,24 @@ def init_db():
       UNIQUE (tenant_id,quote_id)
     );
     CREATE INDEX IF NOT EXISTS idx_package_quote_predecessors ON package_quote_predecessor_links(tenant_id,assessment_id,quote_id);
+    CREATE TABLE IF NOT EXISTS package_quote_advisor_receipt_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      handoff_key TEXT NOT NULL,
+      receipt_id TEXT NOT NULL,
+      revision_no INTEGER NOT NULL,
+      receipt_sha256 TEXT NOT NULL,
+      profile_sha256 TEXT NOT NULL,
+      assessment_scope_sha256 TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      linked_at TEXT NOT NULL,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,quote_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_quote_advisor_receipts
+      ON package_quote_advisor_receipt_links(tenant_id,assessment_id,quote_id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -2117,6 +2135,75 @@ def verified_quote_predecessor_link(conn,quote,request:Request,current):
     qualification=verified_package_predecessor(conn,link['qualification_id'],request,current,quote['level'])
     if qualification['record_sha256']!=link['qualification_sha256']:
         raise HTTPException(409,'The predecessor qualification version changed.')
+    return link
+
+def verified_advisor_handoff_for_quote(conn,receipt_id:str,request:Request,current):
+    """Require one still-consented, exact reviewed receipt for this Level 1 boundary."""
+    handoffs=conn.execute('''SELECT * FROM advisor_package_handoffs
+        WHERE tenant_id=? AND assessment_id=? AND receipt_id=? AND status='Reviewed' ''',
+        (tenant_id(request),current['id'],receipt_id)).fetchall()
+    if len(handoffs)!=1:
+        raise HTTPException(409,'One reviewed Protection Advisor receipt is required for this quote.')
+    handoff=handoffs[0]
+    scope_sha=assessment_scope_digest(current)
+    if (handoff['reviewed_assessment_version']!=current['version'] or
+            handoff['reviewed_assessment_scope_sha256']!=scope_sha or
+            not handoff['reviewed_at'] or not handoff['review_basis']):
+        raise HTTPException(409,'The receipt review does not match the current assessment boundary.')
+    source=conn.execute('''SELECT s.status,s.deleted_at,a.status account_status,a.email_verified_at,
+               aa.identifiable_retention_consent,aa.detailed_assessment_acknowledged,
+               b.submission_key,p.profile_sha256,p.profile_json,p.package_json
+        FROM advisor_public_sessions s
+        JOIN advisor_public_accounts a ON a.account_key=?
+        JOIN advisor_public_account_assessments aa ON aa.account_key=a.account_key AND aa.session_key=s.session_key
+        JOIN advisor_public_submissions b ON b.session_key=s.session_key
+        JOIN advisor_public_service_profiles p ON p.submission_key=b.submission_key
+        WHERE s.session_key=?''',(handoff['account_key'],handoff['session_key'])).fetchone()
+    snapshot=conn.execute('''SELECT content_sha256 FROM advisor_public_scope_receipt_snapshots
+        WHERE session_key=? AND revision_no=?''',(handoff['session_key'],handoff['revision_no'])).fetchone()
+    latest=conn.execute('''SELECT MAX(revision_no) revision_no FROM advisor_public_report_identity_revisions
+        WHERE session_key=?''',(handoff['session_key'],)).fetchone()
+    member=conn.execute('SELECT tenant_id,role,status FROM users WHERE id=?',
+        (handoff['member_user_id'],)).fetchone()
+    if (not source or source['status']!='Submitted' or source['deleted_at'] or
+            source['account_status']!='Active' or not source['email_verified_at'] or
+            not source['identifiable_retention_consent'] or not source['detailed_assessment_acknowledged'] or
+            source['submission_key']!=handoff['submission_key'] or
+            source['profile_sha256']!=handoff['profile_sha256'] or
+            hashlib.sha256(source['profile_json'].encode('utf-8')).hexdigest()!=source['profile_sha256'] or
+            hashlib.sha256(source['package_json'].encode('utf-8')).hexdigest()!=handoff['package_sha256'] or
+            not snapshot or snapshot['content_sha256']!=handoff['receipt_sha256'] or
+            not latest or latest['revision_no']!=handoff['revision_no'] or
+            not member or member['tenant_id']!=tenant_id(request) or
+            member['role']!='Client Executive' or member['status']!='Active'):
+        raise HTTPException(409,'The consent, Member claim or exact receipt changed; review the handoff again.')
+    source_receipt=str((json.loads(source['package_json']).get('scope_receipt') or {}).get('receipt_id') or '')
+    if source_receipt!=receipt_id:
+        raise HTTPException(409,'The saved receipt identity changed; review the handoff again.')
+    return handoff
+
+def _advisor_quote_link_record(link):
+    return {key:link[key] for key in ('assessment_id','quote_id','handoff_key','receipt_id',
+        'revision_no','receipt_sha256','profile_sha256','assessment_scope_sha256')}
+
+def verified_quote_advisor_receipt_link(conn,quote,request:Request,current):
+    links=conn.execute('''SELECT * FROM package_quote_advisor_receipt_links
+        WHERE tenant_id=? AND assessment_id=? AND quote_id=?''',
+        (tenant_id(request),current['id'],quote['id'])).fetchall()
+    if len(links)!=1:
+        raise HTTPException(409,'The quoted Protection Advisor receipt lacks its reviewed link.')
+    link=links[0]
+    digest=hashlib.sha256(json.dumps(_advisor_quote_link_record(link),sort_keys=True,
+        separators=(',',':')).encode('utf-8')).hexdigest()
+    if (digest!=link['record_sha256'] or link['receipt_id']!=quote['source_receipt_id'] or
+            link['assessment_scope_sha256']!=assessment_scope_digest(current)):
+        raise HTTPException(409,'The quoted Protection Advisor receipt link failed integrity or scope review.')
+    handoff=verified_advisor_handoff_for_quote(conn,link['receipt_id'],request,current)
+    if (handoff['handoff_key']!=link['handoff_key'] or
+            handoff['revision_no']!=link['revision_no'] or
+            handoff['receipt_sha256']!=link['receipt_sha256'] or
+            handoff['profile_sha256']!=link['profile_sha256']):
+        raise HTTPException(409,'The quoted receipt no longer matches the reviewed handoff.')
     return link
 
 def require_package_commercial_candidate():
@@ -5755,9 +5842,11 @@ def review_advisor_package_handoff(assessment_id:int,handoff_key:str,p:PackageHa
         },sort_keys=True,separators=(',',':'))
         reviewed_at=now()
         updated=conn.execute('''UPDATE advisor_package_handoffs
-            SET status='Reviewed',reviewed_at=?,reviewed_by=?,review_basis=?,reviewed_assessment_version=?
+            SET status='Reviewed',reviewed_at=?,reviewed_by=?,review_basis=?,
+                reviewed_assessment_version=?,reviewed_assessment_scope_sha256=?
             WHERE handoff_key=? AND status='Claimed' ''',
-            (reviewed_at,actor(request),basis,p.assessment_version,handoff_key))
+            (reviewed_at,actor(request),basis,p.assessment_version,
+             assessment_scope_digest(current),handoff_key))
         if updated.rowcount!=1: raise HTTPException(409,'The handoff state changed during review.')
         audit(conn,'ADVISOR_PACKAGE_HANDOFF_REVIEW','assessment',assessment_id,
             f'handoff_key={handoff_key}; receipt_revision={handoff["revision_no"]}; assessment_version={p.assessment_version}',actor(request))
@@ -5872,8 +5961,9 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
         raise HTTPException(422,'Separately proposed SalOPS services must be excluded from this package fee.')
     data=p.model_dump(); predecessor_id=data.pop('predecessor_qualification_id')
     data['covered_operation']=data['covered_operation'].strip()
-    if data['source_receipt_id']:
-        raise HTTPException(409,'Protection Advisor receipt linkage is not yet verified; leave the source receipt blank until the consented handoff is available.')
+    data['source_receipt_id']=data['source_receipt_id'].strip()
+    if data['source_receipt_id'] and p.level!=1:
+        raise HTTPException(422,'A Protection Advisor receipt can start only a Level 1 package.')
     try:
         _normalize_date(data['valid_until'],'Quote validity date',required=True)
         if data['start_date']: _normalize_date(data['start_date'],'Package start date',required=True)
@@ -5902,6 +5992,8 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
         except ValueError as exc: raise HTTPException(409,'The requested package path changed while preparing this quote.') from exc
         predecessor=(verified_package_predecessor(conn,predecessor_id,request,current,p.level)
             if p.level>1 else None)
+        advisor_handoff=(verified_advisor_handoff_for_quote(conn,data['source_receipt_id'],request,current)
+            if data['source_receipt_id'] else None)
         data['assessment_scope_sha256']=assessment_scope_digest(current)
         accepted=conn.execute('SELECT id FROM package_acceptances WHERE tenant_id=? AND assessment_id=? LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
         if accepted:
@@ -5923,6 +6015,21 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
                 (tenant_id,assessment_id,quote_id,qualification_id,qualification_sha256,record_sha256,linked_at)
                 VALUES(?,?,?,?,?,?,?)''',(tenant_id(request),assessment_id,cur.lastrowid,
                 predecessor['id'],predecessor['record_sha256'],link_digest,now()))
+        if advisor_handoff:
+            advisor_link={'assessment_id':assessment_id,'quote_id':cur.lastrowid,
+                'handoff_key':advisor_handoff['handoff_key'],
+                'receipt_id':advisor_handoff['receipt_id'],
+                'revision_no':advisor_handoff['revision_no'],
+                'receipt_sha256':advisor_handoff['receipt_sha256'],
+                'profile_sha256':advisor_handoff['profile_sha256'],
+                'assessment_scope_sha256':data['assessment_scope_sha256']}
+            link_digest=hashlib.sha256(json.dumps(advisor_link,sort_keys=True,
+                separators=(',',':')).encode('utf-8')).hexdigest()
+            conn.execute('''INSERT INTO package_quote_advisor_receipt_links
+                (tenant_id,assessment_id,quote_id,handoff_key,receipt_id,revision_no,
+                 receipt_sha256,profile_sha256,assessment_scope_sha256,record_sha256,linked_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)''',
+                (tenant_id(request),*advisor_link.values(),link_digest,now()))
         audit(conn,'PACKAGE_QUOTE','assessment',assessment_id,f'quote_id={cur.lastrowid}; version={version}; sha256={digest}',actor(request))
         conn.commit(); row=dict(conn.execute('SELECT * FROM package_quote_versions WHERE id=?',(cur.lastrowid,)).fetchone())
         return row
@@ -6019,7 +6126,7 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
         verified_member_authority_review(conn,quote,ctx['user_id'])
         if quote['level']>1: verified_quote_predecessor_link(conn,quote,request,assessment)
         if quote['source_receipt_id']:
-            raise HTTPException(409,'This quote has an unverified Protection Advisor receipt and cannot be accepted.')
+            verified_quote_advisor_receipt_link(conn,quote,request,assessment)
         latest=conn.execute('SELECT MAX(version_no) n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',(tenant_id(request),assessment_id)).fetchone()['n']
         if (quote['version_no']!=latest or quote['assessment_version']!=assessment['version']
             or quote['covered_operation']!=assessment['covered_operation']

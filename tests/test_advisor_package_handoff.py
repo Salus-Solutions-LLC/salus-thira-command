@@ -265,6 +265,44 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         reviewed=reviewer.post(review_url,json=review)
         assert reviewed.status_code==200,reviewed.text
         assert reviewed.json()['status']=='Reviewed for quote preparation only'
+        conn=app.db()
+        saved=conn.execute('SELECT reviewed_assessment_scope_sha256 FROM advisor_package_handoffs WHERE handoff_key=?',
+          (handoff['handoff_key'],)).fetchone()
+        current=conn.execute('SELECT * FROM assessments WHERE id=?',(assessment_id,)).fetchone()
+        assert saved['reviewed_assessment_scope_sha256']==app.assessment_scope_digest(current)
+        conn.close()
+        app.scan_bytes=lambda content,filename:{'ok':True,'status':'Clean'}
+        agreement=b'%PDF-1.4\\n1 0 obj<</Type/Catalog>>endobj\\n%%EOF'
+        agreement_sha=hashlib.sha256(agreement).hexdigest()
+        uploaded=reviewer.post(f'/api/assessments/{assessment_id}/package-agreements',
+          files={'file':('FictionalAgreement.pdf',agreement,'application/pdf')})
+        assert uploaded.status_code==200,uploaded.text
+        quote_payload=dict(assessment_version=1,level=1,band='A',variant='Access',
+          covered_operation='One operation',exclusions='Other operations',
+          scope_basis='One reviewed fictional decision unit',
+          included_work='Four scoped Level 1 reports',member_inputs='Staged basic records',
+          evidence_allowance='Named records and public sources',
+          clarification_allowance='One remote clarification',
+          field_specialist_terms='No field or specialist work included',
+          payment_terms='Under separate written agreement',
+          tax_treatment='As stated in the agreement',
+          change_triggers='Additional work needs a written change',
+          decision_owner='Director',source_receipt_id=receipt,fee_cents=150000,currency='USD',
+          valid_until='2099-01-01',capacity_confirmed=True,
+          access_eligibility_confirmed=True,access_eligibility_basis='One simple operation',
+          agreement_artifact_id=uploaded.json()['id'],agreement_reference='FICTIONAL-AGREEMENT',
+          agreement_sha256=agreement_sha,separate_services_excluded=True)
+        quote_url=f'/api/assessments/{assessment_id}/package-quote'
+        quoted=reviewer.post(quote_url,json=quote_payload)
+        assert quoted.status_code==200,quoted.text
+        assert quoted.json()['source_receipt_id']==receipt
+        conn=app.db()
+        linked=conn.execute('SELECT * FROM package_quote_advisor_receipt_links WHERE quote_id=?',
+          (quoted.json()['id'],)).fetchone()
+        assert linked['handoff_key']==handoff['handoff_key']
+        assert linked['receipt_sha256']==receipt_digest
+        assert linked['assessment_scope_sha256']==saved['reviewed_assessment_scope_sha256']
+        conn.close()
         assert reviewer.post(review_url,json=review).status_code==409
         assert prospect.post('/public/protection-advisor/package-handoff',json=payload).status_code==409
         withdrawal={'handoff_key':handoff['handoff_key']}
@@ -273,6 +311,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert conn.execute('SELECT COUNT(*) FROM advisor_package_handoffs').fetchone()[0]==1
         conn.close()
         assert prospect.post('/public/protection-advisor/package-handoff/withdraw',json=withdrawal).json()=={'withdrawn':True}
+        assert reviewer.post(quote_url,json=quote_payload).status_code==409
         assert reviewer.get(queue_url).json()['handoffs']==[]
         assert reviewer.get(packet_url).status_code==404
         assert reviewer.get(receipt_url).status_code==404

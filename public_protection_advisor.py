@@ -843,7 +843,8 @@ def _initialize(conn: Any) -> None:
       reviewed_at TEXT NOT NULL DEFAULT '',
       reviewed_by TEXT NOT NULL DEFAULT '',
       review_basis TEXT NOT NULL DEFAULT '',
-      reviewed_assessment_version INTEGER NOT NULL DEFAULT 0
+      reviewed_assessment_version INTEGER NOT NULL DEFAULT 0,
+      reviewed_assessment_scope_sha256 TEXT NOT NULL DEFAULT ''
     );
     CREATE INDEX IF NOT EXISTS idx_advisor_package_handoff_source
       ON advisor_package_handoffs(session_key,status);
@@ -854,6 +855,7 @@ def _initialize(conn: Any) -> None:
         ("reviewed_by", "TEXT NOT NULL DEFAULT ''"),
         ("review_basis", "TEXT NOT NULL DEFAULT ''"),
         ("reviewed_assessment_version", "INTEGER NOT NULL DEFAULT 0"),
+        ("reviewed_assessment_scope_sha256", "TEXT NOT NULL DEFAULT ''"),
         ("package_sha256", "TEXT NOT NULL DEFAULT ''"),
     ):
         if column not in handoff_columns:
