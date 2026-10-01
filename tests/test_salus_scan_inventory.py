@@ -6,7 +6,7 @@ import pytest
 from salus_scan_inventory import (InventoryError, compare_quarantine_versions,
                                   list_azure_quarantine_versions,
                                   record_inventory_exceptions)
-from salus_scan_inventory_worker import run_inventory
+from salus_scan_inventory_worker import main, run_inventory
 
 
 def test_orphan_and_missing_versions_are_not_hidden_by_a_clean_copy():
@@ -146,3 +146,15 @@ def test_scheduled_inventory_logs_counts_without_restricted_names(capsys):
     assert 'private/original' not in output
     assert 'version-secret' not in output
     assert '"exceptions_observed": 1' in output
+    assert main(inspect=lambda: result) == 2
+
+
+def test_scheduled_inventory_failure_hides_sensitive_exception(capsys):
+    def fail():
+        raise RuntimeError('tenant-7/private/blob?sig=secret')
+
+    assert main(inspect=fail) == 1
+    output = capsys.readouterr().out
+    assert 'tenant-7/private' not in output
+    assert 'secret' not in output
+    assert '"error_type": "RuntimeError"' in output

@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 1 October 2026 — Inventory job failure-output hardening
+
+- Hardened the scheduled inventory entry point so an Azure/DB/listing failure returns a failed job status while printing only the exception class. The raw exception message may contain a Protected Member path, Blob URL or access token and is no longer emitted by the entry point. Observed inventory discrepancies still return a distinct unsuccessful status. Added targeted fictional redaction and return-code tests; direct smoke, Python compilation and whitespace checks passed. Exact CI is pending after push. No Azure job was installed by this code change. Owner/next action: Salus engineering obtains exact-head CI and later live failure-alert/reviewer-response proof before Member intake.
+
 ## 1 October 2026 — Retention economics and Wix control recheck
 
 - Rechecked exact head `5ee6907e17917066fb198caf063a27454ef9859e`: Public Protection Advisor run 472 (`36821792413`) and Salus package rollout run 89 (`36821792414`) passed. Production remains `release/v3.202`; no package route, report template, Wix page or scanner was released.

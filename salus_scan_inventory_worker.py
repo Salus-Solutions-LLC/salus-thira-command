@@ -15,7 +15,17 @@ def run_inventory(*, inspect=None):
     return safe
 
 
+def main(*, inspect=None):
+    try:
+        result = run_inventory(inspect=inspect)
+    except Exception as exc:
+        # The exception message may contain a tenant path, Blob URL or token.
+        # The scheduled job reports the failure class only; Azure marks it failed.
+        print(json.dumps({'inventory': 'failed', 'error_type': type(exc).__name__},
+                         sort_keys=True))
+        return 1
+    return 2 if result['exceptions_observed'] else 0
+
+
 if __name__ == '__main__':
-    result = run_inventory()
-    if result['exceptions_observed']:
-        raise SystemExit(2)
+    raise SystemExit(main())
