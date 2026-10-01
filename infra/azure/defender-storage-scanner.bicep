@@ -36,6 +36,10 @@ param imageDigest string
 @description('Recorded scanner approval and updated spend authority.')
 param approvalRecord string
 
+@secure()
+@description('Approved Salus operations mailbox for scanner and inventory failure alerts; required for installation.')
+param operationsAlertEmail string
+
 var stem = 'salcapa-${environmentName}-${uniqueSuffix}'
 var accountName = replace('${stem}-scan', '-', '')
 var registryName = replace('${stem}acr', '-', '')
@@ -416,6 +420,131 @@ resource scanInventoryJob 'Microsoft.App/jobs@2025-01-01' = {
   ]
 }
 
+// This route deliberately has a real receiver. The existing development
+// Smart Detection group has none, so a failed job there would not notify anyone.
+resource scanAlertGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
+  name: '${stem}-scan-alerts'
+  location: 'global'
+  tags: {
+    system: 'SalCAPA'
+    environment: environmentName
+    purpose: 'quarantine-job-failure-notification'
+    approvalRecord: approvalRecord
+    sourceCommit: sourceCommit
+  }
+  properties: {
+    enabled: true
+    groupShortName: 'SalusScan'
+    emailReceivers: [
+      {
+        name: 'salus-operations'
+        emailAddress: operationsAlertEmail
+        useCommonAlertSchema: true
+      }
+    ]
+  }
+}
+
+resource scanInventoryFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: '${stem}-scan-inventory-failed'
+  location: 'global'
+  tags: {
+    system: 'SalCAPA'
+    environment: environmentName
+    purpose: 'quarantine-inventory-failure'
+    approvalRecord: approvalRecord
+    sourceCommit: sourceCommit
+  }
+  properties: {
+    description: 'A scheduled quarantine inventory execution failed or observed a restricted exception. Review the internal exception ledger; do not release held files.'
+    severity: 2
+    enabled: true
+    scopes: [scanInventoryJob.id]
+    targetResourceType: 'Microsoft.App/jobs'
+    targetResourceRegion: location
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT5M'
+    autoMitigate: true
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          criterionType: 'StaticThresholdCriterion'
+          name: 'FailedInventoryExecution'
+          metricName: 'Executions'
+          metricNamespace: 'Microsoft.App/jobs'
+          timeAggregation: 'Total'
+          operator: 'GreaterThan'
+          threshold: 0
+          skipMetricValidation: false
+          dimensions: [
+            {
+              name: 'state'
+              operator: 'Include'
+              values: ['Failed']
+            }
+          ]
+        }
+      ]
+    }
+    actions: [
+      {
+        actionGroupId: scanAlertGroup.id
+      }
+    ]
+  }
+}
+
+resource scanWorkerFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: '${stem}-scan-result-worker-failed'
+  location: 'global'
+  tags: {
+    system: 'SalCAPA'
+    environment: environmentName
+    purpose: 'scan-result-worker-failure'
+    approvalRecord: approvalRecord
+    sourceCommit: sourceCommit
+  }
+  properties: {
+    description: 'A malware-scan result worker execution failed. Keep pending files on hold and investigate the result queue.'
+    severity: 2
+    enabled: true
+    scopes: [scanWorkerJob.id]
+    targetResourceType: 'Microsoft.App/jobs'
+    targetResourceRegion: location
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT5M'
+    autoMitigate: true
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          criterionType: 'StaticThresholdCriterion'
+          name: 'FailedScanResultExecution'
+          metricName: 'Executions'
+          metricNamespace: 'Microsoft.App/jobs'
+          timeAggregation: 'Total'
+          operator: 'GreaterThan'
+          threshold: 0
+          skipMetricValidation: false
+          dimensions: [
+            {
+              name: 'state'
+              operator: 'Include'
+              values: ['Failed']
+            }
+          ]
+        }
+      ]
+    }
+    actions: [
+      {
+        actionGroupId: scanAlertGroup.id
+      }
+    ]
+  }
+}
+
 resource defenderScanner 'Microsoft.Security/defenderForStorageSettings@2025-06-01' = {
   scope: quarantineStorage
   name: 'current'
@@ -438,6 +567,8 @@ resource defenderScanner 'Microsoft.Security/defenderForStorageSettings@2025-06-
     resultSubscription
     scanWorkerJob
     scanInventoryJob
+    scanInventoryFailureAlert
+    scanWorkerFailureAlert
   ]
 }
 
@@ -450,5 +581,8 @@ output scanResultSubscriptionId string = resultSubscription.id
 output scanWorkerIdentityId string = workerIdentity.id
 output scanWorkerJobId string = scanWorkerJob.id
 output scanInventoryJobId string = scanInventoryJob.id
+output scanInventoryFailureAlertId string = scanInventoryFailureAlert.id
+output scanWorkerFailureAlertId string = scanWorkerFailureAlert.id
+output scanAlertGroupId string = scanAlertGroup.id
 output quarantineCreateRoleId string = quarantineCreateRoleCanonicalId
 output defenderSettingId string = defenderScanner.id
