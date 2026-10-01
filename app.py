@@ -43,10 +43,17 @@ ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
 PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED','0').lower() in ('1','true','yes')
 PACKAGE_SCAN_MODE = os.getenv('SALUS_PACKAGE_SCAN_MODE','inline').strip().lower()
 
-def package_quarantine():
+def package_quarantine(*, for_worker=False):
+    # The web route may create originals but must not read quarantine bytes.
+    # Only the trusted result worker selects the quarantine-reader identity.
+    identity_env = ('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID' if for_worker
+                    else 'AZURE_CLIENT_ID')
+    client_id = os.getenv(identity_env,'').strip()
+    if not client_id:
+        raise QuarantineError('The governed quarantine identity is not configured.')
     return AzureScanQuarantine(
         os.getenv('SALUS_SCAN_QUARANTINE_URL','').strip(),
-        managed_identity_client_id=os.getenv('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID','').strip())
+        managed_identity_client_id=client_id)
 RETENTION_DEFAULT_DAYS = int(os.getenv('SALUS_RETENTION_DEFAULT_DAYS','2555'))
 OIDC_DISCOVERY_URL = os.getenv('SALUS_OIDC_DISCOVERY_URL','').strip()
 OIDC_CLIENT_ID = os.getenv('SALUS_OIDC_CLIENT_ID','').strip()
@@ -6194,7 +6201,7 @@ def process_package_scan_result(event:dict, *, quarantine=None, expected_topic:s
             conn.commit()
             return held
         manifest=dict(pending,sha256=pending['content_sha256'])
-        snapshot=(quarantine or package_quarantine()).read_version(manifest)
+        snapshot=(quarantine or package_quarantine(for_worker=True)).read_version(manifest)
         if not qualified_clean_quarantine_object(event,manifest,snapshot,
                 topic=expected_topic,tenant_id=pending['tenant_id'],
                 assessment_id=pending['assessment_id'],

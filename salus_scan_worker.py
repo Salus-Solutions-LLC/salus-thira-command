@@ -42,8 +42,10 @@ def poll_once(*, queue_client=None, process_event=None):
     if queue_client is None:
         from azure.identity import ManagedIdentityCredential
         from azure.storage.queue import QueueClient
-        credential = ManagedIdentityCredential(
-            client_id=os.getenv('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID', '').strip() or None)
+        client_id = os.getenv('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID', '').strip()
+        if not client_id:
+            raise RuntimeError('The governed scan worker identity is not configured.')
+        credential = ManagedIdentityCredential(client_id=client_id)
         queue_client = QueueClient.from_queue_url(queue_url, credential=credential)
     if process_event is None:
         from app import process_package_scan_result
