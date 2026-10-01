@@ -30,14 +30,14 @@ def suggest_provisional_level_1_path(profile: dict) -> dict[str, str]:
     units = profile.get('decision_units', 'Not sure')
     separate = profile.get('separate_findings', 'Not sure')
     group = profile.get('group_priorities', 'Not sure')
-    if group == 'Yes' or units == 'Group':
+    if units == 'Group' and group == 'Yes':
         band, reason = 'C', 'You described a group decision that needs priorities across named units.'
-    elif separate == 'Yes' or units == 'Two':
+    elif units == 'Two' and separate == 'Yes' and group == 'No':
         band, reason = 'B', 'You described separate findings and a comparison for two units or distinct operations.'
     elif units == 'One' and separate == 'No' and group == 'No':
         band, reason = 'A', 'You described one covered operation and one combined decision.'
     else:
-        band, reason = '', 'The covered units and decision still need a short scoping conversation.'
+        band, reason = '', 'The covered units, comparisons and group priorities need a short scoping conversation before Salus suggests a band.'
     if band == 'A':
         next_step = ('Salus will check whether the simple Level 1A Access scope qualifies '
                      'for the $1,500 price or whether Level 1A Standard needs a separate quote.')
