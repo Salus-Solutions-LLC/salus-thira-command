@@ -192,7 +192,7 @@ def validate_records(records, tenant_id:int|None=None):
         if int(row.get('member_user_id',-1)) not in users: errors.append(f'package intake file {row.get("id")} has invalid uploader')
         if len(str(row.get('content_sha256','')))!=64 or not row.get('stored_name'):
             errors.append(f'package intake file {row.get("id")} has invalid storage proof')
-        if row.get('scan_status')!='Clean' or row.get('legal_hold') not in (0,1) or not row.get('retention_until'):
+        if row.get('scan_status') not in ('Clean','Reconcile') or row.get('legal_hold') not in (0,1) or not row.get('retention_until'):
             errors.append(f'package intake file {row.get("id")} has incomplete handling proof')
     clean_uploads={int(r['id']):r for r in records.get('package_intake_uploads',[]) if r.get('id') is not None}
     for row in records.get('package_intake_pending_scans',[]):
@@ -229,10 +229,21 @@ def validate_records(records, tenant_id:int|None=None):
                         or int(clean['intake_request_id'])!=int(row['intake_request_id'])
                         or clean['content_sha256']!=digest):
                     errors.append(f'{marker} has no matching clean evidence record')
+            elif row['status']=='Reconcile' and promoted is not None:
+                linked=clean_uploads.get(int(promoted))
+                if (not linked or linked.get('scan_status')!='Reconcile'
+                        or int(linked['tenant_id'])!=int(row['tenant_id'])
+                        or linked['content_sha256']!=digest):
+                    errors.append(f'{marker} has invalid suspended evidence link')
             elif promoted is not None:
                 errors.append(f'{marker} links evidence before clean promotion')
         except (KeyError,ValueError,TypeError,AttributeError):
             errors.append(f'{marker} has incomplete quarantine metadata')
+    suspended_ids={int(r['promoted_upload_id']) for r in records.get('package_intake_pending_scans',[])
+                   if r.get('status')=='Reconcile' and r.get('promoted_upload_id') is not None}
+    for row in records.get('package_intake_uploads',[]):
+        if row.get('scan_status')=='Reconcile' and int(row['id']) not in suspended_ids:
+            errors.append(f'package intake file {row.get("id")} has no suspended scan proof')
     report_ids={int(r['id']) for r in records.get('package_product_report_versions',[]) if r.get('id') is not None}
     for row in records.get('package_product_report_versions',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package product report {row.get("id")} crosses the tenant boundary')

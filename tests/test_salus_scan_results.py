@@ -1,6 +1,8 @@
 from copy import deepcopy
 
-from salus_scan_results import defender_result_for_pending, qualified_clean_quarantine_object
+from salus_scan_results import (defender_event_matches_pending,
+                                defender_result_for_pending,
+                                qualified_clean_quarantine_object)
 import hashlib
 
 
@@ -31,6 +33,10 @@ def evaluate(item):
 def test_exact_clean_and_malicious_results():
     assert evaluate(event()) == 'Clean'
     assert evaluate(event('Malicious')) == 'Malicious'
+    assert defender_event_matches_pending(event('Not scanned'),topic=TOPIC,
+                                          blob_uri=URI,etag=ETAG,sha256=SHA)
+    assert not defender_event_matches_pending(event(),topic=TOPIC,
+                                              blob_uri=URI,etag='0xOLD',sha256=SHA)
 
 
 def test_mismatched_or_unsupported_results_never_clear_file():

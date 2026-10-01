@@ -903,6 +903,45 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT legal_hold FROM package_product_report_versions WHERE id=?',
             (revised.json()['id'],)).fetchone()[0]==1
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
+        # Simulate a separately reconciled held original and an authenticated
+        # queue result. The restored Reconcile status must never auto-promote.
+        held_quote_id=conn.execute('SELECT quote_id FROM package_intake_pending_scans WHERE id=?',
+            (held.json()['id'],)).fetchone()[0]
+        conn.execute("UPDATE package_intake_pending_scans SET status='Pending' WHERE id=?",(held.json()['id'],))
+        conn.commit();conn.close()
+        def fake_read_version(manifest):
+            assert manifest['status']=='Pending' and manifest['sha256']==pending_digest
+            return {'blob_uri':manifest['blob_uri'],'blob_version_id':'v1',
+                    'etag':'"0xE1"','bytes':pending_bytes}
+        fake_quarantine.read_version=fake_read_version
+        app.PACKAGE_SCAN_MODE='defender'
+        topic='/subscriptions/test/resourceGroups/test/providers/Microsoft.EventGrid/topics/test'
+        blob_uri='https://salusquarantine.blob.core.windows.net/quarantine/'+(
+            f'tenant-1/assessment-{assessment_id}/quote-{held_quote_id}/item-{item_id}/'
+            + 'a'*32+'_'+pending_digest[:16])
+        result_event={'id':'event-1','eventType':'Microsoft.Security.MalwareScanningResult',
+            'topic':topic,'data':{'blobUri':blob_uri,'eTag':'"0xE1"',
+            'scanResultType':'No threats found','scanResultDetails':{
+                'sha256':pending_digest,'malwareNamesFound':[]}}}
+        assert app.process_package_scan_result(result_event,quarantine=fake_quarantine,
+            expected_topic=topic)=='Promoted'
+        assert app.process_package_scan_result(result_event,quarantine=fake_quarantine,
+            expected_topic=topic)=='Promoted'
+        conn=app.db()
+        promoted=conn.execute('SELECT * FROM package_intake_uploads WHERE content_sha256=?',
+            (pending_digest,)).fetchone()
+        assert promoted and app.storage.get_bytes(promoted['stored_name'])==pending_bytes
+        assert conn.execute('SELECT COUNT(*) FROM package_intake_uploads').fetchone()[0]==2
+        promoted_id=promoted['id'];conn.close()
+        contrary=json.loads(json.dumps(result_event)); contrary['id']='event-2'
+        contrary['data']['scanResultType']='Malicious'
+        assert app.process_package_scan_result(contrary,quarantine=fake_quarantine,
+            expected_topic=topic)=='Reconcile'
+        conn=app.db()
+        assert conn.execute('SELECT scan_status FROM package_intake_uploads WHERE id=?',
+            (promoted_id,)).fetchone()[0]=='Reconcile'
+        assert not validate_records(collect_tenant_records(conn,1),1)
+        app.PACKAGE_SCAN_MODE='inline'
         conn.close()
         # A historical Executive snapshot cannot stand in for four issued package reports.
         conn=app.db()

@@ -22,6 +22,7 @@ from managed_database import runtime_database_status, managed_target_status
 from database import connect_database, backend_name, is_sqlite, is_postgres
 from portable_backup import collect_tenant_records, validate_records, replace_tenant_records
 from salus_scan_quarantine import AzureScanQuarantine, QuarantineError
+from salus_scan_results import defender_event_matches_pending, defender_result_for_pending, qualified_clean_quarantine_object
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.getenv('SALUS_DB_PATH', os.path.join(BASE_DIR, 'thira.db'))
@@ -6097,6 +6098,115 @@ def respond_package_intake(assessment_id:int,item_id:int,p:PackageIntakeResponse
         conn.rollback();conn.close()
 
 PACKAGE_INTAKE_ALLOWED_EXTENSIONS={'.pdf','.docx','.xlsx','.csv','.txt','.png','.jpg','.jpeg'}
+
+def process_package_scan_result(event:dict, *, quarantine=None, expected_topic:str=''):
+    """Apply a trusted-queue result to one exact quarantined small upload.
+
+    The caller must receive the event through the dedicated managed-identity
+    queue. This function does not authenticate arbitrary HTTP or caller input.
+    A missing manifest is left on the queue for reconciliation, never cleared.
+    """
+    if PACKAGE_SCAN_MODE!='defender' or not expected_topic:
+        raise QuarantineError('The governed scan-result worker is not configured.')
+    if not isinstance(event,dict) or not isinstance(event.get('data'),dict):
+        return 'Unmatched'
+    event_id=event.get('id')
+    blob_uri=event['data'].get('blobUri')
+    etag=event['data'].get('eTag')
+    if not all(isinstance(x,str) and x for x in (event_id,blob_uri,etag)):
+        return 'Unmatched'
+    conn=db(); stored=''
+    try:
+        # The URI is a lookup hint only. All security claims are checked against
+        # the tenant-bound ledger after serializing the assessment transition.
+        candidate=conn.execute('''SELECT id,assessment_id FROM package_intake_pending_scans
+            WHERE blob_uri=? AND etag=?''',(blob_uri,etag)).fetchone()
+        if not candidate:
+            return 'Unmatched'
+        lock_package_assessment(conn,candidate['assessment_id'])
+        row=conn.execute('SELECT * FROM package_intake_pending_scans WHERE id=?',
+                         (candidate['id'],)).fetchone()
+        if not row or row['blob_uri']!=blob_uri or row['etag']!=etag:
+            return 'Unmatched'
+        pending=dict(row)
+        if not defender_event_matches_pending(event,topic=expected_topic,
+                blob_uri=pending['blob_uri'],etag=pending['etag'],
+                sha256=pending['content_sha256']):
+            return 'Unmatched'
+        result=defender_result_for_pending(event,topic=expected_topic,
+            blob_uri=blob_uri,etag=etag,sha256=pending['content_sha256'])
+        if (pending['scan_event_id']==event_id and pending['status'] in ('Promoted','Malicious','Unscanned')
+                and pending['scan_result']==result):
+            return pending['status']
+        if pending['status']=='Promoted':
+            # Contrary later results suspend the already promoted evidence.
+            if result!='Clean':
+                conn.execute('UPDATE package_intake_uploads SET scan_status=? WHERE id=? AND tenant_id=?',
+                    ('Reconcile',pending['promoted_upload_id'],pending['tenant_id']))
+                conn.execute('''UPDATE package_intake_pending_scans SET status='Reconcile',scan_result=?,
+                    scan_event_id=?,scanned_at=?,updated_at=? WHERE id=?''',
+                    (result,event_id,now(),now(),pending['id']))
+                audit(conn,'PACKAGE_SCAN_CONTRARY','assessment',pending['assessment_id'],
+                      f'pending_id={pending["id"]}; result={result}','scan-worker')
+                conn.commit()
+                return 'Reconcile'
+            return 'Promoted'
+        if pending['status']!='Pending':
+            return 'Reconcile'
+        if result!='Clean':
+            held='Malicious' if result=='Malicious' else 'Unscanned'
+            conn.execute('''UPDATE package_intake_pending_scans SET status=?,scan_result=?,
+                scan_event_id=?,scanned_at=?,updated_at=? WHERE id=? AND status='Pending' ''',
+                (held,result,event_id,now(),now(),pending['id']))
+            audit(conn,'PACKAGE_SCAN_HELD','assessment',pending['assessment_id'],
+                  f'pending_id={pending["id"]}; result={result}','scan-worker')
+            conn.commit()
+            return held
+        manifest=dict(pending,sha256=pending['content_sha256'])
+        snapshot=(quarantine or package_quarantine()).read_version(manifest)
+        if not qualified_clean_quarantine_object(event,manifest,snapshot,
+                topic=expected_topic,tenant_id=pending['tenant_id'],
+                assessment_id=pending['assessment_id'],
+                intake_request_id=pending['intake_request_id']):
+            raise QuarantineError('The clean result failed exact-object qualification.')
+        content=snapshot['bytes']
+        stored=(f'tenant-{pending["tenant_id"]}/assessment-{pending["assessment_id"]}/'
+                f'package-intake/quote-{pending["quote_id"]}/item-{pending["intake_request_id"]}/'
+                f'pending-{pending["id"]}_{pending["content_sha256"][:16]}')
+        if storage.exists(stored):
+            if hashlib.sha256(storage.get_bytes(stored)).hexdigest()!=pending['content_sha256']:
+                raise QuarantineError('Existing promoted storage bytes differ from the pending original.')
+        else:
+            storage.put_bytes(stored,content)
+        if hashlib.sha256(storage.get_bytes(stored)).hexdigest()!=pending['content_sha256']:
+            raise QuarantineError('Promoted storage failed read-after-write verification.')
+        uploaded_at=now()
+        cur=conn.execute('''INSERT INTO package_intake_uploads
+            (tenant_id,assessment_id,quote_id,intake_request_id,member_user_id,original_name,stored_name,
+             content_sha256,size_bytes,scan_status,retention_until,legal_hold,uploaded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (pending['tenant_id'],pending['assessment_id'],pending['quote_id'],
+             pending['intake_request_id'],pending['member_user_id'],pending['original_name'],stored,
+             pending['content_sha256'],pending['size_bytes'],'Clean',pending['retention_until'],
+             pending['legal_hold'],uploaded_at))
+        conn.execute('''UPDATE package_intake_pending_scans SET status='Promoted',scan_result='Clean',
+            scan_event_id=?,scanned_at=?,promoted_upload_id=?,updated_at=? WHERE id=? AND status='Pending' ''',
+            (event_id,uploaded_at,cur.lastrowid,uploaded_at,pending['id']))
+        conn.execute('''UPDATE package_intake_requests SET status='Provided',response_user_id=?,responded_at=?
+            WHERE id=? AND tenant_id=?''',
+            (pending['member_user_id'],uploaded_at,pending['intake_request_id'],pending['tenant_id']))
+        audit(conn,'PACKAGE_SCAN_PROMOTED','assessment',pending['assessment_id'],
+              f'pending_id={pending["id"]}; upload_id={cur.lastrowid}; sha256={pending["content_sha256"]}',
+              'scan-worker')
+        conn.commit()
+        return 'Promoted'
+    except Exception:
+        conn.rollback()
+        # A deterministic storage key lets a retry reconcile a partial copy.
+        # Never erase it here: another successful transaction may now refer to it.
+        raise
+    finally:
+        conn.close()
 
 def stage_package_intake_file(assessment_id:int,item_id:int,request:Request,ctx:dict,
                               original:str,content:bytes,digest:str):
