@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Reuse existing small-file upload for scanner release
+
+- Marc specified the existing smaller upload for this release. The candidate package-intake route accepts PDF, DOCX, XLSX, CSV, TXT, PNG and JPEG up to 25 MB each and five files per requested item; production remains locked. Do not increase limits, build large-media transfer, or resume paused issue #520 to install the scanner. The controlled installation plan now stages only those accepted formats first.
+- Added a source-only, fail-closed Defender event comparator and fictional mismatch tests for exact topic, blob URI, eTag, SHA-256 and `No threats found` result. Local Python compilation and direct test-function execution passed; local pytest is unavailable, so exact-head CI remains required. This comparator is not an authenticated event receiver, storage recheck or live scan. Engineering must still connect the existing upload to isolated quarantine and a trusted result path, prove costs and live clean/test-malware/error behavior, then seek qualified release. Azure resource access remains unavailable; browser control again failed before session creation with `failed to write kernel assets` (os error 3).
+
 ## 30 September 2026 — Large-batch work remains paused
 
 - Marc clarified that the existing large-batch work order was paused because it was taking too long and costing too much. Do not restart issue #520's backlog, worker, load testing or Azure spend as part of scanner acquisition. The earlier handoff section below records the linkage and historical progress, but its instruction to prove both paths before activation is superseded: a bounded direct-upload scanner path may advance through its own controlled gates without full batch completion. `docs/AZURE_DEFENDER_STORAGE_SCANNER.md` now states this boundary. Owner/next action: Salus engineering confines the current scanner effort to explicitly authorized direct-upload scope and keeps #520 deferred until Marc separately resumes it.
