@@ -27,6 +27,7 @@ on:
       - CURRENT_HANDOFF.md
       - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
       - .github/workflows/salus-package-rollout.yml
+      - infra/azure/defender-storage-scanner.bicep
   push:
     branches:
       - development/salcapa-platform
@@ -55,6 +56,7 @@ on:
       - CURRENT_HANDOFF.md
       - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
       - .github/workflows/salus-package-rollout.yml
+      - infra/azure/defender-storage-scanner.bicep
 
 permissions:
   contents: read
@@ -80,6 +82,8 @@ jobs:
       - run: python -m pytest -q -p no:cacheprovider tests --ignore=tests/test_protection_advisor_professional_report.py
       - run: python -m compileall -q app.py public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py salus_package_path.py salus_package_quote.py salus_package_intake.py portable_backup.py proposals/qa/audit_level_band_templates.py
       - run: node --check static/app.js
+      - name: Compile scanner installation template without Azure credentials
+        run: az bicep build --file infra/azure/defender-storage-scanner.bicep --stdout > /tmp/salus-defender-scanner-arm.json
 
   professional-report-windows:
     runs-on: windows-latest
