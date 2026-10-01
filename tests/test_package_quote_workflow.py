@@ -684,6 +684,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.commit();conn.close()
         requested=member.get(intake_url)
         assert requested.status_code==200 and len(requested.json()['items'])==2,requested.text
+        assert other_member.get(intake_url).status_code==403
         assert requested.json()['catalog']==[]
         assert member.get(report_url).status_code==403
         assert member.get(f'/api/package-reports/{revised.json()["id"]}/draft.docx').status_code==403
@@ -697,6 +698,13 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         upload_item=requested.json()['items'][1]['id']
         upload_path=f'{intake_url}/{upload_item}/files'
         upload_bytes=b'%PDF-1.4\\nfictional requested record\\n%%EOF'
+        original_scan=app.scan_bytes
+        def unexpected_scan(content,filename):
+            raise AssertionError('An invalid or unauthorized intake item must not invoke the scanner')
+        app.scan_bytes=unexpected_scan
+        assert member.post(f'{intake_url}/999999/files',files={'file':('Unrequested.pdf',upload_bytes,'application/pdf')}).status_code==404
+        assert other_member.post(upload_path,files={'file':('Unrequested.pdf',upload_bytes,'application/pdf')}).status_code==403
+        app.scan_bytes=original_scan
         uploaded=member.post(upload_path,files={'file':('Example-Plan.pdf',upload_bytes,'application/pdf')})
         assert uploaded.status_code==200,uploaded.text
         file_id=uploaded.json()['id']
@@ -707,6 +715,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert member.get(intake_url).json()['uploads'][0]['id']==file_id
         received=member.get(f'/api/package-intake-files/{file_id}/download')
         assert received.status_code==200 and received.content==upload_bytes
+        assert other_member.get(f'/api/package-intake-files/{file_id}/download').status_code==403
         assert received.headers['x-content-sha256']==uploaded.json()['content_sha256']
         conn=app.db()
         conn.execute('UPDATE package_intake_uploads SET scan_status=? WHERE id=?',('Pending',file_id))

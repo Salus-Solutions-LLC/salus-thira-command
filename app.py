@@ -5953,6 +5953,10 @@ def authorized_package_intake(conn,assessment_id:int,request:Request):
     if not assessment or not accepted: raise HTTPException(409,'The package intake opens after an authorized agreement.')
     verified_package_quote(conn,accepted,request)
     verified_member_authority_review(conn,accepted,accepted['accepted_member_user_id'])
+    if protected_member_request(request):
+        ctx=auth_context(request)
+        if ctx['auth_mode'] not in ('session','oidc') or ctx.get('user_id')!=accepted['accepted_member_user_id']:
+            raise HTTPException(403,'Only the reviewed Member decision owner may access this package intake.')
     if accepted['level']>1: verified_quote_predecessor_link(conn,accepted,request,assessment)
     if (not accepted['assessment_scope_sha256'] or accepted['assessment_scope_sha256']!=assessment_scope_digest(assessment)
         or accepted['assessment_version']!=assessment['version']):
@@ -6045,12 +6049,34 @@ async def upload_package_intake_file(assessment_id:int,item_id:int,request:Reque
     content=await file.read(MAX_ATTACHMENT_BYTES+1)
     if not content or len(content)>MAX_ATTACHMENT_BYTES:
         raise HTTPException(413,'The file must be nonempty and no larger than 25 MB.')
+    digest=hashlib.sha256(content).hexdigest(); tid=tenant_id(request)
+    preflight=db()
+    try:
+        quote=authorized_package_intake(preflight,assessment_id,request)
+        item=preflight.execute('''SELECT id,status FROM package_intake_requests
+            WHERE id=? AND tenant_id=? AND assessment_id=? AND quote_id=?''',
+            (item_id,tid,assessment_id,quote['id'])).fetchone()
+        if not item: raise HTTPException(404,'This item was not requested for the authorized package.')
+        if item['status'] in ('Not held','Not known','Prefer to discuss'):
+            raise HTTPException(409,'Review this item with Salus before sending a file.')
+        existing=preflight.execute('''SELECT id,scan_status FROM package_intake_uploads
+            WHERE tenant_id=? AND intake_request_id=? AND content_sha256=?''',
+            (tid,item_id,digest)).fetchone()
+        if existing and existing['scan_status']!='Clean':
+            raise HTTPException(409,'The stored file has not passed the security check.')
+        if not existing:
+            file_count=preflight.execute('SELECT COUNT(*) AS n FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=?',
+                (tid,item_id)).fetchone()['n']
+            if file_count>=5:
+                raise HTTPException(409,'This item has five files. Ask Salus to review before sending more.')
+    finally:
+        preflight.close()
     scan=scan_bytes(content,original)
     if not scan['ok'] or scan['status']!='Clean':
         security_event(request,'PACKAGE_INTAKE_UPLOAD_REJECTED','High' if scan['status']=='Infected' else 'Medium',
             f'status={scan["status"]}')
         raise HTTPException(422 if scan['status']=='Infected' else 503,'The file could not pass the security check.')
-    digest=hashlib.sha256(content).hexdigest(); tid=tenant_id(request); conn=db(); stored=''
+    conn=db(); stored=''
     try:
         lock_package_assessment(conn,assessment_id)
         quote=authorized_package_intake(conn,assessment_id,request)
