@@ -85,12 +85,25 @@ resource quarantineContainer 'Microsoft.Storage/storageAccounts/blobServices/con
   }
 }
 
+resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2023-05-01' = {
+  parent: quarantineStorage
+  name: 'default'
+}
+
+resource scanResultsQueue 'Microsoft.Storage/storageAccounts/queueServices/queues@2023-05-01' = {
+  parent: queueService
+  name: 'scan-results'
+}
+
 // Defender requires a same-region Event Grid topic reachable on public IPs.
-// A governed subscription and authenticated receiver must be installed before
-// any Protected Member upload is sent to this account.
+// A queue processor must be installed and tested before any Protected Member
+// upload is sent to this account.
 resource resultTopic 'Microsoft.EventGrid/topics@2022-06-15' = {
   name: '${stem}-scan-results'
   location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
   tags: {
     system: 'SalCAPA'
     environment: environmentName
@@ -101,6 +114,52 @@ resource resultTopic 'Microsoft.EventGrid/topics@2022-06-15' = {
     inputSchema: 'EventGridSchema'
     publicNetworkAccess: 'Enabled'
   }
+}
+
+// The Event Grid topic may add messages only to this scan-result queue.
+// It does not receive blob data permissions or account keys.
+var queueMessageSenderRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
+resource topicQueueSender 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(scanResultsQueue.id, resultTopic.id, queueMessageSenderRole)
+  scope: scanResultsQueue
+  properties: {
+    roleDefinitionId: queueMessageSenderRole
+    principalId: resultTopic.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource resultSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-06-15' = {
+  parent: resultTopic
+  name: 'scan-results-to-queue'
+  properties: {
+    eventDeliverySchema: 'EventGridSchema'
+    deliveryWithResourceIdentity: {
+      identity: {
+        type: 'SystemAssigned'
+      }
+      destination: {
+        endpointType: 'StorageQueue'
+        properties: {
+          resourceId: quarantineStorage.id
+          queueName: scanResultsQueue.name
+          queueMessageTimeToLiveInSeconds: 604800
+        }
+      }
+    }
+    filter: {
+      includedEventTypes: [
+        'Microsoft.Security.MalwareScanningResult'
+      ]
+    }
+    retryPolicy: {
+      maxDeliveryAttempts: 30
+      eventTimeToLiveInMinutes: 1440
+    }
+  }
+  dependsOn: [
+    topicQueueSender
+  ]
 }
 
 resource defenderScanner 'Microsoft.Security/defenderForStorageSettings@2025-06-01' = {
@@ -121,10 +180,15 @@ resource defenderScanner 'Microsoft.Security/defenderForStorageSettings@2025-06-
       isEnabled: false
     }
   }
+  dependsOn: [
+    resultSubscription
+  ]
 }
 
 output scannerStorageAccountId string = quarantineStorage.id
 output scannerStorageAccountName string = quarantineStorage.name
 output quarantineContainerName string = quarantineContainer.name
 output scanResultTopicId string = resultTopic.id
+output scanResultsQueueId string = scanResultsQueue.id
+output scanResultSubscriptionId string = resultSubscription.id
 output defenderSettingId string = defenderScanner.id
