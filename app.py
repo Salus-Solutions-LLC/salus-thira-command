@@ -5692,6 +5692,10 @@ def get_package_quote(assessment_id:int,request:Request):
             except HTTPException: predecessor_valid=False
     except Exception: conn.close(); raise
     acceptance=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND quote_id=?',(tenant_id(request),assessment_id,quote['id'])).fetchone()
+    advisor_valid=True
+    if quote['source_receipt_id'] and not acceptance:
+        try: verified_quote_advisor_receipt_link(conn,quote,request,assessment)
+        except HTTPException: advisor_valid=False
     signer_review=conn.execute('SELECT * FROM package_member_authority_reviews WHERE tenant_id=? AND assessment_id=? AND quote_id=?',
         (tenant_id(request),assessment_id,quote['id'])).fetchone()
     if protected_member_request(request):
@@ -5716,6 +5720,7 @@ def get_package_quote(assessment_id:int,request:Request):
         and quote['variant']==assessment['requested_access_variant']
         and quote['assessment_scope_sha256']==assessment_scope_digest(assessment))
     if not predecessor_valid: result['status']='Predecessor changed — review required'
+    elif not advisor_valid: result['status']='Advisor receipt changed — new quote required'
     elif acceptance and not signer_valid: result['status']='Signer proof changed — review required'
     elif acceptance and not quote['assessment_scope_sha256']: result['status']='Authorized terms — scope proof requires review'
     elif acceptance and not scope_matches: result['status']='Authorized original scope — amendment required'

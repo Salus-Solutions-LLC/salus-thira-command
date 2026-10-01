@@ -302,7 +302,16 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert linked['handoff_key']==handoff['handoff_key']
         assert linked['receipt_sha256']==receipt_digest
         assert linked['assessment_scope_sha256']==saved['reviewed_assessment_scope_sha256']
+        conn.execute('UPDATE package_quote_advisor_receipt_links SET receipt_sha256=? WHERE quote_id=?',
+          ('0'*64,quoted.json()['id']))
+        conn.commit()
         conn.close()
+        assert reviewer.get(quote_url).json()['status']=='Advisor receipt changed — new quote required'
+        conn=app.db()
+        conn.execute('UPDATE package_quote_advisor_receipt_links SET receipt_sha256=? WHERE quote_id=?',
+          (receipt_digest,quoted.json()['id']))
+        conn.commit();conn.close()
+        assert reviewer.get(quote_url).json()['status']=='Quoted'
         assert reviewer.post(review_url,json=review).status_code==409
         assert prospect.post('/public/protection-advisor/package-handoff',json=payload).status_code==409
         withdrawal={'handoff_key':handoff['handoff_key']}
@@ -312,6 +321,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         conn.close()
         assert prospect.post('/public/protection-advisor/package-handoff/withdraw',json=withdrawal).json()=={'withdrawn':True}
         assert reviewer.post(quote_url,json=quote_payload).status_code==409
+        assert reviewer.get(quote_url).json()['status']=='Advisor receipt changed — new quote required'
         assert reviewer.get(queue_url).json()['handoffs']==[]
         assert reviewer.get(packet_url).status_code==404
         assert reviewer.get(receipt_url).status_code==404
