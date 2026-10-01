@@ -248,6 +248,7 @@ def _professional_body(document, fields, result, package) -> None:
                            ("Outside the proposed boundary", "outside_boundary"),
                            ("Price", "price_state"), ("Schedule", "schedule_state"),
                            ("Decision role", "decision_owner"),
+                           ("Records coordinator", "records_coordinator"),
                            ("Next step", "next_step")):
             document.add_paragraph(f"{label}: {receipt.get(key, 'To confirm')}")
         document.add_paragraph("What to prepare:")
@@ -864,6 +865,7 @@ def render_protection_advisor_pdf(
                   P("Price: " + str(receipt.get("price_state", "To confirm"))),
                   P("Schedule: " + str(receipt.get("schedule_state", "Dates to confirm in writing"))),
                   P("Decision role: " + str(receipt.get("decision_owner", "To confirm"))),
+                  P("Records coordinator: " + str(receipt.get("records_coordinator", "To confirm"))),
                   P("Next: " + str(receipt.get("next_step", ""))),
                   P(str(receipt.get("status", "Draft for Salus review")))]
         if receipt.get("milestones"):
@@ -972,6 +974,7 @@ def render_scope_receipt_pdf(
             ("Price", str(receipt.get("price_state") or "Written quote pending")),
             ("Schedule", str(receipt.get("schedule_state") or "Dates to confirm in writing")),
             ("Decision role", str(receipt.get("decision_owner") or "To confirm")),
+            ("Records coordinator", str(receipt.get("records_coordinator") or "To confirm")),
         ]),
         paragraph("What to prepare", heading),
         *[paragraph("• " + str(item), small) for item in receipt.get("member_prepares") or ()],

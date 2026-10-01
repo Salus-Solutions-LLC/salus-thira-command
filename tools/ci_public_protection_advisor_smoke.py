@@ -35,10 +35,17 @@ with tempfile.TemporaryDirectory() as td:
         SubmitCommand, _package_recommendation,
         _page, _questions, _review_detail, _review_page, _verification_page,
     )
+    from salus_package_path import draft_level_1_scope_receipt
 
     assert NOTIFICATION_FROM=="protectionadvisor@salus.solutions"
     assert len(COVERED_OPERATION_TAGS)==13
     assert not SubmitCommand.model_fields["investment_range"].is_required()
+    assert not SubmitCommand.model_fields["decision_authority"].is_required()
+    assert not SubmitCommand.model_fields["records_coordinator_role"].is_required()
+    role_unknown=draft_level_1_scope_receipt({}, {"band":"", "label":"Level 1 band to confirm"})
+    assert role_unknown["version"]=="SPA-SCOPE-RECEIPT-0.4.0"
+    assert "Assign a decision role" in role_unknown["decision_owner"]
+    assert "Assign a records coordinator" in role_unknown["records_coordinator"]
     assert len(CORE_CAPABILITIES)==32
     assert {cap for row in QUESTION_BLUEPRINTS for cap in row[3]}==set(CORE_CAPABILITIES)
     assert set(area for areas in CORE_CAPABILITIES.values() for area in areas)=={
@@ -130,7 +137,9 @@ with tempfile.TemporaryDirectory() as td:
     assert 'id="reportIdentityEditor"' in embedded.text
     assert "Edit code names and report handling" in embedded.text
     assert "Update report code names or requested handling" in embedded.text
-    assert "SPA-REPORT-TEMPLATE-1.4.0" in embedded.text
+    assert "SPA-REPORT-TEMPLATE-1.5.0" in embedded.text
+    assert 'id="recordsCoordinatorRole"' in embedded.text
+    assert "Who can coordinate authorized records and access?" in embedded.text
     assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in embedded.text
     assert 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' in embedded.text
     assert "frame-ancestors https://www.salus.solutions https://salus.solutions" in embedded.headers["content-security-policy"]
@@ -229,6 +238,7 @@ with tempfile.TemporaryDirectory() as td:
                   "designating_agency":"Example Federal Agency","contract_reference":"TASK-TEST-001",
                   "dissemination_controls":"Authorized recipients only",
                   "organization_name":"Public Pilot Organization","personnel_range":"101–500",
+                  "records_coordinator_role":"Operations manager",
                   "covered_operation_tags":["Manufacturing or industrial work","Warehouse or distribution"]}
     })
     assert draft.status_code==200,draft.text
@@ -243,6 +253,7 @@ with tempfile.TemporaryDirectory() as td:
     assert resumed_payload["draft"]["organization_name"]=="Public Pilot Organization"
     assert resumed_payload["draft"]["protected_member_code_name"]=="Blue Lantern"
     assert resumed_payload["draft"]["project_code_name"]=="Steady Harbor"
+    assert resumed_payload["draft"]["records_coordinator_role"]=="Operations manager"
     assert resumed_payload["draft"]["covered_operation_tags"]==[
         "Manufacturing or industrial work","Warehouse or distribution"]
     headers={"X-CSRF-Token":resumed_payload["csrf_token"]}
@@ -292,18 +303,20 @@ with tempfile.TemporaryDirectory() as td:
         "recent_concerns":"Continuity and competing resources",
         "desired_timing":"Within 90 days",
         "decision_authority":"Executive leadership",
+        "records_coordinator_role":"Operations manager",
         "investment_range":"Need phased options",
     })
     assert submitted.status_code==200,submitted.text
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
-    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.5.0"
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.6.0"
     assert package["primary_service"]["title"]=="Level 1 SalCAPA™ Package"
     assert package["primary_service"]["level"]==1
     assert package["provisional_path"]["band"]=="B"
     assert "written quote" in package["provisional_path"]["next_step"]
     assert package["scope_receipt"]["requested_boundary"]=="Two named manufacturing and fulfillment sites"
+    assert package["scope_receipt"]["records_coordinator"]=="Operations manager"
     assert "organization chart" in package["scope_receipt"]["member_prepares"][0]
     assert package["scope_receipt"]["receipt_id"].startswith("SPA-RECEIPT-")
     assert "written scope" in package["scope_receipt"]["schedule_state"]
@@ -406,9 +419,10 @@ with tempfile.TemporaryDirectory() as td:
     assert account["email"]=="contact@example.com"
     assert session["status"]=="Submitted"
     assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
-    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.2.0"
+    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.3.0"
     assert json.loads(profile["profile_json"])["covered_operation_tags"]==[
         "Manufacturing or industrial work","Warehouse or distribution"]
+    assert json.loads(profile["profile_json"])["records_coordinator_role"]=="Operations manager"
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_profile_drafts").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_portfolios").fetchone()[0]==1
     assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_engagements").fetchone()[0]==1

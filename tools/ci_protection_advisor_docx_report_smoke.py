@@ -112,7 +112,7 @@ with TemporaryDirectory() as tmp:
         },
         package={
             "provisional_path": {"label": "Possible Level 1B", "reason": "Two distinct operations need comparison.", "next_step": "Salus will provide a written quote."},
-            "scope_receipt": {"receipt_id": "SPA-RECEIPT-TEST", "version": "SPA-SCOPE-RECEIPT-0.3.0", "lead_sentence": "Possible Level 1B is a starting point; written price pending.", "requested_boundary": "Two fictional facilities", "requested_location": "Example County", "outside_boundary": "Other operations are excluded.", "member_prepares": ["A simple organization chart."], "price_state": "Written quote pending.", "schedule_state": "Start and delivery dates are set in the written scope.", "decision_owner": "Executive team", "next_step": "Review the boundary.", "status": "Draft for Salus review", "milestones": [{"step": "Confirm scope", "owner": "Salus and decision owner", "complete_when": "Boundary agreed."}], "choices": [{"choice": "Request a fixed quote", "effect": "Salus sends a written proposal."}]},
+            "scope_receipt": {"receipt_id": "SPA-RECEIPT-TEST", "version": "SPA-SCOPE-RECEIPT-0.4.0", "lead_sentence": "Possible Level 1B is a starting point; written price pending.", "requested_boundary": "Two fictional facilities", "requested_location": "Example County", "outside_boundary": "Other operations are excluded.", "member_prepares": ["A simple organization chart."], "price_state": "Written quote pending.", "schedule_state": "Start and delivery dates are set in the written scope.", "decision_owner": "Executive team", "records_coordinator": "Operations manager", "next_step": "Review the boundary.", "status": "Draft for Salus review", "milestones": [{"step": "Confirm scope", "owner": "Salus and decision owner", "complete_when": "Boundary agreed."}], "choices": [{"choice": "Request a fixed quote", "effect": "Salus sends a written proposal."}]},
             "primary_service": {"title": "Emergency Planning", "level": 2, "level_name": "Focused Review", "summary": "Validate priority capabilities.", "why": "Connected planning needs."},
             "sequence": ["Emergency Planning", "Continuity Program"],
             "later_phase_services": [],
@@ -132,6 +132,7 @@ with TemporaryDirectory() as tmp:
     assert "Possible Level 1B" in extracted
     assert "Two fictional facilities" in extracted
     assert "SPA-RECEIPT-TEST" in extracted
+    assert "Operations manager" in extracted
     assert "Request a fixed quote" in extracted
     assert "CONFIDENTIALITY NOTICE - AUTHORIZED USE ONLY" not in extracted
 
@@ -150,6 +151,7 @@ with TemporaryDirectory() as tmp:
         "decision_units": "One", "separate_findings": "No", "group_priorities": "No",
         "covered_operation": "One fictional child-care site",
         "facility_locations": "Example County, Texas", "decision_authority": "Director",
+        "records_coordinator_role": "Office administrator",
     }
     path = suggest_provisional_level_1_path(profile)
     receipt = draft_level_1_scope_receipt(profile, path)
@@ -160,8 +162,20 @@ with TemporaryDirectory() as tmp:
     assert len(one_page.pages) == 1
     text = one_page.pages[0].extract_text()
     for required in ("SPA-RECEIPT-TEST", "page 1 of 1", "$1,500",
-                     "organization chart", "Five steps", "Your choices", "Decline for now"):
+                     "organization chart", "Office administrator", "Five steps", "Your choices", "Decline for now"):
         assert required in text, required
+    unknown_roles = draft_level_1_scope_receipt(
+        {key: value for key, value in profile.items()
+         if key not in {"decision_authority", "records_coordinator_role"}}, path
+    )
+    unknown_roles["receipt_id"] = "SPA-RECEIPT-UNKNOWN-ROLES"
+    unknown_output = Path(tmp) / "receipt-unknown-roles.pdf"
+    render_scope_receipt_pdf(output_path=unknown_output, context=context, receipt=unknown_roles)
+    unknown_pdf = PdfReader(unknown_output)
+    assert len(unknown_pdf.pages) == 1
+    unknown_text = unknown_pdf.pages[0].extract_text()
+    assert "Assign a decision role" in unknown_text
+    assert "Assign a records coordinator" in unknown_text
     receipt["member_prepares"] = ["A large packet " * 500]
     try:
         render_scope_receipt_pdf(output_path=output, context=context, receipt=receipt)
