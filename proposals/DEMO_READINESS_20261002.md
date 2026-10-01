@@ -1,0 +1,32 @@
+# Internal customer-demo readiness — 2 October 2026
+
+**Status:** Internal planning record, not a published offer, accepted questionnaire, Member intake or release approval. Recheck this record immediately before the afternoon Central Time demo.
+
+## Go or no-go rule
+
+Use the live Protection Advisor Part 1, Part 2 and Level 1 intake as a **fully functional public demonstration** only if all three exact-version paths pass their governed release gates and a reviewer records the result before the demo. A source CI pass, working Word file, Wix page, test account or budget approval alone is insufficient. If any path remains gated, demonstrate only the verified live behavior and label all candidate material **preview with fictional data**. Do not invite customer data, file uploads, purchase, or protected-account creation through a preview.
+
+## Current verified position at 1 October
+
+| Path | Evidence available | Open public-release gates |
+|---|---|---|
+| Protection Advisor Part 1 | Candidate nine-question `SPA-PUBLIC-QUESTIONNAIRE-2.3.0`; draft CI and local Word QA. | Live site still serves SalCAPA `3.202`; exact-image deployment, real browser completion, anonymous privacy, result/print parity, accessibility, Member comprehension and qualified release. |
+| Protection Advisor Part 2 | Candidate signed-in 19 follow-up questions, roles, save/resume, receipt and report; draft CI and local Word QA. | OIDC account and return-path browser tests, consent/isolation/deletion, exact receipt/report/PDF/print QA, accessibility, qualified wording and release. The consented handoff still cannot be incorporated into a written quote. |
+| Level 1 assessment intake | Draft `L1-INTAKE-1.0.0` catalog and quote/authority records. | Confirmed receipt-to-signed-scope link, tailored staged questions, file quarantine and authenticated clean-result scanner, alerts/recovery/retention, live Member and Salus role tests, Wix integration and qualified release. Live site exposes no approved intake path. |
+| Wix entry page | Published `www.salus.solutions/protection-advisor` links to the live embed. | Page still says “A Free Assessment” and does not explain the approved Level 1 purchase boundary. Editor body cannot be changed by the connected REST tool; browser-control initialization currently fails. Exact page copy, desktop/mobile/accessibility and publish verification remain open. |
+
+## Shortest no-expedite path
+
+1. Freeze the exact Part 1/Part 2 candidate and verify a representative anonymous start, resume, consented Part 2, report/receipt, deletion and cross-account denial in a signed-in browser against the release image. Fix failures and rerun the affected exact checks.
+2. Independently review Member wording, accessible output and report/PDF/print parity for the exact version; apply the approved Wix Editor copy and verify desktop/mobile presentation. Publish only through the governed image and site release paths.
+3. Keep intake closed until the scanner, contract/authority link, tailored request, retention and live role tests pass. Do not turn off the file gate to meet the demo.
+4. At a morning Central Time go/no-go check, record exact deployed image, questionnaire/report versions, Wix publication state, test evidence and reviewer. If any required item remains open, use the preview route below and say explicitly what is not live.
+
+## Preview route if release is gated
+
+- Open the existing published Salus site and explain the four connected Salus products and the Level 1 decision the assessment will support. Identify the live Protection Advisor link as the **current version**; do not claim it is the new candidate.
+- Show the local draft Part 1 and Part 2 questionnaire copies and the one-page receipt using fictional organization and role examples. State that the candidate is under exact-version testing and has not been published.
+- Show the Level 1 staged information-request example as a preview. Explain what Salus would request, why, and how “not held/not known” works. Do not collect or accept customer files in this demonstration.
+- End with a human follow-up choice: discuss the customer's covered operation and request a written fixed quote when the governed intake is ready. The selected $1,500 Level 1A Access fee applies only to an eligible simple boundary after Salus review; other paths are quote-pending.
+
+**Owner:** Salus engineering for live technical gates and evidence; qualified product/document reviewers for exact copy, accessibility and release; Marc for the customer demonstration and final go/no-go communication. Keep stopped Tierra Linda and paused large-batch #520 out of this demo.
