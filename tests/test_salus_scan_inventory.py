@@ -86,3 +86,47 @@ def test_restricted_exceptions_are_idempotent_and_orphans_unassigned():
         ('Unlinked', None, 'Open', '2026-10-01T01:00:00Z', '2026-10-01T02:00:00Z'),
     ]
     conn.close()
+
+
+def test_internal_inventory_records_orphan_without_member_attribution(tmp_path, monkeypatch):
+    import app
+
+    path = tmp_path / 'inventory.db'
+    conn = sqlite3.connect(path)
+    conn.execute('''CREATE TABLE package_intake_pending_scans (
+        tenant_id INTEGER,blob_name TEXT,blob_version_id TEXT,
+        size_bytes INTEGER,legal_hold INTEGER)''')
+    conn.execute('''CREATE TABLE package_quarantine_inventory_exceptions (
+        id INTEGER PRIMARY KEY, exception_key TEXT UNIQUE, account_url TEXT,
+        exception_type TEXT, blob_name TEXT, blob_version_id TEXT,
+        candidate_tenant_id INTEGER, status TEXT, first_seen TEXT,
+        last_seen TEXT, assigned_to TEXT DEFAULT '', disposition TEXT DEFAULT '')''')
+    conn.execute('''INSERT INTO package_intake_pending_scans VALUES(7,'tenant-7/a','v1',10,0)''')
+    conn.commit()
+    conn.close()
+
+    def connection():
+        opened = sqlite3.connect(path)
+        opened.row_factory = sqlite3.Row
+        return opened
+
+    class Container:
+        def list_blobs(self, *, include):
+            assert include == ['versions', 'legalhold']
+            return [SimpleNamespace(name='tenant-7/a', version_id='v1',
+                                    size=10, has_legal_hold=False),
+                    SimpleNamespace(name='unknown/orphan', version_id='v2',
+                                    size=4, has_legal_hold=False)]
+
+    reader = SimpleNamespace(account_url='https://scanner.blob.core.windows.net',
+                             container=Container())
+    monkeypatch.setattr(app, 'PACKAGE_SCAN_MODE', 'defender')
+    monkeypatch.setattr(app, 'db', connection)
+    result = app.inspect_package_quarantine_inventory(quarantine=reader)
+    assert result == {'ledger_count': 1, 'azure_version_count': 2,
+                      'azure_bytes': 14, 'exceptions_observed': 1}
+    conn = connection()
+    row = conn.execute('''SELECT exception_type,candidate_tenant_id,status
+        FROM package_quarantine_inventory_exceptions''').fetchone()
+    assert tuple(row) == ('Unlinked', None, 'Open')
+    conn.close()
