@@ -1,5 +1,7 @@
 # Protection Advisor Part 1 — controlled review candidate
 
+**Current exact review identity, 01 October:** Part 1 DOCX SHA-256 `5334F2DA86E909B50E98AB448128C25BB43A64D68BC73D81AE949B112773A331` includes the full current consent and restricted-information wording. Native Word exported a titled, tagged English five-page PDF with `IncludeDocProps=true`; PDF SHA-256 `04BE054E388784F84ABF0BCE2C5D9EB56596B0DB87EDC718261AA2A395989F8A`. All five pages were visually inspected; page 2 is blank, other pages have `page X of 5`, Arial headings, Times New Roman body and no observed clipping. The older Word hash below is historical. App parity, privacy, accessibility, Member comprehension, qualified acceptance and live release remain open.
+
 **Status:** Unapproved source and Word review copy, 01 October 2026. No live publication.
 
 - Source questionnaire version: `SPA-PUBLIC-QUESTIONNAIRE-2.3.0`.
