@@ -905,7 +905,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         assert conn.execute('SELECT status FROM package_intake_requests WHERE id=?',(item_id,)).fetchone()[0]=='Not held'
         # Simulate a separately reconciled held original and an authenticated
         # queue result. The restored Reconcile status must never auto-promote.
-        held_quote_id=conn.execute('SELECT quote_id FROM package_intake_pending_scans WHERE id=?',
+        held_blob_uri=conn.execute('SELECT blob_uri FROM package_intake_pending_scans WHERE id=?',
             (held.json()['id'],)).fetchone()[0]
         conn.execute("UPDATE package_intake_pending_scans SET status='Pending' WHERE id=?",(held.json()['id'],))
         conn.commit();conn.close()
@@ -916,15 +916,13 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         fake_quarantine.read_version=fake_read_version
         app.PACKAGE_SCAN_MODE='defender'
         topic='/subscriptions/test/resourceGroups/test/providers/Microsoft.EventGrid/topics/test'
-        blob_uri='https://salusquarantine.blob.core.windows.net/quarantine/'+(
-            f'tenant-1/assessment-{assessment_id}/quote-{held_quote_id}/item-{item_id}/'
-            + 'a'*32+'_'+pending_digest[:16])
         result_event={'id':'event-1','eventType':'Microsoft.Security.MalwareScanningResult',
-            'topic':topic,'data':{'blobUri':blob_uri,'eTag':'"0xE1"',
+            'topic':topic,'data':{'blobUri':held_blob_uri,'eTag':'"0xE1"',
             'scanResultType':'No threats found','scanResultDetails':{
                 'sha256':pending_digest,'malwareNamesFound':[]}}}
-        assert app.process_package_scan_result(result_event,quarantine=fake_quarantine,
-            expected_topic=topic)=='Promoted'
+        outcome=app.process_package_scan_result(result_event,quarantine=fake_quarantine,
+            expected_topic=topic)
+        assert outcome=='Promoted',outcome
         assert app.process_package_scan_result(result_event,quarantine=fake_quarantine,
             expected_topic=topic)=='Promoted'
         conn=app.db()
