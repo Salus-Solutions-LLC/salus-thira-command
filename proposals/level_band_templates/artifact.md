@@ -1,5 +1,18 @@
 # Level and band report template candidate contract
 
+## Scope-integration status — 1 October 2026
+
+The new business scope is **partially integrated in four local Word candidates**, not yet promoted into the registered report templates or a live Member-facing release. Each candidate has the prospective `Level [path]` report title and an opening instruction for the covered decision unit, exclusions, proof depth, Member decision and next step. These are shared authoring candidates; there are not ten separately accepted path-specific template binaries. The registered source bodies were deliberately preserved outside the narrow title/opening edits. Therefore their later sections still require a section-by-section Level × band authoring and acceptance pass against SAL-D088–SAL-D090 before the suite can be called fully integrated.
+
+| Product | Candidate integration | Still to verify before promotion |
+|---|---|---|
+| SalINTEL™ | Access/Standard, A/B/C decision boundary and Level 1–3 proof limits appear in the opening prompt. | Every evidence, compliance, intake-to-THIRA and education section must produce the scoped path's actual evidence and omissions, not generic placeholders. |
+| SalTHIRA™ | BLUF prompt names path, A/B/C treatment and Level 1–3 proof differences. | Six steps, capability targets, gaps, rankings and cross-unit/group comparisons must be tested with realistic path-specific content. |
+| SalOPS™ | Opening prompt distinguishes A, B and C actions and separately authorized services. | Every option, owner, prerequisite, cost status, proof and service offer must trace to a qualified same-level finding and the selected boundary. |
+| SalCAPA™ | Opening prompt distinguishes Access/Standard, A/B/C and the four-report Member decision. | Exact predecessor versions, one decision trace, action status and next-level or separate-service choices must reconcile real path-specific reports. |
+
+Protection Advisor Part 1/Part 2 and staged intake have separate local review copies and draft source changes. They are not accepted live questionnaires or an authorized offer. Native Word layout/font QA passed for the eight current local copies; exact-version accessibility, qualified content, Member comprehension, signed-in browser and governed release gates remain open. The public Wix copy packet is unapplied. Production remains `release/v3.202` with package intake locked. Do not represent candidate integration as publication.
+
 ## 30 September 2026 scope reconciliation candidate 1.2
 
 The four successor candidates now state how the selected path changes the Member decision: A covers one integrated decision unit, B compares separately analyzed units or operating profiles, and C ranks a named group's priorities. SalINTEL™ distinguishes eligible Level 1A Access from Standard and names the full four-report sequence; SalTHIRA™ distinguishes source-bound Level 1, field-validated Level 2 and authorized specialist Level 3 proof; SalOPS™ separates recommendations from separately quoted implementation; SalCAPA™ names the four reports, Member decision, proof limits and implementation authority. These are prompts for the report author, not completed findings or approved buyer copy. The registered references remain intact.
