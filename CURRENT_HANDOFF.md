@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 1 October 2026 — Part 1 Word consent parity
+
+- **Same local review identity:** Replaced abbreviated Part 1 consent choices with the draft web form's exact primary retention/deletion and optional deidentified-learning language, and aligned the restricted-information warning. DOCX SHA-256 `5334F2DA86E909B50E98AB448128C25BB43A64D68BC73D81AE949B112773A331`; LibreOffice QA PDF SHA-256 `59AF7FF3D416421298CD8EDF7A5E466844AB96E5BE31226BE64A191CCB2FDDF9`. All five pages were visually inspected: blank page two, correct page-count footers and no observed clipping; Arial heading and Times New Roman body styles. It remains an unapproved local copy. Native Word, logging/privacy, accessibility, nonexpert and qualified approval remain open. Engineering owns web/PDF/print parity and governed live acceptance; document reviewers own exact binary approval. No Member data or production state changed.
+
 ## 1 October 2026 — Part 2 multiline submission and Word profile parity
 
 - **Material defect and candidate correction:** Draft Part 2 showed multi-line fields for service area, essential functions and recent concerns, but `SubmitCommand` rejected line breaks in those three fields. The candidate now normalizes their line endings, rejects unrelated control characters, and keeps single-line restrictions on the other fields. The focused public Advisor smoke now submits and verifies saved multi-line responses. Local Python compilation and whitespace checks passed; the full local smoke could not start because the bundled Python lacks FastAPI. Exact pushed source commit `aabd09a69f3b91752f444c3c1df1c6f78ce66858` passed Public Protection Advisor run 515 (`36902004881`) and Salus package rollout run 132 (`36902004812`), including the Windows report and PostgreSQL jobs. This is draft CI, not live Member acceptance.
