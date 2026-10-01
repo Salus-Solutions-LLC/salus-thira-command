@@ -155,18 +155,22 @@ resource quarantineCreateRole 'Microsoft.Authorization/roleDefinitions@2022-04-0
   }
 }
 
+// Azure returns a subscription-root ID for this resource-group-assignable
+// custom role. Use that canonical ID in role assignments and outputs.
+var quarantineCreateRoleCanonicalId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', quarantineCreateRole.name)
+
 // The worker-only identity reads named originals and processes results.
 // The runtime identity is attached separately for DB/evidence and image pull.
 var blobReader = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')
 var queueProcessor = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8a0f0c08-91a1-4084-bc3d-661d67233fed')
 
 resource runtimeQuarantineWriter 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(quarantineContainer.id, runtimeIdentity.id, quarantineCreateRole.id)
+  name: guid(quarantineContainer.id, runtimeIdentity.id, quarantineCreateRoleCanonicalId)
   scope: quarantineContainer
   properties: {
     principalId: runtimeIdentity.properties.principalId
     principalType: 'ServicePrincipal'
-    roleDefinitionId: quarantineCreateRole.id
+    roleDefinitionId: quarantineCreateRoleCanonicalId
   }
 }
 
@@ -367,5 +371,5 @@ output scanResultsQueueId string = scanResultsQueue.id
 output scanResultSubscriptionId string = resultSubscription.id
 output scanWorkerIdentityId string = workerIdentity.id
 output scanWorkerJobId string = scanWorkerJob.id
-output quarantineCreateRoleId string = quarantineCreateRole.id
+output quarantineCreateRoleId string = quarantineCreateRoleCanonicalId
 output defenderSettingId string = defenderScanner.id

@@ -37,4 +37,6 @@ resource quarantineCreateRole 'Microsoft.Authorization/roleDefinitions@2022-04-0
   }
 }
 
-output quarantineCreateRoleId string = quarantineCreateRole.id
+// Azure exposes the role at its canonical subscription-root ID even when its
+// assignable scope is this resource group.
+output quarantineCreateRoleId string = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', quarantineCreateRole.name)
