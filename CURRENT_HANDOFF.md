@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 1 October 2026 — Scanner alert recipient confirmed; activation still gated
+
+- Marc confirmed `MDuncan@Salus.Solutions` as the monitored scanner-failure and missed-run mailbox and named himself as response owner. Recorded SAL-D094. This closes the recipient/owner identification gap; no action group, alert or delivery test has been installed. The final scanner installation parameter may now use this address rather than the earlier fake preflight placeholder. The scanner-capable image, sustainable retention/cost decision, exact reviewed what-if, live scan/alert/recovery tests and qualified release remain open. Engineering owns those steps; Marc owns acknowledgement/response when a real alert is tested. Production remains `release/v3.202` with package intake locked; PR #589 stays draft. Tierra Linda and paused large-batch #520 remain stopped.
+
 ## 1 October 2026 — Native Word questionnaire font and page correction
 
 - Native Microsoft Word opened and exported the eight current local Word review copies. The first export revealed a real OPM/Charter style defect in four questionnaire/intake drafts: Word's heading styles retained a theme-font override and rendered some headings in Calibri despite their explicit Arial style names. Corrected the same four local review-copy identities by removing theme bindings and setting explicit Arial headings and Times New Roman body. Part 2 now deliberately starts its final package-path section with the heading on page 9.
