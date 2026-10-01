@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 1 October 2026 — Budget decision and Owner activation path
+
+- Marc approved a **$75 total monthly Azure budget alert** for `rg-salcapa-dev` once the scoped scanner is activated. SAL-D093 and the Program Charter now record this decision. It is a combined alert, not a second $75 allowance or a hard spending stop. The live budget remains $25; actual subscription pricing and the supporting-service forecast are still open before billable activation. The Azure Consumption price-sheet CLI and current REST endpoint returned 404 for this subscription, so no current negotiated rate was inferred.
+- Marc said he can activate Azure Owner and asked for exact portal steps. The subscription `Access control (IAM) → View my access → eligible Owner → Activate` path, with the Microsoft PIM fallback, was provided from current Microsoft documentation. Activation is pending; no privileged action was attempted. Once active, recheck effective permission for `Microsoft.Authorization/roleDefinitions/write` and `roleAssignments/write` on the exact scope before custom-role deployment. Do not use a broad role in place of the narrow quarantine role.
+- Draft PR #589 remains open. The latest pushed source is `87f446dc17b8691de7418df29ccc553902e2f05f`; Public Protection Advisor run 459 and Salus package rollout run 76 were in progress at this handoff. The SAL-D093 Charter/Decision Register edit is local and needs commit, push and exact-head CI. Production and Wix remain unchanged; paused #520 and stopped Tierra Linda remain untouched.
+
 ## 30 September 2026 — Fresh Azure connection verified; release gates narrowed
 
 - Marc's signed-in Azure portal session completed a new standard Azure CLI browser sign-in using a fresh temporary configuration. The CLI selected Enabled subscription `076f90cd-cc6a-4547-a4ff-de3fc1825472` in tenant `e06fd260-a201-44da-b03b-9cde7e119d04`. Read-only checks verified `rg-salcapa-dev` in `southcentralus`, the existing `salcapa-dev-b48224` immutable image on `release/v3.202`, and the $25/month resource-group budget. The candidate scanner account does not exist; `Microsoft.Security` and `Microsoft.EventGrid` remain `NotRegistered`. No Azure resource was modified.
