@@ -2,6 +2,8 @@
 
 **16:46 Central Time public copy check:** Marc published the final Protection Advisor spacing correction. A fresh public reload showed `security plan. The Protection Advisor`; the cosmetic Wix text correction is closed. This does not change the Part 1, Part 2 and Level 1 intake application release gates or the fictional-preview go/no-go rule below. Earlier typo references in this record describe the historical state.
 
+**16:50 Central Time application check:** A fresh read-only `GET /api/system/mode` returned live version `3.202` with `av_mode=off` and `av_required=false`. The revised Advisor and scanner-backed Level 1 intake are not established as live by the Wix publication. Keep the intake demonstration on the labeled fictional-preview route until the governed image, scanner, browser and reviewer gates pass.
+
 ## Fictional receipt available for the preview route
 
 The local `proposals/qa/demo_preview_20261002/Salus_Fictional_Level_1A_Access_Scope_Receipt_PREVIEW.pdf` is a one-page fictional Level 1A Access example, visibly marked “FICTIONAL DEMO - NOT ISSUED.” Its $1,500 text is conditional on eligibility and written scope. The exact SHA-256 and rendered QA are in `CURRENT_HANDOFF.md`. Do not present this local file as a Member-specific receipt, quote, contract, released report or live intake confirmation. The restricted draft handoff review packet carries the consented operation tags and roles. A receipt-to-quote link exists in draft source and passed fictional tests, but written-agreement incorporation and live release remain gated.
