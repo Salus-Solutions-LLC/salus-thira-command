@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import os
 import sqlite3
 import sys
@@ -30,11 +31,14 @@ with tempfile.TemporaryDirectory() as td:
     app_module=importlib.import_module("app")
     from fastapi.testclient import TestClient
     from public_protection_advisor import (
-        CORE_CAPABILITIES, NOTIFICATION_FROM, QUESTION_BLUEPRINTS, _package_recommendation,
+        CORE_CAPABILITIES, COVERED_OPERATION_TAGS, NOTIFICATION_FROM, QUESTION_BLUEPRINTS,
+        SubmitCommand, _package_recommendation,
         _page, _questions, _review_detail, _review_page, _verification_page,
     )
 
     assert NOTIFICATION_FROM=="protectionadvisor@salus.solutions"
+    assert len(COVERED_OPERATION_TAGS)==13
+    assert not SubmitCommand.model_fields["investment_range"].is_required()
     assert len(CORE_CAPABILITIES)==32
     assert {cap for row in QUESTION_BLUEPRINTS for cap in row[3]}==set(CORE_CAPABILITIES)
     assert set(area for areas in CORE_CAPABILITIES.values() for area in areas)=={
@@ -51,6 +55,9 @@ with tempfile.TemporaryDirectory() as td:
     assert "Protection Advisor" in page.text
     assert "Anonymous Protection Readiness Review" in page.text
     assert "Understand the scope and readiness profile" in page.text
+    assert "Child care or early education" in page.text
+    assert "Agriculture, ranching or animal care" in page.text
+    assert "Potential investment range (optional)" in page.text
     assert "19 more readiness questions" in page.text
     assert "answer from my current knowledge without guessing" in page.text
     assert "Return to Your Part 2 Profile" in page.text
@@ -221,7 +228,8 @@ with tempfile.TemporaryDirectory() as td:
                   "handling_profile":"Federal CUI","handling_authority":"Federal contract clause",
                   "designating_agency":"Example Federal Agency","contract_reference":"TASK-TEST-001",
                   "dissemination_controls":"Authorized recipients only",
-                  "organization_name":"Public Pilot Organization","personnel_range":"101–500"}
+                  "organization_name":"Public Pilot Organization","personnel_range":"101–500",
+                  "covered_operation_tags":["Manufacturing or industrial work","Warehouse or distribution"]}
     })
     assert draft.status_code==200,draft.text
 
@@ -235,6 +243,8 @@ with tempfile.TemporaryDirectory() as td:
     assert resumed_payload["draft"]["organization_name"]=="Public Pilot Organization"
     assert resumed_payload["draft"]["protected_member_code_name"]=="Blue Lantern"
     assert resumed_payload["draft"]["project_code_name"]=="Steady Harbor"
+    assert resumed_payload["draft"]["covered_operation_tags"]==[
+        "Manufacturing or industrial work","Warehouse or distribution"]
     headers={"X-CSRF-Token":resumed_payload["csrf_token"]}
     assert len(resumed_payload["questions"])==30
     assert len(resumed_payload["answers"])==len(questions)
@@ -268,6 +278,7 @@ with tempfile.TemporaryDirectory() as td:
         "personnel_range":"101–500",
         "affected_population_range":"501–2,500",
         "annual_revenue_range":"$25 million–$100 million",
+        "covered_operation_tags":["Manufacturing or industrial work","Warehouse or distribution"],
         "specific_activities":[
             "Precious metals or other high-value materials",
             "Hazardous materials, fuels, chemicals, or regulated waste",
@@ -395,7 +406,9 @@ with tempfile.TemporaryDirectory() as td:
     assert account["email"]=="contact@example.com"
     assert session["status"]=="Submitted"
     assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
-    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.1.0"
+    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.2.0"
+    assert json.loads(profile["profile_json"])["covered_operation_tags"]==[
+        "Manufacturing or industrial work","Warehouse or distribution"]
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_profile_drafts").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_portfolios").fetchone()[0]==1
     assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_engagements").fetchone()[0]==1

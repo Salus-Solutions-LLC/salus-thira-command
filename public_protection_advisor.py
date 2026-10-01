@@ -59,7 +59,7 @@ HANDLING_PROFILES = {
     "Government Contractor CUI", "Specialized Regulated Information",
 }
 HANDLING_REVIEW_REQUIRED = HANDLING_PROFILES - {"Commercial Confidential"}
-PACKAGE_PROFILE_VERSION = "SPA-SERVICE-PROFILE-2.1.0"
+PACKAGE_PROFILE_VERSION = "SPA-SERVICE-PROFILE-2.2.0"
 PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-2.5.0"
 SESSION_HOURS = 24  # Browser authentication lifetime only; retained records do not expire here.
 NOTIFICATION_MODE = os.getenv("SALUS_ADVISOR_NOTIFICATION_MODE", "outbox").strip().lower()
@@ -201,6 +201,24 @@ ACTIVITY_OPTIONS = {
     "Government, public safety, or essential public services",
 }
 
+# These describe the work inside the proposed boundary. They tailor the later
+# scoping conversation and records request; they never set risk, price or band.
+COVERED_OPERATION_TAGS = {
+    "Child care or early education",
+    "Office or professional services",
+    "Retail or wholesale",
+    "Warehouse or distribution",
+    "Manufacturing or industrial work",
+    "Agriculture, ranching or animal care",
+    "Residential association or multi-tenant property",
+    "Construction or field work",
+    "Healthcare or human services",
+    "Education",
+    "Food, hospitality or events",
+    "Public service or critical infrastructure",
+    "Mobile or remote operations",
+}
+
 FAITH_QUESTION = ("volunteer_roles", "Where volunteers have protective or emergency responsibilities, are their roles current, understood, and practiced?", "capability", ("Operational Coordination", "Planning"), ("training", "planning"), 1.3)
 SCHOOL_QUESTION = ("reunification", "Have student accountability and family reunification procedures been tested with responsible personnel?", "response", ("Mass Care Services", "Operational Coordination", "Public Information and Warning"), ("planning", "training"), 1.5)
 PUBLIC_QUESTION = ("public_access", "Are public access, visitor management, and concerning-behavior reporting handled consistently?", "protection", ("Access Control and Identity Verification", "Screening, Search, and Detection", "Intelligence and Information Sharing"), ("facility", "protection", "protective_intelligence"), 1.5)
@@ -313,7 +331,7 @@ class DraftCommand(BaseModel):
             "organization_name", "contact_name", "contact_email", "facility_scope",
             "covered_operation", "decision_units", "separate_findings", "group_priorities",
             "facility_locations", "personnel_range", "affected_population_range",
-            "annual_revenue_range", "specific_activities", "essential_functions",
+            "annual_revenue_range", "covered_operation_tags", "specific_activities", "essential_functions",
             "maximum_tolerable_downtime", "existing_program_maturity",
             "internal_implementation_capacity", "primary_objective",
             "external_requirements", "recent_concerns", "desired_timing",
@@ -352,6 +370,7 @@ class SubmitCommand(BaseModel):
     personnel_range: str = Field(min_length=1, max_length=80)
     affected_population_range: str = Field(min_length=1, max_length=80)
     annual_revenue_range: str = Field(default="", max_length=80)
+    covered_operation_tags: list[str] = Field(default_factory=list, max_length=13)
     specific_activities: list[str] = Field(default_factory=list, max_length=10)
     essential_functions: str = Field(default="", max_length=1200)
     maximum_tolerable_downtime: str = Field(min_length=1, max_length=80)
@@ -362,7 +381,7 @@ class SubmitCommand(BaseModel):
     recent_concerns: str = Field(default="", max_length=1200)
     desired_timing: str = Field(min_length=1, max_length=80)
     decision_authority: str = Field(min_length=1, max_length=160)
-    investment_range: str = Field(min_length=1, max_length=80)
+    investment_range: str = Field(default="", max_length=80)
 
     @field_validator(
         "protected_member_code_name", "project_code_name", "handling_profile",
@@ -387,6 +406,14 @@ class SubmitCommand(BaseModel):
         cleaned = list(dict.fromkeys(item.strip() for item in value if item.strip()))
         if any(item not in ACTIVITY_OPTIONS for item in cleaned):
             raise ValueError("unsupported activity")
+        return cleaned
+
+    @field_validator("covered_operation_tags")
+    @classmethod
+    def valid_operation_tags(cls, value: list[str]) -> list[str]:
+        cleaned = list(dict.fromkeys(item.strip() for item in value if item.strip()))
+        if any(item not in COVERED_OPERATION_TAGS for item in cleaned):
+            raise ValueError("unsupported covered operation")
         return cleaned
 
     @field_validator("handling_profile")
@@ -1099,6 +1126,10 @@ def _page(include_shell: bool = True) -> str:
         f'<label class="choice"><input type="checkbox" name="activity" value="{html.escape(item)}"> {html.escape(item)}</label>'
         for item in sorted(ACTIVITY_OPTIONS)
     )
+    operation_tags = "".join(
+        f'<label class="choice"><input type="checkbox" name="operationTag" value="{html.escape(item)}"> {html.escape(item)}</label>'
+        for item in sorted(COVERED_OPERATION_TAGS)
+    )
     return """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Protection Advisor | Salus Solutions</title>
@@ -1181,6 +1212,8 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <label>Email address<input id="contactEmail" type="email" maxlength="254"></label>
 <label>Facility scope<select id="facilityScope"><option value="">Choose an option</option><option>One facility</option><option>Several facilities</option><option>Organization-wide</option><option>Distributed, mobile, or remote operations</option><option>Not sure</option></select></label>
 <label>Operation or function you want assessed (optional for now)<input id="coveredOperation" type="text" maxlength="240" placeholder="Example: one daycare site; warehouse only; two lumber yards"></label>
+<fieldset><legend>What work happens in that operation? (optional; choose any that apply)</legend><div id="operationTags">__OPERATION_TAGS__</div></fieldset>
+<p class="muted">These descriptions help Salus tailor later questions and records. They do not set a risk rating, package band or price.</p>
 <label>How many operations need their own decision?<select id="decisionUnits"><option value="Not sure">Not sure yet</option><option value="One">One combined operation</option><option value="Two">Two named sites or operations</option><option value="Group">A group needing shared priorities</option></select></label>
 <label>Will different sites or activities need separate findings and a comparison?<select id="separateFindings"><option value="Not sure">Not sure yet</option><option value="No">No, one combined set of findings</option><option value="Yes">Yes, separate findings and a comparison</option></select></label>
 <label>Must leadership rank investments across a group of sites or activities?<select id="groupPriorities"><option value="Not sure">Not sure yet</option><option value="No">No</option><option value="Yes">Yes</option></select></label>
@@ -1199,7 +1232,7 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <label>Recent incidents, concerns, deadlines, or reasons for seeking assistance<textarea id="recentConcerns" maxlength="1200"></textarea></label>
 <label>Desired timing<select id="desiredTiming"><option value="">Choose an option</option><option>Immediate concern</option><option>Within 30 days</option><option>Within 90 days</option><option>Within 6 months</option><option>Planning for a future budget cycle</option><option>Not sure</option></select></label>
 <label>Who can authorize the next step?<input id="decisionAuthority" type="text" maxlength="160" placeholder="Role or decision group; a personal name is not required"></label>
-<label>Potential investment range<select id="investmentRange"><option value="">Choose an option</option><option>Under $10,000</option><option>$10,000–$25,000</option><option>$25,000–$75,000</option><option>$75,000–$250,000</option><option>Over $250,000</option><option>Need phased options</option><option>Not established</option><option>Prefer to discuss with Salus</option></select></label>
+<label>Potential investment range (optional)<select id="investmentRange"><option value="">Skip this question</option><option>Under $10,000</option><option>$10,000–$25,000</option><option>$25,000–$75,000</option><option>$75,000–$250,000</option><option>Over $250,000</option><option>Need phased options</option><option>Not established</option><option>Prefer to discuss with Salus</option></select></label>
 <p class="muted">Do not enter passwords, financial account information, medical records, government identifiers, classified information, detailed hazardous-material inventories, access-control details, or information whose disclosure could create an immediate security risk.</p>
 <p id="draftStatus" class="muted">Changes will be saved to your Part 2 account.</p><button onclick="saveDraft()">Save Progress &gt;</button><button onclick="logoutAccount()">Sign Out &gt;</button><br><button onclick="submitProfile()">Prepare My Tailored Preliminary Package &gt;</button><p id="submitError" class="error"></p></section>
 <section id="package" class="hidden result"></section>
@@ -1256,8 +1289,9 @@ async function startAdditionalAssessment(){workspaceStatus.textContent="";if(!ad
 async function loginAccount(){accountError.textContent="";try{const data=await call("/public/protection-advisor/login",{method:"POST",body:JSON.stringify({email:loginEmail.value,password:loginPassword.value})});accountAccess.classList.add("hidden");accountEmailCurrent=data.email;renderRelationshipWorkspace(data);showSelectedAssessment(data)}catch(x){accountError.textContent=x.message}}
 async function requestPasswordReset(){accountError.textContent="";try{await call("/public/protection-advisor/password-reset-request",{method:"POST",body:JSON.stringify({email:loginEmail.value})});accountError.textContent="If the account exists, a password-reset message has been requested."}catch(x){accountError.textContent=x.message}}
 async function resetAccountPassword(){accountError.textContent="";try{const token=new URLSearchParams(location.search).get("reset_token")||"";await call("/public/protection-advisor/password-reset",{method:"POST",body:JSON.stringify({token:token,new_password:resetPassword.value})});accountError.textContent="Password reset. Sign in with the new password.";resetPanel.classList.add("hidden")}catch(x){accountError.textContent=x.message}}
-function draftFields(){return {protected_member_code_name:protectedMemberCode.value,project_code_name:projectCode.value,handling_profile:handlingProfile.value,handling_authority:handlingAuthority.value,designating_agency:designatingAgency.value,contract_reference:contractReference.value,dissemination_controls:disseminationControls.value,organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,facility_scope:facilityScope.value,covered_operation:coveredOperation.value,decision_units:decisionUnits.value,separate_findings:separateFindings.value,group_priorities:groupPriorities.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value),essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value}}
-function hydrateDraft(d){const ids={protected_member_code_name:"protectedMemberCode",project_code_name:"projectCode",handling_profile:"handlingProfile",handling_authority:"handlingAuthority",designating_agency:"designatingAgency",contract_reference:"contractReference",dissemination_controls:"disseminationControls",organization_name:"organizationName",contact_name:"contactName",facility_scope:"facilityScope",covered_operation:"coveredOperation",decision_units:"decisionUnits",separate_findings:"separateFindings",group_priorities:"groupPriorities",facility_locations:"facilityLocations",personnel_range:"personnelRange",affected_population_range:"affectedPopulationRange",annual_revenue_range:"revenueRange",essential_functions:"essentialFunctions",maximum_tolerable_downtime:"maximumTolerableDowntime",existing_program_maturity:"existingProgramMaturity",internal_implementation_capacity:"internalImplementationCapacity",primary_objective:"primaryObjective",external_requirements:"externalRequirements",recent_concerns:"recentConcerns",desired_timing:"desiredTiming",decision_authority:"decisionAuthority",investment_range:"investmentRange"};Object.entries(ids).forEach(([k,id])=>{if(d[k]!==undefined)document.getElementById(id).value=d[k]});(d.specific_activities||[]).forEach(v=>{const el=[...document.querySelectorAll('input[name="activity"]')].find(x=>x.value===v);if(el)el.checked=true});syncAdvisorCardChoices()}
+function selectedOperationTags(){return [...document.querySelectorAll('input[name="operationTag"]:checked')].map(x=>x.value)}
+function draftFields(){return {protected_member_code_name:protectedMemberCode.value,project_code_name:projectCode.value,handling_profile:handlingProfile.value,handling_authority:handlingAuthority.value,designating_agency:designatingAgency.value,contract_reference:contractReference.value,dissemination_controls:disseminationControls.value,organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,facility_scope:facilityScope.value,covered_operation:coveredOperation.value,decision_units:decisionUnits.value,separate_findings:separateFindings.value,group_priorities:groupPriorities.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,covered_operation_tags:selectedOperationTags(),specific_activities:[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value),essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value}}
+function hydrateDraft(d){const ids={protected_member_code_name:"protectedMemberCode",project_code_name:"projectCode",handling_profile:"handlingProfile",handling_authority:"handlingAuthority",designating_agency:"designatingAgency",contract_reference:"contractReference",dissemination_controls:"disseminationControls",organization_name:"organizationName",contact_name:"contactName",facility_scope:"facilityScope",covered_operation:"coveredOperation",decision_units:"decisionUnits",separate_findings:"separateFindings",group_priorities:"groupPriorities",facility_locations:"facilityLocations",personnel_range:"personnelRange",affected_population_range:"affectedPopulationRange",annual_revenue_range:"revenueRange",essential_functions:"essentialFunctions",maximum_tolerable_downtime:"maximumTolerableDowntime",existing_program_maturity:"existingProgramMaturity",internal_implementation_capacity:"internalImplementationCapacity",primary_objective:"primaryObjective",external_requirements:"externalRequirements",recent_concerns:"recentConcerns",desired_timing:"desiredTiming",decision_authority:"decisionAuthority",investment_range:"investmentRange"};Object.entries(ids).forEach(([k,id])=>{if(d[k]!==undefined)document.getElementById(id).value=d[k]});(d.specific_activities||[]).forEach(v=>{const el=[...document.querySelectorAll('input[name="activity"]')].find(x=>x.value===v);if(el)el.checked=true});document.querySelectorAll('input[name="operationTag"]').forEach(el=>{el.checked=(d.covered_operation_tags||[]).includes(el.value)});syncAdvisorCardChoices()}
 const advisorCardFieldIds=["facilityScope","existingProgramMaturity","internalImplementationCapacity","desiredTiming"];
 function syncAdvisorCardChoices(){
   advisorCardFieldIds.forEach(id=>{
@@ -1299,7 +1333,7 @@ let draftTimer=null;
 function enableAutosave(){profile.querySelectorAll("input,select,textarea").forEach(el=>el.addEventListener("change",()=>{clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,500)}))}
 async function saveDraft(){draftStatus.textContent="Saving…";try{const data=await call("/public/protection-advisor/draft",{method:"POST",body:JSON.stringify({fields:draftFields()})});draftStatus.textContent="Saved "+advisorTimestamp(data.updated_at)}catch(x){draftStatus.textContent="Draft not saved: "+x.message}}
 async function logoutAccount(){try{await call("/public/protection-advisor/logout",{method:"POST",body:"{}"})}finally{location.reload()}}
-async function submitProfile(){submitError.textContent="";try{const selected=[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value);const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({protected_member_code_name:protectedMemberCode.value,project_code_name:projectCode.value,handling_profile:handlingProfile.value,handling_authority:handlingAuthority.value,designating_agency:designatingAgency.value,contract_reference:contractReference.value,dissemination_controls:disseminationControls.value,organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked,facility_scope:facilityScope.value,covered_operation:coveredOperation.value,decision_units:decisionUnits.value,separate_findings:separateFindings.value,group_priorities:groupPriorities.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,specific_activities:selected,essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value})});profile.classList.add("hidden");const p=data.package;advisorResultReference=data.result_reference;reportIdentity=data.report_identity||{};package.classList.remove("hidden");package.innerHTML=advisorPrintMeta("Part 2 — Scope and Readiness Profile",advisorResultReference,true,reportIdentity)+reportIdentityControls(reportIdentity)+'<p class="eyebrow">Provisional Level 1 Package Path</p>'+hypothesisMarkup(data.result.preliminary_hypothesis)+packageMarkup(p)+'<div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part2&quot;)">Download Scope and Readiness Report &gt;</button><p id="detailedReportStatus" class="muted" role="status" aria-live="polite"></p></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';package.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}catch(x){submitError.textContent=x.message}}
+async function submitProfile(){submitError.textContent="";try{const selected=[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value);const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({protected_member_code_name:protectedMemberCode.value,project_code_name:projectCode.value,handling_profile:handlingProfile.value,handling_authority:handlingAuthority.value,designating_agency:designatingAgency.value,contract_reference:contractReference.value,dissemination_controls:disseminationControls.value,organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked,facility_scope:facilityScope.value,covered_operation:coveredOperation.value,decision_units:decisionUnits.value,separate_findings:separateFindings.value,group_priorities:groupPriorities.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,covered_operation_tags:selectedOperationTags(),specific_activities:selected,essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,investment_range:investmentRange.value})});profile.classList.add("hidden");const p=data.package;advisorResultReference=data.result_reference;reportIdentity=data.report_identity||{};package.classList.remove("hidden");package.innerHTML=advisorPrintMeta("Part 2 — Scope and Readiness Profile",advisorResultReference,true,reportIdentity)+reportIdentityControls(reportIdentity)+'<p class="eyebrow">Provisional Level 1 Package Path</p>'+hypothesisMarkup(data.result.preliminary_hypothesis)+packageMarkup(p)+'<div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part2&quot;)">Download Scope and Readiness Report &gt;</button><p id="detailedReportStatus" class="muted" role="status" aria-live="polite"></p></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';package.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}catch(x){submitError.textContent=x.message}}
 const resetToken=new URLSearchParams(location.search).get("reset_token");if(resetToken){accountAccess.classList.remove("hidden");resetPanel.classList.remove("hidden");}
 </script><script>
 const reportProtectionAdvisorHeight=()=>{const height=Math.max(900,document.documentElement.scrollHeight,document.body.scrollHeight);window.parent.postMessage({type:"salus-protection-advisor-height",height:height,preferred_min_height:900,source:"protection-advisor"},"https://www.salus.solutions")};
@@ -1313,7 +1347,7 @@ const reportProtectionAdvisorLoad=()=>setTimeout(()=>{
 },0);
 new ResizeObserver(reportProtectionAdvisorHeight).observe(document.documentElement);
 window.addEventListener("load",()=>{reportProtectionAdvisorHeight();reportProtectionAdvisorLoad()});
-</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header() if include_shell else "").replace("__PAGE_INTRO__", page_intro).replace("__EMBED_CSS__", embed_css).replace("__HANDOFF_ENABLED__", "1" if os.getenv("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED", "0").lower() in ("1","true","yes") and os.getenv("SALUS_ENV","development").lower() != "production" else "0")
+</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__OPERATION_TAGS__", operation_tags).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header() if include_shell else "").replace("__PAGE_INTRO__", page_intro).replace("__EMBED_CSS__", embed_css).replace("__HANDOFF_ENABLED__", "1" if os.getenv("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED", "0").lower() in ("1","true","yes") and os.getenv("SALUS_ENV","development").lower() != "production" else "0")
 
 
 def _service_catalog_page() -> str:
@@ -2482,6 +2516,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 "personnel_range": command.personnel_range,
                 "affected_population_range": command.affected_population_range,
                 "annual_revenue_range": command.annual_revenue_range,
+                "covered_operation_tags": command.covered_operation_tags,
                 "specific_activities": command.specific_activities,
                 "essential_functions": command.essential_functions,
                 "maximum_tolerable_downtime": command.maximum_tolerable_downtime,
