@@ -5,6 +5,7 @@ tenant-bound pending manifest from trusted storage. A matching event alone
 never authorizes access: re-read the blob version, eTag and bytes before copy.
 """
 
+import hashlib
 import re
 
 
@@ -39,3 +40,42 @@ def defender_result_for_pending(event, *, topic, blob_uri, etag, sha256):
     if not isinstance(malware_names, list) or malware_names:
         return 'Unscanned'
     return 'Clean'
+
+
+def qualified_clean_quarantine_object(event, pending, snapshot, *, topic,
+                                      tenant_id, assessment_id, intake_request_id):
+    """Check one scoped, versioned original before any caller promotes its bytes.
+
+    `pending` must come from the trusted tenant-bound intake ledger; `snapshot`
+    must come from a managed-identity read of that blob's *named version*.
+    The queue processor authenticates the queue, performs the read and then
+    makes the status/copy transition under a database lock. This pure check
+    does not grant access or change either store.
+    """
+    if not isinstance(pending, dict) or not isinstance(snapshot, dict):
+        return False
+    if pending.get('status') != 'Pending':
+        return False
+    for field, expected in (('tenant_id', tenant_id),
+                            ('assessment_id', assessment_id),
+                            ('intake_request_id', intake_request_id)):
+        if not isinstance(expected, int) or expected < 1 or pending.get(field) != expected:
+            return False
+    uri = pending.get('blob_uri')
+    version = pending.get('blob_version_id')
+    etag = pending.get('etag')
+    digest = pending.get('sha256')
+    size = pending.get('size_bytes')
+    data = snapshot.get('bytes')
+    if (not all(isinstance(value, str) and value for value in (uri, version, etag))
+            or not isinstance(digest, str) or not _SHA256.fullmatch(digest)
+            or not isinstance(size, int) or size < 1
+            or not isinstance(data, bytes) or len(data) != size):
+        return False
+    if (snapshot.get('blob_uri') != uri
+            or snapshot.get('blob_version_id') != version
+            or snapshot.get('etag') != etag
+            or hashlib.sha256(data).hexdigest() != digest.lower()):
+        return False
+    return defender_result_for_pending(event, topic=topic, blob_uri=uri,
+                                       etag=etag, sha256=digest) == 'Clean'
