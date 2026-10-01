@@ -6,6 +6,7 @@ curl() {
 }
 
 BASE="${PROTECTION_ADVISOR_BASE_URL:-https://salcapa-dev-b48224.ashycoast-29444a28.southcentralus.azurecontainerapps.io}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WORK="$(mktemp -d)"
 COOKIE="$WORK/cookies.txt"
 PASSWORD="Pa!$(openssl rand -hex 18)"
@@ -102,6 +103,8 @@ curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' \
   -d @"$WORK/login.json" "$BASE/public/protection-advisor/login" > "$WORK/login-result.json"
 CSRF="$(jq -r '.csrf_token' "$WORK/login-result.json")"
 jq -e '.authenticated==true and (.questions|length)==28 and (.answers|length)==9 and .draft.organization_name=="Salus Fictional Acceptance Organization"' "$WORK/login-result.json" >/dev/null
+jq -S '.answers' "$WORK/login-result.json" > "$WORK/part1-answers.json"
+jq -e '. as $response | ([.questions[].key | select($response.answers[.] == null)] | length)==19' "$WORK/login-result.json" >/dev/null
 
 STAGE="consented Part 2 capability questions"
 while IFS= read -r key; do
@@ -109,7 +112,17 @@ while IFS= read -r key; do
   curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
     -d @"$WORK/answer.json" "$BASE/public/protection-advisor/answer" > "$WORK/answer-result.json"
   jq -e '.saved==true' "$WORK/answer-result.json" >/dev/null
-done < <(jq -r '.questions[].key as $key | select(.answers[$key] == null) | $key' "$WORK/login-result.json")
+done < <(jq -r -f "$SCRIPT_DIR/advisor_missing_part2_keys.jq" "$WORK/login-result.json")
+
+STAGE="Part 1 carry-forward and Part 2 completion"
+curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
+  -d '{}' "$BASE/public/protection-advisor/logout" > "$WORK/part2-logout.json"
+curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' \
+  -d @"$WORK/login.json" "$BASE/public/protection-advisor/login" > "$WORK/part2-resume.json"
+CSRF="$(jq -r '.csrf_token' "$WORK/part2-resume.json")"
+jq -e --slurpfile before "$WORK/part1-answers.json" \
+  '.answers as $answers | ($answers|length)==28 and ([$before[0] | to_entries[] | select($answers[.key] != .value)] | length)==0' \
+  "$WORK/part2-resume.json" >/dev/null
 
 STAGE="submission and notifications"
 jq -nc --arg email "$EMAIL" '{protected_member_code_name:"Fictional Acceptance Member",project_code_name:"Automated Acceptance",handling_profile:"Commercial Confidential",organization_name:"Salus Fictional Acceptance Organization",contact_name:"Fictional Acceptance Reviewer",contact_email:$email,detailed_assessment_acknowledged:true,identifiable_retention_consent:true,facility_scope:"Multiple facilities",facility_locations:"Fictional locations only",personnel_range:"101-500",affected_population_range:"501-2,000",annual_revenue_range:"$25M-$100M",specific_activities:["Hazardous materials, fuels, chemicals, or regulated waste","Sensitive information, technology, research, or intellectual property"],essential_functions:"Fictional essential operations",maximum_tolerable_downtime:"24 hours",existing_program_maturity:"Developing",internal_implementation_capacity:"Limited",primary_objective:"Prioritize protection improvements",external_requirements:"Contractual and regulatory requirements",recent_concerns:"Fictional acceptance concerns",desired_timing:"Within 90 days",decision_authority:"Executive leadership",investment_range:"$50,000-$150,000"}' > "$WORK/submit.json"

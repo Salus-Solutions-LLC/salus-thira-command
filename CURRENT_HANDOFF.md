@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 1 October 2026 — live Advisor carry-forward acceptance corrected
+
+- **Concrete defect corrected in draft acceptance tooling:** The live Part 2 test selected all 28 question keys because its `jq` selector inspected `.answers` on each question object rather than on the login response. It would overwrite the nine Part 1 answers with `Unknown`, then report a successful Part 2 submission without proving answer carry-forward. The script now selects only the 19 missing keys via `tools/advisor_missing_part2_keys.jq`, asserts their count, then logs out and back in to verify 28 saved answers and exact preservation of the nine Part 1 values. The package workflow now syntax-checks the live script and exercises that selector with a fictional two-question fixture.
+- **Version and release status:** This is draft test tooling only; it has not run against the live SalCAPA `3.202` route, which does not contain the new 2.3.0 questionnaire. No Azure, Wix, Member or production state changed. Local whitespace review passed; exact-head GitHub CI and the live signed-in acceptance run remain next gates. Engineering owns the exact CI and live run after a governed candidate deployment. The scanner and Wix Editor gates below remain open; no public issue is implied.
+
 ## 1 October 2026 — 2 October afternoon customer demo priority
 
 - **Changed priority, not release criteria:** Marc wants Protection Advisor Part 1, Part 2 and Level 1 assessment intake fully functional on the Wix site for an afternoon Central Time demo on 2 October 2026, without paying extra to accelerate. The existing hourly same-chat rollout follow-up now prioritizes these three paths and a clearly labeled fictional-data fallback. The broader Level × band rollout, stopped Tierra Linda work and paused large-batch #520 retain their recorded state.

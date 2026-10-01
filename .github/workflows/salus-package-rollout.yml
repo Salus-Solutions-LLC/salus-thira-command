@@ -17,6 +17,8 @@ on:
       - security_controls.py
       - storage.py
       - requirements.txt
+      - tools/live_public_protection_advisor_acceptance.sh
+      - tools/advisor_missing_part2_keys.jq
       - static/**
       - tests/**
       - proposals/level_band_templates/build_candidates.py
@@ -48,6 +50,8 @@ on:
       - security_controls.py
       - storage.py
       - requirements.txt
+      - tools/live_public_protection_advisor_acceptance.sh
+      - tools/advisor_missing_part2_keys.jq
       - static/**
       - tests/**
       - proposals/level_band_templates/build_candidates.py
@@ -86,6 +90,11 @@ jobs:
       - run: python -m pytest -q -p no:cacheprovider tests --ignore=tests/test_protection_advisor_professional_report.py
       - run: python -m compileall -q app.py public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py salus_package_path.py salus_package_quote.py salus_package_intake.py portable_backup.py proposals/qa/audit_level_band_templates.py
       - run: node --check static/app.js
+      - name: Check live Advisor Part 2 answer carry-forward
+        run: |
+          bash -n tools/live_public_protection_advisor_acceptance.sh
+          jq -n '{questions:[{key:"part1"},{key:"part2"}],answers:{part1:"Documented"}}' > /tmp/advisor-answer-fixture.json
+          test "$(jq -r -f tools/advisor_missing_part2_keys.jq /tmp/advisor-answer-fixture.json)" = 'part2'
       - name: Compile scanner installation template without Azure credentials
         run: az bicep build --file infra/azure/defender-storage-scanner.bicep --stdout > /tmp/salus-defender-scanner-arm.json
 
