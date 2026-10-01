@@ -1,5 +1,9 @@
 # Internal customer-demo readiness — 2 October 2026
 
+## 1 October public read-back and acceptance-script update
+
+The public Wix Protection Advisor page still shows “A Free Assessment” and “Begin Your Assessment.” Marc's prepared replacement copy has not been verified live. The candidate live acceptance script now exercises multi-line Part 2 draft/save/resume/submission with fictional values, after the draft server fix. That script has not run on the live service, so it supplies no release proof. The go/no-go and fictional-data preview rules below remain unchanged.
+
 ## 1 October afternoon Central Time checkpoint
 
 Draft source commit `aabd09a69f3b91752f444c3c1df1c6f78ce66858` passed the exact Public Protection Advisor and Salus package rollout checks after correcting Part 2 multi-line response submission. The Part 1 Word review copy uses the web form's exact consent statements (`5334F2DA86E909B50E98AB448128C25BB43A64D68BC73D81AE949B112773A331`). The same Part 2 Word review identity now includes all 34 submission prompts/acknowledgments, with separate facility scope and location fields and matching consent/privacy guidance (`FB9FB450EBDD4D8ABD7A672A1216347194D14D17B381A43ECEEFA494C5FAD73F`). The Level 1 Member information-request review copy now clearly separates brief pre-agreement answers from the seven-subject post-agreement first packet (`1B8A44D7C0B736427038B5900C07F2AA1E6AFA6E64BA784943D03C9DC269EBB2`). Rendered-page checks passed for all three local review copies; qualified/native/accessibility acceptance remains open. A public page read still showed the older “A Free Assessment” Wix text. These changes are not deployed, and no scanner-backed Level 1 upload has been accepted. The go/no-go rule and fictional-data preview below remain in force; a manual Wix copy update alone does not change the SalCAPA application.

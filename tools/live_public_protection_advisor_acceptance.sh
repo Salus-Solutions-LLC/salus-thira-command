@@ -88,6 +88,8 @@ STAGE="draft save"
 jq -nc --arg email "$EMAIL" '{fields:{protected_member_code_name:"Fictional Acceptance Member",project_code_name:"Automated Acceptance",handling_profile:"Commercial Confidential",organization_name:"Salus Fictional Acceptance Organization",contact_name:"Fictional Acceptance Reviewer",contact_email:$email,facility_scope:"Multiple facilities",facility_locations:"Fictional locations only",personnel_range:"101-500",affected_population_range:"501-2,000",annual_revenue_range:"$25M-$100M",specific_activities:["Hazardous materials, fuels, chemicals, or regulated waste","Sensitive information, technology, research, or intellectual property"],essential_functions:"Fictional essential operations",maximum_tolerable_downtime:"24 hours",existing_program_maturity:"Developing",internal_implementation_capacity:"Limited",primary_objective:"Prioritize protection improvements",external_requirements:"Contractual and regulatory requirements",recent_concerns:"Fictional acceptance concerns",desired_timing:"Within 90 days",decision_authority:"Executive leadership",investment_range:"$50,000-$150,000"}}' > "$WORK/draft.json"
 jq '.fields += {covered_operation:"Two fictional facilities",decision_units:"Two",separate_findings:"Yes",group_priorities:"No"}' "$WORK/draft.json" > "$WORK/draft-scope.json"
 mv "$WORK/draft-scope.json" "$WORK/draft.json"
+jq '.fields.facility_locations = "Fictional site one\nFictional site two" | .fields.essential_functions = "Fictional continuity\nFictional distribution" | .fields.recent_concerns = "Fictional power outage\nFictional supplier delay"' "$WORK/draft.json" > "$WORK/draft-multiline.json"
+mv "$WORK/draft-multiline.json" "$WORK/draft.json"
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
   -d @"$WORK/draft.json" "$BASE/public/protection-advisor/draft" > "$WORK/draft-result.json"
 jq -e '.saved==true' "$WORK/draft-result.json" >/dev/null
@@ -103,6 +105,7 @@ curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' \
   -d @"$WORK/login.json" "$BASE/public/protection-advisor/login" > "$WORK/login-result.json"
 CSRF="$(jq -r '.csrf_token' "$WORK/login-result.json")"
 jq -e '.authenticated==true and (.questions|length)==28 and (.answers|length)==9 and .draft.organization_name=="Salus Fictional Acceptance Organization"' "$WORK/login-result.json" >/dev/null
+jq -e '.draft.facility_locations=="Fictional site one\nFictional site two" and .draft.essential_functions=="Fictional continuity\nFictional distribution" and .draft.recent_concerns=="Fictional power outage\nFictional supplier delay"' "$WORK/login-result.json" >/dev/null
 jq -S '.answers' "$WORK/login-result.json" > "$WORK/part1-answers.json"
 jq -e '. as $response | ([.questions[].key | select($response.answers[.] == null)] | length)==19' "$WORK/login-result.json" >/dev/null
 
@@ -127,6 +130,8 @@ STAGE="submission and notifications"
 jq -nc --arg email "$EMAIL" '{protected_member_code_name:"Fictional Acceptance Member",project_code_name:"Automated Acceptance",handling_profile:"Commercial Confidential",organization_name:"Salus Fictional Acceptance Organization",contact_name:"Fictional Acceptance Reviewer",contact_email:$email,detailed_assessment_acknowledged:true,identifiable_retention_consent:true,facility_scope:"Multiple facilities",facility_locations:"Fictional locations only",personnel_range:"101-500",affected_population_range:"501-2,000",annual_revenue_range:"$25M-$100M",specific_activities:["Hazardous materials, fuels, chemicals, or regulated waste","Sensitive information, technology, research, or intellectual property"],essential_functions:"Fictional essential operations",maximum_tolerable_downtime:"24 hours",existing_program_maturity:"Developing",internal_implementation_capacity:"Limited",primary_objective:"Prioritize protection improvements",external_requirements:"Contractual and regulatory requirements",recent_concerns:"Fictional acceptance concerns",desired_timing:"Within 90 days",decision_authority:"Executive leadership",investment_range:"$50,000-$150,000"}' > "$WORK/submit.json"
 jq '. += {covered_operation:"Two fictional facilities",decision_units:"Two",separate_findings:"Yes",group_priorities:"No"}' "$WORK/submit.json" > "$WORK/submit-scope.json"
 mv "$WORK/submit-scope.json" "$WORK/submit.json"
+jq '.facility_locations = "Fictional site one\nFictional site two" | .essential_functions = "Fictional continuity\nFictional distribution" | .recent_concerns = "Fictional power outage\nFictional supplier delay"' "$WORK/submit.json" > "$WORK/submit-multiline.json"
+mv "$WORK/submit-multiline.json" "$WORK/submit.json"
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
   -d @"$WORK/submit.json" "$BASE/public/protection-advisor/submit" > "$WORK/submit-result.json"
 jq -e '.submitted==true and .result.status=="Preliminary — Salus Review Required" and .package.core_capabilities_considered==32 and (.package.services|length)>0 and ([.package.services[].level]|all(.>=1 and .<=3)) and ([.notifications[].state]|all(.=="Delivered"))' "$WORK/submit-result.json" >/dev/null
