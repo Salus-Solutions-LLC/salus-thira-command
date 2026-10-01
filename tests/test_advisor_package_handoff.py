@@ -312,6 +312,18 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
           (receipt_digest,quoted.json()['id']))
         conn.commit();conn.close()
         assert reviewer.get(quote_url).json()['status']=='Quoted'
+        authority=reviewer.post(f'/api/assessments/{assessment_id}/package-member-authority',json={
+          'quote_id':quoted.json()['id'],'member_user_id':user_id,
+          'authority_basis':'Reviewed fictional board delegation for this agreement',
+          'evidence_reference':'FICTIONAL-BOARD-AUTHORITY-1','confirm_external_authority':True})
+        assert authority.status_code==200,authority.text
+        downloaded=member.get(f'/api/package-agreements/{uploaded.json()["id"]}/download')
+        assert downloaded.status_code==200 and downloaded.content==agreement,downloaded.text
+        acceptance={'quote_id':quoted.json()['id'],
+          'quote_sha256':quoted.json()['content_sha256'],'agreement_sha256':agreement_sha,
+          'member_authority_basis':'Authorized fictional Member executive',
+          'idempotency_key':'fictional-handoff-acceptance-0001',
+          'accept_quote_and_agreement':True}
         assert reviewer.post(review_url,json=review).status_code==409
         assert prospect.post('/public/protection-advisor/package-handoff',json=payload).status_code==409
         withdrawal={'handoff_key':handoff['handoff_key']}
@@ -322,6 +334,11 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert prospect.post('/public/protection-advisor/package-handoff/withdraw',json=withdrawal).json()=={'withdrawn':True}
         assert reviewer.post(quote_url,json=quote_payload).status_code==409
         assert reviewer.get(quote_url).json()['status']=='Advisor receipt changed — new quote required'
+        assert member.post(f'/api/assessments/{assessment_id}/package-acceptance',
+          json=acceptance).status_code==409
+        conn=app.db()
+        assert conn.execute('SELECT COUNT(*) FROM package_acceptances').fetchone()[0]==0
+        conn.close()
         assert reviewer.get(queue_url).json()['handoffs']==[]
         assert reviewer.get(packet_url).status_code==404
         assert reviewer.get(receipt_url).status_code==404
