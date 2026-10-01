@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 1 October 2026 — Marc's final Wix spacing correction verified
+
+- **Completed:** Marc corrected and published the remaining Protection Advisor spacing. A fresh public reload at approximately 16:46 Central Time showed `security plan. The Protection Advisor` in the heading and visible text. The page still exposed the existing Part 1 anonymous entry form and the lower `Start Protection Advisor` link. This closes the previously recorded cosmetic Wix copy defect; the earlier open-typo entries below are historical.
+- **Scope and limits:** This was a public informational-copy read-back, not a form submission or full Part 1, Part 2, or Level 1 intake acceptance. Mobile, keyboard, screen-reader, Wix site-history/rollback and exact live application-version checks remain open. Production remains last verified `release/v3.202`; no newer application deployment is inferred. The scanner-backed intake and package purchase/upload routes remain gated. Tierra Linda stays stopped and large-batch #520 paused.
+- **Exact source and next action:** Draft PR #589 remains at `c7741239cf6844dc2b785afb84f57505fe2f89e0` before this documentation update. Engineering owns exact-version Advisor/intake and scanner/release evidence; qualified reviewers own product and document acceptance. Marc owns the 2 October demo decision under the existing fictional-preview rule. Record the resulting documentation commit and CI after push.
+
 ## 1 October 2026 — Wix copy follow-up and Marc approval
 
 - **Completed and approved for informational copy:** Marc said the Wix edits were finished and approved. A 16:38 Central Time fresh public desktop reload verified the Protection Advisor lower “Start Free Protection Advisor” link, both older assessment phrases changed to “results,” and the new Services paragraph's link to `/protection-advisor`. The initial seven-page additions remain observed as described below. The exact public follow-up is in `proposals/qa/WIX_PUBLIC_COPY_READBACK_20261001.md`. Earlier correction lists below are historical and superseded for those text/link items.

@@ -1,5 +1,7 @@
 # Wix public copy read-back — 01 October 2026
 
+**Final spacing check, approximately 16:46 Central Time:** Marc reported correcting and publishing the final Protection Advisor spacing typo. A fresh reload of the public `/protection-advisor` page showed `security plan. The Protection Advisor` in the sentence; the previous joined `plan.The` is no longer present in the observed heading. The existing anonymous Part 1 entry form and `Start Protection Advisor` link were also visible. This closes the cosmetic copy correction. The check did not submit a form, test Part 2 or intake, establish an app release, or verify mobile, accessibility, Wix history or rollback. The Wix site revision is not independently identified from this page read-back.
+
 **Observation time:** 16:24–16:25 Central Time. **Scope:** The seven published URLs named in `proposals/WIX_LEVEL_BAND_EDITOR_RELEASE_PACKET_20260930.md`, read in a public browser after Marc reported publishing. This is a public copy check, not Wix Editor history, mobile, keyboard, screen-reader, account, questionnaire-completion or SalCAPA release acceptance. No form was submitted and no customer data was used.
 
 | Published page | Approved addition observed | Open correction or limit |
