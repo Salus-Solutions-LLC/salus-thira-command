@@ -6,6 +6,7 @@ import pytest
 from salus_scan_inventory import (InventoryError, compare_quarantine_versions,
                                   list_azure_quarantine_versions,
                                   record_inventory_exceptions)
+from salus_scan_inventory_worker import run_inventory
 
 
 def test_orphan_and_missing_versions_are_not_hidden_by_a_clean_copy():
@@ -105,6 +106,7 @@ def test_internal_inventory_records_orphan_without_member_attribution(tmp_path, 
     conn.commit()
     conn.close()
 
+
     def connection():
         opened = sqlite3.connect(path)
         opened.row_factory = sqlite3.Row
@@ -130,3 +132,17 @@ def test_internal_inventory_records_orphan_without_member_attribution(tmp_path, 
         FROM package_quarantine_inventory_exceptions''').fetchone()
     assert tuple(row) == ('Unlinked', None, 'Open')
     conn.close()
+
+
+def test_scheduled_inventory_logs_counts_without_restricted_names(capsys):
+    result = run_inventory(inspect=lambda: {
+        'ledger_count': 1, 'azure_version_count': 2,
+        'azure_bytes': 14, 'exceptions_observed': 1,
+        'unlinked_versions': [('private/original', 'version-secret')],
+    })
+    assert result == {'ledger_count': 1, 'azure_version_count': 2,
+                      'azure_bytes': 14, 'exceptions_observed': 1}
+    output = capsys.readouterr().out
+    assert 'private/original' not in output
+    assert 'version-secret' not in output
+    assert '"exceptions_observed": 1' in output

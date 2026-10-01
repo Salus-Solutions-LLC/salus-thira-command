@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 1 October 2026 — Daily quarantine inventory candidate and release gate
+
+- Added a separate daily Container Apps inventory job candidate to the scanner module. It runs the internal exact-version comparison with the dedicated quarantine-reader identity, records discrepancies in the restricted server-side ledger, logs counts only and exits unsuccessfully when it observes exceptions. The draft schedule is one run daily with a 300-second maximum. The $30.45 public-retail 100-GB planning subtotal now includes about $0.07 for 30 maximum-duration inventory runs; it is not a subscription quote or a total bill cap. Added a targeted output-redaction test. Bicep and Python compiled and direct fictional counts-only smoke passed; full exact-head CI remains to run after push. No inventory job, scanner, quarantine account, alert or Member route was deployed by this source edit.
+- The source job is **not** release acceptance: it has no proven live Blob version/hold listing, deliberate orphan or legal-hold acceptance, delivered failure alert, reviewer disposition, approved retention policy or exact governed image. The existing full-module what-if used an old nondeployable image placeholder and must be repeated against the frozen reviewed image. Keep the paid module unapplied, the $25 live budget unchanged, and public package routes locked. Owner/next action: Salus engineering obtains exact-head CI, then live controlled inventory/hold and scanner proof, cost and budget verification, qualified document acceptance and governed Azure/Wix release. Paused batch #520 and stopped Tierra Linda remain closed.
+
 ## 1 October 2026 — Owner identity and narrow-role change plan verified
 
 - Marc completed a fresh Azure device-code sign-in selecting `MDuncan@SALUSSolutions.onmicrosoft.com`. CLI `account show` verified subscription `076f90cd-cc6a-4547-a4ff-de3fc1825472` and tenant `e06fd260-a201-44da-b03b-9cde7e119d04`. The Owner identity's effective permissions at `rg-salcapa-dev` contain `*` with no exclusions. The Contributor sign-in remains separate. Azure has **not** been changed by this verification.
