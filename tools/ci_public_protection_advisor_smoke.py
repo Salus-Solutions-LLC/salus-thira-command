@@ -285,7 +285,7 @@ with tempfile.TemporaryDirectory() as td:
         "decision_units":"Two",
         "separate_findings":"Yes",
         "group_priorities":"No",
-        "facility_locations":"Central Texas",
+        "facility_locations":"Central Texas\nHill Country",
         "personnel_range":"101–500",
         "affected_population_range":"501–2,500",
         "annual_revenue_range":"$25 million–$100 million",
@@ -294,19 +294,26 @@ with tempfile.TemporaryDirectory() as td:
             "Precious metals or other high-value materials",
             "Hazardous materials, fuels, chemicals, or regulated waste",
         ],
-        "essential_functions":"Manufacturing and secure fulfillment",
+        "essential_functions":"Manufacturing\r\nand secure fulfillment",
         "maximum_tolerable_downtime":"4–24 hours",
         "existing_program_maturity":"Partially documented or inconsistently applied",
         "internal_implementation_capacity":"Need Salus implementation support",
         "primary_objective":"Facility or operational protection improvements",
         "external_requirements":"Insurance or underwriting concern",
-        "recent_concerns":"Continuity and competing resources",
+        "recent_concerns":"Continuity\nand competing resources",
         "desired_timing":"Within 90 days",
         "decision_authority":"Executive leadership",
         "records_coordinator_role":"Operations manager",
         "investment_range":"Need phased options",
     })
     assert submitted.status_code==200,submitted.text
+    with sqlite3.connect(db_path) as conn:
+        saved_profile=json.loads(conn.execute(
+            "SELECT profile_json FROM advisor_public_service_profiles ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()[0])
+    assert saved_profile["facility_locations"]=="Central Texas\nHill Country"
+    assert saved_profile["essential_functions"]=="Manufacturing\nand secure fulfillment"
+    assert saved_profile["recent_concerns"]=="Continuity\nand competing resources"
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]

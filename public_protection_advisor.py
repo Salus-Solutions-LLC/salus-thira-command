@@ -388,10 +388,10 @@ class SubmitCommand(BaseModel):
         "protected_member_code_name", "project_code_name", "handling_profile",
         "handling_authority", "designating_agency", "contract_reference",
         "dissemination_controls", "organization_name", "contact_name", "contact_email", "facility_scope",
-        "facility_locations", "covered_operation", "personnel_range", "affected_population_range",
-        "annual_revenue_range", "essential_functions", "maximum_tolerable_downtime",
+        "covered_operation", "personnel_range", "affected_population_range",
+        "annual_revenue_range", "maximum_tolerable_downtime",
         "existing_program_maturity", "internal_implementation_capacity",
-        "primary_objective", "external_requirements", "recent_concerns",
+        "primary_objective", "external_requirements",
         "desired_timing", "decision_authority", "records_coordinator_role", "investment_range",
     )
     @classmethod
@@ -399,6 +399,14 @@ class SubmitCommand(BaseModel):
         value = value.strip()
         if any(ch in value for ch in "\r\n"):
             raise ValueError("line breaks are not permitted")
+        return value
+
+    @field_validator("facility_locations", "essential_functions", "recent_concerns")
+    @classmethod
+    def clean_multiline(cls, value: str) -> str:
+        value = value.replace("\r\n", "\n").replace("\r", "\n").strip()
+        if any(ord(ch) < 32 and ch not in "\n\t" for ch in value):
+            raise ValueError("unsupported control character")
         return value
 
     @field_validator("specific_activities")
