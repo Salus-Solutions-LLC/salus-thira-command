@@ -1,5 +1,9 @@
 # Internal customer-demo readiness — 2 October 2026
 
+## Fictional receipt available for the preview route
+
+The local `proposals/qa/demo_preview_20261002/Salus_Fictional_Level_1A_Access_Scope_Receipt_PREVIEW.pdf` is a one-page fictional Level 1A Access example, visibly marked “FICTIONAL DEMO - NOT ISSUED.” Its $1,500 text is conditional on eligibility and written scope. The exact SHA-256 and rendered QA are in `CURRENT_HANDOFF.md`. Do not present this local file as a Member-specific receipt, quote, contract, released report or live intake confirmation. The restricted draft handoff review packet already carries the consented operation tags and roles; the receipt-to-quote link is still gated.
+
 ## 1 October public read-back and acceptance-script update
 
 The public Wix Protection Advisor page still shows “A Free Assessment” and “Begin Your Assessment.” Marc's prepared replacement copy has not been verified live. The candidate live acceptance script now exercises multi-line Part 2 draft/save/resume/submission with fictional values, after the draft server fix. That script has not run on the live service, so it supplies no release proof. The go/no-go and fictional-data preview rules below remain unchanged.
