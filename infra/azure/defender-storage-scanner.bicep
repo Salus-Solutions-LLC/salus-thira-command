@@ -21,6 +21,7 @@ param location string
 
 @description('Explicit monthly GB scanning cap. Reaching it leaves new objects quarantined, not clean. Azure can exceed the cap by up to 20 GB.')
 @minValue(1)
+@maxValue(100)
 param scanCapGbPerMonth int
 
 @description('Exact reviewed source commit for the scanner installation.')

@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Scanner planning price approved
+
+- Marc approved the corrected planning price: about $10 per protected account per month plus $0.15 per GB, or $25 at 100 GB before other Azure charges. SAL-D092 and the scanner runbook now record this scoped approval; Bicep limits the monthly scan-cap parameter to 100 GB. This does not establish the live subscription quote, total-bill ceiling or an installed resource. Engineering must verify those remaining cost facts through a usable Azure identity before billable activation. Existing small-file upload scope and the paused large-batch issue #520 remain unchanged.
+
 ## 30 September 2026 — Exact candidate verification and Azure installation gate
 
 - Draft PR #589 code head `2e88ba240e13ae9711fa4319906e853586810504` passed Public Protection Advisor run **436** (`36806138472`) and Salus package rollout run **53** (`36806138511`), including the Linux suite, Windows suite, PostgreSQL job and scanner Bicep compilation. This verifies source checks only. The local Event Grid comparator is not wired to the upload, no authenticated result receiver or Azure scanner has been installed, and production remains locked.
