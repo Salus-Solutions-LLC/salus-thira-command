@@ -1,18 +1,12 @@
 """Fail-closed scanner proof for the exact package-upload release image.
 
 Run inside the candidate image before enabling package uploads. This checks
-both a clean sample and the harmless EICAR test file against the configured
-scanner. It does not establish signature currency, capacity, or live storage
-integration; those require separate release evidence.
+recent verified signatures, a clean sample and the harmless EICAR test file.
+It does not establish capacity or live storage integration.
 """
 
 import json
-import os
-import re
-import shutil
-import subprocess
 import sys
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -26,27 +20,7 @@ _EICAR_HEX = (
 )
 
 
-def current_daily_signatures(database_dir=None, now_utc=None):
-    """Fail closed unless sigtool verifies a recent official daily database."""
-    directory = Path(database_dir or os.getenv('SALUS_CLAMAV_DATABASE_DIR', '/var/lib/clamav'))
-    database = next((directory / name for name in ('daily.cld', 'daily.cvd')
-                     if (directory / name).is_file()), None)
-    sigtool = shutil.which('sigtool')
-    if database is None or not sigtool:
-        return False
-    try:
-        result = subprocess.run([sigtool, '--info', str(database)], capture_output=True,
-                                text=True, timeout=10)
-        if result.returncode != 0 or 'Verification OK.' not in result.stdout:
-            return False
-        match = re.search(r'^Build time:\s*(.+)$', result.stdout, re.MULTILINE)
-        if not match:
-            return False
-        built = datetime.strptime(match.group(1).strip(), '%d %b %Y %H:%M %z')
-        age = (now_utc or datetime.now(timezone.utc)) - built.astimezone(timezone.utc)
-        return -timedelta(hours=1) <= age <= timedelta(hours=72)
-    except (OSError, ValueError, subprocess.TimeoutExpired):
-        return False
+current_daily_signatures = security_controls.current_daily_signatures
 
 
 def scanner_proof():

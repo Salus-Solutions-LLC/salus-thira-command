@@ -1,10 +1,33 @@
-import os, shutil, subprocess, tempfile
+import os, re, shutil, subprocess, tempfile
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 AV_MODE=os.getenv('SALUS_AV_MODE','off').strip().lower()
 AV_REQUIRED=os.getenv('SALUS_REQUIRE_AV','0').strip().lower() in ('1','true','yes')
 CLAMSCAN_PATH=os.getenv('SALUS_CLAMSCAN_PATH','clamscan')
+
+
+def current_daily_signatures(database_dir=None, now_utc=None):
+    """Require a verified official daily database built within 72 hours."""
+    directory=Path(database_dir or os.getenv('SALUS_CLAMAV_DATABASE_DIR','/var/lib/clamav'))
+    database=next((directory / name for name in ('daily.cld','daily.cvd')
+                   if (directory / name).is_file()), None)
+    sigtool=shutil.which('sigtool')
+    if database is None or not sigtool:
+        return False
+    try:
+        result=subprocess.run([sigtool,'--info',str(database)],capture_output=True,
+                              text=True,timeout=10)
+        if result.returncode!=0 or 'Verification OK.' not in result.stdout:
+            return False
+        match=re.search(r'^Build time:\s*(.+)$',result.stdout,re.MULTILINE)
+        if not match:
+            return False
+        built=datetime.strptime(match.group(1).strip(),'%d %b %Y %H:%M %z')
+        age=(now_utc or datetime.now(timezone.utc))-built.astimezone(timezone.utc)
+        return -timedelta(hours=1)<=age<=timedelta(hours=72)
+    except (OSError,ValueError,subprocess.TimeoutExpired):
+        return False
 
 def scanner_configuration():
     """Report scanner configuration only; signature currency needs a live scan."""
@@ -27,6 +50,8 @@ def scan_bytes(data: bytes, filename: str='upload.bin'):
         return {'ok':True,'status':'Not Configured','detail':'Malware scanner disabled.'}
     if AV_MODE!='clamav':
         return {'ok':False,'status':'Unavailable','detail':f'Unsupported scanner mode: {AV_MODE}'}
+    if not current_daily_signatures():
+        return {'ok':False,'status':'Unavailable','detail':'ClamAV daily signatures are missing, unverified or stale.'}
     suffix=Path(filename).suffix[:20]
     fd,path=tempfile.mkstemp(prefix='salus-quarantine-',suffix=suffix); os.close(fd)
     try:

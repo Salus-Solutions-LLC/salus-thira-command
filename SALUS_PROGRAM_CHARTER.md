@@ -86,10 +86,17 @@ This map makes every currently approved decision findable in the Charter. The ex
 | SAL-D084–SAL-D088 | Separate evidence depth from scope band; offer eligible Level 1A Access at $1,500 with four reports, source-qualified benchmarks and a correctable one-page receipt. |
 | SAL-D089 | Use prospective Level × band report names while preserving issued report identities. |
 | SAL-D090 | Make accurate plain language a release-tested requirement across Salus. |
+| SAL-D091 | Screen every accepted file/media type before use or release, with exact-object quarantine, fail-closed results and separately governed content interpretation. |
 
 SAL-D020 and SAL-D021 are superseded intake decisions retained in the Decision Register as history; SAL-D022 governs the current intake rule, with the routing clarification in SAL-D024. On approval of a later material decision, reconcile this map and the substantive Charter rule before treating the new decision as implemented.
 
 ## Approved operating architecture
+
+### Media-neutral file screening [SAL-D091]
+
+No Salus-controlled upload, source ingest, preview, working-report transfer or Protected Member download may bypass malware screening because its content is audio, video, a photograph, map, diagram, PDF, Office file, handwritten scan, archive or an unfamiliar type. Acceptance limits and staged large-media transfer may vary by workflow, but every accepted object needs one tenant-bound quarantine identity, original-byte hash and object version, current scanner/engine evidence, and a result bound to that exact object before it becomes available for parsing, preview, sharing or download. A `Clean` result is one security gate, never proof that the file's factual contents are correct or that OCR, transcription, spatial interpretation or expert review is complete.
+
+Keep infected, missing-result, delayed, errored, timed-out, too-large, encrypted/password-protected, deeply nested and otherwise unscanned content inaccessible. Give the sender a plain-language retry or secure alternative and a governed reviewer path. Do not silently treat an unsupported file as safe or discard material subject to retention or legal hold. Test real representative files and failure cases across documents, images, audio/video, geospatial formats and archives on the exact release path; record scanner limits, throughput, cost, isolation, recovery and rollback. The current production package intake remains locked until that proof exists. This requirement applies to future intake channels as well as Protection Advisor and SalCAPA™; a new workflow must not reuse a `Clean` label for an unscanned transformation or replacement object.
 
 ### Standing coherence and plain-language handoff gate [SAL-D063]
 

@@ -2,8 +2,11 @@
 
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+import subprocess
+import shutil
 
 from tools import verify_package_scanner as proof
+import security_controls
 
 
 def test_scanner_proof_requires_configured_clamav(monkeypatch):
@@ -70,14 +73,25 @@ def test_scanner_proof_rejects_stale_signatures_before_scanning(monkeypatch):
 
 def test_daily_signature_currency_requires_verified_recent_database(tmp_path, monkeypatch):
     (tmp_path / 'daily.cvd').write_bytes(b'fictional test database')
-    monkeypatch.setattr(proof.shutil, 'which', lambda *_args: '/fake/sigtool')
+    monkeypatch.setattr(shutil, 'which', lambda *_args: '/fake/sigtool')
     current = datetime(2026, 9, 30, 12, 0, tzinfo=timezone.utc)
     def sigtool_result(build_time, verification='Verification OK.'):
         return SimpleNamespace(returncode=0,
                                stdout=f'Build time: {build_time:%d %b %Y %H:%M %z}\n{verification}\n')
-    monkeypatch.setattr(proof.subprocess, 'run', lambda *_args, **_kwargs: sigtool_result(current - timedelta(hours=1)))
+    monkeypatch.setattr(subprocess, 'run', lambda *_args, **_kwargs: sigtool_result(current - timedelta(hours=1)))
     assert proof.current_daily_signatures(tmp_path, current) is True
-    monkeypatch.setattr(proof.subprocess, 'run', lambda *_args, **_kwargs: sigtool_result(current - timedelta(hours=73)))
+    monkeypatch.setattr(subprocess, 'run', lambda *_args, **_kwargs: sigtool_result(current - timedelta(hours=73)))
     assert proof.current_daily_signatures(tmp_path, current) is False
-    monkeypatch.setattr(proof.subprocess, 'run', lambda *_args, **_kwargs: sigtool_result(current, 'Verification failed.'))
+    monkeypatch.setattr(subprocess, 'run', lambda *_args, **_kwargs: sigtool_result(current, 'Verification failed.'))
     assert proof.current_daily_signatures(tmp_path, current) is False
+
+
+def test_runtime_clamav_rejects_stale_signatures_before_file_or_scan(monkeypatch):
+    monkeypatch.setattr(security_controls, 'AV_MODE', 'clamav')
+    monkeypatch.setattr(security_controls, 'current_daily_signatures', lambda: False)
+    monkeypatch.setattr(security_controls.tempfile, 'mkstemp',
+                        lambda **_kwargs: (_ for _ in ()).throw(AssertionError('must not write file')))
+    result = security_controls.scan_bytes(b'fictional data', 'fixture.txt')
+    assert result['ok'] is False
+    assert result['status'] == 'Unavailable'
+    assert 'stale' in result['detail']
