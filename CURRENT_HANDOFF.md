@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Exact candidate verification and Azure installation gate
+
+- Draft PR #589 code head `2e88ba240e13ae9711fa4319906e853586810504` passed Public Protection Advisor run **436** (`36806138472`) and Salus package rollout run **53** (`36806138511`), including the Linux suite, Windows suite, PostgreSQL job and scanner Bicep compilation. This verifies source checks only. The local Event Grid comparator is not wired to the upload, no authenticated result receiver or Azure scanner has been installed, and production remains locked.
+- The Azure plugin search found no Azure resource-management connection; the Windows browser bridge failed before opening a session with `failed to write kernel assets` (os error 3). No current Azure quote, `what-if`, account identity or billable activation can be verified here. Marc has been asked for a usable Azure access path and revised monthly scanner spending limit. The first release remains the existing 25 MB/five-file package upload only; issue #520 remains paused. Owner/next action: Salus engineering completes the authenticated pending-upload/quarantine/scan-result path and live cost/identity proof, then uses the governed Azure release and exact-file tests before enabling and publishing. Do not describe the source CI as a live scanner or offer.
+
 ## 30 September 2026 — Reuse existing small-file upload for scanner release
 
 - Marc specified the existing smaller upload for this release. The candidate package-intake route accepts PDF, DOCX, XLSX, CSV, TXT, PNG and JPEG up to 25 MB each and five files per requested item; production remains locked. Do not increase limits, build large-media transfer, or resume paused issue #520 to install the scanner. The controlled installation plan now stages only those accepted formats first.
