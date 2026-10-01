@@ -14,7 +14,9 @@ Only eligible, simple **Level 1A Access** may display **$1,500**, conditional on
 
 **Public page:** https://www.salus.solutions/protection-advisor
 
-**Observed public gap:** The current public page describes a free assessment and Part 1/Part 2, but does not explain the approved Level × Band path. Inspect the Editor draft before modifying it.
+**Observed public gap, checked 1 October 2026:** The published page opens with “A Free Assessment” and repeatedly calls the free Protection Advisor an assessment. None of the seven target public pages states the Level 1 starting rule. This is a published-page observation, not a comparison with the saved Editor draft. Inspect that draft before changing it.
+
+**Exact opening correction:** Replace the published heading “A Free Assessment” with “A Free Starting Point.” Keep the following explanation of threats, hazards and operational demands. For the start-button labels “Begin Your Assessment” and “Start Your Assessment,” use “Start Free Protection Advisor” if those same labels appear in the current Editor draft; retain the existing links and button treatment.
 
 **Add beneath the existing Part 1/Part 2 explanation:**
 
