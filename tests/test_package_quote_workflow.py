@@ -809,21 +809,27 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         saved_intake_upload=records['package_intake_uploads'][0]
         pending_bytes=b'fictional unscanned original'
         pending_digest=hashlib.sha256(pending_bytes).hexdigest()
-        pending_name=(f'tenant-1/assessment-{saved_intake_upload["assessment_id"]}/'
-                      f'quote-{saved_intake_upload["quote_id"]}/'
-                      f'item-{saved_intake_upload["intake_request_id"]}/'+ 'a'*32+'_'+pending_digest[:16])
-        conn.execute("""INSERT INTO package_intake_pending_scans
-            (tenant_id,assessment_id,quote_id,intake_request_id,member_user_id,original_name,
-             blob_name,blob_uri,blob_version_id,etag,content_sha256,size_bytes,status,
-             retention_until,legal_hold,received_at,updated_at)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (1,saved_intake_upload['assessment_id'],saved_intake_upload['quote_id'],
-             saved_intake_upload['intake_request_id'],
-             saved_intake_upload['member_user_id'],'pending.txt',pending_name,
-             'https://salusquarantine.blob.core.windows.net/quarantine/'+pending_name,
-             'v1','"0xE1"',pending_digest,len(pending_bytes),'Pending',
-             saved_intake_upload['retention_until'],0,app.now(),app.now()))
-        conn.commit()
+        class FakeQuarantine:
+            calls=0
+            def stage_bytes(self,*,tenant_id,assessment_id,quote_id,intake_request_id,data):
+                self.calls+=1
+                name=(f'tenant-{tenant_id}/assessment-{assessment_id}/quote-{quote_id}/'
+                      f'item-{intake_request_id}/'+ 'a'*32+'_'+hashlib.sha256(data).hexdigest()[:16])
+                return {'tenant_id':tenant_id,'assessment_id':assessment_id,'quote_id':quote_id,
+                        'intake_request_id':intake_request_id,'status':'Pending','blob_name':name,
+                        'blob_uri':'https://salusquarantine.blob.core.windows.net/quarantine/'+name,
+                        'blob_version_id':'v1','etag':'"0xE1"',
+                        'sha256':hashlib.sha256(data).hexdigest(),'size_bytes':len(data)}
+        fake_quarantine=FakeQuarantine()
+        app.package_quarantine=lambda:fake_quarantine
+        app.PACKAGE_SCAN_MODE='defender'
+        held=member.post(upload_path,files={'file':('pending.txt',pending_bytes,'text/plain')})
+        assert held.status_code==200 and held.json()['scan_status']=='Pending',held.text
+        held_repeat=member.post(upload_path,files={'file':('pending.txt',pending_bytes,'text/plain')})
+        assert held_repeat.status_code==200 and held_repeat.json()['id']==held.json()['id']
+        assert fake_quarantine.calls==1
+        assert member.get(intake_url).json()['pending_uploads'][0]['id']==held.json()['id']
+        app.PACKAGE_SCAN_MODE='inline'
         records=collect_tenant_records(conn,1)
         assert len(records['package_intake_pending_scans'])==1
         assert not validate_records(records,1)

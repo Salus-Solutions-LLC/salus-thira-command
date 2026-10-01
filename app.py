@@ -21,6 +21,7 @@ from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
 from managed_database import runtime_database_status, managed_target_status
 from database import connect_database, backend_name, is_sqlite, is_postgres
 from portable_backup import collect_tenant_records, validate_records, replace_tenant_records
+from salus_scan_quarantine import AzureScanQuarantine, QuarantineError
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.getenv('SALUS_DB_PATH', os.path.join(BASE_DIR, 'thira.db'))
@@ -39,6 +40,12 @@ ALLOW_RESTORE = os.getenv('SALUS_ALLOW_RESTORE', '0').lower() in ('1','true','ye
 COOKIE_SECURE = os.getenv('SALUS_COOKIE_SECURE', '0').lower() in ('1','true','yes')
 ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
 PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED','0').lower() in ('1','true','yes')
+PACKAGE_SCAN_MODE = os.getenv('SALUS_PACKAGE_SCAN_MODE','inline').strip().lower()
+
+def package_quarantine():
+    return AzureScanQuarantine(
+        os.getenv('SALUS_SCAN_QUARANTINE_URL','').strip(),
+        managed_identity_client_id=os.getenv('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID','').strip())
 RETENTION_DEFAULT_DAYS = int(os.getenv('SALUS_RETENTION_DEFAULT_DAYS','2555'))
 OIDC_DISCOVERY_URL = os.getenv('SALUS_OIDC_DISCOVERY_URL','').strip()
 OIDC_CLIENT_ID = os.getenv('SALUS_OIDC_CLIENT_ID','').strip()
@@ -6025,8 +6032,12 @@ def get_package_intake(assessment_id:int,request:Request):
         uploads=[dict(r) for r in conn.execute('''SELECT id,intake_request_id,original_name,content_sha256,size_bytes,uploaded_at
             FROM package_intake_uploads WHERE tenant_id=? AND assessment_id=? AND quote_id=? ORDER BY id''',
             (tenant_id(request),assessment_id,quote['id']))]
+        pending_uploads=[dict(r) for r in conn.execute('''SELECT id,intake_request_id,original_name,
+            content_sha256,size_bytes,status,received_at FROM package_intake_pending_scans
+            WHERE tenant_id=? AND assessment_id=? AND quote_id=? AND status<>'Promoted' ORDER BY id''',
+            (tenant_id(request),assessment_id,quote['id']))]
         return {'quote_id':quote['id'],'catalog_version':PACKAGE_INTAKE_VERSION,'items':rows,
-                'uploads':uploads,
+                'uploads':uploads,'pending_uploads':pending_uploads,
                 'catalog':package_intake_catalog() if role(request) in ('System Administrator','Assessment Director') else [],
                 'notice':'Only selected items are requested. Do not upload personal directories, credentials, medical records or sensitive annexes. Ask Salus for separate protected handling when needed.'}
     finally: conn.close()
@@ -6074,6 +6085,9 @@ def respond_package_intake(assessment_id:int,item_id:int,p:PackageIntakeResponse
         if conn.execute('SELECT 1 FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=? LIMIT 1',
             (tenant_id(request),item_id)).fetchone():
             raise HTTPException(409,'A file was already received for this item. Ask Salus to reconcile it before marking the item unavailable.')
+        if conn.execute('SELECT 1 FROM package_intake_pending_scans WHERE tenant_id=? AND intake_request_id=? LIMIT 1',
+            (tenant_id(request),item_id)).fetchone():
+            raise HTTPException(409,'A file is held for security review. Ask Salus to reconcile it before marking the item unavailable.')
         if item['status']!=p.status:
             conn.execute('UPDATE package_intake_requests SET status=?,response_user_id=?,responded_at=? WHERE id=?',(p.status,ctx['user_id'],now(),item_id))
             audit(conn,'PACKAGE_INTAKE_RESPONSE','assessment',assessment_id,f'item_id={item_id}; status={p.status}',actor(request))
@@ -6083,6 +6097,79 @@ def respond_package_intake(assessment_id:int,item_id:int,p:PackageIntakeResponse
         conn.rollback();conn.close()
 
 PACKAGE_INTAKE_ALLOWED_EXTENSIONS={'.pdf','.docx','.xlsx','.csv','.txt','.png','.jpg','.jpeg'}
+
+def stage_package_intake_file(assessment_id:int,item_id:int,request:Request,ctx:dict,
+                              original:str,content:bytes,digest:str):
+    """Keep the original in quarantine; a separate worker must qualify it."""
+    tid=tenant_id(request); conn=db(); manifest=None
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        item=conn.execute('''SELECT id,status FROM package_intake_requests
+            WHERE id=? AND tenant_id=? AND assessment_id=? AND quote_id=?''',
+            (item_id,tid,assessment_id,quote['id'])).fetchone()
+        if not item: raise HTTPException(404,'This item was not requested for the authorized package.')
+        if item['status'] in ('Not held','Not known','Prefer to discuss'):
+            raise HTTPException(409,'Review this item with Salus before sending a file.')
+        clean=conn.execute('''SELECT id,intake_request_id,original_name,content_sha256,size_bytes,uploaded_at
+            FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=? AND content_sha256=?
+            AND scan_status='Clean' ''',(tid,item_id,digest)).fetchone()
+        if clean:
+            return {key:clean[key] for key in ('id','intake_request_id','original_name',
+                                             'content_sha256','size_bytes','uploaded_at')}
+        pending=conn.execute('''SELECT id,status,intake_request_id,original_name,content_sha256,
+            size_bytes,received_at FROM package_intake_pending_scans
+            WHERE tenant_id=? AND intake_request_id=? AND content_sha256=?''',
+            (tid,item_id,digest)).fetchone()
+        if pending:
+            if pending['status']!='Pending':
+                raise HTTPException(409,'This file needs Salus security reconciliation.')
+            return {'id':pending['id'],'intake_request_id':item_id,'original_name':pending['original_name'],
+                    'content_sha256':digest,'size_bytes':pending['size_bytes'],
+                    'received_at':pending['received_at'],'scan_status':'Pending'}
+        count=conn.execute('''SELECT
+            (SELECT COUNT(*) FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=?)
+          + (SELECT COUNT(*) FROM package_intake_pending_scans WHERE tenant_id=? AND intake_request_id=?) AS n''',
+            (tid,item_id,tid,item_id)).fetchone()['n']
+        if count>=5:
+            raise HTTPException(409,'This item has five files. Ask Salus to review before sending more.')
+        manifest=package_quarantine().stage_bytes(tenant_id=tid,assessment_id=assessment_id,
+            quote_id=quote['id'],intake_request_id=item_id,data=content)
+        if (manifest.get('tenant_id')!=tid or manifest.get('assessment_id')!=assessment_id
+                or manifest.get('quote_id')!=quote['id']
+                or manifest.get('intake_request_id')!=item_id
+                or manifest.get('status')!='Pending'
+                or manifest.get('sha256')!=digest or manifest.get('size_bytes')!=len(content)):
+            raise QuarantineError('The staged original does not match the received bytes.')
+        received_at=now()
+        retention_until=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(
+            microsecond=0).isoformat().replace('+00:00','Z')
+        cur=conn.execute('''INSERT INTO package_intake_pending_scans
+            (tenant_id,assessment_id,quote_id,intake_request_id,member_user_id,original_name,
+             blob_name,blob_uri,blob_version_id,etag,content_sha256,size_bytes,status,
+             retention_until,legal_hold,received_at,updated_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (tid,assessment_id,quote['id'],item_id,ctx['user_id'],original,manifest['blob_name'],
+             manifest['blob_uri'],manifest['blob_version_id'],manifest['etag'],digest,len(content),
+             'Pending',retention_until,0,received_at,received_at))
+        audit(conn,'PACKAGE_INTAKE_QUARANTINED','assessment',assessment_id,
+              f'item_id={item_id}; pending_id={cur.lastrowid}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'intake_request_id':item_id,'original_name':original,
+                'content_sha256':digest,'size_bytes':len(content),'received_at':received_at,
+                'scan_status':'Pending'}
+    except Exception as exc:
+        conn.rollback()
+        if isinstance(manifest,dict) and manifest.get('blob_uri'):
+            try:
+                security_event(request,'PACKAGE_QUARANTINE_RECONCILE','High',
+                               f'blob_uri={manifest["blob_uri"]}; version={manifest.get("blob_version_id","")}')
+            except Exception:
+                pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8); record_internal_failure('package quarantine staging',error_id,exc)
+        raise HTTPException(503,f'Package quarantine is unavailable. Reference: {error_id}') from exc
+    finally: conn.close()
 
 @app.post('/api/assessments/{assessment_id}/package-intake/{item_id}/files')
 async def upload_package_intake_file(assessment_id:int,item_id:int,request:Request,file:UploadFile=File(...)):
@@ -6119,6 +6206,10 @@ async def upload_package_intake_file(assessment_id:int,item_id:int,request:Reque
                 raise HTTPException(409,'This item has five files. Ask Salus to review before sending more.')
     finally:
         preflight.close()
+    if PACKAGE_SCAN_MODE=='defender':
+        return stage_package_intake_file(assessment_id,item_id,request,ctx,original,content,digest)
+    if PACKAGE_SCAN_MODE!='inline':
+        raise HTTPException(503,'The package scanner mode is not configured.')
     scan=scan_bytes(content,original)
     if not scan['ok'] or scan['status']!='Clean':
         security_event(request,'PACKAGE_INTAKE_UPLOAD_REJECTED','High' if scan['status']=='Infected' else 'Medium',
