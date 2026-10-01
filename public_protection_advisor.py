@@ -36,6 +36,7 @@ from salcapa_m365_advisor_reports import publish_advisor_docx
 from protection_advisor_member_reports import delete_member_pdf, read_member_pdf, store_member_pdf
 from salcapa_m365_reports import M365ReportError
 from salus_package_path import draft_level_1_scope_receipt, suggest_provisional_level_1_path
+from database import is_postgres
 
 QUESTIONNAIRE_VERSION = "SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
 RECOMMENDATION_VERSION = "SPA-PUBLIC-RECOMMENDATION-2.1.0"
@@ -3114,6 +3115,11 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
         conn = ctx["db"]()
         try:
             session, _ = _session(conn, request)
+            if is_postgres():
+                # Quote and acceptance decisions lock the same handoff rows.
+                # Hold them before external PDF deletion begins.
+                conn.execute('''SELECT handoff_key FROM advisor_package_handoffs
+                    WHERE session_key=? FOR UPDATE''',(session["session_key"],)).fetchall()
             snapshots = conn.execute(
                 "SELECT item_id FROM advisor_public_member_report_snapshots WHERE session_key=?",
                 (session["session_key"],),
