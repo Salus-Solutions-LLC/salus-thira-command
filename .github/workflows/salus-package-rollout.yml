@@ -5,6 +5,9 @@ on:
     paths:
       - app.py
       - public_protection_advisor.py
+      - salcapa_runtime.py
+      - .github/workflows/azure-application-deploy.yml
+      - .github/workflows/protection-advisor-live-acceptance.yml
       - protection_advisor_member_reports.py
       - advisor_report_config.py
       - salus_package_path.py
@@ -39,6 +42,9 @@ on:
     paths:
       - app.py
       - public_protection_advisor.py
+      - salcapa_runtime.py
+      - .github/workflows/azure-application-deploy.yml
+      - .github/workflows/protection-advisor-live-acceptance.yml
       - protection_advisor_member_reports.py
       - advisor_report_config.py
       - salus_package_path.py
