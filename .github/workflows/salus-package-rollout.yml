@@ -19,6 +19,7 @@ on:
       - requirements.txt
       - tools/live_public_protection_advisor_acceptance.sh
       - tools/advisor_missing_part2_keys.jq
+      - tools/advisor_part1_carry_forward.jq
       - static/**
       - tests/**
       - proposals/level_band_templates/build_candidates.py
@@ -52,6 +53,7 @@ on:
       - requirements.txt
       - tools/live_public_protection_advisor_acceptance.sh
       - tools/advisor_missing_part2_keys.jq
+      - tools/advisor_part1_carry_forward.jq
       - static/**
       - tests/**
       - proposals/level_band_templates/build_candidates.py
@@ -95,6 +97,14 @@ jobs:
           bash -n tools/live_public_protection_advisor_acceptance.sh
           jq -n '{questions:[{key:"part1"},{key:"part2"}],answers:{part1:"Documented"}}' > /tmp/advisor-answer-fixture.json
           test "$(jq -r -f tools/advisor_missing_part2_keys.jq /tmp/advisor-answer-fixture.json)" = 'part2'
+          jq -n '{part1:"Documented"}' > /tmp/advisor-part1-fixture.json
+          jq -n '{answers:{part1:"Documented",part2:"Unknown"}}' > /tmp/advisor-resume-fixture.json
+          jq -e --argjson expected 2 --slurpfile before /tmp/advisor-part1-fixture.json -f tools/advisor_part1_carry_forward.jq /tmp/advisor-resume-fixture.json
+          jq -n '{answers:{part1:"Unknown",part2:"Unknown"}}' > /tmp/advisor-overwrite-fixture.json
+          if jq -e --argjson expected 2 --slurpfile before /tmp/advisor-part1-fixture.json -f tools/advisor_part1_carry_forward.jq /tmp/advisor-overwrite-fixture.json; then
+            echo 'Part 1 overwrite was not rejected' >&2
+            exit 1
+          fi
       - name: Compile scanner installation template without Azure credentials
         run: az bicep build --file infra/azure/defender-storage-scanner.bicep --stdout > /tmp/salus-defender-scanner-arm.json
 

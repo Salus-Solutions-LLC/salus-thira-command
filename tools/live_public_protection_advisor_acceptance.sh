@@ -120,9 +120,8 @@ curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CS
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' \
   -d @"$WORK/login.json" "$BASE/public/protection-advisor/login" > "$WORK/part2-resume.json"
 CSRF="$(jq -r '.csrf_token' "$WORK/part2-resume.json")"
-jq -e --slurpfile before "$WORK/part1-answers.json" \
-  '.answers as $answers | ($answers|length)==28 and ([$before[0] | to_entries[] | select($answers[.key] != .value)] | length)==0' \
-  "$WORK/part2-resume.json" >/dev/null
+jq -e --argjson expected 28 --slurpfile before "$WORK/part1-answers.json" \
+  -f "$SCRIPT_DIR/advisor_part1_carry_forward.jq" "$WORK/part2-resume.json" >/dev/null
 
 STAGE="submission and notifications"
 jq -nc --arg email "$EMAIL" '{protected_member_code_name:"Fictional Acceptance Member",project_code_name:"Automated Acceptance",handling_profile:"Commercial Confidential",organization_name:"Salus Fictional Acceptance Organization",contact_name:"Fictional Acceptance Reviewer",contact_email:$email,detailed_assessment_acknowledged:true,identifiable_retention_consent:true,facility_scope:"Multiple facilities",facility_locations:"Fictional locations only",personnel_range:"101-500",affected_population_range:"501-2,000",annual_revenue_range:"$25M-$100M",specific_activities:["Hazardous materials, fuels, chemicals, or regulated waste","Sensitive information, technology, research, or intellectual property"],essential_functions:"Fictional essential operations",maximum_tolerable_downtime:"24 hours",existing_program_maturity:"Developing",internal_implementation_capacity:"Limited",primary_objective:"Prioritize protection improvements",external_requirements:"Contractual and regulatory requirements",recent_concerns:"Fictional acceptance concerns",desired_timing:"Within 90 days",decision_authority:"Executive leadership",investment_range:"$50,000-$150,000"}' > "$WORK/submit.json"
