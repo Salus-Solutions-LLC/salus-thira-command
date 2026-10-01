@@ -907,14 +907,23 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         # queue result. The restored Reconcile status must never auto-promote.
         held_blob_uri=conn.execute('SELECT blob_uri FROM package_intake_pending_scans WHERE id=?',
             (held.json()['id'],)).fetchone()[0]
-        conn.execute("UPDATE package_intake_pending_scans SET status='Pending' WHERE id=?",(held.json()['id'],))
+        conn.execute("UPDATE package_intake_pending_scans SET status='Pending',received_at='2020-01-01T00:00:00Z' WHERE id=?",
+            (held.json()['id'],))
+        conn.commit();conn.close()
+        app.PACKAGE_SCAN_MODE='defender'
+        assert app.reconcile_stale_package_scans()==1
+        conn=app.db()
+        assert conn.execute('SELECT status FROM package_intake_pending_scans WHERE id=?',
+            (held.json()['id'],)).fetchone()[0]=='Reconcile'
+        assert conn.execute('SELECT COUNT(*) FROM package_intake_uploads').fetchone()[0]==1
+        conn.execute("UPDATE package_intake_pending_scans SET status='Pending',received_at=? WHERE id=?",
+            (app.now(),held.json()['id']))
         conn.commit();conn.close()
         def fake_read_version(manifest):
             assert manifest['status']=='Pending' and manifest['sha256']==pending_digest
             return {'blob_uri':manifest['blob_uri'],'blob_version_id':'v1',
                     'etag':'"0xE1"','bytes':pending_bytes}
         fake_quarantine.read_version=fake_read_version
-        app.PACKAGE_SCAN_MODE='defender'
         topic='/subscriptions/test/resourceGroups/test/providers/Microsoft.EventGrid/topics/test'
         result_event={'id':'event-1','eventType':'Microsoft.Security.MalwareScanningResult',
             'topic':topic,'data':{'blobUri':held_blob_uri,'eTag':'"0xE1"',

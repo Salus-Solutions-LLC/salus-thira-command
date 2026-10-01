@@ -955,6 +955,7 @@ def init_db():
       UNIQUE (blob_uri,blob_version_id)
     );
     CREATE INDEX IF NOT EXISTS idx_package_intake_pending_scope ON package_intake_pending_scans(tenant_id,assessment_id,quote_id,intake_request_id,status,id);
+    CREATE INDEX IF NOT EXISTS idx_package_intake_pending_timeout ON package_intake_pending_scans(status,received_at,id);
     CREATE TABLE IF NOT EXISTS package_product_report_versions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL,
@@ -6098,6 +6099,36 @@ def respond_package_intake(assessment_id:int,item_id:int,p:PackageIntakeResponse
         conn.rollback();conn.close()
 
 PACKAGE_INTAKE_ALLOWED_EXTENSIONS={'.pdf','.docx','.xlsx','.csv','.txt','.png','.jpg','.jpeg'}
+
+def reconcile_stale_package_scans(*, max_age_hours:int=24, limit:int=100):
+    """Hold originals with no timely result; never infer Clean from silence."""
+    if PACKAGE_SCAN_MODE!='defender' or max_age_hours<1 or not 1<=limit<=1000:
+        raise QuarantineError('The scan reconciliation boundary is not configured.')
+    cutoff=(_iso_now_dt()-timedelta(hours=max_age_hours)).replace(microsecond=0).isoformat().replace('+00:00','Z')
+    lookup=db()
+    try:
+        candidates=[dict(r) for r in lookup.execute('''SELECT id,assessment_id FROM package_intake_pending_scans
+            WHERE status='Pending' AND received_at<=? ORDER BY received_at,id LIMIT ?''',
+            (cutoff,limit))]
+    finally:
+        lookup.close()
+    held=0
+    for candidate in candidates:
+        conn=db()
+        try:
+            lock_package_assessment(conn,candidate['assessment_id'])
+            row=conn.execute('SELECT * FROM package_intake_pending_scans WHERE id=?',
+                (candidate['id'],)).fetchone()
+            if row and row['status']=='Pending' and row['received_at']<=cutoff:
+                conn.execute('''UPDATE package_intake_pending_scans SET status='Reconcile',
+                    scan_result='Missing result',updated_at=? WHERE id=? AND status='Pending' ''',
+                    (now(),row['id']))
+                audit(conn,'PACKAGE_SCAN_MISSING','assessment',row['assessment_id'],
+                      f'pending_id={row["id"]}; received_at={row["received_at"]}','scan-worker')
+                conn.commit(); held+=1
+        finally:
+            conn.rollback();conn.close()
+    return held
 
 def process_package_scan_result(event:dict, *, quarantine=None, expected_topic:str=''):
     """Apply a trusted-queue result to one exact quarantined small upload.

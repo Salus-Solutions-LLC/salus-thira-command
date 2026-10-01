@@ -60,5 +60,7 @@ def poll_once(*, queue_client=None, process_event=None):
 if __name__ == '__main__':
     # A supervised job invokes bounded cycles and owns restart/telemetry.
     result = poll_once()
+    from app import reconcile_stale_package_scans
+    reconcile_stale_package_scans()
     if result == 'Held':
         raise SystemExit(2)
