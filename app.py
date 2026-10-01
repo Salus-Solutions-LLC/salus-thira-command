@@ -5709,6 +5709,12 @@ def review_advisor_package_handoff(assessment_id:int,handoff_key:str,p:PackageHa
         raise HTTPException(409,'The requested scope changed; review the current assessment before linking a receipt.')
     conn=db()
     try:
+        lock_package_assessment(conn,assessment_id)
+        current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+            (assessment_id,tenant_id(request))).fetchone()
+        if (not current or int(current['version'])!=p.assessment_version
+                or assessment_scope_digest(current)!=assessment_scope_digest(assessment)):
+            raise HTTPException(409,'The assessment boundary changed during handoff review; inspect the current scope and receipt again.')
         handoff=conn.execute('SELECT * FROM advisor_package_handoffs WHERE handoff_key=? AND tenant_id=? AND assessment_id=?',
             (handoff_key,tenant_id(request),assessment_id)).fetchone()
         if not handoff or handoff['status']!='Claimed':

@@ -245,6 +245,23 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
           (profile_json,submission))
         conn.commit();conn.close()
         assert reviewer.get(packet_url).status_code==200
+        original_lock=app.lock_package_assessment
+        def change_boundary_before_review_lock(db_conn,locked_assessment_id):
+            race=app.db()
+            race.execute('UPDATE assessments SET covered_operation=? WHERE id=?',
+              ('Changed during review',locked_assessment_id))
+            race.commit();race.close()
+            return original_lock(db_conn,locked_assessment_id)
+        app.lock_package_assessment=change_boundary_before_review_lock
+        raced=reviewer.post(review_url,json=review)
+        assert raced.status_code==409,raced.text
+        app.lock_package_assessment=original_lock
+        conn=app.db()
+        assert conn.execute('SELECT status FROM advisor_package_handoffs WHERE handoff_key=?',
+          (handoff['handoff_key'],)).fetchone()['status']=='Claimed'
+        conn.execute('UPDATE assessments SET covered_operation=? WHERE id=?',
+          ('One operation',assessment_id))
+        conn.commit();conn.close()
         reviewed=reviewer.post(review_url,json=review)
         assert reviewed.status_code==200,reviewed.text
         assert reviewed.json()['status']=='Reviewed for quote preparation only'
