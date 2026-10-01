@@ -2137,10 +2137,11 @@ def verified_quote_predecessor_link(conn,quote,request:Request,current):
         raise HTTPException(409,'The predecessor qualification version changed.')
     return link
 
-def verified_advisor_handoff_for_quote(conn,receipt_id:str,request:Request,current):
+def verified_advisor_handoff_for_quote(conn,receipt_id:str,request:Request,current,lock:bool=False):
     """Require one still-consented, exact reviewed receipt for this Level 1 boundary."""
+    lock_clause=' FOR UPDATE' if lock and is_postgres() else ''
     handoffs=conn.execute('''SELECT * FROM advisor_package_handoffs
-        WHERE tenant_id=? AND assessment_id=? AND receipt_id=? AND status='Reviewed' ''',
+        WHERE tenant_id=? AND assessment_id=? AND receipt_id=? AND status='Reviewed' '''+lock_clause,
         (tenant_id(request),current['id'],receipt_id)).fetchall()
     if len(handoffs)!=1:
         raise HTTPException(409,'One reviewed Protection Advisor receipt is required for this quote.')
@@ -2186,7 +2187,7 @@ def _advisor_quote_link_record(link):
     return {key:link[key] for key in ('assessment_id','quote_id','handoff_key','receipt_id',
         'revision_no','receipt_sha256','profile_sha256','assessment_scope_sha256')}
 
-def verified_quote_advisor_receipt_link(conn,quote,request:Request,current):
+def verified_quote_advisor_receipt_link(conn,quote,request:Request,current,lock:bool=False):
     links=conn.execute('''SELECT * FROM package_quote_advisor_receipt_links
         WHERE tenant_id=? AND assessment_id=? AND quote_id=?''',
         (tenant_id(request),current['id'],quote['id'])).fetchall()
@@ -2198,7 +2199,7 @@ def verified_quote_advisor_receipt_link(conn,quote,request:Request,current):
     if (digest!=link['record_sha256'] or link['receipt_id']!=quote['source_receipt_id'] or
             link['assessment_scope_sha256']!=assessment_scope_digest(current)):
         raise HTTPException(409,'The quoted Protection Advisor receipt link failed integrity or scope review.')
-    handoff=verified_advisor_handoff_for_quote(conn,link['receipt_id'],request,current)
+    handoff=verified_advisor_handoff_for_quote(conn,link['receipt_id'],request,current,lock=lock)
     if (handoff['handoff_key']!=link['handoff_key'] or
             handoff['revision_no']!=link['revision_no'] or
             handoff['receipt_sha256']!=link['receipt_sha256'] or
@@ -6005,7 +6006,7 @@ def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
         except ValueError as exc: raise HTTPException(409,'The requested package path changed while preparing this quote.') from exc
         predecessor=(verified_package_predecessor(conn,predecessor_id,request,current,p.level)
             if p.level>1 else None)
-        advisor_handoff=(verified_advisor_handoff_for_quote(conn,data['source_receipt_id'],request,current)
+        advisor_handoff=(verified_advisor_handoff_for_quote(conn,data['source_receipt_id'],request,current,lock=True)
             if data['source_receipt_id'] else None)
         data['assessment_scope_sha256']=assessment_scope_digest(current)
         accepted=conn.execute('SELECT id FROM package_acceptances WHERE tenant_id=? AND assessment_id=? LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
@@ -6139,7 +6140,7 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
         verified_member_authority_review(conn,quote,ctx['user_id'])
         if quote['level']>1: verified_quote_predecessor_link(conn,quote,request,assessment)
         if quote['source_receipt_id']:
-            verified_quote_advisor_receipt_link(conn,quote,request,assessment)
+            verified_quote_advisor_receipt_link(conn,quote,request,assessment,lock=True)
         latest=conn.execute('SELECT MAX(version_no) n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',(tenant_id(request),assessment_id)).fetchone()['n']
         if (quote['version_no']!=latest or quote['assessment_version']!=assessment['version']
             or quote['covered_operation']!=assessment['covered_operation']
