@@ -49,6 +49,8 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         submission='SPA-SUBMISSION-TEST'; receipt='SPA-RECEIPT-TEST'
         receipt_bytes=b'%PDF-1.4\\nreview-copy\\n%%EOF'
         receipt_digest=hashlib.sha256(receipt_bytes).hexdigest()
+        profile_json=json.dumps({'covered_operation_tags':['Child care or early education'],
+            'decision_authority':'Director','records_coordinator_role':'Office manager'},sort_keys=True)
         conn.execute('''INSERT INTO advisor_public_sessions
           (session_key,token_sha256,csrf_sha256,organization_type,primary_consent,
            secondary_deidentified_consent,consent_notice_version,retention_policy_version,
@@ -83,10 +85,11 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         conn.execute('''INSERT INTO advisor_public_service_profiles
           (profile_key,submission_key,profile_version,profile_json,profile_sha256,
            package_recommendation_version,package_json,created_at) VALUES(?,?,?,?,?,?,?,?)''',
-          ('SPA-PROFILE-TEST',submission,'profile-v1','{}',advisor._sha('{}'),'package-v1',
+          ('SPA-PROFILE-TEST',submission,'profile-v1',profile_json,advisor._sha(profile_json),'package-v1',
            json.dumps({'scope_receipt':{'receipt_id':receipt,
              'requested_boundary':'One operation','requested_location':'One site',
-             'possible_path':'Level 1A Access'}}),app.now()))
+             'possible_path':'Level 1A Access','decision_owner':'Director',
+             'records_coordinator':'Office manager'}}),app.now()))
         conn.execute('''INSERT INTO advisor_public_report_identity_revisions
           (revision_key,account_key,session_key,revision_no,protected_member_code_name,
            project_code_name,handling_profile,handling_status,created_by,created_at,content_sha256)
@@ -212,6 +215,10 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         packet=reviewer.get(packet_url)
         assert packet.status_code==200,packet.text
         assert packet.json()['prospect_receipt']['requested_boundary']=='One operation'
+        assert packet.json()['prospect_receipt']['decision_role']=='Director'
+        assert packet.json()['prospect_receipt']['records_coordinator']=='Office manager'
+        assert packet.json()['consented_scope_signals']['covered_operation_tags']==['Child care or early education']
+        assert packet.json()['consented_scope_signals']['profile_sha256']==advisor._sha(profile_json)
         assert packet.json()['member_request']['covered_operation']=='One operation'
         receipt_copy=reviewer.get(receipt_url)
         assert receipt_copy.status_code==200 and receipt_copy.content==receipt_bytes
@@ -231,11 +238,13 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         conn.execute('UPDATE advisor_public_service_profiles SET profile_json=? WHERE submission_key=?',
           ('{"changed":true}',submission))
         conn.commit();conn.close()
+        assert reviewer.get(packet_url).status_code==409
         assert reviewer.post(review_url,json=review).status_code==409
         conn=app.db()
         conn.execute('UPDATE advisor_public_service_profiles SET profile_json=? WHERE submission_key=?',
-          ('{}',submission))
+          (profile_json,submission))
         conn.commit();conn.close()
+        assert reviewer.get(packet_url).status_code==200
         reviewed=reviewer.post(review_url,json=review)
         assert reviewed.status_code==200,reviewed.text
         assert reviewed.json()['status']=='Reviewed for quote preparation only'

@@ -5775,15 +5775,19 @@ def advisor_package_handoff_review_packet(assessment_id:int,handoff_key:str,requ
             (handoff_key,tenant_id(request),assessment_id)).fetchone()
         if not handoff or handoff['status'] not in ('Claimed','Reviewed'):
             raise HTTPException(404,'Handoff is unavailable for review.')
-        source=conn.execute('''SELECT s.organization_name,p.package_json
+        source=conn.execute('''SELECT s.organization_name,p.profile_version,p.profile_json,p.profile_sha256,p.package_json
             FROM advisor_public_submissions s
             JOIN advisor_public_service_profiles p ON p.submission_key=s.submission_key
             JOIN advisor_public_sessions a ON a.session_key=s.session_key
             WHERE s.session_key=? AND s.submission_key=? AND a.status='Submitted' AND a.deleted_at='' ''',
             (handoff['session_key'],handoff['submission_key'])).fetchone()
-        if not source or hashlib.sha256(source['package_json'].encode('utf-8')).hexdigest()!=handoff['package_sha256']:
+        if (not source or
+            hashlib.sha256(source['package_json'].encode('utf-8')).hexdigest()!=handoff['package_sha256'] or
+            hashlib.sha256(source['profile_json'].encode('utf-8')).hexdigest()!=source['profile_sha256'] or
+            source['profile_sha256']!=handoff['profile_sha256']):
             raise HTTPException(409,'The prospect scope changed; a new review is required.')
         receipt=(json.loads(source['package_json']).get('scope_receipt') or {})
+        profile=json.loads(source['profile_json'])
         if str(receipt.get('receipt_id') or '')!=handoff['receipt_id']:
             raise HTTPException(409,'The receipt identity changed; a new review is required.')
         return {
@@ -5793,7 +5797,14 @@ def advisor_package_handoff_review_packet(assessment_id:int,handoff_key:str,requ
                                 'organization':source['organization_name'],
                                 'requested_boundary':receipt.get('requested_boundary',''),
                                 'requested_location':receipt.get('requested_location',''),
-                                'possible_path':receipt.get('possible_path','')},
+                                'possible_path':receipt.get('possible_path',''),
+                                'decision_role':receipt.get('decision_owner','To confirm'),
+                                'records_coordinator':receipt.get('records_coordinator','To confirm')},
+            'consented_scope_signals':{
+                'covered_operation_tags':profile.get('covered_operation_tags') or [],
+                'profile_version':source['profile_version'],
+                'profile_sha256':source['profile_sha256'],
+                'use_limit':'For Salus scope review only; tags do not set risk, band or price.'},
             'member_request':{'assessment_id':assessment_id,'assessment_version':assessment['version'],
                               'organization':assessment['organization'],
                               'covered_operation':assessment['covered_operation'],
