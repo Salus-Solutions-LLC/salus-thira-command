@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Approved price basis and verified cap candidate
+
+- Marc again authorized finishing and publishing the entire scope. The reviewed scanner planning case is one protected account with at most 100 GB/month scan cap, about $25/month at Microsoft's cited example rates before other Azure charges. Charter, SAL-D092, scanner runbook and Bicep now match; source commit `1f0549897600720d06537de7cdad4e89a187a50d` passed Public Protection Advisor run **438** (`36806868448`) and all three Salus package rollout jobs in run **55** (`36806868454`), including scanner Bicep compilation. No Azure resource was created by CI.
+- The signed-in browser bridge again failed to initialize (`failed to write kernel assets`, os error 3), and this host has no `az` or Azure PowerShell login. No Azure management connector was found. Thus the actual subscription quote, deployment `what-if`, Event Grid receiver identity and scanner install remain unverified. Existing 25 MB upload stays locked; issue #520 stays paused. Owner/next action: Salus engineering obtains an authenticated Azure management path, completes the exact-object pending/clean receiver and direct-upload integration, then performs governed install, live scans, costs, rollback and qualified publication. The 100 GB volume cap is not a hard $25 bill ceiling and a revised total spending limit/alerts remain to be recorded.
+
 ## 30 September 2026 — Scanner planning price approved
 
 - Marc approved the corrected planning price: about $10 per protected account per month plus $0.15 per GB, or $25 at 100 GB before other Azure charges. SAL-D092 and the scanner runbook now record this scoped approval; Bicep limits the monthly scan-cap parameter to 100 GB. This does not establish the live subscription quote, total-bill ceiling or an installed resource. Engineering must verify those remaining cost facts through a usable Azure identity before billable activation. Existing small-file upload scope and the paused large-batch issue #520 remain unchanged.
