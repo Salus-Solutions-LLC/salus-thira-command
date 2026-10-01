@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — Existing large-batch intake reconciled with scanner design
+
+- **Correction:** Issue [#520](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/520) is the existing authoritative work order for dependable nested SalCAPA batch ingestion. SAL-D023 and SAL-D024 already require its durable ledger, retries, ZIP/member lineage, archive verification and Member/engagement separation. The v3.202 live worker demonstrated a bounded 20-file pass; the 10,000-file drain, oversize, restart/throttle and isolation gates remain open. The `candidate_count=12950` field is total stored candidate rows, not remaining backlog. Do not create another large-batch intake system or count the Defender scanner module as completion of #520.
+- **Integration:** `docs/AZURE_DEFENDER_STORAGE_SCANNER.md` now explicitly makes the scanner a security gate on the existing batch ledger and on direct Member uploads. Reuse source identities and retry obligations; keep enterprise, unassigned and assigned Member destinations isolated. The scanner IaC is still source-only at `59b192b`; no Azure scanner, event receiver, staged large-media transfer or new file-type acceptance is live. Next action/owner: Salus engineering reconciles #520 ledger states and limits with exact-object quarantine/results, implements and proves both paths, then qualified release verifies live scale, media, cost and isolation before activation. Marc supplies a usable Azure access path and revised scanner spending limit.
+
 ## 30 September 2026 — Defender scanner acquisition authorized, installation pending
 
 - **Authority and cost:** Marc expressly directed Salus to acquire and install a scanner for all accepted media types and authorized scanner-related Azure spending above the prior $30/month ceiling. SAL-D092 records the exception while preserving unrelated foundation controls. A revised monthly limit and subscription-specific quote are being requested; Microsoft's published planning figure is about $10 per protected account monthly plus $0.15 per GB, plus Blob/Event Grid/processing charges, not a Salus bill quote.
