@@ -45,6 +45,9 @@ for path in sorted(ROOT.glob("*.pdf")):
             "requires_blank_second_page": report or questionnaire,
             "cover_mentions_confidential": "confidential" in texts[0].lower(),
             "calibri_visible_characters": calibri_chars,
+            "pdf_title": str(pdf.metadata.title or ""),
+            "tagged": bool(pdf.trailer["/Root"].get("/StructTreeRoot")),
+            "language": str(pdf.trailer["/Root"].get("/Lang") or ""),
         }
     )
 
@@ -52,6 +55,8 @@ for path in sorted(ROOT.glob("*.pdf")):
 for row in rows:
     if row["calibri_visible_characters"]:
         raise AssertionError(f"Calibri visible in {row['file']}")
+    if not row["pdf_title"] or not row["tagged"] or not row["language"].startswith("en"):
+        raise AssertionError(f"PDF title, tags or language missing in {row['file']}")
     if not row["cover_mentions_confidential"]:
         raise AssertionError(f"Confidential cover missing in {row['file']}")
     if row["requires_blank_second_page"] and not row["second_page_blank"]:

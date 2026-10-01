@@ -43,7 +43,7 @@ def inspect(product, source, expected_hash):
             issues.append('Word package member set changed')
         changed = sorted(name for name in set(old.namelist()) & set(new.namelist())
                          if hashlib.sha256(old.read(name)).digest() != hashlib.sha256(new.read(name)).digest())
-        if changed != ['word/document.xml', 'word/styles.xml']:
+        if changed != ['docProps/core.xml', 'word/document.xml', 'word/styles.xml']:
             issues.append(f'Unexpected Word package changes: {changed}')
         xml = new.read('word/document.xml').decode('utf-8')
         if f'- {product} Level [path]' not in xml:
@@ -53,6 +53,8 @@ def inspect(product, source, expected_hash):
         if drawings and len(image_alts) < drawings:
             issues.append('A drawing lacks alternate description in the document body')
     document = Document(candidate)
+    if document.core_properties.title != f'{product} Level and Band Report Template Candidate 1.2':
+        issues.append('Accessible Word document title missing')
     word_cover = '\n'.join(paragraph.text for paragraph in document.paragraphs[:8])
     word_candidate = re.search(r'\bcandidate\s+(\d+\.\d+)\b', word_cover, flags=re.I)
     if not word_candidate:

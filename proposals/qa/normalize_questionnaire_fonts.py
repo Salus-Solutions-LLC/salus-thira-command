@@ -2,7 +2,8 @@
 
 The original builder set visible font names, but heading styles retained Word's
 major-HAnsi theme binding. Native Word then rendered those headings in Calibri.
-This controlled QA repair keeps the same files, paragraphs, and pagination.
+This controlled QA repair keeps the same files and paragraph text. The Part 2
+closing section deliberately starts on its own page after native rendering.
 """
 
 from pathlib import Path
@@ -19,6 +20,12 @@ FILES = (
     "Protection_Advisor_Level_1_Intake_Revision_DRAFT.docx",
     "Salus_Level_1_Protected_Member_Information_Request_DRAFT.docx",
 )
+TITLES = {
+    FILES[0]: "Protection Advisor Part 1 Questionnaire",
+    FILES[1]: "Protection Advisor Part 2 Questionnaire",
+    FILES[2]: "Protection Advisor Level 1 Intake Revision — Internal Worksheet",
+    FILES[3]: "Level 1 Protected Member Information Request",
+}
 FONT_ATTRS = ("ascii", "hAnsi", "eastAsia", "cs")
 THEME_ATTRS = ("asciiTheme", "hAnsiTheme", "eastAsiaTheme", "cstheme", "csTheme")
 
@@ -42,6 +49,7 @@ def is_heading(name: str) -> bool:
 for filename in FILES:
     path = ROOT / filename
     doc = Document(path)
+    doc.core_properties.title = TITLES[filename]
     before = [paragraph.text for paragraph in doc.paragraphs]
     for style in doc.styles:
         if style.type != WD_STYLE_TYPE.PARAGRAPH:

@@ -77,13 +77,26 @@ def build() -> None:
                     for attr in ("asciiTheme", "hAnsiTheme", "eastAsiaTheme", "cstheme"):
                         xml = re.sub(rf' w:{attr}="[^"]*"', "", xml)
                     data = xml.encode("utf-8")
+                elif info.filename == "docProps/core.xml":
+                    # Native Word uses this title for accessible PDF exports
+                    # when IncludeDocProps is enabled. Keep it member-neutral.
+                    xml = data.decode("utf-8")
+                    title = f"{product} Level and Band Report Template Candidate 1.2"
+                    xml, count = re.subn(
+                        r"<dc:title(?:/>|>[^<]*</dc:title>)",
+                        f"<dc:title>{title}</dc:title>",
+                        xml,
+                        count=1,
+                    )
+                    assert count == 1, (source, "document title")
+                    data = xml.encode("utf-8")
                 output.writestr(info, data)
             output.comment = original.comment
         with ZipFile(source) as original, ZipFile(target) as candidate:
             assert candidate.testzip() is None
             assert set(original.namelist()) == set(candidate.namelist())
             for name in original.namelist():
-                if name not in ("word/document.xml", "word/styles.xml"):
+                if name not in ("docProps/core.xml", "word/document.xml", "word/styles.xml"):
                     assert sha256(original.read(name)).digest() == sha256(candidate.read(name)).digest(), (product, name)
         print(product, target, sha256(target.read_bytes()).hexdigest().upper())
 
