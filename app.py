@@ -5524,8 +5524,13 @@ def get_package_quote(assessment_id:int,request:Request):
     acceptance=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND quote_id=?',(tenant_id(request),assessment_id,quote['id'])).fetchone()
     signer_review=conn.execute('SELECT * FROM package_member_authority_reviews WHERE tenant_id=? AND assessment_id=? AND quote_id=?',
         (tenant_id(request),assessment_id,quote['id'])).fetchone()
-    if protected_member_request(request) and signer_review and signer_review['member_user_id']!=auth_context(request)['user_id']:
-        conn.close(); raise HTTPException(403,'This quote belongs to another reviewed Member decision owner.')
+    if protected_member_request(request):
+        if not signer_review:
+            conn.close(); return {'status':'Awaiting Salus signer review'}
+        if signer_review['record_sha256']!=_member_authority_review_digest(signer_review):
+            conn.close(); raise HTTPException(409,'The Member signer review needs Salus verification.')
+        if signer_review['member_user_id']!=auth_context(request)['user_id']:
+            conn.close(); raise HTTPException(403,'This quote belongs to another reviewed Member decision owner.')
     review_valid=bool(signer_review and signer_review['record_sha256']==_member_authority_review_digest(signer_review))
     signer_valid=True
     if acceptance:

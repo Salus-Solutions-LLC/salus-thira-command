@@ -185,7 +185,8 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
             'evidence_reference':'BOARD-AUTHORITY-RECORD-1','confirm_external_authority':True}
         without_review=member.post(f'/api/assessments/{assessment_id}/package-acceptance',json=acceptance)
         assert without_review.status_code==409 and 'verify this Member signer' in without_review.text,without_review.text
-        assert member.get(url).json()['status']=='Awaiting Salus signer review'
+        assert member.get(url).json()=={'status':'Awaiting Salus signer review'}
+        assert other_member.get(url).json()=={'status':'Awaiting Salus signer review'}
         assert director.post(review_url,json=authority_review).status_code==401
         bad_signer=reviewer.post(review_url,json={**authority_review,'member_user_id':reviewer_id})
         assert bad_signer.status_code==409,bad_signer.text
@@ -273,7 +274,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         conn.execute('UPDATE package_member_authority_reviews SET member_user_id=? WHERE quote_id=?',
             (reviewer_id,issued['id']))
         conn.commit();conn.close()
-        assert member.get(url).status_code==403
+        assert member.get(url).status_code==409
         assert member.get(intake_url).status_code==409
         conn=app.db()
         conn.execute('UPDATE package_member_authority_reviews SET member_user_id=? WHERE quote_id=?',

@@ -6,6 +6,8 @@
 
 The Protection Advisor can suggest a Level 1 band and give a draft scope receipt. The current SalCAPA assessment record stores a **requested** level, band, Access/Standard option and covered operation. These fields do not prove eligibility, establish a fixed quote, authorize work, qualify a predecessor or release any of the four reports. The next implementation must make those distinctions visible and enforce them in the API, not only in the page copy.
 
+In the production-locked candidate, a signed-in Member account receives only an `Awaiting Salus signer review` state until Salus records a valid exact-quote signer review. It receives no quote terms, fee, agreement reference or download link before that review. After review, only the reviewed Client Executive may see the terms; a changed review digest fails closed. The dashboard explains the pending state without presenting it as a historical quote or an offer. These source controls require authenticated browser and tenant proof before release.
+
 ## One package identity and states
 
 One governed package identity binds the Protected Member and tenant, decision owner, covered and excluded units, level, band, Access/Standard option, source Protection Advisor submission and receipt version, written scope version, quote version, agreement version, four report IDs and the predecessor package. Preserve immutable prior versions; a changed scope gets a new version of the **same** package, not another Member submission or duplicate report.

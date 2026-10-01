@@ -153,6 +153,9 @@ async function entityView(key){
       $('#content').appendChild(quotePanel);
       try{
         const quote=await api(`/api/assessments/${activeAssessmentId}/package-quote`);
+        if(quote.status==='Awaiting Salus signer review'){
+          quotePanel.innerHTML='<h2>Your package quote</h2><p>Salus is checking who may review and decide on this quote for the selected operation. The terms and written agreement will appear for that person after the review. No purchase or work has started.</p>';
+        }else{
         const fee=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(quote.fee_cents)/100);
         const currentQuote=quote.status==='Quoted' || quote.status==='Authorized';
         const quoteHeading=currentQuote?'Your package quote':'Previous package quote — no current offer';
@@ -200,6 +203,7 @@ async function entityView(key){
               finally{button.disabled=false;}
             });
           }catch(error){intakePanel.innerHTML='<h2>Your Level 1 records request</h2><p>The records list is temporarily unavailable. Please contact Salus before sending files.</p>';}
+        }
         }
       }catch(error){quotePanel.innerHTML='<h2>Your package quote</h2><p>No current approved quote is available for this selected assessment. Salus must confirm the scope and capacity before offering one.</p>';}
     }
