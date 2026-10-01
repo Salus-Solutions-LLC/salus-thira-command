@@ -205,6 +205,12 @@ jobs:
           test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa:source-$SOURCE_COMMIT" --query digest --output tsv)" = "${IMAGE_DIGEST##*@}"
           test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa:source-$ROLLBACK_COMMIT" --query digest --output tsv)" = "${ROLLBACK_IMAGE##*@}"
           test "$(az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --query 'properties.template.containers[0].image' --output tsv)" = "$ROLLBACK_IMAGE"
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/salcapa-rollback-job.json
+          jq -e --arg image "$ROLLBACK_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+          ' /tmp/salcapa-rollback-job.json >/dev/null
 
       - name: What-if and deploy immutable SalCAPA application
         id: deployment
@@ -540,7 +546,7 @@ jobs:
         run: |
           set -euo pipefail
           APP_NAME=salcapa-dev-b48224
-          az containerapp job delete --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --yes --only-show-errors || true
+          JOB_NAME=salcapa-dev-b48224-kb-scan
           az containerapp update \
             --resource-group "$RESOURCE_GROUP" \
             --name "$APP_NAME" \
@@ -554,11 +560,25 @@ jobs:
             FQDN="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/salcapa-rollback.json)"
             STATUS="$(curl --connect-timeout 5 --max-time 15 --silent --show-error --output /tmp/salcapa-rollback-ready.json --write-out '%{http_code}' "https://$FQDN/health/ready" || true)"
             if [ "$STATUS" = "200" ] && python accepted-release/tools/validate_live_readiness.py /tmp/salcapa-rollback-ready.json --environment dev >/dev/null 2>&1; then
+              # The scheduled worker is part of the accepted release. Restore its
+              # immutable image rather than deleting the job during rollback.
+              az containerapp job update \
+                --resource-group "$RESOURCE_GROUP" \
+                --name "$JOB_NAME" \
+                --image "$ROLLBACK_IMAGE" \
+                --output none --only-show-errors
+              az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-rollback-job.json
+              jq -e --arg image "$ROLLBACK_IMAGE" '
+                .properties.template.containers[0].image == $image and
+                .properties.configuration.triggerType == "Schedule" and
+                .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+              ' /tmp/salcapa-rollback-job.json >/dev/null
               {
                 echo "### SalCAPA failed promotion rollback"
                 echo ""
                 echo "- Accepted immutable $ROLLBACK_RELEASE image restored"
                 echo "- Live readiness restored"
+                echo "- Scheduled worker image and trigger restored"
                 echo "- DNS unchanged"
                 echo "- Client secret not used"
                 echo "PROMOTION_FAILED_ACCEPTED_STATE_RESTORED"
