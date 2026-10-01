@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 30 September 2026 — User-scoped Azure CLI installed; identity pending
+
+- To obtain a governed Azure management path for the approved scanner installation, installed Microsoft Azure CLI 2.90.0 into a temporary, user-scoped Python environment. The first system-wide Chocolatey attempt installed nothing because this shell is not elevated; the unprivileged pip attempt was network-blocked, then the approved unsandboxed user-scoped pip installation succeeded. The CLI itself is free and did not create Azure resources or enable Defender. The current CLI has no account session. A Microsoft device sign-in was initiated and awaits Marc's completion; the one-time code is intentionally **not** recorded here. After sign-in, verify tenant, subscription, resource group, location, actual scanner price and current spend before any deployment. The authenticated scan-result receiver and direct-upload integration still do not exist; no publication is possible yet. Issue #520 remains paused.
+
 ## 30 September 2026 — Approved price basis and verified cap candidate
 
 - Marc again authorized finishing and publishing the entire scope. The reviewed scanner planning case is one protected account with at most 100 GB/month scan cap, about $25/month at Microsoft's cited example rates before other Azure charges. Charter, SAL-D092, scanner runbook and Bicep now match; source commit `1f0549897600720d06537de7cdad4e89a187a50d` passed Public Protection Advisor run **438** (`36806868448`) and all three Salus package rollout jobs in run **55** (`36806868454`), including scanner Bicep compilation. No Azure resource was created by CI.
