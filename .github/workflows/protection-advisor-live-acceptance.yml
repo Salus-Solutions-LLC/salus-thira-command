@@ -1,13 +1,7 @@
 name: Protection Advisor live acceptance
 
 on:
-  push:
-    branches:
-      - development/salcapa-platform
-    paths:
-      - 'deploy/azure/activations/application-dev.json'
-      - 'tools/live_public_protection_advisor_acceptance.sh'
-      - '.github/workflows/protection-advisor-live-acceptance.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -61,4 +55,11 @@ jobs:
       - name: Exercise public consent, account, resume, package, and review handoff
         env:
           PROTECTION_ADVISOR_BASE_URL: https://salcapa-dev-b48224.ashycoast-29444a28.southcentralus.azurecontainerapps.io
-        run: bash tools/live_public_protection_advisor_acceptance.sh
+        run: |
+          set -euo pipefail
+          SOURCE_RELEASE="$(jq -r '.source_release' deploy/azure/activations/application-dev.json)"
+          EXPECTED_VERSION="${SOURCE_RELEASE#release/v}"
+          curl --connect-timeout 10 --max-time 30 --fail --silent --show-error \
+            "$PROTECTION_ADVISOR_BASE_URL/api/system/mode" > /tmp/salcapa-advisor-mode.json
+          test "$(jq -r '.version' /tmp/salcapa-advisor-mode.json)" = "$EXPECTED_VERSION"
+          bash tools/live_public_protection_advisor_acceptance.sh
