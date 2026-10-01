@@ -27,7 +27,7 @@ permissions:
 
 concurrency:
   group: public-protection-advisor-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   sqlite-security-acceptance:
