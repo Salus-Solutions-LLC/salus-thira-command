@@ -334,6 +334,7 @@ def test_consent_claim_and_prospect_deletion(tmp_path):
         assert prospect.post('/public/protection-advisor/package-handoff/withdraw',json=withdrawal).json()=={'withdrawn':True}
         assert reviewer.post(quote_url,json=quote_payload).status_code==409
         assert reviewer.get(quote_url).json()['status']=='Advisor receipt changed — new quote required'
+        assert member.get(f'/api/package-agreements/{uploaded.json()["id"]}/download').status_code==409
         assert member.post(f'/api/assessments/{assessment_id}/package-acceptance',
           json=acceptance).status_code==409
         conn=app.db()

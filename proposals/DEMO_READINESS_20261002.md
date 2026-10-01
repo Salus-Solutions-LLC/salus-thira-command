@@ -27,6 +27,8 @@ Use the live Protection Advisor Part 1, Part 2 and Level 1 intake as a **fully f
 | Level 1 assessment intake | Draft `L1-INTAKE-1.0.0` catalog and quote/authority records. | Confirmed receipt-to-signed-scope link, tailored staged questions, file quarantine and authenticated clean-result scanner, alerts/recovery/retention, live Member and Salus role tests, Wix integration and qualified release. Live site exposes no approved intake path. |
 | Wix entry page | Published `www.salus.solutions/protection-advisor` links to the live embed. | Page still says “A Free Assessment” and does not explain the approved Level 1 purchase boundary. Editor body cannot be changed by the connected REST tool; browser-control initialization currently fails. Exact page copy, desktop/mobile/accessibility and publish verification remain open. |
 
+**1 October draft progress:** PR #589 now contains a reviewed Advisor receipt to Level 1 quote link and checks that a withdrawn or changed receipt blocks an unaccepted quote and its acceptance. This is an unpublished candidate; exact-head CI, written-agreement incorporation, tailored intake, scanner and live release proof remain open. The public Wix page still showed “A Free Assessment” on the latest read.
+
 ## Shortest no-expedite path
 
 1. Freeze the exact Part 1/Part 2 candidate and verify a representative anonymous start, resume, consented Part 2, report/receipt, deletion and cross-account denial in a signed-in browser against the release image. Fix failures and rerun the affected exact checks.

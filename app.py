@@ -5652,6 +5652,14 @@ def download_package_agreement(artifact_id:int,request:Request):
             verified_package_quote(conn,quote,request)
             if member:
                 verified_member_authority_review(conn,quote,auth_context(request)['user_id'])
+                if quote['source_receipt_id']:
+                    acceptance=conn.execute('''SELECT id FROM package_acceptances
+                        WHERE tenant_id=? AND assessment_id=? AND quote_id=?''',
+                        (tenant_id(request),item['assessment_id'],quote['id'])).fetchone()
+                    if not acceptance:
+                        current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+                            (item['assessment_id'],tenant_id(request))).fetchone()
+                        verified_quote_advisor_receipt_link(conn,quote,request,current)
             if quote['level']>1:
                 current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
                     (item['assessment_id'],tenant_id(request))).fetchone()
