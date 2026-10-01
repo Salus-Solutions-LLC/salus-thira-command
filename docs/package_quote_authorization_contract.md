@@ -32,6 +32,10 @@ One governed package identity binds the Protected Member and tenant, decision ow
 5. Secure transfer starts after authorization. Request a short first packet and record missing material as missing; do not require personal directories or sensitive individual records by default.
 6. Report generation may remain draft during work, but issue and distribution require exact-version human approval. The SalCAPA summary links the four approved report IDs and tells the Member which options are included recommendations and which are separately proposed services.
 
+### Protection Advisor receipt to Level 1 quote
+
+A consented Part 2 receipt is a scoping source, not a contract. A Salus reviewer must confirm the same Member, current assessment boundary, receipt revision, content hashes and roles before referencing it in a Level 1 quote. The quote stores a separate immutable receipt-link proof; the Member must still receive the written quote and exact agreement. A changed, withdrawn or deleted receipt blocks an unaccepted quote, agreement download and acceptance until Salus reviews and issues a new quote. An accepted agreement remains a governed contract record, subject to its retention rules. The agreement itself must identify the covered and excluded operation, deliverables, fee, handling and exact receipt or scope schedule it incorporates; a database link alone does not prove that the signed document contains those terms. Qualified commercial, legal and records review of the exact agreement and post-withdrawal retention is required before production release.
+
 ### Four-product report and predecessor proof
 
 The current `report_versions` table holds an Executive snapshot of an assessment. Its `Released` state does **not** prove a SalINTEL™, SalTHIRA™, SalOPS™ or SalCAPA™ package report was issued, and must never qualify Level 2 or Level 3 entry. Add a separate governed package/report lineage record before removing the Level 2/3 quote block. Preserve any historical Executive snapshot as its own identity; do not relabel it or create duplicate Member reports.
