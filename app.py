@@ -5437,19 +5437,31 @@ async def upload_package_agreement(assessment_id:int,request:Request,file:Upload
     if not content.startswith(b'%PDF-'): raise HTTPException(422,'The agreement must be a PDF.')
     original=safe_filename(file.filename or 'package-agreement.pdf')
     if not original.lower().endswith('.pdf'): raise HTTPException(422,'The agreement filename must end in .pdf.')
+    tid=tenant_id(request); digest=hashlib.sha256(content).hexdigest()
+    preflight=db()
+    try:
+        existing=preflight.execute('SELECT * FROM package_agreement_artifacts WHERE tenant_id=? AND assessment_id=? AND content_sha256=?',
+            (tid,assessment_id,digest)).fetchone()
+        if existing:
+            if existing['scan_status']!='Clean':
+                raise HTTPException(409,'The stored agreement has not passed the file security check.')
+            return {k:existing[k] for k in ('id','assessment_id','original_name','content_sha256','size_bytes','uploaded_at')}
+    finally:
+        preflight.close()
     scan=scan_bytes(content,original)
     if not scan['ok'] or scan['status']!='Clean':
         security_event(request,'PACKAGE_AGREEMENT_REJECTED','High' if scan['status']=='Infected' else 'Medium',f'status={scan["status"]}')
         raise HTTPException(422 if scan['status']=='Infected' else 503,'The agreement could not pass the file security check.')
-    tid=tenant_id(request); digest=hashlib.sha256(content).hexdigest(); conn=db()
-    existing=conn.execute('SELECT * FROM package_agreement_artifacts WHERE tenant_id=? AND assessment_id=? AND content_sha256=?',(tid,assessment_id,digest)).fetchone()
-    if existing:
-        conn.close()
-        if existing['scan_status']!='Clean':
-            raise HTTPException(409,'The stored agreement has not passed the file security check.')
-        return {k:existing[k] for k in ('id','assessment_id','original_name','content_sha256','size_bytes','uploaded_at')}
-    stored=f'tenant-{tid}/assessment-{assessment_id}/package-agreements/{uuid.uuid4().hex}_{digest[:16]}.pdf'
+    conn=db(); stored=''
     try:
+        lock_package_assessment(conn,assessment_id)
+        existing=conn.execute('SELECT * FROM package_agreement_artifacts WHERE tenant_id=? AND assessment_id=? AND content_sha256=?',
+            (tid,assessment_id,digest)).fetchone()
+        if existing:
+            if existing['scan_status']!='Clean':
+                raise HTTPException(409,'The stored agreement has not passed the file security check.')
+            return {k:existing[k] for k in ('id','assessment_id','original_name','content_sha256','size_bytes','uploaded_at')}
+        stored=f'tenant-{tid}/assessment-{assessment_id}/package-agreements/{uuid.uuid4().hex}_{digest[:16]}.pdf'
         storage.put_bytes(stored,content)
         retention_until=(_iso_now_dt()+timedelta(days=RETENTION_DEFAULT_DAYS)).replace(microsecond=0).isoformat().replace('+00:00','Z') if RETENTION_DEFAULT_DAYS>0 else ''
         uploaded_at=now()
@@ -5458,8 +5470,9 @@ async def upload_package_agreement(assessment_id:int,request:Request,file:Upload
         return {'id':cur.lastrowid,'assessment_id':assessment_id,'original_name':original,'content_sha256':digest,'size_bytes':len(content),'uploaded_at':uploaded_at}
     except Exception as exc:
         conn.rollback()
-        try: storage.delete(stored)
-        except Exception: pass
+        if stored:
+            try: storage.delete(stored)
+            except Exception: pass
         if isinstance(exc,HTTPException): raise
         error_id=secrets.token_hex(8); record_internal_failure('package agreement upload',error_id,exc)
         raise HTTPException(503,f'Agreement storage is unavailable. Reference: {error_id}') from exc

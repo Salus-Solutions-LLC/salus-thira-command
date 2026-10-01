@@ -40,6 +40,11 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         agreement_id=upload.json()['id']
         repeated=director.post(f'/api/assessments/{assessment_id}/package-agreements',files={'file':('Agreement.pdf',pdf,'application/pdf')})
         assert repeated.status_code==200 and repeated.json()['id']==agreement_id
+        original_scan=app.scan_bytes
+        app.scan_bytes=lambda *_args: (_ for _ in ()).throw(AssertionError('A known clean agreement must not be rescanned'))
+        repeated=director.post(f'/api/assessments/{assessment_id}/package-agreements',files={'file':('Agreement.pdf',pdf,'application/pdf')})
+        assert repeated.status_code==200 and repeated.json()['id']==agreement_id
+        app.scan_bytes=original_scan
         quote = dict(assessment_version=1,level=1,band='A',variant='Access',
             covered_operation='One named operation',exclusions='Other sites and functions',
             scope_basis='Reviewed one decision unit and basic records',
