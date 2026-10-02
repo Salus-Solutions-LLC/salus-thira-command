@@ -152,6 +152,7 @@ jobs:
             echo "The PostgreSQL Entra administrator type must be Group or User." >&2
             exit 1
           fi
+          BUDGET_USD="$(bash tools/azure_operational_budget.sh "$RESOURCE_GROUP" "$TARGET_ENVIRONMENT" "$UNIQUE_SUFFIX" foundation)"
           PARAMETERS=(
             uniqueSuffix="$UNIQUE_SUFFIX"
             location="$LOCATION"
@@ -166,7 +167,7 @@ jobs:
             sourceCommit="$GITHUB_SHA"
             approvalRecord="$APPROVAL_RECORD"
             monthlyCostCeilingUsd=30
-            operationalBudgetUsd=25
+            operationalBudgetUsd="$BUDGET_USD"
             budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
           )
           az deployment group what-if \
@@ -244,6 +245,7 @@ jobs:
           test -n "$POSTGRES_ADMIN_OBJECT_ID"
           test -n "$POSTGRES_ADMIN_PRINCIPAL_NAME"
           test -n "$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
+          BUDGET_USD="$(bash tools/azure_operational_budget.sh "$RESOURCE_GROUP" "$TARGET_ENVIRONMENT" "$UNIQUE_SUFFIX" existing)"
           PARAMETERS=(
             uniqueSuffix="$UNIQUE_SUFFIX"
             location="$LOCATION"
@@ -259,7 +261,7 @@ jobs:
             sourceCommit="$GITHUB_SHA"
             approvalRecord="$APPROVAL_RECORD"
             monthlyCostCeilingUsd=30
-            operationalBudgetUsd=25
+            operationalBudgetUsd="$BUDGET_USD"
             budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
           )
           az deployment group what-if \
