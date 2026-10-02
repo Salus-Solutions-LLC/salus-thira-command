@@ -1,0 +1,94 @@
+name: SalCAPA scoped worker failure diagnostic
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/salcapa-worker-failure-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected read-only diagnostic gate passed."
+
+  diagnose:
+    needs: authorize
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Query one failed worker window and emit redacted signatures
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+          WORKSPACE_ID="$(az monitor log-analytics workspace show --resource-group rg-salcapa-dev --workspace-name salcapa-dev-b48224-logs --query customerId --output tsv)"
+          test -n "$WORKSPACE_ID"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-02T11:28:00Z) .. datetime(2026-10-02T11:45:00Z)) | where JobName == 'salcapa-dev-b48224-kb-scan' | project Log | take 1000" --output json > "$RUNNER_TEMP/scoped-worker-logs.json"
+          python - "$RUNNER_TEMP/scoped-worker-logs.json" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          rows = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          if isinstance(rows, dict):
+              rows = rows.get("tables", [{}])[0].get("rows", [])
+          signatures = set()
+          safe_hints = {
+              "BadZipFile": "corrupt_office_package",
+              "DOCUMENT_PACKAGE_INVALID": "invalid_document_package",
+              "429": "rate_limit",
+              "401": "authentication",
+              "403": "authorization",
+              "timeout": "timeout",
+              "database": "database",
+              "not configured": "configuration",
+              "permission": "permission",
+              "out of memory": "memory",
+              "No space left": "storage_capacity",
+          }
+          allowed_frames = {
+              "salcapa_office_processing.py",
+              "salcapa_knowledge_worker.py",
+              "salcapa_knowledge_promotion.py",
+              "salcapa_m365_intake.py",
+              "salcapa_runtime.py",
+          }
+          for row in rows:
+              line = row.get("Log", "") if isinstance(row, dict) else str(row)
+              for word, label in safe_hints.items():
+                  if word.lower() in line.lower():
+                      signatures.add("hint=" + label)
+              for name in re.findall(r"\b([A-Za-z_][A-Za-z_0-9.]*(?:Error|Exception)):", line):
+                  signatures.add("exception=" + name)
+              for filename, number, function in re.findall(
+                  r'File "[^"]*[/\\]([^/\\"]+)", line (\d+), in ([A-Za-z_][A-Za-z_0-9]*)',
+                  line,
+              ):
+                  if filename in allowed_frames:
+                      signatures.add("frame=" + filename + ":" + number + ":" + function)
+              for phase in re.findall(r"SALCAPA_WORKER_PHASE=([A-Z_]{2,64})", line):
+                  signatures.add("phase=" + phase)
+          print("scoped_rows=" + str(len(rows)))
+          for signature in sorted(signatures):
+              print(signature)
+          if not signatures:
+              print("no_safe_failure_signature_found")
+          PY
