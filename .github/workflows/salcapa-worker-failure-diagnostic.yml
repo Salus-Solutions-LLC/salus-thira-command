@@ -81,6 +81,7 @@ jobs:
               rows = rows.get("tables", [{}])[0].get("rows", [])
           signatures = set()
           image_counts = {"candidate": 0, "accepted": 0, "other": 0}
+          line_kinds = set()
           safe_hints = {
               "BadZipFile": "corrupt_office_package",
               "DOCUMENT_PACKAGE_INVALID": "invalid_document_package",
@@ -109,6 +110,13 @@ jobs:
                             else "accepted" if "77b9ecd15c25a5baad55be47a6385429df3eb9c3f5712a0cd94745d22cf6f8b1" in image_text
                             else "other")
               image_counts[image_kind] += 1
+              category = ("phase" if "SALCAPA_WORKER_PHASE=" in line
+                          else "batch_result" if "SALCAPA_KNOWLEDGE_BATCH=" in line
+                          else "traceback" if "Traceback" in line
+                          else "exception" if "Exception" in line or "Error" in line
+                          else "warning" if "WARNING" in line
+                          else "other")
+              line_kinds.add("console_category=" + image_kind + ":" + category)
               prefix = "minute=" + minute + " image=" + image_kind + " "
               for word, label in safe_hints.items():
                   if word.lower() in line.lower():
@@ -121,10 +129,12 @@ jobs:
               ):
                   if filename in allowed_frames:
                       signatures.add(prefix + "frame=" + filename + ":" + number + ":" + function)
-              for phase in re.findall(r"SALCAPA_WORKER_PHASE=([A-Z_]{2,64})", line):
+              for phase in re.findall(r"SALCAPA_WORKER_PHASE=([A-Za-z_]{2,64})", line):
                   signatures.add(prefix + "phase=" + phase)
           print("scoped_rows=" + str(len(rows)))
           print("console_image_counts=" + ",".join(key + ":" + str(value) for key, value in sorted(image_counts.items())))
+          for category in sorted(line_kinds):
+              print(category)
           for signature in sorted(signatures):
               print(signature)
           if not signatures:
