@@ -23,7 +23,7 @@ def test_scanner_jobs_fit_azure_name_limit():
 def test_scanner_alert_windows_and_staged_activation():
     source = TEMPLATE.read_text(encoding="utf-8")
     windows = re.findall(r"windowSize:\s*'([^']+)'", source)
-    assert len(windows) == 2
+    assert windows == ["PT5M", "PT5M", "PT30M", "PT48H"]
     assert set(windows) <= SUPPORTED_ALERT_WINDOWS
     assert "param activateScanner bool = false" in source
     assert "eventSubscriptions@2022-06-15' = if (activateScanner)" in source
