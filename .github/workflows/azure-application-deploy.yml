@@ -570,13 +570,37 @@ jobs:
             sleep 10
           done
           test "$DRAINED" = true
+          # Azure replaces the entire execution template when an image override
+          # is supplied. Preserve the worker command, environment, resources,
+          # and secret references when testing the candidate image.
+          jq -e --arg image "$ROLLBACK_IMAGE" '
+            (.properties.template.containers | length) == 1 and
+            .properties.template.containers[0].name == "salcapa-knowledge-scan" and
+            .properties.template.containers[0].image == $image and
+            .properties.template.containers[0].command == ["python", "-m", "tools.salcapa_knowledge_scan_once"]
+          ' /tmp/salcapa-knowledge-job.json >/dev/null
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
+            --query properties.template --output yaml > "$RUNNER_TEMP/salcapa-candidate-worker-template.yaml"
+          python - "$RUNNER_TEMP/salcapa-candidate-worker-template.yaml" "$ROLLBACK_IMAGE" "$IMAGE_DIGEST" <<'PY'
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          original = path.read_text(encoding="utf-8")
+          if original.count(sys.argv[2]) != 1:
+              raise SystemExit("Expected one accepted worker image in execution template")
+          path.write_text(original.replace(sys.argv[2], sys.argv[3]), encoding="utf-8")
+          PY
           # The candidate execution runs only after all accepted runs end.
-          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --image "$IMAGE_DIGEST" --query name --output tsv --only-show-errors)"
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yaml "$RUNNER_TEMP/salcapa-candidate-worker-template.yaml" --query name --output tsv --only-show-errors)"
           test -n "$EXECUTION_NAME"
           SUCCEEDED=false
           for attempt in $(seq 1 100); do
             az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --output json --only-show-errors > /tmp/salcapa-candidate-execution.json
-            jq -e --arg image "$IMAGE_DIGEST" '.properties.template.containers[0].image == $image' /tmp/salcapa-candidate-execution.json >/dev/null
+            jq -e --arg image "$IMAGE_DIGEST" '
+              .properties.template.containers[0].image == $image and
+              .properties.template.containers[0].command == ["python", "-m", "tools.salcapa_knowledge_scan_once"]
+            ' /tmp/salcapa-candidate-execution.json >/dev/null
             STATUS="$(jq -r '.properties.status' /tmp/salcapa-candidate-execution.json)"
             if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
             if [ "$STATUS" = "Failed" ]; then break; fi

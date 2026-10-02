@@ -151,7 +151,9 @@ jobs:
                   check = promote.index('if [ "$SUCCEEDED" != "true" ]; then')
                   resume = promote.index('"triggerType":"Schedule"')
                   assert pause < drain < start < check < resume
-                  assert '--image "$IMAGE_DIGEST" --query name' in promote
+                  assert '--yaml "$RUNNER_TEMP/salcapa-candidate-worker-template.yaml" --query name' in promote
+                  assert 'original.count(sys.argv[2]) != 1' in promote
+                  assert promote.count('.properties.template.containers[0].command == ["python", "-m", "tools.salcapa_knowledge_scan_once"]') >= 2
                   assert promote.count('all(.[]; .properties.status == "Succeeded"') >= 2
                   assert '.properties.template.containers[0].image == $image' in promote.split('for attempt in $(seq 1 100); do', 2)[2].split('done', 1)[0]
                   assert promote.count('az rest --method patch --uri "${JOB_ID}?api-version=2025-07-01"') == 2
