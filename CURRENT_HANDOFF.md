@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 2 October 2026 — live Azure log-query correction and scanner gate
+
+- **Observed in the signed-in Salus Azure portal:** `rg-salcapa-dev` still had 14 resources and no dedicated quarantine account, scan-result/inventory jobs, or scanner action group; its monthly budget alert was still $25, despite Marc's approved $75 target. No paid scanner or file route was activated.
+- **Log evidence:** The existing `ContainerAppConsoleLogs` workspace table returned 18,117 rows in the last 24 hours. Its `EnvironmentName` was a generated identifier, so the candidate alert's filter for `${stem}-aca-env` returned no rows. Existing jobs populated `ContainerName` with either the container name or the full job name. The corrected candidate accepts both job-name forms and omits the unstable environment-name filter. Both corrected aggregate KQL expressions compiled in the live workspace and returned zero, as expected before scanner jobs exist. This validates syntax and field availability only; it does not prove alert firing, email delivery, or future job markers.
+- **Source and next gate:** PR #617 now includes the query correction. Recheck CI and exact head, then obtain Marc's exact-version review because his prior approval covered head `4f119137d747c3edab93278ca508b038e2f0e34e`. Do not merge a changed head under that approval. Next prepare an exact immutable image, scoped deployment what-if and cost review, then prove clean/EICAR, hold, missed/failure alert and recovery before enabling file intake. Engineering owns validation; Marc/qualified reviewer owns release.
+
 ## 2 October 2026 — scanner missed-run detection candidate, PR #617
 
 - **Exact state:** Accepted Advisor app remains 3.205, with the public Wix Part 1/Part 2 demo path qualified as recorded below. Public mode previously showed `av_mode=off` and `av_required=false`; scanner-backed Member file intake and package purchase remain closed. No Azure scanner resource, live alert or file-scan proof was added in this pass. Tierra Linda remains stopped and large-batch #520 paused.
