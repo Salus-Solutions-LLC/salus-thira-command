@@ -587,31 +587,20 @@ jobs:
               'Custom DNS: not changed',
               'Public production cutover: not performed',
           ]
+          # The activation values change at every release. Validate that the
+          # workflow reads and checks those values, rather than requiring old
+          # release-specific literal strings in a generic deployment workflow.
           application_deployment_required.extend([
-              f"ref: {application_activation['source_release']}",
-              f"ref: {application_activation['rollback_release']}",
-              f".source_release == \"{application_activation['source_release']}\"",
-              f".source_commit == \"{application_activation['source_commit']}\"",
-              f".activation_key == \"{application_activation['activation_key']}\"",
-              f".image_digest == \"{application_activation['image_digest']}\"",
-              f".rollback_release == \"{application_activation['rollback_release']}\"",
-              f".rollback_commit == \"{application_activation['rollback_commit']}\"",
-              f".rollback_image_digest == \"{application_activation['rollback_image_digest']}\"",
-              (
-                  'Restore accepted '
-                  + application_activation['rollback_release'].removeprefix('release/')
-                  + ' if promotion verification fails'
-              ),
-              (
-                  'Accepted immutable '
-                  + application_activation['rollback_release'].removeprefix('release/')
-                  + ' image restored'
-              ),
-              (
-                  'Failed promotion did not restore the accepted '
-                  + application_activation['rollback_release'].removeprefix('release/')
-                  + ' runtime.'
-              ),
+              'SOURCE_RELEASE="$(jq -r \'.source_release\' "$ACTIVATION_FILE")"',
+              'SOURCE_COMMIT="$(jq -r \'.source_commit\' "$ACTIVATION_FILE")"',
+              'ROLLBACK_RELEASE="$(jq -r \'.rollback_release\' "$ACTIVATION_FILE")"',
+              'ROLLBACK_COMMIT="$(jq -r \'.rollback_commit\' "$ACTIVATION_FILE")"',
+              'ref: ${{ steps.activation.outputs.source_release }}',
+              'ref: ${{ steps.activation.outputs.rollback_release }}',
+              'ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}',
+              'Restore accepted rollback release if promotion verification fails',
+              'Accepted immutable $ROLLBACK_RELEASE application and worker images restored',
+              'Failed promotion left partial rollback:',
           ])
           missing_application_deployment = [
               value for value in application_deployment_required
