@@ -62,10 +62,19 @@ param approvalRecord string = 'MD-APPROVAL-AZURE-LEAN-20260904'
 @maxValue(30)
 param monthlyCostCeilingUsd int = 30
 
-@description('Monthly operational Azure Consumption budget. Fixed below the approved authorization ceiling.')
-@minValue(25)
-@maxValue(25)
+@description('Combined resource-group budget alert: $25 for the foundation, $75 only after the scoped scanner is activated under SAL-D093.')
+@allowed([25, 75])
 param operationalBudgetUsd int = 25
+
+@description('Keep Level 1 quote and intake routes closed until the separately reviewed scanner release is accepted.')
+param packageCommercialWorkflowEnabled bool = false
+
+@description('The package file path remains off by default; only the governed Defender quarantine path may serve live OIDC intake.')
+@allowed(['off', 'defender'])
+param packageScanMode string = 'off'
+
+@description('Set true only after qualified exact-image, clean/hold, alert, recovery and rollback acceptance.')
+param packageScannerAccepted bool = false
 
 @description('Exact governed source commit used to provision or update this environment.')
 @minLength(40)
@@ -659,6 +668,26 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             {
               name: 'SALUS_AZURE_STORAGE_CONTAINER'
               value: evidenceContainerName
+            }
+            {
+              name: 'SALUS_REQUIRE_AV'
+              value: '1'
+            }
+            {
+              name: 'SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED'
+              value: packageCommercialWorkflowEnabled ? '1' : '0'
+            }
+            {
+              name: 'SALUS_PACKAGE_SCAN_MODE'
+              value: packageScanMode
+            }
+            {
+              name: 'SALUS_PACKAGE_SCANNER_ACCEPTED'
+              value: packageScannerAccepted ? '1' : '0'
+            }
+            {
+              name: 'SALUS_SCAN_QUARANTINE_URL'
+              value: packageScanMode == 'defender' ? 'https://${replace('${stem}-scan', '-', '')}.blob.core.windows.net' : ''
             }
             {
               name: 'SALUS_TELEMETRY_BACKEND'
