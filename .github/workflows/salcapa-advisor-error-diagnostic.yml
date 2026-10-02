@@ -1,0 +1,63 @@
+name: SalCAPA scoped Advisor error diagnostic
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/salcapa-advisor-error-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected read-only diagnostic gate passed."
+
+  diagnose:
+    needs: authorize
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Query scoped runtime error and emit redacted signatures
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+          WORKSPACE_ID="$(az monitor log-analytics workspace show --resource-group rg-salcapa-dev --workspace-name salcapa-dev-b48224-logs --query customerId --output tsv)"
+          test -n "$WORKSPACE_ID"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-02T03:00:20Z) .. datetime(2026-10-02T03:00:43Z)) | where ContainerAppName == 'salcapa-dev-b48224' | project Log | take 200" --output json > "$RUNNER_TEMP/scoped-advisor-logs.json"
+          python - "$RUNNER_TEMP/scoped-advisor-logs.json" <<'PY'
+          import json, re, sys
+          from pathlib import Path
+          rows = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          if isinstance(rows, dict):
+              rows = rows.get("tables", [{}])[0].get("rows", [])
+          signatures = set()
+          for row in rows:
+              line = row.get("Log", "") if isinstance(row, dict) else str(row)
+              for name in re.findall(r"\b([A-Za-z_][A-Za-z_0-9.]*(?:Error|Exception)):", line):
+                  signatures.add("exception=" + name)
+              for file_name, number, function in re.findall(r'File "[^"]*[/\\]([^/\\"]+)", line (\d+), in ([A-Za-z_][A-Za-z_0-9]*)', line):
+                  if file_name in {"salcapa_runtime.py", "protection_advisor.py"}:
+                      signatures.add("frame=" + file_name + ":" + number + ":" + function)
+          print("scoped_rows=" + str(len(rows)))
+          for item in sorted(signatures):
+              print(item)
+          if not signatures:
+              print("no_safe_exception_signature_found")
+          PY
