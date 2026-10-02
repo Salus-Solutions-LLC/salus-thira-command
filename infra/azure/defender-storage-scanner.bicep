@@ -239,6 +239,19 @@ resource topicQueueSender 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   }
 }
 
+// Event Grid validates managed-identity delivery at the storage-account boundary.
+// This account is dedicated to quarantine and currently contains only scan-results.
+// Preserve the existing queue-scoped role while validating this provider requirement.
+resource topicStorageAccountQueueSender 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(quarantineStorage.id, resultTopic.id, queueMessageSenderRole)
+  scope: quarantineStorage
+  properties: {
+    roleDefinitionId: queueMessageSenderRole
+    principalId: resultTopic.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 resource resultSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-06-15' = if (activateScanner) {
   parent: resultTopic
   name: 'scan-results-to-queue'
@@ -269,6 +282,7 @@ resource resultSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-
   }
   dependsOn: [
     topicQueueSender
+    topicStorageAccountQueueSender
   ]
 }
 
