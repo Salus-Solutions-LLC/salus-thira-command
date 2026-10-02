@@ -78,8 +78,13 @@ def main(*, poll=None, reconcile=None):
         print(json.dumps({'scan_result_job': 'failed',
                           'error_type': type(exc).__name__}, sort_keys=True))
         return 1
+    # A bounded, content-free completion marker supports detection of a
+    # missed scheduled execution. A held result is still a failed job below.
+    print(json.dumps({'scan_result_job': 'completed', 'outcome': result},
+                     sort_keys=True))
     return 2 if result == 'Held' else 0
 
 
 if __name__ == '__main__':
     raise SystemExit(main())
+
