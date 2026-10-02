@@ -575,7 +575,7 @@ resource scanWorkerMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@2023-1
     criteria: {
       allOf: [
         {
-          query: 'ContainerAppConsoleLogs | where EnvironmentName == ''${stem}-aca-env'' and ContainerName == ''scan-results'' | where tostring(parse_json(Log).scan_result_job) == ''completed'' | summarize CompletedRuns = count()'
+          query: 'ContainerAppConsoleLogs | where EnvironmentName == \'${stem}-aca-env\' and ContainerName == \'scan-results\' | where tostring(parse_json(Log).scan_result_job) == \'completed\' | summarize CompletedRuns = count()'
           timeAggregation: 'Maximum'
           metricMeasureColumn: 'CompletedRuns'
           operator: 'LessThan'
@@ -615,7 +615,7 @@ resource scanInventoryMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@202
     criteria: {
       allOf: [
         {
-          query: 'ContainerAppConsoleLogs | where EnvironmentName == ''${stem}-aca-env'' and ContainerName == ''scan-inventory'' | where isnotnull(parse_json(Log).exceptions_observed) | summarize CompletedRuns = count()'
+          query: 'ContainerAppConsoleLogs | where EnvironmentName == \'${stem}-aca-env\' and ContainerName == \'scan-inventory\' | where isnotnull(parse_json(Log).exceptions_observed) | summarize CompletedRuns = count()'
           timeAggregation: 'Maximum'
           metricMeasureColumn: 'CompletedRuns'
           operator: 'LessThan'
