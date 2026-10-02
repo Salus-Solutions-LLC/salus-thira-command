@@ -8,7 +8,7 @@
 - Current draft PR #589 head: `fe58de5bea52db321fa64e479aa67d44103c36dc`. Source correction: `46b6373ae475d62c95ebb768735f9dbced74133b`. The draft app declares candidate `3.203`; no `release/v3.203` tag, immutable candidate image or activation exists.
 - Exact-head GitHub checks passed: Public Protection Advisor run 557, SalCAPA Analytical Actions run 13, and Salus package rollout run 174. The package check compiles the application Bicep and validates protected workflow shell syntax. These are source checks, not an Azure failure-injection or live browser result.
 - The draft PR is open and marked draft, with no submitted review. Relative to the accepted `release/v3.202` source, it changes 124 files with approximately 17,000 insertions. This is not a narrow rollback-only patch.
-- The earlier manual-trigger correction at draft commit `ea343bf8dbcd4566060d7608661a6d71fc97566e` passed Public Protection Advisor run 558, SalCAPA Analytical Actions run 14 and Salus package rollout run 175. It is now superseded by the candidate-image execution override described below. New exact-head checks are pending.
+- The earlier manual-trigger correction at draft commit `ea343bf8dbcd4566060d7608661a6d71fc97566e` is superseded. The candidate-image execution override is exact draft commit `829297d58228e9cf619b8fcec2ad471309da77e5`. Public Protection Advisor run 560, SalCAPA Analytical Actions run 16 and Salus package rollout run 177 all passed for that exact head. The package check verifies the one-off-before-promotion ordering, Bicep compilation and workflow shell syntax. Azure behavior and forced-failure rollback remain untested.
 
 ## Release decision
 
