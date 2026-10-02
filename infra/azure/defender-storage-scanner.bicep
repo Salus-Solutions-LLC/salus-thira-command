@@ -466,6 +466,32 @@ resource scanAlertGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
   }
 }
 
+// The first group returned GroupEmpty for a real controlled failure even after
+// its email receiver was verified. Keep it attached while a separate group is
+// verified and tested; remove the old route only after real email delivery passes.
+resource scanAlertGroupDeliveryRetry 'Microsoft.Insights/actionGroups@2023-01-01' = {
+  name: '${stem}-scan-alerts-v2'
+  location: 'global'
+  tags: {
+    system: 'SalCAPA'
+    environment: environmentName
+    purpose: 'quarantine-job-failure-notification-delivery-retry'
+    approvalRecord: approvalRecord
+    sourceCommit: sourceCommit
+  }
+  properties: {
+    enabled: true
+    groupShortName: 'SalusScan2'
+    emailReceivers: [
+      {
+        name: 'salus-operations-v2'
+        emailAddress: operationsAlertEmail
+        useCommonAlertSchema: true
+      }
+    ]
+  }
+}
+
 resource scanInventoryFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: '${stem}-scan-inventory-failed'
   location: 'global'
@@ -511,6 +537,9 @@ resource scanInventoryFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' 
     actions: [
       {
         actionGroupId: scanAlertGroup.id
+      }
+      {
+        actionGroupId: scanAlertGroupDeliveryRetry.id
       }
     ]
   }
@@ -562,6 +591,9 @@ resource scanWorkerFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
       {
         actionGroupId: scanAlertGroup.id
       }
+      {
+        actionGroupId: scanAlertGroupDeliveryRetry.id
+      }
     ]
   }
 }
@@ -607,7 +639,7 @@ resource scanWorkerMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@2023-1
       ]
     }
     actions: {
-      actionGroups: [scanAlertGroup.id]
+      actionGroups: [scanAlertGroup.id, scanAlertGroupDeliveryRetry.id]
     }
   }
 }
@@ -647,7 +679,7 @@ resource scanInventoryMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@202
       ]
     }
     actions: {
-      actionGroups: [scanAlertGroup.id]
+      actionGroups: [scanAlertGroup.id, scanAlertGroupDeliveryRetry.id]
     }
   }
 }
