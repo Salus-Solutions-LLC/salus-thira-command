@@ -455,8 +455,8 @@ STATE_NEED = {
     "Documented": 0.7,
     "Partially": 1.8,
     "No": 3.0,
-    "Unknown": 0.8,
-    "Declined": 0.5,
+    "Unknown": 0.0,
+    "Declined": 0.0,
     "Not Applicable": 0.0,
 }
 
@@ -498,32 +498,33 @@ if set(CORE_CAPABILITIES) != _COVERED_CORE_CAPABILITIES:
 
 def _capability_results(
     questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]]
-) -> tuple[list[dict[str, Any]], dict[str, int]]:
+) -> tuple[list[dict[str, Any]], dict[str, int | None]]:
     totals = {name: {"need": 0.0, "possible": 0.0, "unknown": 0} for name in CORE_CAPABILITIES}
     for question in questions:
         state = answers.get(question["key"], {}).get("answer_state", "Unknown")
-        if state == "Not Applicable":
+        if state in {"Not Applicable", "Unknown", "Declined"}:
+            if state in {"Unknown", "Declined"}:
+                for capability in question["capabilities"]:
+                    totals[capability]["unknown"] += 1
             continue
-        need = STATE_NEED.get(state, 0.8)
+        need = STATE_NEED.get(state, 0.0)
         for capability in question["capabilities"]:
             totals[capability]["need"] += need * question["weight"]
             totals[capability]["possible"] += 3.0 * question["weight"]
-            if state in {"Unknown", "Declined"}:
-                totals[capability]["unknown"] += 1
     capability_rows = []
     for name, values in totals.items():
-        score = round(100 * values["need"] / values["possible"]) if values["possible"] else 0
+        score = round(100 * values["need"] / values["possible"]) if values["possible"] else None
         capability_rows.append({
             "capability": name,
             "mission_areas": list(CORE_CAPABILITIES[name]),
             "need_score": score,
             "information_gap": values["unknown"] > 0,
         })
-    capability_rows.sort(key=lambda row: (-row["need_score"], row["capability"]))
-    mission_scores: dict[str, int] = {}
+    capability_rows.sort(key=lambda row: (row["need_score"] is None, -(row["need_score"] or 0), row["capability"]))
+    mission_scores: dict[str, int | None] = {}
     for area in ("Prevention", "Protection", "Mitigation", "Response", "Recovery"):
-        relevant = [row["need_score"] for row in capability_rows if area in row["mission_areas"]]
-        mission_scores[area] = round(sum(relevant) / len(relevant)) if relevant else 0
+        relevant = [row["need_score"] for row in capability_rows if area in row["mission_areas"] and row["need_score"] is not None]
+        mission_scores[area] = round(sum(relevant) / len(relevant)) if relevant else None
     return capability_rows, mission_scores
 
 def _initialize(conn: Any) -> None:
@@ -860,19 +861,18 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
         elif state in {"Unknown", "Declined"}:
             unknowns.append(question["text"])
     capability_rows, mission_scores = _capability_results(questions, answers)
-    highest_need = capability_rows[0]["need_score"] if capability_rows else 0
-    if highest_need >= 65 or len(attention) >= 10:
-        level = "Priority Level 1 assessment recommended"
-    elif highest_need >= 35 or len(attention) >= 4:
-        level = "Focused Level 1 assessment recommended"
-    elif unknowns:
-        level = "Level 1 discovery recommended"
-    else:
-        level = "Level 1 review recommended"
+    level = "Level 1 Initial Pass recommended"
     priority = next((q for q in questions if answers.get(q["key"], {}).get("answer_state") in {"No", "Partially"}), None)
     if priority is None:
         priority = next((q for q in questions if answers.get(q["key"], {}).get("answer_state") in {"Unknown", "Declined"}), None)
-    if priority:
+    if priority and answers.get(priority["key"], {}).get("answer_state") in {"Unknown", "Declined"}:
+        hypothesis = {
+            "reported_basis": f"The answer to '{priority['text']}' is not known or was not provided.",
+            "working_assumption": "Current capability cannot be inferred from this answer; the information gap may affect the Level 1 priority decision.",
+            "level_1_action": "Ask the responsible owner for the minimum available evidence and record whether the question changes the Level 1 priority.",
+            "checklist": ["Identify the responsible owner.", "Request only decision-relevant evidence with consent.", "Record the answer, source, confidence and next step."],
+        }
+    elif priority:
         state = answers.get(priority["key"], {}).get("answer_state", "Unknown")
         hypothesis = {
             "reported_basis": f"The response to '{priority['text']}' was '{state}'.",
@@ -896,10 +896,10 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
         "attention_topics": attention[:6],
         "information_gaps": unknowns[:6],
         "preliminary_hypothesis": hypothesis,
-        "priority_capabilities": [row for row in capability_rows if row["need_score"] > 0][:8],
+        "priority_capabilities": [row for row in capability_rows if row["need_score"] is not None and row["need_score"] > 0][:8],
         "mission_area_scores": mission_scores,
         "core_capabilities_considered": len(CORE_CAPABILITIES),
-        "notice": "This result is preliminary and non-binding. A qualified Salus professional must review scope, recommendations, service levels, and any price.",
+        "notice": "This result is preliminary and non-binding. All new Protected Members begin with a qualified Level 1 integrated assessment; Level 2 and Level 3 are conditional, sequential options. A Salus professional must review scope, evidence, services, and any price.",
         "manual_next_step": "Qualification, scoping, proposal, onboarding, and service delivery remain human-controlled.",
     }
 
@@ -1163,7 +1163,7 @@ def _service_catalog_page() -> str:
 {items}</main></body></html>"""
 
 
-SERVICE_LEVEL_NAMES = {1: "Foundation", 2: "Enhanced", 3: "Comprehensive"}
+SERVICE_LEVEL_NAMES = {1: "Initial Pass", 2: "Focused Assessment", 3: "Deep Dive"}
 SERVICE_DEFAULT_CAPABILITIES = {
     "salthira": ("Threats and Hazards Identification", "Risk and Disaster Resilience Assessment"),
     "facility": ("Physical Protective Measures", "Access Control and Identity Verification"),
@@ -1188,13 +1188,10 @@ def _package_recommendation(
     scores = {key: 0.0 for key in catalog}
     capabilities = {key: set() for key in catalog}
     evidence = {key: [] for key in catalog}
-    information_gap_count = 0
 
     for question in questions:
         state = answers.get(question["key"], {}).get("answer_state", "Unknown")
-        need = STATE_NEED.get(state, 0.8)
-        if state in {"Unknown", "Declined"}:
-            information_gap_count += 1
+        need = STATE_NEED.get(state, 0.0)
         if need <= 0:
             continue
         contribution = need * question["weight"]
@@ -1265,9 +1262,6 @@ def _package_recommendation(
         add("cyber_physical", 2.0, "essential function tolerates less than four hours of interruption")
     elif downtime == "4–24 hours":
         add("continuity", 2.5, "essential function has a short interruption tolerance")
-    elif downtime in {"Not established", "Not sure"}:
-        add("continuity", 1.5, "recovery tolerance requires validation")
-        add("salthira", 1.0, "recovery tolerance requires validation")
 
     maturity = profile.get("existing_program_maturity", "")
     if maturity == "Recently assessed, documented, and validated":
@@ -1331,16 +1325,8 @@ def _package_recommendation(
         add("protective_intelligence", 2.5, external)
         add("incident_support", 2.0, external)
 
-    if profile.get("decision_authority", "").casefold() in {"unknown", "not sure"}:
-        add("implementation", 1.0, "decision authority requires clarification")
-    if information_gap_count >= max(5, len(questions) // 4):
-        add("salthira", 3.0, "material information gaps require structured discovery")
-
     ranked = sorted(scores, key=lambda key: (-scores[key], key))
     qualified = [key for key in ranked if scores[key] >= 3.0]
-    if not qualified:
-        qualified = ["monitoring"] if maturity == "Recently assessed, documented, and validated" else ["salthira"]
-        add(qualified[0], 1.0, "focused professional confirmation is appropriate")
     primary_keys = qualified[:4]
     later_keys = qualified[4:7]
 
@@ -1351,12 +1337,12 @@ def _package_recommendation(
         relevant_capabilities = sorted(capabilities[key] or SERVICE_DEFAULT_CAPABILITIES[key])[:6]
         if relevant_capabilities:
             why = (
-                f"{level_name} service is indicated by needs involving "
+                f"This may merit a separately scoped {level_name} service after the required assessment steps; reported needs involve "
                 + ", ".join(relevant_capabilities[:3])
                 + "."
             )
         else:
-            why = f"{level_name} service is indicated by the organization and service profile."
+            why = f"This possible {level_name} service requires Salus review of the organization and service profile."
         return {
             **catalog[key],
             "level": level,
@@ -1371,35 +1357,27 @@ def _package_recommendation(
 
     services = [service_row(key) for key in primary_keys]
     later_services = [service_row(key) for key in later_keys]
-    for service in services:
-        service["later_level_candidate"] = service["level"] if service["level"] > 1 else None
-        service["level"] = 1
-        service["level_name"] = SERVICE_LEVEL_NAMES[1]
-        service["why"] = (
-            "A Level 1 review of this service area can establish its evidence and priorities. "
-            "Any deeper work depends on the integrated Level 1 assessment and professional review."
-        )
-    primary = {
-        "key": "salcapa_level_1",
-        "title": "Integrated SalCAPA Assessment",
-        "summary": "Complete Level 1 SalINTEL, SalTHIRA, SalOPS, and SalCAPA work in sequence; record evidence, assumptions, priorities, and specific actions.",
-        "level": 1,
-        "level_name": SERVICE_LEVEL_NAMES[1],
-        "why": "The first assessment establishes a defensible basis for later levels and service decisions.",
-        "capabilities": sorted({cap for service in services for cap in service["capabilities"]})[:6],
-    }
     capability_rows, mission_scores = _capability_results(questions, answers)
+    lead = {
+        "key": "integrated_level_1",
+        "title": "Integrated Salus Assessment",
+        "level": 1,
+        "level_name": "Initial Pass",
+        "summary": "A Level 1 SalINTEL, SalTHIRA and SalOPS assessment, followed by one Level 1 SalCAPA decision summary.",
+        "why": "Every Protected Member starts with a qualified Level 1 package. Reported needs and unknowns set its priorities; they do not waive the prerequisite.",
+        "capabilities": [],
+    }
     return {
-        "title": "Level 1 SalCAPA assessment and protection options",
-        "primary_service": primary,
+        "title": "Integrated Salus Level 1 Assessment",
+        "primary_service": lead,
         "services": services,
         "later_phase_services": later_services,
-        "sequence": ["Integrated SalCAPA Assessment — Level 1", *[f"{item['title']} — Level 1 option" for item in services]],
-        "priority_capabilities": [row for row in capability_rows if row["need_score"] > 0][:8],
+        "sequence": ["Integrated Salus Assessment — Level 1 Initial Pass", "Focused Assessment — Level 2 if qualified Level 1 findings warrant it", "Deep Dive — Level 3 if qualified Level 2 findings warrant it"],
+        "priority_capabilities": [row for row in capability_rows if row["need_score"] is not None and row["need_score"] > 0][:8],
         "mission_area_scores": mission_scores,
         "core_capabilities_considered": len(CORE_CAPABILITIES),
-        "rationale": "All Protected Members begin with Level 1. This preliminary package connects the capability conditions identified in Part 1 with the scale, consequences, activities, dependencies, maturity, timing, and implementation context supplied in Part 2. Level 2 uses the Level 1 gaps and evidence; Level 3 builds on validated Level 2 work. Immediate protective services may be recommended when warranted without bypassing the assessment sequence.",
-        "notice": "Preliminary — Subject to Salus Professional Review. A Salus professional must validate the answers, capability interpretation, service selection, level, scope, evidence, specialists, deliverables, schedule, pricing, contract terms, and Protected Member eligibility.",
+        "rationale": "The integrated Level 1 assessment connects the reported conditions, strengths and unknowns to the Member's context, then develops same-level SalINTEL, SalTHIRA, SalOPS and SalCAPA decisions. Later assessment levels and separate services depend on qualified findings and authorization.",
+        "notice": "Preliminary — Subject to Salus Professional Review. Listed services are possible separate options, not authorized work. Level 2 requires a qualified Level 1 package; Level 3 requires a qualified Level 2 package. A professional must validate evidence, scope, capacity, pricing, terms and eligibility.",
         "version": PACKAGE_RECOMMENDATION_VERSION,
     }
 
@@ -2487,7 +2465,8 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             if session["status"] != "Submitted":
                 raise HTTPException(409, "Submit Part 2 before downloading the detailed report")
             row = conn.execute(
-                """SELECT s.submission_key,s.result_json,p.profile_json,p.package_json
+                """SELECT s.submission_key,s.result_json,p.profile_json,p.package_json,
+                          p.package_recommendation_version
                      FROM advisor_public_submissions s
                      JOIN advisor_public_service_profiles p ON p.submission_key=s.submission_key
                     WHERE s.session_key=?""",
@@ -2496,6 +2475,8 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             identity = _latest_report_identity(conn, session["session_key"])
             if not row or not identity:
                 raise HTTPException(409, "Submitted assessment report is unavailable")
+            if row["package_recommendation_version"] != PACKAGE_RECOMMENDATION_VERSION:
+                raise HTTPException(409, "This earlier assessment needs Salus review before a report can be regenerated. Please contact Salus for its original report or a qualified update.")
             output_dir = os.getenv("SALUS_ADVISOR_REPORT_OUTPUT_DIR", "").strip()
             if not output_dir:
                 raise HTTPException(503, "Report delivery is temporarily unavailable")

@@ -10,6 +10,8 @@ The integrated workflow is: collect and control sources in the correct Protected
 
 ## Required decisions and traceability
 
+Under SAL-D065, the integrated report shall show the actual research boundary and the highest-value unresolved information beside the decisions it could change. Reconcile the same stable gap IDs and receiving dispositions from SalINTEL™, SalTHIRA™ and SalOPS™; identify who will collect or validate each item, what proof is needed, when to reconsider the decision and which Level 2 or Level 3 scope is justified. A count of documents or citations is not a completion claim. Keep the detailed research log in the restricted Member record and explain the material limits plainly to the Protected Member.
+
 The report shall answer:
 1. What was learned, by which source and with what confidence or limit?
 2. Which threat, hazard, essential-function, capability, governance and dependency issues deserve priority?
@@ -108,3 +110,11 @@ In the same-level decision summary, connect each material role, communication, m
 ## SAL-D062 one Member decision view
 
 For each material decision ID, reconcile the exact same-level component report versions into one concise line of reasoning: objective and affected people/function; source status and contrary evidence; working assumption and falsifier; target/current capability; no-action and recommended option; owner, authority, resources and competing demand; implementation/verification state; residual risk; and next review or level trigger. Teach the causal reason for the choice in plain language and show a matching actionable checklist. When the component reports differ, identify the conflict, owner and approved correction rather than averaging ratings or silently choosing one. Keep detailed methods and restricted personnel/security facts in controlled annexes. An approved generalized lesson returns to enterprise use only under SAL-D025. `SALUS_ENTERPRISE_DECISION_TO_PROOF_OPERATING_STANDARD.md` is the shared gate, not a substitute for report-specific release proof.
+
+## SAL-D063 integrated clarity and acceptance
+
+Before a SalCAPA™ decision summary is issued, check that each material SalINTEL™, SalTHIRA™ and SalOPS™ input has the same Member, level and decision ID, an exact report version, and an accepted/returned/qualified/excluded disposition. Resolve or display contradictions and preserve proof limits; never silently average conflicting rankings. Present the Member with a short answer to what is known, why it matters, which choice is open, who owns it and how success will be checked. Test a nonexpert readback and the favorable, adverse, unknown and conflicting paths. Record the standing portfolio audit, per-report conformance and active/issued impact under `SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md`.
+
+## SAL-D073 individual Member report baseline and requested exception
+
+Prepare and retain each Protected Member report against the complete current enterprise baseline applicable to this product and assessment level, including evidence, qualified analysis, confidentiality, style, cross-product trace, quality and release controls. Record topic applicability explicitly; do not silently or preemptively reduce content or standards. Only after the full baseline has been prepared and reviewed may a specific documented Member or authorized Salus request enter the governed exception process. Preserve the full version; a qualified approver records the exact permitted reduction, consequences, compensating controls and review trigger, and any reduced derivative is clearly labeled, linked and rechecked before release. Binding obligations, essential safety, privacy, truthful disclosure, professional qualification and human release authority remain mandatory. [SAL-D073]

@@ -24,3 +24,7 @@ Salus adopts these as quality targets. The current ReportLab PDF generator does 
 The National Archives' CUI policy applies to federal agencies and applicable contractors under governing authority. A questionnaire handling choice alone is not a verified CUI designation:
 https://www.archives.gov/cui/registry/policy-guidance
 The generated cover and page markings must state the actual requested handling and retain human review before any formal government marking or release.
+
+## SAL-D073 individual Member report baseline and requested exception
+
+Prepare and retain each Protected Member report against the complete current enterprise baseline applicable to this product and assessment level, including evidence, qualified analysis, confidentiality, style, cross-product trace, quality and release controls. Record topic applicability explicitly; do not silently or preemptively reduce content or standards. Only after the full baseline has been prepared and reviewed may a specific documented Member or authorized Salus request enter the governed exception process. Preserve the full version; a qualified approver records the exact permitted reduction, consequences, compensating controls and review trigger, and any reduced derivative is clearly labeled, linked and rechecked before release. Binding obligations, essential safety, privacy, truthful disclosure, professional qualification and human release authority remain mandatory. [SAL-D073]

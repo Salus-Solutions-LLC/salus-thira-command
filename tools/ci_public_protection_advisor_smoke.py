@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory() as td:
     assert '<aside class="assessment-important"><strong>Important notice:</strong>' in page.text
     assert 'document.getElementById("assessment").scrollIntoView' in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
-    assert "Level '+s.level" in page.text
+    assert "Possible later-phase services" in page.text
     shell_html=_page()
     assert "/static/salus-reticle.svg" in shell_html
     assert '<header class="salus-header">' in shell_html
@@ -264,12 +264,12 @@ with tempfile.TemporaryDirectory() as td:
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
     assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.1.0"
-    assert package["primary_service"]["title"]=="Integrated SalCAPA Assessment"
+    assert package["primary_service"]["title"]=="Integrated Salus Assessment"
     assert package["primary_service"]["level"]==1
-    assert package["sequence"][0]=="Integrated SalCAPA Assessment — Level 1"
+    assert package["sequence"][0]=="Integrated Salus Assessment — Level 1 Initial Pass"
     assert result["preliminary_hypothesis"]["working_assumption"]
     assert 1<=len(package["services"])<=4
-    assert all(item["level"]==1 for item in package["services"])
+    assert all(item["level"]>=1 for item in package["services"])
     assert all(item["capabilities"] and item["why"] for item in package["services"])
     assert package["core_capabilities_considered"]==32
     assert package["sequence"]
