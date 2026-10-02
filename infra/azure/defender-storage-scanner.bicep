@@ -24,6 +24,9 @@ param location string
 @maxValue(100)
 param scanCapGbPerMonth int
 
+@description('Enable Event Grid delivery and billable Defender scanning only in stage two, after queue role propagation is verified.')
+param activateScanner bool = false
+
 @description('Exact reviewed source commit for the scanner installation.')
 @minLength(40)
 @maxLength(40)
@@ -236,7 +239,7 @@ resource topicQueueSender 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   }
 }
 
-resource resultSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-06-15' = {
+resource resultSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-06-15' = if (activateScanner) {
   parent: resultTopic
   name: 'scan-results-to-queue'
   properties: {
@@ -351,7 +354,7 @@ resource scanWorkerJob 'Microsoft.App/jobs@2025-01-01' = {
 // well as missing versions and retention/hold mismatches. It records exact
 // exceptions in the server-side restricted ledger and logs counts only.
 resource scanInventoryJob 'Microsoft.App/jobs@2025-01-01' = {
-  name: '${stem}-scan-inventory'
+  name: '${stem}-scan-inv'
   location: location
   tags: {
     system: 'SalCAPA'
@@ -571,13 +574,13 @@ resource scanWorkerMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@2023-1
     enabled: true
     severity: 2
     evaluationFrequency: 'PT5M'
-    windowSize: 'PT20M'
+    windowSize: 'PT30M'
     autoMitigate: true
     scopes: [logAnalytics.id]
     criteria: {
       allOf: [
         {
-          query: 'ContainerAppConsoleLogs | where ContainerName in (\'scan-results\', \'${stem}-scan-results\') | where tostring(parse_json(Log).scan_result_job) == \'completed\' | summarize CompletedRuns = count()'
+          query: 'ContainerAppConsoleLogs | where TimeGenerated > ago(20m) | where ContainerName in (\'scan-results\', \'${stem}-scan-results\') | where tostring(parse_json(Log).scan_result_job) == \'completed\' | summarize CompletedRuns = count()'
           timeAggregation: 'Maximum'
           metricMeasureColumn: 'CompletedRuns'
           operator: 'LessThan'
@@ -611,13 +614,13 @@ resource scanInventoryMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@202
     enabled: true
     severity: 2
     evaluationFrequency: 'PT1H'
-    windowSize: 'PT27H'
+    windowSize: 'PT48H'
     autoMitigate: true
     scopes: [logAnalytics.id]
     criteria: {
       allOf: [
         {
-          query: 'ContainerAppConsoleLogs | where ContainerName in (\'scan-inventory\', \'${stem}-scan-inventory\') | where isnotnull(parse_json(Log).exceptions_observed) | summarize CompletedRuns = count()'
+          query: 'ContainerAppConsoleLogs | where TimeGenerated > ago(27h) | where ContainerName in (\'scan-inventory\', \'${stem}-scan-inv\') | where isnotnull(parse_json(Log).exceptions_observed) | summarize CompletedRuns = count()'
           timeAggregation: 'Maximum'
           metricMeasureColumn: 'CompletedRuns'
           operator: 'LessThan'
@@ -635,7 +638,7 @@ resource scanInventoryMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@202
   }
 }
 
-resource defenderScanner 'Microsoft.Security/defenderForStorageSettings@2025-06-01' = {
+resource defenderScanner 'Microsoft.Security/defenderForStorageSettings@2025-06-01' = if (activateScanner) {
   scope: quarantineStorage
   name: 'current'
   properties: {
@@ -679,5 +682,5 @@ output scanWorkerMissedRunAlertId string = scanWorkerMissedRunAlert.id
 output scanInventoryMissedRunAlertId string = scanInventoryMissedRunAlert.id
 output scanAlertGroupId string = scanAlertGroup.id
 output quarantineCreateRoleId string = quarantineCreateRoleCanonicalId
-output defenderSettingId string = defenderScanner.id
+output defenderSettingId string = activateScanner ? defenderScanner.id : ''
 
