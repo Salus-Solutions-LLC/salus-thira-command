@@ -31,7 +31,7 @@ fi
 case "$BUDGET_RAW" in
   25|25.0|25.00) BUDGET_USD=25 ;;
   75|75.0|75.00) BUDGET_USD=75 ;;
-  *) echo "The live Azure budget is outside the approved $25/$75 states." >&2; exit 1 ;;
+  *) echo 'The live Azure budget is outside the approved $25/$75 states.' >&2; exit 1 ;;
 esac
 
 SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
@@ -44,11 +44,11 @@ if [[ "$SCANNER_ENABLED" != "true" && "$SCANNER_ENABLED" != "false" ]]; then
   exit 1
 fi
 if [[ "$SCANNER_ENABLED" == "true" && "$BUDGET_USD" != "75" ]]; then
-  echo "Scanner is enabled but the approved $75 total budget alert is absent." >&2
+  echo 'Scanner is enabled but the approved $75 total budget alert is absent.' >&2
   exit 1
 fi
 if [[ "$BUDGET_USD" == "75" && ( "$SCANNER_ENABLED" != "true" || "$TARGET_ENVIRONMENT" != "dev" ) ]]; then
-  echo "The $75 alert is permitted only for the approved active development scanner." >&2
+  echo 'The $75 alert is permitted only for the approved active development scanner.' >&2
   exit 1
 fi
 printf '%s\n' "$BUDGET_USD"
