@@ -16,6 +16,10 @@ BUDGET_MODE="$4"
 [[ "$BUDGET_MODE" =~ ^(foundation|existing)$ ]] || exit 2
 
 BUDGET_NAME="salcapa-$TARGET_ENVIRONMENT-$UNIQUE_SUFFIX-monthly-budget"
+if [[ "$BUDGET_MODE" == "foundation" && "$(az group exists --name "$RESOURCE_GROUP")" == "false" ]]; then
+  printf "25\n"
+  exit 0
+fi
 if BUDGET_RAW="$(az consumption budget show --resource-group "$RESOURCE_GROUP" --budget-name "$BUDGET_NAME" --query amount -o tsv 2>/dev/null)"; then
   :
 elif [[ "$BUDGET_MODE" == "foundation" ]]; then
