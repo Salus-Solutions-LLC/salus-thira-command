@@ -26,6 +26,8 @@ venv/
 .DS_Store
 Thumbs.db
 .pytest_cache/
+proposals/qa/.testdeps/
+proposals/qa/pytest_run_*/
 .coverage
 htmlcov/
 migration-report*.json

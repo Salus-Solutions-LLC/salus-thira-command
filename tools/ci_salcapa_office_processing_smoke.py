@@ -133,6 +133,9 @@ def main() -> None:
         ("traversal.docx", package({"../outside.xml": "x", "word/document.xml": "<document/>"}), TYPES["docx"], "DOCUMENT_PATH_UNSAFE"),
         ("embedded.docx", package({"word/document.xml": "<document/>", "word/embeddings/object.bin": b"object"}), TYPES["docx"], "DOCUMENT_ACTIVE_CONTENT"),
         ("malformed.docx", b"not a zip package", TYPES["docx"], "DOCUMENT_PACKAGE_INVALID"),
+        # A ZIP end record can pass is_zipfile while its central directory is
+        # corrupt. This previously escaped as BadZipFile and stopped the worker.
+        ("broken-directory.docx", package({"word/document.xml": "<document/>"}).replace(b"PK\x01\x02", b"QQ\x01\x02"), TYPES["docx"], "DOCUMENT_PACKAGE_INVALID"),
         ("mismatch.docx", package({"word/document.xml": "<document/>"}), "application/octet-stream", "DOCUMENT_TYPE_MISMATCH"),
     ]
     for name, data, content_type, failure_code in unsafe_cases:

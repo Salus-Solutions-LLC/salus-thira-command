@@ -6,9 +6,6 @@ on:
       - development/salcapa-platform
     paths:
       - 'deploy/azure/activations/application-dev.json'
-      - '.github/workflows/azure-application-deploy.yml'
-      - 'tools/live_m365_intake_acceptance.py'
-      - 'infra/azure/m365-intake-acceptance-job.bicep'
 
 permissions:
   contents: read
@@ -30,7 +27,7 @@ jobs:
   deploy:
     needs: authorize
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 70
     permissions:
       contents: read
       id-token: write
@@ -40,23 +37,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Checkout frozen application source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: release/v3.202
-          path: frozen-release
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Checkout accepted rollback source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: release/v3.201
-          path: accepted-release
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Validate immutable application activation record and frozen source
+      - name: Validate immutable application activation record
         id: activation
         env:
           ACTIVATION_FILE: deploy/azure/activations/application-dev.json
@@ -65,18 +46,21 @@ jobs:
           jq -e '
             type == "object" and
             (.schema_version == 1) and
-            (.activation_key == "salcapa-v3.202-application-1268a9d9") and
+            (.activation_key | test("^salcapa-v3\\.[0-9]+-application-[0-9a-f]{8}$")) and
             (.operation == "deploy_application") and
             (.target_environment == "dev") and
             (.unique_suffix == "b48224") and
             (.location == "southcentralus") and
             (.approval_record == "MD-APPROVAL-AZURE-LEAN-20260904") and
-            (.source_release == "release/v3.202") and
-            (.source_commit == "1268a9d951fab77229659dff6530dd96eadb943b") and
-            (.image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:77b9ecd15c25a5baad55be47a6385429df3eb9c3f5712a0cd94745d22cf6f8b1") and
-            (.rollback_release == "release/v3.201") and
-            (.rollback_commit == "2592beeb378efa5376762dd1b8072971a9a3ad1d") and
-            (.rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:82466e589127b57bf4e005130f9c9a0bddc8e2277c803de2761ce3435d321226") and
+            (.source_release | test("^release/v3\\.[0-9]+$")) and
+            (.source_commit | test("^[0-9a-f]{40}$")) and
+            (.image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
+            (.rollback_release | test("^release/v3\\.[0-9]+$")) and
+            (.rollback_commit | test("^[0-9a-f]{40}$")) and
+            (.rollback_image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
+            (.source_release != .rollback_release) and
+            (.source_commit != .rollback_commit) and
+            (.image_digest != .rollback_image_digest) and
             ((keys - [
               "activation_key",
               "approval_record",
@@ -94,20 +78,68 @@ jobs:
             ]) | length == 0)
           ' "$ACTIVATION_FILE" >/dev/null
 
+          SOURCE_RELEASE="$(jq -r '.source_release' "$ACTIVATION_FILE")"
           SOURCE_COMMIT="$(jq -r '.source_commit' "$ACTIVATION_FILE")"
-          test "$(git -C frozen-release rev-parse HEAD)" = "$SOURCE_COMMIT"
-          git cat-file -e "$SOURCE_COMMIT^{commit}"
-          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
-          test "$(git -C accepted-release rev-parse HEAD)" = "$(jq -r '.rollback_commit' "$ACTIVATION_FILE")"
-          git merge-base --is-ancestor "$(jq -r '.rollback_commit' "$ACTIVATION_FILE")" "$GITHUB_SHA"
+          ROLLBACK_RELEASE="$(jq -r '.rollback_release' "$ACTIVATION_FILE")"
+          ROLLBACK_COMMIT="$(jq -r '.rollback_commit' "$ACTIVATION_FILE")"
+          test "$(jq -r '.activation_key' "$ACTIVATION_FILE")" = "salcapa-${SOURCE_RELEASE#release/}-application-${SOURCE_COMMIT:0:8}"
+          python - "$SOURCE_RELEASE" "$ROLLBACK_RELEASE" <<'PY'
+          import sys
+          source_minor = int(sys.argv[1].split('.')[-1])
+          rollback_minor = int(sys.argv[2].split('.')[-1])
+          if source_minor <= rollback_minor:
+              raise SystemExit('Source release must follow accepted rollback release')
+          PY
 
           {
             echo "source_commit=$SOURCE_COMMIT"
+            echo "source_release=$SOURCE_RELEASE"
+            echo "rollback_release=$ROLLBACK_RELEASE"
+            echo "rollback_commit=$ROLLBACK_COMMIT"
             echo "image_digest=$(jq -r '.image_digest' "$ACTIVATION_FILE")"
             echo "rollback_image=$(jq -r '.rollback_image_digest' "$ACTIVATION_FILE")"
             echo "unique_suffix=$(jq -r '.unique_suffix' "$ACTIVATION_FILE")"
             echo "location=$(jq -r '.location' "$ACTIVATION_FILE")"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout frozen application source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.activation.outputs.source_release }}
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout accepted rollback source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.activation.outputs.rollback_release }}
+          path: accepted-release
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact frozen and rollback source identities
+        env:
+          SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
+          ROLLBACK_COMMIT: ${{ steps.activation.outputs.rollback_commit }}
+        run: |
+          set -euo pipefail
+          test "$(git -C frozen-release rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test "$(git -C accepted-release rev-parse HEAD)" = "$ROLLBACK_COMMIT"
+          git cat-file -e "$SOURCE_COMMIT^{commit}"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
+          git merge-base --is-ancestor "$ROLLBACK_COMMIT" "$GITHUB_SHA"
+          python - "${{ steps.activation.outputs.source_release }}" "${{ steps.activation.outputs.rollback_release }}" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+          for directory, release in [('frozen-release', sys.argv[1]), ('accepted-release', sys.argv[2])]:
+              expected = release.removeprefix('release/v')
+              runtime = Path(directory, 'salcapa_runtime.py').read_text(encoding='utf-8')
+              match = re.search(r'^SALCAPA_RELEASE_VERSION\s*=\s*["\'](?P<version>\d+\.\d+)["\']', runtime, re.MULTILINE)
+              if match is None or match.group('version') != expected:
+                  raise SystemExit(f'{directory} runtime release identity does not match activation')
+          PY
 
       - name: Validate required non-secret repository variables
         env:
@@ -156,6 +188,8 @@ jobs:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
           ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
+          SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
+          ROLLBACK_COMMIT: ${{ steps.activation.outputs.rollback_commit }}
         run: |
           set -euo pipefail
           test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
@@ -168,12 +202,22 @@ jobs:
             digest="${image##*@}"
             test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@$digest" --query digest --output tsv)" = "$digest"
           done
+          test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa:source-$SOURCE_COMMIT" --query digest --output tsv)" = "${IMAGE_DIGEST##*@}"
+          test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa:source-$ROLLBACK_COMMIT" --query digest --output tsv)" = "${ROLLBACK_IMAGE##*@}"
+          test "$(az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --query 'properties.template.containers[0].image' --output tsv)" = "$ROLLBACK_IMAGE"
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/salcapa-rollback-job.json
+          jq -e --arg image "$ROLLBACK_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+          ' /tmp/salcapa-rollback-job.json >/dev/null
 
       - name: What-if and deploy immutable SalCAPA application
         id: deployment
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
+          ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
           SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
           UNIQUE_SUFFIX: ${{ steps.activation.outputs.unique_suffix }}
           LOCATION: ${{ steps.activation.outputs.location }}
@@ -193,6 +237,7 @@ jobs:
             location="$LOCATION"
             environmentName=dev
             containerImageDigest="$IMAGE_DIGEST"
+            knowledgeWorkerImageDigest="$ROLLBACK_IMAGE"
             provisionApplication=true
             entraTenantId="$ENTRA_TENANT_ID"
             entraRuntimeClientId="$ENTRA_RUNTIME_CLIENT_ID"
@@ -363,42 +408,22 @@ jobs:
             echo "- Public production cutover: not performed"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify scheduled worker executes a governed pending batch
+      - name: Verify accepted worker remains active during application acceptance
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
+          ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
         run: |
           set -euo pipefail
           JOB_NAME=salcapa-dev-b48224-kb-scan
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
-          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$IMAGE_DIGEST"
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$ROLLBACK_IMAGE"
           test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-knowledge-job.json)" = "Schedule"
           test "$(jq -r '.properties.configuration.scheduleTriggerConfig.cronExpression' /tmp/salcapa-knowledge-job.json)" = "*/2 * * * *"
-          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
-          test -n "$EXECUTION_NAME"
-          SUCCEEDED=false
-          for attempt in $(seq 1 100); do
-            STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --query properties.status --output tsv --only-show-errors)"
-            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
-            if [ "$STATUS" = "Failed" ]; then break; fi
-            sleep 10
-          done
-          if [ "$SUCCEEDED" != "true" ]; then
-            echo "Scheduled knowledge worker did not complete successfully: $STATUS" >&2
-            sleep 5
-            az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 100 --format text --only-show-errors 2>&1 \
-              | grep -E 'SALCAPA_WORKER_PHASE|ModuleNotFoundError|ImportError|KeyError|ValueError|RuntimeError|M365IntakeError|KnowledgePromotionError|TypeError|AttributeError|DatabaseError|OperationalError|AzureError|Traceback|failed to start|Error' \
-              | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' \
-              | tail -n 25 >&2 || true
-            exit 1
-          fi
-          az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 50 --format text --only-show-errors 2>&1 | grep 'SALCAPA_KNOWLEDGE_BATCH=' || true
-          echo "SALCAPA_KNOWLEDGE_WORKER_EXECUTION=$EXECUTION_NAME" >> "$GITHUB_ENV"
 
       - name: Create and run isolated Microsoft 365 intake acceptance job
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          EXPECTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:77b9ecd15c25a5baad55be47a6385429df3eb9c3f5712a0cd94745d22cf6f8b1
+          EXPECTED_IMAGE: ${{ steps.activation.outputs.image_digest }}
         run: |
           set -euo pipefail
           env_value() {
@@ -407,11 +432,11 @@ jobs:
           IDENTITY_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query id --output tsv --only-show-errors)"
           ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors)"
           REGISTRY_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query loginServer --output tsv --only-show-errors)"
-          SCRIPT_B64="$(base64 -w0 tools/live_m365_intake_acceptance.py)"
+          SCRIPT_B64="$(base64 -w0 frozen-release/tools/live_m365_intake_acceptance.py)"
           az deployment group create \
             --name "salcapa-m365-acceptance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
             --resource-group "$RESOURCE_GROUP" \
-            --template-file infra/azure/m365-intake-acceptance-job.bicep \
+            --template-file frozen-release/infra/azure/m365-intake-acceptance-job.bicep \
             --parameters \
               environmentId="$ENVIRONMENT_ID" \
               identityId="$IDENTITY_ID" \
@@ -482,40 +507,168 @@ jobs:
             --query "[?name == '$JOB_NAME'] | length(@)" \
             --output tsv --only-show-errors)" = "0"
 
-      - name: Restore accepted v3.201 if promotion verification fails
+      - name: Exercise exact-release Protection Advisor with fictional data
+        env:
+          EXPECTED_RELEASE: ${{ steps.activation.outputs.source_release }}
+          PROTECTION_ADVISOR_BASE_URL: https://salcapa-dev-b48224.ashycoast-29444a28.southcentralus.azurecontainerapps.io
+        run: |
+          set -euo pipefail
+          EXPECTED_VERSION="${EXPECTED_RELEASE#release/v}"
+          curl --connect-timeout 10 --max-time 30 --fail --silent --show-error \
+            "$PROTECTION_ADVISOR_BASE_URL/api/system/mode" > /tmp/salcapa-advisor-mode.json
+          test "$(jq -r '.version' /tmp/salcapa-advisor-mode.json)" = "$EXPECTED_VERSION"
+          bash frozen-release/tools/live_public_protection_advisor_acceptance.sh
+
+      - name: Promote and verify scheduled worker after application acceptance
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
+          ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
+        run: |
+          set -euo pipefail
+          JOB_NAME=salcapa-dev-b48224-kb-scan
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
+          jq -e --arg image "$ROLLBACK_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+          ' /tmp/salcapa-knowledge-job.json >/dev/null
+          # Stop new scheduled starts before a candidate run. The non-bulk
+          # knowledge processor has no batch-wide lease, so drain accepted
+          # executions before any candidate can access the same intake.
+          az containerapp job update \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" \
+            --image "$ROLLBACK_IMAGE" \
+            --trigger-type Manual \
+            --output none --only-show-errors
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
+          jq -e --arg image "$ROLLBACK_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Manual"
+          ' /tmp/salcapa-knowledge-job.json >/dev/null
+          DRAINED=false
+          for attempt in $(seq 1 100); do
+            az containerapp job execution list --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/salcapa-knowledge-executions.json
+            if jq -e 'all(.[]; .properties.status == "Succeeded" or .properties.status == "Failed" or .properties.status == "Stopped")' /tmp/salcapa-knowledge-executions.json >/dev/null; then
+              DRAINED=true
+              break
+            fi
+            sleep 10
+          done
+          test "$DRAINED" = true
+          # The candidate execution runs only after all accepted runs end.
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --image "$IMAGE_DIGEST" --query name --output tsv --only-show-errors)"
+          test -n "$EXECUTION_NAME"
+          SUCCEEDED=false
+          for attempt in $(seq 1 100); do
+            az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --output json --only-show-errors > /tmp/salcapa-candidate-execution.json
+            jq -e --arg image "$IMAGE_DIGEST" '.properties.template.containers[0].image == $image' /tmp/salcapa-candidate-execution.json >/dev/null
+            STATUS="$(jq -r '.properties.status' /tmp/salcapa-candidate-execution.json)"
+            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
+            if [ "$STATUS" = "Failed" ]; then break; fi
+            sleep 10
+          done
+          if [ "$SUCCEEDED" != "true" ]; then
+            echo "Promoted knowledge worker did not complete successfully: $STATUS" >&2
+            sleep 5
+            az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 100 --format text --only-show-errors 2>&1 \
+              | grep -E 'SALCAPA_WORKER_PHASE|ModuleNotFoundError|ImportError|KeyError|ValueError|RuntimeError|M365IntakeError|KnowledgePromotionError|TypeError|AttributeError|DatabaseError|OperationalError|AzureError|Traceback|failed to start|Error' \
+              | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' \
+              | tail -n 25 >&2 || true
+            exit 1
+          fi
+          az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 50 --format text --only-show-errors 2>&1 | grep 'SALCAPA_KNOWLEDGE_BATCH=' || true
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
+          jq -e --arg image "$ROLLBACK_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Manual"
+          ' /tmp/salcapa-knowledge-job.json >/dev/null
+          az containerapp job execution list --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/salcapa-knowledge-executions.json
+          jq -e 'all(.[]; .properties.status == "Succeeded" or .properties.status == "Failed" or .properties.status == "Stopped")' /tmp/salcapa-knowledge-executions.json >/dev/null
+          az containerapp job update \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" \
+            --image "$IMAGE_DIGEST" \
+            --trigger-type Schedule \
+            --cron-expression '*/2 * * * *' \
+            --output none --only-show-errors
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
+          jq -e --arg image "$IMAGE_DIGEST" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+          ' /tmp/salcapa-knowledge-job.json >/dev/null
+          echo "SALCAPA_KNOWLEDGE_WORKER_EXECUTION=$EXECUTION_NAME" >> "$GITHUB_ENV"
+
+      - name: Restore accepted rollback release if promotion verification fails
         if: failure() && (steps.deployment.outcome == 'success' || steps.deployment.outcome == 'failure')
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
+          ROLLBACK_RELEASE: ${{ steps.activation.outputs.rollback_release }}
         run: |
           set -euo pipefail
           APP_NAME=salcapa-dev-b48224
-          az containerapp job delete --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --yes --only-show-errors || true
-          az containerapp update \
+          JOB_NAME=salcapa-dev-b48224-kb-scan
+          # Restore both independently. A failure in either resource must not
+          # prevent an attempt to restore the other.
+          WORKER_RESTORED=false
+          if az containerapp job update \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" \
+            --image "$ROLLBACK_IMAGE" \
+            --trigger-type Schedule \
+            --cron-expression '*/2 * * * *' \
+            --output none --only-show-errors \
+            && az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-rollback-job.json \
+            && jq -e --arg image "$ROLLBACK_IMAGE" '
+              .properties.template.containers[0].image == $image and
+              .properties.configuration.triggerType == "Schedule" and
+              .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+            ' /tmp/salcapa-rollback-job.json >/dev/null; then
+            WORKER_RESTORED=true
+          else
+            echo "Failed to restore and verify accepted scheduled worker." >&2
+          fi
+
+          if ! az containerapp update \
             --resource-group "$RESOURCE_GROUP" \
             --name "$APP_NAME" \
             --image "$ROLLBACK_IMAGE" \
             --set-env-vars SALUS_ALLOW_RESTORE=0 SALUS_SEED_DEMO=0 SALUS_ALLOW_SQLITE_PRODUCTION=0 \
-            --output none
-          az containerapp hostname bind --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --hostname salcapa.salus.solutions --environment salcapa-dev-b48224-aca-env --validation-method CNAME --only-show-errors --output none
+            --output none; then
+            echo "Container App rollback update failed; checking observed runtime anyway." >&2
+          fi
+          HOST_RESTORED=false
+          if az containerapp hostname bind --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --hostname salcapa.salus.solutions --environment salcapa-dev-b48224-aca-env --validation-method CNAME --only-show-errors --output none; then
+            HOST_RESTORED=true
+          else
+            echo "Accepted hostname binding could not be confirmed." >&2
+          fi
+          APP_RESTORED=false
           for attempt in $(seq 1 30); do
-            az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --output json > /tmp/salcapa-rollback.json
-            test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-rollback.json)" = "$ROLLBACK_IMAGE" || { sleep 10; continue; }
+            if ! az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --output json > /tmp/salcapa-rollback.json; then sleep 10; continue; fi
+            if [ "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-rollback.json)" != "$ROLLBACK_IMAGE" ]; then sleep 10; continue; fi
             FQDN="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/salcapa-rollback.json)"
             STATUS="$(curl --connect-timeout 5 --max-time 15 --silent --show-error --output /tmp/salcapa-rollback-ready.json --write-out '%{http_code}' "https://$FQDN/health/ready" || true)"
             if [ "$STATUS" = "200" ] && python accepted-release/tools/validate_live_readiness.py /tmp/salcapa-rollback-ready.json --environment dev >/dev/null 2>&1; then
-              {
-                echo "### SalCAPA failed promotion rollback"
-                echo ""
-                echo "- Accepted immutable v3.201 image restored"
-                echo "- Live readiness restored"
-                echo "- DNS unchanged"
-                echo "- Client secret not used"
-                echo "PROMOTION_FAILED_ACCEPTED_STATE_RESTORED"
-              } >> "$GITHUB_STEP_SUMMARY"
-              exit 0
+              APP_RESTORED=true
+              break
             fi
             sleep 10
           done
-          echo "Failed promotion did not restore the accepted v3.201 runtime." >&2
+          if [ "$WORKER_RESTORED" = true ] && [ "$APP_RESTORED" = true ] && [ "$HOST_RESTORED" = true ]; then
+            {
+              echo "### SalCAPA failed promotion rollback"
+              echo ""
+              echo "- Accepted immutable $ROLLBACK_RELEASE application and worker images restored"
+              echo "- Live readiness and worker schedule verified"
+              echo "- Accepted hostname binding restored"
+              echo "- Client secret not used"
+              echo "PROMOTION_FAILED_ACCEPTED_STATE_RESTORED"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "Failed promotion left partial rollback: worker=$WORKER_RESTORED application=$APP_RESTORED hostname=$HOST_RESTORED" >&2
           exit 1

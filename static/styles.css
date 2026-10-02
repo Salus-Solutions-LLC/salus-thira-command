@@ -285,6 +285,8 @@ tr:last-child td { border-bottom: 0; }
 .form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .form-grid .wide { grid-column: 1/-1; }
 label { display: grid; gap: 6px; font-size: 11px; color: #53616a; font-weight: 600; letter-spacing: .012em; }
+.advisor-confirm { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; font-size: 13px; font-weight: 400; color: var(--ink); }
+.advisor-confirm input[type="checkbox"] { flex: 0 0 18px; width: 18px; height: 18px; margin: 1px 0 0; padding: 0; }
 input, select, textarea {
   width: 100%;
   padding: 9px 10px;

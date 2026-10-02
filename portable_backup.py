@@ -1,15 +1,21 @@
+import hashlib
 import json
+import re
+from urllib.parse import urlsplit
 from database import ID_TABLES, is_postgres
 
 ASSESSMENT_TABLES = [
     'threats','scenarios','capabilities','evidence','gaps','improvements','decisions','accepted_risks','risk_overrides',
-    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
+    'reassessment_triggers','evidence_attachments','entity_versions','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_quote_advisor_receipt_links','package_agreement_downloads','package_member_authority_reviews','package_acceptances','package_intake_requests','package_intake_uploads','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','package_predecessor_qualifications','package_quote_predecessor_links','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements'
 ]
+ASSESSMENT_TABLES.append('package_intake_pending_scans')
 RESTORE_ORDER = [
     'users','identity_acceptance_events','governed_intake','observation_intake_channels','observations','observation_attachments','observation_events','industry_profiles','industry_profile_items','industry_profile_events','tenant_industry_configurations','assessments','salintel_investigations','salintel_investigation_items','salintel_investigation_events','materials','material_links','material_events','assessment_access','threats','scenarios','capabilities','evidence',
     'gaps','improvements','decisions','accepted_risks','risk_overrides','reassessment_triggers','assessment_weights',
-    'evidence_attachments','scope_changes','workflow_events','report_versions','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
+    'evidence_attachments','scope_changes','workflow_events','report_versions','package_agreement_artifacts','package_quote_versions','package_quote_advisor_receipt_links','package_agreement_downloads','package_member_authority_reviews','package_acceptances','package_intake_requests','package_intake_uploads','package_product_report_versions','package_report_conformance','package_report_reconciliations','package_report_qa_evidence','package_report_qa_reviews','package_report_issue_packets','package_report_issue_deliveries','package_report_issue_acknowledgments','package_predecessor_qualifications','package_quote_predecessor_links','intel_findings','ops_service_pillars','ops_service_catalog','ops_catalog_events','expert_profiles','expert_credentials','expert_availability','ops_requests','ops_engagements','ops_engagement_readiness','expert_conflicts','ops_engagement_assignments','expert_events','ops_tasks','ops_field_reports','ops_estimates','ops_estimate_lines','ops_expenses','ops_invoice_statements','cop_coordination_threads','cop_coordination_messages','cop_decision_requests','cop_events','entity_versions','audit_log','security_events'
 ]
+RESTORE_ORDER.insert(RESTORE_ORDER.index('package_intake_uploads')+1,
+                     'package_intake_pending_scans')
 
 def _rows(conn, sql, params=()):
     return [dict(r) for r in conn.execute(sql, params)]
@@ -133,6 +139,359 @@ def validate_records(records, tenant_id:int|None=None):
         for row in records.get(table,[]):
             if int(row.get('assessment_id',-1)) not in assessments: errors.append(f'{table} record {row.get("id")} references an assessment outside the tenant package')
     users={int(r['id']) for r in records.get('users',[]) if r.get('id') is not None}
+    agreement_ids={int(r['id']) for r in records.get('package_agreement_artifacts',[]) if r.get('id') is not None}
+    quote_ids={int(r['id']) for r in records.get('package_quote_versions',[]) if r.get('id') is not None}
+    download_ids={int(r['id']) for r in records.get('package_agreement_downloads',[]) if r.get('id') is not None}
+    for row in records.get('package_agreement_artifacts',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package agreement {row.get("id")} crosses the tenant boundary')
+        if len(str(row.get('content_sha256','')))!=64 or not row.get('stored_name'): errors.append(f'package agreement {row.get("id")} has invalid storage proof')
+    for row in records.get('package_quote_versions',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package quote {row.get("id")} crosses the tenant boundary')
+        if len(str(row.get('content_sha256','')))!=64: errors.append(f'package quote {row.get("id")} has invalid content digest')
+        scope_hash=row.get('assessment_scope_sha256','')
+        if scope_hash and len(str(scope_hash))!=64: errors.append(f'package quote {row.get("id")} has invalid scope digest')
+        if int(row.get('agreement_artifact_id',0)) not in agreement_ids: errors.append(f'package quote {row.get("id")} has invalid agreement_artifact_id')
+    for row in records.get('package_agreement_downloads',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package agreement download {row.get("id")} crosses the tenant boundary')
+        if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package agreement download {row.get("id")} has invalid quote_id')
+        if int(row.get('agreement_artifact_id',-1)) not in agreement_ids: errors.append(f'package agreement download {row.get("id")} has invalid agreement_artifact_id')
+        if int(row.get('member_user_id',-1)) not in users: errors.append(f'package agreement download {row.get("id")} has invalid member_user_id')
+    reviews={int(r['quote_id']):r for r in records.get('package_member_authority_reviews',[]) if r.get('quote_id') is not None}
+    for row in records.get('package_member_authority_reviews',[]):
+        try:
+            quote=next(r for r in records.get('package_quote_versions',[]) if r['id']==row['quote_id'])
+            content={key:row[key] for key in ('tenant_id','assessment_id','quote_id','member_user_id',
+                'authority_basis','evidence_reference','reviewed_by_user_id','reviewed_at')}
+            digest=hashlib.sha256(json.dumps(content,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if (int(row['tenant_id'])!=int(tenant_id) or row['assessment_id']!=quote['assessment_id']
+                    or row['member_user_id'] not in users or row['reviewed_by_user_id'] not in users
+                    or row['record_sha256']!=digest):
+                raise ValueError('signer review boundary')
+        except (ValueError,KeyError,TypeError,AttributeError,StopIteration):
+            errors.append(f'package member signer review {row.get("id")} has invalid proof')
+    for row in records.get('package_acceptances',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package acceptance {row.get("id")} crosses the tenant boundary')
+        if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package acceptance {row.get("id")} has invalid quote_id')
+        if int(row.get('member_user_id',-1)) not in users: errors.append(f'package acceptance {row.get("id")} has invalid member_user_id')
+        if int(row.get('agreement_download_id',0)) not in download_ids: errors.append(f'package acceptance {row.get("id")} has invalid agreement_download_id')
+        review=reviews.get(int(row.get('quote_id') or 0))
+        if not review or review['member_user_id']!=row.get('member_user_id'):
+            errors.append(f'package acceptance {row.get("id")} has no matching signer review')
+    for row in records.get('package_intake_requests',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package intake {row.get("id")} crosses the tenant boundary')
+        if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package intake {row.get("id")} has invalid quote_id')
+        if row.get('response_user_id') not in (None,'') and int(row['response_user_id']) not in users:
+            errors.append(f'package intake {row.get("id")} has invalid response_user_id')
+    intake_by_id={int(r['id']):r for r in records.get('package_intake_requests',[]) if r.get('id') is not None}
+    for row in records.get('package_intake_uploads',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package intake file {row.get("id")} crosses the tenant boundary')
+        if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package intake file {row.get("id")} has invalid quote_id')
+        request=intake_by_id.get(int(row.get('intake_request_id',-1)))
+        if not request or int(request.get('quote_id',-1))!=int(row.get('quote_id',-1)) or int(request.get('assessment_id',-1))!=int(row.get('assessment_id',-1)):
+            errors.append(f'package intake file {row.get("id")} has invalid request scope')
+        if int(row.get('member_user_id',-1)) not in users: errors.append(f'package intake file {row.get("id")} has invalid uploader')
+        if len(str(row.get('content_sha256','')))!=64 or not row.get('stored_name'):
+            errors.append(f'package intake file {row.get("id")} has invalid storage proof')
+        if row.get('scan_status') not in ('Clean','Reconcile') or row.get('legal_hold') not in (0,1) or not row.get('retention_until'):
+            errors.append(f'package intake file {row.get("id")} has incomplete handling proof')
+    clean_uploads={int(r['id']):r for r in records.get('package_intake_uploads',[]) if r.get('id') is not None}
+    for row in records.get('package_intake_pending_scans',[]):
+        marker=f'package pending scan {row.get("id")}'
+        try:
+            request=intake_by_id.get(int(row['intake_request_id']))
+            if (int(row['tenant_id'])!=int(tenant_id) or not request
+                    or int(row['assessment_id'])!=int(request['assessment_id'])
+                    or int(row['quote_id'])!=int(request['quote_id'])
+                    or int(row['member_user_id']) not in users):
+                errors.append(f'{marker} crosses its authorized request or uploader boundary')
+            digest=row['content_sha256']
+            name=row['blob_name']
+            scope=(f'tenant-{row["tenant_id"]}/assessment-{row["assessment_id"]}/'
+                   f'quote-{row["quote_id"]}/item-{row["intake_request_id"]}/')
+            uri=urlsplit(row['blob_uri'])
+            if (not isinstance(digest,str) or not re.fullmatch(r'[0-9a-f]{64}',digest)
+                    or not isinstance(name,str) or not name.startswith(scope)
+                    or not re.fullmatch(r'[0-9a-f]{32}_[0-9a-f]{16}',name[len(scope):])
+                    or not name.endswith('_'+digest[:16])
+                    or uri.scheme!='https' or not re.fullmatch(r'[a-z0-9]{3,24}\.blob\.core\.windows\.net',uri.netloc)
+                    or uri.path!='/quarantine/'+name or uri.query or uri.fragment
+                    or not row['blob_version_id'] or not row['etag']
+                    or not 0<int(row['size_bytes'])<=25*1024*1024):
+                errors.append(f'{marker} has invalid external quarantine proof')
+            if (row['status'] not in ('Pending','Malicious','Unscanned','Reconcile','Promoted')
+                    or row['legal_hold'] not in (0,1) or not row['retention_until']
+                    or not row['received_at'] or not row['updated_at']):
+                errors.append(f'{marker} has invalid hold or retention state')
+            promoted=row.get('promoted_upload_id')
+            if row['status']=='Promoted':
+                clean=clean_uploads.get(int(promoted or 0))
+                if (not clean or int(clean['tenant_id'])!=int(row['tenant_id'])
+                        or int(clean['intake_request_id'])!=int(row['intake_request_id'])
+                        or clean['content_sha256']!=digest):
+                    errors.append(f'{marker} has no matching clean evidence record')
+            elif row['status']=='Reconcile' and promoted is not None:
+                linked=clean_uploads.get(int(promoted))
+                if (not linked or linked.get('scan_status')!='Reconcile'
+                        or int(linked['tenant_id'])!=int(row['tenant_id'])
+                        or linked['content_sha256']!=digest):
+                    errors.append(f'{marker} has invalid suspended evidence link')
+            elif promoted is not None:
+                errors.append(f'{marker} links evidence before clean promotion')
+        except (KeyError,ValueError,TypeError,AttributeError):
+            errors.append(f'{marker} has incomplete quarantine metadata')
+    suspended_ids={int(r['promoted_upload_id']) for r in records.get('package_intake_pending_scans',[])
+                   if r.get('status')=='Reconcile' and r.get('promoted_upload_id') is not None}
+    for row in records.get('package_intake_uploads',[]):
+        if row.get('scan_status')=='Reconcile' and int(row['id']) not in suspended_ids:
+            errors.append(f'package intake file {row.get("id")} has no suspended scan proof')
+    report_ids={int(r['id']) for r in records.get('package_product_report_versions',[]) if r.get('id') is not None}
+    for row in records.get('package_product_report_versions',[]):
+        if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'package product report {row.get("id")} crosses the tenant boundary')
+        if int(row.get('quote_id',-1)) not in quote_ids: errors.append(f'package product report {row.get("id")} has invalid quote_id')
+        if row.get('product') not in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+            errors.append(f'package product report {row.get("id")} has invalid product')
+        if row.get('status') not in ('Draft','Issued'): errors.append(f'package product report {row.get("id")} has an unsupported release state')
+        if len(str(row.get('content_sha256','')))!=64 or not row.get('stored_name'):
+            errors.append(f'package product report {row.get("id")} has invalid storage proof')
+        if row.get('disposition_status')!='Active' or row.get('legal_hold') not in (0,1) or not row.get('retention_until'):
+            errors.append(f'package product report {row.get("id")} has incomplete retention metadata')
+        if row.get('supersedes_id') not in (None,'') and int(row['supersedes_id']) not in report_ids:
+            errors.append(f'package product report {row.get("id")} has invalid supersession link')
+    report_by_id={int(r['id']):r for r in records.get('package_product_report_versions',[]) if r.get('id') is not None}
+    for row in records.get('package_report_conformance',[]):
+        report=report_by_id.get(int(row.get('report_id') or 0))
+        if int(row.get('tenant_id',-1))!=int(tenant_id) or report is None:
+            errors.append(f'package conformance {row.get("id")} crosses its report boundary')
+        elif int(row.get('assessment_id',-1))!=int(report['assessment_id']) or row.get('content_sha256')!=report['content_sha256']:
+            errors.append(f'package conformance {row.get("id")} has inconsistent report proof')
+        if row.get('matrix_status') not in ('Open','Marked') or len(str(row.get('record_sha256','')))!=64:
+            errors.append(f'package conformance {row.get("id")} has invalid matrix proof')
+        try:
+            checks=json.loads(row['checks_json'])
+            expected=hashlib.sha256(json.dumps({'report_id':int(row['report_id']),
+                'content_sha256':row['content_sha256'],'checks':checks,'summary':row['summary']},
+                sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            actual_status='Open' if any(item['status']=='Pending' for item in checks.values()) else 'Marked'
+            if expected!=row.get('record_sha256') or actual_status!=row.get('matrix_status'):
+                errors.append(f'package conformance {row.get("id")} failed immutable matrix verification')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package conformance {row.get("id")} has unreadable matrix data')
+    for row in records.get('package_report_reconciliations',[]):
+        capa=report_by_id.get(int(row.get('salcapa_report_id') or 0))
+        if (int(row.get('tenant_id',-1))!=int(tenant_id) or capa is None or capa.get('product')!='SalCAPA'
+                or int(row.get('assessment_id',-1))!=int(capa['assessment_id'])
+                or int(row.get('quote_id',-1))!=int(capa['quote_id'])
+                or row.get('salcapa_sha256')!=capa['content_sha256']):
+            errors.append(f'package reconciliation {row.get("id")} crosses its SalCAPA boundary')
+        try:
+            sources=json.loads(row['sources_json'])
+            if set(sources)!={'SalINTEL','SalTHIRA','SalOPS'}: raise ValueError('source set')
+            for product,source in sources.items():
+                target=report_by_id.get(int(source['report_id']))
+                if (target is None or target['product']!=product or target['content_sha256']!=source['content_sha256']
+                        or capa is None or target['assessment_id']!=capa['assessment_id']
+                        or target['quote_id']!=capa['quote_id']
+                        or target['assessment_scope_sha256']!=capa['assessment_scope_sha256']
+                        or source['alignment'] not in ('Aligned','Qualified difference','Unresolved')
+                        or not source['explanation'].strip()):
+                    raise ValueError('source boundary')
+            expected_status='Open' if any(source['alignment']=='Unresolved' for source in sources.values()) else 'Compared'
+            expected_hash=hashlib.sha256(json.dumps({'salcapa_report_id':int(row['salcapa_report_id']),
+                'salcapa_sha256':row['salcapa_sha256'],'sources':sources,'summary':row['summary']},
+                sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if row.get('comparison_status')!=expected_status or row.get('record_sha256')!=expected_hash:
+                raise ValueError('digest')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package reconciliation {row.get("id")} failed immutable source verification')
+    for row in records.get('package_report_qa_evidence',[]):
+        report=report_by_id.get(int(row.get('report_id') or 0))
+        if (int(row.get('tenant_id',-1))!=int(tenant_id) or report is None
+                or int(row.get('assessment_id',-1))!=int(report['assessment_id'])
+                or row.get('content_sha256')!=report['content_sha256']):
+            errors.append(f'package QA evidence {row.get("id")} crosses its report boundary')
+        try:
+            manifest=json.loads(row['manifest_json'])
+            canonical=json.dumps(manifest,sort_keys=True,separators=(',',':'))
+            if (manifest.get('report_sha256')!=row.get('content_sha256')
+                    or hashlib.sha256(canonical.encode()).hexdigest()!=row.get('manifest_sha256')
+                    or len(str(row.get('archive_sha256','')))!=64
+                    or int(row.get('archive_size_bytes',0))<1
+                    or not row.get('stored_name') or row.get('status')!='Submitted'
+                    or row.get('legal_hold') not in (0,1) or not row.get('retention_until')):
+                raise ValueError('QA evidence proof')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package QA evidence {row.get("id")} has invalid immutable proof')
+        if row.get('submitted_user_id') is not None and int(row['submitted_user_id']) not in users:
+            errors.append(f'package QA evidence {row.get("id")} has invalid submitter')
+    evidence_by_id={int(r['id']):r for r in records.get('package_report_qa_evidence',[]) if r.get('id') is not None}
+    for row in records.get('package_report_qa_reviews',[]):
+        evidence=evidence_by_id.get(int(row.get('evidence_id') or 0))
+        report=report_by_id.get(int(row.get('report_id') or 0))
+        if (int(row.get('tenant_id',-1))!=int(tenant_id) or evidence is None or report is None
+                or evidence['report_id']!=row['report_id']
+                or int(row.get('assessment_id',-1))!=int(report['assessment_id'])
+                or row.get('content_sha256')!=report['content_sha256']
+                or row.get('archive_sha256')!=evidence['archive_sha256']
+                or int(row.get('reviewer_user_id') or 0) not in users
+                or row.get('reviewer_user_id')==evidence.get('submitted_user_id')):
+            errors.append(f'package QA review {row.get("id")} crosses its reviewer or report boundary')
+        try:
+            checks=json.loads(row['checks_json'])
+            if (set(checks)!={'all_pages','native_word','accessibility','format_parity','member_isolation'}
+                    or any(type(value) is not bool for value in checks.values())
+                    or row.get('decision') not in ('Reviewed','Returned')
+                    or row['decision']=='Reviewed' and not all(checks.values())):
+                raise ValueError('review checks')
+            record={key:row[key] for key in ('report_id','evidence_id','content_sha256','archive_sha256',
+                'decision','qualification_basis','review_note','reviewer_user_id')}
+            record['checks']=checks
+            if hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()!=row.get('record_sha256'):
+                raise ValueError('review digest')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package QA review {row.get("id")} has invalid immutable proof')
+    conformance_by_id={int(r['id']):r for r in records.get('package_report_conformance',[]) if r.get('id') is not None}
+    review_by_id={int(r['id']):r for r in records.get('package_report_qa_reviews',[]) if r.get('id') is not None}
+    comparison_by_id={int(r['id']):r for r in records.get('package_report_reconciliations',[]) if r.get('id') is not None}
+    issue_by_id={int(r['id']):r for r in records.get('package_report_issue_packets',[]) if r.get('id') is not None}
+    issued_report_ids=set()
+    for row in records.get('package_report_issue_packets',[]):
+        try:
+            reports=json.loads(row['reports_json'])
+            record={key:row[key] for key in ('assessment_id','quote_id','assessment_scope_sha256',
+                'recipient_user_id','comparison_id','issue_basis','issued_by_user_id')}
+            record['reports']=reports
+            if (int(row.get('tenant_id',-1))!=int(tenant_id)
+                    or row['quote_id'] not in quote_ids or row['recipient_user_id'] not in users
+                    or row['issued_by_user_id'] not in users
+                    or row['comparison_id'] not in comparison_by_id
+                    or row.get('supersedes_id') not in (None,'') and int(row['supersedes_id']) not in issue_by_id
+                    or set(reports)!={'SalINTEL','SalTHIRA','SalOPS','SalCAPA'}
+                    or hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()!=row['record_sha256']):
+                raise ValueError('issue boundary')
+            for product,snapshot in reports.items():
+                report=report_by_id.get(int(snapshot['report_id']))
+                evidence=evidence_by_id.get(int(snapshot['qa_evidence_id']))
+                review=review_by_id.get(int(snapshot['qa_review_id']))
+                conformance=conformance_by_id.get(int(snapshot['conformance_id']))
+                if (report is None or report['assessment_id']!=row['assessment_id']
+                        or report['quote_id']!=row['quote_id'] or report['product']!=product
+                        or report['status']!='Issued' or report['content_sha256']!=snapshot['content_sha256']
+                        or report['version_no']!=snapshot['version_no']
+                        or evidence is None or evidence['report_id']!=report['id']
+                        or json.loads(evidence['manifest_json'])['pdf_sha256']!=snapshot['pdf_sha256']
+                        or review is None or review['evidence_id']!=evidence['id'] or review['decision']!='Reviewed'
+                        or conformance is None or conformance['report_id']!=report['id']):
+                    raise ValueError('report issue link')
+                issued_report_ids.add(report['id'])
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package issue {row.get("id")} has invalid immutable report proof')
+    for row in records.get('package_product_report_versions',[]):
+        if row.get('status')=='Issued' and row['id'] not in issued_report_ids:
+            errors.append(f'package product report {row.get("id")} lacks its issue packet')
+    for row in records.get('package_report_issue_deliveries',[]):
+        issue=issue_by_id.get(int(row.get('issue_id') or 0))
+        try:
+            snapshot=json.loads(issue['reports_json'])[row['product']] if issue else None
+            expected=(snapshot['content_sha256'] if row['format']=='docx' else snapshot['pdf_sha256'])
+            if (int(row.get('tenant_id',-1))!=int(tenant_id) or issue is None
+                    or row['assessment_id']!=issue['assessment_id']
+                    or row['recipient_user_id']!=issue['recipient_user_id']
+                    or row['report_id']!=snapshot['report_id'] or row['content_sha256']!=expected):
+                raise ValueError('delivery boundary')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package issue delivery {row.get("id")} crosses its issue boundary')
+    for row in records.get('package_report_issue_acknowledgments',[]):
+        issue=issue_by_id.get(int(row.get('issue_id') or 0))
+        try:
+            record={key:row[key] for key in ('issue_id','issue_sha256','recipient_user_id',
+                'acknowledgment_note','idempotency_key')}
+            digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if (int(row.get('tenant_id',-1))!=int(tenant_id) or issue is None
+                    or row['assessment_id']!=issue['assessment_id']
+                    or row['issue_sha256']!=issue['record_sha256']
+                    or row['recipient_user_id']!=issue['recipient_user_id']
+                    or row['record_sha256']!=digest):
+                raise ValueError('acknowledgment boundary')
+            delivered={delivery['product'] for delivery in records.get('package_report_issue_deliveries',[])
+                if delivery['issue_id']==row['issue_id']
+                and delivery['recipient_user_id']==row['recipient_user_id']}
+            if delivered!={'SalINTEL','SalTHIRA','SalOPS','SalCAPA'}:
+                raise ValueError('missing report delivery')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package issue acknowledgment {row.get("id")} has invalid receipt proof')
+    acknowledgments={int(r['id']):r for r in records.get('package_report_issue_acknowledgments',[])
+        if r.get('id') is not None}
+    for row in records.get('package_predecessor_qualifications',[]):
+        issue=issue_by_id.get(int(row.get('issue_id') or 0))
+        acknowledgment=acknowledgments.get(int(row.get('acknowledgment_id') or 0))
+        try:
+            keys=('assessment_id','issue_id','issue_sha256','acknowledgment_id',
+                'acknowledgment_sha256','quote_id','level','band','covered_operation',
+                'exclusions','assessment_scope_sha256','qualification_basis',
+                'limitations_disposition','reviewer_user_id')
+            record={key:row[key] for key in keys}
+            digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if (int(row.get('tenant_id',-1))!=int(tenant_id) or issue is None
+                    or acknowledgment is None or row['assessment_id']!=issue['assessment_id']
+                    or row['issue_sha256']!=issue['record_sha256']
+                    or row['acknowledgment_sha256']!=acknowledgment['record_sha256']
+                    or acknowledgment['issue_id']!=issue['id'] or row['quote_id']!=issue['quote_id']
+                    or row['quote_id'] not in quote_ids or row['level'] not in (1,2)
+                    or row['reviewer_user_id'] not in users
+                    or row['reviewer_user_id']==issue['issued_by_user_id']
+                    or row['record_sha256']!=digest):
+                raise ValueError('predecessor boundary')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package predecessor qualification {row.get("id")} has invalid predecessor proof')
+    qualifications={int(r['id']):r for r in records.get('package_predecessor_qualifications',[])
+        if r.get('id') is not None}
+    quotes={int(r['id']):r for r in records.get('package_quote_versions',[]) if r.get('id') is not None}
+    assessment_rows={int(r['id']):r for r in records.get('assessments',[]) if r.get('id') is not None}
+    for row in records.get('package_quote_predecessor_links',[]):
+        quote=quotes.get(int(row.get('quote_id') or 0))
+        qualification=qualifications.get(int(row.get('qualification_id') or 0))
+        try:
+            record={key:row[key] for key in ('assessment_id','quote_id','qualification_id',
+                'qualification_sha256')}
+            digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if (int(row.get('tenant_id',-1))!=int(tenant_id) or quote is None
+                    or qualification is None or row['assessment_id']!=quote['assessment_id']
+                    or qualification['assessment_id']==row['assessment_id']
+                    or assessment_rows.get(row['assessment_id']) is None
+                    or assessment_rows.get(qualification['assessment_id']) is None
+                    or assessment_rows[row['assessment_id']]['organization']!=assessment_rows[qualification['assessment_id']]['organization']
+                    or row['qualification_sha256']!=qualification['record_sha256']
+                    or qualification['level']!=quote['level']-1
+                    or qualification['covered_operation']!=quote['covered_operation']
+                    or qualification['exclusions']!=quote['exclusions']
+                    or row['record_sha256']!=digest):
+                raise ValueError('quote predecessor boundary')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package quote predecessor link {row.get("id")} has invalid prerequisite proof')
+    advisor_links={}
+    for row in records.get('package_quote_advisor_receipt_links',[]):
+        quote=quotes.get(int(row.get('quote_id') or 0))
+        try:
+            record={key:row[key] for key in ('assessment_id','quote_id','handoff_key','receipt_id',
+                'revision_no','receipt_sha256','profile_sha256','assessment_scope_sha256')}
+            digest=hashlib.sha256(json.dumps(record,sort_keys=True,
+                separators=(',',':')).encode('utf-8')).hexdigest()
+            advisor_links.setdefault(row['quote_id'],[]).append(row)
+            if (int(row.get('tenant_id',-1))!=int(tenant_id) or quote is None
+                    or row['assessment_id']!=quote['assessment_id'] or quote['level']!=1
+                    or row['receipt_id']!=quote['source_receipt_id']
+                    or row['assessment_scope_sha256']!=quote['assessment_scope_sha256']
+                    or not row['handoff_key'] or int(row['revision_no'])<1
+                    or len(str(row['receipt_sha256']))!=64
+                    or len(str(row['profile_sha256']))!=64
+                    or row['record_sha256']!=digest):
+                raise ValueError('advisor receipt link boundary')
+        except (ValueError,KeyError,TypeError,AttributeError):
+            errors.append(f'package quote Advisor receipt link {row.get("id")} has invalid proof')
+    for quote in quotes.values():
+        count=len(advisor_links.get(quote['id'],[]))
+        if (quote.get('source_receipt_id') and count!=1) or (not quote.get('source_receipt_id') and count):
+            errors.append(f'package quote {quote["id"]} has an invalid Advisor receipt link count')
     for row in records.get('identity_acceptance_events',[]):
         if int(row.get('tenant_id',-1))!=int(tenant_id): errors.append(f'identity_acceptance_event {row.get("event_key")} crosses the tenant boundary')
         if int(row.get('user_id',-1)) not in users: errors.append(f'identity_acceptance_event {row.get("event_key")} has invalid user_id')
@@ -296,6 +655,26 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     conn.execute('UPDATE materials SET parent_material_id=NULL,duplicate_of_material_id=NULL WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM materials WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM governed_intake WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_quote_predecessor_links WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_quote_advisor_receipt_links WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_predecessor_qualifications WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_report_issue_acknowledgments WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_report_issue_deliveries WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_report_issue_packets WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_report_qa_reviews WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_report_qa_evidence WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_report_reconciliations WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_report_conformance WHERE tenant_id=?',(tenant_id,))
+    conn.execute('UPDATE package_product_report_versions SET supersedes_id=NULL WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_product_report_versions WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_intake_pending_scans WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_intake_uploads WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_intake_requests WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_acceptances WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_member_authority_reviews WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_agreement_downloads WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_quote_versions WHERE tenant_id=?',(tenant_id,))
+    conn.execute('DELETE FROM package_agreement_artifacts WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM observations WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM observation_intake_channels WHERE tenant_id=?',(tenant_id,))
     conn.execute('DELETE FROM cop_events WHERE tenant_id=?',(tenant_id,))
@@ -323,5 +702,10 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
     if updates:
         conn.execute('UPDATE tenants SET '+','.join(f'{k}=?' for k in updates)+' WHERE id=?',tuple(updates.values())+(tenant_id,))
     for table in RESTORE_ORDER:
-        for row in records.get(table,[]): _insert_row(conn,table,row)
+        for row in records.get(table,[]):
+            if table=='package_intake_pending_scans' and row['status']=='Pending':
+                # A portable backup does not contain quarantined bytes or a fresh scan.
+                row={**row,'status':'Reconcile','scan_event_id':'',
+                     'scan_result':'','scanned_at':''}
+            _insert_row(conn,table,row)
     _reset_postgres_sequences(conn)

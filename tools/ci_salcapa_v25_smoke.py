@@ -89,11 +89,22 @@ def main():
     assert client.get('/api/observations', headers={**admin, 'X-Salus-Tenant': '2'}).json() == []
     assert client.post(f'/api/observations/{member_id}/acknowledge', headers={**analyst, 'X-Salus-Tenant': '2'}, json={'reason': 'cross tenant'}).status_code == 403
 
+    app.scan_bytes = lambda *_args: {'ok': True, 'status': 'Not Configured', 'detail': 'Fictional unscanned result'}
+    rejected = client.post(f'/api/observations/{member_id}/attachments', headers=contributor, files={'file': ('observation.txt', io.BytesIO(b'controlled observation attachment'), 'text/plain')})
+    assert rejected.status_code == 503
+    app.scan_bytes = lambda *_args: {'ok': True, 'status': 'Clean', 'detail': 'Fictional authenticated clean result'}
     upload = client.post(f'/api/observations/{member_id}/attachments', headers=contributor, files={'file': ('observation.txt', io.BytesIO(b'controlled observation attachment'), 'text/plain')})
     assert upload.status_code == 200, upload.text
     attachment = upload.json()
-    assert attachment['scan_status'] in {'Clean', 'Not Configured'} and 'stored_name' not in attachment and 'scan_detail' not in attachment
+    assert attachment['scan_status'] == 'Clean' and 'stored_name' not in attachment and 'scan_detail' not in attachment
     assert client.get(f'/api/observation-attachments/{attachment["id"]}/download', headers=other_member).status_code == 403
+    conn = app.db()
+    conn.execute('UPDATE observation_attachments SET scan_status=? WHERE id=?', ('Not Configured', attachment['id']))
+    conn.commit(); conn.close()
+    assert client.get(f'/api/observation-attachments/{attachment["id"]}/download', headers=contributor).status_code == 423
+    conn = app.db()
+    conn.execute('UPDATE observation_attachments SET scan_status=? WHERE id=?', ('Clean', attachment['id']))
+    conn.commit(); conn.close()
     downloaded = client.get(f'/api/observation-attachments/{attachment["id"]}/download', headers=contributor)
     assert downloaded.status_code == 200 and downloaded.content == b'controlled observation attachment'
     assert client.get(f'/api/observation-attachments/{attachment["id"]}/download', headers=auditor).status_code == 403

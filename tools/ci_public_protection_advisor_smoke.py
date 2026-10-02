@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import os
 import sqlite3
 import sys
@@ -30,11 +31,21 @@ with tempfile.TemporaryDirectory() as td:
     app_module=importlib.import_module("app")
     from fastapi.testclient import TestClient
     from public_protection_advisor import (
-        CORE_CAPABILITIES, NOTIFICATION_FROM, QUESTION_BLUEPRINTS, _package_recommendation,
+        CORE_CAPABILITIES, COVERED_OPERATION_TAGS, NOTIFICATION_FROM, QUESTION_BLUEPRINTS,
+        SubmitCommand, _package_recommendation,
         _page, _questions, _review_detail, _review_page, _verification_page,
     )
+    from salus_package_path import draft_level_1_scope_receipt
 
     assert NOTIFICATION_FROM=="protectionadvisor@salus.solutions"
+    assert len(COVERED_OPERATION_TAGS)==13
+    assert not SubmitCommand.model_fields["investment_range"].is_required()
+    assert not SubmitCommand.model_fields["decision_authority"].is_required()
+    assert not SubmitCommand.model_fields["records_coordinator_role"].is_required()
+    role_unknown=draft_level_1_scope_receipt({}, {"band":"", "label":"Level 1 band to confirm"})
+    assert role_unknown["version"]=="SPA-SCOPE-RECEIPT-0.4.0"
+    assert "Assign a decision role" in role_unknown["decision_owner"]
+    assert "Assign a records coordinator" in role_unknown["records_coordinator"]
     assert len(CORE_CAPABILITIES)==32
     assert {cap for row in QUESTION_BLUEPRINTS for cap in row[3]}==set(CORE_CAPABILITIES)
     assert set(area for areas in CORE_CAPABILITIES.values() for area in areas)=={
@@ -50,9 +61,16 @@ with tempfile.TemporaryDirectory() as td:
     assert page.status_code==200
     assert "Protection Advisor" in page.text
     assert "Anonymous Protection Readiness Review" in page.text
-    assert "Understand the detailed assessment" in page.text
-    assert "answer truthfully from my current knowledge" in page.text
-    assert "Return to Your Part 2 Assessment" in page.text
+    assert "Understand the scope and readiness profile" in page.text
+    assert "Child care or early education" in page.text
+    assert "Agriculture, ranching or animal care" in page.text
+    assert "Potential investment range (optional)" in page.text
+    assert "19 shared readiness questions" in page.text
+    assert "answer from my current knowledge without guessing" in page.text
+    assert "Return to Your Part 2 Profile" in page.text
+    assert 'id="deleteAnonymousRecord"' in page.text
+    assert 'onclick="deleteAnonymousRecord()"' in page.text
+    assert 'window.confirm("Permanently delete this anonymous Protection Advisor record' in page.text
     assert 'onchange="saveAnswer(this.name,this.value)"' in page.text
     assert 'id="questionProgress"' in page.text
     assert 'id="previousQuestion"' in page.text
@@ -65,7 +83,7 @@ with tempfile.TemporaryDirectory() as td:
     assert '<aside class="assessment-important"><strong>Important notice:</strong>' in page.text
     assert 'document.getElementById("assessment").scrollIntoView' in page.text
     assert "saveAnswer(''+q.key+'',''+s+'')" not in page.text
-    assert "Possible later-phase services" in page.text
+    assert "Other services to discuss after Salus review" in page.text
     shell_html=_page()
     assert "/static/salus-reticle.svg" in shell_html
     assert '<header class="salus-header">' in shell_html
@@ -90,11 +108,12 @@ with tempfile.TemporaryDirectory() as td:
     assert "salus-protection-advisor-height" in embedded.text
     assert "preferred_min_height:900" in embedded.text
     assert "Print or Save Preliminary Summary" in embedded.text
-    assert "Download Professional Detailed Report" in embedded.text
+    assert "Download Scope and Readiness Report" in embedded.text
     assert 'onclick="printAdvisor(&quot;part1&quot;)"' in embedded.text
     assert embedded.text.count('onclick="printAdvisor(&quot;part2&quot;)"') == 2
-    assert embedded.text.count("Download Professional Detailed Report") == 2
-    assert 'fetch("/public/protection-advisor/report.pdf"' in embedded.text
+    assert embedded.text.count("Download Scope and Readiness Report") == 2
+    assert '"/public/protection-advisor/scope-receipt.pdf":"/public/protection-advisor/report.pdf"' in embedded.text
+    assert "Download one-page scope receipt" in embedded.text
     assert 'credentials:"same-origin"' in embedded.text
     assert 'headers:{"X-CSRF-Token":csrf}' in embedded.text
     assert "response.blob()" in embedded.text
@@ -102,8 +121,8 @@ with tempfile.TemporaryDirectory() as td:
     assert "link.download=filename" in embedded.text
     assert 'window.location.assign("/public/protection-advisor/report.pdf")' not in embedded.text
     assert 'id="relationshipWorkspace"' in embedded.text
-    assert "Your assessments and engagements" in embedded.text
-    assert "Start New Assessment" in embedded.text
+    assert "Your Protection Advisor records" in embedded.text
+    assert "Start New Record" in embedded.text
     assert 'fetch("/public/protection-advisor/assessments"' not in embedded.text
     assert 'call("/public/protection-advisor/assessments"' in embedded.text
     assert 'call("/public/protection-advisor/assessments/select"' in embedded.text
@@ -121,7 +140,9 @@ with tempfile.TemporaryDirectory() as td:
     assert 'id="reportIdentityEditor"' in embedded.text
     assert "Edit code names and report handling" in embedded.text
     assert "Update report code names or requested handling" in embedded.text
-    assert "SPA-REPORT-TEMPLATE-1.1.0" in embedded.text
+    assert "SPA-REPORT-TEMPLATE-1.5.0" in embedded.text
+    assert 'id="recordsCoordinatorRole"' in embedded.text
+    assert "Who can coordinate authorized records and access?" in embedded.text
     assert "CONFIDENTIAL — SALUS PROTECTED INFORMATION" in embedded.text
     assert 'href="https://salcapa.salus.solutions/protection-advisor/services" target="_blank" rel="noopener noreferrer"' in embedded.text
     assert "frame-ancestors https://www.salus.solutions https://salus.solutions" in embedded.headers["content-security-policy"]
@@ -156,9 +177,9 @@ with tempfile.TemporaryDirectory() as td:
     csrf=payload["csrf_token"]
     headers={"X-CSRF-Token":csrf}
     questions=payload["questions"]
-    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
-    assert len([q for q in questions if q["key"] not in {"volunteer_roles","public_access"}])==28
-    assert any(q["key"]=="volunteer_roles" for q in questions)
+    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
+    assert len(questions)==9
+    assert all(q["key"] not in {"volunteer_roles","public_access"} for q in questions)
     assert all(q["capabilities"] and q["mission_areas"] and q["services"] for q in questions)
 
     for index,q in enumerate(questions):
@@ -177,6 +198,12 @@ with tempfile.TemporaryDirectory() as td:
     assert set(preliminary_result["mission_area_scores"])=={
         "Prevention","Protection","Mitigation","Response","Recovery"
     }
+    assert all(value is None for value in preliminary_result["mission_area_scores"].values())
+    first_part2_only=next(row for row in QUESTION_BLUEPRINTS if row[0] not in {q["key"] for q in questions})
+    premature=client.post("/public/protection-advisor/answer",headers=headers,json={
+        "question_key":first_part2_only[0],"answer_state":"No","note":""
+    })
+    assert premature.status_code==400
 
     no_account=client.post("/public/protection-advisor/submit",headers=headers,json={
         "protected_member_code_name":"Blocked Member","project_code_name":"Blocked Project",
@@ -204,13 +231,20 @@ with tempfile.TemporaryDirectory() as td:
     })
     assert created.status_code==200,created.text
     assert created.json()["authenticated"] is True
+    assert len(created.json()["questions"])==30  # 28 common and two faith/public additions
+    assert len(created.json()["answers"])==len(questions)
+    assert sum(q["part2_new"] for q in created.json()["questions"])==21
+    assert all(not q["part2_new"] for q in created.json()["questions"] if q["key"] in {row["key"] for row in questions})
+    assert {cap for q in created.json()["questions"] for cap in q["capabilities"]}==set(CORE_CAPABILITIES)
 
     draft=client.post("/public/protection-advisor/draft",headers=headers,json={
         "fields":{"protected_member_code_name":"Blue Lantern","project_code_name":"Steady Harbor",
                   "handling_profile":"Federal CUI","handling_authority":"Federal contract clause",
                   "designating_agency":"Example Federal Agency","contract_reference":"TASK-TEST-001",
                   "dissemination_controls":"Authorized recipients only",
-                  "organization_name":"Public Pilot Organization","personnel_range":"101–500"}
+                  "organization_name":"Public Pilot Organization","personnel_range":"101–500",
+                  "records_coordinator_role":"Operations manager",
+                  "covered_operation_tags":["Manufacturing or industrial work","Warehouse or distribution"]}
     })
     assert draft.status_code==200,draft.text
 
@@ -224,7 +258,19 @@ with tempfile.TemporaryDirectory() as td:
     assert resumed_payload["draft"]["organization_name"]=="Public Pilot Organization"
     assert resumed_payload["draft"]["protected_member_code_name"]=="Blue Lantern"
     assert resumed_payload["draft"]["project_code_name"]=="Steady Harbor"
+    assert resumed_payload["draft"]["records_coordinator_role"]=="Operations manager"
+    assert resumed_payload["draft"]["covered_operation_tags"]==[
+        "Manufacturing or industrial work","Warehouse or distribution"]
     headers={"X-CSRF-Token":resumed_payload["csrf_token"]}
+    assert len(resumed_payload["questions"])==30
+    assert len(resumed_payload["answers"])==len(questions)
+    for q in resumed_payload["questions"]:
+        if q["key"] in resumed_payload["answers"]:
+            continue
+        saved=client.post("/public/protection-advisor/answer",headers=headers,json={
+            "question_key":q["key"],"answer_state":"Unknown","note":""
+        })
+        assert saved.status_code==200,(q,saved.text)
 
     submitted=client.post("/public/protection-advisor/submit",headers=headers,json={
         "protected_member_code_name":"Blue Lantern",
@@ -240,34 +286,57 @@ with tempfile.TemporaryDirectory() as td:
         "detailed_assessment_acknowledged":True,
         "identifiable_retention_consent":True,
         "facility_scope":"Several facilities",
-        "facility_locations":"Central Texas",
+        "covered_operation":"Two named manufacturing and fulfillment sites",
+        "decision_units":"Two",
+        "separate_findings":"Yes",
+        "group_priorities":"No",
+        "facility_locations":"Central Texas\nHill Country",
         "personnel_range":"101–500",
         "affected_population_range":"501–2,500",
         "annual_revenue_range":"$25 million–$100 million",
+        "covered_operation_tags":["Manufacturing or industrial work","Warehouse or distribution"],
         "specific_activities":[
             "Precious metals or other high-value materials",
             "Hazardous materials, fuels, chemicals, or regulated waste",
         ],
-        "essential_functions":"Manufacturing and secure fulfillment",
+        "essential_functions":"Manufacturing\r\nand secure fulfillment",
         "maximum_tolerable_downtime":"4–24 hours",
         "existing_program_maturity":"Partially documented or inconsistently applied",
         "internal_implementation_capacity":"Need Salus implementation support",
         "primary_objective":"Facility or operational protection improvements",
         "external_requirements":"Insurance or underwriting concern",
-        "recent_concerns":"Continuity and competing resources",
+        "recent_concerns":"Continuity\nand competing resources",
         "desired_timing":"Within 90 days",
         "decision_authority":"Executive leadership",
+        "records_coordinator_role":"Operations manager",
         "investment_range":"Need phased options",
     })
     assert submitted.status_code==200,submitted.text
+    with sqlite3.connect(db_path) as conn:
+        saved_profile=json.loads(conn.execute(
+            "SELECT profile_json FROM advisor_public_service_profiles ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()[0])
+    assert saved_profile["facility_locations"]=="Central Texas\nHill Country"
+    assert saved_profile["essential_functions"]=="Manufacturing\nand secure fulfillment"
+    assert saved_profile["recent_concerns"]=="Continuity\nand competing resources"
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
-    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.1.0"
-    assert package["primary_service"]["title"]=="Integrated Salus Assessment"
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.6.0"
+    assert package["primary_service"]["title"]=="Level 1 SalCAPA™ Package"
     assert package["primary_service"]["level"]==1
-    assert package["sequence"][0]=="Integrated Salus Assessment — Level 1 Initial Pass"
+    assert package["provisional_path"]["band"]=="B"
+    assert "written quote" in package["provisional_path"]["next_step"]
+    assert package["scope_receipt"]["requested_boundary"]=="Two named manufacturing and fulfillment sites"
+    assert package["scope_receipt"]["records_coordinator"]=="Operations manager"
+    assert "organization chart" in package["scope_receipt"]["member_prepares"][0]
+    assert package["scope_receipt"]["receipt_id"].startswith("SPA-RECEIPT-")
+    assert "written scope" in package["scope_receipt"]["schedule_state"]
+    assert len(package["scope_receipt"]["milestones"]) == 5
+    assert len(package["scope_receipt"]["choices"]) == 4
+    assert package["sequence"][0]=="Level 1 SalCAPA™ package — four coordinated reports"
     assert result["preliminary_hypothesis"]["working_assumption"]
+    assert any(value is not None for value in result["mission_area_scores"].values())
     assert 1<=len(package["services"])<=4
     assert all(item["level"]>=1 for item in package["services"])
     assert all(item["capabilities"] and item["why"] for item in package["services"])
@@ -284,7 +353,7 @@ with tempfile.TemporaryDirectory() as td:
     engagement_scope=submitted.json()["engagement_scope"]
     assert engagement_scope["organization_name"]=="Public Pilot Organization"
     assert engagement_scope["engagement_name"]=="Steady Harbor"
-    assert engagement_scope["functional_area"]=="Facility or operational protection improvements"
+    assert engagement_scope["functional_area"]=="Two named manufacturing and fulfillment sites"
 
     # The 24-hour advisor token is a security credential, not a result-retention limit.
     # Even after that token's stored expiry, a fresh account login must recover the
@@ -361,8 +430,11 @@ with tempfile.TemporaryDirectory() as td:
     account=conn.execute("SELECT * FROM advisor_public_accounts").fetchone()
     assert account["email"]=="contact@example.com"
     assert session["status"]=="Submitted"
-    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.0.0"
-    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.0.0"
+    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
+    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.3.0"
+    assert json.loads(profile["profile_json"])["covered_operation_tags"]==[
+        "Manufacturing or industrial work","Warehouse or distribution"]
+    assert json.loads(profile["profile_json"])["records_coordinator_role"]=="Operations manager"
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_profile_drafts").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_portfolios").fetchone()[0]==1
     assert conn.execute("SELECT COUNT(*) FROM advisor_relationship_engagements").fetchone()[0]==1
@@ -375,6 +447,114 @@ with tempfile.TemporaryDirectory() as td:
     review_row=dict(submission)
     review_row["notification_state"]="Pending"
     submission_key=submission["submission_key"]
+    conn.close()
+
+    # The account receives the exact PDF bytes for an identity revision on
+    # repeat download; a newer identity revision does not overwrite it.
+    import hashlib
+    import public_protection_advisor as advisor_module
+    os.environ["SALUS_ADVISOR_REPORT_OUTPUT_DIR"] = td
+    saved_pdfs = {}
+    render_count = []
+
+    def fake_render(*, output_path, context, result, package):
+        render_count.append(context.project_code_name)
+        Path(output_path).write_bytes(b"%PDF-1.4\n" + context.project_code_name.encode("utf-8"))
+
+    def fake_store(reference, revision_no, content):
+        item_id = f"ITEM-{reference.split('-')[1]}-{revision_no:03d}-TEST"
+        saved_pdfs[item_id] = content
+        return {"item_id": item_id, "sha256": hashlib.sha256(content).hexdigest(),
+                "size": len(content), "filename": f"{reference}-R{revision_no}.pdf"}
+
+    def fake_read(item_id, expected_sha256, expected_size):
+        content = saved_pdfs[item_id]
+        assert len(content) == expected_size
+        assert hashlib.sha256(content).hexdigest() == expected_sha256
+        return content
+
+    advisor_module.render_protection_advisor_pdf = fake_render
+    advisor_module.store_member_pdf = fake_store
+    advisor_module.read_member_pdf = fake_read
+    advisor_module.delete_member_pdf = lambda item_id: saved_pdfs.pop(item_id)
+    receipt_render_count = []
+
+    def fake_receipt_render(*, output_path, context, receipt):
+        receipt_render_count.append(context.project_code_name)
+        Path(output_path).write_bytes(b"%PDF-1.4\n" + receipt["receipt_id"].encode("utf-8")
+                                      + b"\n" + context.project_code_name.encode("utf-8"))
+
+    advisor_module.render_scope_receipt_pdf = fake_receipt_render
+    latest_pdf = client.get("/public/protection-advisor/report.pdf", headers=headers)
+    assert latest_pdf.status_code == 200, latest_pdf.text
+    assert b"Steady Harbor Two" in latest_pdf.content
+    again_pdf = client.get("/public/protection-advisor/report.pdf", headers=headers)
+    assert again_pdf.content == latest_pdf.content
+    assert render_count == ["Steady Harbor Two"]
+    first_saved_receipt = client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
+    assert first_saved_receipt.status_code == 200, first_saved_receipt.text
+    assert b"Steady Harbor Two" in first_saved_receipt.content
+    # A prior identity that was never issued has no original PDF to retrieve.
+    first_pdf = client.get("/public/protection-advisor/report.pdf?revision=1", headers=headers)
+    assert first_pdf.status_code == 409, first_pdf.text
+    newer = client.post("/public/protection-advisor/report-identity",headers=headers,json={
+        "protected_member_code_name":"Blue Lantern",
+        "project_code_name":"Steady Harbor Three",
+        "handling_profile":"Commercial Confidential",
+        "handling_authority":"","designating_agency":"","contract_reference":"",
+        "dissemination_controls":"Authorized recipients only",
+    })
+    assert newer.status_code == 200, newer.text
+    prior_pdf = client.get("/public/protection-advisor/report.pdf?revision=2", headers=headers)
+    assert prior_pdf.status_code == 200, prior_pdf.text
+    assert prior_pdf.content == latest_pdf.content
+    newest_pdf = client.get("/public/protection-advisor/report.pdf", headers=headers)
+    assert newest_pdf.status_code == 200, newest_pdf.text
+    assert b"Steady Harbor Three" in newest_pdf.content
+    assert render_count == ["Steady Harbor Two", "Steady Harbor Three"]
+    latest_receipt = client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
+    assert latest_receipt.status_code == 200, latest_receipt.text
+    assert b"Steady Harbor Three" in latest_receipt.content
+    same_receipt = client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
+    assert same_receipt.content == latest_receipt.content
+    assert receipt_render_count == ["Steady Harbor Two", "Steady Harbor Three"]
+    prior_receipt = client.get("/public/protection-advisor/scope-receipt.pdf?revision=2", headers=headers)
+    assert prior_receipt.status_code == 200
+    assert prior_receipt.content == first_saved_receipt.content
+    missing_old_receipt = client.get("/public/protection-advisor/scope-receipt.pdf?revision=1", headers=headers)
+    assert missing_old_receipt.status_code == 409
+    # An Advisor session cookie alone cannot retrieve a retained Member receipt.
+    other_client = TestClient(app_module.app)
+    original_session_cookie = client.cookies.get("salus_advisor_session")
+    assert original_session_cookie
+    other_client.cookies.set("salus_advisor_session", original_session_cookie)
+    no_account_receipt = other_client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
+    assert no_account_receipt.status_code == 401
+    # Even another valid Part 2 account cannot pair its login with this session.
+    separate_client = TestClient(app_module.app)
+    other_started = separate_client.post("/public/protection-advisor/session", json={
+        "organization_type":"Business", "primary_consent":True,
+        "secondary_deidentified_consent":False,
+    })
+    assert other_started.status_code == 200, other_started.text
+    other_headers = {"X-CSRF-Token":other_started.json()["csrf_token"]}
+    other_account = separate_client.post("/public/protection-advisor/account", headers=other_headers, json={
+        "email":"other-contact@example.com", "password":"Separate-Account-2026",
+        "detailed_assessment_acknowledged":True, "identifiable_retention_consent":True,
+    })
+    assert other_account.status_code == 200, other_account.text
+    separate_account_cookie = separate_client.cookies.get("salus_advisor_account")
+    assert separate_account_cookie
+    separate_client.cookies.clear()
+    separate_client.cookies.set("salus_advisor_session", original_session_cookie)
+    separate_client.cookies.set("salus_advisor_account", separate_account_cookie)
+    cross_account_receipt = separate_client.get("/public/protection-advisor/scope-receipt.pdf", headers=headers)
+    assert cross_account_receipt.status_code == 403
+    cross_account_older = separate_client.get("/public/protection-advisor/scope-receipt.pdf?revision=2", headers=headers)
+    assert cross_account_older.status_code == 403
+    conn = sqlite3.connect(db_path)
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_member_report_snapshots").fetchone()[0] == 2
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_scope_receipt_snapshots").fetchone()[0] == 2
     conn.close()
 
     review_page_html=_review_page([review_row])
@@ -392,10 +572,10 @@ with tempfile.TemporaryDirectory() as td:
     business_questions=_questions("Business")
     validated={q["key"]:{"answer_state":"Validated"} for q in business_questions}
     cyber_answers={k:dict(v) for k,v in validated.items()}
-    for key in ("dependency_map","continuity","cyber_resilience","supplier_integrity"):
+    for key in ("dependency_map","continuity","degraded_communications","recovery_targets"):
         cyber_answers[key]={"answer_state":"No"}
     threat_answers={k:dict(v) for k,v in validated.items()}
-    for key in ("reporting","warning_thresholds","protective_controls"):
+    for key in ("reporting","decision_authority","life_safety_response"):
         threat_answers[key]={"answer_state":"No"}
 
     base_profile={
@@ -429,11 +609,14 @@ with tempfile.TemporaryDirectory() as td:
 
     deleted=client.post("/public/protection-advisor/delete",headers=headers,json={})
     assert deleted.status_code==200,deleted.text
+    assert not saved_pdfs
     conn=sqlite3.connect(db_path)
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_submissions").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_answer_revisions").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_notification_outbox").fetchone()[0]==0
     assert conn.execute("SELECT COUNT(*) FROM advisor_public_service_profiles").fetchone()[0]==0
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_member_report_snapshots").fetchone()[0]==0
+    assert conn.execute("SELECT COUNT(*) FROM advisor_public_scope_receipt_snapshots").fetchone()[0]==0
     assert conn.execute("SELECT status FROM advisor_public_sessions").fetchone()[0]=="Deleted"
     conn.close()
 
@@ -478,7 +661,7 @@ with tempfile.TemporaryDirectory() as report_td:
         for cell in row.cells
         for paragraph in cell.paragraphs
     )
-    assert "Protection Advisor Assessment Report" in "\n".join(rendered_text)
+    assert "Protection Advisor Scope and Readiness Report" in "\n".join(rendered_text)
 
     results_footer = rendered.sections[-1].footer
     image_relationships = [

@@ -4,16 +4,22 @@ on:
   pull_request:
     paths:
       - public_protection_advisor.py
+      - protection_advisor_member_reports.py
+      - advisor_report_config.py
       - app.py
       - tools/ci_public_protection_advisor_smoke.py
+      - tools/ci_protection_advisor_member_report_smoke.py
       - .github/workflows/public-protection-advisor.yml
   push:
     branches:
       - development/salcapa-platform
     paths:
       - public_protection_advisor.py
+      - protection_advisor_member_reports.py
+      - advisor_report_config.py
       - app.py
       - tools/ci_public_protection_advisor_smoke.py
+      - tools/ci_protection_advisor_member_report_smoke.py
       - .github/workflows/public-protection-advisor.yml
 
 permissions:
@@ -21,7 +27,7 @@ permissions:
 
 concurrency:
   group: public-protection-advisor-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   sqlite-security-acceptance:
@@ -35,5 +41,6 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python tools/ci_public_protection_advisor_smoke.py
+      - run: python tools/ci_protection_advisor_member_report_smoke.py
       - name: Compile public boundary
-        run: python -m py_compile public_protection_advisor.py tools/ci_public_protection_advisor_smoke.py
+        run: python -m py_compile public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py tools/ci_public_protection_advisor_smoke.py tools/ci_protection_advisor_member_report_smoke.py

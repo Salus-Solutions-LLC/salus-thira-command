@@ -1,0 +1,78 @@
+# Level and band report template candidate contract
+
+## 1 October 2026 candidate 1.3 substantive path pass
+
+Candidate 1.3 adds path-specific authoring instructions inside substantive sections of the four existing Word report identities. It requires separate unit evidence before Band B comparisons or Band C group judgments, retains the full 32-capability/five-area applicability screen for eligible Access, distinguishes source-bound Level 1 from authorized Level 2/3 proof, links options to the same-level decision and separates recommendations from performed work. The retained reference content and all package parts outside `word/document.xml`, `word/styles.xml` and `docProps/core.xml` remain unchanged. These are still *authoring prompts*, not ten finished path-specific Member reports.
+
+| Product | Current candidate 1.3 DOCX SHA-256 | Current LibreOffice QA PDF SHA-256 | Pages | Added substantive section rules |
+|---|---|---|---:|---:|
+| SalINTEL™ | `E923379865A933632AA2D100AFB8E1A638DC9FC0E08267839E16DC833B59A444` | `46AE0EFE0819C19DD471C0D74F61974D3AB6FA512BEA844BCFB81E79F34B5B17` | 9 | 5 |
+| SalTHIRA™ | `F9016228282CBE3F275B3F67C98AD6D2069AFED00358D3A003960044C5E6E5CF` | `2DDAE9E7A5E19B0F4572585BAB97233A68AA293BBD785493F6FD68CAE813FA51` | 6 | 3 |
+| SalOPS™ | `A3A6AF22AAA315A11F6887C0276E023900669D155D0BACE76FD385FC3A3B6E2F` | `A6D97A364C6DE2C8F4EBE501B9CCAE0036344D63371BC739C84957DFD29436C8` | 6 | 4 |
+| SalCAPA™ | `82DED4A785A92D890DEFE1805CC223AFB0C28CA833D4FCDDD67718FF5AC90857` | `5F23E11D9652EC9045AAD01ED5BC06470F05661DD18FCB45F2D043592D4CC24B` | 6 | 5 |
+
+The updated exact-version structural/rendered audit passed: four reference hashes, ZIP/package-part fidelity, document titles, semantic headings, all 32 table headers, logo alternate descriptions, three sections, blank page two, Arial/Times New Roman rendered fonts and all 23 nonblank `page X of Y` footers. The nine pages containing added section prompts were inspected at reading size without observed collision or clipping. The first SalTHIRA render spilled its last two sections to an almost empty seventh page; its section rules were shortened and the final six-page version rerendered and rechecked. Full all-page visual/native Word, accessibility/screen-reader, realistic populated path comparison, qualified content and governed binary acceptance remain open. Candidate 1.2 hashes below are historical and superseded for current review.
+
+## Scope-integration status — 1 October 2026
+
+The new business scope is **partially integrated in four local Word candidates**, not yet promoted into the registered report templates or a live Member-facing release. Each candidate has the prospective `Level [path]` report title, opening guidance and selected substantive section instructions for the covered decision unit, exclusions, proof depth, Member decision and next step. These are shared authoring candidates; there are not ten separately accepted path-specific template binaries. The registered source bodies remain in place. Every later section still needs a realistic path-specific population and acceptance pass against SAL-D088–SAL-D090 before the suite can be called fully integrated.
+
+| Product | Candidate integration | Still to verify before promotion |
+|---|---|---|
+| SalINTEL™ | Access/Standard, A/B/C decision boundary and Level 1–3 proof limits appear in the opening prompt. | Every evidence, compliance, intake-to-THIRA and education section must produce the scoped path's actual evidence and omissions, not generic placeholders. |
+| SalTHIRA™ | BLUF prompt names path, A/B/C treatment and Level 1–3 proof differences. | Six steps, capability targets, gaps, rankings and cross-unit/group comparisons must be tested with realistic path-specific content. |
+| SalOPS™ | Opening prompt distinguishes A, B and C actions and separately authorized services. | Every option, owner, prerequisite, cost status, proof and service offer must trace to a qualified same-level finding and the selected boundary. |
+| SalCAPA™ | Opening prompt distinguishes Access/Standard, A/B/C and the four-report Member decision. | Exact predecessor versions, one decision trace, action status and next-level or separate-service choices must reconcile real path-specific reports. |
+
+Protection Advisor Part 1/Part 2 and staged intake have separate local review copies and draft source changes. They are not accepted live questionnaires or an authorized offer. Native Word layout/font QA passed for the eight current local copies; exact-version accessibility, qualified content, Member comprehension, signed-in browser and governed release gates remain open. The public Wix copy packet is unapplied. Production remains `release/v3.202` with package intake locked. Do not represent candidate integration as publication.
+
+## 30 September 2026 scope reconciliation candidate 1.2
+
+The four successor candidates now state how the selected path changes the Member decision: A covers one integrated decision unit, B compares separately analyzed units or operating profiles, and C ranks a named group's priorities. SalINTEL™ distinguishes eligible Level 1A Access from Standard and names the full four-report sequence; SalTHIRA™ distinguishes source-bound Level 1, field-validated Level 2 and authorized specialist Level 3 proof; SalOPS™ separates recommendations from separately quoted implementation; SalCAPA™ names the four reports, Member decision, proof limits and implementation authority. These are prompts for the report author, not completed findings or approved buyer copy. The registered references remain intact.
+
+| Product | Candidate 1.2 DOCX SHA-256 | Rendered QA PDF SHA-256 | Pages |
+|---|---|---|---:|
+| SalINTEL™ | `03C12D80C1FD75CBCE65006177B302FEF27E4138B02855F9DCB2A37FAE123C0A` | `8E93923D00E1359DBAFD8C6CA93B9D910C1719272351938678E3D5D6DD70C566` | 9 |
+| SalTHIRA™ | `776DFC13ED16ABF8B66472CCEB3735EB0276FAC1CA213D4739228AE1827065B5` | `7B7876B283833BADEABB2F8F9F93348047062128D4A25BCC174E935FBFAA32B1` | 6 |
+| SalOPS™ | `5774ACFB3A3FC98AFB10F595694BA865A6599D17B1A634ADE12301A4828E93F8` | `5CB98A6668989BBD655A9E15C3CEF88EEAC6835618209B0E2A6E7CAAC9C82F2F` | 6 |
+| SalCAPA™ | `8ECFDC985F5E62D29F86551B2F40F91132DE8B538193BF758C8B47E93A1F1639` | `0D9DE47A25722FA33FCF086965A56AF0B45C96CB83DCDCE37C3744C4C5EEED85` | 6 |
+
+The current DOCX files were rendered in LibreOffice on 30 September 2026 and native Word on 01 October 2026. Earlier `template_reconciled_*`, `template_exact_*` and `render_*` PDFs and images depict candidate 1.1 and must not be used to qualify candidate 1.2. The four LibreOffice PDFs and all 27 page PNGs are under `proposals/qa/template_current_*` (local QA only). Each cover shows candidate 1.2; all four page-two images are visually blank; all 23 nonblank pages were inspected individually at reading size without observed clipping or overlap. The reusable audit checked four current Word and PDF hashes, source-package fidelity, expected fonts, page count and 23 exact `page X of Y` footers with zero findings. Native Word page counts, fonts, PDF titles, tags and language passed a separate audit. Screen-reader and qualified populated-report review, exact template approval, access control and governed publication remain open. The root Protection Advisor example remains the approved visual reference; the Part 1 and Part 2 questionnaire and staged intake review copies already carry the provisional band and four-report handoff. Their exact-version release review remains open.
+
+**Authority:** SAL-D088–SAL-D090. **Purpose:** Prepare four member-neutral title and opening-prompt candidates while retaining the exact registered Word references and all issued reports. These candidates do not supersede approved binary templates until governed visual, content, access and release review.
+
+| Product | Retained reference in local `work/` | SHA-256 | Baseline sections / content |
+|---|---|---|---|
+| SalINTEL | `approved_templates/SalINTEL Report Template.docx` | `5A99C3F0A3DB126F101407617AABA7CB8EB098C3D704E436B01C5D8520BB1959` | 3 sections, 57 body paragraphs, 15 tables; registered 9 pages |
+| SalTHIRA | `approved_templates/SalTHIRA Report Template.docx` | `29B896804C44B56D5A32BA377FE557B676649FAC88C83D674BE77EA088B81FF8` | 3 sections, 52 body paragraphs, 4 tables; registered 6 pages |
+| SalOPS | `salops_design/SalOPS Report Template DRAFT.docx` | `4CE3DB45CA2C39BF28D278296D23CCEC322AC4E7738793D95B7170EC12170043` | 3 sections, 51 body paragraphs, 4 tables; draft |
+| SalCAPA | `salcapa_report_design/SalCAPA Integrated Report Template DRAFT.docx` | `A1FAE0F2187C0B7DE74246DE70203B6F40F172434BC197127EF30E907153D3A1` | 3 sections, 54 body paragraphs, 9 tables; draft |
+
+All four references use letter paper, three sections, a confidential cover and a blank second-page section. SalINTEL margins are 1 inch; the other three use 0.9 inch. Preserve every section, header/footer, table, image, field, relationship and paragraph outside the exact title, cover status/version and executive opening prompt. Existing title paragraph uses the Word `Title` style. Render review found that the references' font-theme selectors override their explicit Arial heading choice with Calibri. Candidate `word/styles.xml` removes only the theme font selector attributes so the intended Arial/Times New Roman roles render. Candidate `docProps/core.xml` sets a member-neutral document title for accessible Word/PDF identification. All other package members must have the same uncompressed SHA-256 as their references.
+
+**Editable slots:** title on cover; cover status/version sentence to mark candidate lineage; first executive/BLUF prompt to demand exact level/band, covered decision unit, exclusions and evidence status. All other bracketed instructions remain for later controlled template review. The proposed title uses `Level [path]`; before a Member issue the author replaces `[path]` with `1A Access`, `1A Standard`, `1B`, `1C`, `2A` etc. and replaces customer name. The exact front matter and executive summary must state the chosen path. A template is never an issued report.
+
+**Fidelity gates:** reference hash, ZIP integrity, unaffected package-part hashes, document title, section count, blank page 2, every nonblank page footer `page X of Y`, font check, all-page render and visual comparison. Any layout change outside the edited text, broken page, accessibility defect or unresolved placeholder in a proposed Member issue blocks promotion.
+
+## 30 September 2026 exact candidate check
+
+The four candidates include `Salus Solutions logo` as the Word image's alternate description. The source templates were read but not changed. On 01 October, `proposals/qa/audit_level_band_templates.py` rechecked the on-disk candidates against each registered reference hash, Word ZIP integrity, unchanged package members outside `docProps/core.xml`, `word/document.xml` and `word/styles.xml`, semantic `Title` and heading styles, three Word sections, marked header rows in every table, logo description, the current LibreOffice QA PDFs, blank page 2, every nonblank `page X of Y` footer, and rendered Arial/Times New Roman font names. The exact **current on-disk** Word/PDF hashes are below. The visible report content and LibreOffice PDF hashes did not change when title metadata was added:
+
+| Product | Candidate DOCX SHA-256 | Fresh QA PDF SHA-256 | Pages |
+|---|---|---|---:|
+| SalINTEL™ | `03C12D80C1FD75CBCE65006177B302FEF27E4138B02855F9DCB2A37FAE123C0A` | `8E93923D00E1359DBAFD8C6CA93B9D910C1719272351938678E3D5D6DD70C566` | 9 |
+| SalTHIRA™ | `776DFC13ED16ABF8B66472CCEB3735EB0276FAC1CA213D4739228AE1827065B5` | `7B7876B283833BADEABB2F8F9F93348047062128D4A25BCC174E935FBFAA32B1` | 6 |
+| SalOPS™ | `5774ACFB3A3FC98AFB10F595694BA865A6599D17B1A634ADE12301A4828E93F8` | `5CB98A6668989BBD655A9E15C3CEF88EEAC6835618209B0E2A6E7CAAC9C82F2F` | 6 |
+| SalCAPA™ | `8ECFDC985F5E62D29F86551B2F40F91132DE8B538193BF758C8B47E93A1F1639` | `0D9DE47A25722FA33FCF086965A56AF0B45C96CB83DCDCE37C3744C4C5EEED85` | 6 |
+
+These are still candidate templates. The 30 September native Microsoft Word attempt returned COM error `0x80070520` (no logon session). A separate 01 October host-context native Word export succeeded for the current four candidate DOCX hashes. SalINTEL rendered 9 pages; SalTHIRA, SalOPS and SalCAPA rendered 6 each. The native export audit found confidential covers, entirely blank second pages, `page X of Y` on every nonblank page, zero visible Calibri characters, member-neutral PDF titles, PDF structure tags and English language metadata; Arial headings and Times New Roman body rendered as intended. Native Word PDF SHA-256 values: SalINTEL `9B78D6EFCBF40354E4553D9DB1895E17A8B4595AE1E3E05D6FF62894F1808C82`; SalTHIRA `ED661EB9341418192B1D8DE8C46CB01EF2BA99DB7B98EAC6FCD0ECA141BBF7CA`; SalOPS `2A036F7C3908FFE87758306CF8EC2468EE9BC9CACEFCA72D6D33DD444B4E28A0`; SalCAPA `C6E5B06295CF8601EE77DC6EEAB95A5644F1E704B2CEEF4951784E1A0B8AE8C8`. Generated PDFs remain local QA byproducts, not Member deliverables. Accessibility-tool and screen-reader review, qualified content and template acceptance, access control and governed publication remain open.
+
+## Fictional long-boundary layout challenge
+
+On 30 September 2026, `proposals/qa/stress_level_band_templates.py` inserted a long fictional organization name, Level 3C, and a multi-location covered/excluded-operation description into the available cover and opening slots. It did not populate findings, decisions or later tables. LibreOffice produced 9 SalINTEL and 6 pages for each other product, matching the unfilled candidates. Each page 2 was text-empty and all 23 nonblank pages retained `page X of Y`. The four covers and four page-3 openings were visually checked in the exact stress PDF render; the long name wrapped without visible collision or clipping. These results cover boundary typography only, not a completed report, longer narrative or tables, native Word, accessibility, PDF/print parity or template promotion. Generated fixtures stay local and are not Member deliverables.
+
+## Fictional populated page-flow challenge
+
+On 30 September 2026, `proposals/qa/stress_populated_level_band_templates.py` created four **internal fictional** populated layout fixtures from candidate 1.2. It inserted long narrative and additional multi-column table rows to challenge pagination; it did not create a Member report or validate factual conclusions. An initial deliberately overlong SalINTEL cover value moved cover content onto page 2. The fixture was corrected to use concise cover fields, then all four files were freshly rendered under `proposals/qa/template_populated_stress/render_final_*`. The automatic audit and visual inspection of all **42 pages** found: SalINTEL 16 pages, SalTHIRA 9, SalOPS 9 and SalCAPA 8; page 2 blank in each; all **38 nonblank pages** with the correct `page X of Y` footer; no visible clipping or overlap. Tables continued with repeated headings. The dense SalTHIRA capability table remains readable but needs review with realistic ranked findings before template acceptance.
+
+The cover overflow is a release-relevant boundary: every actual populated report must be rendered and checked for its exact cover text, blank page 2, page sequence and footers. This fixture does not establish native Word pagination, screen-reader accessibility, actual Member content quality, approved template status or publication readiness. Local PDFs, page images and contact sheets are QA byproducts only.

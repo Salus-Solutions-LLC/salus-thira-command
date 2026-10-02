@@ -55,8 +55,14 @@ def _safe_package(data: bytes, extension: str, content_type: str) -> zipfile.Zip
     stream = io.BytesIO(data)
     if not zipfile.is_zipfile(stream):
         raise base.ProcessingFailure("DOCUMENT_PACKAGE_INVALID", "The document package is not valid. The original remains unchanged for review.")
-    package = zipfile.ZipFile(stream)
-    infos = package.infolist()
+    # is_zipfile only locates the end record; a damaged central directory can
+    # still raise BadZipFile here. Report that as a per-source extraction failure
+    # so one damaged upload cannot terminate the scheduled knowledge worker.
+    try:
+        package = zipfile.ZipFile(stream)
+        infos = package.infolist()
+    except zipfile.BadZipFile as exc:
+        raise base.ProcessingFailure("DOCUMENT_PACKAGE_INVALID", "The document package is not valid. The original remains unchanged for review.") from exc
     if len(infos) > MAX_ENTRIES:
         package.close()
         raise base.ProcessingFailure("DOCUMENT_ENTRY_LIMIT", "The document contains too many package entries for safe processing. The original remains unchanged.")
@@ -232,6 +238,8 @@ def _decode_office(data: bytes, original_name: str, content_type: str) -> tuple[
             text, notes = _powerpoint_text(package)
             format_name = "PowerPoint"
         metadata = _core_properties(package)
+    except zipfile.BadZipFile as exc:
+        raise base.ProcessingFailure("DOCUMENT_PACKAGE_INVALID", "The document package is not valid. The original remains unchanged for review.") from exc
     finally:
         package.close()
     if not text.strip() and not metadata:

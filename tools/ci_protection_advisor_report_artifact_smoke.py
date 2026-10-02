@@ -20,6 +20,6 @@ with TemporaryDirectory() as tmp:
         generated_at=datetime(2026, 9, 21, 14, 30, tzinfo=timezone.utc),
     )
     assert result["status"] == "Prepared for Salus Review"
-    assert result["template_version"] == "SPA-REPORT-TEMPLATE-1.1.0"
+    assert result["template_version"] == "SPA-REPORT-TEMPLATE-1.5.0"
     assert (output / "SPA-REPORT-0001.docx").exists()
 print("Protection Advisor review artifact smoke passed")

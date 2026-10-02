@@ -99,6 +99,7 @@ jobs:
       - name: Compile Bicep without Azure credentials
         run: |
           az bicep build --file infra/azure/main.bicep --stdout > /tmp/salcapa-arm.json
+          az bicep build --file infra/azure/defender-storage-scanner.bicep --stdout > /tmp/salcapa-defender-scanner-arm.json
           az bicep build --file infra/azure/database-bootstrap.bicep --stdout > /tmp/salcapa-database-bootstrap-arm.json
           az bicep build --file infra/azure/live-copy-migration-acceptance.bicep --stdout > /tmp/salcapa-live-copy-migration-acceptance-arm.json
           az bicep build --file infra/azure/rollback-acceptance.bicep --stdout > /tmp/salcapa-rollback-acceptance-arm.json

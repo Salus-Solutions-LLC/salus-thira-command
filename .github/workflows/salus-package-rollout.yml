@@ -1,0 +1,207 @@
+name: Salus package rollout
+
+on:
+  pull_request:
+    paths:
+      - app.py
+      - public_protection_advisor.py
+      - salcapa_runtime.py
+      - .github/workflows/azure-application-deploy.yml
+      - .github/workflows/protection-advisor-live-acceptance.yml
+      - protection_advisor_member_reports.py
+      - advisor_report_config.py
+      - salus_package_path.py
+      - salus_package_quote.py
+      - salus_package_intake.py
+      - salus_scan_results.py
+      - salus_scan_worker.py
+      - salcapa_office_processing.py
+      - tools/ci_salcapa_office_processing_smoke.py
+      - portable_backup.py
+      - database.py
+      - security_controls.py
+      - storage.py
+      - requirements.txt
+      - tools/live_public_protection_advisor_acceptance.sh
+      - tools/advisor_missing_part2_keys.jq
+      - tools/advisor_part1_carry_forward.jq
+      - static/**
+      - tests/**
+      - proposals/level_band_templates/build_candidates.py
+      - proposals/qa/audit_level_band_templates.py
+      - proposals/level_band_templates/artifact.md
+      - SALUS_PROGRAM_CHARTER.md
+      - SALUS_DECISION_REGISTER.md
+      - APPROVED_ARTIFACTS.md
+      - SALUS_CHAT_STARTUP_PROTOCOL.md
+      - CURRENT_HANDOFF.md
+      - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
+      - .github/workflows/salus-package-rollout.yml
+      - infra/azure/defender-storage-scanner.bicep
+      - infra/azure/main.bicep
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - app.py
+      - public_protection_advisor.py
+      - salcapa_runtime.py
+      - .github/workflows/azure-application-deploy.yml
+      - .github/workflows/protection-advisor-live-acceptance.yml
+      - protection_advisor_member_reports.py
+      - advisor_report_config.py
+      - salus_package_path.py
+      - salus_package_quote.py
+      - salus_package_intake.py
+      - salus_scan_results.py
+      - salus_scan_worker.py
+      - salcapa_office_processing.py
+      - tools/ci_salcapa_office_processing_smoke.py
+      - portable_backup.py
+      - database.py
+      - security_controls.py
+      - storage.py
+      - requirements.txt
+      - tools/live_public_protection_advisor_acceptance.sh
+      - tools/advisor_missing_part2_keys.jq
+      - tools/advisor_part1_carry_forward.jq
+      - static/**
+      - tests/**
+      - proposals/level_band_templates/build_candidates.py
+      - proposals/qa/audit_level_band_templates.py
+      - proposals/level_band_templates/artifact.md
+      - SALUS_PROGRAM_CHARTER.md
+      - SALUS_DECISION_REGISTER.md
+      - APPROVED_ARTIFACTS.md
+      - SALUS_CHAT_STARTUP_PROTOCOL.md
+      - CURRENT_HANDOFF.md
+      - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
+      - .github/workflows/salus-package-rollout.yml
+      - infra/azure/defender-storage-scanner.bicep
+      - infra/azure/main.bicep
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salus-package-rollout-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-and-handoff-sequence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt pytest==8.4.2 PyYAML==6.0.2
+      # The separate professional-report tests require licensed Arial/Times
+      # files that the Linux runner does not contain. Keep their exact-output
+      # release review separate; do not substitute another font in this job.
+      - run: python -m pytest -q -p no:cacheprovider tests --ignore=tests/test_protection_advisor_professional_report.py
+      - name: Verify damaged Office files cannot stop the knowledge worker
+        run: python tools/ci_salcapa_office_processing_smoke.py
+      - name: Verify legacy observation attachment scan and download gates
+        run: python tools/ci_salcapa_v25_smoke.py
+      - run: python -m compileall -q app.py public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py salus_package_path.py salus_package_quote.py salus_package_intake.py portable_backup.py proposals/qa/audit_level_band_templates.py
+      - run: node --check static/app.js
+      - name: Check live Advisor Part 2 answer carry-forward
+        run: |
+          bash -n tools/live_public_protection_advisor_acceptance.sh
+          jq -n '{questions:[{key:"part1"},{key:"part2"}],answers:{part1:"Documented"}}' > /tmp/advisor-answer-fixture.json
+          test "$(jq -r -f tools/advisor_missing_part2_keys.jq /tmp/advisor-answer-fixture.json)" = 'part2'
+          jq -n '{part1:"Documented"}' > /tmp/advisor-part1-fixture.json
+          jq -n '{answers:{part1:"Documented",part2:"Unknown"}}' > /tmp/advisor-resume-fixture.json
+          jq -e --argjson expected 2 --slurpfile before /tmp/advisor-part1-fixture.json -f tools/advisor_part1_carry_forward.jq /tmp/advisor-resume-fixture.json
+          jq -n '{answers:{part1:"Unknown",part2:"Unknown"}}' > /tmp/advisor-overwrite-fixture.json
+          if jq -e --argjson expected 2 --slurpfile before /tmp/advisor-part1-fixture.json -f tools/advisor_part1_carry_forward.jq /tmp/advisor-overwrite-fixture.json; then
+            echo 'Part 1 overwrite was not rejected' >&2
+            exit 1
+          fi
+      - name: Compile scanner installation template without Azure credentials
+        run: az bicep build --file infra/azure/defender-storage-scanner.bicep --stdout > /tmp/salus-defender-scanner-arm.json
+      - name: Compile application and worker promotion template without Azure credentials
+        run: az bicep build --file infra/azure/main.bicep --stdout > /tmp/salus-application-arm.json
+      - name: Validate protected release workflow syntax
+        run: |
+          python - <<'PY'
+          import re
+          import subprocess
+          from pathlib import Path
+          import yaml
+
+          for name in ('azure-application-deploy.yml', 'protection-advisor-live-acceptance.yml'):
+              document = yaml.safe_load(Path('.github/workflows', name).read_text(encoding='utf-8'))
+              for job in document['jobs'].values():
+                  for step in job['steps']:
+                      if 'run' not in step:
+                          continue
+                      script = re.sub(r'\$\{\{.*?\}\}', 'EXPRESSION', step['run'])
+                      subprocess.run(['bash', '-n'], input=script, text=True, check=True)
+              if name == 'azure-application-deploy.yml':
+                  steps = document['jobs']['deploy']['steps']
+                  promote = next(step['run'] for step in steps if step.get('name') == 'Promote and verify scheduled worker after application acceptance')
+                  rollback = next(step['run'] for step in steps if step.get('name') == 'Restore accepted rollback release if promotion verification fails')
+                  pause = promote.index('--trigger-type Manual')
+                  drain = promote.index('DRAINED=false')
+                  start = promote.index('az containerapp job start')
+                  check = promote.index('if [ "$SUCCEEDED" != "true" ]; then')
+                  resume = promote.index('--trigger-type Schedule')
+                  assert pause < drain < start < check < resume
+                  assert '--image "$IMAGE_DIGEST" --query name' in promote
+                  assert promote.count('all(.[]; .properties.status == "Succeeded"') >= 2
+                  assert '.properties.template.containers[0].image == $image' in promote.split('for attempt in $(seq 1 100); do', 2)[2].split('done', 1)[0]
+                  assert "--cron-expression '*/2 * * * *'" in promote
+                  assert '--image "$ROLLBACK_IMAGE"' in rollback
+                  assert '--trigger-type Schedule' in rollback
+                  assert "--cron-expression '*/2 * * * *'" in rollback
+          PY
+
+  professional-report-windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt pytest==8.4.2
+      # Windows provides the Arial and Times New Roman font files required by
+      # the professional Protection Advisor PDF tests. This is still a source
+      # regression check, not native Word or populated-report acceptance.
+      - run: python -m pytest -q -p no:cacheprovider tests
+
+  package-postgres-transaction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: salus_package_ci
+          POSTGRES_USER: salus
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U salus -d salus_package_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      SALUS_DB_BACKEND: postgres
+      SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salus_package_ci
+      SALUS_AUTH_MODE: prototype
+      SALUS_SEED_DEMO: '0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt pytest==8.4.2
+      - run: python -m pytest -q -p no:cacheprovider tests/test_package_quote_workflow.py

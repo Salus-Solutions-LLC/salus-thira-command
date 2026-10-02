@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, HTMLResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -9,15 +9,23 @@ import urllib.parse
 import httpx, jwt
 from azure.identity import ManagedIdentityCredential
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from storage import build_storage, StorageError
-from security_controls import scan_bytes, retention_active, AV_MODE, AV_REQUIRED
+from security_controls import scan_bytes, retention_active, scanner_configuration, AV_MODE, AV_REQUIRED
 from secret_provider import secret, readiness as secret_readiness
+from salus_package_path import validate_requested_package_path
+from salus_package_quote import validate_quote, quote_digest, assessment_scope_digest
+from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
 from managed_database import runtime_database_status, managed_target_status
 from database import connect_database, backend_name, is_sqlite, is_postgres
 from portable_backup import collect_tenant_records, validate_records, replace_tenant_records
+from salus_scan_quarantine import AzureScanQuarantine, QuarantineError
+from salus_scan_results import defender_event_matches_pending, defender_result_for_pending, qualified_clean_quarantine_object
+from salus_scan_inventory import (compare_quarantine_versions,
+                                  list_azure_quarantine_versions,
+                                  record_inventory_exceptions)
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.getenv('SALUS_DB_PATH', os.path.join(BASE_DIR, 'thira.db'))
@@ -35,6 +43,20 @@ SESSION_HOURS = int(os.getenv('SALUS_SESSION_HOURS', '12'))
 ALLOW_RESTORE = os.getenv('SALUS_ALLOW_RESTORE', '0').lower() in ('1','true','yes')
 COOKIE_SECURE = os.getenv('SALUS_COOKIE_SECURE', '0').lower() in ('1','true','yes')
 ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
+PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED','0').lower() in ('1','true','yes')
+PACKAGE_SCAN_MODE = os.getenv('SALUS_PACKAGE_SCAN_MODE','inline').strip().lower()
+
+def package_quarantine(*, for_worker=False):
+    # The web route may create originals but must not read quarantine bytes.
+    # Only the trusted result worker selects the quarantine-reader identity.
+    identity_env = ('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID' if for_worker
+                    else 'AZURE_CLIENT_ID')
+    client_id = os.getenv(identity_env,'').strip()
+    if not client_id:
+        raise QuarantineError('The governed quarantine identity is not configured.')
+    return AzureScanQuarantine(
+        os.getenv('SALUS_SCAN_QUARANTINE_URL','').strip(),
+        managed_identity_client_id=client_id)
 RETENTION_DEFAULT_DAYS = int(os.getenv('SALUS_RETENTION_DEFAULT_DAYS','2555'))
 OIDC_DISCOVERY_URL = os.getenv('SALUS_OIDC_DISCOVERY_URL','').strip()
 OIDC_CLIENT_ID = os.getenv('SALUS_OIDC_CLIENT_ID','').strip()
@@ -268,6 +290,10 @@ def init_db():
       purpose TEXT NOT NULL DEFAULT '',
       mission TEXT NOT NULL DEFAULT '',
       scope TEXT NOT NULL DEFAULT '',
+      covered_operation TEXT NOT NULL DEFAULT '',
+      requested_package_level INTEGER NOT NULL DEFAULT 0,
+      requested_scope_band TEXT NOT NULL DEFAULT '',
+      requested_access_variant TEXT NOT NULL DEFAULT '',
       exclusions TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'Draft',
       executive_sponsor TEXT NOT NULL DEFAULT '',
@@ -741,6 +767,444 @@ def init_db():
       FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_report_versions_scope ON report_versions(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_agreement_artifacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL UNIQUE,
+      content_sha256 TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      scan_status TEXT NOT NULL,
+      retention_until TEXT NOT NULL DEFAULT '',
+      legal_hold INTEGER NOT NULL DEFAULT 0,
+      uploaded_by TEXT NOT NULL,
+      uploaded_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      UNIQUE(tenant_id,assessment_id,content_sha256)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_agreement_scope ON package_agreement_artifacts(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_quote_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      version_no INTEGER NOT NULL,
+      assessment_version INTEGER NOT NULL,
+      assessment_scope_sha256 TEXT NOT NULL DEFAULT '',
+      level INTEGER NOT NULL,
+      band TEXT NOT NULL,
+      variant TEXT NOT NULL,
+      covered_operation TEXT NOT NULL,
+      exclusions TEXT NOT NULL,
+      scope_basis TEXT NOT NULL,
+      included_work TEXT NOT NULL DEFAULT '',
+      report_deliverables TEXT NOT NULL DEFAULT '',
+      member_inputs TEXT NOT NULL DEFAULT '',
+      evidence_allowance TEXT NOT NULL DEFAULT '',
+      clarification_allowance TEXT NOT NULL DEFAULT '',
+      field_specialist_terms TEXT NOT NULL DEFAULT '',
+      payment_terms TEXT NOT NULL DEFAULT '',
+      tax_treatment TEXT NOT NULL DEFAULT '',
+      change_triggers TEXT NOT NULL DEFAULT '',
+      decision_owner TEXT NOT NULL,
+      source_receipt_id TEXT NOT NULL DEFAULT '',
+      fee_cents INTEGER NOT NULL,
+      currency TEXT NOT NULL,
+      valid_until TEXT NOT NULL,
+      start_date TEXT NOT NULL DEFAULT '',
+      delivery_date TEXT NOT NULL DEFAULT '',
+      capacity_confirmed INTEGER NOT NULL,
+      access_eligibility_confirmed INTEGER NOT NULL,
+      access_eligibility_basis TEXT NOT NULL DEFAULT '',
+      agreement_artifact_id INTEGER NOT NULL DEFAULT 0,
+      agreement_reference TEXT NOT NULL,
+      agreement_sha256 TEXT NOT NULL,
+      separate_services_excluded INTEGER NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      approved_by TEXT NOT NULL,
+      approved_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (agreement_artifact_id) REFERENCES package_agreement_artifacts(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,assessment_id,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_quote_scope ON package_quote_versions(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_agreement_downloads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      agreement_artifact_id INTEGER NOT NULL,
+      member_user_id INTEGER NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      downloaded_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (agreement_artifact_id) REFERENCES package_agreement_artifacts(id) ON DELETE RESTRICT,
+      FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_agreement_download_scope ON package_agreement_downloads(tenant_id,assessment_id,quote_id,member_user_id);
+    CREATE TABLE IF NOT EXISTS package_member_authority_reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL UNIQUE,
+      member_user_id INTEGER NOT NULL,
+      authority_basis TEXT NOT NULL,
+      evidence_reference TEXT NOT NULL,
+      reviewed_by_user_id INTEGER NOT NULL,
+      reviewed_at TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_member_authority_scope ON package_member_authority_reviews(tenant_id,assessment_id,quote_id);
+    CREATE TABLE IF NOT EXISTS package_acceptances (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      quote_sha256 TEXT NOT NULL,
+      agreement_sha256 TEXT NOT NULL,
+      member_user_id INTEGER NOT NULL,
+      agreement_download_id INTEGER NOT NULL DEFAULT 0,
+      member_authority_basis TEXT NOT NULL,
+      idempotency_key TEXT NOT NULL,
+      accepted_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      FOREIGN KEY (agreement_download_id) REFERENCES package_agreement_downloads(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,assessment_id,idempotency_key),
+      UNIQUE (quote_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_acceptance_scope ON package_acceptances(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_intake_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      item_key TEXT NOT NULL,
+      catalog_version TEXT NOT NULL,
+      title TEXT NOT NULL,
+      decision_use TEXT NOT NULL,
+      requested_form TEXT NOT NULL,
+      acceptable_equivalent TEXT NOT NULL,
+      request_reason TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Requested',
+      requested_by TEXT NOT NULL,
+      requested_at TEXT NOT NULL,
+      response_user_id INTEGER,
+      responded_at TEXT NOT NULL DEFAULT '',
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (response_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,assessment_id,quote_id,item_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_intake_scope ON package_intake_requests(tenant_id,assessment_id,quote_id,id);
+    CREATE TABLE IF NOT EXISTS package_intake_uploads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      intake_request_id INTEGER NOT NULL,
+      member_user_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL UNIQUE,
+      content_sha256 TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      scan_status TEXT NOT NULL,
+      retention_until TEXT NOT NULL,
+      legal_hold INTEGER NOT NULL DEFAULT 0,
+      uploaded_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (intake_request_id) REFERENCES package_intake_requests(id) ON DELETE RESTRICT,
+      FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,intake_request_id,content_sha256)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_intake_upload_scope ON package_intake_uploads(tenant_id,assessment_id,quote_id,intake_request_id,id);
+    CREATE TABLE IF NOT EXISTS package_intake_pending_scans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      intake_request_id INTEGER NOT NULL,
+      member_user_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      blob_name TEXT NOT NULL,
+      blob_uri TEXT NOT NULL,
+      blob_version_id TEXT NOT NULL,
+      etag TEXT NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Pending',
+      scan_event_id TEXT NOT NULL DEFAULT '',
+      scan_result TEXT NOT NULL DEFAULT '',
+      scanned_at TEXT NOT NULL DEFAULT '',
+      promoted_upload_id INTEGER,
+      retention_until TEXT NOT NULL,
+      legal_hold INTEGER NOT NULL DEFAULT 0,
+      received_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (intake_request_id) REFERENCES package_intake_requests(id) ON DELETE RESTRICT,
+      FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      FOREIGN KEY (promoted_upload_id) REFERENCES package_intake_uploads(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,intake_request_id,content_sha256),
+      UNIQUE (blob_uri,blob_version_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_intake_pending_scope ON package_intake_pending_scans(tenant_id,assessment_id,quote_id,intake_request_id,status,id);
+    CREATE INDEX IF NOT EXISTS idx_package_intake_pending_timeout ON package_intake_pending_scans(status,received_at,id);
+    CREATE TABLE IF NOT EXISTS package_quarantine_inventory_exceptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exception_key TEXT NOT NULL UNIQUE,
+      account_url TEXT NOT NULL,
+      exception_type TEXT NOT NULL,
+      blob_name TEXT NOT NULL,
+      blob_version_id TEXT NOT NULL,
+      candidate_tenant_id INTEGER,
+      status TEXT NOT NULL DEFAULT 'Open',
+      first_seen TEXT NOT NULL,
+      last_seen TEXT NOT NULL,
+      assigned_to TEXT NOT NULL DEFAULT '',
+      disposition TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_quarantine_exception_status
+      ON package_quarantine_inventory_exceptions(status,last_seen,id);
+    CREATE TABLE IF NOT EXISTS package_product_report_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      product TEXT NOT NULL,
+      report_identity TEXT NOT NULL,
+      display_title TEXT NOT NULL,
+      version_no INTEGER NOT NULL,
+      assessment_scope_sha256 TEXT NOT NULL,
+      method_version TEXT NOT NULL,
+      template_version TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL UNIQUE,
+      content_sha256 TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Draft',
+      retention_until TEXT NOT NULL DEFAULT '',
+      legal_hold INTEGER NOT NULL DEFAULT 0,
+      disposition_status TEXT NOT NULL DEFAULT 'Active',
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      supersedes_id INTEGER,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (supersedes_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,assessment_id,product,version_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_product_report_scope ON package_product_report_versions(tenant_id,assessment_id,product,id);
+    CREATE TABLE IF NOT EXISTS package_report_conformance (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      report_id INTEGER NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      checks_json TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      matrix_status TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL UNIQUE,
+      recorded_by TEXT NOT NULL,
+      recorded_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_conformance_report ON package_report_conformance(tenant_id,report_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_reconciliations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      salcapa_report_id INTEGER NOT NULL,
+      salcapa_sha256 TEXT NOT NULL,
+      sources_json TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      comparison_status TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL UNIQUE,
+      recorded_by TEXT NOT NULL,
+      recorded_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (salcapa_report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_reconciliation ON package_report_reconciliations(tenant_id,salcapa_report_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_qa_evidence (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      report_id INTEGER NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      stored_name TEXT NOT NULL UNIQUE,
+      archive_sha256 TEXT NOT NULL,
+      archive_size_bytes INTEGER NOT NULL,
+      manifest_json TEXT NOT NULL,
+      manifest_sha256 TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Submitted',
+      retention_until TEXT NOT NULL,
+      legal_hold INTEGER NOT NULL DEFAULT 0,
+      submitted_by TEXT NOT NULL,
+      submitted_user_id INTEGER,
+      submitted_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+      FOREIGN KEY (report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,report_id,archive_sha256)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_qa_evidence ON package_report_qa_evidence(tenant_id,report_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_qa_reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      report_id INTEGER NOT NULL,
+      evidence_id INTEGER NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      archive_sha256 TEXT NOT NULL,
+      decision TEXT NOT NULL,
+      checks_json TEXT NOT NULL,
+      qualification_basis TEXT NOT NULL,
+      review_note TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      reviewer_user_id INTEGER NOT NULL,
+      reviewer_at TEXT NOT NULL,
+      FOREIGN KEY (report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (evidence_id) REFERENCES package_report_qa_evidence(id) ON DELETE RESTRICT,
+      FOREIGN KEY (reviewer_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,evidence_id,record_sha256)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_qa_reviews ON package_report_qa_reviews(tenant_id,report_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_issue_packets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      assessment_scope_sha256 TEXT NOT NULL,
+      recipient_user_id INTEGER NOT NULL,
+      reports_json TEXT NOT NULL,
+      comparison_id INTEGER NOT NULL,
+      issue_basis TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      issued_by_user_id INTEGER NOT NULL,
+      issued_at TEXT NOT NULL,
+      supersedes_id INTEGER,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      FOREIGN KEY (comparison_id) REFERENCES package_report_reconciliations(id) ON DELETE RESTRICT,
+      FOREIGN KEY (issued_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      FOREIGN KEY (supersedes_id) REFERENCES package_report_issue_packets(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,assessment_id,record_sha256)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_issues ON package_report_issue_packets(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_issue_deliveries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      issue_id INTEGER NOT NULL,
+      report_id INTEGER NOT NULL,
+      product TEXT NOT NULL,
+      format TEXT NOT NULL,
+      content_sha256 TEXT NOT NULL,
+      recipient_user_id INTEGER NOT NULL,
+      downloaded_at TEXT NOT NULL,
+      FOREIGN KEY (issue_id) REFERENCES package_report_issue_packets(id) ON DELETE RESTRICT,
+      FOREIGN KEY (report_id) REFERENCES package_product_report_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_deliveries ON package_report_issue_deliveries(tenant_id,issue_id,recipient_user_id,id);
+    CREATE TABLE IF NOT EXISTS package_report_issue_acknowledgments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      issue_id INTEGER NOT NULL,
+      issue_sha256 TEXT NOT NULL,
+      recipient_user_id INTEGER NOT NULL,
+      acknowledgment_note TEXT NOT NULL,
+      idempotency_key TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      acknowledged_at TEXT NOT NULL,
+      FOREIGN KEY (issue_id) REFERENCES package_report_issue_packets(id) ON DELETE RESTRICT,
+      FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,issue_id),
+      UNIQUE (tenant_id,idempotency_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_report_acknowledgments ON package_report_issue_acknowledgments(tenant_id,assessment_id,issue_id);
+    CREATE TABLE IF NOT EXISTS package_predecessor_qualifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      issue_id INTEGER NOT NULL,
+      issue_sha256 TEXT NOT NULL,
+      acknowledgment_id INTEGER NOT NULL,
+      acknowledgment_sha256 TEXT NOT NULL,
+      quote_id INTEGER NOT NULL,
+      level INTEGER NOT NULL,
+      band TEXT NOT NULL,
+      covered_operation TEXT NOT NULL,
+      exclusions TEXT NOT NULL,
+      assessment_scope_sha256 TEXT NOT NULL,
+      qualification_basis TEXT NOT NULL,
+      limitations_disposition TEXT NOT NULL,
+      reviewer_user_id INTEGER NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      qualified_at TEXT NOT NULL,
+      FOREIGN KEY (issue_id) REFERENCES package_report_issue_packets(id) ON DELETE RESTRICT,
+      FOREIGN KEY (acknowledgment_id) REFERENCES package_report_issue_acknowledgments(id) ON DELETE RESTRICT,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (reviewer_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,issue_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_predecessors ON package_predecessor_qualifications(tenant_id,assessment_id,id);
+    CREATE TABLE IF NOT EXISTS package_quote_predecessor_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      qualification_id INTEGER NOT NULL,
+      qualification_sha256 TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      linked_at TEXT NOT NULL,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      FOREIGN KEY (qualification_id) REFERENCES package_predecessor_qualifications(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,quote_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_quote_predecessors ON package_quote_predecessor_links(tenant_id,assessment_id,quote_id);
+    CREATE TABLE IF NOT EXISTS package_quote_advisor_receipt_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      assessment_id INTEGER NOT NULL,
+      quote_id INTEGER NOT NULL,
+      handoff_key TEXT NOT NULL,
+      receipt_id TEXT NOT NULL,
+      revision_no INTEGER NOT NULL,
+      receipt_sha256 TEXT NOT NULL,
+      profile_sha256 TEXT NOT NULL,
+      assessment_scope_sha256 TEXT NOT NULL,
+      record_sha256 TEXT NOT NULL,
+      linked_at TEXT NOT NULL,
+      FOREIGN KEY (quote_id) REFERENCES package_quote_versions(id) ON DELETE RESTRICT,
+      UNIQUE (tenant_id,quote_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_package_quote_advisor_receipts
+      ON package_quote_advisor_receipt_links(tenant_id,assessment_id,quote_id);
     CREATE TABLE IF NOT EXISTS restore_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tenant_id INTEGER NOT NULL, backup_id INTEGER NOT NULL,
@@ -1357,6 +1821,22 @@ def init_db():
     ensure_column('assessments','industry_defaults_snapshot_json',"TEXT NOT NULL DEFAULT '{}'")
     ensure_column('assessments','industry_profile_applied_by',"TEXT NOT NULL DEFAULT ''")
     ensure_column('assessments','industry_profile_applied_at',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('assessments','covered_operation',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('assessments','requested_package_level','INTEGER NOT NULL DEFAULT 0')
+    ensure_column('assessments','requested_scope_band',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('assessments','requested_access_variant',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('package_quote_versions','agreement_artifact_id','INTEGER NOT NULL DEFAULT 0')
+    ensure_column('package_quote_versions','assessment_scope_sha256',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('package_product_report_versions','display_title',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('package_product_report_versions','retention_until',"TEXT NOT NULL DEFAULT ''")
+    ensure_column('package_product_report_versions','legal_hold','INTEGER NOT NULL DEFAULT 0')
+    ensure_column('package_product_report_versions','disposition_status',"TEXT NOT NULL DEFAULT 'Active'")
+    ensure_column('package_report_qa_evidence','submitted_user_id','INTEGER')
+    report_retention=(datetime.now(timezone.utc)+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
+    conn.execute("UPDATE package_product_report_versions SET retention_until=? WHERE retention_until=''",(report_retention,))
+    for field in ('included_work','report_deliverables','member_inputs','evidence_allowance','clarification_allowance','field_specialist_terms','payment_terms','tax_treatment','change_triggers'):
+        ensure_column('package_quote_versions',field,"TEXT NOT NULL DEFAULT ''")
+    ensure_column('package_acceptances','agreement_download_id','INTEGER NOT NULL DEFAULT 0')
     ensure_column('ops_service_catalog','industry_profile_id','INTEGER')
     ensure_column('ops_service_catalog','industry_profile_key_snapshot',"TEXT NOT NULL DEFAULT ''")
     ensure_column('ops_service_catalog','industry_profile_version_snapshot','INTEGER')
@@ -1374,6 +1854,11 @@ def init_db():
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.7.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.8.0',now()))
     conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.9.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.10.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.11.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.12.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.13.0',now()))
+    conn.execute('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING',('2.14.0',now()))
 
     # v0.6 tenant/bootstrap migration. Existing records are assigned to the default tenant.
     if conn.execute('SELECT COUNT(*) c FROM tenants').fetchone()['c'] == 0:
@@ -1435,6 +1920,10 @@ class AssessmentIn(BaseModel):
     purpose: str = Field(default='', max_length=2000)
     mission: str = Field(default='', max_length=2000)
     scope: str = Field(default='', max_length=4000)
+    covered_operation: str = Field(default='', max_length=240)
+    requested_package_level: Literal[0,1,2,3] = 0
+    requested_scope_band: Literal['','A','B','C'] = ''
+    requested_access_variant: Literal['','Access','Standard'] = ''
     exclusions: str = Field(default='', max_length=2000)
     executive_sponsor: str = Field(default='', max_length=160)
     assessment_director: str = Field(default='', max_length=160)
@@ -1452,10 +1941,275 @@ class AssessmentIn(BaseModel):
         if not normalized: raise ValueError('A non-empty value is required.')
         return normalized
 
-    @field_validator('assessment_type','purpose','mission','scope','exclusions','executive_sponsor','assessment_director','lead_assessor')
+    @field_validator('assessment_type','purpose','mission','scope','covered_operation','exclusions','executive_sponsor','assessment_director','lead_assessor')
     @classmethod
     def normalized_text(cls, value: str) -> str:
         return value.strip()
+
+class PackageQuoteIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    assessment_version: int = Field(gt=0)
+    level: Literal[1,2,3]
+    predecessor_qualification_id: int = Field(default=0,ge=0)
+    band: Literal['A','B','C']
+    variant: Literal['','Access','Standard'] = ''
+    covered_operation: str = Field(min_length=1,max_length=240)
+    exclusions: str = Field(min_length=1,max_length=2000)
+    scope_basis: str = Field(min_length=1,max_length=2000)
+    included_work: str = Field(min_length=1,max_length=2000)
+    report_deliverables: Literal['SalINTEL, SalTHIRA, SalOPS, SalCAPA'] = 'SalINTEL, SalTHIRA, SalOPS, SalCAPA'
+    member_inputs: str = Field(min_length=1,max_length=2000)
+    evidence_allowance: str = Field(min_length=1,max_length=2000)
+    clarification_allowance: str = Field(min_length=1,max_length=2000)
+    field_specialist_terms: str = Field(min_length=1,max_length=2000)
+    payment_terms: str = Field(min_length=1,max_length=2000)
+    tax_treatment: str = Field(min_length=1,max_length=2000)
+    change_triggers: str = Field(min_length=1,max_length=2000)
+    decision_owner: str = Field(min_length=1,max_length=160)
+    source_receipt_id: str = Field(default='',max_length=160)
+    fee_cents: int = Field(gt=0,le=1_000_000_000)
+    currency: Literal['USD'] = 'USD'
+    valid_until: str = Field(min_length=10,max_length=10)
+    start_date: str = Field(default='',max_length=10)
+    delivery_date: str = Field(default='',max_length=10)
+    capacity_confirmed: bool
+    access_eligibility_confirmed: bool = False
+    access_eligibility_basis: str = Field(default='',max_length=2000)
+    agreement_artifact_id: int = Field(gt=0)
+    agreement_reference: str = Field(min_length=1,max_length=240)
+    agreement_sha256: str = Field(pattern=r'^[a-fA-F0-9]{64}$')
+    separate_services_excluded: bool
+
+class PackageAcceptanceIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    quote_id: int = Field(gt=0)
+    quote_sha256: str = Field(pattern=r'^[a-fA-F0-9]{64}$')
+    agreement_sha256: str = Field(pattern=r'^[a-fA-F0-9]{64}$')
+    member_authority_basis: str = Field(min_length=3,max_length=1000)
+    idempotency_key: str = Field(pattern=r'^[A-Za-z0-9_-]{16,120}$')
+    accept_quote_and_agreement: Literal[True]
+
+class PackageMemberAuthorityReviewIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    quote_id: int = Field(gt=0)
+    member_user_id: int = Field(gt=0)
+    authority_basis: str = Field(min_length=12,max_length=1000)
+    evidence_reference: str = Field(min_length=8,max_length=500)
+    confirm_external_authority: Literal[True]
+
+class PackageIntakeSelectionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    item_keys: list[str] = Field(min_length=1,max_length=11)
+    request_reason: str = Field(min_length=12,max_length=1000)
+
+class PackageIntakeResponseIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    status: Literal['Not held','Not known','Prefer to discuss']
+
+class PackageHandoffClaimIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    claim_code: str = Field(min_length=32,max_length=120)
+    confirm_requested_boundary: Literal[True]
+
+class PackageHandoffReviewIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    assessment_version: int = Field(gt=0)
+    organization_match_basis: str = Field(min_length=12,max_length=1000)
+    covered_boundary_basis: str = Field(min_length=12,max_length=1000)
+    decision_role_basis: str = Field(min_length=12,max_length=1000)
+    confirm_exact_receipt: Literal[True]
+
+def verified_package_quote(conn,row,request:Request):
+    content={key:row[key] for key in PackageQuoteIn.model_fields if key!='predecessor_qualification_id'}
+    if row['assessment_scope_sha256']:
+        content['assessment_scope_sha256']=row['assessment_scope_sha256']
+    for key in ('capacity_confirmed','access_eligibility_confirmed','separate_services_excluded'):
+        content[key]=bool(content[key])
+    content.update(assessment_id=row['assessment_id'],tenant_id=row['tenant_id'],version_no=row['version_no'])
+    if quote_digest(content)!=row['content_sha256']:
+        security_event(request,'PACKAGE_QUOTE_INTEGRITY_FAILURE','High',f'quote_id={row["id"]}')
+        raise HTTPException(409,'The quote failed integrity verification.')
+    agreement=conn.execute('''SELECT content_sha256,scan_status FROM package_agreement_artifacts
+        WHERE id=? AND tenant_id=? AND assessment_id=?''',
+        (row['agreement_artifact_id'],row['tenant_id'],row['assessment_id'])).fetchone()
+    if (not agreement or agreement['content_sha256']!=row['agreement_sha256'].lower()
+            or agreement['scan_status']!='Clean'):
+        raise HTTPException(409,'The quoted agreement has not passed the file security check.')
+    return row
+
+def _member_authority_review_digest(row):
+    fields=('tenant_id','assessment_id','quote_id','member_user_id','authority_basis',
+            'evidence_reference','reviewed_by_user_id','reviewed_at')
+    content={key:row[key] for key in fields}
+    return hashlib.sha256(json.dumps(content,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+
+def verified_member_authority_review(conn,quote,member_user_id:int):
+    review=conn.execute('''SELECT * FROM package_member_authority_reviews
+        WHERE tenant_id=? AND assessment_id=? AND quote_id=?''',
+        (quote['tenant_id'],quote['assessment_id'],quote['id'])).fetchone()
+    if (not review or review['member_user_id']!=member_user_id
+            or review['record_sha256']!=_member_authority_review_digest(review)):
+        raise HTTPException(409,'Salus must verify this Member signer for the exact quote before acceptance.')
+    return review
+
+def lock_package_assessment(conn, assessment_id:int):
+    """Serialize a package-boundary decision with other assessment writes."""
+    if is_sqlite():
+        conn.execute('BEGIN IMMEDIATE')
+    else:
+        conn.execute('SELECT id FROM assessments WHERE id=? FOR UPDATE',(assessment_id,))
+
+def verified_package_predecessor(conn,qualification_id:int,request:Request,current,level:int):
+    tid=tenant_id(request)
+    qualification=conn.execute('''SELECT * FROM package_predecessor_qualifications
+        WHERE id=? AND tenant_id=?''',(qualification_id,tid)).fetchone()
+    if not qualification: raise HTTPException(409,'A qualified prior package is required.')
+    keys=('assessment_id','issue_id','issue_sha256','acknowledgment_id',
+        'acknowledgment_sha256','quote_id','level','band','covered_operation',
+        'exclusions','assessment_scope_sha256','qualification_basis',
+        'limitations_disposition','reviewer_user_id')
+    record={key:qualification[key] for key in keys}
+    if hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()!=qualification['record_sha256']:
+        raise HTTPException(409,'The predecessor qualification failed integrity verification.')
+    prior_assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+        (qualification['assessment_id'],tid)).fetchone()
+    issue=conn.execute('''SELECT * FROM package_report_issue_packets WHERE id=? AND tenant_id=?''',
+        (qualification['issue_id'],tid)).fetchone()
+    acknowledgment=conn.execute('''SELECT * FROM package_report_issue_acknowledgments
+        WHERE id=? AND tenant_id=?''',(qualification['acknowledgment_id'],tid)).fetchone()
+    prior_quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=?',
+        (qualification['quote_id'],tid)).fetchone()
+    reviewer=conn.execute('SELECT role,status FROM users WHERE id=? AND tenant_id=?',
+        (qualification['reviewer_user_id'],tid)).fetchone()
+    if not prior_assessment or not issue or not acknowledgment or not prior_quote or not reviewer:
+        raise HTTPException(409,'The predecessor source package is incomplete.')
+    reports=verified_package_issue_record(issue)
+    latest=conn.execute('''SELECT id FROM package_report_issue_packets WHERE tenant_id=?
+        AND assessment_id=? ORDER BY id DESC LIMIT 1''',(tid,qualification['assessment_id'])).fetchone()
+    acknowledgment_record={key:acknowledgment[key] for key in
+        ('issue_id','issue_sha256','recipient_user_id','acknowledgment_note','idempotency_key')}
+    acknowledgment_digest=hashlib.sha256(json.dumps(acknowledgment_record,
+        sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    if (not latest or latest['id']!=issue['id'] or issue['assessment_id']!=prior_assessment['id']
+            or qualification['issue_sha256']!=issue['record_sha256']
+            or acknowledgment['issue_id']!=issue['id']
+            or acknowledgment['issue_sha256']!=issue['record_sha256']
+            or acknowledgment['recipient_user_id']!=issue['recipient_user_id']
+            or acknowledgment['record_sha256']!=acknowledgment_digest
+            or qualification['acknowledgment_sha256']!=acknowledgment_digest
+            or qualification['reviewer_user_id']==issue['issued_by_user_id']
+            or qualification['quote_id']!=issue['quote_id']
+            or prior_quote['assessment_id']!=prior_assessment['id']
+            or qualification['level']!=prior_quote['level']
+            or qualification['band']!=prior_quote['band']
+            or qualification['assessment_scope_sha256']!=prior_quote['assessment_scope_sha256']
+            or qualification['assessment_scope_sha256']!=assessment_scope_digest(prior_assessment)
+            or reviewer['status']!='Active'
+            or reviewer['role'] not in ('System Administrator','Assessment Director')
+            or qualification['level']!=level-1
+            or qualification['assessment_id']==current['id']
+            or prior_assessment['organization']!=current['organization']
+            or qualification['covered_operation']!=current['covered_operation']
+            or qualification['exclusions']!=current['exclusions']):
+        raise HTTPException(409,'The predecessor does not match this Member, sequence or decision boundary.')
+    verified_package_quote(conn,prior_quote,request)
+    for product,snapshot in reports.items():
+        report=conn.execute('''SELECT * FROM package_product_report_versions
+            WHERE tenant_id=? AND assessment_id=? AND product=? ORDER BY version_no DESC LIMIT 1''',
+            (tid,prior_assessment['id'],product)).fetchone()
+        if (not report or report['id']!=snapshot['report_id'] or report['status']!='Issued'
+                or report['content_sha256']!=snapshot['content_sha256']):
+            raise HTTPException(409,f'{product}: the predecessor report changed.')
+    return qualification
+
+def verified_quote_predecessor_link(conn,quote,request:Request,current):
+    link=conn.execute('''SELECT * FROM package_quote_predecessor_links WHERE tenant_id=?
+        AND quote_id=? AND assessment_id=?''',(tenant_id(request),quote['id'],current['id'])).fetchone()
+    if not link: raise HTTPException(409,'The later-level quote lacks its predecessor link.')
+    record={'assessment_id':link['assessment_id'],'quote_id':link['quote_id'],
+        'qualification_id':link['qualification_id'],
+        'qualification_sha256':link['qualification_sha256']}
+    digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    if digest!=link['record_sha256']:
+        raise HTTPException(409,'The predecessor quote link failed integrity verification.')
+    qualification=verified_package_predecessor(conn,link['qualification_id'],request,current,quote['level'])
+    if qualification['record_sha256']!=link['qualification_sha256']:
+        raise HTTPException(409,'The predecessor qualification version changed.')
+    return link
+
+def verified_advisor_handoff_for_quote(conn,receipt_id:str,request:Request,current,lock:bool=False):
+    """Require one still-consented, exact reviewed receipt for this Level 1 boundary."""
+    lock_clause=' FOR UPDATE' if lock and is_postgres() else ''
+    handoffs=conn.execute('''SELECT * FROM advisor_package_handoffs
+        WHERE tenant_id=? AND assessment_id=? AND receipt_id=? AND status='Reviewed' '''+lock_clause,
+        (tenant_id(request),current['id'],receipt_id)).fetchall()
+    if len(handoffs)!=1:
+        raise HTTPException(409,'One reviewed Protection Advisor receipt is required for this quote.')
+    handoff=handoffs[0]
+    scope_sha=assessment_scope_digest(current)
+    if (handoff['reviewed_assessment_version']!=current['version'] or
+            handoff['reviewed_assessment_scope_sha256']!=scope_sha or
+            not handoff['reviewed_at'] or not handoff['review_basis']):
+        raise HTTPException(409,'The receipt review does not match the current assessment boundary.')
+    source=conn.execute('''SELECT s.status,s.deleted_at,a.status account_status,a.email_verified_at,
+               aa.identifiable_retention_consent,aa.detailed_assessment_acknowledged,
+               b.submission_key,p.profile_sha256,p.profile_json,p.package_json
+        FROM advisor_public_sessions s
+        JOIN advisor_public_accounts a ON a.account_key=?
+        JOIN advisor_public_account_assessments aa ON aa.account_key=a.account_key AND aa.session_key=s.session_key
+        JOIN advisor_public_submissions b ON b.session_key=s.session_key
+        JOIN advisor_public_service_profiles p ON p.submission_key=b.submission_key
+        WHERE s.session_key=?''',(handoff['account_key'],handoff['session_key'])).fetchone()
+    snapshot=conn.execute('''SELECT content_sha256 FROM advisor_public_scope_receipt_snapshots
+        WHERE session_key=? AND revision_no=?''',(handoff['session_key'],handoff['revision_no'])).fetchone()
+    latest=conn.execute('''SELECT MAX(revision_no) revision_no FROM advisor_public_report_identity_revisions
+        WHERE session_key=?''',(handoff['session_key'],)).fetchone()
+    member=conn.execute('SELECT tenant_id,role,status FROM users WHERE id=?',
+        (handoff['member_user_id'],)).fetchone()
+    if (not source or source['status']!='Submitted' or source['deleted_at'] or
+            source['account_status']!='Active' or not source['email_verified_at'] or
+            not source['identifiable_retention_consent'] or not source['detailed_assessment_acknowledged'] or
+            source['submission_key']!=handoff['submission_key'] or
+            source['profile_sha256']!=handoff['profile_sha256'] or
+            hashlib.sha256(source['profile_json'].encode('utf-8')).hexdigest()!=source['profile_sha256'] or
+            hashlib.sha256(source['package_json'].encode('utf-8')).hexdigest()!=handoff['package_sha256'] or
+            not snapshot or snapshot['content_sha256']!=handoff['receipt_sha256'] or
+            not latest or latest['revision_no']!=handoff['revision_no'] or
+            not member or member['tenant_id']!=tenant_id(request) or
+            member['role']!='Client Executive' or member['status']!='Active'):
+        raise HTTPException(409,'The consent, Member claim or exact receipt changed; review the handoff again.')
+    source_receipt=str((json.loads(source['package_json']).get('scope_receipt') or {}).get('receipt_id') or '')
+    if source_receipt!=receipt_id:
+        raise HTTPException(409,'The saved receipt identity changed; review the handoff again.')
+    return handoff
+
+def _advisor_quote_link_record(link):
+    return {key:link[key] for key in ('assessment_id','quote_id','handoff_key','receipt_id',
+        'revision_no','receipt_sha256','profile_sha256','assessment_scope_sha256')}
+
+def verified_quote_advisor_receipt_link(conn,quote,request:Request,current,lock:bool=False):
+    links=conn.execute('''SELECT * FROM package_quote_advisor_receipt_links
+        WHERE tenant_id=? AND assessment_id=? AND quote_id=?''',
+        (tenant_id(request),current['id'],quote['id'])).fetchall()
+    if len(links)!=1:
+        raise HTTPException(409,'The quoted Protection Advisor receipt lacks its reviewed link.')
+    link=links[0]
+    digest=hashlib.sha256(json.dumps(_advisor_quote_link_record(link),sort_keys=True,
+        separators=(',',':')).encode('utf-8')).hexdigest()
+    if (digest!=link['record_sha256'] or link['receipt_id']!=quote['source_receipt_id'] or
+            link['assessment_scope_sha256']!=assessment_scope_digest(current)):
+        raise HTTPException(409,'The quoted Protection Advisor receipt link failed integrity or scope review.')
+    handoff=verified_advisor_handoff_for_quote(conn,link['receipt_id'],request,current,lock=lock)
+    if (handoff['handoff_key']!=link['handoff_key'] or
+            handoff['revision_no']!=link['revision_no'] or
+            handoff['receipt_sha256']!=link['receipt_sha256'] or
+            handoff['profile_sha256']!=link['profile_sha256']):
+        raise HTTPException(409,'The quoted receipt no longer matches the reviewed handoff.')
+    return link
+
+def require_package_commercial_candidate():
+    if not PACKAGE_COMMERCIAL_WORKFLOW_ENABLED or ENVIRONMENT=='production':
+        raise HTTPException(503,'Package quotes and acceptance are held for governed agreement delivery and release review.')
 
 class ThreatIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -2221,6 +2975,62 @@ class AttachmentGovernanceIn(BaseModel):
     legal_hold: Optional[bool] = None
     disposition_status: Optional[str] = None
 
+class PackageReportConformanceIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    content_sha256: str = Field(min_length=64,max_length=64,pattern=r'^[0-9a-f]{64}$')
+    checks: dict[str,dict[str,str]]
+    summary: str = Field(min_length=20,max_length=4000)
+
+class PackageSourceDispositionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    report_id: int = Field(gt=0)
+    content_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    alignment: Literal['Aligned','Qualified difference','Unresolved']
+    explanation: str = Field(min_length=20,max_length=2000)
+
+class PackageReportReconciliationIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    salcapa_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    sources: dict[str,PackageSourceDispositionIn]
+    summary: str = Field(min_length=20,max_length=4000)
+
+class PackageReportRetentionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    retention_until: Optional[str] = Field(default=None,max_length=40)
+    legal_hold: Optional[Literal[True]] = None
+    reason: str = Field(min_length=20,max_length=2000)
+
+class PackageReportQaReviewIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    evidence_id: int = Field(gt=0)
+    decision: Literal['Reviewed','Returned']
+    checks: dict[str,bool]
+    qualification_basis: str = Field(min_length=20,max_length=2000)
+    review_note: str = Field(min_length=20,max_length=4000)
+
+class PackageReportIssueIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    report_ids: dict[str,int]
+    recipient_user_id: int = Field(gt=0)
+    issue_basis: str = Field(min_length=40,max_length=4000)
+    confirm_qualified_release: Literal[True]
+
+class PackageReportAcknowledgmentIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    issue_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    confirm_received: Literal[True]
+    confirm_reviewed_limitations: Literal[True]
+    acknowledgment_note: str = Field(min_length=20,max_length=1000)
+    idempotency_key: str = Field(min_length=8,max_length=100)
+
+class PackagePredecessorQualificationIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    issue_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    acknowledgment_id: int = Field(gt=0)
+    qualification_basis: str = Field(min_length=40,max_length=4000)
+    limitations_disposition: str = Field(min_length=40,max_length=4000)
+    confirm_independent_review: Literal[True]
+
 ROLE_PERMISSIONS={
     'System Administrator': {'read','write','decide','admin'},
     'Assessment Director': {'read','write','decide'},
@@ -2370,11 +3180,13 @@ def production_readiness():
     runtime_db=runtime_database_status(DB_PATH)
     managed_db=managed_target_status()
     oidc_status=oidc_federation_status() if AUTH_MODE=='oidc' else {'configured':False,'healthy':False,'mode':OIDC_CLIENT_AUTH_METHOD,'provider':OIDC_PROVIDER_NAME}
+    scanner_status=scanner_configuration()
     if ENVIRONMENT=='production':
         if AUTH_MODE not in ('session','oidc'): issues.append('Production requires session or OIDC authentication.')
         if not COOKIE_SECURE: issues.append('SALUS_COOKIE_SECURE=1 is required in production.')
         if STORAGE_BACKEND=='local': issues.append('Managed object storage is required for production; local evidence storage is not production-grade.')
         if not AV_REQUIRED: issues.append('SALUS_REQUIRE_AV=1 should be enabled for production evidence uploads.')
+        if PACKAGE_COMMERCIAL_WORKFLOW_ENABLED and not scanner_status['configured']: issues.append('A configured malware scanner executable is required for production package uploads; verify signatures and scan results before release.')
         if AUTH_MODE=='oidc' and not oidc_configured(): issues.append('OIDC mode is selected but provider configuration is incomplete.')
         if AUTH_MODE=='oidc' and OIDC_CLIENT_AUTH_METHOD!='managed_identity': issues.append('Production OIDC must use managed identity federation without a client secret.')
         if AUTH_MODE=='oidc' and OIDC_AUTO_PROVISION: issues.append('Production OIDC automatic user provisioning must remain disabled.')
@@ -2400,7 +3212,7 @@ def production_readiness():
     def public_status(value):
         allowed=('configured','healthy','enabled','backend','provider','mode','target')
         return {key:value[key] for key in allowed if key in value and isinstance(value[key],(str,bool,int,float,type(None)))}
-    return {'ready':not blocking,'version':APP_VERSION,'environment':ENVIRONMENT,'auth_mode':AUTH_MODE,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'secret_provider':public_status(secret_status),'rate_limit':public_status(rate_status),'telemetry':public_status(telemetry_status),'runtime_database':public_status(runtime_db),'managed_database_target':public_status(managed_db),'oidc':public_status(oidc_status),'issues':issues}
+    return {'ready':not blocking,'version':APP_VERSION,'environment':ENVIRONMENT,'auth_mode':AUTH_MODE,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'package_scanner':scanner_status,'secret_provider':public_status(secret_status),'rate_limit':public_status(rate_status),'telemetry':public_status(telemetry_status),'runtime_database':public_status(runtime_db),'managed_database_target':public_status(managed_db),'oidc':public_status(oidc_status),'issues':issues}
 
 @app.get('/health/live')
 def health_live(): return {'status':'ok','version':APP_VERSION}
@@ -2849,7 +3661,7 @@ def backfill_baseline_versions():
 backfill_baseline_versions()
 
 @app.get('/api/system/mode')
-def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target')}
+def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':PACKAGE_COMMERCIAL_WORKFLOW_ENABLED and ENVIRONMENT!='production' and AUTH_MODE in ('session','oidc')}
 
 @app.get('/api/auth/oidc/start')
 def oidc_start(request:Request):
@@ -3066,7 +3878,10 @@ def create_backup_archive(request:Request, reason:str='Manual backup'):
     manifest={'format':'salus-thira-portable-backup-v1','created_at':now(),'created_by':actor(request),'tenant_id':tid,'reason':reason,'application_version':APP_VERSION,'database_backend':DB_BACKEND,'files':[]}
     with zipfile.ZipFile(final,'w',compression=zipfile.ZIP_DEFLATED) as z:
         manifest['files'].append({'path':'records.json','sha256':hashlib.sha256(records_bytes).hexdigest(),'size_bytes':len(records_bytes)}); z.writestr('records.json',records_bytes)
-        stored_records=records.get('evidence_attachments',[])+records.get('materials',[])
+        stored_records=(records.get('evidence_attachments',[])+records.get('materials',[])
+            +records.get('package_agreement_artifacts',[])+records.get('package_intake_uploads',[])
+            +records.get('package_product_report_versions',[])
+            +records.get('package_report_qa_evidence',[]))
         backed_up_objects=set()
         for item in sorted(stored_records,key=lambda x:str(x.get('stored_name',''))):
             fn=str(item.get('stored_name','')).strip()
@@ -3075,6 +3890,9 @@ def create_backup_archive(request:Request, reason:str='Manual backup'):
             except Exception as exc:
                 error_id=uuid.uuid4().hex; record_internal_failure('backup governed material read',error_id,exc)
                 raise HTTPException(409,f'Backup cannot read a governed material object. Reference: {error_id}')
+            expected_object_sha=item.get('archive_sha256') if item.get('archive_sha256') else item.get('content_sha256')
+            if expected_object_sha and hashlib.sha256(b).hexdigest()!=expected_object_sha:
+                raise HTTPException(409,'Backup stopped because a governed artifact failed integrity verification.')
             backed_up_objects.add(fn)
             arc=f'attachments/{fn}'; manifest['files'].append({'path':arc,'sha256':hashlib.sha256(b).hexdigest(),'size_bytes':len(b)}); z.writestr(arc,b)
         z.writestr('manifest.json',json.dumps(manifest,indent=2,sort_keys=True))
@@ -3090,6 +3908,30 @@ def verify_backup_file(path:str):
         if 'records.json' in z.namelist():
             try:
                 package=json.loads(z.read('records.json').decode('utf-8')); records=package.get('tables',{}); errors.extend(validate_records(records,manifest.get('tenant_id')))
+                for agreement in records.get('package_agreement_artifacts',[]):
+                    archive_path='attachments/'+str(agreement.get('stored_name') or '')
+                    if archive_path not in z.namelist():
+                        errors.append(f'Missing package agreement artifact {agreement.get("id")}')
+                    elif hashlib.sha256(z.read(archive_path)).hexdigest()!=agreement.get('content_sha256'):
+                        errors.append(f'Package agreement artifact hash mismatch {agreement.get("id")}')
+                for upload in records.get('package_intake_uploads',[]):
+                    archive_path='attachments/'+str(upload.get('stored_name') or '')
+                    if archive_path not in z.namelist():
+                        errors.append(f'Missing package intake file {upload.get("id")}')
+                    elif hashlib.sha256(z.read(archive_path)).hexdigest()!=upload.get('content_sha256'):
+                        errors.append(f'Package intake file hash mismatch {upload.get("id")}')
+                for report in records.get('package_product_report_versions',[]):
+                    archive_path='attachments/'+str(report.get('stored_name') or '')
+                    if archive_path not in z.namelist():
+                        errors.append(f'Missing package product report {report.get("id")}')
+                    elif hashlib.sha256(z.read(archive_path)).hexdigest()!=report.get('content_sha256'):
+                        errors.append(f'Package product report hash mismatch {report.get("id")}')
+                for evidence in records.get('package_report_qa_evidence',[]):
+                    archive_path='attachments/'+str(evidence.get('stored_name') or '')
+                    if archive_path not in z.namelist():
+                        errors.append(f'Missing package report QA evidence {evidence.get("id")}')
+                    elif hashlib.sha256(z.read(archive_path)).hexdigest()!=evidence.get('archive_sha256'):
+                        errors.append(f'Package report QA evidence hash mismatch {evidence.get("id")}')
             except Exception as exc:
                 error_id=uuid.uuid4().hex; record_internal_failure('backup record validation',error_id,exc)
                 errors.append(f'Record package invalid. Reference: {error_id}')
@@ -3106,10 +3948,12 @@ def dr_validate_backup_file(path:str):
     with zipfile.ZipFile(path,'r') as z:
         if 'records.json' in z.namelist():
             package=json.loads(z.read('records.json').decode('utf-8')); records=package.get('tables',{}); db_integrity='portable-record-integrity-ok'
+            if any(row.get('status')!='Promoted' for row in records.get('package_intake_pending_scans',[])):
+                errors.append('Quarantined originals are external to this backup; verify exact blob versions and reconcile held scans before recovery acceptance.')
             assessment_count=len(records.get('assessments',[]))
             attachment_count=len({
                 str(row.get('stored_name','')).strip()
-                for table in ('evidence_attachments','materials')
+                for table in ('evidence_attachments','materials','package_agreement_artifacts','package_intake_uploads','package_product_report_versions','package_report_qa_evidence')
                 for row in records.get(table,[])
                 if str(row.get('stored_name','')).strip()
             })
@@ -3199,6 +4043,10 @@ def restore_backup(backup_id:int,restore_request_id:int,request:Request):
             conn=db()
             old_keys=[r['stored_name'] for r in conn.execute('SELECT ea.stored_name FROM evidence_attachments ea JOIN assessments a ON a.id=ea.assessment_id WHERE a.tenant_id=?',(tid,))]
             old_keys.extend(r['stored_name'] for r in conn.execute("SELECT stored_name FROM materials WHERE tenant_id=? AND stored_name<>''",(tid,)))
+            old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_agreement_artifacts WHERE tenant_id=?',(tid,)))
+            old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_intake_uploads WHERE tenant_id=?',(tid,)))
+            old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_product_report_versions WHERE tenant_id=?',(tid,)))
+            old_keys.extend(r['stored_name'] for r in conn.execute('SELECT stored_name FROM package_report_qa_evidence WHERE tenant_id=?',(tid,)))
             old_keys=list(dict.fromkeys(old_keys)); conn.close()
             new_objects={}
             for item in z.namelist():
@@ -3739,7 +4587,7 @@ async def _store_observation_attachment(conn,row,file:UploadFile,uploader:str,re
     content=await file.read(MAX_ATTACHMENT_BYTES+1)
     if len(content)>MAX_ATTACHMENT_BYTES: raise HTTPException(413,'Attachment exceeds 25 MB limit')
     original=safe_filename(file.filename or 'attachment'); scan=scan_bytes(content,original)
-    if not scan['ok']:
+    if not scan['ok'] or scan['status']!='Clean':
         security_event(request,'OBSERVATION_UPLOAD_REJECTED','High' if scan['status']=='Infected' else 'Medium',f'{original}: {scan["status"]}'); raise HTTPException(422 if scan['status']=='Infected' else 503,f'Upload rejected: {scan["status"]}')
     digest=hashlib.sha256(content).hexdigest(); stored=f'tenant-{row["tenant_id"]}/observation-{row["id"]}/{digest[:16]}_{original}'
     try: storage.put_bytes(stored,content)
@@ -3775,6 +4623,7 @@ def download_observation_attachment(attachment_id:int,request:Request):
     if not item: conn.close(); raise HTTPException(404,'Observation attachment not found')
     row=_observation_for_request(conn,item['observation_id'],request,False)
     if protected_member_request(request) and row['created_by']!=actor(request): conn.close(); raise HTTPException(403,'Observation attachment access denied')
+    if item['scan_status']!='Clean': conn.close(); raise HTTPException(423,'Observation attachment is unavailable until an authenticated clean malware scan is recorded')
     conn.close()
     try: data=storage.get_bytes(item['stored_name'])
     except FileNotFoundError: raise HTTPException(404,'Stored attachment missing')
@@ -4703,6 +5552,8 @@ def insert_model(table:str, payload:BaseModel, user_name:str='prototype-user', e
 @app.post('/api/assessments')
 def create_assessment(p:AssessmentIn, request:Request):
     require(request,'write')
+    try: validate_requested_package_path(p.requested_package_level,p.requested_scope_band,p.requested_access_variant)
+    except ValueError as exc: raise HTTPException(422,str(exc)) from exc
     start_date=_normalize_date(p.start_date,'Assessment start date')
     target_completion=_normalize_date(p.target_completion,'Assessment target completion date')
     reassessment_date=_normalize_date(p.reassessment_date,'Assessment reassessment date')
@@ -4732,6 +5583,2084 @@ def create_assessment(p:AssessmentIn, request:Request):
         'version':1,
     })
     return _member_assessment_view(result) if protected_member_request(request) else result
+
+@app.post('/api/assessments/{assessment_id}/package-agreements')
+async def upload_package_agreement(assessment_id:int,request:Request,file:UploadFile=File(...)):
+    require_package_commercial_candidate(); require(request,'decide')
+    require_salus_component_authority(request,'Package agreement')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus reviewer must register the agreement.')
+    assessment_row_for_request(request,assessment_id)
+    content=await file.read(5*1024*1024+1)
+    if len(content)>5*1024*1024: raise HTTPException(413,'Agreement PDF exceeds 5 MB.')
+    if not content.startswith(b'%PDF-'): raise HTTPException(422,'The agreement must be a PDF.')
+    original=safe_filename(file.filename or 'package-agreement.pdf')
+    if not original.lower().endswith('.pdf'): raise HTTPException(422,'The agreement filename must end in .pdf.')
+    tid=tenant_id(request); digest=hashlib.sha256(content).hexdigest()
+    preflight=db()
+    try:
+        existing=preflight.execute('SELECT * FROM package_agreement_artifacts WHERE tenant_id=? AND assessment_id=? AND content_sha256=?',
+            (tid,assessment_id,digest)).fetchone()
+        if existing:
+            if existing['scan_status']!='Clean':
+                raise HTTPException(409,'The stored agreement has not passed the file security check.')
+            return {k:existing[k] for k in ('id','assessment_id','original_name','content_sha256','size_bytes','uploaded_at')}
+    finally:
+        preflight.close()
+    scan=scan_bytes(content,original)
+    if not scan['ok'] or scan['status']!='Clean':
+        security_event(request,'PACKAGE_AGREEMENT_REJECTED','High' if scan['status']=='Infected' else 'Medium',f'status={scan["status"]}')
+        raise HTTPException(422 if scan['status']=='Infected' else 503,'The agreement could not pass the file security check.')
+    conn=db(); stored=''
+    try:
+        lock_package_assessment(conn,assessment_id)
+        existing=conn.execute('SELECT * FROM package_agreement_artifacts WHERE tenant_id=? AND assessment_id=? AND content_sha256=?',
+            (tid,assessment_id,digest)).fetchone()
+        if existing:
+            if existing['scan_status']!='Clean':
+                raise HTTPException(409,'The stored agreement has not passed the file security check.')
+            return {k:existing[k] for k in ('id','assessment_id','original_name','content_sha256','size_bytes','uploaded_at')}
+        stored=f'tenant-{tid}/assessment-{assessment_id}/package-agreements/{uuid.uuid4().hex}_{digest[:16]}.pdf'
+        storage.put_bytes(stored,content)
+        retention_until=(_iso_now_dt()+timedelta(days=RETENTION_DEFAULT_DAYS)).replace(microsecond=0).isoformat().replace('+00:00','Z') if RETENTION_DEFAULT_DAYS>0 else ''
+        uploaded_at=now()
+        cur=conn.execute('INSERT INTO package_agreement_artifacts(tenant_id,assessment_id,original_name,stored_name,content_sha256,size_bytes,scan_status,retention_until,legal_hold,uploaded_by,uploaded_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',(tid,assessment_id,original,stored,digest,len(content),scan['status'],retention_until,0,actor(request),uploaded_at))
+        audit(conn,'PACKAGE_AGREEMENT','assessment',assessment_id,f'artifact_id={cur.lastrowid}; sha256={digest}',actor(request)); conn.commit()
+        return {'id':cur.lastrowid,'assessment_id':assessment_id,'original_name':original,'content_sha256':digest,'size_bytes':len(content),'uploaded_at':uploaded_at}
+    except Exception as exc:
+        conn.rollback()
+        if stored:
+            try: storage.delete(stored)
+            except Exception: pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8); record_internal_failure('package agreement upload',error_id,exc)
+        raise HTTPException(503,f'Agreement storage is unavailable. Reference: {error_id}') from exc
+    finally:
+        conn.close()
+
+@app.get('/api/package-agreements/{artifact_id}/download')
+def download_package_agreement(artifact_id:int,request:Request):
+    require(request,'read')
+    conn=db(); item=conn.execute('SELECT * FROM package_agreement_artifacts WHERE id=? AND tenant_id=?',(artifact_id,tenant_id(request))).fetchone()
+    if not item: conn.close(); raise HTTPException(404,'Agreement not found.')
+    assessment_row_for_request(request,item['assessment_id'])
+    member=protected_member_request(request)
+    if member and (role(request)!='Client Executive' or auth_context(request)['auth_mode'] not in ('session','oidc')):
+        conn.close(); raise HTTPException(403,'Only the signed-in Member decision owner may retrieve this agreement.')
+    quote=conn.execute('SELECT * FROM package_quote_versions WHERE tenant_id=? AND assessment_id=? AND agreement_artifact_id=? ORDER BY version_no DESC LIMIT 1',(tenant_id(request),item['assessment_id'],artifact_id)).fetchone()
+    if member and not quote: conn.close(); raise HTTPException(404,'The agreement is not attached to a Member quote.')
+    if quote:
+        try:
+            verified_package_quote(conn,quote,request)
+            if member:
+                verified_member_authority_review(conn,quote,auth_context(request)['user_id'])
+                if quote['source_receipt_id']:
+                    acceptance=conn.execute('''SELECT id FROM package_acceptances
+                        WHERE tenant_id=? AND assessment_id=? AND quote_id=?''',
+                        (tenant_id(request),item['assessment_id'],quote['id'])).fetchone()
+                    if not acceptance:
+                        current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+                            (item['assessment_id'],tenant_id(request))).fetchone()
+                        verified_quote_advisor_receipt_link(conn,quote,request,current)
+            if quote['level']>1:
+                current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+                    (item['assessment_id'],tenant_id(request))).fetchone()
+                verified_quote_predecessor_link(conn,quote,request,current)
+        except Exception: conn.close(); raise
+    if item['scan_status']!='Clean':
+        conn.close(); raise HTTPException(409,'The agreement has not passed the file security check.')
+    conn.close()
+    try: data=storage.get_bytes(item['stored_name'])
+    except FileNotFoundError: raise HTTPException(404,'Stored agreement is missing.')
+    except Exception as exc:
+        security_event(request,'PACKAGE_AGREEMENT_READ_FAILURE','High',type(exc).__name__)
+        raise HTTPException(503,'Agreement storage is unavailable.') from exc
+    if hashlib.sha256(data).hexdigest()!=item['content_sha256']:
+        security_event(request,'PACKAGE_AGREEMENT_HASH_MISMATCH','Critical',f'artifact_id={artifact_id}')
+        raise HTTPException(409,'Agreement integrity verification failed.')
+    conn=db()
+    try:
+        if member:
+            ctx=auth_context(request)
+            conn.execute('INSERT INTO package_agreement_downloads(tenant_id,assessment_id,quote_id,agreement_artifact_id,member_user_id,content_sha256,downloaded_at) VALUES(?,?,?,?,?,?,?)',(tenant_id(request),item['assessment_id'],quote['id'],artifact_id,ctx['user_id'],item['content_sha256'],now()))
+        audit(conn,'PACKAGE_AGREEMENT_DOWNLOAD','assessment',item['assessment_id'],f'artifact_id={artifact_id}; sha256={item["content_sha256"]}',actor(request))
+        conn.commit()
+    finally:
+        conn.close()
+    return Response(content=data,media_type='application/pdf',headers={'Content-Disposition':f'attachment; filename="{safe_filename(item["original_name"])}"','X-Content-SHA256':item['content_sha256']})
+
+@app.get('/api/assessments/{assessment_id}/package-quote')
+def get_package_quote(assessment_id:int,request:Request):
+    require(request,'read'); assessment=assessment_row_for_request(request,assessment_id)
+    conn=db(); quote=conn.execute('SELECT * FROM package_quote_versions WHERE tenant_id=? AND assessment_id=? ORDER BY version_no DESC LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
+    if not quote: conn.close(); raise HTTPException(404,'No fixed package quote has been approved.')
+    try:
+        verified_package_quote(conn,quote,request)
+        predecessor_valid=True
+        if quote['level']>1:
+            try: verified_quote_predecessor_link(conn,quote,request,assessment)
+            except HTTPException: predecessor_valid=False
+    except Exception: conn.close(); raise
+    acceptance=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND quote_id=?',(tenant_id(request),assessment_id,quote['id'])).fetchone()
+    advisor_valid=True
+    if quote['source_receipt_id'] and not acceptance:
+        try: verified_quote_advisor_receipt_link(conn,quote,request,assessment)
+        except HTTPException: advisor_valid=False
+    signer_review=conn.execute('SELECT * FROM package_member_authority_reviews WHERE tenant_id=? AND assessment_id=? AND quote_id=?',
+        (tenant_id(request),assessment_id,quote['id'])).fetchone()
+    if protected_member_request(request):
+        if not signer_review:
+            conn.close(); return {'status':'Awaiting Salus signer review'}
+        if signer_review['record_sha256']!=_member_authority_review_digest(signer_review):
+            conn.close(); raise HTTPException(409,'The Member signer review needs Salus verification.')
+        if signer_review['member_user_id']!=auth_context(request)['user_id']:
+            conn.close(); raise HTTPException(403,'This quote belongs to another reviewed Member decision owner.')
+    review_valid=bool(signer_review and signer_review['record_sha256']==_member_authority_review_digest(signer_review))
+    signer_valid=True
+    if acceptance:
+        try: verified_member_authority_review(conn,quote,acceptance['member_user_id'])
+        except HTTPException: signer_valid=False
+    conn.close(); result=dict(quote)
+    scope_matches=(bool(quote['assessment_scope_sha256'])
+        and quote['assessment_version']==assessment['version']
+        and quote['covered_operation']==assessment['covered_operation']
+        and quote['exclusions']==assessment['exclusions']
+        and quote['level']==assessment['requested_package_level']
+        and quote['band']==assessment['requested_scope_band']
+        and quote['variant']==assessment['requested_access_variant']
+        and quote['assessment_scope_sha256']==assessment_scope_digest(assessment))
+    if not predecessor_valid: result['status']='Predecessor changed — review required'
+    elif not advisor_valid: result['status']='Advisor receipt changed — new quote required'
+    elif acceptance and not signer_valid: result['status']='Signer proof changed — review required'
+    elif acceptance and not quote['assessment_scope_sha256']: result['status']='Authorized terms — scope proof requires review'
+    elif acceptance and not scope_matches: result['status']='Authorized original scope — amendment required'
+    elif acceptance: result['status']='Authorized'
+    elif protected_member_request(request) and not review_valid: result['status']='Awaiting Salus signer review'
+    elif not quote['assessment_scope_sha256']: result['status']='Scope proof missing — new quote required'
+    elif not scope_matches: result['status']='Scope changed — new quote required'
+    elif date.fromisoformat(quote['valid_until']) < datetime.now(timezone.utc).date(): result['status']='Expired — new quote required'
+    else: result['status']='Quoted'
+    result['accepted_at']=acceptance['accepted_at'] if acceptance else ''
+    if protected_member_request(request):
+        for key in ('access_eligibility_basis','approved_by','scope_basis'):
+            result.pop(key,None)
+    return result
+
+@app.post('/api/assessments/{assessment_id}/advisor-package-handoff')
+def claim_advisor_package_handoff(assessment_id:int,p:PackageHandoffClaimIn,request:Request):
+    """Record a claimed prospect receipt; Salus has not approved its scope or authority."""
+    require_package_commercial_candidate()
+    require_protected_member_authority(request,'advisor_package_handoff')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A signed-in Protected Member decision owner is required.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        handoff=conn.execute('SELECT * FROM advisor_package_handoffs WHERE claim_token_sha256=?',(_hash_token(p.claim_code),)).fetchone()
+        if not handoff or handoff['status']!='Pending' or handoff['claim_expires_at']<=now():
+            raise HTTPException(409,'This package handoff is unavailable or expired.')
+        source=conn.execute('SELECT status,deleted_at FROM advisor_public_sessions WHERE session_key=?',(handoff['session_key'],)).fetchone()
+        account=conn.execute('SELECT status,email_verified_at FROM advisor_public_accounts WHERE account_key=?',(handoff['account_key'],)).fetchone()
+        submission=conn.execute('SELECT submission_key FROM advisor_public_submissions WHERE session_key=?',(handoff['session_key'],)).fetchone()
+        snapshot=conn.execute('SELECT content_sha256 FROM advisor_public_scope_receipt_snapshots WHERE session_key=? AND revision_no=?',(handoff['session_key'],handoff['revision_no'])).fetchone()
+        if (not source or source['status']!='Submitted' or source['deleted_at'] or not account
+            or account['status']!='Active' or not account['email_verified_at'] or not submission
+            or submission['submission_key']!=handoff['submission_key'] or not snapshot
+            or snapshot['content_sha256']!=handoff['receipt_sha256']):
+            raise HTTPException(409,'The consented receipt is no longer available for a package handoff.')
+        other=conn.execute("SELECT 1 FROM advisor_package_handoffs WHERE submission_key=? AND status IN ('Claimed','Reviewed') LIMIT 1",(handoff['submission_key'],)).fetchone()
+        if other: raise HTTPException(409,'This receipt has already been claimed for review.')
+        claimed_at=now()
+        updated=conn.execute("UPDATE advisor_package_handoffs SET status='Claimed',tenant_id=?,assessment_id=?,member_user_id=?,claimed_at=? WHERE handoff_key=? AND status='Pending'",(tenant_id(request),assessment_id,ctx['user_id'],claimed_at,handoff['handoff_key']))
+        if updated.rowcount!=1:
+            raise HTTPException(409,'This package handoff was already claimed.')
+        audit(conn,'ADVISOR_PACKAGE_HANDOFF_CLAIM','assessment',assessment_id,f'handoff_key={handoff["handoff_key"]}; receipt_revision={handoff["revision_no"]}',actor(request))
+        conn.commit()
+        return {'handoff_key':handoff['handoff_key'],'status':'Awaiting Salus identity, authority and scope review','receipt_id':handoff['receipt_id'],'receipt_revision':handoff['revision_no']}
+    finally:
+        conn.close()
+
+@app.get('/api/assessments/{assessment_id}/advisor-package-handoffs')
+def list_advisor_package_handoffs_for_review(assessment_id:int,request:Request):
+    """Show only tenant-scoped claimed receipts to authorized Salus reviewers."""
+    require_package_commercial_candidate()
+    require(request,'read'); require_salus_component_authority(request,'Advisor package handoff')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus reviewer must inspect this handoff.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        rows=conn.execute('''SELECT handoff_key,status,receipt_id,revision_no,claimed_at,reviewed_at,
+                            reviewed_assessment_version FROM advisor_package_handoffs
+                            WHERE tenant_id=? AND assessment_id=? AND status IN ('Claimed','Reviewed')
+                            ORDER BY claimed_at DESC LIMIT 100''',(tenant_id(request),assessment_id)).fetchall()
+        return {'handoffs':[dict(row) for row in rows]}
+    finally:
+        conn.close()
+
+@app.post('/api/assessments/{assessment_id}/advisor-package-handoff/{handoff_key}/review')
+def review_advisor_package_handoff(assessment_id:int,handoff_key:str,p:PackageHandoffReviewIn,request:Request):
+    """Record a Salus scope match for quote preparation, never contract authority."""
+    require_package_commercial_candidate()
+    require(request,'decide'); require_salus_component_authority(request,'Advisor package handoff')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus reviewer must check the package handoff.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    if int(assessment['version'])!=p.assessment_version:
+        raise HTTPException(409,'The requested scope changed; review the current assessment before linking a receipt.')
+    conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+            (assessment_id,tenant_id(request))).fetchone()
+        if (not current or int(current['version'])!=p.assessment_version
+                or assessment_scope_digest(current)!=assessment_scope_digest(assessment)):
+            raise HTTPException(409,'The assessment boundary changed during handoff review; inspect the current scope and receipt again.')
+        handoff=conn.execute('SELECT * FROM advisor_package_handoffs WHERE handoff_key=? AND tenant_id=? AND assessment_id=?',
+            (handoff_key,tenant_id(request),assessment_id)).fetchone()
+        if not handoff or handoff['status']!='Claimed':
+            raise HTTPException(409,'This receipt has not been claimed for Salus review.')
+        source=conn.execute('''SELECT s.status,s.deleted_at,a.status account_status,a.email_verified_at,
+                     aa.identifiable_retention_consent,aa.detailed_assessment_acknowledged,
+                     b.submission_key,p.profile_sha256,p.profile_json,p.package_json
+                 FROM advisor_public_sessions s
+                 JOIN advisor_public_accounts a ON a.account_key=?
+                 JOIN advisor_public_account_assessments aa ON aa.account_key=a.account_key AND aa.session_key=s.session_key
+                 JOIN advisor_public_submissions b ON b.session_key=s.session_key
+                 JOIN advisor_public_service_profiles p ON p.submission_key=b.submission_key
+                 WHERE s.session_key=?''',(handoff['account_key'],handoff['session_key'])).fetchone()
+        snapshot=conn.execute('''SELECT content_sha256 FROM advisor_public_scope_receipt_snapshots
+            WHERE session_key=? AND revision_no=?''',(handoff['session_key'],handoff['revision_no'])).fetchone()
+        latest=conn.execute('''SELECT MAX(revision_no) revision_no FROM advisor_public_report_identity_revisions
+            WHERE session_key=?''',(handoff['session_key'],)).fetchone()
+        member=conn.execute('SELECT tenant_id,role,status FROM users WHERE id=?',(handoff['member_user_id'],)).fetchone()
+        if (not source or source['status']!='Submitted' or source['deleted_at'] or
+            source['account_status']!='Active' or not source['email_verified_at'] or
+            not source['identifiable_retention_consent'] or not source['detailed_assessment_acknowledged'] or
+            source['submission_key']!=handoff['submission_key'] or
+            source['profile_sha256']!=handoff['profile_sha256'] or
+            hashlib.sha256(source['profile_json'].encode('utf-8')).hexdigest()!=source['profile_sha256'] or
+            hashlib.sha256(source['package_json'].encode('utf-8')).hexdigest()!=handoff['package_sha256'] or
+            not snapshot or
+            snapshot['content_sha256']!=handoff['receipt_sha256'] or not latest or
+            latest['revision_no']!=handoff['revision_no'] or not member or
+            member['tenant_id']!=tenant_id(request) or member['role']!='Client Executive' or member['status']!='Active'):
+            raise HTTPException(409,'The prospect consent, Member claim or exact receipt changed; request a new review.')
+        source_receipt=str((json.loads(source['package_json']).get('scope_receipt') or {}).get('receipt_id') or '')
+        if source_receipt!=handoff['receipt_id']:
+            raise HTTPException(409,'The saved receipt identity changed; request a new review.')
+        basis=json.dumps({
+            'organization_match':p.organization_match_basis.strip(),
+            'covered_boundary':p.covered_boundary_basis.strip(),
+            'decision_role':p.decision_role_basis.strip(),
+        },sort_keys=True,separators=(',',':'))
+        reviewed_at=now()
+        updated=conn.execute('''UPDATE advisor_package_handoffs
+            SET status='Reviewed',reviewed_at=?,reviewed_by=?,review_basis=?,
+                reviewed_assessment_version=?,reviewed_assessment_scope_sha256=?
+            WHERE handoff_key=? AND status='Claimed' ''',
+            (reviewed_at,actor(request),basis,p.assessment_version,
+             assessment_scope_digest(current),handoff_key))
+        if updated.rowcount!=1: raise HTTPException(409,'The handoff state changed during review.')
+        audit(conn,'ADVISOR_PACKAGE_HANDOFF_REVIEW','assessment',assessment_id,
+            f'handoff_key={handoff_key}; receipt_revision={handoff["revision_no"]}; assessment_version={p.assessment_version}',actor(request))
+        conn.commit()
+        return {'handoff_key':handoff_key,'status':'Reviewed for quote preparation only',
+                'receipt_id':handoff['receipt_id'],'receipt_revision':handoff['revision_no'],
+                'assessment_version':p.assessment_version,'reviewed_at':reviewed_at}
+    finally:
+        conn.close()
+
+@app.get('/api/assessments/{assessment_id}/advisor-package-handoff/{handoff_key}/review-packet')
+def advisor_package_handoff_review_packet(assessment_id:int,handoff_key:str,request:Request):
+    require_package_commercial_candidate()
+    require(request,'read'); require_salus_component_authority(request,'Advisor package handoff')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus reviewer must inspect this handoff.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        handoff=conn.execute('SELECT * FROM advisor_package_handoffs WHERE handoff_key=? AND tenant_id=? AND assessment_id=?',
+            (handoff_key,tenant_id(request),assessment_id)).fetchone()
+        if not handoff or handoff['status'] not in ('Claimed','Reviewed'):
+            raise HTTPException(404,'Handoff is unavailable for review.')
+        source=conn.execute('''SELECT s.organization_name,p.profile_version,p.profile_json,p.profile_sha256,p.package_json
+            FROM advisor_public_submissions s
+            JOIN advisor_public_service_profiles p ON p.submission_key=s.submission_key
+            JOIN advisor_public_sessions a ON a.session_key=s.session_key
+            WHERE s.session_key=? AND s.submission_key=? AND a.status='Submitted' AND a.deleted_at='' ''',
+            (handoff['session_key'],handoff['submission_key'])).fetchone()
+        if (not source or
+            hashlib.sha256(source['package_json'].encode('utf-8')).hexdigest()!=handoff['package_sha256'] or
+            hashlib.sha256(source['profile_json'].encode('utf-8')).hexdigest()!=source['profile_sha256'] or
+            source['profile_sha256']!=handoff['profile_sha256']):
+            raise HTTPException(409,'The prospect scope changed; a new review is required.')
+        receipt=(json.loads(source['package_json']).get('scope_receipt') or {})
+        profile=json.loads(source['profile_json'])
+        if str(receipt.get('receipt_id') or '')!=handoff['receipt_id']:
+            raise HTTPException(409,'The receipt identity changed; a new review is required.')
+        return {
+            'handoff_key':handoff_key,'status':handoff['status'],
+            'prospect_receipt':{'id':handoff['receipt_id'],'revision':handoff['revision_no'],
+                                'sha256':handoff['receipt_sha256'],
+                                'organization':source['organization_name'],
+                                'requested_boundary':receipt.get('requested_boundary',''),
+                                'requested_location':receipt.get('requested_location',''),
+                                'possible_path':receipt.get('possible_path',''),
+                                'decision_role':receipt.get('decision_owner','To confirm'),
+                                'records_coordinator':receipt.get('records_coordinator','To confirm')},
+            'consented_scope_signals':{
+                'covered_operation_tags':profile.get('covered_operation_tags') or [],
+                'profile_version':source['profile_version'],
+                'profile_sha256':source['profile_sha256'],
+                'use_limit':'For Salus scope review only; tags do not set risk, band or price.'},
+            'member_request':{'assessment_id':assessment_id,'assessment_version':assessment['version'],
+                              'organization':assessment['organization'],
+                              'covered_operation':assessment['covered_operation'],
+                              'exclusions':assessment['exclusions'],
+                              'level':assessment['requested_package_level'],
+                              'band':assessment['requested_scope_band']},
+            'review_limit':'A matching name or receipt does not prove contracting authority or authorize a purchase.'
+        }
+    finally:
+        conn.close()
+
+@app.get('/api/assessments/{assessment_id}/advisor-package-handoff/{handoff_key}/receipt.pdf')
+def advisor_package_handoff_review_receipt(assessment_id:int,handoff_key:str,request:Request):
+    require_package_commercial_candidate()
+    require(request,'read'); require_salus_component_authority(request,'Advisor package handoff')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus reviewer must inspect this receipt.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        handoff=conn.execute('SELECT * FROM advisor_package_handoffs WHERE handoff_key=? AND tenant_id=? AND assessment_id=?',
+            (handoff_key,tenant_id(request),assessment_id)).fetchone()
+        if not handoff or handoff['status'] not in ('Claimed','Reviewed'):
+            raise HTTPException(404,'Handoff is unavailable for review.')
+        snapshot=conn.execute('''SELECT item_id,content_sha256,content_size
+            FROM advisor_public_scope_receipt_snapshots WHERE session_key=? AND revision_no=?''',
+            (handoff['session_key'],handoff['revision_no'])).fetchone()
+        source=conn.execute('SELECT status,deleted_at FROM advisor_public_sessions WHERE session_key=?',
+            (handoff['session_key'],)).fetchone()
+        if not snapshot or snapshot['content_sha256']!=handoff['receipt_sha256'] or not source or source['status']!='Submitted' or source['deleted_at']:
+            raise HTTPException(409,'The saved receipt is no longer available for review.')
+        import public_protection_advisor as advisor
+        try:
+            content=advisor.read_member_pdf(str(snapshot['item_id']),str(snapshot['content_sha256']),int(snapshot['content_size']))
+        except advisor.M365ReportError as exc:
+            raise HTTPException(503,'The saved receipt could not be verified.') from exc
+        download_name=safe_filename(f'Salus-Scope-Receipt-{handoff["receipt_id"]}-R{handoff["revision_no"]}.pdf')
+        return Response(content=content,media_type='application/pdf',headers={
+            'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
+            'Content-Disposition':f'attachment; filename="{download_name}"',
+            'X-Content-SHA256':handoff['receipt_sha256']})
+    finally:
+        conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-quote')
+def approve_package_quote(assessment_id:int,p:PackageQuoteIn,request:Request):
+    require_package_commercial_candidate()
+    require(request,'decide'); require_salus_component_authority(request,'Package quote')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'An authorized Salus commercial reviewer must approve the quote.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    if int(assessment['version'])!=p.assessment_version:
+        raise HTTPException(409,'The assessment scope changed; review the current version before quoting.')
+    if p.level>1 and not p.predecessor_qualification_id:
+        raise HTTPException(409,'Level 2 and 3 quotes require an exact qualified prior package.')
+    if p.level==1 and p.predecessor_qualification_id:
+        raise HTTPException(422,'Level 1 is the first package and has no predecessor.')
+    if not p.separate_services_excluded:
+        raise HTTPException(422,'Separately proposed SalOPS services must be excluded from this package fee.')
+    data=p.model_dump(); predecessor_id=data.pop('predecessor_qualification_id')
+    data['covered_operation']=data['covered_operation'].strip()
+    data['source_receipt_id']=data['source_receipt_id'].strip()
+    if data['source_receipt_id'] and p.level!=1:
+        raise HTTPException(422,'A Protection Advisor receipt can start only a Level 1 package.')
+    try:
+        _normalize_date(data['valid_until'],'Quote validity date',required=True)
+        if data['start_date']: _normalize_date(data['start_date'],'Package start date',required=True)
+        if data['delivery_date']: _normalize_date(data['delivery_date'],'Package delivery date',required=True)
+        validate_quote(data,assessment)
+    except ValueError as exc: raise HTTPException(422,str(exc)) from exc
+    if data['covered_operation']!=assessment['covered_operation'] or data['exclusions'].strip()!=assessment['exclusions']:
+        raise HTTPException(409,'The quoted operation and exclusions must match the recorded assessment boundary.')
+    data['assessment_id']=assessment_id; data['tenant_id']=tenant_id(request)
+    conn=db()
+    try:
+        agreement=conn.execute('SELECT * FROM package_agreement_artifacts WHERE id=? AND tenant_id=? AND assessment_id=?',(p.agreement_artifact_id,tenant_id(request),assessment_id)).fetchone()
+        if not agreement or agreement['content_sha256'].lower()!=p.agreement_sha256.lower():
+            raise HTTPException(409,'Register and verify the exact agreement PDF before quoting.')
+        if agreement['scan_status']!='Clean':
+            raise HTTPException(409,'The agreement has not passed the file security check.')
+        try: agreement_bytes=storage.get_bytes(agreement['stored_name'])
+        except Exception as exc: raise HTTPException(503,'The stored agreement is unavailable.') from exc
+        if hashlib.sha256(agreement_bytes).hexdigest()!=agreement['content_sha256']:
+            raise HTTPException(409,'The stored agreement failed integrity verification.')
+        lock_package_assessment(conn,assessment_id)
+        current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tenant_id(request))).fetchone()
+        if not current or current['version']!=p.assessment_version or current['covered_operation']!=data['covered_operation'] or current['exclusions']!=data['exclusions']:
+            raise HTTPException(409,'The assessment scope changed while preparing this quote. Review the current boundary and agreement.')
+        try: validate_quote(data,current)
+        except ValueError as exc: raise HTTPException(409,'The requested package path changed while preparing this quote.') from exc
+        predecessor=(verified_package_predecessor(conn,predecessor_id,request,current,p.level)
+            if p.level>1 else None)
+        advisor_handoff=(verified_advisor_handoff_for_quote(conn,data['source_receipt_id'],request,current,lock=True)
+            if data['source_receipt_id'] else None)
+        data['assessment_scope_sha256']=assessment_scope_digest(current)
+        accepted=conn.execute('SELECT id FROM package_acceptances WHERE tenant_id=? AND assessment_id=? LIMIT 1',(tenant_id(request),assessment_id)).fetchone()
+        if accepted:
+            raise HTTPException(409,'An authorized package cannot be requoted without a reviewed amendment workflow.')
+        version=conn.execute('SELECT COALESCE(MAX(version_no),0)+1 n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',(tenant_id(request),assessment_id)).fetchone()['n']
+        data['version_no']=version
+        digest=quote_digest(data)
+        columns=list(data)+['content_sha256','approved_by','approved_at']
+        integer_flags={'capacity_confirmed','access_eligibility_confirmed','separate_services_excluded'}
+        values=[int(data[key]) if key in integer_flags else data[key] for key in data]
+        values += [digest,actor(request),now()]
+        cur=conn.execute(f"INSERT INTO package_quote_versions({','.join(columns)}) VALUES({','.join('?' for _ in columns)})",values)
+        if predecessor:
+            link_record={'assessment_id':assessment_id,'quote_id':cur.lastrowid,
+                'qualification_id':predecessor['id'],
+                'qualification_sha256':predecessor['record_sha256']}
+            link_digest=hashlib.sha256(json.dumps(link_record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            conn.execute('''INSERT INTO package_quote_predecessor_links
+                (tenant_id,assessment_id,quote_id,qualification_id,qualification_sha256,record_sha256,linked_at)
+                VALUES(?,?,?,?,?,?,?)''',(tenant_id(request),assessment_id,cur.lastrowid,
+                predecessor['id'],predecessor['record_sha256'],link_digest,now()))
+        if advisor_handoff:
+            advisor_link={'assessment_id':assessment_id,'quote_id':cur.lastrowid,
+                'handoff_key':advisor_handoff['handoff_key'],
+                'receipt_id':advisor_handoff['receipt_id'],
+                'revision_no':advisor_handoff['revision_no'],
+                'receipt_sha256':advisor_handoff['receipt_sha256'],
+                'profile_sha256':advisor_handoff['profile_sha256'],
+                'assessment_scope_sha256':data['assessment_scope_sha256']}
+            link_digest=hashlib.sha256(json.dumps(advisor_link,sort_keys=True,
+                separators=(',',':')).encode('utf-8')).hexdigest()
+            conn.execute('''INSERT INTO package_quote_advisor_receipt_links
+                (tenant_id,assessment_id,quote_id,handoff_key,receipt_id,revision_no,
+                 receipt_sha256,profile_sha256,assessment_scope_sha256,record_sha256,linked_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)''',
+                (tenant_id(request),*advisor_link.values(),link_digest,now()))
+        audit(conn,'PACKAGE_QUOTE','assessment',assessment_id,f'quote_id={cur.lastrowid}; version={version}; sha256={digest}',actor(request))
+        conn.commit(); row=dict(conn.execute('SELECT * FROM package_quote_versions WHERE id=?',(cur.lastrowid,)).fetchone())
+        return row
+    finally:
+        conn.rollback()
+        conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-member-authority')
+def review_package_member_authority(assessment_id:int,p:PackageMemberAuthorityReviewIn,request:Request):
+    """Bind one Salus-reviewed Member signer to an exact quote."""
+    require_package_commercial_candidate()
+    require(request,'decide'); require_salus_component_authority(request,'Member signer review')
+    ctx=auth_context(request)
+    if (ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')
+            or role(request) not in ('System Administrator','Assessment Director')):
+        raise HTTPException(403,'A named authorized Salus reviewer must verify Member signing authority.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',
+            (p.quote_id,tenant_id(request),assessment_id)).fetchone()
+        if not quote: raise HTTPException(404,'Package quote not found.')
+        verified_package_quote(conn,quote,request)
+        current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+            (assessment_id,tenant_id(request))).fetchone()
+        latest=conn.execute('SELECT MAX(version_no) n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',
+            (tenant_id(request),assessment_id)).fetchone()['n']
+        if (not current or quote['version_no']!=latest or quote['assessment_version']!=current['version']
+                or quote['assessment_scope_sha256']!=assessment_scope_digest(current)):
+            raise HTTPException(409,'Review the current quote and boundary before verifying a signer.')
+        member=conn.execute('SELECT id FROM users WHERE id=? AND tenant_id=? AND role=? AND status=?',
+            (p.member_user_id,tenant_id(request),'Client Executive','Active')).fetchone()
+        if not member: raise HTTPException(409,'Select an active Client Executive in this Protected Member account.')
+        basis=p.authority_basis.strip(); reference=p.evidence_reference.strip()
+        if len(basis)<12 or len(reference)<8:
+            raise HTTPException(422,'Record the authority basis and evidence reference.')
+        prior=conn.execute('SELECT * FROM package_member_authority_reviews WHERE quote_id=?',
+            (p.quote_id,)).fetchone()
+        if prior:
+            if (prior['record_sha256']==_member_authority_review_digest(prior)
+                    and prior['member_user_id']==p.member_user_id
+                    and prior['authority_basis']==basis and prior['evidence_reference']==reference):
+                return {'id':prior['id'],'quote_id':p.quote_id,'record_sha256':prior['record_sha256'],
+                    'status':'Signer reviewed','idempotent':True}
+            raise HTTPException(409,'This quote already has a different signer review; issue a new quote version.')
+        accepted=conn.execute('SELECT id FROM package_acceptances WHERE quote_id=?',(p.quote_id,)).fetchone()
+        if accepted: raise HTTPException(409,'An accepted quote cannot receive a new signer review.')
+        record={'tenant_id':tenant_id(request),'assessment_id':assessment_id,'quote_id':p.quote_id,
+            'member_user_id':p.member_user_id,'authority_basis':basis,'evidence_reference':reference,
+            'reviewed_by_user_id':ctx['user_id'],'reviewed_at':now()}
+        digest=_member_authority_review_digest(record)
+        cur=conn.execute('''INSERT INTO package_member_authority_reviews
+            (tenant_id,assessment_id,quote_id,member_user_id,authority_basis,evidence_reference,
+             reviewed_by_user_id,reviewed_at,record_sha256) VALUES(?,?,?,?,?,?,?,?,?)''',
+            tuple(record.values())+(digest,))
+        audit(conn,'PACKAGE_MEMBER_AUTHORITY','assessment',assessment_id,
+            f'quote_id={p.quote_id}; signer_user_id={p.member_user_id}; review_sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'quote_id':p.quote_id,'record_sha256':digest,
+            'status':'Signer reviewed','idempotent':False}
+    finally:
+        conn.rollback(); conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-acceptance')
+def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request):
+    require_package_commercial_candidate()
+    require_protected_member_authority(request,'package_acceptance')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A verified Protected Member sign-in is required to accept a package quote.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tenant_id(request))).fetchone()
+        if not assessment: raise HTTPException(404,'Assessment not found.')
+        prior=conn.execute('SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=? AND idempotency_key=?',(tenant_id(request),assessment_id,p.idempotency_key)).fetchone()
+        if prior:
+            prior_quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(prior['quote_id'],tenant_id(request),assessment_id)).fetchone()
+            if prior_quote:
+                verified_package_quote(conn,prior_quote,request)
+                if prior_quote['level']>1:
+                    verified_quote_predecessor_link(conn,prior_quote,request,assessment)
+            if (prior_quote and prior['quote_id']==p.quote_id and prior['quote_sha256']==p.quote_sha256
+                and prior['agreement_sha256']==p.agreement_sha256.lower() and prior['member_user_id']==ctx['user_id']
+                and prior['member_authority_basis']==p.member_authority_basis.strip()):
+                verified_member_authority_review(conn,prior_quote,ctx['user_id'])
+                return {'status':'Authorized','quote_id':p.quote_id,'accepted_at':prior['accepted_at'],'idempotent':True}
+            raise HTTPException(409,'This acceptance key was already used for another decision.')
+        quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',(p.quote_id,tenant_id(request),assessment_id)).fetchone()
+        if not quote: raise HTTPException(404,'Package quote not found.')
+        verified_package_quote(conn,quote,request)
+        verified_member_authority_review(conn,quote,ctx['user_id'])
+        if quote['level']>1: verified_quote_predecessor_link(conn,quote,request,assessment)
+        if quote['source_receipt_id']:
+            verified_quote_advisor_receipt_link(conn,quote,request,assessment,lock=True)
+        latest=conn.execute('SELECT MAX(version_no) n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',(tenant_id(request),assessment_id)).fetchone()['n']
+        if (quote['version_no']!=latest or quote['assessment_version']!=assessment['version']
+            or quote['covered_operation']!=assessment['covered_operation']
+            or quote['exclusions']!=assessment['exclusions']
+            or quote['level']!=assessment['requested_package_level']
+            or quote['band']!=assessment['requested_scope_band']
+            or quote['variant']!=assessment['requested_access_variant']
+            or not quote['assessment_scope_sha256']
+            or quote['assessment_scope_sha256']!=assessment_scope_digest(assessment)):
+            raise HTTPException(409,'This quote has been superseded by a changed scope or a newer quote.')
+        if quote['content_sha256']!=p.quote_sha256 or quote['agreement_sha256'].lower()!=p.agreement_sha256.lower():
+            raise HTTPException(409,'The quote or agreement version does not match the accepted copy.')
+        if date.fromisoformat(quote['valid_until']) < datetime.now(timezone.utc).date():
+            raise HTTPException(409,'This quote has expired; request a current written quote.')
+        existing=conn.execute('SELECT id FROM package_acceptances WHERE quote_id=?',(p.quote_id,)).fetchone()
+        if existing: raise HTTPException(409,'This quote was already accepted.')
+        download=conn.execute('SELECT id FROM package_agreement_downloads WHERE tenant_id=? AND assessment_id=? AND quote_id=? AND agreement_artifact_id=? AND member_user_id=? AND content_sha256=? ORDER BY id DESC LIMIT 1',(tenant_id(request),assessment_id,p.quote_id,quote['agreement_artifact_id'],ctx['user_id'],quote['agreement_sha256'].lower())).fetchone()
+        if not download: raise HTTPException(409,'Download the exact agreement PDF before accepting this quote.')
+        ts=now(); cur=conn.execute('INSERT INTO package_acceptances(tenant_id,assessment_id,quote_id,quote_sha256,agreement_sha256,member_user_id,agreement_download_id,member_authority_basis,idempotency_key,accepted_at) VALUES(?,?,?,?,?,?,?,?,?,?)',(tenant_id(request),assessment_id,p.quote_id,p.quote_sha256,p.agreement_sha256.lower(),ctx['user_id'],download['id'],p.member_authority_basis.strip(),p.idempotency_key,ts))
+        audit(conn,'PACKAGE_ACCEPT','assessment',assessment_id,f'acceptance_id={cur.lastrowid}; quote_id={p.quote_id}; quote_sha256={p.quote_sha256}',actor(request))
+        conn.commit()
+        return {'status':'Authorized','quote_id':p.quote_id,'accepted_at':ts,'idempotent':False}
+    finally:
+        conn.rollback()
+        conn.close()
+
+def authorized_package_intake(conn,assessment_id:int,request:Request):
+    assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tenant_id(request))).fetchone()
+    accepted=conn.execute('''SELECT q.*,a.member_user_id accepted_member_user_id FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
+        WHERE a.tenant_id=? AND a.assessment_id=? ORDER BY a.id DESC LIMIT 1''',(tenant_id(request),assessment_id)).fetchone()
+    if not assessment or not accepted: raise HTTPException(409,'The package intake opens after an authorized agreement.')
+    verified_package_quote(conn,accepted,request)
+    verified_member_authority_review(conn,accepted,accepted['accepted_member_user_id'])
+    if protected_member_request(request):
+        ctx=auth_context(request)
+        if ctx['auth_mode'] not in ('session','oidc') or ctx.get('user_id')!=accepted['accepted_member_user_id']:
+            raise HTTPException(403,'Only the reviewed Member decision owner may access this package intake.')
+    if accepted['level']>1: verified_quote_predecessor_link(conn,accepted,request,assessment)
+    if (not accepted['assessment_scope_sha256'] or accepted['assessment_scope_sha256']!=assessment_scope_digest(assessment)
+        or accepted['assessment_version']!=assessment['version']):
+        raise HTTPException(409,'The authorized scope changed; review the written package before requesting more records.')
+    return accepted
+
+@app.get('/api/assessments/{assessment_id}/package-intake')
+def get_package_intake(assessment_id:int,request:Request):
+    require_package_commercial_candidate(); require(request,'read'); assessment_row_for_request(request,assessment_id)
+    if protected_member_request(request) and (role(request)!='Client Executive' or auth_context(request)['auth_mode'] not in ('session','oidc')):
+        raise HTTPException(403,'A signed-in Protected Member decision owner is required.')
+    conn=db()
+    try:
+        quote=authorized_package_intake(conn,assessment_id,request)
+        rows=[dict(r) for r in conn.execute('''SELECT id,item_key,catalog_version,title,decision_use,requested_form,
+            acceptable_equivalent,request_reason,status,requested_at,responded_at FROM package_intake_requests
+            WHERE tenant_id=? AND assessment_id=? AND quote_id=? ORDER BY id''',(tenant_id(request),assessment_id,quote['id']))]
+        uploads=[dict(r) for r in conn.execute('''SELECT id,intake_request_id,original_name,content_sha256,size_bytes,uploaded_at
+            FROM package_intake_uploads WHERE tenant_id=? AND assessment_id=? AND quote_id=? ORDER BY id''',
+            (tenant_id(request),assessment_id,quote['id']))]
+        pending_uploads=[dict(r) for r in conn.execute('''SELECT id,intake_request_id,original_name,
+            content_sha256,size_bytes,status,received_at FROM package_intake_pending_scans
+            WHERE tenant_id=? AND assessment_id=? AND quote_id=? AND status<>'Promoted' ORDER BY id''',
+            (tenant_id(request),assessment_id,quote['id']))]
+        return {'quote_id':quote['id'],'catalog_version':PACKAGE_INTAKE_VERSION,'items':rows,
+                'uploads':uploads,'pending_uploads':pending_uploads,
+                'catalog':package_intake_catalog() if role(request) in ('System Administrator','Assessment Director') else [],
+                'notice':'Only selected items are requested. Do not upload personal directories, credentials, medical records or sensitive annexes. Ask Salus for separate protected handling when needed.'}
+    finally: conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-intake')
+def select_package_intake(assessment_id:int,p:PackageIntakeSelectionIn,request:Request):
+    require_package_commercial_candidate(); require(request,'decide'); require_salus_component_authority(request,'Package intake')
+    if role(request) not in ('System Administrator','Assessment Director'):
+        raise HTTPException(403,'Only an authorized Salus reviewer may tailor the records request.')
+    assessment_row_for_request(request,assessment_id)
+    keys=list(dict.fromkeys(p.item_keys))
+    if len(keys)!=len(p.item_keys) or any(key not in PACKAGE_INTAKE_ITEMS for key in keys):
+        raise HTTPException(422,'Select distinct items from the approved Level 1 records menu.')
+    if len(p.request_reason.strip())<12:
+        raise HTTPException(422,'State why these records are needed for the agreed decision.')
+    conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        for key in keys:
+            title,purpose,requested,equivalent=PACKAGE_INTAKE_ITEMS[key]
+            conn.execute('''INSERT INTO package_intake_requests
+                (tenant_id,assessment_id,quote_id,item_key,catalog_version,title,decision_use,requested_form,acceptable_equivalent,request_reason,status,requested_by,requested_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,'Requested',?,?) ON CONFLICT(tenant_id,assessment_id,quote_id,item_key) DO NOTHING''',
+                (tenant_id(request),assessment_id,quote['id'],key,PACKAGE_INTAKE_VERSION,title,purpose,requested,equivalent,p.request_reason.strip(),actor(request),now()))
+        audit(conn,'PACKAGE_INTAKE_REQUEST','assessment',assessment_id,f'quote_id={quote["id"]}; keys={",".join(keys)}',actor(request))
+        conn.commit()
+        return {'quote_id':quote['id'],'requested_keys':keys,'status':'Requested'}
+    finally:
+        conn.rollback();conn.close()
+
+@app.patch('/api/assessments/{assessment_id}/package-intake/{item_id}')
+def respond_package_intake(assessment_id:int,item_id:int,p:PackageIntakeResponseIn,request:Request):
+    require_package_commercial_candidate(); require_protected_member_authority(request,'package_intake_response')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A signed-in Protected Member decision owner is required.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        item=conn.execute('SELECT * FROM package_intake_requests WHERE id=? AND tenant_id=? AND assessment_id=? AND quote_id=?',(item_id,tenant_id(request),assessment_id,quote['id'])).fetchone()
+        if not item: raise HTTPException(404,'Requested item not found in this package.')
+        if conn.execute('SELECT 1 FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=? LIMIT 1',
+            (tenant_id(request),item_id)).fetchone():
+            raise HTTPException(409,'A file was already received for this item. Ask Salus to reconcile it before marking the item unavailable.')
+        if conn.execute('SELECT 1 FROM package_intake_pending_scans WHERE tenant_id=? AND intake_request_id=? LIMIT 1',
+            (tenant_id(request),item_id)).fetchone():
+            raise HTTPException(409,'A file is held for security review. Ask Salus to reconcile it before marking the item unavailable.')
+        if item['status']!=p.status:
+            conn.execute('UPDATE package_intake_requests SET status=?,response_user_id=?,responded_at=? WHERE id=?',(p.status,ctx['user_id'],now(),item_id))
+            audit(conn,'PACKAGE_INTAKE_RESPONSE','assessment',assessment_id,f'item_id={item_id}; status={p.status}',actor(request))
+            conn.commit()
+        return {'item_id':item_id,'status':p.status}
+    finally:
+        conn.rollback();conn.close()
+
+PACKAGE_INTAKE_ALLOWED_EXTENSIONS={'.pdf','.docx','.xlsx','.csv','.txt','.png','.jpg','.jpeg'}
+
+def reconcile_stale_package_scans(*, max_age_hours:int=24, limit:int=100):
+    """Hold originals with no timely result; never infer Clean from silence."""
+    if PACKAGE_SCAN_MODE!='defender' or max_age_hours<1 or not 1<=limit<=1000:
+        raise QuarantineError('The scan reconciliation boundary is not configured.')
+    cutoff=(_iso_now_dt()-timedelta(hours=max_age_hours)).replace(microsecond=0).isoformat().replace('+00:00','Z')
+    lookup=db()
+    try:
+        candidates=[dict(r) for r in lookup.execute('''SELECT id,assessment_id FROM package_intake_pending_scans
+            WHERE status='Pending' AND received_at<=? ORDER BY received_at,id LIMIT ?''',
+            (cutoff,limit))]
+    finally:
+        lookup.close()
+    held=0
+    for candidate in candidates:
+        conn=db()
+        try:
+            lock_package_assessment(conn,candidate['assessment_id'])
+            row=conn.execute('SELECT * FROM package_intake_pending_scans WHERE id=?',
+                (candidate['id'],)).fetchone()
+            if row and row['status']=='Pending' and row['received_at']<=cutoff:
+                conn.execute('''UPDATE package_intake_pending_scans SET status='Reconcile',
+                    scan_result='Missing result',updated_at=? WHERE id=? AND status='Pending' ''',
+                    (now(),row['id']))
+                audit(conn,'PACKAGE_SCAN_MISSING','assessment',row['assessment_id'],
+                      f'pending_id={row["id"]}; received_at={row["received_at"]}','scan-worker')
+                conn.commit(); held+=1
+        finally:
+            conn.rollback();conn.close()
+    return held
+
+def inspect_package_quarantine_inventory(*, quarantine=None, max_versions:int=10000):
+    """Record restricted discrepancies; do not release or delete originals.
+
+    Run with a designated quarantine-reader identity during a controlled audit.
+    Concurrent staging may cause a provisional orphan; reviewers recheck the
+    exact version before assigning custody or authorizing disposition.
+    """
+    if PACKAGE_SCAN_MODE!='defender':
+        raise QuarantineError('The governed quarantine inventory is not configured.')
+    reader=quarantine or package_quarantine(for_worker=True)
+    conn=db()
+    try:
+        ledger=[dict(row) for row in conn.execute('''SELECT tenant_id,blob_name,
+            blob_version_id,size_bytes,legal_hold FROM package_intake_pending_scans''')]
+    finally:
+        conn.close()
+    result=compare_quarantine_versions(
+        ledger,list_azure_quarantine_versions(reader.container),max_versions=max_versions)
+    conn=db()
+    try:
+        recorded=record_inventory_exceptions(
+            conn,reader.account_url,ledger,result,detected_at=now())
+        conn.commit()
+    finally:
+        conn.rollback();conn.close()
+    return {
+        'ledger_count':result['ledger_count'],
+        'azure_version_count':result['azure_version_count'],
+        'azure_bytes':result['azure_bytes'],
+        'exceptions_observed':recorded,
+    }
+
+def process_package_scan_result(event:dict, *, quarantine=None, expected_topic:str=''):
+    """Apply a trusted-queue result to one exact quarantined small upload.
+
+    The caller must receive the event through the dedicated managed-identity
+    queue. This function does not authenticate arbitrary HTTP or caller input.
+    A missing manifest is left on the queue for reconciliation, never cleared.
+    """
+    if PACKAGE_SCAN_MODE!='defender' or not expected_topic:
+        raise QuarantineError('The governed scan-result worker is not configured.')
+    if not isinstance(event,dict) or not isinstance(event.get('data'),dict):
+        return 'Unmatched'
+    event_id=event.get('id')
+    blob_uri=event['data'].get('blobUri')
+    etag=event['data'].get('eTag')
+    if not all(isinstance(x,str) and x for x in (event_id,blob_uri,etag)):
+        return 'Unmatched'
+    conn=db(); stored=''
+    try:
+        # The URI is a lookup hint only. All security claims are checked against
+        # the tenant-bound ledger after serializing the assessment transition.
+        candidate=conn.execute('''SELECT id,assessment_id FROM package_intake_pending_scans
+            WHERE blob_uri=? AND etag=?''',(blob_uri,etag)).fetchone()
+        if not candidate:
+            return 'Unmatched'
+        lock_package_assessment(conn,candidate['assessment_id'])
+        row=conn.execute('SELECT * FROM package_intake_pending_scans WHERE id=?',
+                         (candidate['id'],)).fetchone()
+        if not row or row['blob_uri']!=blob_uri or row['etag']!=etag:
+            return 'Unmatched'
+        pending=dict(row)
+        if not defender_event_matches_pending(event,topic=expected_topic,
+                blob_uri=pending['blob_uri'],etag=pending['etag'],
+                sha256=pending['content_sha256']):
+            return 'Unmatched'
+        result=defender_result_for_pending(event,topic=expected_topic,
+            blob_uri=blob_uri,etag=etag,sha256=pending['content_sha256'])
+        if (pending['scan_event_id']==event_id and pending['status'] in ('Promoted','Malicious','Unscanned')
+                and pending['scan_result']==result):
+            return pending['status']
+        if pending['status']=='Promoted':
+            # Contrary later results suspend the already promoted evidence.
+            if result!='Clean':
+                conn.execute('UPDATE package_intake_uploads SET scan_status=? WHERE id=? AND tenant_id=?',
+                    ('Reconcile',pending['promoted_upload_id'],pending['tenant_id']))
+                conn.execute('''UPDATE package_intake_pending_scans SET status='Reconcile',scan_result=?,
+                    scan_event_id=?,scanned_at=?,updated_at=? WHERE id=?''',
+                    (result,event_id,now(),now(),pending['id']))
+                audit(conn,'PACKAGE_SCAN_CONTRARY','assessment',pending['assessment_id'],
+                      f'pending_id={pending["id"]}; result={result}','scan-worker')
+                conn.commit()
+                return 'Reconcile'
+            return 'Promoted'
+        if pending['status']!='Pending':
+            return 'Reconcile'
+        if result!='Clean':
+            held='Malicious' if result=='Malicious' else 'Unscanned'
+            conn.execute('''UPDATE package_intake_pending_scans SET status=?,scan_result=?,
+                scan_event_id=?,scanned_at=?,updated_at=? WHERE id=? AND status='Pending' ''',
+                (held,result,event_id,now(),now(),pending['id']))
+            audit(conn,'PACKAGE_SCAN_HELD','assessment',pending['assessment_id'],
+                  f'pending_id={pending["id"]}; result={result}','scan-worker')
+            conn.commit()
+            return held
+        manifest=dict(pending,sha256=pending['content_sha256'])
+        snapshot=(quarantine or package_quarantine(for_worker=True)).read_version(manifest)
+        if not qualified_clean_quarantine_object(event,manifest,snapshot,
+                topic=expected_topic,tenant_id=pending['tenant_id'],
+                assessment_id=pending['assessment_id'],
+                intake_request_id=pending['intake_request_id']):
+            raise QuarantineError('The clean result failed exact-object qualification.')
+        content=snapshot['bytes']
+        stored=(f'tenant-{pending["tenant_id"]}/assessment-{pending["assessment_id"]}/'
+                f'package-intake/quote-{pending["quote_id"]}/item-{pending["intake_request_id"]}/'
+                f'pending-{pending["id"]}_{pending["content_sha256"][:16]}')
+        if storage.exists(stored):
+            if hashlib.sha256(storage.get_bytes(stored)).hexdigest()!=pending['content_sha256']:
+                raise QuarantineError('Existing promoted storage bytes differ from the pending original.')
+        else:
+            storage.put_bytes(stored,content)
+        if hashlib.sha256(storage.get_bytes(stored)).hexdigest()!=pending['content_sha256']:
+            raise QuarantineError('Promoted storage failed read-after-write verification.')
+        uploaded_at=now()
+        cur=conn.execute('''INSERT INTO package_intake_uploads
+            (tenant_id,assessment_id,quote_id,intake_request_id,member_user_id,original_name,stored_name,
+             content_sha256,size_bytes,scan_status,retention_until,legal_hold,uploaded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (pending['tenant_id'],pending['assessment_id'],pending['quote_id'],
+             pending['intake_request_id'],pending['member_user_id'],pending['original_name'],stored,
+             pending['content_sha256'],pending['size_bytes'],'Clean',pending['retention_until'],
+             pending['legal_hold'],uploaded_at))
+        conn.execute('''UPDATE package_intake_pending_scans SET status='Promoted',scan_result='Clean',
+            scan_event_id=?,scanned_at=?,promoted_upload_id=?,updated_at=? WHERE id=? AND status='Pending' ''',
+            (event_id,uploaded_at,cur.lastrowid,uploaded_at,pending['id']))
+        conn.execute('''UPDATE package_intake_requests SET status='Provided',response_user_id=?,responded_at=?
+            WHERE id=? AND tenant_id=?''',
+            (pending['member_user_id'],uploaded_at,pending['intake_request_id'],pending['tenant_id']))
+        audit(conn,'PACKAGE_SCAN_PROMOTED','assessment',pending['assessment_id'],
+              f'pending_id={pending["id"]}; upload_id={cur.lastrowid}; sha256={pending["content_sha256"]}',
+              'scan-worker')
+        conn.commit()
+        return 'Promoted'
+    except Exception:
+        conn.rollback()
+        # A deterministic storage key lets a retry reconcile a partial copy.
+        # Never erase it here: another successful transaction may now refer to it.
+        raise
+    finally:
+        conn.close()
+
+def stage_package_intake_file(assessment_id:int,item_id:int,request:Request,ctx:dict,
+                              original:str,content:bytes,digest:str):
+    """Keep the original in quarantine; a separate worker must qualify it."""
+    tid=tenant_id(request); conn=db(); manifest=None
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        item=conn.execute('''SELECT id,status FROM package_intake_requests
+            WHERE id=? AND tenant_id=? AND assessment_id=? AND quote_id=?''',
+            (item_id,tid,assessment_id,quote['id'])).fetchone()
+        if not item: raise HTTPException(404,'This item was not requested for the authorized package.')
+        if item['status'] in ('Not held','Not known','Prefer to discuss'):
+            raise HTTPException(409,'Review this item with Salus before sending a file.')
+        clean=conn.execute('''SELECT id,intake_request_id,original_name,content_sha256,size_bytes,uploaded_at
+            FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=? AND content_sha256=?
+            AND scan_status='Clean' ''',(tid,item_id,digest)).fetchone()
+        if clean:
+            return {key:clean[key] for key in ('id','intake_request_id','original_name',
+                                             'content_sha256','size_bytes','uploaded_at')}
+        pending=conn.execute('''SELECT id,status,intake_request_id,original_name,content_sha256,
+            size_bytes,received_at FROM package_intake_pending_scans
+            WHERE tenant_id=? AND intake_request_id=? AND content_sha256=?''',
+            (tid,item_id,digest)).fetchone()
+        if pending:
+            if pending['status']!='Pending':
+                raise HTTPException(409,'This file needs Salus security reconciliation.')
+            return {'id':pending['id'],'intake_request_id':item_id,'original_name':pending['original_name'],
+                    'content_sha256':digest,'size_bytes':pending['size_bytes'],
+                    'received_at':pending['received_at'],'scan_status':'Pending'}
+        count=conn.execute('''SELECT
+            (SELECT COUNT(*) FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=?)
+          + (SELECT COUNT(*) FROM package_intake_pending_scans WHERE tenant_id=? AND intake_request_id=?) AS n''',
+            (tid,item_id,tid,item_id)).fetchone()['n']
+        if count>=5:
+            raise HTTPException(409,'This item has five files. Ask Salus to review before sending more.')
+        manifest=package_quarantine().stage_bytes(tenant_id=tid,assessment_id=assessment_id,
+            quote_id=quote['id'],intake_request_id=item_id,data=content)
+        if (manifest.get('tenant_id')!=tid or manifest.get('assessment_id')!=assessment_id
+                or manifest.get('quote_id')!=quote['id']
+                or manifest.get('intake_request_id')!=item_id
+                or manifest.get('status')!='Pending'
+                or manifest.get('sha256')!=digest or manifest.get('size_bytes')!=len(content)):
+            raise QuarantineError('The staged original does not match the received bytes.')
+        received_at=now()
+        retention_until=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(
+            microsecond=0).isoformat().replace('+00:00','Z')
+        cur=conn.execute('''INSERT INTO package_intake_pending_scans
+            (tenant_id,assessment_id,quote_id,intake_request_id,member_user_id,original_name,
+             blob_name,blob_uri,blob_version_id,etag,content_sha256,size_bytes,status,
+             retention_until,legal_hold,received_at,updated_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (tid,assessment_id,quote['id'],item_id,ctx['user_id'],original,manifest['blob_name'],
+             manifest['blob_uri'],manifest['blob_version_id'],manifest['etag'],digest,len(content),
+             'Pending',retention_until,0,received_at,received_at))
+        audit(conn,'PACKAGE_INTAKE_QUARANTINED','assessment',assessment_id,
+              f'item_id={item_id}; pending_id={cur.lastrowid}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'intake_request_id':item_id,'original_name':original,
+                'content_sha256':digest,'size_bytes':len(content),'received_at':received_at,
+                'scan_status':'Pending'}
+    except Exception as exc:
+        conn.rollback()
+        if isinstance(manifest,dict) and manifest.get('blob_uri'):
+            try:
+                security_event(request,'PACKAGE_QUARANTINE_RECONCILE','High',
+                               f'blob_uri={manifest["blob_uri"]}; version={manifest.get("blob_version_id","")}')
+            except Exception:
+                pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8); record_internal_failure('package quarantine staging',error_id,exc)
+        raise HTTPException(503,f'Package quarantine is unavailable. Reference: {error_id}') from exc
+    finally: conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-intake/{item_id}/files')
+async def upload_package_intake_file(assessment_id:int,item_id:int,request:Request,file:UploadFile=File(...)):
+    require_package_commercial_candidate(); require_protected_member_authority(request,'package_intake_upload')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A signed-in Protected Member decision owner is required.')
+    assessment_row_for_request(request,assessment_id)
+    original=safe_filename(file.filename or '')
+    if Path(original).suffix.lower() not in PACKAGE_INTAKE_ALLOWED_EXTENSIONS:
+        raise HTTPException(422,'Use a PDF, Office document, CSV, text file or image for this records request.')
+    content=await file.read(MAX_ATTACHMENT_BYTES+1)
+    if not content or len(content)>MAX_ATTACHMENT_BYTES:
+        raise HTTPException(413,'The file must be nonempty and no larger than 25 MB.')
+    digest=hashlib.sha256(content).hexdigest(); tid=tenant_id(request)
+    preflight=db()
+    try:
+        quote=authorized_package_intake(preflight,assessment_id,request)
+        item=preflight.execute('''SELECT id,status FROM package_intake_requests
+            WHERE id=? AND tenant_id=? AND assessment_id=? AND quote_id=?''',
+            (item_id,tid,assessment_id,quote['id'])).fetchone()
+        if not item: raise HTTPException(404,'This item was not requested for the authorized package.')
+        if item['status'] in ('Not held','Not known','Prefer to discuss'):
+            raise HTTPException(409,'Review this item with Salus before sending a file.')
+        existing=preflight.execute('''SELECT id,scan_status FROM package_intake_uploads
+            WHERE tenant_id=? AND intake_request_id=? AND content_sha256=?''',
+            (tid,item_id,digest)).fetchone()
+        if existing and existing['scan_status']!='Clean':
+            raise HTTPException(409,'The stored file has not passed the security check.')
+        if not existing:
+            file_count=preflight.execute('SELECT COUNT(*) AS n FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=?',
+                (tid,item_id)).fetchone()['n']
+            if file_count>=5:
+                raise HTTPException(409,'This item has five files. Ask Salus to review before sending more.')
+    finally:
+        preflight.close()
+    if PACKAGE_SCAN_MODE=='defender':
+        return stage_package_intake_file(assessment_id,item_id,request,ctx,original,content,digest)
+    if PACKAGE_SCAN_MODE!='inline':
+        raise HTTPException(503,'The package scanner mode is not configured.')
+    scan=scan_bytes(content,original)
+    if not scan['ok'] or scan['status']!='Clean':
+        security_event(request,'PACKAGE_INTAKE_UPLOAD_REJECTED','High' if scan['status']=='Infected' else 'Medium',
+            f'status={scan["status"]}')
+        raise HTTPException(422 if scan['status']=='Infected' else 503,'The file could not pass the security check.')
+    conn=db(); stored=''
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        item=conn.execute('''SELECT id,status FROM package_intake_requests
+            WHERE id=? AND tenant_id=? AND assessment_id=? AND quote_id=?''',
+            (item_id,tid,assessment_id,quote['id'])).fetchone()
+        if not item: raise HTTPException(404,'This item was not requested for the authorized package.')
+        if item['status'] in ('Not held','Not known','Prefer to discuss'):
+            raise HTTPException(409,'Review this item with Salus before sending a file.')
+        existing=conn.execute('''SELECT id,intake_request_id,original_name,content_sha256,size_bytes,scan_status,uploaded_at
+            FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=? AND content_sha256=?''',
+            (tid,item_id,digest)).fetchone()
+        if existing:
+            if existing['scan_status']!='Clean':
+                raise HTTPException(409,'The stored file has not passed the security check.')
+            return {key:existing[key] for key in
+                ('id','intake_request_id','original_name','content_sha256','size_bytes','uploaded_at')}
+        file_count=conn.execute('SELECT COUNT(*) AS n FROM package_intake_uploads WHERE tenant_id=? AND intake_request_id=?',
+            (tid,item_id)).fetchone()['n']
+        if file_count>=5:
+            raise HTTPException(409,'This item has five files. Ask Salus to review before sending more.')
+        stored=f'tenant-{tid}/assessment-{assessment_id}/package-intake/quote-{quote["id"]}/item-{item_id}/{uuid.uuid4().hex}_{digest[:16]}'
+        storage.put_bytes(stored,content)
+        retention_until=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
+        uploaded_at=now()
+        cur=conn.execute('''INSERT INTO package_intake_uploads
+            (tenant_id,assessment_id,quote_id,intake_request_id,member_user_id,original_name,stored_name,
+             content_sha256,size_bytes,scan_status,retention_until,legal_hold,uploaded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (tid,assessment_id,quote['id'],item_id,ctx['user_id'],original,stored,digest,len(content),
+             scan['status'],retention_until,0,uploaded_at))
+        conn.execute('UPDATE package_intake_requests SET status=?,response_user_id=?,responded_at=? WHERE id=?',
+            ('Provided',ctx['user_id'],uploaded_at,item_id))
+        audit(conn,'PACKAGE_INTAKE_FILE','assessment',assessment_id,
+            f'item_id={item_id}; file_id={cur.lastrowid}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'intake_request_id':item_id,'original_name':original,
+                'content_sha256':digest,'size_bytes':len(content),'uploaded_at':uploaded_at}
+    except Exception as exc:
+        conn.rollback()
+        if stored:
+            try: storage.delete(stored)
+            except Exception: pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8); record_internal_failure('package intake upload',error_id,exc)
+        raise HTTPException(503,f'Package intake storage is unavailable. Reference: {error_id}') from exc
+    finally: conn.close()
+
+@app.get('/api/package-intake-files/{file_id}/download')
+def download_package_intake_file(file_id:int,request:Request):
+    require_package_commercial_candidate(); require(request,'read')
+    conn=db()
+    try:
+        row=conn.execute('SELECT * FROM package_intake_uploads WHERE id=? AND tenant_id=?',
+            (file_id,tenant_id(request))).fetchone()
+        if not row: raise HTTPException(404,'Requested file not found.')
+        assessment_row_for_request(request,row['assessment_id'])
+        if protected_member_request(request):
+            require_protected_member_authority(request,'package_intake_download')
+            if auth_context(request)['auth_mode'] not in ('session','oidc'):
+                raise HTTPException(403,'A signed-in Protected Member decision owner is required.')
+        quote=authorized_package_intake(conn,row['assessment_id'],request)
+        if row['quote_id']!=quote['id']:
+            raise HTTPException(409,'This file belongs to a previous package scope.')
+        if row['scan_status']!='Clean':
+            raise HTTPException(409,'The file has not passed the security check.')
+    finally: conn.close()
+    try: data=storage.get_bytes(row['stored_name'])
+    except FileNotFoundError: raise HTTPException(404,'Stored file is missing.')
+    except Exception as exc:
+        security_event(request,'PACKAGE_INTAKE_STORAGE_READ_FAILURE','High',type(exc).__name__)
+        raise HTTPException(503,'Package intake storage is unavailable.') from exc
+    if hashlib.sha256(data).hexdigest()!=row['content_sha256']:
+        security_event(request,'PACKAGE_INTAKE_HASH_MISMATCH','Critical',f'file_id={file_id}')
+        raise HTTPException(409,'File integrity verification failed.')
+    conn=db()
+    try:
+        audit(conn,'PACKAGE_INTAKE_DOWNLOAD','assessment',row['assessment_id'],
+            f'file_id={file_id}; sha256={row["content_sha256"]}',actor(request))
+        conn.commit()
+    finally: conn.close()
+    return Response(content=data,media_type='application/octet-stream',headers={
+        'Content-Disposition':f'attachment; filename="{safe_filename(row["original_name"])}"',
+        'X-Content-SHA256':row['content_sha256'],'X-Content-Type-Options':'nosniff'})
+
+@app.patch('/api/package-intake-files/{file_id}/retention')
+def extend_package_intake_file_retention(file_id:int,p:PackageReportRetentionIn,request:Request):
+    require_package_commercial_candidate(); require(request,'decide')
+    if role(request) not in {'System Administrator','Assessment Director'}:
+        raise HTTPException(403,'Package intake retention requires a Salus decision owner.')
+    if p.retention_until is None and p.legal_hold is None:
+        raise HTTPException(422,'Extend retention or place a legal hold.')
+    new_until=None
+    if p.retention_until is not None:
+        try:
+            parsed=datetime.fromisoformat(p.retention_until.replace('Z','+00:00'))
+            if parsed.tzinfo is None: raise ValueError('Timezone required')
+            if parsed.astimezone(timezone.utc)<=_iso_now_dt():
+                raise HTTPException(422,'Extended retention must end in the future.')
+            new_until=parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+        except ValueError as exc: raise HTTPException(422,'Use an explicit UTC retention timestamp.') from exc
+    conn=db()
+    try:
+        row=conn.execute('SELECT * FROM package_intake_uploads WHERE id=? AND tenant_id=?',
+            (file_id,tenant_id(request))).fetchone()
+        if not row: raise HTTPException(404,'Package intake file not found.')
+        assessment_row_for_request(request,row['assessment_id'])
+        require_package_report_assignment(request,row['assessment_id'])
+        lock_package_assessment(conn,row['assessment_id'])
+        if new_until and row['retention_until'] and new_until<row['retention_until']:
+            raise HTTPException(409,'Package intake retention cannot be shortened through this route.')
+        target_until=new_until or row['retention_until']
+        target_hold=1 if p.legal_hold else row['legal_hold']
+        if target_until!=row['retention_until'] or target_hold!=row['legal_hold']:
+            conn.execute('UPDATE package_intake_uploads SET retention_until=?,legal_hold=? WHERE id=?',
+                (target_until,target_hold,file_id))
+            audit(conn,'PACKAGE_INTAKE_RETENTION','assessment',row['assessment_id'],
+                f'file_id={file_id}; retention_until={target_until}; legal_hold={target_hold}; reason={p.reason.strip()}',actor(request))
+            conn.commit()
+        return {'id':file_id,'retention_until':target_until,'legal_hold':bool(target_hold),
+            'notice':'This route cannot delete a file or clear a legal hold.'}
+    finally: conn.close()
+
+PACKAGE_REPORT_PRODUCTS={'SalINTEL','SalTHIRA','SalOPS','SalCAPA'}
+PACKAGE_REPORT_DRAFT_ROLES={'System Administrator','Assessment Director','Lead Assessor'}
+PACKAGE_REPORT_QA_KEYS=(
+    'level_status_and_handoffs','evidence_and_provenance','uncertainty_and_contradictions',
+    'protected_member_isolation','confidentiality_and_audience','approved_title_and_brand',
+    'arial_headings_times_body','cover_blank_second_page_page_x_of_y','accessibility',
+    'all_rendered_pages','docx_pdf_print_parity','method_and_template_version',
+    'qualified_review_and_release_authority')
+PACKAGE_REPORT_REVIEW_KEYS=('all_pages','native_word','accessibility','format_parity','member_isolation')
+
+def require_package_report_assignment(request:Request,assessment_id:int):
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or role(request)=='System Administrator': return
+    conn=db()
+    try:
+        allowed=conn.execute('SELECT 1 FROM assessment_access WHERE user_id=? AND assessment_id=?',(ctx.get('user_id'),assessment_id)).fetchone()
+    finally: conn.close()
+    if not allowed: raise HTTPException(403,'An explicit assessment assignment is required for working reports.')
+
+def check_package_docx(content:bytes):
+    if len(content)>10*1024*1024: raise HTTPException(413,'Draft Word report exceeds 10 MB.')
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            names=set(archive.namelist())
+            if not {'[Content_Types].xml','word/document.xml'}<=names or any('vbaproject.bin' in name.lower() for name in names):
+                raise HTTPException(422,'The draft must be a macro-free Word .docx document.')
+            if sum(item.file_size for item in archive.infolist())>150*1024*1024:
+                raise HTTPException(413,'The draft Word report expands beyond the review limit.')
+            if archive.testzip() is not None: raise HTTPException(422,'The draft Word report is damaged.')
+    except (zipfile.BadZipFile, OSError) as exc:
+        raise HTTPException(422,'The draft must be a valid Word .docx document.') from exc
+
+def inspect_package_qa_archive(content:bytes,report_sha256:str):
+    """Bind a rendered PDF and page log to a draft; do not qualify the review."""
+    from pypdf import PdfReader
+    if len(content)>50*1024*1024: raise HTTPException(413,'Report QA archive exceeds 50 MB.')
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            infos=archive.infolist()
+            if len(infos)!=2 or {item.filename for item in infos}!={'manifest.json','rendered.pdf'}:
+                raise HTTPException(422,'Report QA archive must contain only manifest.json and rendered.pdf.')
+            if any(item.file_size>50*1024*1024 for item in infos) or sum(item.file_size for item in infos)>60*1024*1024:
+                raise HTTPException(413,'Report QA archive expands beyond its review limit.')
+            if archive.testzip() is not None: raise HTTPException(422,'Report QA archive is damaged.')
+            manifest_bytes=archive.read('manifest.json');pdf=archive.read('rendered.pdf')
+    except (zipfile.BadZipFile,OSError,RuntimeError) as exc:
+        raise HTTPException(422,'Report QA archive is not a readable ZIP file.') from exc
+    if len(manifest_bytes)>250_000 or not pdf.startswith(b'%PDF-'):
+        raise HTTPException(422,'Report QA manifest or PDF is invalid.')
+    try:
+        manifest=json.loads(manifest_bytes)
+        if not isinstance(manifest,dict) or set(manifest)!={
+                'report_sha256','pdf_sha256','renderer','pages','native_word','accessibility','parity','notes'}:
+            raise ValueError('manifest fields')
+        if manifest['report_sha256']!=report_sha256 or manifest['pdf_sha256']!=hashlib.sha256(pdf).hexdigest():
+            raise ValueError('source or PDF hash')
+        if (not isinstance(manifest['renderer'],str) or not 3<=len(manifest['renderer'].strip())<=120
+                or not isinstance(manifest['notes'],str) or len(manifest['notes'])>4000):
+            raise ValueError('renderer or notes')
+        if any(manifest[key] not in ('Pending','Checked') for key in ('native_word','accessibility','parity')):
+            raise ValueError('review states')
+        reader=PdfReader(io.BytesIO(pdf),strict=True)
+        count=len(reader.pages)
+        if not 3<=count<=1000 or not isinstance(manifest['pages'],list) or len(manifest['pages'])!=count:
+            raise ValueError('page count')
+        for number,(item,page) in enumerate(zip(manifest['pages'],reader.pages),1):
+            if (not isinstance(item,dict) or set(item)!={'page','checked_full_size','note'}
+                    or type(item['page']) is not int or item['page']!=number
+                    or type(item['checked_full_size']) is not bool or not isinstance(item['note'],str)
+                    or len(item['note'])>500):
+                raise ValueError('page inspection log')
+            text_content=page.extract_text() or ''
+            if number==2 and text_content.strip(): raise ValueError('second page is not blank')
+            if number!=2 and not re.search(rf'page\s+{number}\s+of\s+{count}',text_content,re.IGNORECASE):
+                raise ValueError('page count footer')
+    except (ValueError,KeyError,TypeError,AttributeError,IndexError) as exc:
+        raise HTTPException(422,'Report QA evidence does not match the exact Word file, PDF pages or page log.') from exc
+    except Exception as exc:
+        raise HTTPException(422,'Report QA PDF could not be inspected.') from exc
+    return json.dumps(manifest,sort_keys=True,separators=(',',':')),pdf
+
+@app.get('/api/assessments/{assessment_id}/package-reports')
+def list_package_product_reports(assessment_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read'); assessment_row_for_request(request,assessment_id)
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES: raise HTTPException(403,'Working reports are restricted to assigned Salus report owners.')
+    require_package_report_assignment(request,assessment_id)
+    conn=db()
+    try:
+        rows=[dict(row) for row in conn.execute('''SELECT id,quote_id,product,report_identity,display_title,version_no,
+          assessment_scope_sha256,method_version,template_version,original_name,content_sha256,size_bytes,
+          status,retention_until,legal_hold,disposition_status,created_by,created_at,supersedes_id FROM package_product_report_versions
+          WHERE tenant_id=? AND assessment_id=? ORDER BY product,version_no''',(tenant_id(request),assessment_id))]
+        return {'reports':rows,'notice':'Draft registration is not qualified review, issue, or predecessor proof.'}
+    finally: conn.close()
+
+@app.get('/api/assessments/{assessment_id}/package-release-readiness')
+def package_release_readiness(assessment_id:int,request:Request):
+    """Show exact draft gates; this endpoint never authorizes report issue."""
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Package release review is restricted to Salus report owners.')
+    assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    conn=db()
+    try:
+        quote=authorized_package_intake(conn,assessment_id,request)
+        tid=tenant_id(request);reports={};blockers=[]
+        for product in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+            row=conn.execute('''SELECT * FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+                AND product=? ORDER BY version_no DESC LIMIT 1''',(tid,assessment_id,product)).fetchone()
+            if not row:
+                blockers.append(f'{product}: a working Word report is missing.')
+                continue
+            reports[product]=row
+            if (row['quote_id']!=quote['id'] or row['assessment_scope_sha256']!=quote['assessment_scope_sha256']):
+                blockers.append(f'{product}: the report belongs to an older package boundary.')
+            try: saved=storage.get_bytes(row['stored_name'])
+            except Exception:
+                blockers.append(f'{product}: the saved Word file is unavailable.')
+            else:
+                if hashlib.sha256(saved).hexdigest()!=row['content_sha256']:
+                    security_event(request,'PACKAGE_PREFLIGHT_HASH_MISMATCH','High',f'report_id={row["id"]}')
+                    blockers.append(f'{product}: the saved Word file failed its integrity check.')
+            matrix=conn.execute('''SELECT matrix_status,content_sha256,checks_json,summary,record_sha256 FROM package_report_conformance
+                WHERE tenant_id=? AND report_id=? ORDER BY id DESC LIMIT 1''',(tid,row['id'])).fetchone()
+            if not matrix or matrix['content_sha256']!=row['content_sha256']:
+                blockers.append(f'{product}: the exact-version Charter check is missing.')
+            else:
+                try:
+                    checks=json.loads(matrix['checks_json'])
+                    expected=hashlib.sha256(json.dumps({'report_id':row['id'],
+                        'content_sha256':matrix['content_sha256'],'checks':checks,
+                        'summary':matrix['summary']},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+                    expected_status='Open' if any(item['status']=='Pending' for item in checks.values()) else 'Marked'
+                    valid=(set(checks)==set(PACKAGE_REPORT_QA_KEYS) and expected==matrix['record_sha256']
+                        and expected_status==matrix['matrix_status'])
+                except (ValueError,TypeError,KeyError,AttributeError): valid=False
+                if not valid:
+                    blockers.append(f'{product}: the saved Charter check failed its integrity check.')
+                elif matrix['matrix_status']!='Marked':
+                    blockers.append(f'{product}: the Charter check still has pending items.')
+            qa=conn.execute('''SELECT * FROM package_report_qa_evidence WHERE tenant_id=? AND report_id=?
+                ORDER BY id DESC LIMIT 1''',(tid,row['id'])).fetchone()
+            if not qa or qa['content_sha256']!=row['content_sha256']:
+                blockers.append(f'{product}: exact-version rendered QA evidence is missing.')
+            else:
+                try:
+                    manifest=json.loads(qa['manifest_json'])
+                    canonical=json.dumps(manifest,sort_keys=True,separators=(',',':'))
+                    valid=(manifest.get('report_sha256')==row['content_sha256']
+                        and hashlib.sha256(canonical.encode()).hexdigest()==qa['manifest_sha256']
+                        and qa['status']=='Submitted')
+                    if valid:
+                        archive=storage.get_bytes(qa['stored_name'])
+                        valid=hashlib.sha256(archive).hexdigest()==qa['archive_sha256']
+                except Exception:
+                    valid=False
+                if not valid:
+                    blockers.append(f'{product}: rendered QA evidence failed its integrity check.')
+                elif (any(not page.get('checked_full_size') for page in manifest.get('pages',[]))
+                        or any(manifest.get(key)!='Checked' for key in ('native_word','accessibility','parity'))):
+                    blockers.append(f'{product}: rendered page, accessibility or format parity review is pending.')
+                review=conn.execute('''SELECT * FROM package_report_qa_reviews WHERE tenant_id=?
+                    AND report_id=? AND evidence_id=? ORDER BY id DESC LIMIT 1''',(tid,row['id'],qa['id'])).fetchone()
+                if not review:
+                    blockers.append(f'{product}: independent exact-version QA review is missing.')
+                else:
+                    try:
+                        review_checks=json.loads(review['checks_json'])
+                        review_record={key:review[key] for key in ('report_id','evidence_id','content_sha256',
+                            'archive_sha256','decision','qualification_basis','review_note','reviewer_user_id')}
+                        review_record['checks']=review_checks
+                        valid_review=(review['content_sha256']==row['content_sha256']
+                            and review['archive_sha256']==qa['archive_sha256']
+                            and review['reviewer_user_id']!=qa['submitted_user_id']
+                            and set(review_checks)==set(PACKAGE_REPORT_REVIEW_KEYS)
+                            and hashlib.sha256(json.dumps(review_record,sort_keys=True,separators=(',',':')).encode()).hexdigest()==review['record_sha256'])
+                    except (ValueError,TypeError,KeyError,AttributeError): valid_review=False
+                    if not valid_review:
+                        blockers.append(f'{product}: the independent QA review failed its integrity check.')
+                    elif review['decision']!='Reviewed' or not all(review_checks.values()):
+                        blockers.append(f'{product}: independent QA returned the report for correction.')
+        capa=reports.get('SalCAPA')
+        if capa:
+            comparison=conn.execute('''SELECT * FROM package_report_reconciliations
+                WHERE tenant_id=? AND salcapa_report_id=? ORDER BY id DESC LIMIT 1''',(tid,capa['id'])).fetchone()
+            if not comparison or comparison['salcapa_sha256']!=capa['content_sha256']:
+                blockers.append('SalCAPA: comparison with the other three current reports is missing.')
+            else:
+                source_ids={product:(reports[product]['id'] if product in reports else None)
+                    for product in ('SalINTEL','SalTHIRA','SalOPS')}
+                try: recorded=json.loads(comparison['sources_json'])
+                except (ValueError,TypeError): recorded={}
+                if not isinstance(recorded,dict) or any(
+                        not isinstance(recorded.get(product),dict)
+                        or recorded[product].get('report_id')!=source_ids[product] for product in source_ids):
+                    blockers.append('SalCAPA: the comparison refers to an older source report.')
+                expected_digest=hashlib.sha256(json.dumps({'salcapa_report_id':capa['id'],
+                    'salcapa_sha256':comparison['salcapa_sha256'],'sources':recorded,
+                    'summary':comparison['summary']},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+                if expected_digest!=comparison['record_sha256']:
+                    blockers.append('SalCAPA: the saved comparison failed its integrity check.')
+                if comparison['comparison_status']!='Compared':
+                    blockers.append('SalCAPA: a source difference remains unresolved.')
+        technical_blockers=list(blockers)
+        blockers.extend((
+            'Independent qualified review and exact rendered/accessibility evidence are not recorded as approved.',
+            'Controlled report issue and authorized recipient delivery proof have not been accepted in production.',
+            'A qualified predecessor decision for a later package is not implemented.',
+        ))
+        return {'status':'Blocked','reports':[{ 'product':product,'report_id':row['id'],
+            'version_no':row['version_no'],'content_sha256':row['content_sha256'],'status':row['status']}
+            for product,row in reports.items()], 'blockers':blockers,'technical_blockers':technical_blockers,
+            'notice':'This is an internal checklist. It does not approve, issue or deliver a report.'}
+    finally: conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-issues')
+def issue_package_reports(assessment_id:int,p:PackageReportIssueIn,request:Request):
+    require_package_commercial_candidate();require(request,'decide')
+    ctx=auth_context(request)
+    if (role(request) not in ('System Administrator','Assessment Director')
+            or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'A named Salus report issuing authority is required.')
+    if set(p.report_ids)!=PACKAGE_REPORT_PRODUCTS or any(type(value) is not int or value<1 for value in p.report_ids.values()):
+        raise HTTPException(422,'Name the four exact product report IDs for this issue.')
+    assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    tid=tenant_id(request);conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        acceptance=conn.execute('''SELECT * FROM package_acceptances WHERE tenant_id=? AND assessment_id=?
+            AND quote_id=? ORDER BY id DESC LIMIT 1''',(tid,assessment_id,quote['id'])).fetchone()
+        if not acceptance or acceptance['member_user_id']!=p.recipient_user_id:
+            raise HTTPException(409,'The issue recipient must be the signed package decision owner.')
+        recipient=conn.execute('SELECT status,role FROM users WHERE id=? AND tenant_id=?',
+            (p.recipient_user_id,tid)).fetchone()
+        if not recipient or recipient['status']!='Active' or recipient['role']!='Client Executive':
+            raise HTTPException(409,'The approved Protected Member recipient is not active.')
+        readiness=package_release_readiness(assessment_id,request)
+        if readiness['technical_blockers']:
+            raise HTTPException(409,'Exact report release checks remain open: '+'; '.join(readiness['technical_blockers']))
+        reports={};snapshots={}
+        for product in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+            row=conn.execute('''SELECT * FROM package_product_report_versions WHERE tenant_id=?
+                AND assessment_id=? AND product=? ORDER BY version_no DESC LIMIT 1''',
+                (tid,assessment_id,product)).fetchone()
+            if (not row or row['id']!=p.report_ids[product] or row['quote_id']!=quote['id']
+                    or row['assessment_scope_sha256']!=quote['assessment_scope_sha256']
+                    or row['status'] not in ('Draft','Issued')):
+                raise HTTPException(409,f'{product}: the exact current report or package boundary changed.')
+            conformance=conn.execute('''SELECT * FROM package_report_conformance WHERE tenant_id=?
+                AND report_id=? ORDER BY id DESC LIMIT 1''',(tid,row['id'])).fetchone()
+            qa=conn.execute('''SELECT * FROM package_report_qa_evidence WHERE tenant_id=?
+                AND report_id=? ORDER BY id DESC LIMIT 1''',(tid,row['id'])).fetchone()
+            review=conn.execute('''SELECT * FROM package_report_qa_reviews WHERE tenant_id=?
+                AND report_id=? AND evidence_id=? ORDER BY id DESC LIMIT 1''',
+                (tid,row['id'],qa['id'] if qa else 0)).fetchone()
+            if not conformance or not qa or not review or review['decision']!='Reviewed':
+                raise HTTPException(409,f'{product}: exact conformance or independent review is missing.')
+            checks=json.loads(conformance['checks_json'])
+            if checks['qualified_review_and_release_authority']['status']!='Met':
+                raise HTTPException(409,f'{product}: qualified release authority is not marked met.')
+            manifest=json.loads(qa['manifest_json'])
+            snapshots[product]={'report_id':row['id'],'version_no':row['version_no'],
+                'content_sha256':row['content_sha256'],'pdf_sha256':manifest['pdf_sha256'],
+                'conformance_id':conformance['id'],'qa_evidence_id':qa['id'],'qa_review_id':review['id']}
+            reports[product]=row
+        comparison=conn.execute('''SELECT * FROM package_report_reconciliations WHERE tenant_id=?
+            AND salcapa_report_id=? ORDER BY id DESC LIMIT 1''',(tid,reports['SalCAPA']['id'])).fetchone()
+        if not comparison or comparison['comparison_status']!='Compared':
+            raise HTTPException(409,'The four-report source comparison is not complete.')
+        record={'assessment_id':assessment_id,'quote_id':quote['id'],
+            'assessment_scope_sha256':quote['assessment_scope_sha256'],
+            'recipient_user_id':p.recipient_user_id,'reports':snapshots,
+            'comparison_id':comparison['id'],'issue_basis':p.issue_basis.strip(),
+            'issued_by_user_id':ctx['user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('''SELECT id FROM package_report_issue_packets WHERE tenant_id=?
+            AND assessment_id=? AND record_sha256=?''',(tid,assessment_id,digest)).fetchone()
+        if prior: return {'id':prior['id'],'status':'Issued','record_sha256':digest,'idempotent':True}
+        if any(row['status']!='Draft' for row in reports.values()):
+            raise HTTPException(409,'An issued report cannot be silently reissued under a changed packet.')
+        previous=conn.execute('''SELECT id FROM package_report_issue_packets WHERE tenant_id=?
+            AND assessment_id=? ORDER BY id DESC LIMIT 1''',(tid,assessment_id)).fetchone()
+        cur=conn.execute('''INSERT INTO package_report_issue_packets
+            (tenant_id,assessment_id,quote_id,assessment_scope_sha256,recipient_user_id,
+             reports_json,comparison_id,issue_basis,record_sha256,issued_by_user_id,issued_at,supersedes_id)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,assessment_id,quote['id'],
+             quote['assessment_scope_sha256'],p.recipient_user_id,
+             json.dumps(snapshots,sort_keys=True,separators=(',',':')),comparison['id'],
+             record['issue_basis'],digest,ctx['user_id'],now(),previous['id'] if previous else None))
+        for row in reports.values():
+            conn.execute("UPDATE package_product_report_versions SET status='Issued' WHERE id=? AND status='Draft'",(row['id'],))
+        audit(conn,'PACKAGE_REPORT_ISSUE','assessment',assessment_id,
+            f'issue_id={cur.lastrowid}; quote_id={quote["id"]}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':'Issued','record_sha256':digest,'idempotent':False,
+            'notice':'The four exact reports are issued to the named recipient; download proof is recorded separately.'}
+    finally:
+        conn.rollback();conn.close()
+
+def verified_package_issue_record(row):
+    try:
+        reports=json.loads(row['reports_json'])
+        record={'assessment_id':row['assessment_id'],'quote_id':row['quote_id'],
+            'assessment_scope_sha256':row['assessment_scope_sha256'],
+            'recipient_user_id':row['recipient_user_id'],'reports':reports,
+            'comparison_id':row['comparison_id'],'issue_basis':row['issue_basis'],
+            'issued_by_user_id':row['issued_by_user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        if digest!=row['record_sha256'] or set(reports)!=PACKAGE_REPORT_PRODUCTS:
+            raise ValueError('issue digest or report set')
+    except (ValueError,TypeError,KeyError,AttributeError) as exc:
+        raise HTTPException(409,'The issued package failed integrity verification.') from exc
+    return reports
+
+def verified_package_issue(conn,issue_id:int,request:Request):
+    row=conn.execute('SELECT * FROM package_report_issue_packets WHERE id=? AND tenant_id=?',
+        (issue_id,tenant_id(request))).fetchone()
+    if not row: raise HTTPException(404,'Issued package not found.')
+    ctx=auth_context(request)
+    if (role(request)!='Client Executive' or ctx['auth_mode'] not in ('session','oidc')
+            or ctx.get('user_id')!=row['recipient_user_id']):
+        raise HTTPException(403,'This issued package is restricted to its named Protected Member recipient.')
+    assessment_row_for_request(request,row['assessment_id'])
+    return row,verified_package_issue_record(row)
+
+@app.get('/api/assessments/{assessment_id}/package-issues')
+def list_member_package_issues(assessment_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    ctx=auth_context(request)
+    if role(request)!='Client Executive' or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A signed-in Protected Member recipient is required.')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        rows=conn.execute('''SELECT id FROM package_report_issue_packets WHERE tenant_id=?
+            AND assessment_id=? AND recipient_user_id=? ORDER BY id''',
+            (tenant_id(request),assessment_id,ctx['user_id'])).fetchall()
+        result=[]
+        for item in rows:
+            issue,reports=verified_package_issue(conn,item['id'],request)
+            acknowledgment=conn.execute('''SELECT acknowledged_at FROM package_report_issue_acknowledgments
+                WHERE tenant_id=? AND issue_id=? AND recipient_user_id=?''',
+                (tenant_id(request),issue['id'],ctx['user_id'])).fetchone()
+            result.append({'id':issue['id'],'issued_at':issue['issued_at'],
+                'acknowledged_at':acknowledgment['acknowledged_at'] if acknowledgment else None,
+                'reports':{product:{'report_id':value['report_id'],'version_no':value['version_no']}
+                    for product,value in reports.items()}})
+        return {'issues':result,'notice':'Download the exact issued documents for your authorized package.'}
+    finally: conn.close()
+
+@app.get('/api/package-issues/{issue_id}/reports/{product}.{format}')
+def download_issued_package_report(issue_id:int,product:str,format:str,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if product not in PACKAGE_REPORT_PRODUCTS or format not in ('docx','pdf'):
+        raise HTTPException(404,'Unknown issued report format.')
+    conn=db()
+    try:
+        issue,reports=verified_package_issue(conn,issue_id,request)
+        snapshot=reports[product]
+        report=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (snapshot['report_id'],tenant_id(request))).fetchone()
+        if (not report or report['assessment_id']!=issue['assessment_id']
+                or report['quote_id']!=issue['quote_id'] or report['product']!=product
+                or report['status']!='Issued' or report['content_sha256']!=snapshot['content_sha256']):
+            raise HTTPException(409,'The issued report no longer matches its release record.')
+        try:
+            if format=='docx':
+                content=storage.get_bytes(report['stored_name']);expected=snapshot['content_sha256']
+            else:
+                evidence=conn.execute('SELECT * FROM package_report_qa_evidence WHERE id=? AND tenant_id=?',
+                    (snapshot['qa_evidence_id'],tenant_id(request))).fetchone()
+                if not evidence or evidence['report_id']!=report['id'] or evidence['archive_sha256']=='':
+                    raise HTTPException(409,'The issued PDF evidence is missing.')
+                archive=storage.get_bytes(evidence['stored_name'])
+                if hashlib.sha256(archive).hexdigest()!=evidence['archive_sha256']:
+                    raise HTTPException(409,'The issued PDF archive failed integrity verification.')
+                with zipfile.ZipFile(io.BytesIO(archive)) as z: content=z.read('rendered.pdf')
+                expected=snapshot['pdf_sha256']
+        except HTTPException: raise
+        except Exception as exc: raise HTTPException(503,'The issued report is unavailable.') from exc
+        if hashlib.sha256(content).hexdigest()!=expected:
+            security_event(request,'PACKAGE_ISSUED_REPORT_HASH_MISMATCH','High',f'issue_id={issue_id}; product={product}')
+            raise HTTPException(409,'The issued report failed integrity verification.')
+        conn.execute('''INSERT INTO package_report_issue_deliveries
+            (tenant_id,assessment_id,issue_id,report_id,product,format,content_sha256,
+             recipient_user_id,downloaded_at) VALUES(?,?,?,?,?,?,?,?,?)''',
+            (tenant_id(request),issue['assessment_id'],issue_id,report['id'],product,format,
+             expected,issue['recipient_user_id'],now()))
+        audit(conn,'PACKAGE_REPORT_DOWNLOAD','assessment',issue['assessment_id'],
+            f'issue_id={issue_id}; report_id={report["id"]}; format={format}; sha256={expected}',actor(request))
+        conn.commit()
+        media=('application/pdf' if format=='pdf' else
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        filename=safe_filename(report['display_title'])+'.'+format
+        return Response(content=content,media_type=media,headers={
+            'Content-Disposition':f'attachment; filename="{filename}"',
+            'X-Content-SHA256':expected,'Cache-Control':'no-store'})
+    finally:
+        conn.rollback();conn.close()
+
+@app.post('/api/package-issues/{issue_id}/acknowledgment')
+def acknowledge_issued_package(issue_id:int,p:PackageReportAcknowledgmentIn,request:Request):
+    require_package_commercial_candidate()
+    require_protected_member_authority(request,'package_report_acknowledgment')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A signed-in Protected Member recipient is required.')
+    conn=db()
+    try:
+        issue,reports=verified_package_issue(conn,issue_id,request)
+        lock_package_assessment(conn,issue['assessment_id'])
+        issue,reports=verified_package_issue(conn,issue_id,request)
+        if p.issue_sha256!=issue['record_sha256']:
+            raise HTTPException(409,'The issued package version changed. Review its current documents.')
+        note=p.acknowledgment_note.strip()
+        if len(note)<20:
+            raise HTTPException(422,'Give a meaningful receipt and limitations acknowledgment.')
+        record={'issue_id':issue_id,'issue_sha256':p.issue_sha256,
+            'recipient_user_id':ctx['user_id'],'acknowledgment_note':note,
+            'idempotency_key':p.idempotency_key}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('''SELECT * FROM package_report_issue_acknowledgments
+            WHERE tenant_id=? AND (issue_id=? OR idempotency_key=?)''',
+            (tenant_id(request),issue_id,p.idempotency_key)).fetchone()
+        if prior:
+            if (prior['issue_id']==issue_id and prior['recipient_user_id']==ctx['user_id']
+                    and prior['record_sha256']==digest):
+                return {'id':prior['id'],'status':'Acknowledged','record_sha256':digest,
+                    'acknowledged_at':prior['acknowledged_at'],'idempotent':True}
+            raise HTTPException(409,'This issue or acknowledgment key already has another decision.')
+        downloads=conn.execute('''SELECT product,format,report_id,content_sha256
+            FROM package_report_issue_deliveries WHERE tenant_id=? AND issue_id=?
+            AND recipient_user_id=?''',(tenant_id(request),issue_id,ctx['user_id'])).fetchall()
+        downloaded=set()
+        for item in downloads:
+            snapshot=reports.get(item['product'])
+            if (snapshot and item['report_id']==snapshot['report_id']
+                    and item['content_sha256']==snapshot['content_sha256' if item['format']=='docx' else 'pdf_sha256']):
+                downloaded.add(item['product'])
+        missing=PACKAGE_REPORT_PRODUCTS-downloaded
+        if missing:
+            raise HTTPException(409,'Download each of the four exact issued reports before acknowledging receipt: '+', '.join(sorted(missing)))
+        ts=now()
+        cur=conn.execute('''INSERT INTO package_report_issue_acknowledgments
+            (tenant_id,assessment_id,issue_id,issue_sha256,recipient_user_id,
+             acknowledgment_note,idempotency_key,record_sha256,acknowledged_at)
+            VALUES(?,?,?,?,?,?,?,?,?)''',(tenant_id(request),issue['assessment_id'],issue_id,
+             p.issue_sha256,ctx['user_id'],note,p.idempotency_key,digest,ts))
+        audit(conn,'PACKAGE_REPORT_ACKNOWLEDGMENT','assessment',issue['assessment_id'],
+            f'issue_id={issue_id}; acknowledgment_id={cur.lastrowid}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':'Acknowledged','record_sha256':digest,
+            'acknowledged_at':ts,'idempotent':False,
+            'notice':'Your receipt and review of the stated report limitations are recorded. This does not accept risk or authorize further services.'}
+    finally:
+        conn.rollback();conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-predecessor-qualifications')
+def qualify_package_predecessor(assessment_id:int,p:PackagePredecessorQualificationIn,request:Request):
+    require_package_commercial_candidate();require(request,'decide')
+    ctx=auth_context(request)
+    if (role(request) not in ('System Administrator','Assessment Director')
+            or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'A named Salus qualification reviewer is required.')
+    assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    conn=db();tid=tenant_id(request)
+    try:
+        lock_package_assessment(conn,assessment_id)
+        issue=conn.execute('''SELECT * FROM package_report_issue_packets WHERE tenant_id=?
+            AND assessment_id=? ORDER BY id DESC LIMIT 1''',(tid,assessment_id)).fetchone()
+        if not issue or issue['record_sha256']!=p.issue_sha256:
+            raise HTTPException(409,'Qualify only the latest exact four-report issue.')
+        reports=verified_package_issue_record(issue)
+        if issue['issued_by_user_id']==ctx['user_id']:
+            raise HTTPException(403,'The issue authority cannot independently qualify the same package.')
+        acknowledgment=conn.execute('''SELECT * FROM package_report_issue_acknowledgments
+            WHERE id=? AND tenant_id=? AND issue_id=?''',(p.acknowledgment_id,tid,issue['id'])).fetchone()
+        if not acknowledgment or acknowledgment['recipient_user_id']!=issue['recipient_user_id']:
+            raise HTTPException(409,'The named Member receipt acknowledgment is missing.')
+        acknowledgment_record={key:acknowledgment[key] for key in
+            ('issue_id','issue_sha256','recipient_user_id','acknowledgment_note','idempotency_key')}
+        acknowledgment_digest=hashlib.sha256(json.dumps(acknowledgment_record,
+            sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        if (acknowledgment['issue_sha256']!=issue['record_sha256']
+                or acknowledgment_digest!=acknowledgment['record_sha256']):
+            raise HTTPException(409,'The Member acknowledgment failed integrity verification.')
+        quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=?',
+            (issue['quote_id'],tid)).fetchone()
+        if not quote or quote['assessment_id']!=assessment_id:
+            raise HTTPException(409,'The predecessor quote is unavailable.')
+        verified_package_quote(conn,quote,request)
+        if (quote['assessment_scope_sha256']!=issue['assessment_scope_sha256']
+                or quote['level'] not in (1,2)):
+            raise HTTPException(409,'Only an exact issued Level 1 or Level 2 package can qualify its successor.')
+        for product,snapshot in reports.items():
+            report=conn.execute('''SELECT * FROM package_product_report_versions
+                WHERE tenant_id=? AND assessment_id=? AND product=? ORDER BY version_no DESC LIMIT 1''',
+                (tid,assessment_id,product)).fetchone()
+            if (not report or report['id']!=snapshot['report_id'] or report['status']!='Issued'
+                    or report['quote_id']!=quote['id']
+                    or report['content_sha256']!=snapshot['content_sha256']):
+                raise HTTPException(409,f'{product}: a later or changed report prevents predecessor qualification.')
+        basis=p.qualification_basis.strip();limitations=p.limitations_disposition.strip()
+        if len(basis)<40 or len(limitations)<40:
+            raise HTTPException(422,'Record the independent qualification basis and unresolved limitations.')
+        record={'assessment_id':assessment_id,'issue_id':issue['id'],
+            'issue_sha256':issue['record_sha256'],'acknowledgment_id':acknowledgment['id'],
+            'acknowledgment_sha256':acknowledgment['record_sha256'],'quote_id':quote['id'],
+            'level':quote['level'],'band':quote['band'],
+            'covered_operation':quote['covered_operation'],'exclusions':quote['exclusions'],
+            'assessment_scope_sha256':quote['assessment_scope_sha256'],
+            'qualification_basis':basis,'limitations_disposition':limitations,
+            'reviewer_user_id':ctx['user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('''SELECT * FROM package_predecessor_qualifications
+            WHERE tenant_id=? AND issue_id=?''',(tid,issue['id'])).fetchone()
+        if prior:
+            if prior['record_sha256']==digest:
+                return {'id':prior['id'],'status':'Qualified','record_sha256':digest,
+                    'qualified_at':prior['qualified_at'],'idempotent':True}
+            raise HTTPException(409,'This issued package already has a different qualification decision.')
+        ts=now();fields=['tenant_id']+list(record)+['record_sha256','qualified_at']
+        values=[tid]+list(record.values())+[digest,ts]
+        cur=conn.execute(f"INSERT INTO package_predecessor_qualifications({','.join(fields)}) VALUES({','.join('?' for _ in fields)})",values)
+        audit(conn,'PACKAGE_PREDECESSOR_QUALIFY','assessment',assessment_id,
+            f'qualification_id={cur.lastrowid}; issue_id={issue["id"]}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':'Qualified','record_sha256':digest,
+            'qualified_at':ts,'idempotent':False,
+            'notice':'This records a predecessor review. A later quote still needs an exact-scope prerequisite check and separate authorization.'}
+    finally:
+        conn.rollback();conn.close()
+
+@app.post('/api/assessments/{assessment_id}/package-reports/{product}/draft')
+async def register_package_product_draft(assessment_id:int,product:str,request:Request,
+        file:UploadFile=File(...),method_version:str=Form(...),template_version:str=Form(...)):
+    require_package_commercial_candidate();require(request,'write');require_salus_component_authority(request,'Package report')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'A Salus report owner must register a working report.')
+    if product not in PACKAGE_REPORT_PRODUCTS: raise HTTPException(404,'Unknown package report product.')
+    assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    method_version=method_version.strip();template_version=template_version.strip()
+    if not method_version or not template_version or len(method_version)>120 or len(template_version)>120:
+        raise HTTPException(422,'Name the exact method and template versions for this working draft.')
+    original=safe_filename(file.filename or '')
+    if not original.lower().endswith('.docx'): raise HTTPException(422,'A working package report must be a Word .docx file.')
+    content=await file.read(10*1024*1024+1)
+    check_package_docx(content)
+    scan=scan_bytes(content,original)
+    if not scan['ok'] or scan['status']!='Clean':
+        raise HTTPException(422 if scan['status']=='Infected' else 503,'The draft Word report could not pass the file security check.')
+    digest=hashlib.sha256(content).hexdigest();tid=tenant_id(request);conn=db();stored=''
+    try:
+        lock_package_assessment(conn,assessment_id)
+        quote=authorized_package_intake(conn,assessment_id,request)
+        existing=conn.execute('''SELECT * FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+            AND quote_id=? AND product=? AND content_sha256=? AND method_version=? AND template_version=?''',
+            (tid,assessment_id,quote['id'],product,digest,method_version,template_version)).fetchone()
+        if existing:
+            return {key:existing[key] for key in ('id','product','report_identity','display_title','version_no','content_sha256','status')}
+        previous=conn.execute('''SELECT id,version_no FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+            AND product=? ORDER BY version_no DESC LIMIT 1''',(tid,assessment_id,product)).fetchone()
+        version=previous['version_no']+1 if previous else 1
+        identity=f'PKG-{assessment_id}-{product}'
+        assessment=conn.execute('SELECT organization FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tid)).fetchone()
+        suffix=f' Level {quote["level"]}{quote["band"]}'
+        if quote['level']==1 and quote['band']=='A': suffix+=f' {quote["variant"]}'
+        display_title=f'{assessment["organization"]} - {product}{suffix}'
+        stored=f'tenant-{tid}/assessment-{assessment_id}/package-reports/{product}/{uuid.uuid4().hex}_{digest[:16]}.docx'
+        storage.put_bytes(stored,content)
+        retention_until=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
+        cur=conn.execute('''INSERT INTO package_product_report_versions
+            (tenant_id,assessment_id,quote_id,product,report_identity,display_title,version_no,assessment_scope_sha256,
+             method_version,template_version,original_name,stored_name,content_sha256,size_bytes,status,retention_until,legal_hold,disposition_status,created_by,created_at,supersedes_id)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,'Draft',?,0,'Active',?,?,?)''',
+            (tid,assessment_id,quote['id'],product,identity,display_title,version,quote['assessment_scope_sha256'],
+             method_version,template_version,original,stored,digest,len(content),retention_until,actor(request),now(),previous['id'] if previous else None))
+        audit(conn,'PACKAGE_REPORT_DRAFT','assessment',assessment_id,f'product={product}; version={version}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'product':product,'report_identity':identity,'display_title':display_title,'version_no':version,'content_sha256':digest,'status':'Draft'}
+    except Exception as exc:
+        conn.rollback()
+        if stored:
+            try: storage.delete(stored)
+            except Exception: pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8);record_internal_failure('package report draft',error_id,exc)
+        raise HTTPException(503,f'Working report storage is unavailable. Reference: {error_id}') from exc
+    finally: conn.close()
+
+@app.get('/api/package-reports/{report_id}/draft.docx')
+def download_package_product_draft(report_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES: raise HTTPException(403,'Working reports are restricted to assigned Salus report owners.')
+    conn=db()
+    try:
+        row=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',(report_id,tenant_id(request))).fetchone()
+    finally: conn.close()
+    if not row: raise HTTPException(404,'Working report not found.')
+    assessment_row_for_request(request,row['assessment_id']);require_package_report_assignment(request,row['assessment_id'])
+    try: content=storage.get_bytes(row['stored_name'])
+    except Exception as exc: raise HTTPException(503,'Working report storage is unavailable.') from exc
+    if hashlib.sha256(content).hexdigest()!=row['content_sha256']:
+        security_event(request,'PACKAGE_REPORT_DRAFT_HASH_MISMATCH','High',f'report_id={report_id}')
+        raise HTTPException(409,'Working report integrity verification failed.')
+    return Response(content=content,media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        headers={'Content-Disposition':f'attachment; filename="{safe_filename(row["original_name"])}"',
+                 'X-Content-SHA256':row['content_sha256'],'Cache-Control':'no-store'})
+
+@app.get('/api/package-reports/{report_id}/conformance')
+def list_package_report_conformance(report_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES: raise HTTPException(403,'Working report conformance is restricted to Salus report owners.')
+    conn=db()
+    try:
+        report=conn.execute('SELECT assessment_id FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not report: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        rows=[dict(row) for row in conn.execute('SELECT * FROM package_report_conformance WHERE tenant_id=? AND report_id=? ORDER BY id',
+            (tenant_id(request),report_id))]
+        for row in rows: row['checks']=json.loads(row.pop('checks_json'))
+        return {'records':rows,'required_checks':PACKAGE_REPORT_QA_KEYS,
+            'notice':'A recorded matrix does not approve, issue or qualify a package report.'}
+    finally: conn.close()
+
+@app.get('/api/package-reports/{report_id}/qa-evidence')
+def list_package_report_qa_evidence(report_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Report QA evidence is restricted to assigned Salus report owners.')
+    conn=db()
+    try:
+        report=conn.execute('SELECT assessment_id FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not report: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        rows=[dict(row) for row in conn.execute('''SELECT id,report_id,content_sha256,archive_sha256,
+            archive_size_bytes,manifest_json,manifest_sha256,status,retention_until,legal_hold,submitted_by,submitted_at
+            FROM package_report_qa_evidence WHERE tenant_id=? AND report_id=? ORDER BY id''',
+            (tenant_id(request),report_id))]
+        for row in rows: row['manifest']=json.loads(row.pop('manifest_json'))
+        return {'records':rows,'notice':'Submitted QA evidence is not independent review or release approval.'}
+    finally: conn.close()
+
+@app.post('/api/package-reports/{report_id}/qa-evidence')
+async def submit_package_report_qa_evidence(report_id:int,request:Request,file:UploadFile=File(...)):
+    require_package_commercial_candidate();require(request,'write');require_salus_component_authority(request,'Package report QA')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'A Salus report owner must submit QA evidence.')
+    original=safe_filename(file.filename or '')
+    if not original.lower().endswith('.zip'): raise HTTPException(422,'Report QA evidence must be a ZIP archive.')
+    content=await file.read(50*1024*1024+1)
+    if len(content)>50*1024*1024: raise HTTPException(413,'Report QA archive exceeds 50 MB.')
+    tid=tenant_id(request);conn=db();stored=''
+    try:
+        report=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',(report_id,tid)).fetchone()
+        if not report: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        lock_package_assessment(conn,report['assessment_id'])
+        quote=authorized_package_intake(conn,report['assessment_id'],request)
+        latest=conn.execute('''SELECT id FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+            AND product=? ORDER BY version_no DESC LIMIT 1''',(tid,report['assessment_id'],report['product'])).fetchone()
+        if (report['status']!='Draft' or latest['id']!=report_id or report['quote_id']!=quote['id']
+                or report['assessment_scope_sha256']!=quote['assessment_scope_sha256']):
+            raise HTTPException(409,'QA evidence must name the current working report and authorized package.')
+        try: word=storage.get_bytes(report['stored_name'])
+        except Exception as exc: raise HTTPException(503,'Working report storage is unavailable.') from exc
+        if hashlib.sha256(word).hexdigest()!=report['content_sha256']:
+            raise HTTPException(409,'The working Word report failed integrity verification.')
+        manifest_json,pdf=inspect_package_qa_archive(content,report['content_sha256'])
+        for name,data in ((original,content),('rendered.pdf',pdf)):
+            scan=scan_bytes(data,name)
+            if not scan['ok'] or scan['status']!='Clean':
+                raise HTTPException(422 if scan['status']=='Infected' else 503,'Report QA evidence could not pass the file security check.')
+        digest=hashlib.sha256(content).hexdigest()
+        prior=conn.execute('SELECT id,status FROM package_report_qa_evidence WHERE tenant_id=? AND report_id=? AND archive_sha256=?',
+            (tid,report_id,digest)).fetchone()
+        if prior: return {'id':prior['id'],'status':prior['status'],'archive_sha256':digest,'idempotent':True}
+        stored=f'tenant-{tid}/assessment-{report["assessment_id"]}/package-report-qa/{report_id}/{uuid.uuid4().hex}_{digest[:16]}.zip'
+        storage.put_bytes(stored,content)
+        retention_until=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS))).replace(microsecond=0).isoformat().replace('+00:00','Z')
+        cur=conn.execute('''INSERT INTO package_report_qa_evidence
+            (tenant_id,assessment_id,report_id,content_sha256,stored_name,archive_sha256,archive_size_bytes,
+             manifest_json,manifest_sha256,status,retention_until,legal_hold,submitted_by,submitted_user_id,submitted_at)
+            VALUES(?,?,?,?,?,?,?,?,?,'Submitted',?,0,?,?,?)''',
+            (tid,report['assessment_id'],report_id,report['content_sha256'],stored,digest,len(content),
+             manifest_json,hashlib.sha256(manifest_json.encode()).hexdigest(),retention_until,actor(request),
+             auth_context(request).get('user_id'),now()))
+        audit(conn,'PACKAGE_REPORT_QA_SUBMISSION','assessment',report['assessment_id'],
+            f'report_id={report_id}; archive_sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':'Submitted','archive_sha256':digest,'idempotent':False,
+            'notice':'Archive integrity was screened. Independent QA and issue authority remain open.'}
+    except Exception as exc:
+        conn.rollback()
+        if stored:
+            try: storage.delete(stored)
+            except Exception: pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8);record_internal_failure('package report QA evidence',error_id,exc)
+        raise HTTPException(503,f'Report QA evidence storage is unavailable. Reference: {error_id}') from exc
+    finally: conn.close()
+
+@app.get('/api/package-report-qa/{evidence_id}/archive.zip')
+def download_package_report_qa_evidence(evidence_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Report QA evidence is restricted to assigned Salus report owners.')
+    conn=db()
+    try: row=conn.execute('SELECT * FROM package_report_qa_evidence WHERE id=? AND tenant_id=?',
+        (evidence_id,tenant_id(request))).fetchone()
+    finally: conn.close()
+    if not row: raise HTTPException(404,'Report QA evidence not found.')
+    assessment_row_for_request(request,row['assessment_id'])
+    require_package_report_assignment(request,row['assessment_id'])
+    try: content=storage.get_bytes(row['stored_name'])
+    except Exception as exc: raise HTTPException(503,'Report QA evidence storage is unavailable.') from exc
+    if hashlib.sha256(content).hexdigest()!=row['archive_sha256']:
+        security_event(request,'PACKAGE_REPORT_QA_HASH_MISMATCH','High',f'evidence_id={evidence_id}')
+        raise HTTPException(409,'Report QA archive integrity verification failed.')
+    return Response(content=content,media_type='application/zip',headers={
+        'Content-Disposition':f'attachment; filename="package-report-qa-{evidence_id}.zip"',
+        'X-Content-SHA256':row['archive_sha256'],'Cache-Control':'no-store'})
+
+@app.get('/api/package-reports/{report_id}/qa-reviews')
+def list_package_report_qa_reviews(report_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Report QA reviews are restricted to assigned Salus report owners.')
+    conn=db()
+    try:
+        report=conn.execute('SELECT assessment_id FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not report: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        rows=[dict(row) for row in conn.execute('''SELECT id,report_id,evidence_id,content_sha256,
+            archive_sha256,decision,checks_json,qualification_basis,review_note,record_sha256,
+            reviewer_user_id,reviewer_at FROM package_report_qa_reviews
+            WHERE tenant_id=? AND report_id=? ORDER BY id''',(tenant_id(request),report_id))]
+        for row in rows: row['checks']=json.loads(row.pop('checks_json'))
+        return {'records':rows,'notice':'A review record does not issue or deliver a report.'}
+    finally: conn.close()
+
+@app.post('/api/package-reports/{report_id}/qa-reviews')
+def record_package_report_qa_review(report_id:int,p:PackageReportQaReviewIn,request:Request):
+    require_package_commercial_candidate();require(request,'decide')
+    ctx=auth_context(request)
+    if (role(request) not in ('System Administrator','Assessment Director')
+            or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'An authenticated Salus review decision owner is required.')
+    if set(p.checks)!=set(PACKAGE_REPORT_REVIEW_KEYS) or any(type(value) is not bool for value in p.checks.values()):
+        raise HTTPException(422,'Record each required report review check as true or false.')
+    if p.decision=='Reviewed' and not all(p.checks.values()):
+        raise HTTPException(422,'Return the report when a review check remains incomplete.')
+    tid=tenant_id(request);conn=db()
+    try:
+        report=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',(report_id,tid)).fetchone()
+        if not report: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        lock_package_assessment(conn,report['assessment_id'])
+        quote=authorized_package_intake(conn,report['assessment_id'],request)
+        latest=conn.execute('''SELECT id FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+            AND product=? ORDER BY version_no DESC LIMIT 1''',(tid,report['assessment_id'],report['product'])).fetchone()
+        if (report['status']!='Draft' or latest['id']!=report_id or report['quote_id']!=quote['id']
+                or report['assessment_scope_sha256']!=quote['assessment_scope_sha256']):
+            raise HTTPException(409,'The review must name the current authorized working report.')
+        evidence=conn.execute('''SELECT * FROM package_report_qa_evidence WHERE id=? AND tenant_id=?
+            AND report_id=?''',(p.evidence_id,tid,report_id)).fetchone()
+        if not evidence or evidence['content_sha256']!=report['content_sha256']:
+            raise HTTPException(409,'The review must name QA evidence for this exact Word version.')
+        newest=conn.execute('''SELECT id FROM package_report_qa_evidence WHERE tenant_id=? AND report_id=?
+            ORDER BY id DESC LIMIT 1''',(tid,report_id)).fetchone()
+        if newest['id']!=p.evidence_id:
+            raise HTTPException(409,'The review must use the current QA archive for this report.')
+        if not evidence['submitted_user_id'] or evidence['submitted_user_id']==ctx['user_id']:
+            raise HTTPException(409,'Independent review requires a different authenticated evidence submitter.')
+        try:
+            word=storage.get_bytes(report['stored_name'])
+            archive=storage.get_bytes(evidence['stored_name'])
+        except Exception as exc: raise HTTPException(503,'Exact report review evidence is unavailable.') from exc
+        if (hashlib.sha256(word).hexdigest()!=report['content_sha256']
+                or hashlib.sha256(archive).hexdigest()!=evidence['archive_sha256']):
+            raise HTTPException(409,'Exact report review evidence failed integrity verification.')
+        manifest_json,_=inspect_package_qa_archive(archive,report['content_sha256'])
+        if hashlib.sha256(manifest_json.encode()).hexdigest()!=evidence['manifest_sha256']:
+            raise HTTPException(409,'The report QA manifest failed integrity verification.')
+        manifest=json.loads(manifest_json)
+        if p.decision=='Reviewed' and (not all(page['checked_full_size'] for page in manifest['pages'])
+                or any(manifest[key]!='Checked' for key in ('native_word','accessibility','parity'))):
+            raise HTTPException(409,'The QA archive still records pending page or format checks.')
+        checks={key:p.checks[key] for key in PACKAGE_REPORT_REVIEW_KEYS}
+        record={'report_id':report_id,'evidence_id':p.evidence_id,'content_sha256':report['content_sha256'],
+            'archive_sha256':evidence['archive_sha256'],'decision':p.decision,'checks':checks,
+            'qualification_basis':p.qualification_basis.strip(),'review_note':p.review_note.strip(),
+            'reviewer_user_id':ctx['user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('SELECT id FROM package_report_qa_reviews WHERE tenant_id=? AND evidence_id=? AND record_sha256=?',
+            (tid,p.evidence_id,digest)).fetchone()
+        if prior: return {'id':prior['id'],'decision':p.decision,'record_sha256':digest,'idempotent':True}
+        cur=conn.execute('''INSERT INTO package_report_qa_reviews
+            (tenant_id,assessment_id,report_id,evidence_id,content_sha256,archive_sha256,decision,
+             checks_json,qualification_basis,review_note,record_sha256,reviewer_user_id,reviewer_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)''',(tid,report['assessment_id'],report_id,p.evidence_id,
+             report['content_sha256'],evidence['archive_sha256'],p.decision,
+             json.dumps(checks,sort_keys=True,separators=(',',':')),record['qualification_basis'],
+             record['review_note'],digest,ctx['user_id'],now()))
+        audit(conn,'PACKAGE_REPORT_QA_REVIEW','assessment',report['assessment_id'],
+            f'report_id={report_id}; evidence_id={p.evidence_id}; decision={p.decision}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'decision':p.decision,'record_sha256':digest,'idempotent':False,
+            'notice':'This review record does not issue, deliver or qualify a later package.'}
+    finally:
+        conn.rollback();conn.close()
+
+@app.patch('/api/package-reports/{report_id}/retention')
+def extend_package_report_retention(report_id:int,p:PackageReportRetentionIn,request:Request):
+    require_package_commercial_candidate();require(request,'decide')
+    if role(request) not in {'System Administrator','Assessment Director'}:
+        raise HTTPException(403,'Package report retention requires a Salus decision owner.')
+    if p.retention_until is None and p.legal_hold is None:
+        raise HTTPException(422,'Extend retention or place a legal hold.')
+    new_until=None
+    if p.retention_until is not None:
+        try:
+            parsed=datetime.fromisoformat(p.retention_until.replace('Z','+00:00'))
+            if parsed.tzinfo is None: raise ValueError('Timezone required')
+            if parsed.astimezone(timezone.utc)<=_iso_now_dt():
+                raise HTTPException(422,'Extended retention must end in the future.')
+            new_until=parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+        except ValueError as exc: raise HTTPException(422,'Use an explicit UTC retention timestamp.') from exc
+    conn=db()
+    try:
+        row=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not row: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,row['assessment_id'])
+        require_package_report_assignment(request,row['assessment_id'])
+        lock_package_assessment(conn,row['assessment_id'])
+        if new_until and row['retention_until'] and new_until<row['retention_until']:
+            raise HTTPException(409,'Working report retention cannot be shortened through this route.')
+        target_until=new_until or row['retention_until']
+        target_hold=1 if p.legal_hold else row['legal_hold']
+        if target_until!=row['retention_until'] or target_hold!=row['legal_hold']:
+            conn.execute('UPDATE package_product_report_versions SET retention_until=?,legal_hold=? WHERE id=?',
+                (target_until,target_hold,report_id))
+            audit(conn,'PACKAGE_REPORT_RETENTION','assessment',row['assessment_id'],
+                f'report_id={report_id}; retention_until={target_until}; legal_hold={target_hold}; reason={p.reason.strip()}',actor(request))
+            conn.commit()
+        return {'id':report_id,'retention_until':target_until,'legal_hold':bool(target_hold),
+            'notice':'This route cannot delete a report or clear a legal hold.'}
+    finally: conn.close()
+
+@app.post('/api/package-reports/{report_id}/conformance')
+def record_package_report_conformance(report_id:int,p:PackageReportConformanceIn,request:Request):
+    require_package_commercial_candidate();require(request,'write')
+    if role(request) not in {'System Administrator','Assessment Director'}:
+        raise HTTPException(403,'A Salus report reviewer must record the conformance matrix.')
+    if set(p.checks)!=set(PACKAGE_REPORT_QA_KEYS):
+        raise HTTPException(422,'The report conformance matrix requires every current Charter check.')
+    for key,item in p.checks.items():
+        if set(item)!={'status','reason'} or item['status'] not in ('Met','Pending','Not applicable') or not 8<=len(item['reason'].strip())<=2000:
+            raise HTTPException(422,f'{key} needs a valid status and a specific evidence, gate or applicability reason.')
+    conn=db()
+    try:
+        row=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not row: raise HTTPException(404,'Working report not found.')
+        assessment_row_for_request(request,row['assessment_id'])
+        require_package_report_assignment(request,row['assessment_id'])
+        lock_package_assessment(conn,row['assessment_id'])
+        quote=authorized_package_intake(conn,row['assessment_id'],request)
+        if quote['id']!=row['quote_id'] or quote['assessment_scope_sha256']!=row['assessment_scope_sha256']:
+            raise HTTPException(409,'The working report belongs to a changed package boundary.')
+        if p.content_sha256!=row['content_sha256'] or row['status']!='Draft':
+            raise HTTPException(409,'The conformance record must bind to the exact named working document.')
+        try: content=storage.get_bytes(row['stored_name'])
+        except Exception as exc: raise HTTPException(503,'Working report storage is unavailable.') from exc
+        if hashlib.sha256(content).hexdigest()!=row['content_sha256']:
+            security_event(request,'PACKAGE_REPORT_QA_HASH_MISMATCH','High',f'report_id={report_id}')
+            raise HTTPException(409,'Working report integrity verification failed.')
+        checks_json=json.dumps({key:p.checks[key] for key in PACKAGE_REPORT_QA_KEYS},sort_keys=True,separators=(',',':'))
+        summary=p.summary.strip()
+        record_sha=hashlib.sha256(json.dumps({'report_id':report_id,'content_sha256':p.content_sha256,
+            'checks':json.loads(checks_json),'summary':summary},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('SELECT * FROM package_report_conformance WHERE record_sha256=? AND tenant_id=?',
+            (record_sha,tenant_id(request))).fetchone()
+        if prior: return {'id':prior['id'],'matrix_status':prior['matrix_status'],'record_sha256':record_sha,'idempotent':True}
+        matrix_status='Open' if any(item['status']=='Pending' for item in p.checks.values()) else 'Marked'
+        cur=conn.execute('''INSERT INTO package_report_conformance
+            (tenant_id,assessment_id,report_id,content_sha256,checks_json,summary,matrix_status,record_sha256,recorded_by,recorded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?)''',(tenant_id(request),row['assessment_id'],report_id,p.content_sha256,
+            checks_json,summary,matrix_status,record_sha,actor(request),now()))
+        audit(conn,'PACKAGE_REPORT_CONFORMANCE','assessment',row['assessment_id'],
+            f'report_id={report_id}; matrix={matrix_status}; sha256={record_sha}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'matrix_status':matrix_status,'record_sha256':record_sha,'idempotent':False,
+            'notice':'This record does not approve, issue or qualify the report.'}
+    finally: conn.close()
+
+@app.get('/api/package-reports/{report_id}/source-reconciliation')
+def list_package_report_reconciliation(report_id:int,request:Request):
+    require_package_commercial_candidate();require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Working report reconciliation is restricted to Salus report owners.')
+    conn=db()
+    try:
+        report=conn.execute('SELECT assessment_id,product FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tenant_id(request))).fetchone()
+        if not report or report['product']!='SalCAPA': raise HTTPException(404,'Working SalCAPA report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        rows=[dict(row) for row in conn.execute('SELECT * FROM package_report_reconciliations WHERE tenant_id=? AND salcapa_report_id=? ORDER BY id',
+            (tenant_id(request),report_id))]
+        for row in rows: row['sources']=json.loads(row.pop('sources_json'))
+        return {'records':rows,'notice':'A source comparison is not qualified review, issue or predecessor proof.'}
+    finally: conn.close()
+
+@app.post('/api/package-reports/{report_id}/source-reconciliation')
+def record_package_report_reconciliation(report_id:int,p:PackageReportReconciliationIn,request:Request):
+    require_package_commercial_candidate();require(request,'write')
+    if role(request) not in {'System Administrator','Assessment Director'}:
+        raise HTTPException(403,'A Salus report reviewer must record the source comparison.')
+    if set(p.sources)!={'SalINTEL','SalTHIRA','SalOPS'}:
+        raise HTTPException(422,'Compare SalCAPA with each of its three exact source reports.')
+    tid=tenant_id(request);conn=db()
+    try:
+        report=conn.execute('SELECT * FROM package_product_report_versions WHERE id=? AND tenant_id=?',
+            (report_id,tid)).fetchone()
+        if not report or report['product']!='SalCAPA': raise HTTPException(404,'Working SalCAPA report not found.')
+        assessment_row_for_request(request,report['assessment_id'])
+        require_package_report_assignment(request,report['assessment_id'])
+        lock_package_assessment(conn,report['assessment_id'])
+        quote=authorized_package_intake(conn,report['assessment_id'],request)
+        if (quote['id']!=report['quote_id'] or quote['assessment_scope_sha256']!=report['assessment_scope_sha256']
+                or report['status']!='Draft' or p.salcapa_sha256!=report['content_sha256']):
+            raise HTTPException(409,'The SalCAPA document or authorized package boundary changed.')
+        selected={'SalCAPA':report}
+        for product in ('SalINTEL','SalTHIRA','SalOPS'):
+            source=conn.execute('''SELECT * FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+                AND product=? ORDER BY version_no DESC LIMIT 1''',(tid,report['assessment_id'],product)).fetchone()
+            supplied=p.sources[product]
+            if (not source or source['id']!=supplied.report_id or source['content_sha256']!=supplied.content_sha256
+                    or source['quote_id']!=quote['id'] or source['assessment_scope_sha256']!=report['assessment_scope_sha256']
+                    or source['status']!='Draft'):
+                raise HTTPException(409,f'The current {product} source version or package boundary changed.')
+            selected[product]=source
+        latest_capa=conn.execute('''SELECT id FROM package_product_report_versions WHERE tenant_id=? AND assessment_id=?
+            AND product='SalCAPA' ORDER BY version_no DESC LIMIT 1''',(tid,report['assessment_id'])).fetchone()
+        if latest_capa['id']!=report_id: raise HTTPException(409,'Compare the current SalCAPA version.')
+        for product,item in selected.items():
+            try: content=storage.get_bytes(item['stored_name'])
+            except Exception as exc: raise HTTPException(503,'Working report storage is unavailable.') from exc
+            if hashlib.sha256(content).hexdigest()!=item['content_sha256']:
+                security_event(request,'PACKAGE_RECONCILIATION_HASH_MISMATCH','High',f'report_id={item["id"]}')
+                raise HTTPException(409,f'{product} document integrity verification failed.')
+        sources={product:p.sources[product].model_dump() for product in ('SalINTEL','SalTHIRA','SalOPS')}
+        summary=p.summary.strip()
+        comparison_status='Open' if any(item['alignment']=='Unresolved' for item in sources.values()) else 'Compared'
+        digest=hashlib.sha256(json.dumps({'salcapa_report_id':report_id,'salcapa_sha256':p.salcapa_sha256,
+            'sources':sources,'summary':summary},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('SELECT id,comparison_status FROM package_report_reconciliations WHERE tenant_id=? AND record_sha256=?',
+            (tid,digest)).fetchone()
+        if prior: return {'id':prior['id'],'comparison_status':prior['comparison_status'],'record_sha256':digest,'idempotent':True}
+        cur=conn.execute('''INSERT INTO package_report_reconciliations
+            (tenant_id,assessment_id,quote_id,salcapa_report_id,salcapa_sha256,sources_json,summary,comparison_status,record_sha256,recorded_by,recorded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?)''',(tid,report['assessment_id'],quote['id'],report_id,p.salcapa_sha256,
+            json.dumps(sources,sort_keys=True,separators=(',',':')),summary,comparison_status,digest,actor(request),now()))
+        audit(conn,'PACKAGE_REPORT_SOURCE_RECONCILIATION','assessment',report['assessment_id'],
+            f'salcapa_report_id={report_id}; comparison={comparison_status}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'comparison_status':comparison_status,'record_sha256':digest,'idempotent':False,
+            'notice':'This comparison does not approve or issue any report.'}
+    finally: conn.close()
 
 @app.post('/api/assessments/{assessment_id}/reassessment-review')
 def review_assessment_reassessment(assessment_id:int,p:AssessmentReassessmentReviewIn,request:Request):
@@ -5214,7 +8143,7 @@ async def upload_evidence_attachment(evidence_id:int, request:Request, file:Uplo
     content=await file.read(MAX_ATTACHMENT_BYTES+1)
     if len(content)>MAX_ATTACHMENT_BYTES: conn.close(); raise HTTPException(413,'Attachment exceeds 25 MB limit')
     original=safe_filename(file.filename or 'attachment'); scan=scan_bytes(content,original)
-    if not scan['ok']:
+    if not scan['ok'] or scan['status']!='Clean':
         conn.close(); security_event(request,'UPLOAD_REJECTED','High' if scan['status']=='Infected' else 'Medium',f'{original}: {scan["status"]} {scan["detail"]}')
         status=422 if scan['status']=='Infected' else 503
         raise HTTPException(status,f'Upload rejected: {scan["status"]}')
@@ -5230,7 +8159,9 @@ async def upload_evidence_attachment(evidence_id:int, request:Request, file:Uplo
 def download_evidence_attachment(attachment_id:int, request:Request):
     require(request,'read'); conn=db(); r=conn.execute('SELECT * FROM evidence_attachments WHERE id=?',(attachment_id,)).fetchone()
     if not r: conn.close(); raise HTTPException(404)
-    assessment_row_for_request(request,r['assessment_id']); ev=conn.execute('SELECT sensitivity FROM evidence WHERE id=?',(r['evidence_id'],)).fetchone(); require_sensitivity(request,ev['sensitivity'] if ev else 'Standard'); conn.close()
+    assessment_row_for_request(request,r['assessment_id']); ev=conn.execute('SELECT sensitivity FROM evidence WHERE id=?',(r['evidence_id'],)).fetchone(); require_sensitivity(request,ev['sensitivity'] if ev else 'Standard')
+    if r['scan_status']!='Clean': conn.close(); raise HTTPException(423,'Evidence attachment is unavailable until an authenticated clean malware scan is recorded')
+    conn.close()
     try: data=storage.get_bytes(r['stored_name'])
     except FileNotFoundError: raise HTTPException(404,'Stored attachment missing')
     except Exception as exc: security_event(request,'STORAGE_READ_FAILURE','High',type(exc).__name__); raise HTTPException(503,'Evidence storage unavailable')
@@ -5422,7 +8353,10 @@ def update_entity(table:str,entity_id:int,payload:dict[str,Any],request:Request)
     allowed={'assessments','threats','scenarios','capabilities','evidence','gaps','improvements','accepted_risks','reassessment_triggers'}
     if table not in allowed: raise HTTPException(404)
     table=sql_table_name(table)
-    conn=db(); old=conn.execute(f'SELECT * FROM {table} WHERE id=?',(entity_id,)).fetchone()
+    if table=='assessments': assessment_row_for_request(request,entity_id)
+    conn=db()
+    if table=='assessments': lock_package_assessment(conn,entity_id)
+    old=conn.execute(f'SELECT * FROM {table} WHERE id=?',(entity_id,)).fetchone()
     if not old: conn.close(); raise HTTPException(404)
     aid=entity_assessment_id(table,old); assessment_row_for_request(request,aid)
     if table in CHILD_ASSESSMENT_TABLES and 'assessment_id' in payload:
@@ -5442,15 +8376,22 @@ def update_entity(table:str,entity_id:int,payload:dict[str,Any],request:Request)
         merged=dict(old); merged.update(payload)
         validate_capability_measurement(merged.get('measurement_type'),merged.get('comparator'),merged.get('required_standard'),merged.get('current_performance'))
     if table=='assessments':
+        requested=dict(old); requested.update(payload)
+        try:
+            requested_level=int(requested['requested_package_level'])
+            validate_requested_package_path(requested_level,requested['requested_scope_band'],requested['requested_access_variant'])
+        except (ValueError,TypeError) as exc:
+            conn.close(); raise HTTPException(422,str(exc)) from exc
         governed_reassessment={'reassessment_date','reassessment_lifecycle_status','reassessment_overdue_reason','reassessment_overdue_at','last_reassessment_review_at','last_reassessment_review_by'}
         if any(k in payload and str(payload.get(k) or '')!=str(old[k] or '') for k in governed_reassessment):
             conn.close(); raise HTTPException(409,'Assessment reassessment lifecycle fields are controlled. Use the assessment reassessment review action rather than editing review currency directly.')
         if 'status' in payload and str(payload['status'])!=str(old['status']):
             conn.close(); raise HTTPException(409,'Use the controlled workflow transition action to change assessment status.')
-        if old['scope_locked']:
-            protected={'purpose','mission','scope','exclusions'}
-            if any(k in payload and str(payload[k])!=str(old[k]) for k in protected):
-                conn.close(); raise HTTPException(409,'Scope is locked. Create an authorized scope/version change rather than overwriting mission, purpose, scope, or exclusions.')
+        protected={'organization','purpose','mission','scope','covered_operation','requested_package_level','requested_scope_band','requested_access_variant','exclusions'}
+        if any(k in payload and str(payload[k])!=str(old[k]) for k in protected):
+            quote_exists=conn.execute('SELECT 1 FROM package_quote_versions WHERE tenant_id=? AND assessment_id=? LIMIT 1',(old['tenant_id'],entity_id)).fetchone()
+            if old['scope_locked'] or quote_exists:
+                conn.close(); raise HTTPException(409,'This assessment has a locked scope or a package quote. Use an authorized scope/version change; start a new assessment if the covered operation or package path must change.')
     columns={r['name'] for r in conn.execute(f'PRAGMA table_info({table})')}
     immutable={'id','created_at'}
     if table in CHILD_ASSESSMENT_TABLES: immutable.add('assessment_id')

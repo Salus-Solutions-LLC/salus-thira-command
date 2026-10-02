@@ -7,6 +7,7 @@ REQUIRED = (
     "SALUS_ADVISOR_DOCX_TEMPLATE_PATH",
     "SALUS_ADVISOR_REPORT_OUTPUT_DIR",
     "SALUS_M365_ADVISOR_REPORT_FOLDER_ITEM_ID",
+    "SALUS_M365_ADVISOR_MEMBER_REPORT_FOLDER_ITEM_ID",
     "SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID",
     "SALUS_M365_REPORT_DRIVE_ID",
 )
@@ -19,6 +20,7 @@ def protection_advisor_report_readiness() -> dict:
         "template_exists": bool(template) and Path(template).is_file(),
         "output_directory_configured": bool(output),
         "advisor_folder_configured": bool(os.getenv("SALUS_M365_ADVISOR_REPORT_FOLDER_ITEM_ID","").strip()),
+        "advisor_member_folder_configured": bool(os.getenv("SALUS_M365_ADVISOR_MEMBER_REPORT_FOLDER_ITEM_ID","").strip()),
         "managed_identity_configured": bool(os.getenv("SALUS_OIDC_MANAGED_IDENTITY_CLIENT_ID","").strip()),
         "drive_configured": bool(os.getenv("SALUS_M365_REPORT_DRIVE_ID","").strip()),
     }
