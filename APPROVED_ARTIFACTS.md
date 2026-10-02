@@ -70,3 +70,7 @@ The approved SalOPS™ and SalCAPA™ standards now require evidence-linked addi
 
 The Program Charter and the three repository method/report standards incorporate the 18-perspective applicability screen, level-specific evidence depth, report explanation and decision trace. This method approval does not revise the controlled SalINTEL™ or SalTHIRA™ Word template binaries, the working SalOPS™ and SalCAPA™ templates, or any Protected Member report. Review those artifacts under SAL-D027, preserve their governed identities, and approve exact revised Word versions only after content, font, confidentiality, accessibility and rendered-page QA. The research companion is an approved screening/source register, not a standing legal, insurance, accounting or engineering opinion.
 
+## SAL-D096 module authority and candidate-artifact boundary
+
+The Program Charter and Decision Register now govern the distinct SalINTEL™ Facilities Assessment (FA), Personal Protection Assessment (PPA) and Person of Interest (POI) module requirements and names. `proposals/SALINTEL_FACILITIES_AND_POI_MODULE_SCOPE_20261002.md` is an internal design candidate only; it is not an approved controlled template, live questionnaire, price, public offer, investigation authorization or software release. Exact method, intake, report and service artifacts require separate qualified review and registration before use.
+
