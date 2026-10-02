@@ -68,6 +68,18 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         app.ENVIRONMENT='production'
         assert director.post(url,json=quote).status_code==503
         app.ENVIRONMENT='development'
+        app.AUTH_MODE='oidc'
+        assert not app.package_workflow_ready()
+        app.PACKAGE_SCANNER_ACCEPTED=True
+        app.PACKAGE_SCAN_MODE='defender'
+        os.environ['SALUS_SCAN_QUARANTINE_URL']='https://salcapadevb48224scan.blob.core.windows.net'
+        assert app.package_workflow_ready()
+        os.environ['SALUS_SCAN_QUARANTINE_URL']='https://other.example.invalid'
+        assert not app.package_workflow_ready()
+        os.environ.pop('SALUS_SCAN_QUARANTINE_URL',None)
+        app.AUTH_MODE='prototype'
+        app.PACKAGE_SCANNER_ACCEPTED=False
+        app.PACKAGE_SCAN_MODE='inline'
         unverified=director.post(url,json={**quote,'source_receipt_id':'SPA-EXAMPLE'})
         assert unverified.status_code==409, unverified.text
         conn=app.db()
