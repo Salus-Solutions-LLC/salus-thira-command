@@ -37,8 +37,16 @@ esac
 SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
 SCANNER_ACCOUNT="salcapa$TARGET_ENVIRONMENT$UNIQUE_SUFFIX""scan"
 SCANNER_ID="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Storage/storageAccounts/$SCANNER_ACCOUNT/providers/Microsoft.Security/defenderForStorageSettings/current"
-SCANNER_JSON="$(az resource list --resource-group "$RESOURCE_GROUP" --resource-type Microsoft.Security/defenderForStorageSettings -o json)"
-SCANNER_ENABLED="$(jq -r --arg id "$SCANNER_ID" '[.[] | select((.id | ascii_downcase) == ($id | ascii_downcase)) | .properties.isEnabled] | if length == 0 then "false" else .[0] end' <<< "$SCANNER_JSON")"
+# Nested Defender settings are not returned by az resource list. Read the exact
+# storage-account extension resource and distinguish absence from read failure.
+if SCANNER_JSON="$(az resource show --ids "$SCANNER_ID" --api-version 2025-06-01 --only-show-errors -o json 2>&1)"; then
+  SCANNER_ENABLED="$(jq -r '.properties.isEnabled | if . == true then "true" elif . == false then "false" else "unknown" end' <<< "$SCANNER_JSON")"
+elif [[ "$SCANNER_JSON" == *'Code: ResourceNotFound'* ]]; then
+  SCANNER_ENABLED=false
+else
+  echo 'The Defender scanner resource could not be read.' >&2
+  exit 1
+fi
 if [[ "$SCANNER_ENABLED" != "true" && "$SCANNER_ENABLED" != "false" ]]; then
   echo "The Defender scanner state could not be established." >&2
   exit 1
