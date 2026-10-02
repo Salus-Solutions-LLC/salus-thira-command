@@ -4587,7 +4587,7 @@ async def _store_observation_attachment(conn,row,file:UploadFile,uploader:str,re
     content=await file.read(MAX_ATTACHMENT_BYTES+1)
     if len(content)>MAX_ATTACHMENT_BYTES: raise HTTPException(413,'Attachment exceeds 25 MB limit')
     original=safe_filename(file.filename or 'attachment'); scan=scan_bytes(content,original)
-    if not scan['ok']:
+    if not scan['ok'] or scan['status']!='Clean':
         security_event(request,'OBSERVATION_UPLOAD_REJECTED','High' if scan['status']=='Infected' else 'Medium',f'{original}: {scan["status"]}'); raise HTTPException(422 if scan['status']=='Infected' else 503,f'Upload rejected: {scan["status"]}')
     digest=hashlib.sha256(content).hexdigest(); stored=f'tenant-{row["tenant_id"]}/observation-{row["id"]}/{digest[:16]}_{original}'
     try: storage.put_bytes(stored,content)
@@ -4623,6 +4623,7 @@ def download_observation_attachment(attachment_id:int,request:Request):
     if not item: conn.close(); raise HTTPException(404,'Observation attachment not found')
     row=_observation_for_request(conn,item['observation_id'],request,False)
     if protected_member_request(request) and row['created_by']!=actor(request): conn.close(); raise HTTPException(403,'Observation attachment access denied')
+    if item['scan_status']!='Clean': conn.close(); raise HTTPException(423,'Observation attachment is unavailable until an authenticated clean malware scan is recorded')
     conn.close()
     try: data=storage.get_bytes(item['stored_name'])
     except FileNotFoundError: raise HTTPException(404,'Stored attachment missing')
@@ -8142,7 +8143,7 @@ async def upload_evidence_attachment(evidence_id:int, request:Request, file:Uplo
     content=await file.read(MAX_ATTACHMENT_BYTES+1)
     if len(content)>MAX_ATTACHMENT_BYTES: conn.close(); raise HTTPException(413,'Attachment exceeds 25 MB limit')
     original=safe_filename(file.filename or 'attachment'); scan=scan_bytes(content,original)
-    if not scan['ok']:
+    if not scan['ok'] or scan['status']!='Clean':
         conn.close(); security_event(request,'UPLOAD_REJECTED','High' if scan['status']=='Infected' else 'Medium',f'{original}: {scan["status"]} {scan["detail"]}')
         status=422 if scan['status']=='Infected' else 503
         raise HTTPException(status,f'Upload rejected: {scan["status"]}')
@@ -8158,7 +8159,9 @@ async def upload_evidence_attachment(evidence_id:int, request:Request, file:Uplo
 def download_evidence_attachment(attachment_id:int, request:Request):
     require(request,'read'); conn=db(); r=conn.execute('SELECT * FROM evidence_attachments WHERE id=?',(attachment_id,)).fetchone()
     if not r: conn.close(); raise HTTPException(404)
-    assessment_row_for_request(request,r['assessment_id']); ev=conn.execute('SELECT sensitivity FROM evidence WHERE id=?',(r['evidence_id'],)).fetchone(); require_sensitivity(request,ev['sensitivity'] if ev else 'Standard'); conn.close()
+    assessment_row_for_request(request,r['assessment_id']); ev=conn.execute('SELECT sensitivity FROM evidence WHERE id=?',(r['evidence_id'],)).fetchone(); require_sensitivity(request,ev['sensitivity'] if ev else 'Standard')
+    if r['scan_status']!='Clean': conn.close(); raise HTTPException(423,'Evidence attachment is unavailable until an authenticated clean malware scan is recorded')
+    conn.close()
     try: data=storage.get_bytes(r['stored_name'])
     except FileNotFoundError: raise HTTPException(404,'Stored attachment missing')
     except Exception as exc: security_event(request,'STORAGE_READ_FAILURE','High',type(exc).__name__); raise HTTPException(503,'Evidence storage unavailable')
