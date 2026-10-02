@@ -36,6 +36,7 @@ from salthira_material_evidence_routing import register_salthira_material_eviden
 from salcapa_demo_fixtures import register_demo_fixture_contract
 from salcapa_demo_evaluator import register_demo_evaluator
 from mission_map import register_mission_map
+from salcapa_analytical_actions import register_analytical_actions
 try:
     from salops_plan_assembly import register_salops_plan_assembly
 except ModuleNotFoundError:  # Other capability workflows may not reconstruct this archive.
@@ -80,6 +81,7 @@ register_salthira_material_evidence_routing(core.app, core.__dict__)
 register_demo_fixture_contract(core)
 register_demo_evaluator(core)
 register_mission_map(core.app, core.__dict__)
+register_analytical_actions(core.app, core.__dict__)
 
 SALCAPA_RELEASE_VERSION = "3.202"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
@@ -161,6 +163,9 @@ def _preparedness_index() -> str:
         ('<button data-view="salops_preparedness">Preparedness, Planning & Exercises</button>',
          '<button data-view="salops_preparedness">Preparedness, Planning & Exercises</button><button data-view="salops_plan_assembly" data-salus-only="true">Emergency Plan Assembly</button>',
          'data-view="salops_plan_assembly"'),
+        ('<button data-view="salops_plan_assembly" data-salus-only="true">Emergency Plan Assembly</button>',
+         '<button data-view="salops_plan_assembly" data-salus-only="true">Emergency Plan Assembly</button><button data-view="analytical_actions">Analytical Actions</button>',
+         'data-view="analytical_actions"'),
         ('<script src="/static/salintel-domains.js"></script>',
          '<script src="/static/salintel-domains.js"></script>\n<script src="/static/salops-preparedness.js"></script>',
          '/static/salops-preparedness.js'),
@@ -251,6 +256,9 @@ def _preparedness_index() -> str:
         ('<script src="/static/salops-plan-assembly.js"></script>',
          '<script src="/static/salops-plan-assembly.js"></script>\n<script src="/static/mission-map.js"></script>',
          '/static/mission-map.js'),
+        ('<script src="/static/mission-map.js"></script>',
+         '<script src="/static/mission-map.js"></script>\n<script src="/static/salcapa-analytical-actions.js"></script>',
+         '/static/salcapa-analytical-actions.js'),
         ('<script src="/static/mission-map.js"></script>',
          '<script src="/static/mission-map.js"></script>\n<script src="/static/salcapa-contextual-intake.js"></script>',
          '/static/salcapa-contextual-intake.js'),

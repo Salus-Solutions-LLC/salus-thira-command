@@ -197,6 +197,13 @@ def _professional_body(document, fields, result, package) -> None:
         "Salus should keep verified facts separate from reported conditions, reasonable "
         "inferences, and unresolved unknowns. A written plan is not sufficient evidence by itself."
     )
+    hypothesis = result.get("preliminary_hypothesis") or {}
+    if hypothesis:
+        document.add_heading("Preliminary Working Hypothesis and Level 1 Action", level=2)
+        for key in ("reported_basis", "working_assumption", "level_1_action"):
+            if hypothesis.get(key):
+                document.add_paragraph(str(hypothesis[key]))
+        _add_bullets(document, hypothesis.get("checklist") or ())
 
     document.add_page_break()
     document.add_heading("Recommended Protection Package", level=1)
@@ -759,6 +766,13 @@ def render_protection_advisor_pdf(
     story += [PageBreak(), P("Information Gaps", h1), P("These issues could materially change the assessment and should be resolved before a final opinion, scope, or price is issued.")]
     story += bullets(result.get("information_gaps") or ("Professional validation remains required.",))
     story += [P("Evidence Needed", h1)] + bullets(("Current emergency, continuity, communications, security, and recovery plans.", "Authority, succession, delegation, notification, and escalation records.", "Essential-function, dependency, vendor, utility, and restoration-priority information.", "Training, exercise, incident, corrective-action, maintenance, and inspection records.", "Relevant interviews, demonstrations, observations, and current performance evidence."))
+    hypothesis = result.get("preliminary_hypothesis") or {}
+    if hypothesis:
+        story.append(P("Preliminary Working Hypothesis and Level 1 Action", h2))
+        for key in ("reported_basis", "working_assumption", "level_1_action"):
+            if hypothesis.get(key):
+                story.append(P(str(hypothesis[key])))
+        story += bullets(hypothesis.get("checklist") or ())
     story += [PageBreak(), P("Recommended Protection Package", h1), P(f"The preliminary lead engagement is {primary.get('title', 'Professional Review')} - Level {primary.get('level', '')} {primary.get('level_name', '')}. {primary.get('summary', '')}"), P("Why this leads the package. " + str(primary.get("why", ""))), P("Recommended Sequence", h1), T(("Phase", "Service", "Purpose"), _sequence_rows(package), (.65 * inch, 2.45 * inch, 3.0 * inch), centered_columns=(0,)), P("Additional Later Phase Services", h1)]
     for service in package.get("later_phase_services") or []:
         story.append(P(f"{service.get('title', 'Service')} - Level {service.get('level', '')} {service.get('level_name', '')}. {service.get('summary', '')}"))

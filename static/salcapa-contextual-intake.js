@@ -3,7 +3,7 @@
     'dashboard','common_operating_picture','salintel','salintel_domains',
     'personnel_assessments','facility_assessments','salthira','assessments',
     'risk','priorities','reassessment','evidence','attachments','salops',
-    'salops_preparedness','salops_plan_assembly','prove','reports','trace'
+    'salops_preparedness','salops_plan_assembly','analytical_actions','prove','reports','trace'
   ]);
   let activeContext = null;
   let syncing = false;
