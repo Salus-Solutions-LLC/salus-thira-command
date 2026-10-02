@@ -56,14 +56,16 @@ jobs:
                       signatures.add("hint=" + category)
               for method, route in re.findall(r"\b(GET|POST) (/protection-advisor/embed|/public/protection-advisor/session)\b", line):
                   signatures.add("request=" + method + ":" + route)
+                  if re.search(r"\b500\b", line):
+                      signatures.add("failed_request=" + method + ":" + route)
               for name in re.findall(r"\b([A-Za-z_][A-Za-z_0-9.]*(?:Error|Exception)):", line):
                   signatures.add("exception=" + name)
               for file_name, number, function in re.findall(r'File "[^"]*[/\\]([^/\\"]+)", line (\d+), in ([A-Za-z_][A-Za-z_0-9]*)', line):
-                  if file_name in {"salcapa_runtime.py", "protection_advisor.py"}:
+                  if file_name in {"salcapa_runtime.py", "public_protection_advisor.py"}:
                       signatures.add("frame=" + file_name + ":" + number + ":" + function)
           for row in rows:
               line = row.get("Log", "") if isinstance(row, dict) else str(row)
-              for appfile in ("salcapa_runtime.py", "protection_advisor.py"):
+              for appfile in ("salcapa_runtime.py", "public_protection_advisor.py"):
                   if appfile in line:
                       signatures.add("mentions=" + appfile)
           print("scoped_rows=" + str(len(rows)))
