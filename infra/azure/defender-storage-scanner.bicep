@@ -551,7 +551,9 @@ resource scanWorkerFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
 
 // A failure alert alone cannot detect a schedule that never starts. The
 // worker emits only a content-free completion marker after reconciliation;
-// inventory already emits a bounded count summary. Azure Monitor evaluates
+// inventory already emits a bounded count summary. ACA logs use a generated
+// EnvironmentName, so identify each job by either observed ContainerName form.
+// Azure Monitor evaluates
 // an empty period as zero without including Member details in the alert.
 resource scanWorkerMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@2023-12-01' = {
   name: '${stem}-scan-result-worker-missed'
@@ -575,7 +577,7 @@ resource scanWorkerMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@2023-1
     criteria: {
       allOf: [
         {
-          query: 'ContainerAppConsoleLogs | where EnvironmentName == \'${stem}-aca-env\' and ContainerName == \'scan-results\' | where tostring(parse_json(Log).scan_result_job) == \'completed\' | summarize CompletedRuns = count()'
+          query: 'ContainerAppConsoleLogs | where ContainerName in (\'scan-results\', \'${stem}-scan-results\') | where tostring(parse_json(Log).scan_result_job) == \'completed\' | summarize CompletedRuns = count()'
           timeAggregation: 'Maximum'
           metricMeasureColumn: 'CompletedRuns'
           operator: 'LessThan'
@@ -615,7 +617,7 @@ resource scanInventoryMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@202
     criteria: {
       allOf: [
         {
-          query: 'ContainerAppConsoleLogs | where EnvironmentName == \'${stem}-aca-env\' and ContainerName == \'scan-inventory\' | where isnotnull(parse_json(Log).exceptions_observed) | summarize CompletedRuns = count()'
+          query: 'ContainerAppConsoleLogs | where ContainerName in (\'scan-inventory\', \'${stem}-scan-inventory\') | where isnotnull(parse_json(Log).exceptions_observed) | summarize CompletedRuns = count()'
           timeAggregation: 'Maximum'
           metricMeasureColumn: 'CompletedRuns'
           operator: 'LessThan'
