@@ -2,6 +2,12 @@
 
 **Status:** Internal, Member-neutral release review record. This is not an issued offer, Member report, or production acceptance.
 
+## 02 October 2026 addendum — accepted worker execution failure
+
+Live Azure execution history and direct logs established that the accepted `3.202` scheduled knowledge worker is failing with an uncaught `zipfile.BadZipFile` when a damaged Office package passes the ZIP end-record probe but fails central-directory parsing. The latest 20 executions displayed at discovery were all Failed; the trace was obtained from execution `salcapa-dev-b48224-kb-scan-29848406`. No source identity or contents are reproduced here. The worker's accepted image and two-minute schedule are present, but **worker health is not an accepted baseline**. The environment now has Marc-approved console/system diagnostics routed to the existing Log Analytics workspace; direct execution logs supplied the trace, while workspace ingestion still needs verification.
+
+Draft head `d77dc9ff6b9ca469b66d4fc1a5a3217764cad23b` translates damaged ZIP central-directory and part-read failures into `DOCUMENT_PACKAGE_INVALID` per-source processing failures and adds a synthetic regression to the package CI. Public Protection Advisor run 568, SalCAPA Analytical Actions run 24 and Salus package rollout run 185 passed, including the Office regression and Windows/report and PostgreSQL jobs. No immutable image, qualified review, Azure worker repair, live Advisor or intake acceptance follows from these tests. Before promotion, prove the corrected worker on a bounded execution, schedule continuity, no overlap and failed-promotion restoration. The original release decision below remains **Hold activation and public claims**.
+
 ## Exact identities and evidence
 
 - Accepted application and scheduled knowledge-worker image: `release/v3.202`, source `1268a9d951fab77229659dff6530dd96eadb943b`, digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:77b9ecd15c25a5baad55be47a6385429df3eb9c3f5712a0cd94745d22cf6f8b1`. A signed-in Azure portal read showed this digest on both resources; it did not test worker execution.
