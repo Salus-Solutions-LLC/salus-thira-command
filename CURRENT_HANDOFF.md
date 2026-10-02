@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 2 October 2026 — scanner and intake release guards, candidate PR #619
+
+- Public Protection Advisor Part 1/Part 2 remains the accepted live app 3.205. Scanner-backed Level 1 intake, quote/purchase and file upload remain closed. Tierra Linda remains stopped; large-batch #520 remains paused.
+- Draft [PR #619](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/619) adds a default-off, accepted-scanner gate to the OIDC package route and explicit default-off Azure app settings. The governed resource-group budget alert may be $25 before scanner activation or $75 only with the approved active development scanner; a state guard blocks mismatches and prevents later foundation/application deploys from silently restoring $25. The application workflow also refuses a frozen release that cannot represent the $75 alert. The guard has CI scenarios for valid and invalid states. Azure read-only checks verified the current $25 budget, its 1 September 2026 start date, and absence of a scanner setting; no paid scanner resource was installed.
+- PR #619 is a source candidate, not an activated release. Exact-head package CI/Bicep and public Advisor checks must complete, followed by qualified exact-source review. PR #618 remains separately open at approved-CI head `1ae056644aac3e50143de728e130cc99cfb68901`, pending Marc's exact-source determination for the 3.206 immutable image. The scanner-specific contract price remains unavailable; the specific cost exception question is pending. Do not substitute broad preapproval for those records.
+- Next action: complete PR #619 exact-head CI and review; after Marc's exact PR #618 determination, freeze/build the protected immutable image; obtain the cost disposition, perform final exact-image what-if, install and verify scanner/alert/hold/recovery/rollback, then qualify the live route and reports before enabling Member upload. Engineering owns checks and implementation, Marc/qualified reviewers own exact source, cost exception and live release determinations.
+
 ## 2 October 2026 — live Azure log-query correction and scanner gate
 
 - **Observed in the signed-in Salus Azure portal:** `rg-salcapa-dev` still had 14 resources and no dedicated quarantine account, scan-result/inventory jobs, or scanner action group; its monthly budget alert was still $25, despite Marc's approved $75 target. No paid scanner or file route was activated.
