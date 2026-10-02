@@ -36,6 +36,8 @@ with TemporaryDirectory() as directory:
     assert "This receipt is a preparation aid" in text
     assert "page 1 of 1" in document.sections[0].footer.paragraphs[0].text
     assert len(document.tables) == 3
+    assert document.styles["Normal"].font.name == "Times New Roman"
+    assert document.paragraphs[0].runs[0].font.name == "Arial"
     if len(sys.argv) > 1:
         Path(sys.argv[1]).write_bytes(output.read_bytes())
 print("Fictional scope receipt DOCX source passed")

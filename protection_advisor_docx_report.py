@@ -935,16 +935,16 @@ def render_scope_receipt_docx(
     section.right_margin = Inches(.75)
     normal = document.styles["Normal"]
     normal.font.name = "Times New Roman"
-    normal.font.size = Pt(8.5)
-    normal.paragraph_format.space_after = Pt(2)
+    normal.font.size = Pt(10)
+    normal.paragraph_format.space_after = Pt(3)
 
     def add(text: object, *, heading: bool = False) -> None:
         p = document.add_paragraph()
-        p.paragraph_format.space_after = Pt(3 if heading else 2)
+        p.paragraph_format.space_after = Pt(4 if heading else 3)
         run = p.add_run(str(text or ""))
         run.font.name = "Arial" if heading else "Times New Roman"
         run.bold = heading
-        run.font.size = Pt(10 if heading else 8.5)
+        run.font.size = Pt(11 if heading else 10)
 
     def table(rows: list[tuple[str, str]]) -> None:
         result = document.add_table(rows=0, cols=2)
@@ -956,7 +956,7 @@ def render_scope_receipt_docx(
                 for paragraph in cell.paragraphs:
                     for run in paragraph.runs:
                         run.font.name = "Times New Roman"
-                        run.font.size = Pt(7.4)
+                        run.font.size = Pt(9)
 
     title = document.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
