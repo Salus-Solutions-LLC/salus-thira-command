@@ -76,10 +76,10 @@ jobs:
               for word, label in safe_hints.items():
                   if word.lower() in line.lower():
                       signatures.add("hint=" + label)
-              for name in re.findall(r"\\b([A-Za-z_][A-Za-z_0-9.]*(?:Error|Exception)):", line):
+              for name in re.findall(r"\b([A-Za-z_][A-Za-z_0-9.]*(?:Error|Exception)):", line):
                   signatures.add("exception=" + name)
               for filename, number, function in re.findall(
-                  r'File "[^"]*[/\\\\]([^/\\\\"]+)", line (\\d+), in ([A-Za-z_][A-Za-z_0-9]*)',
+                  r'File "[^"]*[/\\]([^/\\"]+)", line (\d+), in ([A-Za-z_][A-Za-z_0-9]*)',
                   line,
               ):
                   if filename in allowed_frames:
