@@ -137,9 +137,12 @@ jobs:
                   steps = document['jobs']['deploy']['steps']
                   promote = next(step['run'] for step in steps if step.get('name') == 'Promote and verify scheduled worker after application acceptance')
                   rollback = next(step['run'] for step in steps if step.get('name') == 'Restore accepted rollback release if promotion verification fails')
-                  assert promote.index('--trigger-type Manual') < promote.index('az containerapp job start')
-                  assert promote.index('if [ "$SUCCEEDED" != "true" ]; then') < promote.index('--trigger-type Schedule')
-                  assert "--cron-expression '*/2 * * * *'" in promote
+                  assert '--image "$IMAGE_DIGEST" --query name' in promote
+                  assert promote.index('az containerapp job start') < promote.index('if [ "$SUCCEEDED" != "true" ]; then')
+                  assert promote.index('if [ "$SUCCEEDED" != "true" ]; then') < promote.index('az containerapp job update')
+                  assert promote.count('.properties.template.containers[0].image == $image') >= 2
+                  assert '--trigger-type Manual' not in promote
+                  assert '.properties.template.containers[0].image == $image' in promote.split('for attempt in $(seq 1 100); do', 1)[1].split('done', 1)[0]
                   assert '--image "$ROLLBACK_IMAGE"' in rollback
                   assert '--trigger-type Schedule' in rollback
                   assert "--cron-expression '*/2 * * * *'" in rollback

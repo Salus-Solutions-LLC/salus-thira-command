@@ -523,23 +523,25 @@ jobs:
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
+          ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
         run: |
           set -euo pipefail
           JOB_NAME=salcapa-dev-b48224-kb-scan
-          az containerapp job update \
-            --resource-group "$RESOURCE_GROUP" \
-            --name "$JOB_NAME" \
-            --image "$IMAGE_DIGEST" \
-            --trigger-type Manual \
-            --output none --only-show-errors
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
-          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$IMAGE_DIGEST"
-          test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-knowledge-job.json)" = "Manual"
-          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
+          jq -e --arg image "$ROLLBACK_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+          ' /tmp/salcapa-knowledge-job.json >/dev/null
+          # A one-off execution can override the image without replacing the
+          # accepted scheduled job. Keep its normal two-minute work running.
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --image "$IMAGE_DIGEST" --query name --output tsv --only-show-errors)"
           test -n "$EXECUTION_NAME"
           SUCCEEDED=false
           for attempt in $(seq 1 100); do
-            STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --query properties.status --output tsv --only-show-errors)"
+            az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --output json --only-show-errors > /tmp/salcapa-candidate-execution.json
+            jq -e --arg image "$IMAGE_DIGEST" '.properties.template.containers[0].image == $image' /tmp/salcapa-candidate-execution.json >/dev/null
+            STATUS="$(jq -r '.properties.status' /tmp/salcapa-candidate-execution.json)"
             if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
             if [ "$STATUS" = "Failed" ]; then break; fi
             sleep 10
@@ -554,11 +556,16 @@ jobs:
             exit 1
           fi
           az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 50 --format text --only-show-errors 2>&1 | grep 'SALCAPA_KNOWLEDGE_BATCH=' || true
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
+          jq -e --arg image "$ROLLBACK_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+          ' /tmp/salcapa-knowledge-job.json >/dev/null
           az containerapp job update \
             --resource-group "$RESOURCE_GROUP" \
             --name "$JOB_NAME" \
-            --trigger-type Schedule \
-            --cron-expression '*/2 * * * *' \
+            --image "$IMAGE_DIGEST" \
             --output none --only-show-errors
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
           jq -e --arg image "$IMAGE_DIGEST" '
