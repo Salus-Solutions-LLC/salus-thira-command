@@ -247,7 +247,7 @@ jobs:
           [[ "$BUDGET_START_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
           BUDGET_USD="$(bash tools/azure_operational_budget.sh "$RESOURCE_GROUP" dev "$UNIQUE_SUFFIX" existing)"
           if [[ "$BUDGET_USD" == "75" ]]; then
-            grep -q "@maxValue(75)" frozen-release/infra/azure/main.bicep || {
+            grep -Fq "@allowed([25, 75])" frozen-release/infra/azure/main.bicep || {
               echo "The frozen release cannot preserve the approved scanner budget alert." >&2
               exit 1
             }
