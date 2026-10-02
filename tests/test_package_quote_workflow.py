@@ -18,7 +18,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         'PYTHONPATH': os.pathsep.join(filter(None, (os.getcwd(), env.get('PYTHONPATH', '')))),
     })
     program = textwrap.dedent('''
-        import hashlib,io,json,zipfile
+        import hashlib,io,json,os,zipfile
         from docx import Document
         from reportlab.pdfgen import canvas
         from fastapi.testclient import TestClient
