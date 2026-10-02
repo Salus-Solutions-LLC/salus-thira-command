@@ -639,6 +639,7 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         return str(context.get("username") or context.get("display_name") or "authorized-user")[:240]
 
     def process_pending(processor_actor: str) -> dict[str, int]:
+        print('SALCAPA_WORKER_PHASE=process_pending_entered', flush=True)
         app.state.knowledge_processing = {
             "state": "running",
             "last_discovered": 0,
@@ -655,7 +656,15 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
             pending_id = ""
             enterprise_folder_id = ""
             if bulk_enabled:
-                discover(intake, db, max_pages=10)
+                print('SALCAPA_WORKER_PHASE=delta_discovery_started', flush=True)
+                # Each scheduled execution advances one durable Graph page. The
+                # cursor is committed with that page, so the next run continues
+                # without re-reading prior pages or exceeding the job deadline.
+                discovery = discover(intake, db, max_pages=1)
+                print(
+                    f'SALCAPA_WORKER_PHASE=delta_discovery_done pages={discovery.get("pages", 0)}',
+                    flush=True,
+                )
                 pending_id = resolve_pending(intake)
                 enterprise_folder_id = os.getenv(
                     "SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID", ""
