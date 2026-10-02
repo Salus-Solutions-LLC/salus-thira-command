@@ -474,6 +474,7 @@ with tempfile.TemporaryDirectory() as td:
         return content
 
     advisor_module.render_protection_advisor_pdf = fake_render
+    advisor_module.report_fonts_available = lambda: True
     advisor_module.store_member_pdf = fake_store
     advisor_module.read_member_pdf = fake_read
     advisor_module.delete_member_pdf = lambda item_id: saved_pdfs.pop(item_id)

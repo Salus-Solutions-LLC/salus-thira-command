@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 curl() {
   command curl --connect-timeout 10 --max-time 90 --retry 2 --retry-delay 2 --retry-all-errors "$@"
@@ -155,6 +155,15 @@ grep -qi '^content-type: application/pdf' "$WORK/report.headers"
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H "X-CSRF-Token: $CSRF" \
   -o "$WORK/report-again.pdf" "$BASE/public/protection-advisor/report.pdf"
 cmp "$WORK/report-first.pdf" "$WORK/report-again.pdf"
+
+STAGE="one-page scope receipt retrieval"
+curl -fsS -c "$COOKIE" -b "$COOKIE" -H "X-CSRF-Token: $CSRF" \
+  -D "$WORK/receipt.headers" -o "$WORK/receipt-first.pdf" "$BASE/public/protection-advisor/scope-receipt.pdf"
+head -c 4 "$WORK/receipt-first.pdf" | grep -q '%PDF'
+grep -qi '^content-type: application/pdf' "$WORK/receipt.headers"
+curl -fsS -c "$COOKIE" -b "$COOKIE" -H "X-CSRF-Token: $CSRF" \
+  -o "$WORK/receipt-again.pdf" "$BASE/public/protection-advisor/scope-receipt.pdf"
+cmp "$WORK/receipt-first.pdf" "$WORK/receipt-again.pdf"
 
 STAGE="test content deletion"
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
