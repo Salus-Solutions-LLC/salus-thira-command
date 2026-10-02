@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -78,6 +79,31 @@ with TemporaryDirectory() as tmp:
     assert "CONFIDENTIAL" in confidential_doc.sections[0].header._element.xml
 
 print("Protection Advisor DOCX three-page renderer smoke passed")
+
+# The Linux runner does not carry Microsoft's Arial/Times files. Validate that
+# both direct PDF paths fail closed there; Windows CI exercises the full positive
+# PDF and one-page receipt assertions below with the actual required fonts.
+font_dir = Path(os.environ.get(
+    "SALUS_REPORT_FONT_DIR",
+    r"C:\Windows\Fonts" if os.name == "nt" else "/usr/share/fonts/truetype/msttcorefonts",
+))
+if os.name != "nt" and not all((font_dir / name).is_file() for name in ("times.ttf", "arial.ttf", "arialbd.ttf")):
+    with TemporaryDirectory() as tmp:
+        report_path = Path(tmp) / "report.pdf"
+        receipt_path = Path(tmp) / "receipt.pdf"
+        for render in (
+            lambda: render_protection_advisor_pdf(output_path=report_path, context=context, result={}, package={}),
+            lambda: render_scope_receipt_pdf(output_path=receipt_path, context=context, receipt={}),
+        ):
+            try:
+                render()
+            except RuntimeError as exc:
+                assert "Required embedded report font is missing:" in str(exc), str(exc)
+            else:
+                raise AssertionError("Direct PDF renderer must reject missing Arial/Times fonts")
+        assert not report_path.exists() and not receipt_path.exists()
+    print("Protection Advisor PDF missing-font fail-closed smoke passed")
+    raise SystemExit(0)
 
 with TemporaryDirectory() as tmp:
     output = Path(tmp) / "rendered.pdf"
