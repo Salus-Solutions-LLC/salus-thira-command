@@ -152,6 +152,7 @@ jobs:
             echo "The PostgreSQL Entra administrator type must be Group or User." >&2
             exit 1
           fi
+          BUDGET_USD="$(bash tools/azure_operational_budget.sh "$RESOURCE_GROUP" "$TARGET_ENVIRONMENT" "$UNIQUE_SUFFIX" foundation)"
           PARAMETERS=(
             uniqueSuffix="$UNIQUE_SUFFIX"
             location="$LOCATION"
@@ -166,9 +167,15 @@ jobs:
             sourceCommit="$GITHUB_SHA"
             approvalRecord="$APPROVAL_RECORD"
             monthlyCostCeilingUsd=30
-            operationalBudgetUsd=25
+            operationalBudgetUsd="$BUDGET_USD"
             budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
           )
+          if [[ "$(az group exists --name "$RESOURCE_GROUP")" == "true" ]]; then
+            BUDGET_NAME="salcapa-$TARGET_ENVIRONMENT-$UNIQUE_SUFFIX-monthly-budget"
+            BUDGET_START_DATE="$(az consumption budget show --resource-group "$RESOURCE_GROUP" --budget-name "$BUDGET_NAME" --query timePeriod.startDate -o tsv)"
+            [[ "$BUDGET_START_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]] || exit 1
+            PARAMETERS+=(budgetStartDate="$BUDGET_START_DATE")
+          fi
           az deployment group what-if \
             --resource-group "$RESOURCE_GROUP" \
             --template-file infra/azure/main.bicep \
@@ -244,6 +251,7 @@ jobs:
           test -n "$POSTGRES_ADMIN_OBJECT_ID"
           test -n "$POSTGRES_ADMIN_PRINCIPAL_NAME"
           test -n "$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
+          BUDGET_USD="$(bash tools/azure_operational_budget.sh "$RESOURCE_GROUP" "$TARGET_ENVIRONMENT" "$UNIQUE_SUFFIX" existing)"
           PARAMETERS=(
             uniqueSuffix="$UNIQUE_SUFFIX"
             location="$LOCATION"
@@ -259,9 +267,15 @@ jobs:
             sourceCommit="$GITHUB_SHA"
             approvalRecord="$APPROVAL_RECORD"
             monthlyCostCeilingUsd=30
-            operationalBudgetUsd=25
+            operationalBudgetUsd="$BUDGET_USD"
             budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
           )
+          if [[ "$(az group exists --name "$RESOURCE_GROUP")" == "true" ]]; then
+            BUDGET_NAME="salcapa-$TARGET_ENVIRONMENT-$UNIQUE_SUFFIX-monthly-budget"
+            BUDGET_START_DATE="$(az consumption budget show --resource-group "$RESOURCE_GROUP" --budget-name "$BUDGET_NAME" --query timePeriod.startDate -o tsv)"
+            [[ "$BUDGET_START_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]] || exit 1
+            PARAMETERS+=(budgetStartDate="$BUDGET_START_DATE")
+          fi
           az deployment group what-if \
             --resource-group "$RESOURCE_GROUP" \
             --template-file infra/azure/main.bicep \

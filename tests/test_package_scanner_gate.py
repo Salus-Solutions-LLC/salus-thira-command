@@ -6,7 +6,7 @@ import sys
 import textwrap
 
 
-def test_production_readiness_rejects_missing_scanner(tmp_path):
+def test_production_readiness_rejects_unaccepted_package_scanner(tmp_path):
     env = os.environ.copy()
     env.update({
         'SALUS_DB_PATH': str(tmp_path / 'candidate.db'),
@@ -29,7 +29,7 @@ def test_production_readiness_rejects_missing_scanner(tmp_path):
         result = app.production_readiness()
         assert result['package_scanner'] == {'mode': 'clamav', 'configured': False}
         assert result['ready'] is False
-        assert any('scanner executable is required' in issue for issue in result['issues'])
+        assert any('governed package scanner release' in issue for issue in result['issues'])
 
         security_controls.AV_MODE = 'off'
         result = app.production_readiness()
@@ -38,7 +38,7 @@ def test_production_readiness_rejects_missing_scanner(tmp_path):
 
         app.PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = False
         result = app.production_readiness()
-        assert not any('scanner executable is required' in issue for issue in result['issues'])
+        assert not any('governed package scanner release' in issue for issue in result['issues'])
     ''')
     child = tmp_path / 'scanner_gate.py'
     child.write_text(program, encoding='utf-8')

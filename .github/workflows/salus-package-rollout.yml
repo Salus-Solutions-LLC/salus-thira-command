@@ -121,6 +121,10 @@ jobs:
             echo 'Part 1 overwrite was not rejected' >&2
             exit 1
           fi
+      - name: Verify Azure budget and scanner state guard
+        run: |
+          bash -n tools/azure_operational_budget.sh tools/ci_azure_operational_budget.sh
+          bash tools/ci_azure_operational_budget.sh
       - name: Compile scanner installation template without Azure credentials
         run: az bicep build --file infra/azure/defender-storage-scanner.bicep --stdout > /tmp/salus-defender-scanner-arm.json
       - name: Compile application and worker promotion template without Azure credentials

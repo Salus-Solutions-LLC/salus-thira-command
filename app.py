@@ -45,6 +45,7 @@ COOKIE_SECURE = os.getenv('SALUS_COOKIE_SECURE', '0').lower() in ('1','true','ye
 ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
 PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED','0').lower() in ('1','true','yes')
 PACKAGE_SCAN_MODE = os.getenv('SALUS_PACKAGE_SCAN_MODE','inline').strip().lower()
+PACKAGE_SCANNER_ACCEPTED = os.getenv('SALUS_PACKAGE_SCANNER_ACCEPTED','0').lower() in ('1','true','yes')
 
 def package_quarantine(*, for_worker=False):
     # The web route may create originals but must not read quarantine bytes.
@@ -2207,8 +2208,17 @@ def verified_quote_advisor_receipt_link(conn,quote,request:Request,current,lock:
         raise HTTPException(409,'The quoted receipt no longer matches the reviewed handoff.')
     return link
 
-def require_package_commercial_candidate():
+def package_workflow_ready():
     if not PACKAGE_COMMERCIAL_WORKFLOW_ENABLED or ENVIRONMENT=='production':
+        return False
+    if AUTH_MODE=='oidc':
+        quarantine_url=os.getenv('SALUS_SCAN_QUARANTINE_URL','').strip()
+        return (PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and
+                re.fullmatch(r'https://[a-z0-9]{3,24}\.blob\.core\.windows\.net',quarantine_url) is not None)
+    return True
+
+def require_package_commercial_candidate():
+    if not package_workflow_ready():
         raise HTTPException(503,'Package quotes and acceptance are held for governed agreement delivery and release review.')
 
 class ThreatIn(BaseModel):
@@ -3186,7 +3196,7 @@ def production_readiness():
         if not COOKIE_SECURE: issues.append('SALUS_COOKIE_SECURE=1 is required in production.')
         if STORAGE_BACKEND=='local': issues.append('Managed object storage is required for production; local evidence storage is not production-grade.')
         if not AV_REQUIRED: issues.append('SALUS_REQUIRE_AV=1 should be enabled for production evidence uploads.')
-        if PACKAGE_COMMERCIAL_WORKFLOW_ENABLED and not scanner_status['configured']: issues.append('A configured malware scanner executable is required for production package uploads; verify signatures and scan results before release.')
+        if PACKAGE_COMMERCIAL_WORKFLOW_ENABLED and not package_workflow_ready(): issues.append('The governed package scanner release is not configured and accepted.')
         if AUTH_MODE=='oidc' and not oidc_configured(): issues.append('OIDC mode is selected but provider configuration is incomplete.')
         if AUTH_MODE=='oidc' and OIDC_CLIENT_AUTH_METHOD!='managed_identity': issues.append('Production OIDC must use managed identity federation without a client secret.')
         if AUTH_MODE=='oidc' and OIDC_AUTO_PROVISION: issues.append('Production OIDC automatic user provisioning must remain disabled.')
@@ -3207,8 +3217,9 @@ def production_readiness():
     if not secret_status.get('configured',False): issues.append('Secret provider unavailable.')
     if not rate_status.get('healthy',False): issues.append('Rate limiter unavailable.')
     if not telemetry_status.get('healthy',False): issues.append('Telemetry unavailable.')
+    if PACKAGE_COMMERCIAL_WORKFLOW_ENABLED and not package_workflow_ready(): issues.append('The package commercial route is held until the governed scanner release is accepted.')
     if not db_ok: issues.append('Database unavailable.')
-    blocking=not db_ok or not storage_ok or not secret_status.get('configured',False) or not rate_status.get('healthy',False) or (ENVIRONMENT=='production' and bool(issues))
+    blocking=not db_ok or not storage_ok or not secret_status.get('configured',False) or not rate_status.get('healthy',False) or (PACKAGE_COMMERCIAL_WORKFLOW_ENABLED and not package_workflow_ready()) or (ENVIRONMENT=='production' and bool(issues))
     def public_status(value):
         allowed=('configured','healthy','enabled','backend','provider','mode','target')
         return {key:value[key] for key in allowed if key in value and isinstance(value[key],(str,bool,int,float,type(None)))}
@@ -3661,7 +3672,7 @@ def backfill_baseline_versions():
 backfill_baseline_versions()
 
 @app.get('/api/system/mode')
-def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':PACKAGE_COMMERCIAL_WORKFLOW_ENABLED and ENVIRONMENT!='production' and AUTH_MODE in ('session','oidc')}
+def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc')}
 
 @app.get('/api/auth/oidc/start')
 def oidc_start(request:Request):
