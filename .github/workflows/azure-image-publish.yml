@@ -228,6 +228,8 @@ jobs:
               "$IMAGE_REFERENCE" \
               python -c 'import os; import salcapa_runtime as r; expected = os.environ["EXPECTED_RELEASE_VERSION"]; assert r.SALCAPA_RELEASE_VERSION == expected; assert r.app.state.salcapa_release_version == expected'
             docker run --rm "$IMAGE_REFERENCE" python -c 'import inspect, salcapa_audio_video_processing as media; assert "worker_timeout_seconds" in inspect.signature(media._decode_media).parameters'
+            docker run --rm "$IMAGE_REFERENCE" python -c 'import salus_scan_worker as worker; assert worker.main(poll=lambda: "Empty", reconcile=lambda: None) == 0'
+            docker run --rm "$IMAGE_REFERENCE" python -c 'import salus_scan_inventory_worker as inventory; assert inventory.main(inspect=lambda: {"ledger_count": 0, "azure_version_count": 0, "azure_bytes": 0, "exceptions_observed": 0}) == 0'
             az acr login --name "$REGISTRY_NAME"
             docker push "$IMAGE_REFERENCE"
           fi
