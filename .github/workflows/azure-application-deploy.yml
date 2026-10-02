@@ -530,11 +530,11 @@ jobs:
             --resource-group "$RESOURCE_GROUP" \
             --name "$JOB_NAME" \
             --image "$IMAGE_DIGEST" \
+            --trigger-type Manual \
             --output none --only-show-errors
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
           test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$IMAGE_DIGEST"
-          test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-knowledge-job.json)" = "Schedule"
-          test "$(jq -r '.properties.configuration.scheduleTriggerConfig.cronExpression' /tmp/salcapa-knowledge-job.json)" = "*/2 * * * *"
+          test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-knowledge-job.json)" = "Manual"
           EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
           test -n "$EXECUTION_NAME"
           SUCCEEDED=false
@@ -554,6 +554,18 @@ jobs:
             exit 1
           fi
           az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 50 --format text --only-show-errors 2>&1 | grep 'SALCAPA_KNOWLEDGE_BATCH=' || true
+          az containerapp job update \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" \
+            --trigger-type Schedule \
+            --cron-expression '*/2 * * * *' \
+            --output none --only-show-errors
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
+          jq -e --arg image "$IMAGE_DIGEST" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+          ' /tmp/salcapa-knowledge-job.json >/dev/null
           echo "SALCAPA_KNOWLEDGE_WORKER_EXECUTION=$EXECUTION_NAME" >> "$GITHUB_ENV"
 
       - name: Restore accepted rollback release if promotion verification fails
@@ -573,6 +585,8 @@ jobs:
             --resource-group "$RESOURCE_GROUP" \
             --name "$JOB_NAME" \
             --image "$ROLLBACK_IMAGE" \
+            --trigger-type Schedule \
+            --cron-expression '*/2 * * * *' \
             --output none --only-show-errors \
             && az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-rollback-job.json \
             && jq -e --arg image "$ROLLBACK_IMAGE" '

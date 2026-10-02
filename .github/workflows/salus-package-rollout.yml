@@ -133,6 +133,16 @@ jobs:
                           continue
                       script = re.sub(r'\$\{\{.*?\}\}', 'EXPRESSION', step['run'])
                       subprocess.run(['bash', '-n'], input=script, text=True, check=True)
+              if name == 'azure-application-deploy.yml':
+                  steps = document['jobs']['deploy']['steps']
+                  promote = next(step['run'] for step in steps if step.get('name') == 'Promote and verify scheduled worker after application acceptance')
+                  rollback = next(step['run'] for step in steps if step.get('name') == 'Restore accepted rollback release if promotion verification fails')
+                  assert promote.index('--trigger-type Manual') < promote.index('az containerapp job start')
+                  assert promote.index('if [ "$SUCCEEDED" != "true" ]; then') < promote.index('--trigger-type Schedule')
+                  assert "--cron-expression '*/2 * * * *'" in promote
+                  assert '--image "$ROLLBACK_IMAGE"' in rollback
+                  assert '--trigger-type Schedule' in rollback
+                  assert "--cron-expression '*/2 * * * *'" in rollback
           PY
 
   professional-report-windows:
