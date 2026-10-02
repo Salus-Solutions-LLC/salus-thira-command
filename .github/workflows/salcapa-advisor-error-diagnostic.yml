@@ -40,7 +40,7 @@ jobs:
           test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
           WORKSPACE_ID="$(az monitor log-analytics workspace show --resource-group rg-salcapa-dev --workspace-name salcapa-dev-b48224-logs --query customerId --output tsv)"
           test -n "$WORKSPACE_ID"
-          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-02T03:00:20Z) .. datetime(2026-10-02T03:00:43Z)) | where ContainerAppName == 'salcapa-dev-b48224' | project Log | take 200" --output json > "$RUNNER_TEMP/scoped-advisor-logs.json"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-02T03:00:20Z) .. datetime(2026-10-02T03:00:43Z)) | where ContainerAppName == 'salcapa-dev-b48224' | where Log has_any ('RuntimeError', 'Traceback', 'File', '/protection-advisor/embed', '/public/protection-advisor/session') | project Log | take 200" --output json > "$RUNNER_TEMP/scoped-advisor-logs.json"
           python - "$RUNNER_TEMP/scoped-advisor-logs.json" <<'PY'
           import json, re, sys
           from pathlib import Path
@@ -48,13 +48,24 @@ jobs:
           if isinstance(rows, dict):
               rows = rows.get("tables", [{}])[0].get("rows", [])
           signatures = set()
+          hints = {"database": "database", "migration": "migration", "not configured": "configuration", "no such table": "missing_table", "NoneType": "null_value", "template": "template", "secret": "secret_reference", "permission": "permission", "missing": "missing_value"}
           for row in rows:
               line = row.get("Log", "") if isinstance(row, dict) else str(row)
+              for word, category in hints.items():
+                  if word.lower() in line.lower() and ("RuntimeError" in line or "Traceback" in line):
+                      signatures.add("hint=" + category)
+              for method, route in re.findall(r"\b(GET|POST) (/protection-advisor/embed|/public/protection-advisor/session)\b", line):
+                  signatures.add("request=" + method + ":" + route)
               for name in re.findall(r"\b([A-Za-z_][A-Za-z_0-9.]*(?:Error|Exception)):", line):
                   signatures.add("exception=" + name)
               for file_name, number, function in re.findall(r'File "[^"]*[/\\]([^/\\"]+)", line (\d+), in ([A-Za-z_][A-Za-z_0-9]*)', line):
                   if file_name in {"salcapa_runtime.py", "protection_advisor.py"}:
                       signatures.add("frame=" + file_name + ":" + number + ":" + function)
+          for row in rows:
+              line = row.get("Log", "") if isinstance(row, dict) else str(row)
+              for appfile in ("salcapa_runtime.py", "protection_advisor.py"):
+                  if appfile in line:
+                      signatures.add("mentions=" + appfile)
           print("scoped_rows=" + str(len(rows)))
           for item in sorted(signatures):
               print(item)
