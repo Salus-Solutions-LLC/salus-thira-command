@@ -109,4 +109,7 @@ module.delete_member_pdf(stored["item_id"])
 assert stored["item_id"] not in Client.items
 module.delete_member_pdf(receipt["item_id"])
 assert receipt["item_id"] not in Client.items
+os.environ.pop("SALUS_M365_ADVISOR_MEMBER_REPORT_FOLDER_ITEM_ID")
+os.environ["SALUS_M365_ADVISOR_REPORT_FOLDER_ITEM_ID"] = "governed-advisor-folder"
+assert module._client().config.folder_item_id == "governed-advisor-folder"
 print("Protection Advisor exact-original store contract passed")

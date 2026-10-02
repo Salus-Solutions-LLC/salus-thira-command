@@ -21,7 +21,10 @@ _ITEM_ID = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
 
 
 def _client() -> GovernedM365Reports:
-    folder = os.getenv("SALUS_M365_ADVISOR_MEMBER_REPORT_FOLDER_ITEM_ID", "").strip()
+    folder = (
+        os.getenv("SALUS_M365_ADVISOR_MEMBER_REPORT_FOLDER_ITEM_ID", "").strip()
+        or os.getenv("SALUS_M365_ADVISOR_REPORT_FOLDER_ITEM_ID", "").strip()
+    )
     if not folder:
         raise M365ReportError("Protected Member report storage is not configured")
     base = GovernedM365ReportConfig.from_environment()
