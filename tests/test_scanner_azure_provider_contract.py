@@ -30,3 +30,7 @@ def test_scanner_alert_windows_and_staged_activation():
     assert "defenderForStorageSettings@2025-06-01' = if (activateScanner)" in source
     assert "where TimeGenerated > ago(20m)" in source
     assert "where TimeGenerated > ago(27h)" in source
+    assert "resource topicStorageAccountQueueSender" in source
+    assert "name: guid(quarantineStorage.id, resultTopic.id, queueMessageSenderRole)" in source
+    assert "scope: quarantineStorage" in source
+    assert "    topicStorageAccountQueueSender\n  ]" in source
