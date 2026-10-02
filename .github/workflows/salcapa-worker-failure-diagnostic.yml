@@ -53,23 +53,23 @@ jobs:
           for row in rows:
               props = row.get("properties", {})
               start = str(props.get("startTime") or "")
-              if not start.startswith("2026-10-02T11:"):
+              if not start.startswith("2026-10-02T12:"):
                   continue
               try:
                   minute = int(start[14:16])
               except ValueError:
                   continue
-              if minute < 28 or minute > 45:
+              if minute < 33 or minute > 50:
                   continue
               containers = props.get("template", {}).get("containers", []) or props.get("containers", [])
               images = [str(item.get("image", "")) for item in containers if isinstance(item, dict)]
-              image = "candidate" if any("2121f1e9675bccbc53b78b1d40371c8168e1db5f7e595fc5be75b23e72e0e2f1" in value for value in images) else ("accepted" if any("77b9ecd15c25a5baad55be47a6385429df3eb9c3f5712a0cd94745d22cf6f8b1" in value for value in images) else "unspecified")
+              image = "candidate" if any("64f1399b3f6093ef75b9b06e8547ebdc29d7cb22e98f57b980a22ef267e8a6d0" in value for value in images) else ("accepted" if any("77b9ecd15c25a5baad55be47a6385429df3eb9c3f5712a0cd94745d22cf6f8b1" in value for value in images) else "unspecified")
               scoped.append((start[:16], str(props.get("status", "unknown")), str(props.get("endTime") or "")[:16], image))
           print("scoped_executions=" + str(len(scoped)))
           for start, status, end, image in sorted(scoped):
               print("execution_minute=" + start + " status=" + status + " end_minute=" + end + " image=" + image)
           PY
-          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-02T11:28:00Z) .. datetime(2026-10-02T11:45:00Z)) | where JobName == 'salcapa-dev-b48224-kb-scan' | project TimeGenerated, ContainerImage, Log | take 1000" --output json > "$RUNNER_TEMP/scoped-worker-logs.json"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-02T12:33:00Z) .. datetime(2026-10-02T12:50:00Z)) | where JobName == 'salcapa-dev-b48224-kb-scan' | project TimeGenerated, ContainerImage, Log | take 1000" --output json > "$RUNNER_TEMP/scoped-worker-logs.json"
           python - "$RUNNER_TEMP/scoped-worker-logs.json" <<'PY'
           import json
           import re
@@ -106,7 +106,7 @@ jobs:
               line = row.get("Log", "") if isinstance(row, dict) else str(row)
               minute = str(row.get("TimeGenerated", "unknown"))[:16] if isinstance(row, dict) else "unknown"
               image_text = str(row.get("ContainerImage", "")) if isinstance(row, dict) else ""
-              image_kind = ("candidate" if "2121f1e9675bccbc53b78b1d40371c8168e1db5f7e595fc5be75b23e72e0e2f1" in image_text
+              image_kind = ("candidate" if "64f1399b3f6093ef75b9b06e8547ebdc29d7cb22e98f57b980a22ef267e8a6d0" in image_text
                             else "accepted" if "77b9ecd15c25a5baad55be47a6385429df3eb9c3f5712a0cd94745d22cf6f8b1" in image_text
                             else "other")
               image_counts[image_kind] += 1
@@ -140,7 +140,7 @@ jobs:
           if not signatures:
               print("no_safe_failure_signature_found")
           PY
-          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppSystemLogs | where TimeGenerated between (datetime(2026-10-02T11:28:00Z) .. datetime(2026-10-02T11:45:00Z)) | where JobName == 'salcapa-dev-b48224-kb-scan' | project TimeGenerated, Reason, Log | take 1000" --output json > "$RUNNER_TEMP/scoped-worker-system-logs.json"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppSystemLogs | where TimeGenerated between (datetime(2026-10-02T12:33:00Z) .. datetime(2026-10-02T12:50:00Z)) | where JobName == 'salcapa-dev-b48224-kb-scan' | project TimeGenerated, Reason, Log | take 1000" --output json > "$RUNNER_TEMP/scoped-worker-system-logs.json"
           python - "$RUNNER_TEMP/scoped-worker-system-logs.json" <<'PY'
           import json
           import sys
