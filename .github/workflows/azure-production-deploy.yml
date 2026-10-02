@@ -170,6 +170,12 @@ jobs:
             operationalBudgetUsd="$BUDGET_USD"
             budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
           )
+          if [[ "$(az group exists --name "$RESOURCE_GROUP")" == "true" ]]; then
+            BUDGET_NAME="salcapa-$TARGET_ENVIRONMENT-$UNIQUE_SUFFIX-monthly-budget"
+            BUDGET_START_DATE="$(az consumption budget show --resource-group "$RESOURCE_GROUP" --budget-name "$BUDGET_NAME" --query timePeriod.startDate -o tsv)"
+            [[ "$BUDGET_START_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]] || exit 1
+            PARAMETERS+=(budgetStartDate="$BUDGET_START_DATE")
+          fi
           az deployment group what-if \
             --resource-group "$RESOURCE_GROUP" \
             --template-file infra/azure/main.bicep \
@@ -264,6 +270,12 @@ jobs:
             operationalBudgetUsd="$BUDGET_USD"
             budgetContactEmail="$AZURE_BUDGET_CONTACT_EMAIL"
           )
+          if [[ "$(az group exists --name "$RESOURCE_GROUP")" == "true" ]]; then
+            BUDGET_NAME="salcapa-$TARGET_ENVIRONMENT-$UNIQUE_SUFFIX-monthly-budget"
+            BUDGET_START_DATE="$(az consumption budget show --resource-group "$RESOURCE_GROUP" --budget-name "$BUDGET_NAME" --query timePeriod.startDate -o tsv)"
+            [[ "$BUDGET_START_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]] || exit 1
+            PARAMETERS+=(budgetStartDate="$BUDGET_START_DATE")
+          fi
           az deployment group what-if \
             --resource-group "$RESOURCE_GROUP" \
             --template-file infra/azure/main.bicep \
