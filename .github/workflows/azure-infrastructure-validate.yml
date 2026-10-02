@@ -591,10 +591,10 @@ jobs:
           # Check the workflow's variable bindings and rollback controls rather
           # than expecting a prior release number in this reusable workflow.
           application_deployment_required.extend([
-              'SOURCE_RELEASE="$(jq -r \\'.source_release\\' "$ACTIVATION_FILE")"',
-              'SOURCE_COMMIT="$(jq -r \\'.source_commit\\' "$ACTIVATION_FILE")"',
-              'ROLLBACK_RELEASE="$(jq -r \\'.rollback_release\\' "$ACTIVATION_FILE")"',
-              'ROLLBACK_COMMIT="$(jq -r \\'.rollback_commit\\' "$ACTIVATION_FILE")"',
+              "SOURCE_RELEASE=\"$(jq -r '.source_release' \"$ACTIVATION_FILE\")\"",
+              "SOURCE_COMMIT=\"$(jq -r '.source_commit' \"$ACTIVATION_FILE\")\"",
+              "ROLLBACK_RELEASE=\"$(jq -r '.rollback_release' \"$ACTIVATION_FILE\")\"",
+              "ROLLBACK_COMMIT=\"$(jq -r '.rollback_commit' \"$ACTIVATION_FILE\")\"",
               'ref: ' + chr(36) + chr(123) * 2 + ' steps.activation.outputs.source_release ' + chr(125) * 2,
               'ref: ' + chr(36) + chr(123) * 2 + ' steps.activation.outputs.rollback_release ' + chr(125) * 2,
               'ROLLBACK_IMAGE: ' + chr(36) + chr(123) * 2 + ' steps.activation.outputs.rollback_image ' + chr(125) * 2,
