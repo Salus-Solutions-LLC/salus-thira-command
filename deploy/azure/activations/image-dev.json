@@ -6,7 +6,7 @@
   "location": "southcentralus",
   "unique_suffix": "b48224",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-  "source_release": "release/v3.205",
-  "source_commit": "1ad0c2af8bd7607902a89e280ba7ee855e896892",
-  "activation_key": "salcapa-v3.205-image-1ad0c2af"
+  "source_release": "release/v3.206",
+  "source_commit": "5e8acd60b9562683d53bd95c21b85f2786d28343",
+  "activation_key": "salcapa-v3.206-image-5e8acd60"
 }
