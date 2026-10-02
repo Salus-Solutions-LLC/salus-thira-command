@@ -595,7 +595,3111 @@ jobs:
               'SOURCE_COMMIT="$(jq -r \'.source_commit\' "$ACTIVATION_FILE")"',
               'ROLLBACK_RELEASE="$(jq -r \'.rollback_release\' "$ACTIVATION_FILE")"',
               'ROLLBACK_COMMIT="$(jq -r \'.rollback_commit\' "$ACTIVATION_FILE")"',
-              'ref: ${{ steps.activation.outputs.source_release }}',
+              'ref: ' + chr(36) + chr(123) * 2 + ' steps.activation.outputs.source_release ' + chr(125) * 2,
+              'ref: ' + chr(36) + chr(123) * 2 + ' steps.activation.outputs.rollback_release ' + chr(125) * 2,
+              'ROLLBACK_IMAGE: ' + chr(36) + chr(123) * 2 + ' steps.activation.outputs.rollback_image ' + chr(125) * 2,
+              'Restore accepted rollback release if promotion verification fails',
+              'Accepted immutable $ROLLBACK_RELEASE application and worker images restored',
+              'Failed promotion left partial rollback:',
+          ])
+          missing_application_deployment = [
+              value for value in application_deployment_required
+              if value not in application_deployment
+          ]
+          if missing_application_deployment:
+              raise SystemExit(
+                  'Azure application deployment governance is incomplete: '
+                  + ', '.join(missing_application_deployment)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', application_deployment, re.MULTILINE):
+              raise SystemExit('Application deployment may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', application_deployment)) < 3:
+              raise SystemExit('Development, candidate, and accepted application checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', application_deployment):
+              raise SystemExit('Application-deployment Azure login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in application_deployment or ':latest' in application_deployment:
+              raise SystemExit('Application deployment may not use a client secret or mutable latest tag')
+          if 'customDomains:' in application_deployment or 'az network dns' in application_deployment:
+              raise SystemExit('Development deployment may not change DNS')
+
+          recovery_readiness = Path('.github/workflows/azure-recovery-readiness.yml').read_text()
+          recovery_readiness_required = [
+              'deploy/azure/activations/recovery-readiness-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'actions: read',
+              'id-token: write',
+              'ref: release/v3.111',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.source_release == "release/v3.111"',
+              '.source_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              '.restore_evidence_run == 34557442913',
+              '.restore_evidence_head == "e94ffd9d55708df9513c4545227ed56dddc5c364"',
+              'Verify governed point-in-time restore evidence',
+              'SalCAPA governed Azure live-copy migration acceptance',
+              'gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"',
+              'az acr manifest show-metadata',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'az rest --method get',
+              'backupRetentionDays == 14',
+              'earliestRestoreDate',
+              'isVersioningEnabled == true',
+              'deleteRetentionPolicy.days == 14',
+              'containerDeleteRetentionPolicy.days == 14',
+              'workspaceCapping.dailyQuotaGb == 0.1',
+              'properties.notifications.actual80Percent',
+              'frozen-release/tools/validate_live_readiness.py',
+              'Point-in-time restore: previously performed and bound to successful governed run 34557442913',
+              'Current backup, evidence retention, monitoring, budget, accepted application, and v3.111 image state: verified read-only',
+              'Resource mutation: none',
+              'Client secret: not used',
+              'DNS or production cutover: not performed',
+          ]
+          missing_recovery_readiness = [
+              value for value in recovery_readiness_required
+              if value not in recovery_readiness
+          ]
+          if missing_recovery_readiness:
+              raise SystemExit(
+                  'Azure recovery-readiness governance is incomplete: '
+                  + ', '.join(missing_recovery_readiness)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', recovery_readiness, re.MULTILINE):
+              raise SystemExit('Recovery readiness may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', recovery_readiness)) < 2:
+              raise SystemExit('Both recovery-readiness checkouts must be pinned to commit SHAs')
+          if any(value in recovery_readiness for value in (
+              'AZURE_CLIENT_SECRET',
+              'az deployment group create',
+              'az postgres flexible-server restore',
+              'az storage blob restore',
+              'az rest --method put',
+              'az rest --method post',
+              'az rest --method delete',
+          )):
+              raise SystemExit('Recovery readiness must remain passwordless and read-only')
+
+          rollback_acceptance = Path('.github/workflows/azure-rollback-acceptance.yml').read_text()
+          rollback_acceptance_required = [
+              'deploy/azure/activations/rollback-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              'ref: release/v3.36',
+              '.operation == "accept_rollback"',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.candidate_release == "release/v3.111"',
+              '.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-rollback"',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'infra/azure/rollback-acceptance.bicep',
+              'phase=candidate',
+              'phase=accepted',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'Temporary rollback job and restored database: removed',
+              'AZURE_ROLLBACK_ACCEPTED',
+          ]
+          missing_rollback_acceptance = [
+              value for value in rollback_acceptance_required
+              if value not in rollback_acceptance
+          ]
+          if missing_rollback_acceptance:
+              raise SystemExit(
+                  'Azure rollback acceptance governance is incomplete: '
+                  + ', '.join(missing_rollback_acceptance)
+              )
+          rollback_trigger = rollback_acceptance.split('permissions:', 1)[0]
+          if any(value in rollback_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Rollback acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', rollback_acceptance)) < 3:
+              raise SystemExit('Development, candidate, and accepted rollback checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', rollback_acceptance):
+              raise SystemExit('Rollback acceptance Azure login action must be pinned')
+          if any(value in rollback_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Rollback acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          rollback_bicep = Path('infra/azure/rollback-acceptance.bicep').read_text()
+          for value in (
+              'temporary-rollback-acceptance',
+              "param phase string",
+              "'candidate'",
+              "'accepted'",
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+          ):
+              if value not in rollback_bicep:
+                  raise SystemExit('Rollback acceptance job contract is incomplete: ' + value)
+
+          recovery_rehearsal = Path('tools/ci_recovery_rehearsal.py').read_text()
+          application_source = Path('app.py').read_text()
+          recovery_rehearsal_required = [
+              'CLEAN_ROOM_RECOVERY_REHEARSAL_PASS',
+              'Independent Recovery Reviewer',
+              'safety["filename"] != baseline["filename"]',
+              'assert_restored_snapshot(baseline_records)',
+              'assert_restored_snapshot(safety_records)',
+              'boundary_before',
+              'app.ALLOW_RESTORE = False',
+          ]
+          missing_recovery_rehearsal = [
+              value for value in recovery_rehearsal_required
+              if value not in recovery_rehearsal
+          ]
+          if missing_recovery_rehearsal:
+              raise SystemExit(
+                  'Clean-room recovery rehearsal is incomplete: '
+                  + ', '.join(missing_recovery_rehearsal)
+              )
+          if any(value in recovery_rehearsal for value in (
+              'management.azure.com',
+              'az postgres',
+              'az storage',
+              'SALUS_STORAGE_BACKEND"] = "azure"',
+          )):
+              raise SystemExit('Clean-room recovery rehearsal must not mutate Azure')
+          for value in (
+              "strftime('%Y%m%dT%H%M%S%fZ')",
+              'uuid.uuid4().hex[:12]',
+          ):
+              if value not in application_source:
+                  raise SystemExit('Backup filename uniqueness control is incomplete: ' + value)
+
+          pitr_exercise = Path('.github/workflows/azure-pitr-exercise.yml').read_text()
+          pitr_exercise_required = [
+              'deploy/azure/activations/pitr-exercise-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.33',
+              '.source_release == "release/v3.33"',
+              '.source_commit == "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4"',
+              '.operation == "exercise_point_in_time_restore"',
+              '.source_server == "salcapa-dev-b48224-pg"',
+              '.temporary_restore_server == "salcapa-dev-b48224-pitr"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'Fail closed: temporary restore target already exists.',
+              'az postgres flexible-server restore',
+              '--restore-time "$RESTORE_POINT"',
+              '.authConfig.passwordAuth == "Disabled"',
+              '.network.publicNetworkAccess == "Disabled"',
+              'az postgres flexible-server db show',
+              '--name salcapa',
+              'SALUS_POSTGRES_HOST',
+              'Application database target: remained the source server',
+              'Source server before/after: Ready and unchanged',
+              'az postgres flexible-server delete',
+              'Temporary restore server: deleted',
+              'Client secret or database password: not used',
+              'Application traffic cutover: not performed',
+              'DNS or production cutover: not performed',
+              'LIVE_PITR_EXERCISE_ACCEPTED',
+          ]
+          missing_pitr_exercise = [
+              value for value in pitr_exercise_required if value not in pitr_exercise
+          ]
+          if missing_pitr_exercise:
+              raise SystemExit(
+                  'Azure point-in-time recovery exercise governance is incomplete: '
+                  + ', '.join(missing_pitr_exercise)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', pitr_exercise, re.MULTILINE):
+              raise SystemExit('Point-in-time recovery exercise may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', pitr_exercise)) < 2:
+              raise SystemExit('Both point-in-time recovery checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', pitr_exercise):
+              raise SystemExit('Point-in-time recovery Azure login action must be pinned to a commit SHA')
+          if any(value in pitr_exercise for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+              'az deployment group create',
+          )):
+              raise SystemExit('Point-in-time recovery exercise crosses a credential, DNS, application, or deployment boundary')
+
+          live_copy_acceptance = Path('.github/workflows/azure-live-copy-migration-acceptance.yml').read_text()
+          live_copy_required = [
+              'deploy/azure/activations/live-copy-migration-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_copy_migration"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-copy"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_COPY_MIGRATION_ACCEPTED',
+          ]
+          missing_live_copy = [
+              value for value in live_copy_required if value not in live_copy_acceptance
+          ]
+          if missing_live_copy:
+              raise SystemExit(
+                  'Azure live-copy migration acceptance governance is incomplete: '
+                  + ', '.join(missing_live_copy)
+              )
+          live_copy_trigger = live_copy_acceptance.split('permissions:', 1)[0]
+          if any(value in live_copy_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-copy migration acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_copy_acceptance)) < 2:
+              raise SystemExit('Both live-copy acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_copy_acceptance):
+              raise SystemExit('Live-copy acceptance Azure login action must be pinned to a commit SHA')
+          if any(value in live_copy_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-copy acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_copy_bicep = Path('infra/azure/live-copy-migration-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-copy-migration-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "'salcapa_demo_fixtures'",
+              "'FICTIONAL DEMONSTRATION DATA ONLY'",
+          ):
+              if value not in live_copy_bicep:
+                  raise SystemExit('Live-copy migration job contract is incomplete: ' + value)
+
+          import subprocess
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_copy_migration_contract_smoke.py'],
+              check=True,
+          )
+
+          live_reporting = Path('.github/workflows/azure-live-reporting-acceptance.yml').read_text()
+          live_reporting_required = [
+              'deploy/azure/activations/live-reporting-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_reporting"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-report"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_REPORTING_ACCEPTED',
+          ]
+          missing_live_reporting = [
+              value for value in live_reporting_required if value not in live_reporting
+          ]
+          if missing_live_reporting:
+              raise SystemExit(
+                  'Azure live-reporting acceptance governance is incomplete: '
+                  + ', '.join(missing_live_reporting)
+              )
+          live_reporting_trigger = live_reporting.split('permissions:', 1)[0]
+          if any(value in live_reporting_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-reporting acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_reporting)) < 2:
+              raise SystemExit('Both live-reporting acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_reporting):
+              raise SystemExit('Live-reporting Azure login action must be pinned to a commit SHA')
+          if any(value in live_reporting for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-reporting acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_reporting_bicep = Path('infra/azure/live-reporting-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-reporting-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "{ name: 'SALUS_AUTH_MODE', value: 'local' }",
+              'acceptanceScriptBase64',
+          ):
+              if value not in live_reporting_bicep:
+                  raise SystemExit('Live-reporting job contract is incomplete: ' + value)
+
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_reporting_contract_smoke.py'],
+              check=True,
+          )
+
+          connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
+          connection_required = [
+              'id-token: write',
+              ".github/workflows/azure-foundation-activate.yml",
+              "deploy/azure/activations/foundation-dev.json",
+              'Evaluate required Azure provider readiness',
+              'Required Azure providers registered',
+              'Required Azure providers missing',
+              "steps.providers.outputs.ready == 'true'",
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'az role assignment list',
+              '--assignee-object-id',
+              'EXPECTED_SCOPE=',
+              'ascii_downcase',
+              'User Access Administrator',
+              'Role Based Access Control Administrator',
+              'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+              'Run live foundation what-if without provisioning',
+              'UNIQUE_SUFFIX: b48224',
+              'provisionApplication=false',
+              'sourceCommit="$GITHUB_SHA"',
+              '--result-format FullResourcePayloads',
+              '.changeType != "Delete"',
+              'microsoft.app/containerapps',
+              '.changeType | IN("Ignore", "NoEffect")',
+              'Container App mutation by foundation preflight: none',
+              'GITHUB_STEP_SUMMARY',
+          ]
+          missing_connection = [
+              value for value in connection_required if value not in connection
+          ]
+          if missing_connection:
+              raise SystemExit(
+                  'Azure connection acceptance is incomplete: '
+                  + ', '.join(missing_connection)
+              )
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', connection):
+              raise SystemExit('Azure connection login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in connection:
+              raise SystemExit('Azure connection acceptance may not use a long-lived client secret')
+          if 'az deployment group create' in connection:
+              raise SystemExit('Azure connection preflight must never provision resources')
+
+          cost = Path('docs/AZURE_COST_AND_APPROVAL.md').read_text()
+          for value in (
+              'Option A',
+              'Azure Container Apps',
+              'Consumption environment',
+              'Standard_LRS',
+              'approximately $15–25/month',
+              'Proposed monthly authorization ceiling',
+              '$30.00',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              'No DNS change or public production cutover',
+              '$25.00',
+              '80% actual',
+              '100% forecasted',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+          ):
+              if value not in cost:
+                  raise SystemExit('Azure cost and approval record is incomplete: ' + value)
+          print('AZURE_LEAN_INFRA_POLICY_PASS')
+          PY
+ + '{{ steps.activation.outputs.source_release }}',
+              'ref: ${{ steps.activation.outputs.rollback_release }}',
+              'ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}',
+              'Restore accepted rollback release if promotion verification fails',
+              'Accepted immutable $ROLLBACK_RELEASE application and worker images restored',
+              'Failed promotion left partial rollback:',
+          ])
+          missing_application_deployment = [
+              value for value in application_deployment_required
+              if value not in application_deployment
+          ]
+          if missing_application_deployment:
+              raise SystemExit(
+                  'Azure application deployment governance is incomplete: '
+                  + ', '.join(missing_application_deployment)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', application_deployment, re.MULTILINE):
+              raise SystemExit('Application deployment may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', application_deployment)) < 3:
+              raise SystemExit('Development, candidate, and accepted application checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', application_deployment):
+              raise SystemExit('Application-deployment Azure login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in application_deployment or ':latest' in application_deployment:
+              raise SystemExit('Application deployment may not use a client secret or mutable latest tag')
+          if 'customDomains:' in application_deployment or 'az network dns' in application_deployment:
+              raise SystemExit('Development deployment may not change DNS')
+
+          recovery_readiness = Path('.github/workflows/azure-recovery-readiness.yml').read_text()
+          recovery_readiness_required = [
+              'deploy/azure/activations/recovery-readiness-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'actions: read',
+              'id-token: write',
+              'ref: release/v3.111',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.source_release == "release/v3.111"',
+              '.source_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              '.restore_evidence_run == 34557442913',
+              '.restore_evidence_head == "e94ffd9d55708df9513c4545227ed56dddc5c364"',
+              'Verify governed point-in-time restore evidence',
+              'SalCAPA governed Azure live-copy migration acceptance',
+              'gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"',
+              'az acr manifest show-metadata',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'az rest --method get',
+              'backupRetentionDays == 14',
+              'earliestRestoreDate',
+              'isVersioningEnabled == true',
+              'deleteRetentionPolicy.days == 14',
+              'containerDeleteRetentionPolicy.days == 14',
+              'workspaceCapping.dailyQuotaGb == 0.1',
+              'properties.notifications.actual80Percent',
+              'frozen-release/tools/validate_live_readiness.py',
+              'Point-in-time restore: previously performed and bound to successful governed run 34557442913',
+              'Current backup, evidence retention, monitoring, budget, accepted application, and v3.111 image state: verified read-only',
+              'Resource mutation: none',
+              'Client secret: not used',
+              'DNS or production cutover: not performed',
+          ]
+          missing_recovery_readiness = [
+              value for value in recovery_readiness_required
+              if value not in recovery_readiness
+          ]
+          if missing_recovery_readiness:
+              raise SystemExit(
+                  'Azure recovery-readiness governance is incomplete: '
+                  + ', '.join(missing_recovery_readiness)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', recovery_readiness, re.MULTILINE):
+              raise SystemExit('Recovery readiness may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', recovery_readiness)) < 2:
+              raise SystemExit('Both recovery-readiness checkouts must be pinned to commit SHAs')
+          if any(value in recovery_readiness for value in (
+              'AZURE_CLIENT_SECRET',
+              'az deployment group create',
+              'az postgres flexible-server restore',
+              'az storage blob restore',
+              'az rest --method put',
+              'az rest --method post',
+              'az rest --method delete',
+          )):
+              raise SystemExit('Recovery readiness must remain passwordless and read-only')
+
+          rollback_acceptance = Path('.github/workflows/azure-rollback-acceptance.yml').read_text()
+          rollback_acceptance_required = [
+              'deploy/azure/activations/rollback-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              'ref: release/v3.36',
+              '.operation == "accept_rollback"',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.candidate_release == "release/v3.111"',
+              '.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-rollback"',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'infra/azure/rollback-acceptance.bicep',
+              'phase=candidate',
+              'phase=accepted',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'Temporary rollback job and restored database: removed',
+              'AZURE_ROLLBACK_ACCEPTED',
+          ]
+          missing_rollback_acceptance = [
+              value for value in rollback_acceptance_required
+              if value not in rollback_acceptance
+          ]
+          if missing_rollback_acceptance:
+              raise SystemExit(
+                  'Azure rollback acceptance governance is incomplete: '
+                  + ', '.join(missing_rollback_acceptance)
+              )
+          rollback_trigger = rollback_acceptance.split('permissions:', 1)[0]
+          if any(value in rollback_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Rollback acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', rollback_acceptance)) < 3:
+              raise SystemExit('Development, candidate, and accepted rollback checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', rollback_acceptance):
+              raise SystemExit('Rollback acceptance Azure login action must be pinned')
+          if any(value in rollback_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Rollback acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          rollback_bicep = Path('infra/azure/rollback-acceptance.bicep').read_text()
+          for value in (
+              'temporary-rollback-acceptance',
+              "param phase string",
+              "'candidate'",
+              "'accepted'",
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+          ):
+              if value not in rollback_bicep:
+                  raise SystemExit('Rollback acceptance job contract is incomplete: ' + value)
+
+          recovery_rehearsal = Path('tools/ci_recovery_rehearsal.py').read_text()
+          application_source = Path('app.py').read_text()
+          recovery_rehearsal_required = [
+              'CLEAN_ROOM_RECOVERY_REHEARSAL_PASS',
+              'Independent Recovery Reviewer',
+              'safety["filename"] != baseline["filename"]',
+              'assert_restored_snapshot(baseline_records)',
+              'assert_restored_snapshot(safety_records)',
+              'boundary_before',
+              'app.ALLOW_RESTORE = False',
+          ]
+          missing_recovery_rehearsal = [
+              value for value in recovery_rehearsal_required
+              if value not in recovery_rehearsal
+          ]
+          if missing_recovery_rehearsal:
+              raise SystemExit(
+                  'Clean-room recovery rehearsal is incomplete: '
+                  + ', '.join(missing_recovery_rehearsal)
+              )
+          if any(value in recovery_rehearsal for value in (
+              'management.azure.com',
+              'az postgres',
+              'az storage',
+              'SALUS_STORAGE_BACKEND"] = "azure"',
+          )):
+              raise SystemExit('Clean-room recovery rehearsal must not mutate Azure')
+          for value in (
+              "strftime('%Y%m%dT%H%M%S%fZ')",
+              'uuid.uuid4().hex[:12]',
+          ):
+              if value not in application_source:
+                  raise SystemExit('Backup filename uniqueness control is incomplete: ' + value)
+
+          pitr_exercise = Path('.github/workflows/azure-pitr-exercise.yml').read_text()
+          pitr_exercise_required = [
+              'deploy/azure/activations/pitr-exercise-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.33',
+              '.source_release == "release/v3.33"',
+              '.source_commit == "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4"',
+              '.operation == "exercise_point_in_time_restore"',
+              '.source_server == "salcapa-dev-b48224-pg"',
+              '.temporary_restore_server == "salcapa-dev-b48224-pitr"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'Fail closed: temporary restore target already exists.',
+              'az postgres flexible-server restore',
+              '--restore-time "$RESTORE_POINT"',
+              '.authConfig.passwordAuth == "Disabled"',
+              '.network.publicNetworkAccess == "Disabled"',
+              'az postgres flexible-server db show',
+              '--name salcapa',
+              'SALUS_POSTGRES_HOST',
+              'Application database target: remained the source server',
+              'Source server before/after: Ready and unchanged',
+              'az postgres flexible-server delete',
+              'Temporary restore server: deleted',
+              'Client secret or database password: not used',
+              'Application traffic cutover: not performed',
+              'DNS or production cutover: not performed',
+              'LIVE_PITR_EXERCISE_ACCEPTED',
+          ]
+          missing_pitr_exercise = [
+              value for value in pitr_exercise_required if value not in pitr_exercise
+          ]
+          if missing_pitr_exercise:
+              raise SystemExit(
+                  'Azure point-in-time recovery exercise governance is incomplete: '
+                  + ', '.join(missing_pitr_exercise)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', pitr_exercise, re.MULTILINE):
+              raise SystemExit('Point-in-time recovery exercise may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', pitr_exercise)) < 2:
+              raise SystemExit('Both point-in-time recovery checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', pitr_exercise):
+              raise SystemExit('Point-in-time recovery Azure login action must be pinned to a commit SHA')
+          if any(value in pitr_exercise for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+              'az deployment group create',
+          )):
+              raise SystemExit('Point-in-time recovery exercise crosses a credential, DNS, application, or deployment boundary')
+
+          live_copy_acceptance = Path('.github/workflows/azure-live-copy-migration-acceptance.yml').read_text()
+          live_copy_required = [
+              'deploy/azure/activations/live-copy-migration-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_copy_migration"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-copy"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_COPY_MIGRATION_ACCEPTED',
+          ]
+          missing_live_copy = [
+              value for value in live_copy_required if value not in live_copy_acceptance
+          ]
+          if missing_live_copy:
+              raise SystemExit(
+                  'Azure live-copy migration acceptance governance is incomplete: '
+                  + ', '.join(missing_live_copy)
+              )
+          live_copy_trigger = live_copy_acceptance.split('permissions:', 1)[0]
+          if any(value in live_copy_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-copy migration acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_copy_acceptance)) < 2:
+              raise SystemExit('Both live-copy acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_copy_acceptance):
+              raise SystemExit('Live-copy acceptance Azure login action must be pinned to a commit SHA')
+          if any(value in live_copy_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-copy acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_copy_bicep = Path('infra/azure/live-copy-migration-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-copy-migration-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "'salcapa_demo_fixtures'",
+              "'FICTIONAL DEMONSTRATION DATA ONLY'",
+          ):
+              if value not in live_copy_bicep:
+                  raise SystemExit('Live-copy migration job contract is incomplete: ' + value)
+
+          import subprocess
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_copy_migration_contract_smoke.py'],
+              check=True,
+          )
+
+          live_reporting = Path('.github/workflows/azure-live-reporting-acceptance.yml').read_text()
+          live_reporting_required = [
+              'deploy/azure/activations/live-reporting-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_reporting"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-report"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_REPORTING_ACCEPTED',
+          ]
+          missing_live_reporting = [
+              value for value in live_reporting_required if value not in live_reporting
+          ]
+          if missing_live_reporting:
+              raise SystemExit(
+                  'Azure live-reporting acceptance governance is incomplete: '
+                  + ', '.join(missing_live_reporting)
+              )
+          live_reporting_trigger = live_reporting.split('permissions:', 1)[0]
+          if any(value in live_reporting_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-reporting acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_reporting)) < 2:
+              raise SystemExit('Both live-reporting acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_reporting):
+              raise SystemExit('Live-reporting Azure login action must be pinned to a commit SHA')
+          if any(value in live_reporting for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-reporting acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_reporting_bicep = Path('infra/azure/live-reporting-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-reporting-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "{ name: 'SALUS_AUTH_MODE', value: 'local' }",
+              'acceptanceScriptBase64',
+          ):
+              if value not in live_reporting_bicep:
+                  raise SystemExit('Live-reporting job contract is incomplete: ' + value)
+
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_reporting_contract_smoke.py'],
+              check=True,
+          )
+
+          connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
+          connection_required = [
+              'id-token: write',
+              ".github/workflows/azure-foundation-activate.yml",
+              "deploy/azure/activations/foundation-dev.json",
+              'Evaluate required Azure provider readiness',
+              'Required Azure providers registered',
+              'Required Azure providers missing',
+              "steps.providers.outputs.ready == 'true'",
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'az role assignment list',
+              '--assignee-object-id',
+              'EXPECTED_SCOPE=',
+              'ascii_downcase',
+              'User Access Administrator',
+              'Role Based Access Control Administrator',
+              'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+              'Run live foundation what-if without provisioning',
+              'UNIQUE_SUFFIX: b48224',
+              'provisionApplication=false',
+              'sourceCommit="$GITHUB_SHA"',
+              '--result-format FullResourcePayloads',
+              '.changeType != "Delete"',
+              'microsoft.app/containerapps',
+              '.changeType | IN("Ignore", "NoEffect")',
+              'Container App mutation by foundation preflight: none',
+              'GITHUB_STEP_SUMMARY',
+          ]
+          missing_connection = [
+              value for value in connection_required if value not in connection
+          ]
+          if missing_connection:
+              raise SystemExit(
+                  'Azure connection acceptance is incomplete: '
+                  + ', '.join(missing_connection)
+              )
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', connection):
+              raise SystemExit('Azure connection login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in connection:
+              raise SystemExit('Azure connection acceptance may not use a long-lived client secret')
+          if 'az deployment group create' in connection:
+              raise SystemExit('Azure connection preflight must never provision resources')
+
+          cost = Path('docs/AZURE_COST_AND_APPROVAL.md').read_text()
+          for value in (
+              'Option A',
+              'Azure Container Apps',
+              'Consumption environment',
+              'Standard_LRS',
+              'approximately $15–25/month',
+              'Proposed monthly authorization ceiling',
+              '$30.00',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              'No DNS change or public production cutover',
+              '$25.00',
+              '80% actual',
+              '100% forecasted',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+          ):
+              if value not in cost:
+                  raise SystemExit('Azure cost and approval record is incomplete: ' + value)
+          print('AZURE_LEAN_INFRA_POLICY_PASS')
+          PY
+ + '{{ steps.activation.outputs.rollback_release }}',
+              'ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}',
+              'Restore accepted rollback release if promotion verification fails',
+              'Accepted immutable $ROLLBACK_RELEASE application and worker images restored',
+              'Failed promotion left partial rollback:',
+          ])
+          missing_application_deployment = [
+              value for value in application_deployment_required
+              if value not in application_deployment
+          ]
+          if missing_application_deployment:
+              raise SystemExit(
+                  'Azure application deployment governance is incomplete: '
+                  + ', '.join(missing_application_deployment)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', application_deployment, re.MULTILINE):
+              raise SystemExit('Application deployment may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', application_deployment)) < 3:
+              raise SystemExit('Development, candidate, and accepted application checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', application_deployment):
+              raise SystemExit('Application-deployment Azure login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in application_deployment or ':latest' in application_deployment:
+              raise SystemExit('Application deployment may not use a client secret or mutable latest tag')
+          if 'customDomains:' in application_deployment or 'az network dns' in application_deployment:
+              raise SystemExit('Development deployment may not change DNS')
+
+          recovery_readiness = Path('.github/workflows/azure-recovery-readiness.yml').read_text()
+          recovery_readiness_required = [
+              'deploy/azure/activations/recovery-readiness-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'actions: read',
+              'id-token: write',
+              'ref: release/v3.111',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.source_release == "release/v3.111"',
+              '.source_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              '.restore_evidence_run == 34557442913',
+              '.restore_evidence_head == "e94ffd9d55708df9513c4545227ed56dddc5c364"',
+              'Verify governed point-in-time restore evidence',
+              'SalCAPA governed Azure live-copy migration acceptance',
+              'gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"',
+              'az acr manifest show-metadata',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'az rest --method get',
+              'backupRetentionDays == 14',
+              'earliestRestoreDate',
+              'isVersioningEnabled == true',
+              'deleteRetentionPolicy.days == 14',
+              'containerDeleteRetentionPolicy.days == 14',
+              'workspaceCapping.dailyQuotaGb == 0.1',
+              'properties.notifications.actual80Percent',
+              'frozen-release/tools/validate_live_readiness.py',
+              'Point-in-time restore: previously performed and bound to successful governed run 34557442913',
+              'Current backup, evidence retention, monitoring, budget, accepted application, and v3.111 image state: verified read-only',
+              'Resource mutation: none',
+              'Client secret: not used',
+              'DNS or production cutover: not performed',
+          ]
+          missing_recovery_readiness = [
+              value for value in recovery_readiness_required
+              if value not in recovery_readiness
+          ]
+          if missing_recovery_readiness:
+              raise SystemExit(
+                  'Azure recovery-readiness governance is incomplete: '
+                  + ', '.join(missing_recovery_readiness)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', recovery_readiness, re.MULTILINE):
+              raise SystemExit('Recovery readiness may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', recovery_readiness)) < 2:
+              raise SystemExit('Both recovery-readiness checkouts must be pinned to commit SHAs')
+          if any(value in recovery_readiness for value in (
+              'AZURE_CLIENT_SECRET',
+              'az deployment group create',
+              'az postgres flexible-server restore',
+              'az storage blob restore',
+              'az rest --method put',
+              'az rest --method post',
+              'az rest --method delete',
+          )):
+              raise SystemExit('Recovery readiness must remain passwordless and read-only')
+
+          rollback_acceptance = Path('.github/workflows/azure-rollback-acceptance.yml').read_text()
+          rollback_acceptance_required = [
+              'deploy/azure/activations/rollback-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              'ref: release/v3.36',
+              '.operation == "accept_rollback"',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.candidate_release == "release/v3.111"',
+              '.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-rollback"',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'infra/azure/rollback-acceptance.bicep',
+              'phase=candidate',
+              'phase=accepted',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'Temporary rollback job and restored database: removed',
+              'AZURE_ROLLBACK_ACCEPTED',
+          ]
+          missing_rollback_acceptance = [
+              value for value in rollback_acceptance_required
+              if value not in rollback_acceptance
+          ]
+          if missing_rollback_acceptance:
+              raise SystemExit(
+                  'Azure rollback acceptance governance is incomplete: '
+                  + ', '.join(missing_rollback_acceptance)
+              )
+          rollback_trigger = rollback_acceptance.split('permissions:', 1)[0]
+          if any(value in rollback_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Rollback acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', rollback_acceptance)) < 3:
+              raise SystemExit('Development, candidate, and accepted rollback checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', rollback_acceptance):
+              raise SystemExit('Rollback acceptance Azure login action must be pinned')
+          if any(value in rollback_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Rollback acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          rollback_bicep = Path('infra/azure/rollback-acceptance.bicep').read_text()
+          for value in (
+              'temporary-rollback-acceptance',
+              "param phase string",
+              "'candidate'",
+              "'accepted'",
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+          ):
+              if value not in rollback_bicep:
+                  raise SystemExit('Rollback acceptance job contract is incomplete: ' + value)
+
+          recovery_rehearsal = Path('tools/ci_recovery_rehearsal.py').read_text()
+          application_source = Path('app.py').read_text()
+          recovery_rehearsal_required = [
+              'CLEAN_ROOM_RECOVERY_REHEARSAL_PASS',
+              'Independent Recovery Reviewer',
+              'safety["filename"] != baseline["filename"]',
+              'assert_restored_snapshot(baseline_records)',
+              'assert_restored_snapshot(safety_records)',
+              'boundary_before',
+              'app.ALLOW_RESTORE = False',
+          ]
+          missing_recovery_rehearsal = [
+              value for value in recovery_rehearsal_required
+              if value not in recovery_rehearsal
+          ]
+          if missing_recovery_rehearsal:
+              raise SystemExit(
+                  'Clean-room recovery rehearsal is incomplete: '
+                  + ', '.join(missing_recovery_rehearsal)
+              )
+          if any(value in recovery_rehearsal for value in (
+              'management.azure.com',
+              'az postgres',
+              'az storage',
+              'SALUS_STORAGE_BACKEND"] = "azure"',
+          )):
+              raise SystemExit('Clean-room recovery rehearsal must not mutate Azure')
+          for value in (
+              "strftime('%Y%m%dT%H%M%S%fZ')",
+              'uuid.uuid4().hex[:12]',
+          ):
+              if value not in application_source:
+                  raise SystemExit('Backup filename uniqueness control is incomplete: ' + value)
+
+          pitr_exercise = Path('.github/workflows/azure-pitr-exercise.yml').read_text()
+          pitr_exercise_required = [
+              'deploy/azure/activations/pitr-exercise-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.33',
+              '.source_release == "release/v3.33"',
+              '.source_commit == "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4"',
+              '.operation == "exercise_point_in_time_restore"',
+              '.source_server == "salcapa-dev-b48224-pg"',
+              '.temporary_restore_server == "salcapa-dev-b48224-pitr"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'Fail closed: temporary restore target already exists.',
+              'az postgres flexible-server restore',
+              '--restore-time "$RESTORE_POINT"',
+              '.authConfig.passwordAuth == "Disabled"',
+              '.network.publicNetworkAccess == "Disabled"',
+              'az postgres flexible-server db show',
+              '--name salcapa',
+              'SALUS_POSTGRES_HOST',
+              'Application database target: remained the source server',
+              'Source server before/after: Ready and unchanged',
+              'az postgres flexible-server delete',
+              'Temporary restore server: deleted',
+              'Client secret or database password: not used',
+              'Application traffic cutover: not performed',
+              'DNS or production cutover: not performed',
+              'LIVE_PITR_EXERCISE_ACCEPTED',
+          ]
+          missing_pitr_exercise = [
+              value for value in pitr_exercise_required if value not in pitr_exercise
+          ]
+          if missing_pitr_exercise:
+              raise SystemExit(
+                  'Azure point-in-time recovery exercise governance is incomplete: '
+                  + ', '.join(missing_pitr_exercise)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', pitr_exercise, re.MULTILINE):
+              raise SystemExit('Point-in-time recovery exercise may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', pitr_exercise)) < 2:
+              raise SystemExit('Both point-in-time recovery checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', pitr_exercise):
+              raise SystemExit('Point-in-time recovery Azure login action must be pinned to a commit SHA')
+          if any(value in pitr_exercise for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+              'az deployment group create',
+          )):
+              raise SystemExit('Point-in-time recovery exercise crosses a credential, DNS, application, or deployment boundary')
+
+          live_copy_acceptance = Path('.github/workflows/azure-live-copy-migration-acceptance.yml').read_text()
+          live_copy_required = [
+              'deploy/azure/activations/live-copy-migration-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_copy_migration"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-copy"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_COPY_MIGRATION_ACCEPTED',
+          ]
+          missing_live_copy = [
+              value for value in live_copy_required if value not in live_copy_acceptance
+          ]
+          if missing_live_copy:
+              raise SystemExit(
+                  'Azure live-copy migration acceptance governance is incomplete: '
+                  + ', '.join(missing_live_copy)
+              )
+          live_copy_trigger = live_copy_acceptance.split('permissions:', 1)[0]
+          if any(value in live_copy_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-copy migration acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_copy_acceptance)) < 2:
+              raise SystemExit('Both live-copy acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_copy_acceptance):
+              raise SystemExit('Live-copy acceptance Azure login action must be pinned to a commit SHA')
+          if any(value in live_copy_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-copy acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_copy_bicep = Path('infra/azure/live-copy-migration-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-copy-migration-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "'salcapa_demo_fixtures'",
+              "'FICTIONAL DEMONSTRATION DATA ONLY'",
+          ):
+              if value not in live_copy_bicep:
+                  raise SystemExit('Live-copy migration job contract is incomplete: ' + value)
+
+          import subprocess
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_copy_migration_contract_smoke.py'],
+              check=True,
+          )
+
+          live_reporting = Path('.github/workflows/azure-live-reporting-acceptance.yml').read_text()
+          live_reporting_required = [
+              'deploy/azure/activations/live-reporting-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_reporting"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-report"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_REPORTING_ACCEPTED',
+          ]
+          missing_live_reporting = [
+              value for value in live_reporting_required if value not in live_reporting
+          ]
+          if missing_live_reporting:
+              raise SystemExit(
+                  'Azure live-reporting acceptance governance is incomplete: '
+                  + ', '.join(missing_live_reporting)
+              )
+          live_reporting_trigger = live_reporting.split('permissions:', 1)[0]
+          if any(value in live_reporting_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-reporting acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_reporting)) < 2:
+              raise SystemExit('Both live-reporting acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_reporting):
+              raise SystemExit('Live-reporting Azure login action must be pinned to a commit SHA')
+          if any(value in live_reporting for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-reporting acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_reporting_bicep = Path('infra/azure/live-reporting-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-reporting-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "{ name: 'SALUS_AUTH_MODE', value: 'local' }",
+              'acceptanceScriptBase64',
+          ):
+              if value not in live_reporting_bicep:
+                  raise SystemExit('Live-reporting job contract is incomplete: ' + value)
+
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_reporting_contract_smoke.py'],
+              check=True,
+          )
+
+          connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
+          connection_required = [
+              'id-token: write',
+              ".github/workflows/azure-foundation-activate.yml",
+              "deploy/azure/activations/foundation-dev.json",
+              'Evaluate required Azure provider readiness',
+              'Required Azure providers registered',
+              'Required Azure providers missing',
+              "steps.providers.outputs.ready == 'true'",
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'az role assignment list',
+              '--assignee-object-id',
+              'EXPECTED_SCOPE=',
+              'ascii_downcase',
+              'User Access Administrator',
+              'Role Based Access Control Administrator',
+              'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+              'Run live foundation what-if without provisioning',
+              'UNIQUE_SUFFIX: b48224',
+              'provisionApplication=false',
+              'sourceCommit="$GITHUB_SHA"',
+              '--result-format FullResourcePayloads',
+              '.changeType != "Delete"',
+              'microsoft.app/containerapps',
+              '.changeType | IN("Ignore", "NoEffect")',
+              'Container App mutation by foundation preflight: none',
+              'GITHUB_STEP_SUMMARY',
+          ]
+          missing_connection = [
+              value for value in connection_required if value not in connection
+          ]
+          if missing_connection:
+              raise SystemExit(
+                  'Azure connection acceptance is incomplete: '
+                  + ', '.join(missing_connection)
+              )
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', connection):
+              raise SystemExit('Azure connection login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in connection:
+              raise SystemExit('Azure connection acceptance may not use a long-lived client secret')
+          if 'az deployment group create' in connection:
+              raise SystemExit('Azure connection preflight must never provision resources')
+
+          cost = Path('docs/AZURE_COST_AND_APPROVAL.md').read_text()
+          for value in (
+              'Option A',
+              'Azure Container Apps',
+              'Consumption environment',
+              'Standard_LRS',
+              'approximately $15–25/month',
+              'Proposed monthly authorization ceiling',
+              '$30.00',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              'No DNS change or public production cutover',
+              '$25.00',
+              '80% actual',
+              '100% forecasted',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+          ):
+              if value not in cost:
+                  raise SystemExit('Azure cost and approval record is incomplete: ' + value)
+          print('AZURE_LEAN_INFRA_POLICY_PASS')
+          PY
+ + '{{ steps.activation.outputs.source_release }}',
+              'ref: ${{ steps.activation.outputs.rollback_release }}',
+              'ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}',
+              'Restore accepted rollback release if promotion verification fails',
+              'Accepted immutable $ROLLBACK_RELEASE application and worker images restored',
+              'Failed promotion left partial rollback:',
+          ])
+          missing_application_deployment = [
+              value for value in application_deployment_required
+              if value not in application_deployment
+          ]
+          if missing_application_deployment:
+              raise SystemExit(
+                  'Azure application deployment governance is incomplete: '
+                  + ', '.join(missing_application_deployment)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', application_deployment, re.MULTILINE):
+              raise SystemExit('Application deployment may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', application_deployment)) < 3:
+              raise SystemExit('Development, candidate, and accepted application checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', application_deployment):
+              raise SystemExit('Application-deployment Azure login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in application_deployment or ':latest' in application_deployment:
+              raise SystemExit('Application deployment may not use a client secret or mutable latest tag')
+          if 'customDomains:' in application_deployment or 'az network dns' in application_deployment:
+              raise SystemExit('Development deployment may not change DNS')
+
+          recovery_readiness = Path('.github/workflows/azure-recovery-readiness.yml').read_text()
+          recovery_readiness_required = [
+              'deploy/azure/activations/recovery-readiness-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'actions: read',
+              'id-token: write',
+              'ref: release/v3.111',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.source_release == "release/v3.111"',
+              '.source_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              '.restore_evidence_run == 34557442913',
+              '.restore_evidence_head == "e94ffd9d55708df9513c4545227ed56dddc5c364"',
+              'Verify governed point-in-time restore evidence',
+              'SalCAPA governed Azure live-copy migration acceptance',
+              'gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"',
+              'az acr manifest show-metadata',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'az rest --method get',
+              'backupRetentionDays == 14',
+              'earliestRestoreDate',
+              'isVersioningEnabled == true',
+              'deleteRetentionPolicy.days == 14',
+              'containerDeleteRetentionPolicy.days == 14',
+              'workspaceCapping.dailyQuotaGb == 0.1',
+              'properties.notifications.actual80Percent',
+              'frozen-release/tools/validate_live_readiness.py',
+              'Point-in-time restore: previously performed and bound to successful governed run 34557442913',
+              'Current backup, evidence retention, monitoring, budget, accepted application, and v3.111 image state: verified read-only',
+              'Resource mutation: none',
+              'Client secret: not used',
+              'DNS or production cutover: not performed',
+          ]
+          missing_recovery_readiness = [
+              value for value in recovery_readiness_required
+              if value not in recovery_readiness
+          ]
+          if missing_recovery_readiness:
+              raise SystemExit(
+                  'Azure recovery-readiness governance is incomplete: '
+                  + ', '.join(missing_recovery_readiness)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', recovery_readiness, re.MULTILINE):
+              raise SystemExit('Recovery readiness may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', recovery_readiness)) < 2:
+              raise SystemExit('Both recovery-readiness checkouts must be pinned to commit SHAs')
+          if any(value in recovery_readiness for value in (
+              'AZURE_CLIENT_SECRET',
+              'az deployment group create',
+              'az postgres flexible-server restore',
+              'az storage blob restore',
+              'az rest --method put',
+              'az rest --method post',
+              'az rest --method delete',
+          )):
+              raise SystemExit('Recovery readiness must remain passwordless and read-only')
+
+          rollback_acceptance = Path('.github/workflows/azure-rollback-acceptance.yml').read_text()
+          rollback_acceptance_required = [
+              'deploy/azure/activations/rollback-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              'ref: release/v3.36',
+              '.operation == "accept_rollback"',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.candidate_release == "release/v3.111"',
+              '.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-rollback"',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'infra/azure/rollback-acceptance.bicep',
+              'phase=candidate',
+              'phase=accepted',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'Temporary rollback job and restored database: removed',
+              'AZURE_ROLLBACK_ACCEPTED',
+          ]
+          missing_rollback_acceptance = [
+              value for value in rollback_acceptance_required
+              if value not in rollback_acceptance
+          ]
+          if missing_rollback_acceptance:
+              raise SystemExit(
+                  'Azure rollback acceptance governance is incomplete: '
+                  + ', '.join(missing_rollback_acceptance)
+              )
+          rollback_trigger = rollback_acceptance.split('permissions:', 1)[0]
+          if any(value in rollback_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Rollback acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', rollback_acceptance)) < 3:
+              raise SystemExit('Development, candidate, and accepted rollback checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', rollback_acceptance):
+              raise SystemExit('Rollback acceptance Azure login action must be pinned')
+          if any(value in rollback_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Rollback acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          rollback_bicep = Path('infra/azure/rollback-acceptance.bicep').read_text()
+          for value in (
+              'temporary-rollback-acceptance',
+              "param phase string",
+              "'candidate'",
+              "'accepted'",
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+          ):
+              if value not in rollback_bicep:
+                  raise SystemExit('Rollback acceptance job contract is incomplete: ' + value)
+
+          recovery_rehearsal = Path('tools/ci_recovery_rehearsal.py').read_text()
+          application_source = Path('app.py').read_text()
+          recovery_rehearsal_required = [
+              'CLEAN_ROOM_RECOVERY_REHEARSAL_PASS',
+              'Independent Recovery Reviewer',
+              'safety["filename"] != baseline["filename"]',
+              'assert_restored_snapshot(baseline_records)',
+              'assert_restored_snapshot(safety_records)',
+              'boundary_before',
+              'app.ALLOW_RESTORE = False',
+          ]
+          missing_recovery_rehearsal = [
+              value for value in recovery_rehearsal_required
+              if value not in recovery_rehearsal
+          ]
+          if missing_recovery_rehearsal:
+              raise SystemExit(
+                  'Clean-room recovery rehearsal is incomplete: '
+                  + ', '.join(missing_recovery_rehearsal)
+              )
+          if any(value in recovery_rehearsal for value in (
+              'management.azure.com',
+              'az postgres',
+              'az storage',
+              'SALUS_STORAGE_BACKEND"] = "azure"',
+          )):
+              raise SystemExit('Clean-room recovery rehearsal must not mutate Azure')
+          for value in (
+              "strftime('%Y%m%dT%H%M%S%fZ')",
+              'uuid.uuid4().hex[:12]',
+          ):
+              if value not in application_source:
+                  raise SystemExit('Backup filename uniqueness control is incomplete: ' + value)
+
+          pitr_exercise = Path('.github/workflows/azure-pitr-exercise.yml').read_text()
+          pitr_exercise_required = [
+              'deploy/azure/activations/pitr-exercise-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.33',
+              '.source_release == "release/v3.33"',
+              '.source_commit == "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4"',
+              '.operation == "exercise_point_in_time_restore"',
+              '.source_server == "salcapa-dev-b48224-pg"',
+              '.temporary_restore_server == "salcapa-dev-b48224-pitr"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'Fail closed: temporary restore target already exists.',
+              'az postgres flexible-server restore',
+              '--restore-time "$RESTORE_POINT"',
+              '.authConfig.passwordAuth == "Disabled"',
+              '.network.publicNetworkAccess == "Disabled"',
+              'az postgres flexible-server db show',
+              '--name salcapa',
+              'SALUS_POSTGRES_HOST',
+              'Application database target: remained the source server',
+              'Source server before/after: Ready and unchanged',
+              'az postgres flexible-server delete',
+              'Temporary restore server: deleted',
+              'Client secret or database password: not used',
+              'Application traffic cutover: not performed',
+              'DNS or production cutover: not performed',
+              'LIVE_PITR_EXERCISE_ACCEPTED',
+          ]
+          missing_pitr_exercise = [
+              value for value in pitr_exercise_required if value not in pitr_exercise
+          ]
+          if missing_pitr_exercise:
+              raise SystemExit(
+                  'Azure point-in-time recovery exercise governance is incomplete: '
+                  + ', '.join(missing_pitr_exercise)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', pitr_exercise, re.MULTILINE):
+              raise SystemExit('Point-in-time recovery exercise may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', pitr_exercise)) < 2:
+              raise SystemExit('Both point-in-time recovery checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', pitr_exercise):
+              raise SystemExit('Point-in-time recovery Azure login action must be pinned to a commit SHA')
+          if any(value in pitr_exercise for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+              'az deployment group create',
+          )):
+              raise SystemExit('Point-in-time recovery exercise crosses a credential, DNS, application, or deployment boundary')
+
+          live_copy_acceptance = Path('.github/workflows/azure-live-copy-migration-acceptance.yml').read_text()
+          live_copy_required = [
+              'deploy/azure/activations/live-copy-migration-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_copy_migration"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-copy"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_COPY_MIGRATION_ACCEPTED',
+          ]
+          missing_live_copy = [
+              value for value in live_copy_required if value not in live_copy_acceptance
+          ]
+          if missing_live_copy:
+              raise SystemExit(
+                  'Azure live-copy migration acceptance governance is incomplete: '
+                  + ', '.join(missing_live_copy)
+              )
+          live_copy_trigger = live_copy_acceptance.split('permissions:', 1)[0]
+          if any(value in live_copy_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-copy migration acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_copy_acceptance)) < 2:
+              raise SystemExit('Both live-copy acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_copy_acceptance):
+              raise SystemExit('Live-copy acceptance Azure login action must be pinned to a commit SHA')
+          if any(value in live_copy_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-copy acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_copy_bicep = Path('infra/azure/live-copy-migration-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-copy-migration-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "'salcapa_demo_fixtures'",
+              "'FICTIONAL DEMONSTRATION DATA ONLY'",
+          ):
+              if value not in live_copy_bicep:
+                  raise SystemExit('Live-copy migration job contract is incomplete: ' + value)
+
+          import subprocess
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_copy_migration_contract_smoke.py'],
+              check=True,
+          )
+
+          live_reporting = Path('.github/workflows/azure-live-reporting-acceptance.yml').read_text()
+          live_reporting_required = [
+              'deploy/azure/activations/live-reporting-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_reporting"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-report"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_REPORTING_ACCEPTED',
+          ]
+          missing_live_reporting = [
+              value for value in live_reporting_required if value not in live_reporting
+          ]
+          if missing_live_reporting:
+              raise SystemExit(
+                  'Azure live-reporting acceptance governance is incomplete: '
+                  + ', '.join(missing_live_reporting)
+              )
+          live_reporting_trigger = live_reporting.split('permissions:', 1)[0]
+          if any(value in live_reporting_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-reporting acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_reporting)) < 2:
+              raise SystemExit('Both live-reporting acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_reporting):
+              raise SystemExit('Live-reporting Azure login action must be pinned to a commit SHA')
+          if any(value in live_reporting for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-reporting acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_reporting_bicep = Path('infra/azure/live-reporting-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-reporting-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "{ name: 'SALUS_AUTH_MODE', value: 'local' }",
+              'acceptanceScriptBase64',
+          ):
+              if value not in live_reporting_bicep:
+                  raise SystemExit('Live-reporting job contract is incomplete: ' + value)
+
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_reporting_contract_smoke.py'],
+              check=True,
+          )
+
+          connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
+          connection_required = [
+              'id-token: write',
+              ".github/workflows/azure-foundation-activate.yml",
+              "deploy/azure/activations/foundation-dev.json",
+              'Evaluate required Azure provider readiness',
+              'Required Azure providers registered',
+              'Required Azure providers missing',
+              "steps.providers.outputs.ready == 'true'",
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'az role assignment list',
+              '--assignee-object-id',
+              'EXPECTED_SCOPE=',
+              'ascii_downcase',
+              'User Access Administrator',
+              'Role Based Access Control Administrator',
+              'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+              'Run live foundation what-if without provisioning',
+              'UNIQUE_SUFFIX: b48224',
+              'provisionApplication=false',
+              'sourceCommit="$GITHUB_SHA"',
+              '--result-format FullResourcePayloads',
+              '.changeType != "Delete"',
+              'microsoft.app/containerapps',
+              '.changeType | IN("Ignore", "NoEffect")',
+              'Container App mutation by foundation preflight: none',
+              'GITHUB_STEP_SUMMARY',
+          ]
+          missing_connection = [
+              value for value in connection_required if value not in connection
+          ]
+          if missing_connection:
+              raise SystemExit(
+                  'Azure connection acceptance is incomplete: '
+                  + ', '.join(missing_connection)
+              )
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', connection):
+              raise SystemExit('Azure connection login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in connection:
+              raise SystemExit('Azure connection acceptance may not use a long-lived client secret')
+          if 'az deployment group create' in connection:
+              raise SystemExit('Azure connection preflight must never provision resources')
+
+          cost = Path('docs/AZURE_COST_AND_APPROVAL.md').read_text()
+          for value in (
+              'Option A',
+              'Azure Container Apps',
+              'Consumption environment',
+              'Standard_LRS',
+              'approximately $15–25/month',
+              'Proposed monthly authorization ceiling',
+              '$30.00',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              'No DNS change or public production cutover',
+              '$25.00',
+              '80% actual',
+              '100% forecasted',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+          ):
+              if value not in cost:
+                  raise SystemExit('Azure cost and approval record is incomplete: ' + value)
+          print('AZURE_LEAN_INFRA_POLICY_PASS')
+          PY
+ + '{{ steps.activation.outputs.rollback_image }}',
+              'Restore accepted rollback release if promotion verification fails',
+              'Accepted immutable $ROLLBACK_RELEASE application and worker images restored',
+              'Failed promotion left partial rollback:',
+          ])
+          missing_application_deployment = [
+              value for value in application_deployment_required
+              if value not in application_deployment
+          ]
+          if missing_application_deployment:
+              raise SystemExit(
+                  'Azure application deployment governance is incomplete: '
+                  + ', '.join(missing_application_deployment)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', application_deployment, re.MULTILINE):
+              raise SystemExit('Application deployment may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', application_deployment)) < 3:
+              raise SystemExit('Development, candidate, and accepted application checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', application_deployment):
+              raise SystemExit('Application-deployment Azure login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in application_deployment or ':latest' in application_deployment:
+              raise SystemExit('Application deployment may not use a client secret or mutable latest tag')
+          if 'customDomains:' in application_deployment or 'az network dns' in application_deployment:
+              raise SystemExit('Development deployment may not change DNS')
+
+          recovery_readiness = Path('.github/workflows/azure-recovery-readiness.yml').read_text()
+          recovery_readiness_required = [
+              'deploy/azure/activations/recovery-readiness-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'actions: read',
+              'id-token: write',
+              'ref: release/v3.111',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.source_release == "release/v3.111"',
+              '.source_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              '.restore_evidence_run == 34557442913',
+              '.restore_evidence_head == "e94ffd9d55708df9513c4545227ed56dddc5c364"',
+              'Verify governed point-in-time restore evidence',
+              'SalCAPA governed Azure live-copy migration acceptance',
+              'gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"',
+              'az acr manifest show-metadata',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'az rest --method get',
+              'backupRetentionDays == 14',
+              'earliestRestoreDate',
+              'isVersioningEnabled == true',
+              'deleteRetentionPolicy.days == 14',
+              'containerDeleteRetentionPolicy.days == 14',
+              'workspaceCapping.dailyQuotaGb == 0.1',
+              'properties.notifications.actual80Percent',
+              'frozen-release/tools/validate_live_readiness.py',
+              'Point-in-time restore: previously performed and bound to successful governed run 34557442913',
+              'Current backup, evidence retention, monitoring, budget, accepted application, and v3.111 image state: verified read-only',
+              'Resource mutation: none',
+              'Client secret: not used',
+              'DNS or production cutover: not performed',
+          ]
+          missing_recovery_readiness = [
+              value for value in recovery_readiness_required
+              if value not in recovery_readiness
+          ]
+          if missing_recovery_readiness:
+              raise SystemExit(
+                  'Azure recovery-readiness governance is incomplete: '
+                  + ', '.join(missing_recovery_readiness)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', recovery_readiness, re.MULTILINE):
+              raise SystemExit('Recovery readiness may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', recovery_readiness)) < 2:
+              raise SystemExit('Both recovery-readiness checkouts must be pinned to commit SHAs')
+          if any(value in recovery_readiness for value in (
+              'AZURE_CLIENT_SECRET',
+              'az deployment group create',
+              'az postgres flexible-server restore',
+              'az storage blob restore',
+              'az rest --method put',
+              'az rest --method post',
+              'az rest --method delete',
+          )):
+              raise SystemExit('Recovery readiness must remain passwordless and read-only')
+
+          rollback_acceptance = Path('.github/workflows/azure-rollback-acceptance.yml').read_text()
+          rollback_acceptance_required = [
+              'deploy/azure/activations/rollback-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              'ref: release/v3.36',
+              '.operation == "accept_rollback"',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.candidate_release == "release/v3.111"',
+              '.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-rollback"',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'infra/azure/rollback-acceptance.bicep',
+              'phase=candidate',
+              'phase=accepted',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'Temporary rollback job and restored database: removed',
+              'AZURE_ROLLBACK_ACCEPTED',
+          ]
+          missing_rollback_acceptance = [
+              value for value in rollback_acceptance_required
+              if value not in rollback_acceptance
+          ]
+          if missing_rollback_acceptance:
+              raise SystemExit(
+                  'Azure rollback acceptance governance is incomplete: '
+                  + ', '.join(missing_rollback_acceptance)
+              )
+          rollback_trigger = rollback_acceptance.split('permissions:', 1)[0]
+          if any(value in rollback_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Rollback acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', rollback_acceptance)) < 3:
+              raise SystemExit('Development, candidate, and accepted rollback checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', rollback_acceptance):
+              raise SystemExit('Rollback acceptance Azure login action must be pinned')
+          if any(value in rollback_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Rollback acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          rollback_bicep = Path('infra/azure/rollback-acceptance.bicep').read_text()
+          for value in (
+              'temporary-rollback-acceptance',
+              "param phase string",
+              "'candidate'",
+              "'accepted'",
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+          ):
+              if value not in rollback_bicep:
+                  raise SystemExit('Rollback acceptance job contract is incomplete: ' + value)
+
+          recovery_rehearsal = Path('tools/ci_recovery_rehearsal.py').read_text()
+          application_source = Path('app.py').read_text()
+          recovery_rehearsal_required = [
+              'CLEAN_ROOM_RECOVERY_REHEARSAL_PASS',
+              'Independent Recovery Reviewer',
+              'safety["filename"] != baseline["filename"]',
+              'assert_restored_snapshot(baseline_records)',
+              'assert_restored_snapshot(safety_records)',
+              'boundary_before',
+              'app.ALLOW_RESTORE = False',
+          ]
+          missing_recovery_rehearsal = [
+              value for value in recovery_rehearsal_required
+              if value not in recovery_rehearsal
+          ]
+          if missing_recovery_rehearsal:
+              raise SystemExit(
+                  'Clean-room recovery rehearsal is incomplete: '
+                  + ', '.join(missing_recovery_rehearsal)
+              )
+          if any(value in recovery_rehearsal for value in (
+              'management.azure.com',
+              'az postgres',
+              'az storage',
+              'SALUS_STORAGE_BACKEND"] = "azure"',
+          )):
+              raise SystemExit('Clean-room recovery rehearsal must not mutate Azure')
+          for value in (
+              "strftime('%Y%m%dT%H%M%S%fZ')",
+              'uuid.uuid4().hex[:12]',
+          ):
+              if value not in application_source:
+                  raise SystemExit('Backup filename uniqueness control is incomplete: ' + value)
+
+          pitr_exercise = Path('.github/workflows/azure-pitr-exercise.yml').read_text()
+          pitr_exercise_required = [
+              'deploy/azure/activations/pitr-exercise-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.33',
+              '.source_release == "release/v3.33"',
+              '.source_commit == "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4"',
+              '.operation == "exercise_point_in_time_restore"',
+              '.source_server == "salcapa-dev-b48224-pg"',
+              '.temporary_restore_server == "salcapa-dev-b48224-pitr"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'Fail closed: temporary restore target already exists.',
+              'az postgres flexible-server restore',
+              '--restore-time "$RESTORE_POINT"',
+              '.authConfig.passwordAuth == "Disabled"',
+              '.network.publicNetworkAccess == "Disabled"',
+              'az postgres flexible-server db show',
+              '--name salcapa',
+              'SALUS_POSTGRES_HOST',
+              'Application database target: remained the source server',
+              'Source server before/after: Ready and unchanged',
+              'az postgres flexible-server delete',
+              'Temporary restore server: deleted',
+              'Client secret or database password: not used',
+              'Application traffic cutover: not performed',
+              'DNS or production cutover: not performed',
+              'LIVE_PITR_EXERCISE_ACCEPTED',
+          ]
+          missing_pitr_exercise = [
+              value for value in pitr_exercise_required if value not in pitr_exercise
+          ]
+          if missing_pitr_exercise:
+              raise SystemExit(
+                  'Azure point-in-time recovery exercise governance is incomplete: '
+                  + ', '.join(missing_pitr_exercise)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', pitr_exercise, re.MULTILINE):
+              raise SystemExit('Point-in-time recovery exercise may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', pitr_exercise)) < 2:
+              raise SystemExit('Both point-in-time recovery checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', pitr_exercise):
+              raise SystemExit('Point-in-time recovery Azure login action must be pinned to a commit SHA')
+          if any(value in pitr_exercise for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+              'az deployment group create',
+          )):
+              raise SystemExit('Point-in-time recovery exercise crosses a credential, DNS, application, or deployment boundary')
+
+          live_copy_acceptance = Path('.github/workflows/azure-live-copy-migration-acceptance.yml').read_text()
+          live_copy_required = [
+              'deploy/azure/activations/live-copy-migration-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_copy_migration"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-copy"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_COPY_MIGRATION_ACCEPTED',
+          ]
+          missing_live_copy = [
+              value for value in live_copy_required if value not in live_copy_acceptance
+          ]
+          if missing_live_copy:
+              raise SystemExit(
+                  'Azure live-copy migration acceptance governance is incomplete: '
+                  + ', '.join(missing_live_copy)
+              )
+          live_copy_trigger = live_copy_acceptance.split('permissions:', 1)[0]
+          if any(value in live_copy_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-copy migration acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_copy_acceptance)) < 2:
+              raise SystemExit('Both live-copy acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_copy_acceptance):
+              raise SystemExit('Live-copy acceptance Azure login action must be pinned to a commit SHA')
+          if any(value in live_copy_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-copy acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_copy_bicep = Path('infra/azure/live-copy-migration-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-copy-migration-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "'salcapa_demo_fixtures'",
+              "'FICTIONAL DEMONSTRATION DATA ONLY'",
+          ):
+              if value not in live_copy_bicep:
+                  raise SystemExit('Live-copy migration job contract is incomplete: ' + value)
+
+          import subprocess
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_copy_migration_contract_smoke.py'],
+              check=True,
+          )
+
+          live_reporting = Path('.github/workflows/azure-live-reporting-acceptance.yml').read_text()
+          live_reporting_required = [
+              'deploy/azure/activations/live-reporting-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_reporting"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-report"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_REPORTING_ACCEPTED',
+          ]
+          missing_live_reporting = [
+              value for value in live_reporting_required if value not in live_reporting
+          ]
+          if missing_live_reporting:
+              raise SystemExit(
+                  'Azure live-reporting acceptance governance is incomplete: '
+                  + ', '.join(missing_live_reporting)
+              )
+          live_reporting_trigger = live_reporting.split('permissions:', 1)[0]
+          if any(value in live_reporting_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-reporting acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_reporting)) < 2:
+              raise SystemExit('Both live-reporting acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_reporting):
+              raise SystemExit('Live-reporting Azure login action must be pinned to a commit SHA')
+          if any(value in live_reporting for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-reporting acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_reporting_bicep = Path('infra/azure/live-reporting-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-reporting-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "{ name: 'SALUS_AUTH_MODE', value: 'local' }",
+              'acceptanceScriptBase64',
+          ):
+              if value not in live_reporting_bicep:
+                  raise SystemExit('Live-reporting job contract is incomplete: ' + value)
+
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_reporting_contract_smoke.py'],
+              check=True,
+          )
+
+          connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
+          connection_required = [
+              'id-token: write',
+              ".github/workflows/azure-foundation-activate.yml",
+              "deploy/azure/activations/foundation-dev.json",
+              'Evaluate required Azure provider readiness',
+              'Required Azure providers registered',
+              'Required Azure providers missing',
+              "steps.providers.outputs.ready == 'true'",
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'az role assignment list',
+              '--assignee-object-id',
+              'EXPECTED_SCOPE=',
+              'ascii_downcase',
+              'User Access Administrator',
+              'Role Based Access Control Administrator',
+              'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+              'Run live foundation what-if without provisioning',
+              'UNIQUE_SUFFIX: b48224',
+              'provisionApplication=false',
+              'sourceCommit="$GITHUB_SHA"',
+              '--result-format FullResourcePayloads',
+              '.changeType != "Delete"',
+              'microsoft.app/containerapps',
+              '.changeType | IN("Ignore", "NoEffect")',
+              'Container App mutation by foundation preflight: none',
+              'GITHUB_STEP_SUMMARY',
+          ]
+          missing_connection = [
+              value for value in connection_required if value not in connection
+          ]
+          if missing_connection:
+              raise SystemExit(
+                  'Azure connection acceptance is incomplete: '
+                  + ', '.join(missing_connection)
+              )
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', connection):
+              raise SystemExit('Azure connection login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in connection:
+              raise SystemExit('Azure connection acceptance may not use a long-lived client secret')
+          if 'az deployment group create' in connection:
+              raise SystemExit('Azure connection preflight must never provision resources')
+
+          cost = Path('docs/AZURE_COST_AND_APPROVAL.md').read_text()
+          for value in (
+              'Option A',
+              'Azure Container Apps',
+              'Consumption environment',
+              'Standard_LRS',
+              'approximately $15–25/month',
+              'Proposed monthly authorization ceiling',
+              '$30.00',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              'No DNS change or public production cutover',
+              '$25.00',
+              '80% actual',
+              '100% forecasted',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+          ):
+              if value not in cost:
+                  raise SystemExit('Azure cost and approval record is incomplete: ' + value)
+          print('AZURE_LEAN_INFRA_POLICY_PASS')
+          PY
+ + '{{ steps.activation.outputs.source_release }}',
+              'ref: ${{ steps.activation.outputs.rollback_release }}',
+              'ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}',
+              'Restore accepted rollback release if promotion verification fails',
+              'Accepted immutable $ROLLBACK_RELEASE application and worker images restored',
+              'Failed promotion left partial rollback:',
+          ])
+          missing_application_deployment = [
+              value for value in application_deployment_required
+              if value not in application_deployment
+          ]
+          if missing_application_deployment:
+              raise SystemExit(
+                  'Azure application deployment governance is incomplete: '
+                  + ', '.join(missing_application_deployment)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', application_deployment, re.MULTILINE):
+              raise SystemExit('Application deployment may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', application_deployment)) < 3:
+              raise SystemExit('Development, candidate, and accepted application checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', application_deployment):
+              raise SystemExit('Application-deployment Azure login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in application_deployment or ':latest' in application_deployment:
+              raise SystemExit('Application deployment may not use a client secret or mutable latest tag')
+          if 'customDomains:' in application_deployment or 'az network dns' in application_deployment:
+              raise SystemExit('Development deployment may not change DNS')
+
+          recovery_readiness = Path('.github/workflows/azure-recovery-readiness.yml').read_text()
+          recovery_readiness_required = [
+              'deploy/azure/activations/recovery-readiness-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'actions: read',
+              'id-token: write',
+              'ref: release/v3.111',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.source_release == "release/v3.111"',
+              '.source_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              '.restore_evidence_run == 34557442913',
+              '.restore_evidence_head == "e94ffd9d55708df9513c4545227ed56dddc5c364"',
+              'Verify governed point-in-time restore evidence',
+              'SalCAPA governed Azure live-copy migration acceptance',
+              'gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"',
+              'az acr manifest show-metadata',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'az rest --method get',
+              'backupRetentionDays == 14',
+              'earliestRestoreDate',
+              'isVersioningEnabled == true',
+              'deleteRetentionPolicy.days == 14',
+              'containerDeleteRetentionPolicy.days == 14',
+              'workspaceCapping.dailyQuotaGb == 0.1',
+              'properties.notifications.actual80Percent',
+              'frozen-release/tools/validate_live_readiness.py',
+              'Point-in-time restore: previously performed and bound to successful governed run 34557442913',
+              'Current backup, evidence retention, monitoring, budget, accepted application, and v3.111 image state: verified read-only',
+              'Resource mutation: none',
+              'Client secret: not used',
+              'DNS or production cutover: not performed',
+          ]
+          missing_recovery_readiness = [
+              value for value in recovery_readiness_required
+              if value not in recovery_readiness
+          ]
+          if missing_recovery_readiness:
+              raise SystemExit(
+                  'Azure recovery-readiness governance is incomplete: '
+                  + ', '.join(missing_recovery_readiness)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', recovery_readiness, re.MULTILINE):
+              raise SystemExit('Recovery readiness may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', recovery_readiness)) < 2:
+              raise SystemExit('Both recovery-readiness checkouts must be pinned to commit SHAs')
+          if any(value in recovery_readiness for value in (
+              'AZURE_CLIENT_SECRET',
+              'az deployment group create',
+              'az postgres flexible-server restore',
+              'az storage blob restore',
+              'az rest --method put',
+              'az rest --method post',
+              'az rest --method delete',
+          )):
+              raise SystemExit('Recovery readiness must remain passwordless and read-only')
+
+          rollback_acceptance = Path('.github/workflows/azure-rollback-acceptance.yml').read_text()
+          rollback_acceptance_required = [
+              'deploy/azure/activations/rollback-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              'ref: release/v3.36',
+              '.operation == "accept_rollback"',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.candidate_release == "release/v3.111"',
+              '.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-rollback"',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'infra/azure/rollback-acceptance.bicep',
+              'phase=candidate',
+              'phase=accepted',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'Temporary rollback job and restored database: removed',
+              'AZURE_ROLLBACK_ACCEPTED',
+          ]
+          missing_rollback_acceptance = [
+              value for value in rollback_acceptance_required
+              if value not in rollback_acceptance
+          ]
+          if missing_rollback_acceptance:
+              raise SystemExit(
+                  'Azure rollback acceptance governance is incomplete: '
+                  + ', '.join(missing_rollback_acceptance)
+              )
+          rollback_trigger = rollback_acceptance.split('permissions:', 1)[0]
+          if any(value in rollback_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Rollback acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', rollback_acceptance)) < 3:
+              raise SystemExit('Development, candidate, and accepted rollback checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', rollback_acceptance):
+              raise SystemExit('Rollback acceptance Azure login action must be pinned')
+          if any(value in rollback_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Rollback acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          rollback_bicep = Path('infra/azure/rollback-acceptance.bicep').read_text()
+          for value in (
+              'temporary-rollback-acceptance',
+              "param phase string",
+              "'candidate'",
+              "'accepted'",
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+          ):
+              if value not in rollback_bicep:
+                  raise SystemExit('Rollback acceptance job contract is incomplete: ' + value)
+
+          recovery_rehearsal = Path('tools/ci_recovery_rehearsal.py').read_text()
+          application_source = Path('app.py').read_text()
+          recovery_rehearsal_required = [
+              'CLEAN_ROOM_RECOVERY_REHEARSAL_PASS',
+              'Independent Recovery Reviewer',
+              'safety["filename"] != baseline["filename"]',
+              'assert_restored_snapshot(baseline_records)',
+              'assert_restored_snapshot(safety_records)',
+              'boundary_before',
+              'app.ALLOW_RESTORE = False',
+          ]
+          missing_recovery_rehearsal = [
+              value for value in recovery_rehearsal_required
+              if value not in recovery_rehearsal
+          ]
+          if missing_recovery_rehearsal:
+              raise SystemExit(
+                  'Clean-room recovery rehearsal is incomplete: '
+                  + ', '.join(missing_recovery_rehearsal)
+              )
+          if any(value in recovery_rehearsal for value in (
+              'management.azure.com',
+              'az postgres',
+              'az storage',
+              'SALUS_STORAGE_BACKEND"] = "azure"',
+          )):
+              raise SystemExit('Clean-room recovery rehearsal must not mutate Azure')
+          for value in (
+              "strftime('%Y%m%dT%H%M%S%fZ')",
+              'uuid.uuid4().hex[:12]',
+          ):
+              if value not in application_source:
+                  raise SystemExit('Backup filename uniqueness control is incomplete: ' + value)
+
+          pitr_exercise = Path('.github/workflows/azure-pitr-exercise.yml').read_text()
+          pitr_exercise_required = [
+              'deploy/azure/activations/pitr-exercise-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.33',
+              '.source_release == "release/v3.33"',
+              '.source_commit == "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4"',
+              '.operation == "exercise_point_in_time_restore"',
+              '.source_server == "salcapa-dev-b48224-pg"',
+              '.temporary_restore_server == "salcapa-dev-b48224-pitr"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'Fail closed: temporary restore target already exists.',
+              'az postgres flexible-server restore',
+              '--restore-time "$RESTORE_POINT"',
+              '.authConfig.passwordAuth == "Disabled"',
+              '.network.publicNetworkAccess == "Disabled"',
+              'az postgres flexible-server db show',
+              '--name salcapa',
+              'SALUS_POSTGRES_HOST',
+              'Application database target: remained the source server',
+              'Source server before/after: Ready and unchanged',
+              'az postgres flexible-server delete',
+              'Temporary restore server: deleted',
+              'Client secret or database password: not used',
+              'Application traffic cutover: not performed',
+              'DNS or production cutover: not performed',
+              'LIVE_PITR_EXERCISE_ACCEPTED',
+          ]
+          missing_pitr_exercise = [
+              value for value in pitr_exercise_required if value not in pitr_exercise
+          ]
+          if missing_pitr_exercise:
+              raise SystemExit(
+                  'Azure point-in-time recovery exercise governance is incomplete: '
+                  + ', '.join(missing_pitr_exercise)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', pitr_exercise, re.MULTILINE):
+              raise SystemExit('Point-in-time recovery exercise may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', pitr_exercise)) < 2:
+              raise SystemExit('Both point-in-time recovery checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', pitr_exercise):
+              raise SystemExit('Point-in-time recovery Azure login action must be pinned to a commit SHA')
+          if any(value in pitr_exercise for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+              'az deployment group create',
+          )):
+              raise SystemExit('Point-in-time recovery exercise crosses a credential, DNS, application, or deployment boundary')
+
+          live_copy_acceptance = Path('.github/workflows/azure-live-copy-migration-acceptance.yml').read_text()
+          live_copy_required = [
+              'deploy/azure/activations/live-copy-migration-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_copy_migration"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-copy"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_COPY_MIGRATION_ACCEPTED',
+          ]
+          missing_live_copy = [
+              value for value in live_copy_required if value not in live_copy_acceptance
+          ]
+          if missing_live_copy:
+              raise SystemExit(
+                  'Azure live-copy migration acceptance governance is incomplete: '
+                  + ', '.join(missing_live_copy)
+              )
+          live_copy_trigger = live_copy_acceptance.split('permissions:', 1)[0]
+          if any(value in live_copy_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-copy migration acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_copy_acceptance)) < 2:
+              raise SystemExit('Both live-copy acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_copy_acceptance):
+              raise SystemExit('Live-copy acceptance Azure login action must be pinned to a commit SHA')
+          if any(value in live_copy_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-copy acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_copy_bicep = Path('infra/azure/live-copy-migration-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-copy-migration-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "'salcapa_demo_fixtures'",
+              "'FICTIONAL DEMONSTRATION DATA ONLY'",
+          ):
+              if value not in live_copy_bicep:
+                  raise SystemExit('Live-copy migration job contract is incomplete: ' + value)
+
+          import subprocess
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_copy_migration_contract_smoke.py'],
+              check=True,
+          )
+
+          live_reporting = Path('.github/workflows/azure-live-reporting-acceptance.yml').read_text()
+          live_reporting_required = [
+              'deploy/azure/activations/live-reporting-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_reporting"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-report"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_REPORTING_ACCEPTED',
+          ]
+          missing_live_reporting = [
+              value for value in live_reporting_required if value not in live_reporting
+          ]
+          if missing_live_reporting:
+              raise SystemExit(
+                  'Azure live-reporting acceptance governance is incomplete: '
+                  + ', '.join(missing_live_reporting)
+              )
+          live_reporting_trigger = live_reporting.split('permissions:', 1)[0]
+          if any(value in live_reporting_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-reporting acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_reporting)) < 2:
+              raise SystemExit('Both live-reporting acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_reporting):
+              raise SystemExit('Live-reporting Azure login action must be pinned to a commit SHA')
+          if any(value in live_reporting for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-reporting acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_reporting_bicep = Path('infra/azure/live-reporting-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-reporting-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "{ name: 'SALUS_AUTH_MODE', value: 'local' }",
+              'acceptanceScriptBase64',
+          ):
+              if value not in live_reporting_bicep:
+                  raise SystemExit('Live-reporting job contract is incomplete: ' + value)
+
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_reporting_contract_smoke.py'],
+              check=True,
+          )
+
+          connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
+          connection_required = [
+              'id-token: write',
+              ".github/workflows/azure-foundation-activate.yml",
+              "deploy/azure/activations/foundation-dev.json",
+              'Evaluate required Azure provider readiness',
+              'Required Azure providers registered',
+              'Required Azure providers missing',
+              "steps.providers.outputs.ready == 'true'",
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'az role assignment list',
+              '--assignee-object-id',
+              'EXPECTED_SCOPE=',
+              'ascii_downcase',
+              'User Access Administrator',
+              'Role Based Access Control Administrator',
+              'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+              'Run live foundation what-if without provisioning',
+              'UNIQUE_SUFFIX: b48224',
+              'provisionApplication=false',
+              'sourceCommit="$GITHUB_SHA"',
+              '--result-format FullResourcePayloads',
+              '.changeType != "Delete"',
+              'microsoft.app/containerapps',
+              '.changeType | IN("Ignore", "NoEffect")',
+              'Container App mutation by foundation preflight: none',
+              'GITHUB_STEP_SUMMARY',
+          ]
+          missing_connection = [
+              value for value in connection_required if value not in connection
+          ]
+          if missing_connection:
+              raise SystemExit(
+                  'Azure connection acceptance is incomplete: '
+                  + ', '.join(missing_connection)
+              )
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', connection):
+              raise SystemExit('Azure connection login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in connection:
+              raise SystemExit('Azure connection acceptance may not use a long-lived client secret')
+          if 'az deployment group create' in connection:
+              raise SystemExit('Azure connection preflight must never provision resources')
+
+          cost = Path('docs/AZURE_COST_AND_APPROVAL.md').read_text()
+          for value in (
+              'Option A',
+              'Azure Container Apps',
+              'Consumption environment',
+              'Standard_LRS',
+              'approximately $15–25/month',
+              'Proposed monthly authorization ceiling',
+              '$30.00',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              'No DNS change or public production cutover',
+              '$25.00',
+              '80% actual',
+              '100% forecasted',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+          ):
+              if value not in cost:
+                  raise SystemExit('Azure cost and approval record is incomplete: ' + value)
+          print('AZURE_LEAN_INFRA_POLICY_PASS')
+          PY
+ + '{{ steps.activation.outputs.rollback_release }}',
+              'ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}',
+              'Restore accepted rollback release if promotion verification fails',
+              'Accepted immutable $ROLLBACK_RELEASE application and worker images restored',
+              'Failed promotion left partial rollback:',
+          ])
+          missing_application_deployment = [
+              value for value in application_deployment_required
+              if value not in application_deployment
+          ]
+          if missing_application_deployment:
+              raise SystemExit(
+                  'Azure application deployment governance is incomplete: '
+                  + ', '.join(missing_application_deployment)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', application_deployment, re.MULTILINE):
+              raise SystemExit('Application deployment may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', application_deployment)) < 3:
+              raise SystemExit('Development, candidate, and accepted application checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', application_deployment):
+              raise SystemExit('Application-deployment Azure login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in application_deployment or ':latest' in application_deployment:
+              raise SystemExit('Application deployment may not use a client secret or mutable latest tag')
+          if 'customDomains:' in application_deployment or 'az network dns' in application_deployment:
+              raise SystemExit('Development deployment may not change DNS')
+
+          recovery_readiness = Path('.github/workflows/azure-recovery-readiness.yml').read_text()
+          recovery_readiness_required = [
+              'deploy/azure/activations/recovery-readiness-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'actions: read',
+              'id-token: write',
+              'ref: release/v3.111',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.source_release == "release/v3.111"',
+              '.source_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              '.restore_evidence_run == 34557442913',
+              '.restore_evidence_head == "e94ffd9d55708df9513c4545227ed56dddc5c364"',
+              'Verify governed point-in-time restore evidence',
+              'SalCAPA governed Azure live-copy migration acceptance',
+              'gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"',
+              'az acr manifest show-metadata',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'az rest --method get',
+              'backupRetentionDays == 14',
+              'earliestRestoreDate',
+              'isVersioningEnabled == true',
+              'deleteRetentionPolicy.days == 14',
+              'containerDeleteRetentionPolicy.days == 14',
+              'workspaceCapping.dailyQuotaGb == 0.1',
+              'properties.notifications.actual80Percent',
+              'frozen-release/tools/validate_live_readiness.py',
+              'Point-in-time restore: previously performed and bound to successful governed run 34557442913',
+              'Current backup, evidence retention, monitoring, budget, accepted application, and v3.111 image state: verified read-only',
+              'Resource mutation: none',
+              'Client secret: not used',
+              'DNS or production cutover: not performed',
+          ]
+          missing_recovery_readiness = [
+              value for value in recovery_readiness_required
+              if value not in recovery_readiness
+          ]
+          if missing_recovery_readiness:
+              raise SystemExit(
+                  'Azure recovery-readiness governance is incomplete: '
+                  + ', '.join(missing_recovery_readiness)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', recovery_readiness, re.MULTILINE):
+              raise SystemExit('Recovery readiness may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', recovery_readiness)) < 2:
+              raise SystemExit('Both recovery-readiness checkouts must be pinned to commit SHAs')
+          if any(value in recovery_readiness for value in (
+              'AZURE_CLIENT_SECRET',
+              'az deployment group create',
+              'az postgres flexible-server restore',
+              'az storage blob restore',
+              'az rest --method put',
+              'az rest --method post',
+              'az rest --method delete',
+          )):
+              raise SystemExit('Recovery readiness must remain passwordless and read-only')
+
+          rollback_acceptance = Path('.github/workflows/azure-rollback-acceptance.yml').read_text()
+          rollback_acceptance_required = [
+              'deploy/azure/activations/rollback-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              'ref: release/v3.36',
+              '.operation == "accept_rollback"',
+              '.accepted_release == "release/v3.36"',
+              '.accepted_commit == "63d513605f908d3308bb5dd1bbdbf1061878452b"',
+              '.candidate_release == "release/v3.111"',
+              '.candidate_commit == "8bf4614ec79a27641c40dc1a21e1790746a08604"',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-rollback"',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'infra/azure/rollback-acceptance.bicep',
+              'phase=candidate',
+              'phase=accepted',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'Temporary rollback job and restored database: removed',
+              'AZURE_ROLLBACK_ACCEPTED',
+          ]
+          missing_rollback_acceptance = [
+              value for value in rollback_acceptance_required
+              if value not in rollback_acceptance
+          ]
+          if missing_rollback_acceptance:
+              raise SystemExit(
+                  'Azure rollback acceptance governance is incomplete: '
+                  + ', '.join(missing_rollback_acceptance)
+              )
+          rollback_trigger = rollback_acceptance.split('permissions:', 1)[0]
+          if any(value in rollback_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Rollback acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', rollback_acceptance)) < 3:
+              raise SystemExit('Development, candidate, and accepted rollback checkouts must be pinned')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', rollback_acceptance):
+              raise SystemExit('Rollback acceptance Azure login action must be pinned')
+          if any(value in rollback_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Rollback acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          rollback_bicep = Path('infra/azure/rollback-acceptance.bicep').read_text()
+          for value in (
+              'temporary-rollback-acceptance',
+              "param phase string",
+              "'candidate'",
+              "'accepted'",
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              'ACCEPTED_ROLLBACK_RUNTIME_DATABASE_COMPATIBLE',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+          ):
+              if value not in rollback_bicep:
+                  raise SystemExit('Rollback acceptance job contract is incomplete: ' + value)
+
+          recovery_rehearsal = Path('tools/ci_recovery_rehearsal.py').read_text()
+          application_source = Path('app.py').read_text()
+          recovery_rehearsal_required = [
+              'CLEAN_ROOM_RECOVERY_REHEARSAL_PASS',
+              'Independent Recovery Reviewer',
+              'safety["filename"] != baseline["filename"]',
+              'assert_restored_snapshot(baseline_records)',
+              'assert_restored_snapshot(safety_records)',
+              'boundary_before',
+              'app.ALLOW_RESTORE = False',
+          ]
+          missing_recovery_rehearsal = [
+              value for value in recovery_rehearsal_required
+              if value not in recovery_rehearsal
+          ]
+          if missing_recovery_rehearsal:
+              raise SystemExit(
+                  'Clean-room recovery rehearsal is incomplete: '
+                  + ', '.join(missing_recovery_rehearsal)
+              )
+          if any(value in recovery_rehearsal for value in (
+              'management.azure.com',
+              'az postgres',
+              'az storage',
+              'SALUS_STORAGE_BACKEND"] = "azure"',
+          )):
+              raise SystemExit('Clean-room recovery rehearsal must not mutate Azure')
+          for value in (
+              "strftime('%Y%m%dT%H%M%S%fZ')",
+              'uuid.uuid4().hex[:12]',
+          ):
+              if value not in application_source:
+                  raise SystemExit('Backup filename uniqueness control is incomplete: ' + value)
+
+          pitr_exercise = Path('.github/workflows/azure-pitr-exercise.yml').read_text()
+          pitr_exercise_required = [
+              'deploy/azure/activations/pitr-exercise-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.33',
+              '.source_release == "release/v3.33"',
+              '.source_commit == "c24e8c99a0ee9f7cd93cb0adf115af9d36fe03f4"',
+              '.operation == "exercise_point_in_time_restore"',
+              '.source_server == "salcapa-dev-b48224-pg"',
+              '.temporary_restore_server == "salcapa-dev-b48224-pitr"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'Fail closed: temporary restore target already exists.',
+              'az postgres flexible-server restore',
+              '--restore-time "$RESTORE_POINT"',
+              '.authConfig.passwordAuth == "Disabled"',
+              '.network.publicNetworkAccess == "Disabled"',
+              'az postgres flexible-server db show',
+              '--name salcapa',
+              'SALUS_POSTGRES_HOST',
+              'Application database target: remained the source server',
+              'Source server before/after: Ready and unchanged',
+              'az postgres flexible-server delete',
+              'Temporary restore server: deleted',
+              'Client secret or database password: not used',
+              'Application traffic cutover: not performed',
+              'DNS or production cutover: not performed',
+              'LIVE_PITR_EXERCISE_ACCEPTED',
+          ]
+          missing_pitr_exercise = [
+              value for value in pitr_exercise_required if value not in pitr_exercise
+          ]
+          if missing_pitr_exercise:
+              raise SystemExit(
+                  'Azure point-in-time recovery exercise governance is incomplete: '
+                  + ', '.join(missing_pitr_exercise)
+              )
+          if re.search(r'^  (pull_request|workflow_dispatch|schedule):', pitr_exercise, re.MULTILINE):
+              raise SystemExit('Point-in-time recovery exercise may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', pitr_exercise)) < 2:
+              raise SystemExit('Both point-in-time recovery checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', pitr_exercise):
+              raise SystemExit('Point-in-time recovery Azure login action must be pinned to a commit SHA')
+          if any(value in pitr_exercise for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+              'az deployment group create',
+          )):
+              raise SystemExit('Point-in-time recovery exercise crosses a credential, DNS, application, or deployment boundary')
+
+          live_copy_acceptance = Path('.github/workflows/azure-live-copy-migration-acceptance.yml').read_text()
+          live_copy_required = [
+              'deploy/azure/activations/live-copy-migration-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_copy_migration"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-copy"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_COPY_MIGRATION_ACCEPTED',
+          ]
+          missing_live_copy = [
+              value for value in live_copy_required if value not in live_copy_acceptance
+          ]
+          if missing_live_copy:
+              raise SystemExit(
+                  'Azure live-copy migration acceptance governance is incomplete: '
+                  + ', '.join(missing_live_copy)
+              )
+          live_copy_trigger = live_copy_acceptance.split('permissions:', 1)[0]
+          if any(value in live_copy_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-copy migration acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_copy_acceptance)) < 2:
+              raise SystemExit('Both live-copy acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_copy_acceptance):
+              raise SystemExit('Live-copy acceptance Azure login action must be pinned to a commit SHA')
+          if any(value in live_copy_acceptance for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-copy acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_copy_bicep = Path('infra/azure/live-copy-migration-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-copy-migration-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "'salcapa_demo_fixtures'",
+              "'FICTIONAL DEMONSTRATION DATA ONLY'",
+          ):
+              if value not in live_copy_bicep:
+                  raise SystemExit('Live-copy migration job contract is incomplete: ' + value)
+
+          import subprocess
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_copy_migration_contract_smoke.py'],
+              check=True,
+          )
+
+          live_reporting = Path('.github/workflows/azure-live-reporting-acceptance.yml').read_text()
+          live_reporting_required = [
+              'deploy/azure/activations/live-reporting-dev.json',
+              'environment: salcapa-dev-approval',
+              'permissions: {}',
+              'needs: authorize',
+              'id-token: write',
+              'ref: release/v3.111',
+              '8bf4614ec79a27641c40dc1a21e1790746a08604',
+              '63d513605f908d3308bb5dd1bbdbf1061878452b',
+              'sha256:6df0d41dd93fa929af33793d619630f41822a41ae91ed9d7050d074981fa0311',
+              'sha256:746a2e92cdc6e4189a772db65b1a3311b25be42ad65d0f6bc8e5779e86a58b46',
+              '.operation == "accept_live_reporting"',
+              '.temporary_restore_server == "salcapa-dev-b48224-v311-report"',
+              '.restore_lag_minutes == 15',
+              'uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c',
+              'trap cleanup EXIT',
+              'az postgres flexible-server restore',
+              'az deployment group create',
+              'cmp /tmp/source-before.sha /tmp/source-after.sha',
+              'cmp /tmp/application-before.sha /tmp/application-after.sha',
+              'LIVE_REPORTING_ACCEPTED',
+          ]
+          missing_live_reporting = [
+              value for value in live_reporting_required if value not in live_reporting
+          ]
+          if missing_live_reporting:
+              raise SystemExit(
+                  'Azure live-reporting acceptance governance is incomplete: '
+                  + ', '.join(missing_live_reporting)
+              )
+          live_reporting_trigger = live_reporting.split('permissions:', 1)[0]
+          if any(value in live_reporting_trigger for value in ('pull_request:', 'workflow_dispatch:', 'schedule:')):
+              raise SystemExit('Live-reporting acceptance may run only from the exact governed record push')
+          if len(re.findall(r'uses: actions/checkout@[0-9a-f]{40}\b', live_reporting)) < 2:
+              raise SystemExit('Both live-reporting acceptance checkouts must be pinned to commit SHAs')
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', live_reporting):
+              raise SystemExit('Live-reporting Azure login action must be pinned to a commit SHA')
+          if any(value in live_reporting for value in (
+              'AZURE_CLIENT_SECRET',
+              'POSTGRES_PASSWORD',
+              'SALUS_DATABASE_URL',
+              'az network dns',
+              'customDomains:',
+              'az containerapp update',
+          )):
+              raise SystemExit('Live-reporting acceptance crosses a credential, DNS, traffic, or application boundary')
+
+          live_reporting_bicep = Path('infra/azure/live-reporting-acceptance.bicep').read_text()
+          for value in (
+              'temporary-live-reporting-acceptance',
+              'image: imageDigest',
+              'runtimeIdentity.id',
+              'restoredPostgresHost',
+              "{ name: 'SALUS_POSTGRES_AUTH', value: 'managed_identity' }",
+              "{ name: 'SALUS_AUTH_MODE', value: 'local' }",
+              'acceptanceScriptBase64',
+          ):
+              if value not in live_reporting_bicep:
+                  raise SystemExit('Live-reporting job contract is incomplete: ' + value)
+
+          subprocess.run(
+              ['python', 'tools/ci_azure_live_reporting_contract_smoke.py'],
+              check=True,
+          )
+
+          connection = Path('.github/workflows/azure-connection-verify.yml').read_text()
+          connection_required = [
+              'id-token: write',
+              ".github/workflows/azure-foundation-activate.yml",
+              "deploy/azure/activations/foundation-dev.json",
+              'Evaluate required Azure provider readiness',
+              'Required Azure providers registered',
+              'Required Azure providers missing',
+              "steps.providers.outputs.ready == 'true'",
+              'AZURE_BUDGET_CONTACT_EMAIL',
+              'DEPLOYMENT_PRINCIPAL_OBJECT_ID',
+              'az role assignment list',
+              '--assignee-object-id',
+              'EXPECTED_SCOPE=',
+              'ascii_downcase',
+              'User Access Administrator',
+              'Role Based Access Control Administrator',
+              'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+              'Run live foundation what-if without provisioning',
+              'UNIQUE_SUFFIX: b48224',
+              'provisionApplication=false',
+              'sourceCommit="$GITHUB_SHA"',
+              '--result-format FullResourcePayloads',
+              '.changeType != "Delete"',
+              'microsoft.app/containerapps',
+              '.changeType | IN("Ignore", "NoEffect")',
+              'Container App mutation by foundation preflight: none',
+              'GITHUB_STEP_SUMMARY',
+          ]
+          missing_connection = [
+              value for value in connection_required if value not in connection
+          ]
+          if missing_connection:
+              raise SystemExit(
+                  'Azure connection acceptance is incomplete: '
+                  + ', '.join(missing_connection)
+              )
+          if not re.search(r'uses: azure/login@[0-9a-f]{40}\b', connection):
+              raise SystemExit('Azure connection login action must be pinned to a commit SHA')
+          if 'AZURE_CLIENT_SECRET' in connection:
+              raise SystemExit('Azure connection acceptance may not use a long-lived client secret')
+          if 'az deployment group create' in connection:
+              raise SystemExit('Azure connection preflight must never provision resources')
+
+          cost = Path('docs/AZURE_COST_AND_APPROVAL.md').read_text()
+          for value in (
+              'Option A',
+              'Azure Container Apps',
+              'Consumption environment',
+              'Standard_LRS',
+              'approximately $15–25/month',
+              'Proposed monthly authorization ceiling',
+              '$30.00',
+              'MD-APPROVAL-AZURE-LEAN-20260904',
+              'No DNS change or public production cutover',
+              '$25.00',
+              '80% actual',
+              '100% forecasted',
+              'AZURE_BUDGET_CONTACT_EMAIL',
+          ):
+              if value not in cost:
+                  raise SystemExit('Azure cost and approval record is incomplete: ' + value)
+          print('AZURE_LEAN_INFRA_POLICY_PASS')
+          PY
+ + '{{ steps.activation.outputs.source_release }}',
               'ref: ${{ steps.activation.outputs.rollback_release }}',
               'ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}',
               'Restore accepted rollback release if promotion verification fails',
