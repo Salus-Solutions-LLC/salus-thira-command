@@ -79,7 +79,14 @@ def test_scheduled_result_worker_failure_redacts_sensitive_exception(capsys):
     assert 'secret' not in output
     assert '"error_type": "RuntimeError"' in output
     assert main(poll=lambda: 'Held', reconcile=lambda: None) == 2
+    assert json.loads(capsys.readouterr().out) == {
+        'scan_result_job': 'completed', 'outcome': 'Held'}
     assert main(poll=lambda: 'Acknowledged', reconcile=lambda: None) == 0
+    assert json.loads(capsys.readouterr().out) == {
+        'scan_result_job': 'completed', 'outcome': 'Acknowledged'}
+    assert main(poll=lambda: 'Empty', reconcile=lambda: None) == 0
+    assert json.loads(capsys.readouterr().out) == {
+        'scan_result_job': 'completed', 'outcome': 'Empty'}
 
 
 def test_web_and_worker_select_separate_quarantine_identities(monkeypatch):
@@ -107,3 +114,4 @@ def test_web_and_worker_select_separate_quarantine_identities(monkeypatch):
         pass
     else:
         assert False, 'Web upload must refuse an unspecified managed identity'
+
