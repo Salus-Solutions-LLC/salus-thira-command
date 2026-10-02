@@ -16,6 +16,8 @@
 
 **Additional no-overlap gate:** The accepted knowledge processor's non-bulk path has no batch-wide lease. A one-off candidate execution can run concurrently with a scheduled accepted execution and process the same pending files. No live overlap has been attempted. Before activation, engineering must prove a no-overlap promotion sequence or an isolated candidate fixture, with test evidence; ordinary source CI and the execution-image check do not close this gate.
 
+**Controlled correction under review:** The draft workflow now pauses new scheduled starts by switching the accepted-image job to Manual, drains observed active executions, runs and verifies the candidate execution, then resumes the two-minute schedule with the candidate image. Failure restoration returns to the accepted image and schedule. This trades a bounded release maintenance interval for avoiding simultaneous accepted/candidate scans; Azure trigger propagation, execution listing and an outside manual start still require protected live validation. The accepted live job has not been paused.
+
 The revised Protection Advisor Part 1 and Part 2 and the Level 1 intake remain candidate material. Published Wix explanatory copy does not publish the revised application. The current application keeps package commerce disabled; scanner-backed uploads remain gated. Do not invite Member files, purchase, or protected-account creation through the preview.
 
 ## Required exact-version dispositions

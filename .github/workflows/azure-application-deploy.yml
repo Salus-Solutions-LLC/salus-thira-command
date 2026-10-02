@@ -27,7 +27,7 @@ jobs:
   deploy:
     needs: authorize
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 70
     permissions:
       contents: read
       id-token: write
@@ -533,8 +533,31 @@ jobs:
             .properties.configuration.triggerType == "Schedule" and
             .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
           ' /tmp/salcapa-knowledge-job.json >/dev/null
-          # A one-off execution can override the image without replacing the
-          # accepted scheduled job. Keep its normal two-minute work running.
+          # Stop new scheduled starts before a candidate run. The non-bulk
+          # knowledge processor has no batch-wide lease, so drain accepted
+          # executions before any candidate can access the same intake.
+          az containerapp job update \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" \
+            --image "$ROLLBACK_IMAGE" \
+            --trigger-type Manual \
+            --output none --only-show-errors
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
+          jq -e --arg image "$ROLLBACK_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Manual"
+          ' /tmp/salcapa-knowledge-job.json >/dev/null
+          DRAINED=false
+          for attempt in $(seq 1 100); do
+            az containerapp job execution list --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/salcapa-knowledge-executions.json
+            if jq -e 'all(.[]; .properties.status == "Succeeded" or .properties.status == "Failed" or .properties.status == "Stopped")' /tmp/salcapa-knowledge-executions.json >/dev/null; then
+              DRAINED=true
+              break
+            fi
+            sleep 10
+          done
+          test "$DRAINED" = true
+          # The candidate execution runs only after all accepted runs end.
           EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --image "$IMAGE_DIGEST" --query name --output tsv --only-show-errors)"
           test -n "$EXECUTION_NAME"
           SUCCEEDED=false
@@ -559,13 +582,16 @@ jobs:
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
           jq -e --arg image "$ROLLBACK_IMAGE" '
             .properties.template.containers[0].image == $image and
-            .properties.configuration.triggerType == "Schedule" and
-            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+            .properties.configuration.triggerType == "Manual"
           ' /tmp/salcapa-knowledge-job.json >/dev/null
+          az containerapp job execution list --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/salcapa-knowledge-executions.json
+          jq -e 'all(.[]; .properties.status == "Succeeded" or .properties.status == "Failed" or .properties.status == "Stopped")' /tmp/salcapa-knowledge-executions.json >/dev/null
           az containerapp job update \
             --resource-group "$RESOURCE_GROUP" \
             --name "$JOB_NAME" \
             --image "$IMAGE_DIGEST" \
+            --trigger-type Schedule \
+            --cron-expression '*/2 * * * *' \
             --output none --only-show-errors
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
           jq -e --arg image "$IMAGE_DIGEST" '
