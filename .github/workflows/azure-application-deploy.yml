@@ -566,45 +566,62 @@ jobs:
           set -euo pipefail
           APP_NAME=salcapa-dev-b48224
           JOB_NAME=salcapa-dev-b48224-kb-scan
-          az containerapp update \
+          # Restore both independently. A failure in either resource must not
+          # prevent an attempt to restore the other.
+          WORKER_RESTORED=false
+          if az containerapp job update \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" \
+            --image "$ROLLBACK_IMAGE" \
+            --output none --only-show-errors \
+            && az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-rollback-job.json \
+            && jq -e --arg image "$ROLLBACK_IMAGE" '
+              .properties.template.containers[0].image == $image and
+              .properties.configuration.triggerType == "Schedule" and
+              .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+            ' /tmp/salcapa-rollback-job.json >/dev/null; then
+            WORKER_RESTORED=true
+          else
+            echo "Failed to restore and verify accepted scheduled worker." >&2
+          fi
+
+          if ! az containerapp update \
             --resource-group "$RESOURCE_GROUP" \
             --name "$APP_NAME" \
             --image "$ROLLBACK_IMAGE" \
             --set-env-vars SALUS_ALLOW_RESTORE=0 SALUS_SEED_DEMO=0 SALUS_ALLOW_SQLITE_PRODUCTION=0 \
-            --output none
-          az containerapp hostname bind --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --hostname salcapa.salus.solutions --environment salcapa-dev-b48224-aca-env --validation-method CNAME --only-show-errors --output none
+            --output none; then
+            echo "Container App rollback update failed; checking observed runtime anyway." >&2
+          fi
+          HOST_RESTORED=false
+          if az containerapp hostname bind --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --hostname salcapa.salus.solutions --environment salcapa-dev-b48224-aca-env --validation-method CNAME --only-show-errors --output none; then
+            HOST_RESTORED=true
+          else
+            echo "Accepted hostname binding could not be confirmed." >&2
+          fi
+          APP_RESTORED=false
           for attempt in $(seq 1 30); do
-            az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --output json > /tmp/salcapa-rollback.json
-            test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-rollback.json)" = "$ROLLBACK_IMAGE" || { sleep 10; continue; }
+            if ! az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --output json > /tmp/salcapa-rollback.json; then sleep 10; continue; fi
+            if [ "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-rollback.json)" != "$ROLLBACK_IMAGE" ]; then sleep 10; continue; fi
             FQDN="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/salcapa-rollback.json)"
             STATUS="$(curl --connect-timeout 5 --max-time 15 --silent --show-error --output /tmp/salcapa-rollback-ready.json --write-out '%{http_code}' "https://$FQDN/health/ready" || true)"
             if [ "$STATUS" = "200" ] && python accepted-release/tools/validate_live_readiness.py /tmp/salcapa-rollback-ready.json --environment dev >/dev/null 2>&1; then
-              # The scheduled worker is part of the accepted release. Restore its
-              # immutable image rather than deleting the job during rollback.
-              az containerapp job update \
-                --resource-group "$RESOURCE_GROUP" \
-                --name "$JOB_NAME" \
-                --image "$ROLLBACK_IMAGE" \
-                --output none --only-show-errors
-              az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-rollback-job.json
-              jq -e --arg image "$ROLLBACK_IMAGE" '
-                .properties.template.containers[0].image == $image and
-                .properties.configuration.triggerType == "Schedule" and
-                .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
-              ' /tmp/salcapa-rollback-job.json >/dev/null
-              {
-                echo "### SalCAPA failed promotion rollback"
-                echo ""
-                echo "- Accepted immutable $ROLLBACK_RELEASE image restored"
-                echo "- Live readiness restored"
-                echo "- Scheduled worker image and trigger restored"
-                echo "- DNS unchanged"
-                echo "- Client secret not used"
-                echo "PROMOTION_FAILED_ACCEPTED_STATE_RESTORED"
-              } >> "$GITHUB_STEP_SUMMARY"
-              exit 0
+              APP_RESTORED=true
+              break
             fi
             sleep 10
           done
-          echo "Failed promotion did not restore the accepted $ROLLBACK_RELEASE runtime." >&2
+          if [ "$WORKER_RESTORED" = true ] && [ "$APP_RESTORED" = true ] && [ "$HOST_RESTORED" = true ]; then
+            {
+              echo "### SalCAPA failed promotion rollback"
+              echo ""
+              echo "- Accepted immutable $ROLLBACK_RELEASE application and worker images restored"
+              echo "- Live readiness and worker schedule verified"
+              echo "- Accepted hostname binding restored"
+              echo "- Client secret not used"
+              echo "PROMOTION_FAILED_ACCEPTED_STATE_RESTORED"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "Failed promotion left partial rollback: worker=$WORKER_RESTORED application=$APP_RESTORED hostname=$HOST_RESTORED" >&2
           exit 1

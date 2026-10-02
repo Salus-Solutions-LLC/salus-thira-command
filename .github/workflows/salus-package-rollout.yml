@@ -93,7 +93,7 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - run: python -m pip install -r requirements.txt pytest==8.4.2
+      - run: python -m pip install -r requirements.txt pytest==8.4.2 PyYAML==6.0.2
       # The separate professional-report tests require licensed Arial/Times
       # files that the Linux runner does not contain. Keep their exact-output
       # release review separate; do not substitute another font in this job.
@@ -117,6 +117,23 @@ jobs:
         run: az bicep build --file infra/azure/defender-storage-scanner.bicep --stdout > /tmp/salus-defender-scanner-arm.json
       - name: Compile application and worker promotion template without Azure credentials
         run: az bicep build --file infra/azure/main.bicep --stdout > /tmp/salus-application-arm.json
+      - name: Validate protected release workflow syntax
+        run: |
+          python - <<'PY'
+          import re
+          import subprocess
+          from pathlib import Path
+          import yaml
+
+          for name in ('azure-application-deploy.yml', 'protection-advisor-live-acceptance.yml'):
+              document = yaml.safe_load(Path('.github/workflows', name).read_text(encoding='utf-8'))
+              for job in document['jobs'].values():
+                  for step in job['steps']:
+                      if 'run' not in step:
+                          continue
+                      script = re.sub(r'\$\{\{.*?\}\}', 'EXPRESSION', step['run'])
+                      subprocess.run(['bash', '-n'], input=script, text=True, check=True)
+          PY
 
   professional-report-windows:
     runs-on: windows-latest
