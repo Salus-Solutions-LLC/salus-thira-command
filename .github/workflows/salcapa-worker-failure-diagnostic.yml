@@ -40,6 +40,35 @@ jobs:
           test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
           WORKSPACE_ID="$(az monitor log-analytics workspace show --resource-group rg-salcapa-dev --workspace-name salcapa-dev-b48224-logs --query customerId --output tsv)"
           test -n "$WORKSPACE_ID"
+          az containerapp job execution list --resource-group rg-salcapa-dev --name salcapa-dev-b48224-kb-scan --output json > "$RUNNER_TEMP/scoped-worker-executions.json"
+          python - "$RUNNER_TEMP/scoped-worker-executions.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          rows = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          if isinstance(rows, dict):
+              rows = rows.get("value", [])
+          scoped = []
+          for row in rows:
+              props = row.get("properties", {})
+              start = str(props.get("startTime") or "")
+              if not start.startswith("2026-10-02T11:"):
+                  continue
+              try:
+                  minute = int(start[14:16])
+              except ValueError:
+                  continue
+              if minute < 28 or minute > 45:
+                  continue
+              containers = props.get("template", {}).get("containers", []) or props.get("containers", [])
+              images = [str(item.get("image", "")) for item in containers if isinstance(item, dict)]
+              image = "candidate" if any("2121f1e9675bccbc53b78b1d40371c8168e1db5f7e595fc5be75b23e72e0e2f1" in value for value in images) else ("accepted" if any("77b9ecd15c25a5baad55be47a6385429df3eb9c3f5712a0cd94745d22cf6f8b1" in value for value in images) else "unspecified")
+              scoped.append((start[:16], str(props.get("status", "unknown")), str(props.get("endTime") or "")[:16], image))
+          print("scoped_executions=" + str(len(scoped)))
+          for start, status, end, image in sorted(scoped):
+              print("execution_minute=" + start + " status=" + status + " end_minute=" + end + " image=" + image)
+          PY
           az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-02T11:28:00Z) .. datetime(2026-10-02T11:45:00Z)) | where JobName == 'salcapa-dev-b48224-kb-scan' | project TimeGenerated, Log | take 1000" --output json > "$RUNNER_TEMP/scoped-worker-logs.json"
           python - "$RUNNER_TEMP/scoped-worker-logs.json" <<'PY'
           import json
