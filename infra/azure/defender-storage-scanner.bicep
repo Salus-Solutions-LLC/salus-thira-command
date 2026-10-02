@@ -64,6 +64,10 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existin
   name: '${stem}-pg'
 }
 
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
+  name: '${stem}-logs'
+}
+
 // This is a dedicated DMZ account. The application must never serve content
 // from its quarantine container; only an authenticated, exact-object Clean
 // result may authorize a separate copy into the governed evidence account.
@@ -545,6 +549,90 @@ resource scanWorkerFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   }
 }
 
+// A failure alert alone cannot detect a schedule that never starts. The
+// worker emits only a content-free completion marker after reconciliation;
+// inventory already emits a bounded count summary. Azure Monitor evaluates
+// an empty period as zero without including Member details in the alert.
+resource scanWorkerMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@2023-12-01' = {
+  name: '${stem}-scan-result-worker-missed'
+  location: location
+  tags: {
+    system: 'SalCAPA'
+    environment: environmentName
+    purpose: 'scan-result-worker-missed-run'
+    approvalRecord: approvalRecord
+    sourceCommit: sourceCommit
+  }
+  properties: {
+    displayName: 'SalCAPA scan-result worker missed run'
+    description: 'No scan-result worker completion marker in 20 minutes. Keep pending originals on hold and check the job and log route.'
+    enabled: true
+    severity: 2
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT20M'
+    autoMitigate: true
+    scopes: [logAnalytics.id]
+    criteria: {
+      allOf: [
+        {
+          query: 'ContainerAppConsoleLogs | where EnvironmentName == ''${stem}-aca-env'' and ContainerName == ''scan-results'' | where tostring(parse_json(Log).scan_result_job) == ''completed'' | summarize CompletedRuns = count()'
+          timeAggregation: 'Maximum'
+          metricMeasureColumn: 'CompletedRuns'
+          operator: 'LessThan'
+          threshold: 1
+          failingPeriods: {
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
+          }
+        }
+      ]
+    }
+    actions: {
+      actionGroups: [scanAlertGroup.id]
+    }
+  }
+}
+
+resource scanInventoryMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@2023-12-01' = {
+  name: '${stem}-scan-inventory-missed'
+  location: location
+  tags: {
+    system: 'SalCAPA'
+    environment: environmentName
+    purpose: 'quarantine-inventory-missed-run'
+    approvalRecord: approvalRecord
+    sourceCommit: sourceCommit
+  }
+  properties: {
+    displayName: 'SalCAPA quarantine inventory missed run'
+    description: 'No daily quarantine-inventory summary in 27 hours. Keep originals on hold and check inventory and log delivery.'
+    enabled: true
+    severity: 2
+    evaluationFrequency: 'PT1H'
+    windowSize: 'PT27H'
+    autoMitigate: true
+    scopes: [logAnalytics.id]
+    criteria: {
+      allOf: [
+        {
+          query: 'ContainerAppConsoleLogs | where EnvironmentName == ''${stem}-aca-env'' and ContainerName == ''scan-inventory'' | where isnotnull(parse_json(Log).exceptions_observed) | summarize CompletedRuns = count()'
+          timeAggregation: 'Maximum'
+          metricMeasureColumn: 'CompletedRuns'
+          operator: 'LessThan'
+          threshold: 1
+          failingPeriods: {
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
+          }
+        }
+      ]
+    }
+    actions: {
+      actionGroups: [scanAlertGroup.id]
+    }
+  }
+}
+
 resource defenderScanner 'Microsoft.Security/defenderForStorageSettings@2025-06-01' = {
   scope: quarantineStorage
   name: 'current'
@@ -569,6 +657,8 @@ resource defenderScanner 'Microsoft.Security/defenderForStorageSettings@2025-06-
     scanInventoryJob
     scanInventoryFailureAlert
     scanWorkerFailureAlert
+    scanWorkerMissedRunAlert
+    scanInventoryMissedRunAlert
   ]
 }
 
@@ -583,6 +673,9 @@ output scanWorkerJobId string = scanWorkerJob.id
 output scanInventoryJobId string = scanInventoryJob.id
 output scanInventoryFailureAlertId string = scanInventoryFailureAlert.id
 output scanWorkerFailureAlertId string = scanWorkerFailureAlert.id
+output scanWorkerMissedRunAlertId string = scanWorkerMissedRunAlert.id
+output scanInventoryMissedRunAlertId string = scanInventoryMissedRunAlert.id
 output scanAlertGroupId string = scanAlertGroup.id
 output quarantineCreateRoleId string = quarantineCreateRoleCanonicalId
 output defenderSettingId string = defenderScanner.id
+
