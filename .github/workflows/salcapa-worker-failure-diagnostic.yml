@@ -40,7 +40,7 @@ jobs:
           test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
           WORKSPACE_ID="$(az monitor log-analytics workspace show --resource-group rg-salcapa-dev --workspace-name salcapa-dev-b48224-logs --query customerId --output tsv)"
           test -n "$WORKSPACE_ID"
-          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-02T11:28:00Z) .. datetime(2026-10-02T11:45:00Z)) | where JobName == 'salcapa-dev-b48224-kb-scan' | project Log | take 1000" --output json > "$RUNNER_TEMP/scoped-worker-logs.json"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-02T11:28:00Z) .. datetime(2026-10-02T11:45:00Z)) | where JobName == 'salcapa-dev-b48224-kb-scan' | project TimeGenerated, Log | take 1000" --output json > "$RUNNER_TEMP/scoped-worker-logs.json"
           python - "$RUNNER_TEMP/scoped-worker-logs.json" <<'PY'
           import json
           import re
@@ -73,19 +73,21 @@ jobs:
           }
           for row in rows:
               line = row.get("Log", "") if isinstance(row, dict) else str(row)
+              minute = str(row.get("TimeGenerated", "unknown"))[:16] if isinstance(row, dict) else "unknown"
+              prefix = "minute=" + minute + " "
               for word, label in safe_hints.items():
                   if word.lower() in line.lower():
-                      signatures.add("hint=" + label)
+                      signatures.add(prefix + "hint=" + label)
               for name in re.findall(r"\b([A-Za-z_][A-Za-z_0-9.]*(?:Error|Exception)):", line):
-                  signatures.add("exception=" + name)
+                  signatures.add(prefix + "exception=" + name)
               for filename, number, function in re.findall(
                   r'File "[^"]*[/\\]([^/\\"]+)", line (\d+), in ([A-Za-z_][A-Za-z_0-9]*)',
                   line,
               ):
                   if filename in allowed_frames:
-                      signatures.add("frame=" + filename + ":" + number + ":" + function)
+                      signatures.add(prefix + "frame=" + filename + ":" + number + ":" + function)
               for phase in re.findall(r"SALCAPA_WORKER_PHASE=([A-Z_]{2,64})", line):
-                  signatures.add("phase=" + phase)
+                  signatures.add(prefix + "phase=" + phase)
           print("scoped_rows=" + str(len(rows)))
           for signature in sorted(signatures):
               print(signature)
