@@ -14,6 +14,8 @@
 
 **Hold activation and public claims.** The independent application/worker rollback and staged worker promotion are corrected in draft source, but neither a forced-failure rollback nor a `3.203` deployment has run in Azure. A further draft correction starts one candidate-image execution with an image override while the accepted scheduled job keeps its accepted image and two-minute schedule. It checks the execution's actual image and success, rechecks the accepted job, and only then updates the scheduled job to the candidate image. The failure path restores the accepted image and schedule. The protected operator must validate this one-off override and any overlapping execution in Azure, then run the governed what-if, failure-path and rollback evidence before accepting the release.
 
+**Additional no-overlap gate:** The accepted knowledge processor's non-bulk path has no batch-wide lease. A one-off candidate execution can run concurrently with a scheduled accepted execution and process the same pending files. No live overlap has been attempted. Before activation, engineering must prove a no-overlap promotion sequence or an isolated candidate fixture, with test evidence; ordinary source CI and the execution-image check do not close this gate.
+
 The revised Protection Advisor Part 1 and Part 2 and the Level 1 intake remain candidate material. Published Wix explanatory copy does not publish the revised application. The current application keeps package commerce disabled; scanner-backed uploads remain gated. Do not invite Member files, purchase, or protected-account creation through the preview.
 
 ## Required exact-version dispositions
