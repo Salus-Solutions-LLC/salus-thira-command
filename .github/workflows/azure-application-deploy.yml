@@ -211,6 +211,14 @@ jobs:
             .properties.configuration.triggerType == "Schedule" and
             .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
           ' /tmp/salcapa-rollback-job.json >/dev/null
+          JOB_ID="$(jq -r '.id' /tmp/salcapa-rollback-job.json)"
+          test -n "$JOB_ID"
+          az rest --method get --uri "${JOB_ID}?api-version=2025-07-01" --output json > /tmp/salcapa-job-rest-preflight.json
+          jq -e --arg image "$ROLLBACK_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
+          ' /tmp/salcapa-job-rest-preflight.json >/dev/null
 
       - name: What-if and deploy immutable SalCAPA application
         id: deployment
