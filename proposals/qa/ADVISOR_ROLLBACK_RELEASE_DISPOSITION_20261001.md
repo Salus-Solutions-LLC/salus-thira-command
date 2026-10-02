@@ -18,6 +18,8 @@
 
 **Controlled correction under review:** The draft workflow now pauses new scheduled starts by switching the accepted-image job to Manual, drains observed active executions, runs and verifies the candidate execution, then resumes the two-minute schedule with the candidate image. Failure restoration returns to the accepted image and schedule. This trades a bounded release maintenance interval for avoiding simultaneous accepted/candidate scans; Azure trigger propagation, execution listing and an outside manual start still require protected live validation. The accepted live job has not been paused.
 
+The no-overlap correction is exact draft source `33d07272829af30a2c1d584bc8b78e0d2cc7448b`. Public Protection Advisor run 563, SalCAPA Analytical Actions run 19 and package rollout run 180 passed for that source. These checks verify source ordering and compilation; they are not Azure behavior or failure-injection proof.
+
 The revised Protection Advisor Part 1 and Part 2 and the Level 1 intake remain candidate material. Published Wix explanatory copy does not publish the revised application. The current application keeps package commerce disabled; scanner-backed uploads remain gated. Do not invite Member files, purchase, or protected-account creation through the preview.
 
 ## Required exact-version dispositions
