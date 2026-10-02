@@ -68,6 +68,9 @@ with tempfile.TemporaryDirectory() as td:
     assert "19 more readiness questions" in page.text
     assert "answer from my current knowledge without guessing" in page.text
     assert "Return to Your Part 2 Profile" in page.text
+    assert 'id="deleteAnonymousRecord"' in page.text
+    assert 'onclick="deleteAnonymousRecord()"' in page.text
+    assert 'window.confirm("Permanently delete this anonymous Protection Advisor record' in page.text
     assert 'onchange="saveAnswer(this.name,this.value)"' in page.text
     assert 'id="questionProgress"' in page.text
     assert 'id="previousQuestion"' in page.text
