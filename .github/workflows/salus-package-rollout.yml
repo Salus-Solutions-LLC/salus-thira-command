@@ -145,19 +145,22 @@ jobs:
                   steps = document['jobs']['deploy']['steps']
                   promote = next(step['run'] for step in steps if step.get('name') == 'Promote and verify scheduled worker after application acceptance')
                   rollback = next(step['run'] for step in steps if step.get('name') == 'Restore accepted rollback release if promotion verification fails')
-                  pause = promote.index('--trigger-type Manual')
+                  pause = promote.index('{"properties":{"configuration":{"triggerType":"Manual"}}}')
                   drain = promote.index('DRAINED=false')
                   start = promote.index('az containerapp job start')
                   check = promote.index('if [ "$SUCCEEDED" != "true" ]; then')
-                  resume = promote.index('--trigger-type Schedule')
+                  resume = promote.index('"triggerType":"Schedule"')
                   assert pause < drain < start < check < resume
                   assert '--image "$IMAGE_DIGEST" --query name' in promote
                   assert promote.count('all(.[]; .properties.status == "Succeeded"') >= 2
                   assert '.properties.template.containers[0].image == $image' in promote.split('for attempt in $(seq 1 100); do', 2)[2].split('done', 1)[0]
-                  assert "--cron-expression '*/2 * * * *'" in promote
+                  assert promote.count('az rest --method patch --uri "${JOB_ID}?api-version=2025-07-01"') == 2
+                  assert 'az containerapp job update \\' in promote
+                  assert '"cronExpression":"*/2 * * * *"' in promote
                   assert '--image "$ROLLBACK_IMAGE"' in rollback
-                  assert '--trigger-type Schedule' in rollback
-                  assert "--cron-expression '*/2 * * * *'" in rollback
+                  assert 'az rest --method patch --uri "${JOB_ID}?api-version=2025-07-01"' in rollback
+                  assert '"triggerType":"Schedule"' in rollback
+                  assert '"cronExpression":"*/2 * * * *"' in rollback
           PY
 
   professional-report-windows:

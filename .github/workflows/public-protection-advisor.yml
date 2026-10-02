@@ -5,10 +5,13 @@ on:
     paths:
       - public_protection_advisor.py
       - protection_advisor_member_reports.py
+      - protection_advisor_docx_report.py
       - advisor_report_config.py
       - app.py
       - tools/ci_public_protection_advisor_smoke.py
       - tools/ci_protection_advisor_member_report_smoke.py
+      - tools/ci_scope_receipt_docx_smoke.py
+      - tools/live_public_protection_advisor_acceptance.sh
       - .github/workflows/public-protection-advisor.yml
   push:
     branches:
@@ -16,10 +19,13 @@ on:
     paths:
       - public_protection_advisor.py
       - protection_advisor_member_reports.py
+      - protection_advisor_docx_report.py
       - advisor_report_config.py
       - app.py
       - tools/ci_public_protection_advisor_smoke.py
       - tools/ci_protection_advisor_member_report_smoke.py
+      - tools/ci_scope_receipt_docx_smoke.py
+      - tools/live_public_protection_advisor_acceptance.sh
       - .github/workflows/public-protection-advisor.yml
 
 permissions:
@@ -42,5 +48,6 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python tools/ci_public_protection_advisor_smoke.py
       - run: python tools/ci_protection_advisor_member_report_smoke.py
+      - run: python tools/ci_scope_receipt_docx_smoke.py
       - name: Compile public boundary
-        run: python -m py_compile public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py tools/ci_public_protection_advisor_smoke.py tools/ci_protection_advisor_member_report_smoke.py
+        run: python -m py_compile public_protection_advisor.py protection_advisor_member_reports.py protection_advisor_docx_report.py advisor_report_config.py tools/ci_public_protection_advisor_smoke.py tools/ci_protection_advisor_member_report_smoke.py tools/ci_scope_receipt_docx_smoke.py

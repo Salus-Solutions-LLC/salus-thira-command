@@ -906,6 +906,103 @@ def render_protection_advisor_pdf(
     return destination
 
 
+def report_fonts_available() -> bool:
+    """Whether the approved PDF fonts are available to the local renderer."""
+    font_dir = Path(os.environ.get(
+        "SALUS_REPORT_FONT_DIR",
+        r"C:\Windows\Fonts" if os.name == "nt" else "/usr/share/fonts/truetype/msttcorefonts",
+    ))
+    return all((font_dir / name).is_file() for name in ("times.ttf", "arial.ttf", "arialbd.ttf"))
+
+
+def render_scope_receipt_docx(
+    *,
+    output_path: str | os.PathLike[str],
+    context: ProtectionAdvisorReportContext,
+    receipt: dict,
+) -> Path:
+    """Create the approved-font one-page receipt for governed M365 conversion."""
+    from docx import Document
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Inches, Pt
+
+    fields = context.as_template_fields()
+    document = Document()
+    section = document.sections[0]
+    section.top_margin = Inches(.52)
+    section.bottom_margin = Inches(.55)
+    section.left_margin = Inches(.75)
+    section.right_margin = Inches(.75)
+    normal = document.styles["Normal"]
+    normal.font.name = "Times New Roman"
+    normal.font.size = Pt(10)
+    normal.paragraph_format.space_after = Pt(3)
+
+    def add(text: object, *, heading: bool = False) -> None:
+        p = document.add_paragraph()
+        p.paragraph_format.space_after = Pt(4 if heading else 3)
+        run = p.add_run(str(text or ""))
+        run.font.name = "Arial" if heading else "Times New Roman"
+        run.bold = heading
+        run.font.size = Pt(11 if heading else 10)
+
+    def table(rows: list[tuple[str, str]]) -> None:
+        result = document.add_table(rows=0, cols=2)
+        result.style = "Table Grid"
+        for left, right in rows:
+            cells = result.add_row().cells
+            for cell, value in zip(cells, (left, right)):
+                cell.text = str(value or "")
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.name = "Times New Roman"
+                        run.font.size = Pt(9)
+
+    title = document.add_paragraph()
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    title_run = title.add_run("Salus Solutions | Confidential scope receipt")
+    title_run.font.name = "Arial"
+    title_run.font.size = Pt(14)
+    title_run.bold = True
+    add(f"{receipt.get('receipt_id') or 'Draft ID pending'} | {receipt.get('version') or 'Version pending'} | {fields['GeneratedAt']}")
+    add(f"Protected Member: {fields['ClientCodeName']} | Project: {fields['ProjectCodeName']}")
+    add(receipt.get("lead_sentence"))
+    table([
+        ("Covered", str(receipt.get("requested_boundary") or "To confirm") + " at " + str(receipt.get("requested_location") or "location to confirm")),
+        ("Outside scope", str(receipt.get("outside_boundary") or "To confirm")),
+        ("Possible path", str(receipt.get("possible_path") or "To confirm")),
+        ("What you receive", str(receipt.get("salus_deliverable") or "To confirm")),
+        ("Price", str(receipt.get("price_state") or "Written quote pending")),
+        ("Schedule", str(receipt.get("schedule_state") or "Dates to confirm in writing")),
+        ("Decision role", str(receipt.get("decision_owner") or "To confirm")),
+        ("Records coordinator", str(receipt.get("records_coordinator") or "To confirm")),
+    ])
+    add("What to prepare", heading=True)
+    for item in receipt.get("member_prepares") or ():
+        add("• " + str(item))
+    add("Five steps", heading=True)
+    table([
+        (f"{index}. {item.get('step', '')} — {item.get('owner', '')}", str(item.get("complete_when", "")))
+        for index, item in enumerate(receipt.get("milestones") or (), 1)
+    ])
+    add("Your choices", heading=True)
+    table([
+        (str(item.get("choice", "")), str(item.get("effect", "")))
+        for item in receipt.get("choices") or ()
+    ])
+    add(receipt.get("status") or "Draft for Salus review")
+    add("This receipt is a preparation aid, not a contract, completed assessment, fixed quote or authorization to begin paid work. Salus confirms the boundary, eligibility and written fee before an agreement.")
+    footer = section.footer.paragraphs[0]
+    footer.text = "Salus Solutions | Confidential                                      page 1 of 1"
+    for run in footer.runs:
+        run.font.name = "Times New Roman"
+        run.font.size = Pt(8)
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    document.save(str(destination))
+    return destination
+
+
 def render_scope_receipt_pdf(
     *,
     output_path: str | os.PathLike[str],

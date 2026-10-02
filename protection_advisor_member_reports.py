@@ -12,6 +12,8 @@ import os
 import re
 from urllib.parse import quote
 
+import httpx
+
 from salcapa_m365_advisor_reports import _trusted_pdf_conversion_url
 from salcapa_m365_reports import GovernedM365ReportConfig, GovernedM365Reports, M365ReportError
 
@@ -19,7 +21,10 @@ _ITEM_ID = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
 
 
 def _client() -> GovernedM365Reports:
-    folder = os.getenv("SALUS_M365_ADVISOR_MEMBER_REPORT_FOLDER_ITEM_ID", "").strip()
+    folder = (
+        os.getenv("SALUS_M365_ADVISOR_MEMBER_REPORT_FOLDER_ITEM_ID", "").strip()
+        or os.getenv("SALUS_M365_ADVISOR_REPORT_FOLDER_ITEM_ID", "").strip()
+    )
     if not folder:
         raise M365ReportError("Protected Member report storage is not configured")
     base = GovernedM365ReportConfig.from_environment()
@@ -51,6 +56,55 @@ def store_member_pdf(report_reference: str, revision_no: int, content: bytes) ->
     if not _ITEM_ID.fullmatch(item_id):
         raise M365ReportError("Microsoft 365 returned invalid report metadata")
     return {"item_id": item_id, "sha256": digest, "size": len(content), "filename": filename}
+
+
+def convert_member_docx_to_pdf(report_reference: str, revision_no: int, content: bytes) -> bytes:
+    """Convert a temporary DOCX in the same restricted Member report folder.
+
+    The source DOCX is removed after conversion; only the caller's separately
+    versioned PDF is eligible for an issued report snapshot.
+    """
+    if not re.fullmatch(r"SPA-(?:REPORT|RECEIPT)-[A-Z0-9-]+", report_reference) or revision_no < 1:
+        raise M365ReportError("Protection Advisor report identity is invalid")
+    client = _client()
+    if not content.startswith(b"PK") or len(content) > client.config.max_file_bytes:
+        raise M365ReportError("Protection Advisor DOCX is invalid or too large")
+    digest = hashlib.sha256(content).hexdigest()
+    filename = f"{report_reference}-R{revision_no}-{digest}.docx"
+    response = client._request(
+        "PUT", client._content_url(filename),
+        headers={"Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+        content=content,
+    )
+    if response.status_code not in (200, 201):
+        raise M365ReportError("Microsoft 365 rejected the temporary Protection Advisor DOCX")
+    item_id = str(response.json().get("id", ""))
+    if not _ITEM_ID.fullmatch(item_id):
+        raise M365ReportError("Microsoft 365 returned invalid temporary report metadata")
+    try:
+        url = (f"https://graph.microsoft.com/v1.0/drives/{quote(client.config.drive_id, safe='')}"
+               f"/items/{quote(item_id, safe='')}/content?format=pdf")
+        result = client._request("GET", url, headers={"Accept": "application/pdf"})
+        if result.status_code in (302, 303, 307, 308):
+            location = result.headers.get("Location", "")
+            if not _trusted_pdf_conversion_url(location):
+                raise M365ReportError("Microsoft 365 returned an untrusted PDF conversion location")
+            try:
+                result = client.client.get(location, headers={"Accept": "application/pdf"})
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                raise M365ReportError("Microsoft 365 PDF conversion download failed") from exc
+        if result.status_code != 200:
+            raise M365ReportError("Microsoft 365 could not convert the Protection Advisor DOCX")
+        pdf = bytes(result.content)
+        if not pdf.startswith(b"%PDF") or len(pdf) > client.config.max_file_bytes:
+            raise M365ReportError("Microsoft 365 returned an invalid Protection Advisor PDF")
+        return pdf
+    finally:
+        delete_url = (f"https://graph.microsoft.com/v1.0/drives/{quote(client.config.drive_id, safe='')}"
+                      f"/items/{quote(item_id, safe='')}")
+        deleted = client._request("DELETE", delete_url)
+        if deleted.status_code not in (204, 404):
+            raise M365ReportError("Temporary Protection Advisor DOCX could not be removed")
 
 
 def read_member_pdf(item_id: str, expected_sha256: str, expected_size: int) -> bytes:

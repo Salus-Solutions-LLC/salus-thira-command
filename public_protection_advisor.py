@@ -25,7 +25,10 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from telemetry import emit as emit_telemetry
 from protection_advisor_report_artifact import prepare_review_artifact
-from protection_advisor_docx_report import render_protection_advisor_pdf, render_scope_receipt_pdf
+from protection_advisor_docx_report import (
+    render_protection_advisor_docx, render_protection_advisor_pdf,
+    render_scope_receipt_docx, render_scope_receipt_pdf, report_fonts_available,
+)
 from protection_advisor_engagements import (
     create_assessment_scope,
     initialize_engagement_schema,
@@ -33,7 +36,9 @@ from protection_advisor_engagements import (
 )
 from protection_advisor_report_contract import build_report_context
 from salcapa_m365_advisor_reports import publish_advisor_docx
-from protection_advisor_member_reports import delete_member_pdf, read_member_pdf, store_member_pdf
+from protection_advisor_member_reports import (
+    convert_member_docx_to_pdf, delete_member_pdf, read_member_pdf, store_member_pdf,
+)
 from salcapa_m365_reports import M365ReportError
 from salus_package_path import draft_level_1_scope_receipt, suggest_provisional_level_1_path
 from database import is_postgres
@@ -2781,11 +2786,31 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 Path(output_dir).mkdir(parents=True, exist_ok=True)
                 with tempfile.TemporaryDirectory(prefix="spa-report-", dir=output_dir) as temporary:
                     path = Path(temporary) / "participant.pdf"
-                    render_protection_advisor_pdf(
-                        output_path=path, context=context, result=result, package=package,
-                    )
+                    if report_fonts_available():
+                        render_protection_advisor_pdf(
+                            output_path=path, context=context, result=result, package=package,
+                        )
+                        pdf_content = path.read_bytes()
+                    else:
+                        source = Path(temporary) / "participant.docx"
+                        render_protection_advisor_docx(
+                            template_path=Path(__file__).with_name("Protection Advisor Report Template.docx"),
+                            output_path=source, context=context,
+                            part1_text=_json(result), part2_text=_json(package),
+                        )
+                        try:
+                            pdf_content = convert_member_docx_to_pdf(
+                                report_reference, revision_no, source.read_bytes(),
+                            )
+                        except M365ReportError as exc:
+                            raise HTTPException(503, "Report delivery is temporarily unavailable") from exc
+                        from pypdf import PdfReader
+                        from io import BytesIO
+                        pages = PdfReader(BytesIO(pdf_content)).pages
+                        if len(pages) < 3 or (pages[1].extract_text() or "").strip():
+                            raise HTTPException(503, "Report layout needs Salus review")
                     try:
-                        stored = store_member_pdf(report_reference, revision_no, path.read_bytes())
+                        stored = store_member_pdf(report_reference, revision_no, pdf_content)
                     except M365ReportError as exc:
                         raise HTTPException(503, "Report delivery is temporarily unavailable") from exc
                 try:
@@ -2924,8 +2949,18 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 with tempfile.TemporaryDirectory(prefix="spa-receipt-", dir=output_dir) as temporary:
                     path = Path(temporary) / "scope-receipt.pdf"
                     try:
-                        render_scope_receipt_pdf(output_path=path, context=context, receipt=receipt)
-                        stored = store_member_pdf(receipt_id, revision_no, path.read_bytes())
+                        if report_fonts_available():
+                            render_scope_receipt_pdf(output_path=path, context=context, receipt=receipt)
+                            pdf_content = path.read_bytes()
+                        else:
+                            source = Path(temporary) / "scope-receipt.docx"
+                            render_scope_receipt_docx(output_path=source, context=context, receipt=receipt)
+                            pdf_content = convert_member_docx_to_pdf(receipt_id, revision_no, source.read_bytes())
+                            from pypdf import PdfReader
+                            from io import BytesIO
+                            if len(PdfReader(BytesIO(pdf_content)).pages) != 1:
+                                raise HTTPException(503, "Receipt layout needs Salus review")
+                        stored = store_member_pdf(receipt_id, revision_no, pdf_content)
                     except (M365ReportError, RuntimeError) as exc:
                         raise HTTPException(503, "Receipt delivery needs Salus review") from exc
                 try:

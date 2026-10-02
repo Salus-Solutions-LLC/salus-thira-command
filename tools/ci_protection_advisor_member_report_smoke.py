@@ -10,6 +10,10 @@ import types
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+httpx = types.ModuleType("httpx")
+httpx.TimeoutException = type("TimeoutException", (Exception,), {})
+httpx.TransportError = type("TransportError", (Exception,), {})
+sys.modules[httpx.__name__] = httpx
 
 
 class ReportError(RuntimeError):
@@ -53,8 +57,10 @@ class Client:
             item_id = "ITEM-" + hashlib.sha256(content).hexdigest()[:16]
             self.items[item_id] = content
             return Response(201, payload={"id": item_id})
-        item_id = url.rsplit("/", 2)[-2] if url.endswith("/content") else url.rsplit("/", 1)[-1]
+        item_id = url.rsplit("/", 2)[-2] if "/content" in url else url.rsplit("/", 1)[-1]
         if method == "GET":
+            if url.endswith("?format=pdf"):
+                return Response(200, content=b"%PDF-1.4\nconverted fictional report\n%%EOF")
             return Response(200, content=self.items[item_id])
         if method == "DELETE":
             self.items.pop(item_id, None)
@@ -84,6 +90,9 @@ assert module.read_member_pdf(stored["item_id"], stored["sha256"], stored["size"
 receipt = module.store_member_pdf("SPA-RECEIPT-TEST-001", 2, content + b" receipt")
 assert receipt["filename"].startswith("SPA-RECEIPT-TEST-001-R2-")
 assert module.read_member_pdf(receipt["item_id"], receipt["sha256"], receipt["size"]) == content + b" receipt"
+converted = module.convert_member_docx_to_pdf("SPA-REPORT-TEST-001", 3, b"PK\x03\x04fictional docx")
+assert converted.startswith(b"%PDF")
+assert len(Client.items) == 2, "Temporary DOCX was not removed after conversion"
 try:
     module.read_member_pdf(stored["item_id"], "0" * 64, stored["size"])
 except ReportError:
@@ -100,4 +109,7 @@ module.delete_member_pdf(stored["item_id"])
 assert stored["item_id"] not in Client.items
 module.delete_member_pdf(receipt["item_id"])
 assert receipt["item_id"] not in Client.items
+os.environ.pop("SALUS_M365_ADVISOR_MEMBER_REPORT_FOLDER_ITEM_ID")
+os.environ["SALUS_M365_ADVISOR_REPORT_FOLDER_ITEM_ID"] = "governed-advisor-folder"
+assert module._client().config.folder_item_id == "governed-advisor-folder"
 print("Protection Advisor exact-original store contract passed")
