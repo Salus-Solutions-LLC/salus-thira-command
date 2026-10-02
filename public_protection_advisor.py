@@ -571,11 +571,11 @@ def _questions(org_type: str, questionnaire_version: str = QUESTIONNAIRE_VERSION
     else:
         # A resumed or retained older session must see its original questions.
         rows = [_question_row(row) for row in QUESTION_BLUEPRINTS]
-    if org_type == "Faith-Based Organization":
+    if questionnaire_version != QUESTIONNAIRE_VERSION and org_type == "Faith-Based Organization":
         rows.append(_question_row(FAITH_QUESTION))
-    if org_type == "School or Educational Institution":
+    if questionnaire_version != QUESTIONNAIRE_VERSION and org_type == "School or Educational Institution":
         rows.append(_question_row(SCHOOL_QUESTION))
-    if org_type in {"Faith-Based Organization", "School or Educational Institution", "Government or Public Institution", "Event Venue or Hospitality"}:
+    if questionnaire_version != QUESTIONNAIRE_VERSION and org_type in {"Faith-Based Organization", "School or Educational Institution", "Government or Public Institution", "Event Venue or Hospitality"}:
         rows.append(_question_row(PUBLIC_QUESTION))
     return rows
 
@@ -595,9 +595,7 @@ def _part2_questions(org_type: str, questionnaire_version: str = QUESTIONNAIRE_V
     if org_type in {"Faith-Based Organization", "School or Educational Institution", "Government or Public Institution", "Event Venue or Hospitality"}:
         rows.append(_question_row(PUBLIC_QUESTION))
     for question in rows:
-        question["part2_new"] = question["key"] not in PART1_SCREEN_TEXT and question["key"] not in {
-            FAITH_QUESTION[0], SCHOOL_QUESTION[0], PUBLIC_QUESTION[0]
-        }
+        question["part2_new"] = question["key"] not in PART1_SCREEN_TEXT
     return rows
 
 
@@ -1180,7 +1178,7 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <p><button id="deleteAnonymousRecord" type="button" onclick="deleteAnonymousRecord()">Delete My Anonymous Record &gt;</button></p><p id="deleteAnonymousStatus" role="status" aria-live="polite"></p></section>
 <section id="profileAgreement" class="hidden panel"><p class="eyebrow">Before Part 2</p>
 <h2>Understand the scope and readiness profile</h2>
-<p>Part 2 carries forward your nine Part 1 answers. After sign-in and consent, it asks 19 more readiness questions, then asks about the operation you want covered and your priorities. You can save and return. Your answers help Salus prepare a preliminary Level 1 SalCAPA™ package recommendation; Part 2 is not a completed assessment.</p>
+<p>Part 2 carries forward your nine Part 1 answers. After sign-in and consent, it asks 19 shared readiness questions and, when relevant, a few questions tailored to your organization. It then asks about the operation you want covered and your priorities. You can save and return. Your answers help Salus prepare a preliminary Level 1 SalCAPA™ package recommendation; Part 2 is not a completed assessment.</p>
 <p>You do not need to conduct research or obtain new records before continuing. Answer truthfully from your current knowledge. When you do not know, select <strong>Not sure</strong> or <strong>Prefer to discuss with Salus</strong> where available rather than guessing.</p>
 <label class="check"><input id="detailAck" type="checkbox"> <span>I understand that Part 2 is a scope and readiness profile and agree to answer from my current knowledge without guessing or overstating capabilities.</span></label>
 <label class="check"><input id="identifiableConsent" type="checkbox"> <span>I consent to Salus retaining the identifiable organization and contact information I provide in Part 2 with my assessment record for package preparation, professional review, and possible follow-up.</span></label>

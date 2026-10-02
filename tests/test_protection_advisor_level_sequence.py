@@ -42,6 +42,20 @@ def test_short_public_screen_does_not_invent_capability_scores():
     assert result["priority_capabilities"] == []
 
 
+def test_sector_prompts_follow_consent_and_do_not_lengthen_anonymous_part_one():
+    for org_type, sector_keys in (
+        ("Faith-Based Organization", {"volunteer_roles", "public_access"}),
+        ("School or Educational Institution", {"reunification", "public_access"}),
+        ("Government or Public Institution", {"public_access"}),
+        ("Event Venue or Hospitality", {"public_access"}),
+    ):
+        first = _questions(org_type)
+        second = _part2_questions(org_type)
+        assert len(first) == 9
+        assert not sector_keys.intersection({question["key"] for question in first})
+        assert all(question["part2_new"] for question in second if question["key"] in sector_keys)
+
+
 def test_old_questionnaire_session_keeps_its_original_questions():
     questions = _questions("Business", "SPA-PUBLIC-QUESTIONNAIRE-2.2.0")
     assert len(questions) == 28

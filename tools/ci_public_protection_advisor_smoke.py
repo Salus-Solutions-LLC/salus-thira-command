@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory() as td:
     assert "Child care or early education" in page.text
     assert "Agriculture, ranching or animal care" in page.text
     assert "Potential investment range (optional)" in page.text
-    assert "19 more readiness questions" in page.text
+    assert "19 shared readiness questions" in page.text
     assert "answer from my current knowledge without guessing" in page.text
     assert "Return to Your Part 2 Profile" in page.text
     assert 'id="deleteAnonymousRecord"' in page.text
@@ -178,8 +178,8 @@ with tempfile.TemporaryDirectory() as td:
     headers={"X-CSRF-Token":csrf}
     questions=payload["questions"]
     assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
-    assert len([q for q in questions if q["key"] not in {"volunteer_roles","public_access"}])==9
-    assert any(q["key"]=="volunteer_roles" for q in questions)
+    assert len(questions)==9
+    assert all(q["key"] not in {"volunteer_roles","public_access"} for q in questions)
     assert all(q["capabilities"] and q["mission_areas"] and q["services"] for q in questions)
 
     for index,q in enumerate(questions):
@@ -233,7 +233,7 @@ with tempfile.TemporaryDirectory() as td:
     assert created.json()["authenticated"] is True
     assert len(created.json()["questions"])==30  # 28 common and two faith/public additions
     assert len(created.json()["answers"])==len(questions)
-    assert sum(q["part2_new"] for q in created.json()["questions"])==19
+    assert sum(q["part2_new"] for q in created.json()["questions"])==21
     assert all(not q["part2_new"] for q in created.json()["questions"] if q["key"] in {row["key"] for row in questions})
     assert {cap for q in created.json()["questions"] for cap in q["capabilities"]}==set(CORE_CAPABILITIES)
 
