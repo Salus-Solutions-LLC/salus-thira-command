@@ -15,6 +15,8 @@ on:
       - salus_package_intake.py
       - salus_scan_results.py
       - salus_scan_worker.py
+      - salcapa_office_processing.py
+      - tools/ci_salcapa_office_processing_smoke.py
       - portable_backup.py
       - database.py
       - security_controls.py
@@ -53,6 +55,8 @@ on:
       - salus_package_intake.py
       - salus_scan_results.py
       - salus_scan_worker.py
+      - salcapa_office_processing.py
+      - tools/ci_salcapa_office_processing_smoke.py
       - portable_backup.py
       - database.py
       - security_controls.py
@@ -98,6 +102,8 @@ jobs:
       # files that the Linux runner does not contain. Keep their exact-output
       # release review separate; do not substitute another font in this job.
       - run: python -m pytest -q -p no:cacheprovider tests --ignore=tests/test_protection_advisor_professional_report.py
+      - name: Verify damaged Office files cannot stop the knowledge worker
+        run: python tools/ci_salcapa_office_processing_smoke.py
       - run: python -m compileall -q app.py public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py salus_package_path.py salus_package_quote.py salus_package_intake.py portable_backup.py proposals/qa/audit_level_band_templates.py
       - run: node --check static/app.js
       - name: Check live Advisor Part 2 answer carry-forward
