@@ -687,7 +687,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             }
             {
               name: 'SALUS_SCAN_QUARANTINE_URL'
-              value: packageScanMode == 'defender' ? 'https://${replace('${stem}-scan', '-', '')}.blob.core.windows.net' : ''
+              value: packageScanMode == 'defender' ? 'https://${replace('${stem}-scan', '-', '')}.blob.${environment().suffixes.storage}' : ''
             }
             {
               name: 'SALUS_TELEMETRY_BACKEND'
