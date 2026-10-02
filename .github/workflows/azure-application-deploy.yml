@@ -217,6 +217,7 @@ jobs:
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
+          ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
           SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
           UNIQUE_SUFFIX: ${{ steps.activation.outputs.unique_suffix }}
           LOCATION: ${{ steps.activation.outputs.location }}
@@ -236,6 +237,7 @@ jobs:
             location="$LOCATION"
             environmentName=dev
             containerImageDigest="$IMAGE_DIGEST"
+            knowledgeWorkerImageDigest="$ROLLBACK_IMAGE"
             provisionApplication=true
             entraTenantId="$ENTRA_TENANT_ID"
             entraRuntimeClientId="$ENTRA_RUNTIME_CLIENT_ID"
@@ -406,37 +408,17 @@ jobs:
             echo "- Public production cutover: not performed"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify scheduled worker executes a governed pending batch
+      - name: Verify accepted worker remains active during application acceptance
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
+          ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
         run: |
           set -euo pipefail
           JOB_NAME=salcapa-dev-b48224-kb-scan
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
-          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$IMAGE_DIGEST"
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$ROLLBACK_IMAGE"
           test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-knowledge-job.json)" = "Schedule"
           test "$(jq -r '.properties.configuration.scheduleTriggerConfig.cronExpression' /tmp/salcapa-knowledge-job.json)" = "*/2 * * * *"
-          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
-          test -n "$EXECUTION_NAME"
-          SUCCEEDED=false
-          for attempt in $(seq 1 100); do
-            STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --query properties.status --output tsv --only-show-errors)"
-            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
-            if [ "$STATUS" = "Failed" ]; then break; fi
-            sleep 10
-          done
-          if [ "$SUCCEEDED" != "true" ]; then
-            echo "Scheduled knowledge worker did not complete successfully: $STATUS" >&2
-            sleep 5
-            az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 100 --format text --only-show-errors 2>&1 \
-              | grep -E 'SALCAPA_WORKER_PHASE|ModuleNotFoundError|ImportError|KeyError|ValueError|RuntimeError|M365IntakeError|KnowledgePromotionError|TypeError|AttributeError|DatabaseError|OperationalError|AzureError|Traceback|failed to start|Error' \
-              | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' \
-              | tail -n 25 >&2 || true
-            exit 1
-          fi
-          az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 50 --format text --only-show-errors 2>&1 | grep 'SALCAPA_KNOWLEDGE_BATCH=' || true
-          echo "SALCAPA_KNOWLEDGE_WORKER_EXECUTION=$EXECUTION_NAME" >> "$GITHUB_ENV"
 
       - name: Create and run isolated Microsoft 365 intake acceptance job
         env:
@@ -536,6 +518,43 @@ jobs:
             "$PROTECTION_ADVISOR_BASE_URL/api/system/mode" > /tmp/salcapa-advisor-mode.json
           test "$(jq -r '.version' /tmp/salcapa-advisor-mode.json)" = "$EXPECTED_VERSION"
           bash frozen-release/tools/live_public_protection_advisor_acceptance.sh
+
+      - name: Promote and verify scheduled worker after application acceptance
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
+        run: |
+          set -euo pipefail
+          JOB_NAME=salcapa-dev-b48224-kb-scan
+          az containerapp job update \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" \
+            --image "$IMAGE_DIGEST" \
+            --output none --only-show-errors
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$IMAGE_DIGEST"
+          test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-knowledge-job.json)" = "Schedule"
+          test "$(jq -r '.properties.configuration.scheduleTriggerConfig.cronExpression' /tmp/salcapa-knowledge-job.json)" = "*/2 * * * *"
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
+          test -n "$EXECUTION_NAME"
+          SUCCEEDED=false
+          for attempt in $(seq 1 100); do
+            STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" --query properties.status --output tsv --only-show-errors)"
+            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
+            if [ "$STATUS" = "Failed" ]; then break; fi
+            sleep 10
+          done
+          if [ "$SUCCEEDED" != "true" ]; then
+            echo "Promoted knowledge worker did not complete successfully: $STATUS" >&2
+            sleep 5
+            az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 100 --format text --only-show-errors 2>&1 \
+              | grep -E 'SALCAPA_WORKER_PHASE|ModuleNotFoundError|ImportError|KeyError|ValueError|RuntimeError|M365IntakeError|KnowledgePromotionError|TypeError|AttributeError|DatabaseError|OperationalError|AzureError|Traceback|failed to start|Error' \
+              | sed -E 's/((password|secret|token|connection[_ -]?string)[^:=]*[:=][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig' \
+              | tail -n 25 >&2 || true
+            exit 1
+          fi
+          az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 50 --format text --only-show-errors 2>&1 | grep 'SALCAPA_KNOWLEDGE_BATCH=' || true
+          echo "SALCAPA_KNOWLEDGE_WORKER_EXECUTION=$EXECUTION_NAME" >> "$GITHUB_ENV"
 
       - name: Restore accepted rollback release if promotion verification fails
         if: failure() && (steps.deployment.outcome == 'success' || steps.deployment.outcome == 'failure')

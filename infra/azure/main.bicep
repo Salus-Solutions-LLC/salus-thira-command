@@ -20,6 +20,9 @@ param environmentName string = 'dev'
 @description('Immutable container image digest. Required only when provisionApplication is true.')
 param containerImageDigest string = ''
 
+@description('Immutable scheduled knowledge-worker image. During an application promotion, retain the accepted worker image until application acceptance passes.')
+param knowledgeWorkerImageDigest string = containerImageDigest
+
 @description('Create or update the SalCAPA Container App. Foundation-only provisioning leaves this false.')
 param provisionApplication bool = false
 
@@ -724,7 +727,7 @@ resource knowledgeScanJob 'Microsoft.App/jobs@2024-03-01' = if (provisionApplica
       containers: [
         {
           name: 'salcapa-knowledge-scan'
-          image: containerImageDigest
+          image: knowledgeWorkerImageDigest
           command: [
             'python'
             '-m'

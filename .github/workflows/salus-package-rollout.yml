@@ -36,6 +36,7 @@ on:
       - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
       - .github/workflows/salus-package-rollout.yml
       - infra/azure/defender-storage-scanner.bicep
+      - infra/azure/main.bicep
   push:
     branches:
       - development/salcapa-platform
@@ -73,6 +74,7 @@ on:
       - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
       - .github/workflows/salus-package-rollout.yml
       - infra/azure/defender-storage-scanner.bicep
+      - infra/azure/main.bicep
 
 permissions:
   contents: read
@@ -113,6 +115,8 @@ jobs:
           fi
       - name: Compile scanner installation template without Azure credentials
         run: az bicep build --file infra/azure/defender-storage-scanner.bicep --stdout > /tmp/salus-defender-scanner-arm.json
+      - name: Compile application and worker promotion template without Azure credentials
+        run: az bicep build --file infra/azure/main.bicep --stdout > /tmp/salus-application-arm.json
 
   professional-report-windows:
     runs-on: windows-latest
