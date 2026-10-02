@@ -14,12 +14,13 @@ case "$1 $2" in
     printf '%s\n' "$MOCK_BUDGET"
     ;;
   "account show") printf '%s\n' '00000000-0000-0000-0000-000000000001' ;;
-  "resource list")
-    if [[ "${MOCK_SCANNER:-false}" == "true" ]]; then
-      printf '%s\n' '[{"id":"/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-salcapa-dev/providers/Microsoft.Storage/storageAccounts/salcapadevb48224scan/providers/Microsoft.Security/defenderForStorageSettings/current","properties":{"isEnabled":true}}]'
-    else
-      printf '%s\n' '[]'
-    fi
+  "resource show")
+    case "${MOCK_SCANNER:-false}" in
+      true) printf '%s\n' '{"properties":{"isEnabled":true}}' ;;
+      false) printf '%s\n' 'Code: ResourceNotFound' >&2; exit 3 ;;
+      unreadable) printf '%s\n' 'Code: AuthorizationFailed' >&2; exit 3 ;;
+      *) echo 'Unexpected scanner mock state.' >&2; exit 4 ;;
+    esac
     ;;
   *) echo "Unexpected Azure mock call: $*" >&2; exit 4 ;;
 esac
@@ -44,6 +45,12 @@ if bash "$ROOT_DIR/tools/azure_operational_budget.sh" rg-salcapa-dev dev b48224 
   echo '$75 alert without scanner was accepted.' >&2
   exit 1
 fi
+export MOCK_SCANNER=unreadable
+if bash "$ROOT_DIR/tools/azure_operational_budget.sh" rg-salcapa-dev dev b48224 existing >/dev/null 2>&1; then
+  echo 'Unreadable scanner state was accepted.' >&2
+  exit 1
+fi
+export MOCK_SCANNER=false
 export MOCK_GROUP=false
 export MOCK_BUDGET=missing
 test "$(bash "$ROOT_DIR/tools/azure_operational_budget.sh" rg-salcapa-dev dev b48224 foundation)" = "25"
