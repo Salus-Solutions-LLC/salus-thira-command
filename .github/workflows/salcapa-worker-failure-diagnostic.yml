@@ -63,11 +63,13 @@ jobs:
                   continue
               containers = props.get("template", {}).get("containers", []) or props.get("containers", [])
               images = [str(item.get("image", "")) for item in containers if isinstance(item, dict)]
+              commands = [item.get("command", []) for item in containers if isinstance(item, dict)]
+              command_kind = "worker" if ["python", "-m", "tools.salcapa_knowledge_scan_once"] in commands else "not_worker"
               image = "candidate" if any("64f1399b3f6093ef75b9b06e8547ebdc29d7cb22e98f57b980a22ef267e8a6d0" in value for value in images) else ("accepted" if any("77b9ecd15c25a5baad55be47a6385429df3eb9c3f5712a0cd94745d22cf6f8b1" in value for value in images) else "unspecified")
-              scoped.append((start[:16], str(props.get("status", "unknown")), str(props.get("endTime") or "")[:16], image))
+              scoped.append((start[:16], str(props.get("status", "unknown")), str(props.get("endTime") or "")[:16], image, command_kind))
           print("scoped_executions=" + str(len(scoped)))
-          for start, status, end, image in sorted(scoped):
-              print("execution_minute=" + start + " status=" + status + " end_minute=" + end + " image=" + image)
+          for start, status, end, image, command_kind in sorted(scoped):
+              print("execution_minute=" + start + " status=" + status + " end_minute=" + end + " image=" + image + " command_kind=" + command_kind)
           PY
           az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-02T12:33:00Z) .. datetime(2026-10-02T12:50:00Z)) | where JobName == 'salcapa-dev-b48224-kb-scan' | project TimeGenerated, ContainerImage, Log | take 1000" --output json > "$RUNNER_TEMP/scoped-worker-logs.json"
           python - "$RUNNER_TEMP/scoped-worker-logs.json" <<'PY'
@@ -84,6 +86,9 @@ jobs:
           line_kinds = set()
           safe_hints = {
               "BadZipFile": "corrupt_office_package",
+              "Uvicorn running": "web_server_entrypoint",
+              "Application startup complete": "web_server_entrypoint",
+              "Started server process": "web_server_entrypoint",
               "DOCUMENT_PACKAGE_INVALID": "invalid_document_package",
               "429": "rate_limit",
               "401": "authentication",
