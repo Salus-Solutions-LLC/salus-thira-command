@@ -161,6 +161,28 @@ async function entityView(key){
         const quoteHeading=currentQuote?'Your package quote':'Previous package quote — no current offer';
         const statusNotice=currentQuote?'':'<p class="notice">This quote is historical. Salus must review the changed scope or issue a new written quote before a new decision.</p>';
         quotePanel.innerHTML=`<h2>${quoteHeading}</h2>${statusNotice}<p><strong>${esc(quote.status)}</strong> · Level ${Number(quote.level)}${esc(quote.band)} ${esc(quote.variant||'')} · ${fee}</p><p><strong>Covered work:</strong> ${esc(quote.covered_operation)}<br><strong>Excluded:</strong> ${esc(quote.exclusions)}<br><strong>Included:</strong> ${esc(quote.included_work)}<br><strong>Reports:</strong> ${esc(quote.report_deliverables)}</p><p><strong>Your inputs:</strong> ${esc(quote.member_inputs)}<br><strong>Evidence and clarification:</strong> ${esc(quote.evidence_allowance)}; ${esc(quote.clarification_allowance)}</p><p><strong>Valid through:</strong> ${esc(fmtPackageDate(quote.valid_until))}<br><strong>Start and delivery:</strong> ${esc(fmtPackageDate(quote.start_date))} / ${esc(fmtPackageDate(quote.delivery_date))}<br><strong>Changes:</strong> ${esc(quote.change_triggers)}</p><p>Separate SalOPS services require their own quote. Read the exact agreement before making any decision.</p><a href="/api/package-agreements/${Number(quote.agreement_artifact_id)}/download" target="_blank" rel="noopener">Download the ${currentQuote?'written':'historical'} agreement</a>`;
+        if(quote.status==='Quoted'){
+          const key=crypto.randomUUID().replaceAll('-','');
+          const form=document.createElement('form');
+          form.innerHTML='<h3>Accept this written package</h3><p>Download and read the exact agreement above before accepting. No payment is collected on this page; payment follows the written agreement.</p><label>How you are authorized to decide for this organization<textarea name="member_authority_basis" minlength="12" maxlength="1000" required></textarea></label><label class="advisor-confirm" data-guidance-enhanced="true"><input name="accept_quote_and_agreement" type="checkbox" required> I have read and accept this exact package quote and agreement for the named operation and price.</label><div class="form-actions"><button class="btn" type="submit">Accept written package</button></div><div role="status" aria-live="polite"></div>';
+          quotePanel.appendChild(form);
+          form.onsubmit=async event=>{
+            event.preventDefault();
+            const button=form.querySelector('button'),status=form.querySelector('[role="status"]');
+            button.disabled=true;status.textContent='Recording your decision…';
+            try{
+              await api(`/api/assessments/${activeAssessmentId}/package-acceptance`,{method:'POST',body:JSON.stringify({
+                quote_id:Number(quote.id),quote_sha256:quote.content_sha256,
+                agreement_sha256:quote.agreement_sha256,
+                member_authority_basis:form.elements.namedItem('member_authority_basis').value.trim(),
+                idempotency_key:key,accept_quote_and_agreement:true
+              })});
+              form.innerHTML='<p role="status">Your package decision was recorded. Refresh this page to see the records request after Salus issues it.</p>';
+            }catch(error){
+              status.textContent='Your decision was not recorded. Confirm that you downloaded the exact agreement, then try again or contact Salus.';
+            }finally{button.disabled=false;}
+          };
+        }
         if(quote.status==='Authorized'){
           const intakePanel=document.createElement('div'); intakePanel.className='card'; intakePanel.style.marginTop='16px';
           $('#content').appendChild(intakePanel);
@@ -185,11 +207,16 @@ async function entityView(key){
                   const response=await fetch(`/api/assessments/${activeAssessmentId}/package-intake/${Number(item.id)}/files`,{method:'POST',headers:authHeaders(),body});
                   if(!response.ok)throw new Error('Upload failed');
                   const saved=await response.json();
-                  intakePanel.querySelector(`#intake-status-${Number(item.id)}`).textContent='Provided';
-                  if(!list.querySelector(`a[href="/api/package-intake-files/${Number(saved.id)}/download"]`)){
-                    list.insertAdjacentHTML('beforeend',`<p><a href="/api/package-intake-files/${Number(saved.id)}/download">${esc(saved.original_name)}</a> — received</p>`);
+                  if(saved.scan_status==='Pending'){
+                    form.reset();
+                    status.textContent='File received and held for the security check. It is not yet available to Salus as evidence.';
+                  }else{
+                    intakePanel.querySelector(`#intake-status-${Number(item.id)}`).textContent='Provided';
+                    if(!list.querySelector(`a[href="/api/package-intake-files/${Number(saved.id)}/download"]`)){
+                      list.insertAdjacentHTML('beforeend',`<p><a href="/api/package-intake-files/${Number(saved.id)}/download">${esc(saved.original_name)}</a> — received</p>`);
+                    }
+                    form.reset();status.textContent='File passed the security check and was received for Salus review.';
                   }
-                  form.reset();status.textContent='File received. Salus will review its relevance and handling.';
                 }catch(error){status.textContent='The file was not saved. Check its type and size, or contact Salus for protected handling.';}
                 finally{button.disabled=false;}
               };
