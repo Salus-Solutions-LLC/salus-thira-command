@@ -67,6 +67,7 @@ def poll_once(*, queue_client=None, process_event=None):
 def main(*, poll=None, reconcile=None, sleep=None):
     # Azure and processing exceptions can include a Blob URL or Member path.
     # Report only the failure class in routine job output; keep the item held.
+    phase = 'poll'
     try:
         result = (poll or poll_once)()
         if result not in ('Acknowledged', 'Empty', 'Held'):
@@ -74,6 +75,7 @@ def main(*, poll=None, reconcile=None, sleep=None):
         if reconcile is None:
             from app import reconcile_stale_package_scans
             reconcile = reconcile_stale_package_scans
+        phase = 'reconcile'
         for attempt in range(3):
             try:
                 reconcile()
@@ -87,6 +89,7 @@ def main(*, poll=None, reconcile=None, sleep=None):
                 (sleep or time.sleep)(0.25 * (attempt + 1))
     except Exception as exc:
         print(json.dumps({'scan_result_job': 'failed',
+                          'failure_phase': phase,
                           'error_type': type(exc).__name__}, sort_keys=True))
         return 1
     # A bounded, content-free completion marker supports detection of a
