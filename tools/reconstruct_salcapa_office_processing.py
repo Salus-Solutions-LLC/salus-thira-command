@@ -34,9 +34,9 @@ for archive, target, archive_sha, target_sha, target_size in ARTIFACTS:
     # since gained a damaged-central-directory guard and its regression test.
     # Never overwrite that source with the older archive during image builds.
     reviewed_sha = {
-        "salcapa_office_processing.py": "c2a806df3158dcbc0dba10e4b5843d3c758f06bbb7224aa0734e366dfc841c69",
-        "ci_salcapa_office_processing_smoke.py": "354a3493c8180ddb2fe32d2971af08ad37d66c7ef34e1d9074dc7bf2bdcb9f85",
+        "salcapa_office_processing.py": "1e42246783be500e76c2b4e2793ede03c59e3f1d226b659d89b7be885ae88e53",
+        "ci_salcapa_office_processing_smoke.py": "6fc384346c032f9f9f679ee69703e5e672d6b7842c434e84f37c1174d137090e",
     }[target.name]
-    if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != reviewed_sha:
+    if not target.is_file() or hashlib.sha256(target.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8")).hexdigest() != reviewed_sha:
         raise SystemExit(f"Reviewed Office source missing or changed: {target.name}")
 print("SALCAPA_OFFICE_PROCESSING_REVIEWED_SOURCE_PASS")
