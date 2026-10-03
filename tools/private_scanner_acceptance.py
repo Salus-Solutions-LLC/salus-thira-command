@@ -228,6 +228,14 @@ def run(run_id: str, timeout_seconds: int):
     finally:
         app.authorized_package_intake = normal_authorizer
         client.close()
+        # Do not leave a reusable fictional sign-in after the private run.
+        conn = app.db()
+        try:
+            conn.execute("DELETE FROM auth_sessions WHERE user_id=? AND token_hash=?",
+                         (user_id, app._hash_token(cookie)))
+            conn.commit()
+        finally:
+            conn.close()
 
 
 def main():
