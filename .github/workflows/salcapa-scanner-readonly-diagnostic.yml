@@ -53,6 +53,8 @@ jobs:
           az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated > ago(30h) | where JobName == 'salcapa-dev-b48224-scan-inv' | project TimeGenerated, Log | sort by TimeGenerated desc | take 1000" -o json > "$RUNNER_TEMP/inventory-console.json"
           python - "$RUNNER_TEMP" <<'PY'
           import json
+          import re
+          import subprocess
           import sys
           from datetime import datetime, timedelta, timezone
           from pathlib import Path
@@ -113,6 +115,57 @@ jobs:
               failed_starts = [stamp.isoformat() for stamp, status in recent
                                if status.lower() == "failed"]
               print(f"{label}_failed_start_times_utc={json.dumps(failed_starts)}")
+              if label == "inventory":
+                  safe_reasons = {"BackoffLimitExceeded", "DeadlineExceeded",
+                                  "ContainerFailed", "Failed", "Completed"}
+                  safe_states = {"Failed", "Succeeded", "Running", "Pending"}
+                  examined = 0
+                  for execution in rows(load(execution_file)):
+                      details = execution.get("properties") or {}
+                      if str(details.get("status") or "").lower() != "failed":
+                          continue
+                      raw_start = str(details.get("startTime") or "")
+                      try:
+                          start = datetime.fromisoformat(raw_start.replace("Z", "+00:00"))
+                      except ValueError:
+                          continue
+                      if start < observed_at - window:
+                          continue
+                      name = str(execution.get("name") or "")
+                      if not re.fullmatch(r"salcapa-dev-b48224-scan-inv-[a-z0-9]+", name):
+                          raise SystemExit("Unexpected inventory execution identifier")
+                      examined += 1
+                      if examined > 20:
+                          raise SystemExit("Too many failed inventory executions for bounded diagnostic")
+                      command = ["az", "containerapp", "job", "execution", "show",
+                                 "-g", "rg-salcapa-dev", "-n", "salcapa-dev-b48224-scan-inv",
+                                 "--job-execution-name", name, "-o", "json"]
+                      try:
+                          result = subprocess.run(command, capture_output=True, text=True,
+                                                  check=True, timeout=30)
+                          detail = json.loads(result.stdout)
+                      except (subprocess.CalledProcessError, subprocess.TimeoutExpired,
+                              json.JSONDecodeError):
+                          print("inventory_failed_detail=" + json.dumps({
+                              "start_utc": start.isoformat(), "available": False}))
+                          continue
+                      status = detail.get("properties") or {}
+                      reason = status.get("reason")
+                      reason = reason if reason in safe_reasons else "Other"
+                      replicas = (status.get("detailedStatus") or {}).get("replicas") or []
+                      codes = []
+                      states = []
+                      for replica in replicas[:10]:
+                          for container in (replica.get("containers") or [])[:10]:
+                              code = container.get("code")
+                              if type(code) is int and -1 <= code <= 255:
+                                  codes.append(code)
+                              state = container.get("status")
+                              states.append(state if state in safe_states else "Other")
+                      print("inventory_failed_detail=" + json.dumps({
+                          "start_utc": start.isoformat(), "available": True,
+                          "reason": reason, "exit_codes": sorted(codes),
+                          "container_states": sorted(states)}, sort_keys=True))
               print(f"{label}_last_start_utc={recent[-1][0].isoformat() if recent else 'none'}")
 
           action = resource_properties("action-group.json")
