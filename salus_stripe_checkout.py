@@ -88,12 +88,14 @@ def _stripe_post(form, secret_key, idempotency_key):
         return json.loads(response.read())
 
 
-def create_checkout_session(binding, secret_key, success_url, cancel_url, transport=None):
+def create_checkout_session(binding, secret_key, success_url, cancel_url, transport=None, attempt_no=1):
+    if not isinstance(attempt_no, int) or attempt_no < 1 or attempt_no > 20:
+        raise CheckoutVerificationError("Checkout retry count requires Salus review.")
     if not secret_key or not secret_key.startswith(("sk_test_", "sk_live_", "rk_test_", "rk_live_")):
         raise CheckoutVerificationError("A configured Stripe secret or restricted key is required.")
     form = checkout_form(binding, success_url, cancel_url)
     idem = hashlib.sha256(
-        f"salus-package:{binding.acceptance_id}:{binding.quote_sha256}".encode("ascii")
+        f"salus-package:{binding.acceptance_id}:{binding.quote_sha256}:{attempt_no}".encode("ascii")
     ).hexdigest()
     session = (transport or _stripe_post)(form, secret_key, idem)
     if not isinstance(session, dict) or not session.get("id") or not session.get("url"):
