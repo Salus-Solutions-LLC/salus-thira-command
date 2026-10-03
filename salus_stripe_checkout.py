@@ -9,8 +9,9 @@ from dataclasses import dataclass
 import hashlib
 import hmac
 import json
+import re
 import time
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 
@@ -124,6 +125,26 @@ def verify_webhook_signature(payload, signature_header, webhook_secret, now_seco
     if not isinstance(event, dict) or not event.get("id") or not event.get("type"):
         raise CheckoutVerificationError("Stripe event has no identity or type.")
     return event
+
+
+def retrieve_checkout_session(session_id, secret_key, transport=None):
+    """Fetch Stripe's current Session; a webhook payload alone is not payment proof."""
+    if not re.fullmatch(r"cs_(?:test_|live_)?[A-Za-z0-9]{8,255}", session_id or ""):
+        raise CheckoutVerificationError("Invalid Checkout Session identifier.")
+    if not secret_key or not secret_key.startswith(("sk_test_", "sk_live_", "rk_test_", "rk_live_")):
+        raise CheckoutVerificationError("A configured Stripe secret or restricted key is required.")
+    if transport is None:
+        request = Request(
+            "https://api.stripe.com/v1/checkout/sessions/" + quote(session_id, safe=""),
+            headers={"Authorization": f"Bearer {secret_key}"}, method="GET",
+        )
+        with urlopen(request, timeout=15) as response:
+            session = json.loads(response.read())
+    else:
+        session = transport(session_id, secret_key)
+    if not isinstance(session, dict) or session.get("id") != session_id:
+        raise CheckoutVerificationError("Stripe returned a different Checkout Session.")
+    return session
 
 
 def verify_paid_session(session, binding, expected_livemode):
