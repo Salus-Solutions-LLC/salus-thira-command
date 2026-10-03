@@ -48,6 +48,9 @@ jobs:
           az resource show -g rg-salcapa-dev --resource-type Microsoft.Insights/scheduledQueryRules --api-version 2023-12-01 -n salcapa-dev-b48224-scan-result-worker-missed -o json > "$RUNNER_TEMP/result-missed-alert.json"
           az resource show -g rg-salcapa-dev --resource-type Microsoft.Insights/scheduledQueryRules --api-version 2023-12-01 -n salcapa-dev-b48224-scan-inventory-missed -o json > "$RUNNER_TEMP/inventory-missed-alert.json"
           az monitor action-group show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-alerts-v2 -o json > "$RUNNER_TEMP/action-group.json"
+          WORKSPACE_ID="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$WORKSPACE_ID"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated > ago(30h) | where JobName == 'salcapa-dev-b48224-scan-inv' | project TimeGenerated, Log | take 1000" -o json > "$RUNNER_TEMP/inventory-console.json"
           python - "$RUNNER_TEMP" <<'PY'
           import json
           import sys
@@ -132,6 +135,35 @@ jobs:
               healthy = healthy and enabled and routed
               print(f"{name}_enabled={enabled}")
               print(f"{name}_v2_route={routed}")
+          console = load("inventory-console.json")
+          if isinstance(console, dict):
+              table = (console.get("tables") or [{}])[0]
+              columns = [item.get("name") for item in table.get("columns", [])]
+              console_rows = [dict(zip(columns, row)) for row in table.get("rows", [])]
+          else:
+              console_rows = console if isinstance(console, list) else []
+          failure_types = {}
+          exception_summaries = 0
+          safe_types = {"QuarantineError", "PermissionError", "RuntimeError",
+                        "DatabaseError", "OperationalError", "AzureError"}
+          for item in console_rows:
+              raw = item.get("Log") if isinstance(item, dict) else ""
+              if not isinstance(raw, str) or len(raw) > 2048:
+                  continue
+              try:
+                  marker = json.loads(raw[raw.index("{"):raw.rindex("}") + 1])
+              except (ValueError, TypeError):
+                  continue
+              if not isinstance(marker, dict):
+                  continue
+              if marker.get("inventory") == "failed":
+                  label = marker.get("error_type")
+                  label = label if label in safe_types else "Other"
+                  failure_types[label] = failure_types.get(label, 0) + 1
+              if type(marker.get("exceptions_observed")) is int and marker["exceptions_observed"] > 0:
+                  exception_summaries += 1
+          print("inventory_safe_failure_types=" + json.dumps(failure_types, sort_keys=True))
+          print("inventory_exception_summaries=" + str(exception_summaries))
           print("scanner_configuration_healthy=" + str(healthy))
           if not healthy:
               raise SystemExit(1)
