@@ -98,8 +98,10 @@ def _receipt_payload(row, payment_intent_id, paid_at):
     }
 
 
-def record_verified_payment(conn, binding, session, stripe_event_id, paid_at, expected_livemode):
-    if not stripe_event_id.startswith('evt_'):
+def record_verified_payment(conn, binding, session, stripe_event_id, paid_at, expected_livemode,
+                            event_type='checkout.session.completed'):
+    if not stripe_event_id.startswith('evt_') or event_type not in (
+            'checkout.session.completed','checkout.session.async_payment_succeeded'):
         raise CheckoutVerificationError('A signed Stripe event identity is required.')
     proof = verify_paid_session(session,binding,expected_livemode)
     row = conn.execute('''SELECT * FROM package_checkout_sessions WHERE stripe_session_id=?
@@ -134,7 +136,7 @@ def record_verified_payment(conn, binding, session, stripe_event_id, paid_at, ex
         (tenant_id,assessment_id,checkout_id,stripe_event_id,event_type,outcome,processed_at)
         VALUES(?,?,?,?,?,?,?)''',
         (binding.tenant_id,binding.assessment_id,row['id'],stripe_event_id,
-         'checkout.session.completed','Paid',paid_at))
+         event_type,'Paid',paid_at))
     return dict(conn.execute('SELECT * FROM package_checkout_sessions WHERE id=?',(row['id'],)).fetchone())
 
 
