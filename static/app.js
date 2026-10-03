@@ -193,10 +193,11 @@ async function entityView(key){
               const section=intakePanel.querySelector(`#intake-status-${Number(item.id)}`)?.closest('section');
               if(!section)return;
               const files=intake.uploads.filter(upload=>Number(upload.intake_request_id)===Number(item.id));
+              const held=(intake.pending_uploads||[]).filter(upload=>Number(upload.intake_request_id)===Number(item.id));
               const form=document.createElement('form');
               form.innerHTML=`<label>Send this requested record (PDF, Office document, CSV, text or image; up to 25 MB each, five per item)<input type="file" name="file" accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg" required></label><button class="btn secondary" type="submit">Upload file</button><div role="status" aria-live="polite"></div>`;
               const list=document.createElement('div');
-              list.innerHTML=files.map(upload=>`<p><a href="/api/package-intake-files/${Number(upload.id)}/download">${esc(upload.original_name)}</a> — received</p>`).join('');
+              list.innerHTML=files.map(upload=>`<p><a href="/api/package-intake-files/${Number(upload.id)}/download">${esc(upload.original_name)}</a> — received</p>`).join('')+held.map(upload=>`<p data-pending-id="${Number(upload.id)}">${esc(upload.original_name)} — ${upload.status==='Pending'?'security check pending':'held for Salus security review'}</p>`).join('');
               section.append(form,list);
               form.onsubmit=async event=>{
                 event.preventDefault();const button=form.querySelector('button'),status=form.querySelector('[role="status"]');
@@ -208,6 +209,9 @@ async function entityView(key){
                   if(!response.ok)throw new Error('Upload failed');
                   const saved=await response.json();
                   if(saved.scan_status==='Pending'){
+                    if(!list.querySelector(`[data-pending-id="${Number(saved.id)}"]`)){
+                      list.insertAdjacentHTML('beforeend',`<p data-pending-id="${Number(saved.id)}">${esc(saved.original_name)} — security check pending</p>`);
+                    }
                     form.reset();
                     status.textContent='File received and held for the security check. It is not yet available to Salus as evidence.';
                   }else{
