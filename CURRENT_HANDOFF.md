@@ -1,3 +1,9 @@
+## 3 October 2026 UTC — v3.209 rollback and M365 acceptance repair
+
+- Protected application run `37098520533` failed its isolated Microsoft 365 intake check with `M365_INTAKE_MISSING_REPRESENTATIVE_FORMATS:excel,image,pdf,powerpoint,word` after Azure deployment. The acceptance script selected only the first 500 pending files; source composition changed as the worker processed files. The run skipped Advisor and worker promotion and successfully restored accepted v3.208 application and worker. Azure showed active revision `salcapa-dev-b48224--0000149` running with 100% traffic after rollback. v3.209 is not accepted live; Member upload, quote, checkout and purchase remain closed.
+- Draft [PR #645](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/645) keeps bounded live Graph trust, current-parent, version, nested-path, size and SHA-256 checks while exercising all five deployed parsers against inert Member-free fixtures. It adds Python and container CI checks. Exact-source and live acceptance remain open. [PR #644](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/644) fixed the separate missing checkout return-origin setting after Marc's exact-head review and squash-merged as `46e5407012f9c87c1fade5e95c3850d93c258326`; this is source only, with no Member purchase enabled. PR #645 remains a draft and is not deployment authorization.
+- Next: finish exact-head CI for #645, obtain qualified source review for #644 and #645, merge governed repairs, freeze a successor image, deploy with rollback, then separately prove scanner-held/Clean file release, real alert delivery and recovery, signed Stripe test checkout/webhook/receipt, and exact Member controls before opening them. Owner: engineering; Marc/qualified reviewer for exact source and live output.
+
 # Salus Solutions — Current Handoff
 
 ## 3 October 2026 UTC — reviewed v3.209 image published; application release staged

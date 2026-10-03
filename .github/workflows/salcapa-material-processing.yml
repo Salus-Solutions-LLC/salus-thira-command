@@ -36,6 +36,7 @@ on:
       - tools/ci_salcapa_pdf_processing_smoke.py
       - tools/ci_salcapa_pdf_page_rendering_smoke.py
       - tools/ci_salcapa_image_ocr_processing_smoke.py
+      - tools/live_m365_intake_acceptance.py
       - tools/ci_salcapa_audio_video_processing_smoke.py
       - tools/ci_salcapa_material_suggestions_smoke.py
       - tools/ci_salcapa_visual_geospatial_smoke.py
@@ -146,6 +147,7 @@ jobs:
       - run: python tools/ci_salcapa_pdf_processing_smoke.py
       - run: python tools/ci_salcapa_pdf_page_rendering_smoke.py
       - run: python tools/ci_salcapa_image_ocr_processing_smoke.py
+      - run: python -c "from tools.live_m365_intake_acceptance import _verify_parser_fixtures; assert len(_verify_parser_fixtures()) == 5"
       - run: python -m py_compile salcapa_audio_video_processing.py tools/salcapa_audio_video_worker.py tools/ci_salcapa_audio_video_processing_smoke.py
       - run: python tools/run_current_release_smoke.py tools/ci_salcapa_material_suggestions_smoke.py
       - run: python tools/ci_salcapa_visual_geospatial_smoke.py
@@ -214,6 +216,7 @@ jobs:
       - run: python tools/ci_salcapa_pdf_processing_smoke.py
       - run: python tools/ci_salcapa_pdf_page_rendering_smoke.py
       - run: python tools/ci_salcapa_image_ocr_processing_smoke.py
+      - run: python -c "from tools.live_m365_intake_acceptance import _verify_parser_fixtures; assert len(_verify_parser_fixtures()) == 5"
       - run: python -m py_compile salcapa_audio_video_processing.py tools/salcapa_audio_video_worker.py tools/ci_salcapa_audio_video_processing_smoke.py
       - run: python tools/run_current_release_smoke.py tools/ci_salcapa_material_suggestions_smoke.py
       - run: python tools/ci_salcapa_visual_geospatial_smoke.py
@@ -258,6 +261,7 @@ jobs:
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_pdf_processing_smoke.py
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_pdf_page_rendering_smoke.py
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_image_ocr_processing_smoke.py
+      - run: docker run --rm --entrypoint python salcapa-material-processing -c "from tools.live_m365_intake_acceptance import _verify_parser_fixtures; assert len(_verify_parser_fixtures()) == 5"
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_audio_video_processing_smoke.py
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/run_current_release_smoke.py tools/ci_salcapa_material_suggestions_smoke.py
       - run: docker run --rm --entrypoint python salcapa-material-processing tools/ci_salcapa_visual_geospatial_smoke.py
