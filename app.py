@@ -6438,10 +6438,11 @@ async def package_checkout_stripe_webhook(request:Request):
             quote['agreement_sha256'].lower(),quote['fee_cents'],quote['currency'].lower())
         paid=record_verified_payment(conn,binding,session,event['id'],now(),
             stripe_key.startswith(('sk_live_','rk_live_')),event['type'])
-        audit(conn,'PACKAGE_PAYMENT_VERIFIED','assessment',checkout['assessment_id'],
-              f"checkout_id={paid['id']}; receipt_sha256={paid['receipt_sha256']}",'stripe-webhook')
+        audit(conn,'PACKAGE_PAYMENT_VERIFIED' if paid['status']=='Paid' else 'PACKAGE_PAYMENT_HELD',
+              'assessment',checkout['assessment_id'],
+              f"checkout_id={paid['id']}; status={paid['status']}",'stripe-webhook')
         conn.commit()
-        return {'received':True,'outcome':'Paid'}
+        return {'received':True,'outcome':paid['status']}
     except CheckoutVerificationError as exc:
         raise HTTPException(409,'The payment did not match the accepted package.') from exc
     finally:
