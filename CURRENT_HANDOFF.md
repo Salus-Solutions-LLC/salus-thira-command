@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 3 October 2026 UTC — Stripe test credential secured; Member intake remains closed
+
+- Draft PR #640 code head `5e57d978ad6d8d4fb07d73d29df968194b9d7e7e` passed Public Protection Advisor CI `37096139858` and package rollout CI `37096139874`. The candidate adds exact quote-bound Checkout, authenticated receipt, paid-before-intake gating, retry and refund/dispute hold. It remains draft and undeployed; live Protection Advisor Parts 1/2 remain accepted v3.208, while Level 1 Member upload, quote and purchase controls remain closed.
+- Marc authorized a restricted Stripe **test-mode** Checkout Sessions key and its secure storage, then separately authorized temporary vault-only Secrets Officer access for his signed-in Salus Azure identity. The key was created in account `acct_1Pdx5FJyp2WAg6cW` and stored as enabled Key Vault secret `salus-stripe-secret-key` in `salcapa-dev-b48224-kv`; no value was put in source or records. Azure confirmed secret creation and then removal of the temporary role. The vault IAM readback showed no remaining Secrets Officer assignment.
+- Next: test-mode webhook to an approved test endpoint, fictional paid and refund/failure journeys, scanner exact-object hold/Clean and real alert/recovery proof, exact-source and qualified-output reviews, immutable image and controlled live acceptance. Do not open Member intake from source-only proof. Owner: engineering; Marc for required exact-version determinations. Tierra Linda stopped; large-batch #520 paused.
+
+
 ## 3 October 2026 UTC — quote-bound checkout candidate advanced; Member intake still closed
 
 - Draft [PR #640](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/640) head `4957f4c6e06878904d859d2ff6afceb124a2ece0` adds an exact-quote Stripe Checkout candidate, signed webhook and direct Stripe Session verification, tenant-bound payment/receipt ledger, paid-before-intake gate for live OIDC, simple return/cancel pages, and fail-closed paid-record hold on a signed refund or dispute signal. Earlier exact-head Public Advisor and package rollout checks passed on `1cf2ab69675c8c8469548b57788e5c2dfc4933af`; checks for this current head are pending. No Stripe secret, webhook, payment, Azure app switch, or Member file access changed.
