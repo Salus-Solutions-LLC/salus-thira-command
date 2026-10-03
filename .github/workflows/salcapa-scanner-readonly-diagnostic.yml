@@ -61,6 +61,11 @@ jobs:
           def load(name):
               return json.loads((base / name).read_text(encoding="utf-8"))
 
+          def resource_properties(name):
+              resource = load(name)
+              nested = resource.get("properties") if isinstance(resource, dict) else None
+              return nested if isinstance(nested, dict) and nested else resource
+
           def rows(value):
               return value.get("value", []) if isinstance(value, dict) else value
 
@@ -104,7 +109,7 @@ jobs:
               print(f"{label}_status_counts={json.dumps(counts, sort_keys=True)}")
               print(f"{label}_last_start_utc={recent[-1][0].isoformat() if recent else 'none'}")
 
-          action = load("action-group.json").get("properties", {})
+          action = resource_properties("action-group.json")
           print("alert_group_enabled=" + str(bool(action.get("enabled"))))
           receiver_count = len(action.get("emailReceivers") or [])
           healthy = healthy and bool(action.get("enabled")) and receiver_count > 0
@@ -116,7 +121,7 @@ jobs:
               "salcapa-dev-b48224-scan-inventory-missed": "inventory-missed-alert.json",
           }
           for name, filename in sorted(alert_files.items()):
-              props = load(filename).get("properties", {})
+              props = resource_properties(filename)
               raw_actions = props.get("actions", [])
               if isinstance(raw_actions, dict):
                   raw_actions = raw_actions.get("actionGroups", [])
