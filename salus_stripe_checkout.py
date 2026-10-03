@@ -62,6 +62,7 @@ def checkout_form(binding, success_url, cancel_url):
     _require_https(cancel_url)
     form = {
         "mode": "payment",
+        "payment_method_types[0]": "card",
         "client_reference_id": str(binding.acceptance_id),
         "success_url": success_url,
         "cancel_url": cancel_url,
