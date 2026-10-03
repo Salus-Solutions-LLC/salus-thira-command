@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 3 October 2026 UTC — Level 1 intake remains closed; quote-bound payment work staged
+
+- Independent Azure readback in this turn confirmed the accepted v3.208 Advisor application's Level 1 controls remain disabled: commercial workflow `0`, scan mode `off`, scanner accepted `0`. Protection Advisor Parts 1 and 2 are live; Level 1 Member uploads, quotes and checkout are not published or 100% operational. Preserve those switches and accepted rollback.
+- Draft [PR #640](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/640) adds isolated quote-bound Stripe Checkout request, webhook signature, independent Session retrieval and paid-state validation. Four focused local unit checks passed; package rollout workflow 37094323422 succeeded. It does not alter app routes, Stripe configuration, Azure, or Member access. Exact-source review and full integration remain open.
+- Current app code still permits an accepted quote to authorize intake without a verified payment record if the commercial switch were enabled. Engineering next must add persistent session/event/payment/receipt records, authenticated checkout, signed and idempotent webhook fulfillment, an atomic paid gate in authorized_package_intake, failure/refund handling, test-mode and live proof, and exact-source/qualified-output release reviews. Stripe account access may require Marc's direct action without sharing secrets.
+- The scoped synthetic scanner test could not upload the harmless fictional clean-text file: Azure AD data-plane RBAC denied the upload before any Blob was created. No Member material was involved and no account-key fallback or access expansion was used. Engineering must use a governed least-privilege test path, then prove exact-object Clean/hold, alert delivery and recovery before enabling intake. Tierra Linda stays stopped; large-batch #520 stays paused.
+
 ## 2 October 2026 — dependency and real scanner-alert delivery checkpoint (22:38 UTC)
 
 - Marc approved PR #627 exact head `ebd5d76ed878675a751e9467e228326627b697b5`; all three package jobs passed and the exact requirements audit found no known vulnerabilities. It merged into development as `714806c08116ea9391e05f11374f8c8126cb8339`. This does not patch the live v3.206 image. The development CI still fails only the Linux report smoke because licensed Times is absent; three other development CI jobs, CodeQL, package, material-processing and contextual-intake checks passed.
