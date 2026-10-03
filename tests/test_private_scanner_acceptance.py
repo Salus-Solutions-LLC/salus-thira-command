@@ -30,6 +30,9 @@ class PrivateScannerCandidateChecks(unittest.TestCase):
             "SALUS_ACCEPTANCE_JOB_NAME": "salcapa-dev-b48224-scan-test",
         }
 
+    def test_azure_job_name_fits_container_apps_limit(self):
+        self.assertLess(len(self.safe_env["SALUS_ACCEPTANCE_JOB_NAME"]), 32)
+
     def test_private_job_preflight_requires_every_boundary(self):
         with patch.dict(os.environ, self.safe_env, clear=True):
             candidate.guarded_environment()
