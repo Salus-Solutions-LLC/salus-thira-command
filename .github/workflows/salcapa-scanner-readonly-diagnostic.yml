@@ -1,0 +1,114 @@
+name: SalCAPA scanner read-only diagnostic
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/salcapa-scanner-readonly-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected read-only scanner diagnostic gate passed."
+
+  diagnose:
+    needs: authorize
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Inspect scanner scheduling and alert routing without Member data
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id --output tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId --output tsv)" = "$EXPECTED_TENANT_ID"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/result-job.json"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-job.json"
+          az containerapp job execution list -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/result-executions.json"
+          az containerapp job execution list -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-executions.json"
+          az monitor metrics alert list -g rg-salcapa-dev -o json > "$RUNNER_TEMP/alerts.json"
+          az monitor action-group show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-alerts-v2 -o json > "$RUNNER_TEMP/action-group.json"
+          python - "$RUNNER_TEMP" <<'PY'
+          import json
+          import sys
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+
+          base = Path(sys.argv[1])
+          expected = "sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966"
+          cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
+
+          def load(name):
+              return json.loads((base / name).read_text(encoding="utf-8"))
+
+          def rows(value):
+              return value.get("value", []) if isinstance(value, dict) else value
+
+          def recent_executions(name):
+              result = []
+              for row in rows(load(name)):
+                  props = row.get("properties", {})
+                  raw = props.get("startTime") or ""
+                  try:
+                      stamp = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                  except ValueError:
+                      continue
+                  if stamp >= cutoff:
+                      result.append((stamp, str(props.get("status") or "Unknown")))
+              return sorted(result)
+
+          for label, job_file, execution_file in (
+              ("result", "result-job.json", "result-executions.json"),
+              ("inventory", "inventory-job.json", "inventory-executions.json"),
+          ):
+              job = load(job_file)
+              props = job.get("properties", {})
+              config = props.get("configuration", {})
+              containers = props.get("template", {}).get("containers", [])
+              images = [str(item.get("image") or "") for item in containers]
+              schedule = config.get("scheduleTriggerConfig", {}).get("cronExpression")
+              recent = recent_executions(execution_file)
+              counts = {}
+              for _, status in recent:
+                  counts[status] = counts.get(status, 0) + 1
+              print(f"{label}_schedule={schedule or 'missing'}")
+              print(f"{label}_expected_image={len(images) == 1 and expected in images[0]}")
+              print(f"{label}_executions_12h={len(recent)}")
+              print(f"{label}_status_counts={json.dumps(counts, sort_keys=True)}")
+              print(f"{label}_last_start_utc={recent[-1][0].isoformat() if recent else 'none'}")
+
+          action = load("action-group.json").get("properties", {})
+          print("alert_group_enabled=" + str(bool(action.get("enabled"))))
+          print("alert_group_receiver_count=" + str(len(action.get("emailReceivers") or [])))
+          known = {
+              "salcapa-dev-b48224-scan-result-worker-failed",
+              "salcapa-dev-b48224-scan-result-worker-missed",
+              "salcapa-dev-b48224-scan-inventory-failed",
+              "salcapa-dev-b48224-scan-inventory-missed",
+          }
+          alerts = {item.get("name"): item for item in rows(load("alerts.json"))
+                    if item.get("name") in known}
+          for name in sorted(known):
+              props = alerts.get(name, {}).get("properties", {})
+              action_ids = [str(item.get("actionGroupId") or "").lower()
+                            for item in props.get("actions", [])]
+              print(f"{name}_enabled={bool(props.get('enabled'))}")
+              print(f"{name}_v2_route={any(value.endswith('/salcapa-dev-b48224-scan-alerts-v2') for value in action_ids)}")
+          PY
