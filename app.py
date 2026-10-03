@@ -13,6 +13,8 @@ from datetime import date, datetime, timedelta, timezone
 from storage import build_storage, StorageError
 from security_controls import scan_bytes, retention_active, scanner_configuration, AV_MODE, AV_REQUIRED
 from secret_provider import secret, readiness as secret_readiness
+from salus_stripe_checkout import CheckoutBinding, CheckoutVerificationError
+from salus_package_payment_ledger import ensure_payment_schema, paid_receipt
 from salus_package_path import validate_requested_package_path
 from salus_package_quote import validate_quote, quote_digest, assessment_scope_digest
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
@@ -1838,6 +1840,7 @@ def init_db():
     for field in ('included_work','report_deliverables','member_inputs','evidence_allowance','clarification_allowance','field_specialist_terms','payment_terms','tax_treatment','change_triggers'):
         ensure_column('package_quote_versions',field,"TEXT NOT NULL DEFAULT ''")
     ensure_column('package_acceptances','agreement_download_id','INTEGER NOT NULL DEFAULT 0')
+    ensure_payment_schema(conn)
     ensure_column('ops_service_catalog','industry_profile_id','INTEGER')
     ensure_column('ops_service_catalog','industry_profile_key_snapshot',"TEXT NOT NULL DEFAULT ''")
     ensure_column('ops_service_catalog','industry_profile_version_snapshot','INTEGER')
@@ -6181,7 +6184,7 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
 
 def authorized_package_intake(conn,assessment_id:int,request:Request):
     assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tenant_id(request))).fetchone()
-    accepted=conn.execute('''SELECT q.*,a.member_user_id accepted_member_user_id FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
+    accepted=conn.execute('''SELECT q.*,a.id accepted_id,a.member_user_id accepted_member_user_id FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
         WHERE a.tenant_id=? AND a.assessment_id=? ORDER BY a.id DESC LIMIT 1''',(tenant_id(request),assessment_id)).fetchone()
     if not assessment or not accepted: raise HTTPException(409,'The package intake opens after an authorized agreement.')
     verified_package_quote(conn,accepted,request)
@@ -6194,6 +6197,16 @@ def authorized_package_intake(conn,assessment_id:int,request:Request):
     if (not accepted['assessment_scope_sha256'] or accepted['assessment_scope_sha256']!=assessment_scope_digest(assessment)
         or accepted['assessment_version']!=assessment['version']):
         raise HTTPException(409,'The authorized scope changed; review the written package before requesting more records.')
+    if AUTH_MODE=='oidc':
+        try:
+            binding=CheckoutBinding(tenant_id(request),assessment_id,accepted['id'],
+                accepted['accepted_id'],accepted['content_sha256'],
+                accepted['agreement_sha256'].lower(),accepted['fee_cents'],
+                accepted['currency'].lower())
+            if not paid_receipt(conn,binding):
+                raise HTTPException(409,'Payment of the exact accepted package is required before intake opens.')
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,'The package payment record requires Salus review.') from exc
     return accepted
 
 @app.get('/api/assessments/{assessment_id}/package-intake')
