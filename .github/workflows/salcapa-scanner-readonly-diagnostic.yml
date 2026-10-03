@@ -51,6 +51,7 @@ jobs:
           WORKSPACE_ID="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
           test -n "$WORKSPACE_ID"
           az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated > ago(30h) | where JobName == 'salcapa-dev-b48224-scan-inv' | project TimeGenerated, Log | sort by TimeGenerated desc | take 1000" -o json > "$RUNNER_TEMP/inventory-console.json"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppSystemLogs | where TimeGenerated > ago(30h) | extend SafeJob=tostring(column_ifexists('JobName', '')), SafeApp=tostring(column_ifexists('ContainerAppName', '')), SafeLog=tostring(column_ifexists('Log', '')) | where SafeJob == 'salcapa-dev-b48224-scan-inv' or SafeApp == 'salcapa-dev-b48224-scan-inv' | extend Category=case(SafeLog has 'ErrImagePull', 'ImagePull', SafeLog has 'ContainerCrashing', 'ContainerCrash', SafeLog has 'Timeout', 'Timeout', SafeLog has 'Backoff', 'Backoff', SafeLog has 'Permission', 'Permission', SafeLog has 'Failed', 'Failed', 'Other') | summarize Events=count() by bin(TimeGenerated, 1m), Category | sort by TimeGenerated desc | take 500" -o json > "$RUNNER_TEMP/inventory-system-summary.json"
           python - "$RUNNER_TEMP" <<'PY'
           import json
           import re
@@ -86,6 +87,14 @@ jobs:
                   if stamp >= observed_at - window:
                       result.append((stamp, str(props.get("status") or "Unknown")))
               return sorted(result)
+
+          def query_records(name):
+              value = load(name)
+              if isinstance(value, dict):
+                  table = (value.get("tables") or [{}])[0]
+                  columns = [item.get("name") for item in table.get("columns", [])]
+                  return [dict(zip(columns, row)) for row in table.get("rows", [])]
+              return value if isinstance(value, list) else []
 
           healthy = True
           for label, job_file, execution_file in (
@@ -166,6 +175,29 @@ jobs:
                           "start_utc": start.isoformat(), "available": True,
                           "reason": reason, "exit_codes": sorted(codes),
                           "container_states": sorted(states)}, sort_keys=True))
+              if label == "inventory":
+                  system_rows = query_records("inventory-system-summary.json")
+                  categories = {"ImagePull", "ContainerCrash", "Timeout",
+                                "Backoff", "Permission", "Failed", "Other"}
+                  for failed_start in [stamp for stamp, state in recent
+                                       if state.lower() == "failed"]:
+                      counts = {}
+                      for item in system_rows:
+                          try:
+                              stamp = datetime.fromisoformat(
+                                  str(item.get("TimeGenerated") or "").replace("Z", "+00:00"))
+                          except ValueError:
+                              continue
+                          if abs(stamp - failed_start) > timedelta(minutes=2):
+                              continue
+                          category = item.get("Category")
+                          category = category if category in categories else "Other"
+                          events = item.get("Events")
+                          if type(events) is int and 0 <= events <= 1000:
+                              counts[category] = counts.get(category, 0) + events
+                      print("inventory_failed_system_categories=" + json.dumps({
+                          "start_utc": failed_start.isoformat(),
+                          "categories": counts}, sort_keys=True))
               print(f"{label}_last_start_utc={recent[-1][0].isoformat() if recent else 'none'}")
 
           action = resource_properties("action-group.json")
