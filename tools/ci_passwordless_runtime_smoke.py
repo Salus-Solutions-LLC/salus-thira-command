@@ -77,7 +77,10 @@ def main() -> None:
     infrastructure_source = Path("infra/azure/main.bicep").read_text()
     assert "name: 'AZURE_CLIENT_ID'" in infrastructure_source
     assert "value: workloadIdentity.properties.clientId" in infrastructure_source
-    assert "var runtimeRedirectUri = environmentName == 'dev' ? 'https://salcapa.salus.solutions/api/auth/oidc/callback'" in infrastructure_source
+    assert "var runtimePublicOrigin = environmentName == 'dev' ? 'https://salcapa.salus.solutions'" in infrastructure_source
+    assert "var runtimeRedirectUri = '${runtimePublicOrigin}/api/auth/oidc/callback'" in infrastructure_source
+    assert "name: 'SALUS_PACKAGE_CHECKOUT_RETURN_ORIGIN'" in infrastructure_source
+    assert "value: runtimePublicOrigin" in infrastructure_source
     assert "value: runtimeRedirectUri" in infrastructure_source
     assert "output runtimeRedirectUri string = runtimeRedirectUri" in infrastructure_source
     app_ui_source = Path("static/app.js").read_text()
