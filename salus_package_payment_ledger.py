@@ -154,3 +154,32 @@ def paid_receipt(conn, binding):
         raise CheckoutVerificationError('The paid receipt failed integrity review.')
     return dict(row)
 
+
+
+def hold_payment_event(conn, payment_intent_id, stripe_event_id, event_type, recorded_at):
+    """Fail closed after a signed refund or dispute signal for a known payment."""
+    if not payment_intent_id or not payment_intent_id.startswith('pi_'):
+        raise CheckoutVerificationError('A payment intent identity is required.')
+    if not stripe_event_id.startswith('evt_') or event_type not in (
+            'charge.refunded', 'charge.dispute.created',
+            'payment_intent.canceled', 'payment_intent.payment_failed'):
+        raise CheckoutVerificationError('Unsupported payment hold event.')
+    row = conn.execute('''SELECT * FROM package_checkout_sessions
+        WHERE payment_intent_id=? AND status IN ('Paid','Held')''',
+        (payment_intent_id,)).fetchone()
+    if not row:
+        return None
+    existing = conn.execute('SELECT * FROM package_payment_events WHERE stripe_event_id=?',
+                            (stripe_event_id,)).fetchone()
+    if existing:
+        if existing['checkout_id'] == row['id'] and existing['outcome'] == 'Held':
+            return dict(row)
+        raise CheckoutVerificationError('Stripe event identity was already used.')
+    conn.execute("UPDATE package_checkout_sessions SET status='Held' WHERE id=?", (row['id'],))
+    conn.execute('''INSERT INTO package_payment_events
+        (tenant_id,assessment_id,checkout_id,stripe_event_id,event_type,outcome,processed_at)
+        VALUES(?,?,?,?,?,?,?)''',
+        (row['tenant_id'],row['assessment_id'],row['id'],stripe_event_id,
+         event_type,'Held',recorded_at))
+    return dict(conn.execute('SELECT * FROM package_checkout_sessions WHERE id=?',
+                             (row['id'],)).fetchone())
