@@ -635,3 +635,20 @@ Every Salus method and client deliverable, including FA, PPA and POI, shall be d
 Use a versioned method and reproducible source-to-conclusion trace; require substantive peer challenge and specialist review for high-consequence findings. Test recommendations against feasibility, rights, Member authority, cost, adverse effects, response/recovery capacity and verification evidence. Reports must explain the conclusion and specific action in plain language while retaining a restricted technical record sufficient for audit and correction. When a source, law or method changes, assess existing report impact and supersede errors visibly. Each release requires exact-version content, legal/professional, privacy, accessibility, visual and functional checks appropriate to its impact; protect the ability to retract, correct or roll back a defective output.
 
 Marc reports that Salus and its personnel hold relevant licenses and that personnel have nationally recognized investigative experience in federal, state and local agencies. Preserve that statement as an owner attestation until the exact individual credentials, current license status, scope, employment history, permissions to reference agencies and proposed public wording are verified and approved. Do not imply agency endorsement, an agency affiliation in a current case, a credential held by every Salus worker, or guaranteed outcomes. Document truthful, supportable qualifications in proposals and assign work only within the verified competence and authority of the named personnel. This requirement is effective enterprise-wide; exact FA/PPA/POI methods, templates, training, service claims and software remain subject to SAL-D096 and governed implementation/release gates.
+
+
+## Salus Knowledge & Discovery Program [SAL-D099]
+
+The guiding question is **“What can we discover today that helps a Protected Member make a better decision tomorrow?”** The approved program naming separates five complementary roles:
+
+- **Salus Knowledge & Discovery Program** is the overall program.
+- **Salus Insights** is what Salus researches, analyzes and publishes.
+- **Salus Discovery Conversations** is where people contribute experience, questions, disagreement, observations and perspective.
+- **Salus Knowledge Library** preserves, connects, governs and makes validated knowledge useful.
+- **Salus Knowledge Flywheel** connects discovery, knowledge, decisions, action, evidence, learning and new discovery.
+
+Build Discovery Conversations as a governed software module connected to individual Insights and standalone Discovery Questions. Use **Discovery Conversations** and **Add Your Perspective**, with **“Don't just read our perspective. Add yours.”** Invite people to **help us understand the problem better** through respectful professional dialogue. Quality matters more than volume; omit follower counts, popularity contests and engagement bait. Provide appropriate authenticated identity, dates/times, bounded useful replies, moderation and reporting, staff review, controlled editing/withdrawal, spam/rate/abuse protection and accessible desktop/mobile participation.
+
+Discussion is a source of questions, perspectives and research leads, not automatically validated knowledge. Human qualification, rights/disclosure review, provenance, contrary evidence, applicability, currency, restrictions and supersession govern later reuse under SAL-D025/SAL-D037. Keep public dialogue distinct from Protected Member records. Do not import restricted Member data or infer consent to public disclosure from engagement access. Preserve the Protected Members → SalCAPA™ → SalINTEL™ → SalTHIRA™ → SalOPS™ architecture and the six approved SalTHIRA steps.
+
+Marc authorized this candidate build on 3 October 2026. Exact source/design acceptance, public identity enrollment, community retention/privacy wording, moderator operations, recovery and deployment remain separately governed. `docs/DISCOVERY_CONVERSATIONS.md` records the candidate implementation, actual validation and open release gates; it is not an approved exact-version artifact or proof of deployment.

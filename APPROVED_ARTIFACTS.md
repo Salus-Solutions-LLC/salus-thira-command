@@ -74,3 +74,8 @@ The Program Charter and the three repository method/report standards incorporate
 
 The Program Charter and Decision Register now govern the distinct SalINTEL™ Facilities Assessment (FA), Personal Protection Assessment (PPA) and Person of Interest (POI) module requirements and names. `proposals/SALINTEL_FACILITIES_AND_POI_MODULE_SCOPE_20261002.md` is an internal design candidate only; it is not an approved controlled template, live questionnaire, price, public offer, investigation authorization or software release. Exact method, intake, report and service artifacts require separate qualified review and registration before use.
 
+
+
+## SAL-D099 Discovery Conversations candidate boundary
+
+`docs/DISCOVERY_CONVERSATIONS.md`, `salus_discovery_conversations.py`, the three `static/discovery-conversations.*` files and the candidate acceptance tests/workflow implement Marc's authorized 3 October 2026 build direction and naming architecture. They are **development candidates, not approved exact-version design/release artifacts**. Register exact replacement/design hashes only after source, identity, retention/privacy, moderation operations, recovery, accessibility and live-output review. No live Insights article, public account enrollment, Knowledge Library promotion, Protected Member report or production activation is approved by this entry. Existing approved artifacts and release controls remain in force.
