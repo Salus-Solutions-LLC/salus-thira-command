@@ -6230,7 +6230,8 @@ def start_package_checkout(assessment_id:int,request:Request):
         if paid:
             return {'status':'Paid','receipt_sha256':paid['receipt_sha256'],
                     'quote_id':binding.quote_id,'amount_cents':binding.amount_cents,
-                    'currency':binding.currency}
+                    'currency':binding.currency,
+                    'receipt_url':f'/assessments/{assessment_id}/package-payment-receipt'}
         existing=conn.execute('''SELECT * FROM package_checkout_sessions
             WHERE tenant_id=? AND assessment_id=? AND acceptance_id=?
             ORDER BY attempt_no DESC LIMIT 1''',
@@ -6290,7 +6291,8 @@ def package_checkout_status(assessment_id:int,request:Request):
         if paid:
             return {'status':'Paid','quote_id':binding.quote_id,
                     'amount_cents':binding.amount_cents,'currency':binding.currency,
-                    'paid_at':paid['paid_at'],'receipt_sha256':paid['receipt_sha256']}
+                    'paid_at':paid['paid_at'],'receipt_sha256':paid['receipt_sha256'],
+                    'receipt_url':f'/assessments/{assessment_id}/package-payment-receipt'}
         pending=conn.execute('''SELECT status FROM package_checkout_sessions WHERE
             tenant_id=? AND assessment_id=? AND acceptance_id=? ORDER BY attempt_no DESC LIMIT 1''',
             (binding.tenant_id,assessment_id,binding.acceptance_id)).fetchone()
@@ -6322,7 +6324,7 @@ def package_payment_receipt(assessment_id:int,request:Request):
             ('Package',f"Level {quote['level']}{quote['band']}"),
             ('Covered operation',quote['covered_operation']),
             ('Amount paid',money+' USD'),
-            ('Payment recorded',receipt['paid_at']),
+            ('Payment recorded',datetime.fromisoformat(receipt['paid_at'].replace('Z','+00:00')).strftime('%d %B %Y at %H:%M UTC')),
             ('Quote reference',str(binding.quote_id)),
             ('Payment reference',receipt['stripe_session_id']),
             ('Receipt fingerprint',receipt['receipt_sha256']),
@@ -6350,7 +6352,7 @@ def package_payment_receipt(assessment_id:int,request:Request):
         governed by that written scope.</p><table>'''+rows+'''</table>
         <p class="note">This receipt records payment verification for the stated package.
         It is not a finding, assessment report, tax determination, or authorization to
-        upload records outside the secure intake instructions.</p></main></body></html>'''
+        upload records outside the secure intake instructions.</p><footer>page 1 of 1</footer></main></body></html>'''
         return HTMLResponse(page,headers={'Cache-Control':'private, no-store',
             'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"})
     finally:
