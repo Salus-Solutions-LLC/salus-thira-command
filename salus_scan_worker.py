@@ -7,6 +7,7 @@ Unknown and failed results stay on the queue for a governed reconciliation path.
 import json
 import os
 import re
+import time
 from itertools import islice
 
 
@@ -63,7 +64,7 @@ def poll_once(*, queue_client=None, process_event=None):
     return 'Held' if held else 'Acknowledged' if acknowledged else 'Empty'
 
 
-def main(*, poll=None, reconcile=None):
+def main(*, poll=None, reconcile=None, sleep=None):
     # Azure and processing exceptions can include a Blob URL or Member path.
     # Report only the failure class in routine job output; keep the item held.
     try:
@@ -73,7 +74,17 @@ def main(*, poll=None, reconcile=None):
         if reconcile is None:
             from app import reconcile_stale_package_scans
             reconcile = reconcile_stale_package_scans
-        reconcile()
+        for attempt in range(3):
+            try:
+                reconcile()
+                break
+            except Exception as exc:
+                # PostgreSQL SQLSTATE 40P01 is a transient transaction deadlock.
+                # Retry only reconciliation: re-polling could hide an unacknowledged
+                # queue message while its visibility timeout is still running.
+                if getattr(exc, 'sqlstate', None) != '40P01' or attempt == 2:
+                    raise
+                (sleep or time.sleep)(0.25 * (attempt + 1))
     except Exception as exc:
         print(json.dumps({'scan_result_job': 'failed',
                           'error_type': type(exc).__name__}, sort_keys=True))
