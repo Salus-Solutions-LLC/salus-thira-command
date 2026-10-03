@@ -27,7 +27,7 @@ class PrivateScannerCandidateChecks(unittest.TestCase):
             "AZURE_CLIENT_ID": "fictional-identity-id",
             "SALUS_SCAN_QUARANTINE_URL": "https://fictional.blob.core.windows.net",
             "SALUS_ACCEPTANCE_EXPECTED_QUARANTINE_URL": "https://fictional.blob.core.windows.net",
-            "SALUS_ACCEPTANCE_JOB_NAME": "salcapa-dev-b48224-scan-acceptance",
+            "SALUS_ACCEPTANCE_JOB_NAME": "salcapa-dev-b48224-scan-test",
         }
 
     def test_private_job_preflight_requires_every_boundary(self):
