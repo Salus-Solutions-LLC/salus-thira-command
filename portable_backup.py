@@ -703,6 +703,10 @@ def replace_tenant_records(conn, tenant_id:int, records:dict):
         conn.execute('UPDATE tenants SET '+','.join(f'{k}=?' for k in updates)+' WHERE id=?',tuple(updates.values())+(tenant_id,))
     for table in RESTORE_ORDER:
         for row in records.get(table,[]):
+            if table=='package_checkout_sessions' and row['status']=='Pending':
+                # A tenant archive omits unscoped, out-of-order Stripe hold signals.
+                # A restored pending Session must never authorize intake later.
+                row={**row,'status':'Held'}
             if table=='package_intake_pending_scans' and row['status']=='Pending':
                 # A portable backup does not contain quarantined bytes or a fresh scan.
                 row={**row,'status':'Reconcile','scan_event_id':'',
