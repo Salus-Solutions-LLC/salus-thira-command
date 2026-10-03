@@ -78,6 +78,7 @@ def test_scheduled_result_worker_failure_redacts_sensitive_exception(capsys):
     assert 'private/member' not in output
     assert 'secret' not in output
     assert '"error_type": "RuntimeError"' in output
+    assert '"failure_phase": "poll"' in output
     assert main(poll=lambda: 'Held', reconcile=lambda: None) == 2
     assert json.loads(capsys.readouterr().out) == {
         'scan_result_job': 'completed', 'outcome': 'Held'}
@@ -123,7 +124,8 @@ def test_exhausted_reconciliation_deadlock_still_alerts(capsys):
     output = capsys.readouterr().out
     assert 'private/member' not in output
     assert json.loads(output) == {
-        'error_type': 'DeadlockDetected', 'scan_result_job': 'failed'}
+        'error_type': 'DeadlockDetected', 'failure_phase': 'reconcile',
+        'scan_result_job': 'failed'}
 
 
 def test_queue_processing_deadlock_is_not_hidden_by_retry(capsys):
@@ -133,7 +135,9 @@ def test_queue_processing_deadlock_is_not_hidden_by_retry(capsys):
     def fail():
         raise DeadlockDetected('unacknowledged result')
     assert main(poll=fail, reconcile=lambda: None, sleep=lambda _: None) == 1
-    assert json.loads(capsys.readouterr().out)['scan_result_job'] == 'failed'
+    assert json.loads(capsys.readouterr().out) == {
+        'scan_result_job': 'failed', 'failure_phase': 'poll',
+        'error_type': 'DeadlockDetected'}
 
 
 def test_web_and_worker_select_separate_quarantine_identities(monkeypatch):
