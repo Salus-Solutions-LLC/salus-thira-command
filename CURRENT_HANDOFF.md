@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 3 October 2026 UTC — out-of-order payment hold repaired; exact code checks passed
+
+- Security review found that a signed refund or dispute could arrive before the Checkout completion event. Draft PR #640 code head `e24fd0aa81325dd7eb47ffb150f86a9ff39d28b5` now persists the early hold by Stripe payment-intent ID, blocks a later completion from creating paid intake access, returns Held on the verified webhook path, and tests event retry and cross-intent reuse. Pending Checkout Sessions restored from a tenant archive become Held because unscoped early signals cannot be safely exported with one Member's records. The first CI run found incorrect placement of the unscoped table in tenant export; it was fixed.
+- Exact code-head [Public Protection Advisor run 37097283366](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37097283366) and [package rollout run 37097283358](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37097283358) both completed success. This is source evidence only. PR #640 remains draft and undeployed. No Member upload, quote, purchase, live payment or intake switch changed.
+- Next: obtain exact-source review of the final PR head, prepare a governed test endpoint and test-mode webhook, prove fictional paid/hold/retry and receipt flow, exact-object scanner hold/Clean, alert delivery/recovery, then immutable image and qualified live-output acceptance. Owner: engineering; Marc for exact-version review. Keep Member controls closed. Tierra Linda stopped and large-batch #520 paused.
+
+
 ## 3 October 2026 UTC — Stripe test credential secured; Member intake remains closed
 
 - Draft PR #640 code head `5e57d978ad6d8d4fb07d73d29df968194b9d7e7e` passed Public Protection Advisor CI `37096139858` and package rollout CI `37096139874`. The candidate adds exact quote-bound Checkout, authenticated receipt, paid-before-intake gating, retry and refund/dispute hold. It remains draft and undeployed; live Protection Advisor Parts 1/2 remain accepted v3.208, while Level 1 Member upload, quote and purchase controls remain closed.
