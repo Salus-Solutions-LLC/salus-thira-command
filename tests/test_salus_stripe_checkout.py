@@ -28,6 +28,22 @@ class StripeCheckoutTests(unittest.TestCase):
         self.assertEqual(seen["form"]["metadata[salus_quote_sha256]"], "a" * 64)
         self.assertTrue(seen["key"])
 
+    def test_expired_checkout_retry_uses_new_idempotency_key(self):
+        keys = []
+        def transport(form, secret, key):
+            keys.append(key)
+            return {"id": "cs_test_one", "url": "https://checkout.stripe.com/pay/one"}
+        for attempt in (1, 1, 2):
+            create_checkout_session(self.binding, "sk_test_example",
+                "https://salus.solutions/return", "https://salus.solutions/cancel",
+                transport, attempt_no=attempt)
+        self.assertEqual(keys[0], keys[1])
+        self.assertNotEqual(keys[0], keys[2])
+        with self.assertRaises(CheckoutVerificationError):
+            create_checkout_session(self.binding, "sk_test_example",
+                "https://salus.solutions/return", "https://salus.solutions/cancel",
+                transport, attempt_no=21)
+
     def test_checkout_rejects_insecure_return_and_bad_binding(self):
         with self.assertRaises(CheckoutVerificationError):
             checkout_form(self.binding, "http://salus.solutions/return", "https://salus.solutions/cancel")
