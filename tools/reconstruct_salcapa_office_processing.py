@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reconstruct reviewed Issue #131 Office-processing sources."""
+"""Verify archived baselines and preserve reviewed Office-processing sources."""
 import gzip
 import hashlib
 from pathlib import Path
@@ -30,6 +30,13 @@ for archive, target, archive_sha, target_sha, target_size in ARTIFACTS:
     content = gzip.decompress(compressed)
     if len(content) != target_size or hashlib.sha256(content).hexdigest() != target_sha:
         raise SystemExit(f"Invalid reconstructed source: {target.name}")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(content)
-print("SALCAPA_OFFICE_PROCESSING_RECONSTRUCTION_PASS")
+    # The archive is a historical baseline. The reviewed tracked source has
+    # since gained a damaged-central-directory guard and its regression test.
+    # Never overwrite that source with the older archive during image builds.
+    reviewed_sha = {
+        "salcapa_office_processing.py": "c2a806df3158dcbc0dba10e4b5843d3c758f06bbb7224aa0734e366dfc841c69",
+        "ci_salcapa_office_processing_smoke.py": "354a3493c8180ddb2fe32d2971af08ad37d66c7ef34e1d9074dc7bf2bdcb9f85",
+    }[target.name]
+    if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != reviewed_sha:
+        raise SystemExit(f"Reviewed Office source missing or changed: {target.name}")
+print("SALCAPA_OFFICE_PROCESSING_REVIEWED_SOURCE_PASS")
