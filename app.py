@@ -6249,17 +6249,21 @@ def start_package_checkout(assessment_id:int,request:Request):
                 current_session=retrieve_checkout_session(existing['stripe_session_id'],stripe_key)
             except Exception as exc:
                 raise HTTPException(503,'Unable to verify the current checkout. Please retry later.') from exc
-            if current_session.get('status')!='open':
-                raise HTTPException(409,'This checkout is no longer open. Contact Salus for a new link.')
-            return {'status':'Pending','checkout_url':existing['checkout_url'],
-                    'quote_id':binding.quote_id,'amount_cents':binding.amount_cents,
-                    'currency':binding.currency}
+            if current_session.get('status')=='open':
+                return {'status':'Pending','checkout_url':existing['checkout_url'],
+                        'quote_id':binding.quote_id,'amount_cents':binding.amount_cents,
+                        'currency':binding.currency}
+            if current_session.get('status')!='expired':
+                raise HTTPException(409,'The prior checkout needs payment reconciliation before retry.')
+            conn.execute("UPDATE package_checkout_sessions SET status='Expired' WHERE id=?",
+                         (existing['id'],))
+        next_attempt=(existing['attempt_no']+1) if existing else 1
         return_origin=os.getenv('SALUS_PACKAGE_CHECKOUT_RETURN_ORIGIN','').strip().rstrip('/')
         try:
             session=create_checkout_session(binding,stripe_key,
                 return_origin+'/package-checkout-return?session_id={CHECKOUT_SESSION_ID}',
-                return_origin+'/package-checkout-cancel')
-            recorded=record_checkout_session(conn,binding,1,session['id'],session['url'],now())
+                return_origin+'/package-checkout-cancel',attempt_no=next_attempt)
+            recorded=record_checkout_session(conn,binding,next_attempt,session['id'],session['url'],now())
         except CheckoutVerificationError as exc:
             raise HTTPException(503,'Secure checkout needs configuration review.') from exc
         except Exception as exc:
