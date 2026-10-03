@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 25 September 2026 15:42 CDT
-current_frozen_release: v3.196
-current_frozen_commit: 17f9bf4638371e0a21910fada6e8b195cfb0558f
+last_verified_at: 02 October 2026 21:50 CDT
+current_frozen_release: v3.208
+current_frozen_commit: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
 active_development_branch: development/salcapa-platform
-current_development_head: 892d993702a44376fca3830adcc2cbb662b76dd9
+current_development_head: 87b84e57357ec8b89d72dc4f24e9f1e316ce508b
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_enterprise_bulk_root_v3197
-last_completed_increment: v3196_accepted_immutable_image_and_governed_deployment
-candidate_release: v3.197
-validation_pr: 542
-validation_branch: candidate/salus-pending-bulk-route-20260925
+active_increment: salus_v3208_application_promotion
+last_completed_increment: v3208_accepted_immutable_image_and_governed_app_deployment
+candidate_release: v3.208
+validation_pr: 638
+validation_branch: candidate/deploy-app-v3208-20261002
 validation_base: development/salcapa-platform
-validation_head: f5a7822da16afc97e24f8d179bd26285ff789899
-validation_gate_state: controlled_validation_passed_closed_without_merge
-failed_workflows: development_continuity_marker_lag_after_runtime_3_197
-first_root_failing_gate: none
-root_cause: continuity_record_lagged_v3197_runtime_marker
-repair_head: 892d993702a44376fca3830adcc2cbb662b76dd9
-repair_summary: candidate_gates_passed_development_release_marker_pending_ci
-genuine_blockers: issue_520_nested_drain_zip_member_customer_routing_and_ux_report_acceptance_open
-next_authorized_step: validate_development_freeze_v3197_publish_image_and_run_governed_bulk_acceptance
-deployed_demo_release: v3.196
-deployed_demo_state: accepted_immutable_runtime_with_v3195_rollback_and_bounded_worker_acceptance
+validation_head: 5e19b847f318fa2aea4b5cac9f2b6c317c2caa4f
+validation_gate_state: all_required_gates_green
+failed_workflows: v3207_candidate_knowledge_worker_failed_and_rolled_back
+first_root_failing_gate: v3207_office_parser_image_reconstruction
+root_cause: image_reconstruction_overwrote_reviewed_office_parser
+repair_head: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
+repair_summary: v3208_image_and_application_accepted_with_scanner_worker_followup_open
+genuine_blockers: scanner_result_worker_v3206_and_member_upload_quote_checkout_closed
+next_authorized_step: deploy_reviewed_scanner_worker_after_specific_approval_then_prove_held_intake_and_quote_bound_payment
+deployed_demo_release: v3.208
+deployed_demo_state: accepted_immutable_application_and_advisor_with_v3206_rollback_scanner_worker_separate
 ---
 
 # SalCAPA build continuity
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_runtime_with_v3195_rollback_and_bounded_
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+The accepted development application is v3.208 at frozen source `9517d5a3d8ff03ed8e8311f86a34485e16a85ec0` and immutable digest `sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966`. Protected [image run 37089024553](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37089024553) and [application run 37089539089](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37089539089) succeeded. Independent Azure readback showed app revision `salcapa-dev-b48224--0000147` at 100% traffic and the scheduled knowledge job on that digest; its isolated acceptance execution succeeded. Marc approved the exact live 3.208 app and Advisor output. The standing five-minute scanner-result job still used v3.206 at that readback; Member upload, quote, and purchase controls remain closed. Large-batch issue #520 remains paused. The following paragraphs preserve earlier checkpoints as history.
 
 The v3.197 candidate routes the existing Salus pending folder through the durable bulk worker with an exact, live-verified customer staging sibling and a two-minute schedule. PR #542 exact head `f5a7822da16afc97e24f8d179bd26285ff789899` passed CI, CodeQL, contextual intake, and Azure infrastructure validation before closing without merge; its four tested file blobs were advanced with a non-force development commit `623b94b79469ff1f0b0cbd66b05e9fcb00332b37`. Runtime marker advanced to 3.197 at `892d993702a44376fca3830adcc2cbb662b76dd9`. The first development continuity job failed solely because this record still named candidate v3.196. This update repairs the marker; development gates, freeze, image, Azure activation, and live throughput remain open. v3.196 stays deployed with v3.195 rollback. No files moved.
 
