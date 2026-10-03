@@ -6301,6 +6301,62 @@ def package_checkout_status(assessment_id:int,request:Request):
         conn.close()
 
 
+@app.get('/assessments/{assessment_id}/package-payment-receipt')
+def package_payment_receipt(assessment_id:int,request:Request):
+    require_package_commercial_candidate()
+    require_protected_member_authority(request,'package_payment_receipt')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        binding=accepted_package_for_checkout(conn,assessment_id,request)
+        receipt=paid_receipt(conn,binding)
+        if not receipt:
+            raise HTTPException(404,'A verified payment receipt is not available.')
+        quote=conn.execute('''SELECT level,band,covered_operation FROM package_quote_versions
+            WHERE id=? AND tenant_id=? AND assessment_id=?''',
+            (binding.quote_id,binding.tenant_id,assessment_id)).fetchone()
+        if not quote:
+            raise HTTPException(409,'The paid package scope requires review.')
+        money=f"${binding.amount_cents/100:,.2f}"
+        fields=[
+            ('Package',f"Level {quote['level']}{quote['band']}"),
+            ('Covered operation',quote['covered_operation']),
+            ('Amount paid',money+' USD'),
+            ('Payment recorded',receipt['paid_at']),
+            ('Quote reference',str(binding.quote_id)),
+            ('Payment reference',receipt['stripe_session_id']),
+            ('Receipt fingerprint',receipt['receipt_sha256']),
+        ]
+        rows=''.join('<tr><th scope="row">'+html.escape(label)+'</th><td>'+
+            html.escape(str(value))+'</td></tr>' for label,value in fields)
+        page='''<!doctype html><html lang="en"><head><meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Salus package payment receipt</title><style>
+        @page { size: letter; margin: .75in; }
+        body { font-family: "Times New Roman", serif; color:#152032; max-width:760px; margin:36px auto; }
+        h1,h2,th { font-family: Arial, sans-serif; }
+        h1 { font-size:23px; margin:.2em 0 .5em; }
+        .mark { font: bold 12px Arial,sans-serif; color:#7c2633; letter-spacing:.08em; }
+        table { width:100%; border-collapse:collapse; margin-top:22px; }
+        th,td { text-align:left; padding:11px; border-bottom:1px solid #cbd2db; vertical-align:top; overflow-wrap:anywhere; }
+        th { width:33%; font-size:12px; }
+        .note { font-size:13px; margin-top:22px; }
+        @media print { body { margin:0; } }
+        </style></head><body><main>
+        <p class="mark">CONFIDENTIAL — APPROVED PERSONNEL ONLY</p>
+        <h1>Salus package payment receipt</h1>
+        <p>Payment for the approved assessment package was verified against the accepted quote.
+        Keep this receipt with your signed agreement. The agreed work and records request remain
+        governed by that written scope.</p><table>'''+rows+'''</table>
+        <p class="note">This receipt records payment verification for the stated package.
+        It is not a finding, assessment report, tax determination, or authorization to
+        upload records outside the secure intake instructions.</p></main></body></html>'''
+        return HTMLResponse(page,headers={'Cache-Control':'private, no-store',
+            'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"})
+    finally:
+        conn.close()
+
+
 @app.get('/package-checkout-return')
 def package_checkout_return():
     return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8">
