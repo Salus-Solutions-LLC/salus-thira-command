@@ -89,6 +89,53 @@ def test_scheduled_result_worker_failure_redacts_sensitive_exception(capsys):
         'scan_result_job': 'completed', 'outcome': 'Empty'}
 
 
+
+def test_reconciliation_retries_only_database_deadlock(capsys):
+    class DeadlockDetected(Exception):
+        sqlstate = '40P01'
+
+    calls = []
+    waits = []
+    def poll():
+        calls.append('poll')
+        return 'Empty'
+    def reconcile():
+        calls.append('reconcile')
+        if calls.count('reconcile') < 3:
+            raise DeadlockDetected('private/member/path')
+    assert main(poll=poll, reconcile=reconcile, sleep=waits.append) == 0
+    assert calls == ['poll', 'reconcile', 'reconcile', 'reconcile']
+    assert waits == [0.25, 0.5]
+    assert json.loads(capsys.readouterr().out) == {
+        'scan_result_job': 'completed', 'outcome': 'Empty'}
+
+
+def test_exhausted_reconciliation_deadlock_still_alerts(capsys):
+    class DeadlockDetected(Exception):
+        sqlstate = '40P01'
+
+    calls = []
+    def fail():
+        calls.append('reconcile')
+        raise DeadlockDetected('private/member/path')
+    assert main(poll=lambda: 'Empty', reconcile=fail, sleep=lambda _: None) == 1
+    assert len(calls) == 3
+    output = capsys.readouterr().out
+    assert 'private/member' not in output
+    assert json.loads(output) == {
+        'error_type': 'DeadlockDetected', 'scan_result_job': 'failed'}
+
+
+def test_queue_processing_deadlock_is_not_hidden_by_retry(capsys):
+    class DeadlockDetected(Exception):
+        sqlstate = '40P01'
+
+    def fail():
+        raise DeadlockDetected('unacknowledged result')
+    assert main(poll=fail, reconcile=lambda: None, sleep=lambda _: None) == 1
+    assert json.loads(capsys.readouterr().out)['scan_result_job'] == 'failed'
+
+
 def test_web_and_worker_select_separate_quarantine_identities(monkeypatch):
     import app
     from salus_scan_quarantine import QuarantineError
