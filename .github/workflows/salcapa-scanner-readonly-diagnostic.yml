@@ -50,7 +50,7 @@ jobs:
           az monitor action-group show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-alerts-v2 -o json > "$RUNNER_TEMP/action-group.json"
           WORKSPACE_ID="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
           test -n "$WORKSPACE_ID"
-          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated > ago(30h) | where JobName == 'salcapa-dev-b48224-scan-inv' | project TimeGenerated, Log | take 1000" -o json > "$RUNNER_TEMP/inventory-console.json"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated > ago(30h) | where JobName == 'salcapa-dev-b48224-scan-inv' | project TimeGenerated, Log | sort by TimeGenerated desc | take 1000" -o json > "$RUNNER_TEMP/inventory-console.json"
           python - "$RUNNER_TEMP" <<'PY'
           import json
           import sys
@@ -144,6 +144,8 @@ jobs:
               console_rows = console if isinstance(console, list) else []
           failure_types = {}
           exception_summaries = 0
+          latest_summary = None
+          latest_positive_summary = None
           safe_types = {"QuarantineError", "PermissionError", "RuntimeError",
                         "DatabaseError", "OperationalError", "AzureError"}
           for item in console_rows:
@@ -160,10 +162,20 @@ jobs:
                   label = marker.get("error_type")
                   label = label if label in safe_types else "Other"
                   failure_types[label] = failure_types.get(label, 0) + 1
-              if type(marker.get("exceptions_observed")) is int and marker["exceptions_observed"] > 0:
-                  exception_summaries += 1
+              numeric = ("ledger_count", "azure_version_count", "exceptions_observed")
+              if all(type(marker.get(key)) is int and marker[key] >= 0 for key in numeric):
+                  stamp = str(item.get("TimeGenerated") or "")
+                  safe_summary = {key: marker[key] for key in numeric}
+                  if latest_summary is None or stamp > latest_summary[0]:
+                      latest_summary = (stamp, safe_summary)
+                  if marker["exceptions_observed"] > 0:
+                      exception_summaries += 1
+                      if latest_positive_summary is None or stamp > latest_positive_summary[0]:
+                          latest_positive_summary = (stamp, safe_summary)
           print("inventory_safe_failure_types=" + json.dumps(failure_types, sort_keys=True))
           print("inventory_exception_summaries=" + str(exception_summaries))
+          print("inventory_latest_summary=" + json.dumps(latest_summary, sort_keys=True))
+          print("inventory_latest_positive_summary=" + json.dumps(latest_positive_summary, sort_keys=True))
           print("scanner_configuration_healthy=" + str(healthy))
           if not healthy:
               raise SystemExit(1)
