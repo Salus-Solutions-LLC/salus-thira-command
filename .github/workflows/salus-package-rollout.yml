@@ -19,6 +19,7 @@ on:
       - salus_scan_worker.py
       - salcapa_office_processing.py
       - tools/ci_salcapa_office_processing_smoke.py
+      - tools/live_m365_intake_acceptance.py
       - portable_backup.py
       - database.py
       - security_controls.py
@@ -61,6 +62,7 @@ on:
       - salus_scan_worker.py
       - salcapa_office_processing.py
       - tools/ci_salcapa_office_processing_smoke.py
+      - tools/live_m365_intake_acceptance.py
       - portable_backup.py
       - database.py
       - security_controls.py
@@ -110,6 +112,10 @@ jobs:
         run: python -m tools.ci_protection_advisor_docx_report_smoke
       - name: Verify damaged Office files cannot stop the knowledge worker
         run: python tools/ci_salcapa_office_processing_smoke.py
+      - name: Verify stable parser coverage for M365 acceptance
+        run: |
+          sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
+          python -c "from tools.live_m365_intake_acceptance import _verify_parser_fixtures; assert len(_verify_parser_fixtures()) == 5"
       - name: Verify legacy observation attachment scan and download gates
         run: python tools/ci_salcapa_v25_smoke.py
       - run: python -m compileall -q app.py public_protection_advisor.py protection_advisor_member_reports.py advisor_report_config.py salus_package_path.py salus_package_quote.py salus_package_intake.py portable_backup.py proposals/qa/audit_level_band_templates.py
