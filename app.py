@@ -6297,6 +6297,26 @@ def package_checkout_status(assessment_id:int,request:Request):
         conn.close()
 
 
+@app.get('/package-checkout-return')
+def package_checkout_return():
+    return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8">
+    <title>Salus checkout update</title></head><body><main>
+    <h1>Payment submitted</h1><p>Your assessment intake opens only after Salus
+    verifies payment for the exact accepted package. This page alone is not a
+    receipt or confirmation of payment.</p><p>Return to your secure Salus
+    account to check the package payment status.</p><p><a href="/">Open Salus</a></p>
+    </main></body></html>''')
+
+
+@app.get('/package-checkout-cancel')
+def package_checkout_cancel():
+    return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8">
+    <title>Salus checkout canceled</title></head><body><main>
+    <h1>Checkout canceled</h1><p>No package intake has opened. You can return
+    to your secure Salus account to review the same written quote.</p>
+    <p><a href="/">Open Salus</a></p></main></body></html>''')
+
+
 @app.post('/api/package-checkout/stripe-webhook')
 async def package_checkout_stripe_webhook(request:Request):
     # Keep reconciliation available even if the public commercial switch is closed.
