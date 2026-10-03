@@ -77,6 +77,7 @@ jobs:
                       result.append((stamp, str(props.get("status") or "Unknown")))
               return sorted(result)
 
+          healthy = True
           for label, job_file, execution_file in (
               ("result", "result-job.json", "result-executions.json"),
               ("inventory", "inventory-job.json", "inventory-executions.json"),
@@ -91,15 +92,20 @@ jobs:
               counts = {}
               for _, status in recent:
                   counts[status] = counts.get(status, 0) + 1
-              print(f"{label}_schedule={schedule or 'missing'}")
-              print(f"{label}_expected_image={len(images) == 1 and expected in images[0]}")
+              schedule_ok = schedule == ("*/5 * * * *" if label == "result" else "0 2 * * *")
+              image_ok = len(images) == 1 and expected in images[0]
+              healthy = healthy and schedule_ok and image_ok
+              print(f"{label}_schedule_ok={schedule_ok}")
+              print(f"{label}_expected_image={image_ok}")
               print(f"{label}_executions_12h={len(recent)}")
               print(f"{label}_status_counts={json.dumps(counts, sort_keys=True)}")
               print(f"{label}_last_start_utc={recent[-1][0].isoformat() if recent else 'none'}")
 
           action = load("action-group.json").get("properties", {})
           print("alert_group_enabled=" + str(bool(action.get("enabled"))))
-          print("alert_group_receiver_count=" + str(len(action.get("emailReceivers") or [])))
+          receiver_count = len(action.get("emailReceivers") or [])
+          healthy = healthy and bool(action.get("enabled")) and receiver_count > 0
+          print("alert_group_receiver_count=" + str(receiver_count))
           alert_files = {
               "salcapa-dev-b48224-scan-result-worker-failed": "result-failed-alert.json",
               "salcapa-dev-b48224-scan-result-worker-missed": "result-missed-alert.json",
@@ -113,6 +119,12 @@ jobs:
                   raw_actions = raw_actions.get("actionGroups", [])
               action_ids = [str(item.get("actionGroupId") if isinstance(item, dict) else item).lower()
                             for item in raw_actions]
-              print(f"{name}_enabled={bool(props.get('enabled'))}")
-              print(f"{name}_v2_route={any(value.endswith('/salcapa-dev-b48224-scan-alerts-v2') for value in action_ids)}")
+              enabled = bool(props.get("enabled"))
+              routed = any(value.endswith("/salcapa-dev-b48224-scan-alerts-v2") for value in action_ids)
+              healthy = healthy and enabled and routed
+              print(f"{name}_enabled={enabled}")
+              print(f"{name}_v2_route={routed}")
+          print("scanner_configuration_healthy=" + str(healthy))
+          if not healthy:
+              raise SystemExit(1)
           PY
