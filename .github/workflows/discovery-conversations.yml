@@ -1,0 +1,73 @@
+name: Discovery Conversations candidate
+
+on:
+  pull_request:
+    branches: [development/salcapa-platform, main]
+    paths:
+      - salus_discovery_conversations.py
+      - static/discovery-conversations.*
+      - tools/ci_discovery_conversations_smoke.py
+      - .github/workflows/discovery-conversations.yml
+      - app.py
+  push:
+    branches: [codex/discovery-conversations-*]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sqlite:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+          cache: pip
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+      - run: python -m pip install -r requirements.txt -r requirements-ci.txt
+      - run: python -m py_compile salus_discovery_conversations.py tools/ci_discovery_conversations_smoke.py
+      - run: node --check static/discovery-conversations.js
+      - run: python tools/ci_discovery_conversations_smoke.py
+      - run: bandit -q salus_discovery_conversations.py
+
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: salus
+          POSTGRES_DB: salus_discovery_ci
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U salus -d salus_discovery_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python tools/ci_discovery_conversations_smoke.py
+        env:
+          SALUS_DISCOVERY_TEST_POSTGRES: '1'
+          SALUS_DATABASE_URL: postgresql://salus@127.0.0.1:5432/salus_discovery_ci

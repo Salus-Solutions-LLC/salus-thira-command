@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discovery Conversations | Salus Solutions</title>
+  <link rel="stylesheet" href="/static/discovery-conversations.css">
+  <script src="/static/discovery-conversations.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to conversations</a>
+<header><a href="https://www.salus.solutions">SALUS SOLUTIONS</a><span>Salus Knowledge &amp; Discovery Program</span></header>
+<main id="main">
+  <section class="intro" aria-labelledby="page-title">
+    <p class="eyebrow">EXPERIENCE · QUESTIONS · PERSPECTIVE</p>
+    <h1 id="page-title">Discovery Conversations</h1>
+    <p class="lead">Don't just read our perspective. Add yours.</p>
+    <p>Help us understand the problem better. Bring your experience, challenge an assumption, or ask a question worth investigating.</p>
+    <p class="principle">“What can we discover today that helps a Protected Member make a better decision tomorrow?”</p>
+    <a class="button" href="#contribute">Add Your Perspective</a>
+    <a id="ask-question" href="#contribute">Ask a Discovery Question</a>
+  </section>
+  <div id="status" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="error" role="alert" tabindex="-1" hidden></div>
+  <section class="guidelines" aria-labelledby="guidelines-title">
+    <h2 id="guidelines-title">A thoughtful professional conversation</h2>
+    <p>Explain what you observed and what remains uncertain. Disagree with ideas respectfully. Relevant sources help us investigate.</p>
+    <p>Share only what you have permission to make public. Keep Protected Member records, personal information and security details in their secure Salus channels. Do not upload files here.</p>
+    <p>Salus reviews contributions before publication. An accepted perspective is not a validated finding. You can edit your contribution for renewed review or withdraw it from public view. Restricted review history is retained; contact Salus about a records or privacy request.</p>
+    <p>To question a moderation decision or request a name or privacy review, use the <a href="https://www.salus.solutions/contact">Salus contact page</a> and include your contribution reference. This channel is not monitored for emergencies.</p>
+  </section>
+  <section aria-labelledby="browse-title"><h2 id="browse-title">Explore the conversations</h2>
+    <div id="threads"><p>Loading conversations…</p></div><button id="more-threads" hidden>More conversations</button>
+  </section>
+  <section id="conversation" aria-labelledby="conversation-title" hidden>
+    <h2 id="conversation-title" tabindex="-1"></h2><p id="source"></p><p id="closed" hidden>This conversation is closed to new perspectives.</p>
+    <div id="perspectives"></div><button id="more-perspectives" hidden>More perspectives</button>
+  </section>
+  <section id="contribute" aria-labelledby="contribute-title">
+    <h2 id="contribute-title">Add Your Perspective</h2>
+    <div id="signin"><p>Sign in with an approved Salus account to participate, then return to this page. Public account enrollment is awaiting release review.</p><a class="button" href="/api/auth/oidc/start">Sign in</a></div>
+    <form id="profile-form" hidden>
+      <h3>Choose how your contribution appears</h3>
+      <label for="display-name">Your public professional name</label><input id="display-name" required minlength="2" maxlength="60" autocomplete="nickname">
+      <label class="check"><input id="consent" type="checkbox" required> I agree to the conversation guidelines and understand that my public name and approved text will be visible publicly. Salus retains restricted review history.</label>
+      <button type="submit">Save my participation choice</button>
+    </form>
+    <div id="participant-tools" hidden>
+      <p id="public-identity"></p>
+      <form id="perspective-form">
+        <p id="selected-thread">Choose a conversation above before adding your perspective.</p>
+        <label for="prompt">What would you like to explore?</label><select id="prompt" required></select>
+        <p id="reply-context" hidden></p><button type="button" id="clear-reply" hidden>Return to the whole conversation</button>
+        <label for="perspective">Your perspective</label><textarea id="perspective" rows="6" minlength="10" maxlength="4000" required aria-describedby="perspective-help"></textarea>
+        <p id="perspective-help">10–4,000 characters. Give context, distinguish experience from inference, and explain what would help us understand. Up to three relevant source links.</p>
+        <div class="trap" aria-hidden="true"><label for="website">Website</label><input id="website" tabindex="-1" autocomplete="off"></div>
+        <button type="submit" id="submit-perspective" disabled>Add Your Perspective</button>
+      </form>
+      <form id="question-form">
+        <h3>Ask a Discovery Question</h3>
+        <label for="question-title">What question should we be asking?</label><input id="question-title" required minlength="10" maxlength="180">
+        <label for="question-body">Why does this question matter?</label><textarea id="question-body" rows="4" minlength="10" maxlength="4000" required></textarea>
+        <button type="submit">Send a Discovery Question for Review</button>
+      </form>
+      <h3>Your contributions</h3><p>Edits return to review. Withdrawal removes the contribution and its reply branch from public view.</p>
+      <div id="mine"></div><button id="more-mine" hidden>More of your contributions</button>
+    </div>
+  </section>
+  <section id="staff" aria-labelledby="staff-title" hidden>
+    <h2 id="staff-title">Staff review</h2><p>Review the current text for relevance, privacy, permission and respectful disagreement. Do not reject a contribution merely because it disagrees with Salus.</p>
+    <form id="insight-form"><h3>Connect a published Salus Insight</h3>
+      <label for="insight-id">Published Insight reference</label><input id="insight-id" required maxlength="100" pattern="[A-Za-z0-9_-]+">
+      <label for="insight-title">Published title</label><input id="insight-title" required minlength="5" maxlength="180">
+      <label for="insight-url">Published Salus Insights URL</label><input id="insight-url" type="url" required maxlength="500">
+      <label for="insight-version">Source version or publication date</label><input id="insight-version" required maxlength="100">
+      <label for="insight-review">Publication review reference</label><input id="insight-review" required minlength="10" maxlength="1000">
+      <button type="submit">Connect the Reviewed Insight</button>
+    </form>
+    <button id="refresh-review">Refresh review queue</button><div id="review-queue"></div><button id="more-review" hidden>More review records</button>
+    <h3>Reported concerns</h3><div id="flags"></div>
+    <h3>Knowledge and research candidates</h3><p>These records are unvalidated leads. Separate source qualification, rights review and human approval are required before Knowledge Library use.</p><div id="candidates"></div><button id="more-candidates" hidden>More candidates</button>
+  </section>
+  <noscript><p>Enable JavaScript to read and contribute to these conversations, or use the Salus contact page for an assisted participation request.</p></noscript>
+</main>
+<footer><p>Salus Insights → Discovery Conversations → reviewed research leads → validated Salus Knowledge Library records.</p><p>Discovery becomes knowledge through evidence, review and learning.</p></footer>
+</body></html>

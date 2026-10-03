@@ -8779,3 +8779,7 @@ register_m365_reports(app, globals())
 
 from salcapa_knowledge_promotion import register_knowledge_promotion
 register_knowledge_promotion(app, globals())
+
+# Discovery Conversations remains disabled until exact-source and live review.
+from salus_discovery_conversations import register_discovery_conversations
+register_discovery_conversations(app, globals())
