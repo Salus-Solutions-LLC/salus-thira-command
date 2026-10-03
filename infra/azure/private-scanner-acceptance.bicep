@@ -59,7 +59,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existin
 }
 
 resource acceptanceJob 'Microsoft.App/jobs@2025-01-01' = {
-  name: '${stem}-scan-acceptance'
+  name: '${stem}-scan-test'
   location: location
   tags: {
     system: 'SalCAPA'
@@ -109,7 +109,7 @@ resource acceptanceJob 'Microsoft.App/jobs@2025-01-01' = {
           }
           env: [
             { name: 'SALUS_ACCEPTANCE_PRIVATE_JOB', value: '1' }
-            { name: 'SALUS_ACCEPTANCE_JOB_NAME', value: '${stem}-scan-acceptance' }
+            { name: 'SALUS_ACCEPTANCE_JOB_NAME', value: '${stem}-scan-test' }
             { name: 'SALUS_ENV', value: environmentName }
             { name: 'SALUS_AUTH_MODE', value: 'session' }
             { name: 'SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED', value: '1' }
