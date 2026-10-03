@@ -110,6 +110,9 @@ jobs:
               print(f"{label}_recent_executions={len(recent)}")
               print(f"{label}_recent_success={success_recent}")
               print(f"{label}_status_counts={json.dumps(counts, sort_keys=True)}")
+              failed_starts = [stamp.isoformat() for stamp, status in recent
+                               if status.lower() == "failed"]
+              print(f"{label}_failed_start_times_utc={json.dumps(failed_starts)}")
               print(f"{label}_last_start_utc={recent[-1][0].isoformat() if recent else 'none'}")
 
           action = resource_properties("action-group.json")
