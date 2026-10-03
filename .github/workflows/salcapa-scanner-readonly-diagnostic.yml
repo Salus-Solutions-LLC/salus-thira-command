@@ -56,7 +56,7 @@ jobs:
 
           base = Path(sys.argv[1])
           expected = "sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966"
-          cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
+          observed_at = datetime.now(timezone.utc)
 
           def load(name):
               return json.loads((base / name).read_text(encoding="utf-8"))
@@ -64,7 +64,7 @@ jobs:
           def rows(value):
               return value.get("value", []) if isinstance(value, dict) else value
 
-          def recent_executions(name):
+          def recent_executions(name, window):
               result = []
               for row in rows(load(name)):
                   props = row.get("properties", {})
@@ -73,7 +73,7 @@ jobs:
                       stamp = datetime.fromisoformat(raw.replace("Z", "+00:00"))
                   except ValueError:
                       continue
-                  if stamp >= cutoff:
+                  if stamp >= observed_at - window:
                       result.append((stamp, str(props.get("status") or "Unknown")))
               return sorted(result)
 
@@ -88,16 +88,19 @@ jobs:
               containers = props.get("template", {}).get("containers", [])
               images = [str(item.get("image") or "") for item in containers]
               schedule = config.get("scheduleTriggerConfig", {}).get("cronExpression")
-              recent = recent_executions(execution_file)
+              window = timedelta(minutes=20) if label == "result" else timedelta(hours=30)
+              recent = recent_executions(execution_file, window)
               counts = {}
               for _, status in recent:
                   counts[status] = counts.get(status, 0) + 1
               schedule_ok = schedule == ("*/5 * * * *" if label == "result" else "0 2 * * *")
               image_ok = len(images) == 1 and expected in images[0]
-              healthy = healthy and schedule_ok and image_ok
+              success_recent = any(status.lower() in ("succeeded", "success") for _, status in recent)
+              healthy = healthy and schedule_ok and image_ok and success_recent
               print(f"{label}_schedule_ok={schedule_ok}")
               print(f"{label}_expected_image={image_ok}")
-              print(f"{label}_executions_12h={len(recent)}")
+              print(f"{label}_recent_executions={len(recent)}")
+              print(f"{label}_recent_success={success_recent}")
               print(f"{label}_status_counts={json.dumps(counts, sort_keys=True)}")
               print(f"{label}_last_start_utc={recent[-1][0].isoformat() if recent else 'none'}")
 
