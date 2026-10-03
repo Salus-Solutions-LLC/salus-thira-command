@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 3 October 2026 UTC — reviewed v3.209 image published; application release staged
+
+- Marc approved PR #642 at exact head `263598153c8d76276d404fb0e62aa5ef0e7e0008`; it merged as `dd4bf094285f590c6f4012da2d96f74e070ffaed`. The protected image workflow [run 37097909871](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37097909871) passed and published frozen `release/v3.209` source `c7a7654db9086ffc019c767f25808ed127098858` at `salcapadevb48224acr.azurecr.io/salcapa@sha256:9b7680fa51c3e9a917ea2b71886f84823c89ea6d447b014c91597c1c7021c207`. Independent Azure registry readback matched the exact source tag and digest. All seven development push workflows for the image-record merge, including CI and CodeQL, completed successfully.
+- This branch stages only the protected app activation record for v3.209, retaining accepted v3.208 source `9517d5a3d8ff03ed8e8311f86a34485e16a85ec0` and image `sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966` for rollback. No v3.209 application deployment or live acceptance has occurred. Commercial workflow, scanning acceptance, Member uploads, quotes and purchases remain closed.
+- Next: exact-head checks and Azure preview, Marc's exact application record review, governed deployment and protected live acceptance. Then configure and test Stripe's signed test webhook against the reviewed endpoint, fictional paid receipt and hold/retry; prove exact-object scanner hold/Clean and real alert delivery/recovery before opening Member intake. Owner: engineering; Marc for exact-version release determination. Tierra Linda remains stopped and large-batch #520 paused.
+
+
 ## 3 October 2026 UTC — out-of-order payment hold repaired; exact code checks passed
 
 - Security review found that a signed refund or dispute could arrive before the Checkout completion event. Draft PR #640 code head `e24fd0aa81325dd7eb47ffb150f86a9ff39d28b5` now persists the early hold by Stripe payment-intent ID, blocks a later completion from creating paid intake access, returns Held on the verified webhook path, and tests event retry and cross-intent reuse. Pending Checkout Sessions restored from a tenant archive become Held because unscoped early signals cannot be safely exported with one Member's records. The first CI run found incorrect placement of the unscoped table in tenant export; it was fixed.
