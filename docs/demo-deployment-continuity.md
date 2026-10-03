@@ -1,27 +1,27 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 25 September 2026 15:44 CDT
+last_verified_at: 02 October 2026 21:50 CDT
 environment: azure_development_demonstration
-deployed_release: v3.196
-deployed_commit: 17f9bf4638371e0a21910fada6e8b195cfb0558f
-image_digest: sha256:49f1d1c32124c4af672b1f8a2300c0435a43bb68672aff66d2d28193390c3588
-deployed_at: 25 September 2026 00:56 CDT
-deployment_workflow_run: 36099965934
+deployed_release: v3.208
+deployed_commit: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
+image_digest: sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966
+deployed_at: 02 October 2026 21:33 CDT
+deployment_workflow_run: 37089539089
 deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.196
-current_stable_commit: 17f9bf4638371e0a21910fada6e8b195cfb0558f
-promotion_candidate: v3.196
-promotion_candidate_image_commit: 17f9bf4638371e0a21910fada6e8b195cfb0558f
-promotion_candidate_image_digest: sha256:49f1d1c32124c4af672b1f8a2300c0435a43bb68672aff66d2d28193390c3588
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:49f1d1c32124c4af672b1f8a2300c0435a43bb68672aff66d2d28193390c3588
-promotion_candidate_image_published_at: 25 September 2026 00:44 CDT
-promotion_candidate_image_workflow_run: 36099643676
+current_stable_release: v3.208
+current_stable_commit: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
+promotion_candidate: v3.208
+promotion_candidate_image_commit: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
+promotion_candidate_image_digest: sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966
+promotion_candidate_image_published_at: 02 October 2026 21:15 CDT
+promotion_candidate_image_workflow_run: 37089024553
 promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
 promotion_readiness: accepted
 fictional_member_seed_state: verified
 critical_journey_acceptance: verified
-rollback_baseline: v3.195
+rollback_baseline: v3.206
 genuine_blocker: none
 ---
 
@@ -30,6 +30,8 @@ genuine_blocker: none
 This non-sensitive engineering record identifies the current accepted Azure development demonstration and its verified rollback. GitHub release branches, exact commits, immutable image digests, protected workflow results, and closed validation records control whenever another source disagrees.
 
 ## Current accepted deployment
+
+- [Governed deployment workflow 37089539089](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37089539089) accepted exact frozen **v3.208** source `9517d5a3d8ff03ed8e8311f86a34485e16a85ec0` at immutable image digest `sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966`, with v3.206 retained for rollback. The protected run passed application readiness, identity, isolated Microsoft 365 checks, fictional Protection Advisor journey, and knowledge-worker promotion. Azure independently confirmed revision `salcapa-dev-b48224--0000147` at 100% traffic and a successful isolated knowledge-worker execution. Marc approved this exact live app and Advisor output. This acceptance covers the development demonstration app. The standing scanner-result worker still used v3.206 at the last readback; Member uploads, quotes, and purchases remain closed pending separate scanner, payment, and release gates. Large-batch issue #520 remains paused. Older entries below are historical.
 
 - [Governed deployment workflow 36099965934](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/36099965934) accepted v3.196 commit `17f9bf4638371e0a21910fada6e8b195cfb0558f` at immutable image `sha256:49f1d1c32124c4af672b1f8a2300c0435a43bb68672aff66d2d28193390c3588`, with v3.195 rollback. This supersedes the historical v3.182 frontmatter. It proves a bounded worker pass, not the issue #520 10,000-file drain. The v3.197 bulk candidate is source only and awaits frozen/image/live acceptance.
 
@@ -50,7 +52,7 @@ This non-sensitive engineering record identifies the current accepted Azure deve
 
 ## Recovery and rollback
 
-Accepted **v3.166** remains the fail-closed rollback baseline recorded by the v3.167 release acceptance.
+Accepted **v3.206** is the rollback baseline for the v3.208 application release. Earlier rollback records below remain historical.
 
 Database rollback uses an independently validated restore, not destructive in-place reversal. A failed preflight, deployment, live acceptance, cleanup, readiness, identity, or tenant-isolation check fails closed and must preserve or restore the last accepted state.
 
@@ -74,4 +76,4 @@ Before any successor release is promoted, all required gates must pass on its ex
 
 ## Next authorized work
 
-Continue Issue #370 governed document ingestion and Protection Advisor usability work. Preserve v3.148 as the accepted rollback-safe baseline. Any expanded source, write, report-publication, or production capability requires a separately governed successor.
+Promote the scanner-result worker only after its specific reviewed deployment authority and independent Azure readback. Then verify held-file scanning, failure alerts, authenticated intake, quote-bound Stripe checkout, receipt, and exact-live review before opening Member package controls. Preserve v3.206 rollback for the accepted v3.208 application. Any expanded source, write, report-publication, or production capability requires a separately governed successor.
