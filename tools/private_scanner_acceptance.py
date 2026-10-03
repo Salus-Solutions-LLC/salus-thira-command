@@ -240,7 +240,7 @@ def run(run_id: str, timeout_seconds: int):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-id", required=True)
+    parser.add_argument("--run-id", default="", help="unique fictional ID; generated when omitted")
     parser.add_argument("--timeout-seconds", type=int, default=900)
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
@@ -248,7 +248,7 @@ def main():
         raise SystemExit("Candidate only. Exact source and Azure reviews are required before --execute.")
     if not 60 <= args.timeout_seconds <= 1200:
         raise SystemExit("Timeout must be between 60 and 1200 seconds.")
-    run(args.run_id, args.timeout_seconds)
+    run(args.run_id or secrets.token_hex(8), args.timeout_seconds)
 
 
 if __name__ == "__main__":
