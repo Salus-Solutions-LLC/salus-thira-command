@@ -57,6 +57,23 @@ class PackagePaymentLedgerTests(unittest.TestCase):
         self.assertIsNone(hold_payment_event(self.conn,'pi_other','evt_other',
             'charge.dispute.created','2026-10-03T01:05:00Z'))
 
+    def test_refund_before_completion_never_opens_intake(self):
+        record_checkout_session(self.conn,self.binding,1,'cs_test_12345678',
+            'https://checkout.stripe.com/pay/example','2026-10-03T01:00:00Z')
+        self.assertIsNone(hold_payment_event(self.conn,'pi_test_one','evt_early_refund',
+            'charge.refunded','2026-10-03T01:01:00Z'))
+        self.assertIsNone(hold_payment_event(self.conn,'pi_test_one','evt_early_refund',
+            'charge.refunded','2026-10-03T01:01:00Z'))
+        held=record_verified_payment(self.conn,self.binding,self.session,'evt_paid_late',
+            '2026-10-03T01:02:00Z',False)
+        self.assertEqual(held['status'],'Held')
+        self.assertIsNone(paid_receipt(self.conn,self.binding))
+        self.assertEqual(record_verified_payment(self.conn,self.binding,self.session,
+            'evt_paid_late','2026-10-03T01:03:00Z',False)['status'],'Held')
+        with self.assertRaises(CheckoutVerificationError):
+            hold_payment_event(self.conn,'pi_other','evt_early_refund',
+                'charge.refunded','2026-10-03T01:04:00Z')
+
     def test_wrong_amount_or_quote_cannot_authorize(self):
         record_checkout_session(self.conn,self.binding,1,'cs_test_12345678',
             'https://checkout.stripe.com/pay/example','2026-10-03T01:00:00Z')
