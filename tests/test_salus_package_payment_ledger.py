@@ -3,7 +3,7 @@ import unittest
 
 from salus_stripe_checkout import CheckoutBinding, CheckoutVerificationError
 from salus_package_payment_ledger import (
-    ensure_payment_schema, paid_receipt, record_checkout_session, record_verified_payment,
+    ensure_payment_schema, paid_receipt, record_checkout_session, record_verified_payment,\n    hold_payment_event,
 )
 
 
@@ -38,6 +38,23 @@ class PackagePaymentLedgerTests(unittest.TestCase):
             '2026-10-03T01:02:00Z',False)['receipt_sha256'],paid['receipt_sha256'])
         self.assertEqual(record_verified_payment(self.conn,self.binding,self.session,'evt_2',
             '2026-10-03T01:03:00Z',False)['receipt_sha256'],paid['receipt_sha256'])
+
+    def test_refund_or_dispute_holds_paid_package(self):
+        record_checkout_session(self.conn,self.binding,1,'cs_test_12345678',
+            'https://checkout.stripe.com/pay/example','2026-10-03T01:00:00Z')
+        record_verified_payment(self.conn,self.binding,self.session,'evt_paid',
+            '2026-10-03T01:01:00Z',False)
+        held=hold_payment_event(self.conn,'pi_test_one','evt_refund',
+            'charge.refunded','2026-10-03T01:02:00Z')
+        self.assertEqual(held['status'],'Held')
+        self.assertIsNone(paid_receipt(self.conn,self.binding))
+        self.assertEqual(hold_payment_event(self.conn,'pi_test_one','evt_refund',
+            'charge.refunded','2026-10-03T01:03:00Z')['status'],'Held')
+        with self.assertRaises(CheckoutVerificationError):
+            record_verified_payment(self.conn,self.binding,self.session,'evt_replay',
+                '2026-10-03T01:04:00Z',False)
+        self.assertIsNone(hold_payment_event(self.conn,'pi_other','evt_other',
+            'charge.dispute.created','2026-10-03T01:05:00Z'))
 
     def test_wrong_amount_or_quote_cannot_authorize(self):
         record_checkout_session(self.conn,self.binding,1,'cs_test_12345678',
