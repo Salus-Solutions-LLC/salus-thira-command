@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 3 October 2026 UTC — quote-bound checkout candidate advanced; Member intake still closed
+
+- Draft [PR #640](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/640) head `4957f4c6e06878904d859d2ff6afceb124a2ece0` adds an exact-quote Stripe Checkout candidate, signed webhook and direct Stripe Session verification, tenant-bound payment/receipt ledger, paid-before-intake gate for live OIDC, simple return/cancel pages, and fail-closed paid-record hold on a signed refund or dispute signal. Earlier exact-head Public Advisor and package rollout checks passed on `1cf2ab69675c8c8469548b57788e5c2dfc4933af`; checks for this current head are pending. No Stripe secret, webhook, payment, Azure app switch, or Member file access changed.
+- The synthetic scanner Blob upload remains unproven. An attempted temporary container-wide Storage Blob Data Contributor assignment for the fictional test object was rejected by automatic approval review because it would permit write/delete beyond the single object; no assignment was made. Do not route around that rejection. Use a reviewed exact-object or application-mediated acceptance path.
+- Next engineering actions: complete current-head checks, checkout retry/expiry and refund/dispute reconciliation, Member-facing checkout and immutable receipt UI, Stripe test-mode and webhook proof, exact-object scanner hold/Clean plus alert/recovery proof, then governed exact-source and live-output reviews. Marc owns any immediate browser confirmation needed to create Stripe credentials or webhook settings. Protection Advisor Parts 1/2 remain accepted v3.208; Level 1 Member upload, quote, checkout and purchase remain closed. Tierra Linda remains stopped; large-batch #520 remains paused.
+
 ## 3 October 2026 UTC — Level 1 intake remains closed; quote-bound payment work staged
 
 - Independent Azure readback in this turn confirmed the accepted v3.208 Advisor application's Level 1 controls remain disabled: commercial workflow `0`, scan mode `off`, scanner accepted `0`. Protection Advisor Parts 1 and 2 are live; Level 1 Member uploads, quotes and checkout are not published or 100% operational. Preserve those switches and accepted rollback.
