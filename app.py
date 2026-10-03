@@ -16,7 +16,7 @@ from secret_provider import secret, readiness as secret_readiness
 from salus_stripe_checkout import (CheckoutBinding, CheckoutVerificationError,
     create_checkout_session, retrieve_checkout_session, verify_webhook_signature)
 from salus_package_payment_ledger import (ensure_payment_schema, paid_receipt,
-    record_checkout_session, record_verified_payment)
+    record_checkout_session, record_verified_payment, hold_payment_event)
 from salus_package_path import validate_requested_package_path
 from salus_package_quote import validate_quote, quote_digest, assessment_scope_digest
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
@@ -6330,10 +6330,28 @@ async def package_checkout_stripe_webhook(request:Request):
                                        webhook_secret)
     except Exception as exc:
         raise HTTPException(400,'Stripe event signature could not be verified.') from exc
+    if event['type'] in ('charge.refunded','charge.dispute.created',
+                         'payment_intent.canceled','payment_intent.payment_failed'):
+        event_object=(event.get('data') or {}).get('object') or {}
+        payment_intent_id=(event_object.get('payment_intent')
+            if event['type'].startswith('charge.') else event_object.get('id'))
+        conn=db()
+        try:
+            held=hold_payment_event(conn,payment_intent_id,event['id'],event['type'],now())
+            if held:
+                audit(conn,'PACKAGE_PAYMENT_HELD','assessment',held['assessment_id'],
+                    f"checkout_id={held['id']}; event_type={event['type']}",'stripe-webhook')
+            conn.commit()
+            return {'received':True,'outcome':'Held' if held else 'Unmatched'}
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,'The payment hold event requires review.') from exc
+        finally:
+            conn.rollback(); conn.close()
     if event['type'] not in ('checkout.session.completed',
                            'checkout.session.async_payment_succeeded'):
         return {'received':True,'outcome':'Ignored'}
-    session_id=(event.get('data') or {}).get('object',{}).get('id','')
+    event_object=(event.get('data') or {}).get('object') or {}
+    session_id=event_object.get('id','')
     try:
         session=retrieve_checkout_session(session_id,stripe_key)
     except Exception as exc:
