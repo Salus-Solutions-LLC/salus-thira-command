@@ -5,7 +5,8 @@ import unittest
 
 from salus_stripe_checkout import (
     CheckoutBinding, CheckoutVerificationError, checkout_form,
-    create_checkout_session, verify_paid_session, verify_webhook_signature,
+    create_checkout_session, retrieve_checkout_session, verify_paid_session,
+    verify_webhook_signature,
 )
 
 
@@ -49,6 +50,10 @@ class StripeCheckoutTests(unittest.TestCase):
                    "amount_total": 150000, "currency": "usd", "client_reference_id": "17",
                    "metadata": self.binding.metadata(), "payment_intent": "pi_test_one"}
         self.assertEqual(verify_paid_session(session, self.binding, False)["payment_intent"], "pi_test_one")
+        self.assertEqual(retrieve_checkout_session("cs_test_12345678", "sk_test_example",
+            lambda session_id, _key: {**session, "id": session_id})["id"], "cs_test_12345678")
+        with self.assertRaises(CheckoutVerificationError):
+            retrieve_checkout_session("https://other.invalid", "sk_test_example", lambda *_: session)
         for changed in ({"amount_total": 149999}, {"payment_status": "unpaid"},
                         {"metadata": {**self.binding.metadata(), "salus_quote_sha256": "c" * 64}},
                         {"livemode": True}, {"payment_intent": None}):
