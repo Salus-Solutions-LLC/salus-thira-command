@@ -43,7 +43,8 @@ jobs:
           az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-job.json"
           az containerapp job execution list -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/result-executions.json"
           az containerapp job execution list -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-executions.json"
-          az monitor metrics alert list -g rg-salcapa-dev -o json > "$RUNNER_TEMP/alerts.json"
+          az monitor metrics alert list -g rg-salcapa-dev -o json > "$RUNNER_TEMP/metric-alerts.json"
+          az resource list -g rg-salcapa-dev --resource-type Microsoft.Insights/scheduledQueryRules -o json > "$RUNNER_TEMP/query-alerts.json"
           az monitor action-group show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-alerts-v2 -o json > "$RUNNER_TEMP/action-group.json"
           python - "$RUNNER_TEMP" <<'PY'
           import json
@@ -103,12 +104,15 @@ jobs:
               "salcapa-dev-b48224-scan-inventory-failed",
               "salcapa-dev-b48224-scan-inventory-missed",
           }
-          alerts = {item.get("name"): item for item in rows(load("alerts.json"))
-                    if item.get("name") in known}
+          alerts = {item.get("name"): item for filename in ("metric-alerts.json", "query-alerts.json")
+                    for item in rows(load(filename)) if item.get("name") in known}
           for name in sorted(known):
               props = alerts.get(name, {}).get("properties", {})
-              action_ids = [str(item.get("actionGroupId") or "").lower()
-                            for item in props.get("actions", [])]
+              raw_actions = props.get("actions", [])
+              if isinstance(raw_actions, dict):
+                  raw_actions = raw_actions.get("actionGroups", [])
+              action_ids = [str(item.get("actionGroupId") if isinstance(item, dict) else item).lower()
+                            for item in raw_actions]
               print(f"{name}_enabled={bool(props.get('enabled'))}")
               print(f"{name}_v2_route={any(value.endswith('/salcapa-dev-b48224-scan-alerts-v2') for value in action_ids)}")
           PY
