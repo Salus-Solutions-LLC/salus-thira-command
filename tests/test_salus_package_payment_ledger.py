@@ -3,7 +3,8 @@ import unittest
 
 from salus_stripe_checkout import CheckoutBinding, CheckoutVerificationError
 from salus_package_payment_ledger import (
-    ensure_payment_schema, paid_receipt, record_checkout_session, record_verified_payment,\n    hold_payment_event,
+    ensure_payment_schema, paid_receipt, record_checkout_session, record_verified_payment,
+    hold_payment_event,
 )
 
 
