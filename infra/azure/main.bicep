@@ -94,7 +94,8 @@ var registryName = replace('${stem}acr', '-', '')
 var databaseName = 'salcapa'
 var postgresServerName = '${stem}-pg'
 var workloadIdentityName = '${stem}-identity'
-var runtimeRedirectUri = environmentName == 'dev' ? 'https://salcapa.salus.solutions/api/auth/oidc/callback' : 'https://${stem}.${containerAppsEnvironment.properties.defaultDomain}/api/auth/oidc/callback'
+var runtimePublicOrigin = environmentName == 'dev' ? 'https://salcapa.salus.solutions' : 'https://${stem}.${containerAppsEnvironment.properties.defaultDomain}'
+var runtimeRedirectUri = '${runtimePublicOrigin}/api/auth/oidc/callback'
 var commonTags = {
   system: 'SalCAPA'
   environment: environmentName
@@ -684,6 +685,10 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             {
               name: 'SALUS_PACKAGE_SCANNER_ACCEPTED'
               value: packageScannerAccepted ? '1' : '0'
+            }
+            {
+              name: 'SALUS_PACKAGE_CHECKOUT_RETURN_ORIGIN'
+              value: runtimePublicOrigin
             }
             {
               name: 'SALUS_SCAN_QUARANTINE_URL'
