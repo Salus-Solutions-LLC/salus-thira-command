@@ -120,7 +120,7 @@ def record_verified_payment(conn, binding, session, stripe_event_id, paid_at, ex
     existing_event = conn.execute('SELECT * FROM package_payment_events WHERE stripe_event_id=?',
                                   (stripe_event_id,)).fetchone()
     if existing_event:
-        if existing_event['checkout_id'] == row['id'] and existing_event['outcome'] == 'Paid':
+        if existing_event['checkout_id'] == row['id'] and existing_event['outcome'] in ('Paid','Held'):
             return dict(row)
         raise CheckoutVerificationError('This Stripe event was used for a different decision.')
     other = conn.execute('''SELECT id FROM package_checkout_sessions
@@ -188,8 +188,8 @@ def hold_payment_event(conn, payment_intent_id, stripe_event_id, event_type, rec
         WHERE payment_intent_id=? AND status IN ('Paid','Held')''',
         (payment_intent_id,)).fetchone()
     if not row:
-        prior = conn.execute('SELECT payment_intent_id FROM package_payment_holds
-                              WHERE stripe_event_id=?',(stripe_event_id,)).fetchone()
+        prior = conn.execute('''SELECT payment_intent_id FROM package_payment_holds
+                              WHERE stripe_event_id=?''',(stripe_event_id,)).fetchone()
         if prior and prior['payment_intent_id'] != payment_intent_id:
             raise CheckoutVerificationError('Stripe event identity was already used.')
         conn.execute('''INSERT OR IGNORE INTO package_payment_holds
