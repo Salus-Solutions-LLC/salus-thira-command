@@ -12,6 +12,8 @@ on:
       - advisor_report_config.py
       - salus_package_path.py
       - salus_package_quote.py
+      - salus_package_payment_ledger.py
+      - salus_stripe_checkout.py
       - salus_package_intake.py
       - salus_scan_results.py
       - salus_scan_worker.py
@@ -52,6 +54,8 @@ on:
       - advisor_report_config.py
       - salus_package_path.py
       - salus_package_quote.py
+      - salus_package_payment_ledger.py
+      - salus_stripe_checkout.py
       - salus_package_intake.py
       - salus_scan_results.py
       - salus_scan_worker.py

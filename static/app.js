@@ -162,6 +162,37 @@ async function entityView(key){
         const statusNotice=currentQuote?'':'<p class="notice">This quote is historical. Salus must review the changed scope or issue a new written quote before a new decision.</p>';
         quotePanel.innerHTML=`<h2>${quoteHeading}</h2>${statusNotice}<p><strong>${esc(quote.status)}</strong> · Level ${Number(quote.level)}${esc(quote.band)} ${esc(quote.variant||'')} · ${fee}</p><p><strong>Covered work:</strong> ${esc(quote.covered_operation)}<br><strong>Excluded:</strong> ${esc(quote.exclusions)}<br><strong>Included:</strong> ${esc(quote.included_work)}<br><strong>Reports:</strong> ${esc(quote.report_deliverables)}</p><p><strong>Your inputs:</strong> ${esc(quote.member_inputs)}<br><strong>Evidence and clarification:</strong> ${esc(quote.evidence_allowance)}; ${esc(quote.clarification_allowance)}</p><p><strong>Valid through:</strong> ${esc(fmtPackageDate(quote.valid_until))}<br><strong>Start and delivery:</strong> ${esc(fmtPackageDate(quote.start_date))} / ${esc(fmtPackageDate(quote.delivery_date))}<br><strong>Changes:</strong> ${esc(quote.change_triggers)}</p><p>Separate SalOPS services require their own quote. Read the exact agreement before making any decision.</p><a href="/api/package-agreements/${Number(quote.agreement_artifact_id)}/download" target="_blank" rel="noopener">Download the ${currentQuote?'written':'historical'} agreement</a>`;
         if(quote.status==='Authorized'){
+          const paymentPanel=document.createElement('div');paymentPanel.className='card';paymentPanel.style.marginTop='16px';
+          paymentPanel.innerHTML='<h2>Secure package payment</h2><p>Checking the payment for this exact accepted quote…</p>';
+          $('#content').appendChild(paymentPanel);
+          let verifiedPaid=false;
+          try{
+            const payment=await api(`/api/assessments/${activeAssessmentId}/package-checkout`);
+            verifiedPaid=payment.status==='Paid';
+            if(verifiedPaid){
+              paymentPanel.innerHTML=`<h2>Payment verified</h2><p>Your payment matches this accepted Level ${Number(quote.level)}${esc(quote.band)} package and ${fee} quote.</p><p><a href="${esc(payment.receipt_url)}" target="_blank" rel="noopener">View and print your confidential payment receipt</a></p>`;
+            }else{
+              paymentPanel.innerHTML=`<h2>Complete your package payment</h2><p>Your accepted Level ${Number(quote.level)}${esc(quote.band)} package is ${fee}. Payment is handled by Stripe for this exact quote. The records request opens after Salus verifies payment.</p><button class="btn" type="button" id="start-package-checkout">Continue to secure checkout</button><p id="package-checkout-message" role="status" aria-live="polite"></p>`;
+              paymentPanel.querySelector('#start-package-checkout').onclick=async event=>{
+                const button=event.currentTarget,status=paymentPanel.querySelector('#package-checkout-message');
+                button.disabled=true;status.textContent='Preparing the secure checkout…';
+                try{
+                  const result=await api(`/api/assessments/${activeAssessmentId}/package-checkout`,{method:'POST'});
+                  if(result.status==='Paid'){render();return;}
+                  const destination=new URL(result.checkout_url);
+                  if(destination.protocol!=='https:'||destination.hostname!=='checkout.stripe.com')
+                    throw new Error('Unexpected checkout destination');
+                  window.location.assign(destination.href);
+                }catch(error){
+                  status.textContent='Secure checkout is unavailable. No payment was taken here. Contact Salus for help.';
+                  button.disabled=false;
+                }
+              };
+            }
+          }catch(error){
+            paymentPanel.innerHTML='<h2>Secure package payment</h2><p>Payment status is temporarily unavailable. The records request remains closed. Please contact Salus for help.</p>';
+          }
+          if(verifiedPaid){
           const intakePanel=document.createElement('div'); intakePanel.className='card'; intakePanel.style.marginTop='16px';
           $('#content').appendChild(intakePanel);
           try{
@@ -203,6 +234,7 @@ async function entityView(key){
               finally{button.disabled=false;}
             });
           }catch(error){intakePanel.innerHTML='<h2>Your Level 1 records request</h2><p>The records list is temporarily unavailable. Please contact Salus before sending files.</p>';}
+          }
         }
         }
       }catch(error){quotePanel.innerHTML='<h2>Your package quote</h2><p>No current approved quote is available for this selected assessment. Salus must confirm the scope and capacity before offering one.</p>';}

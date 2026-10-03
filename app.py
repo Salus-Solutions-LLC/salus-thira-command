@@ -13,6 +13,10 @@ from datetime import date, datetime, timedelta, timezone
 from storage import build_storage, StorageError
 from security_controls import scan_bytes, retention_active, scanner_configuration, AV_MODE, AV_REQUIRED
 from secret_provider import secret, readiness as secret_readiness
+from salus_stripe_checkout import (CheckoutBinding, CheckoutVerificationError,
+    create_checkout_session, retrieve_checkout_session, verify_webhook_signature)
+from salus_package_payment_ledger import (ensure_payment_schema, paid_receipt,
+    record_checkout_session, record_verified_payment, hold_payment_event)
 from salus_package_path import validate_requested_package_path
 from salus_package_quote import validate_quote, quote_digest, assessment_scope_digest
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
@@ -1838,6 +1842,7 @@ def init_db():
     for field in ('included_work','report_deliverables','member_inputs','evidence_allowance','clarification_allowance','field_specialist_terms','payment_terms','tax_treatment','change_triggers'):
         ensure_column('package_quote_versions',field,"TEXT NOT NULL DEFAULT ''")
     ensure_column('package_acceptances','agreement_download_id','INTEGER NOT NULL DEFAULT 0')
+    ensure_payment_schema(conn)
     ensure_column('ops_service_catalog','industry_profile_id','INTEGER')
     ensure_column('ops_service_catalog','industry_profile_key_snapshot',"TEXT NOT NULL DEFAULT ''")
     ensure_column('ops_service_catalog','industry_profile_version_snapshot','INTEGER')
@@ -6179,9 +6184,274 @@ def accept_package_quote(assessment_id:int,p:PackageAcceptanceIn,request:Request
         conn.rollback()
         conn.close()
 
+def accepted_package_for_checkout(conn,assessment_id:int,request:Request):
+    current=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+        (assessment_id,tenant_id(request))).fetchone()
+    accepted=conn.execute('''SELECT q.*,a.id accepted_id,a.member_user_id accepted_member_user_id,
+        a.quote_sha256 accepted_quote_sha256,a.agreement_sha256 accepted_agreement_sha256
+        FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
+        WHERE a.tenant_id=? AND a.assessment_id=? ORDER BY a.id DESC LIMIT 1''',
+        (tenant_id(request),assessment_id)).fetchone()
+    if not current or not accepted:
+        raise HTTPException(409,'Accept the current written package before checkout.')
+    verified_package_quote(conn,accepted,request)
+    verified_member_authority_review(conn,accepted,accepted['accepted_member_user_id'])
+    ctx=auth_context(request)
+    if (ctx['auth_mode']!='oidc' or not ctx.get('user_id') or
+            ctx['user_id']!=accepted['accepted_member_user_id']):
+        raise HTTPException(403,'The reviewed Member decision owner must sign in to pay.')
+    latest=conn.execute('SELECT MAX(version_no) n FROM package_quote_versions WHERE tenant_id=? AND assessment_id=?',
+        (tenant_id(request),assessment_id)).fetchone()['n']
+    if (accepted['version_no']!=latest or accepted['assessment_version']!=current['version'] or
+            accepted['assessment_scope_sha256']!=assessment_scope_digest(current) or
+            accepted['accepted_quote_sha256']!=accepted['content_sha256'] or
+            accepted['accepted_agreement_sha256'].lower()!=accepted['agreement_sha256'].lower()):
+        raise HTTPException(409,'The accepted package changed. Review the current quote before paying.')
+    try:
+        binding=CheckoutBinding(tenant_id(request),assessment_id,accepted['id'],
+            accepted['accepted_id'],accepted['content_sha256'],
+            accepted['agreement_sha256'].lower(),accepted['fee_cents'],
+            accepted['currency'].lower())
+    except CheckoutVerificationError as exc:
+        raise HTTPException(409,'The package fee or identity requires Salus review.') from exc
+    return binding
+
+
+@app.post('/api/assessments/{assessment_id}/package-checkout')
+def start_package_checkout(assessment_id:int,request:Request):
+    require_package_commercial_candidate()
+    require_protected_member_authority(request,'package_checkout')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        binding=accepted_package_for_checkout(conn,assessment_id,request)
+        paid=paid_receipt(conn,binding)
+        if paid:
+            return {'status':'Paid','receipt_sha256':paid['receipt_sha256'],
+                    'quote_id':binding.quote_id,'amount_cents':binding.amount_cents,
+                    'currency':binding.currency,
+                    'receipt_url':f'/assessments/{assessment_id}/package-payment-receipt'}
+        existing=conn.execute('''SELECT * FROM package_checkout_sessions
+            WHERE tenant_id=? AND assessment_id=? AND acceptance_id=?
+            ORDER BY attempt_no DESC LIMIT 1''',
+            (binding.tenant_id,assessment_id,binding.acceptance_id)).fetchone()
+        try:
+            stripe_key=secret('SALUS_STRIPE_SECRET_KEY','').strip()
+        except Exception as exc:
+            raise HTTPException(503,'Secure checkout is not configured.') from exc
+        if not stripe_key:
+            raise HTTPException(503,'Secure checkout is not configured.')
+        if existing:
+            if (existing['status']!='Pending' or existing['quote_sha256']!=binding.quote_sha256 or
+                    existing['amount_cents']!=binding.amount_cents):
+                raise HTTPException(409,'A prior checkout needs Salus review before retry.')
+            try:
+                current_session=retrieve_checkout_session(existing['stripe_session_id'],stripe_key)
+            except Exception as exc:
+                raise HTTPException(503,'Unable to verify the current checkout. Please retry later.') from exc
+            if current_session.get('status')=='open':
+                return {'status':'Pending','checkout_url':existing['checkout_url'],
+                        'quote_id':binding.quote_id,'amount_cents':binding.amount_cents,
+                        'currency':binding.currency}
+            if current_session.get('status')!='expired':
+                raise HTTPException(409,'The prior checkout needs payment reconciliation before retry.')
+            conn.execute("UPDATE package_checkout_sessions SET status='Expired' WHERE id=?",
+                         (existing['id'],))
+        next_attempt=(existing['attempt_no']+1) if existing else 1
+        return_origin=os.getenv('SALUS_PACKAGE_CHECKOUT_RETURN_ORIGIN','').strip().rstrip('/')
+        try:
+            session=create_checkout_session(binding,stripe_key,
+                return_origin+'/package-checkout-return?session_id={CHECKOUT_SESSION_ID}',
+                return_origin+'/package-checkout-cancel',attempt_no=next_attempt)
+            recorded=record_checkout_session(conn,binding,next_attempt,session['id'],session['url'],now())
+        except CheckoutVerificationError as exc:
+            raise HTTPException(503,'Secure checkout needs configuration review.') from exc
+        except Exception as exc:
+            raise HTTPException(503,'Unable to create secure checkout. Please retry later.') from exc
+        audit(conn,'PACKAGE_CHECKOUT_START','assessment',assessment_id,
+            f"quote_id={binding.quote_id}; checkout_id={recorded['id']}",actor(request))
+        conn.commit()
+        return {'status':'Pending','checkout_url':recorded['checkout_url'],
+                'quote_id':binding.quote_id,'amount_cents':binding.amount_cents,
+                'currency':binding.currency}
+    finally:
+        conn.rollback(); conn.close()
+
+
+@app.get('/api/assessments/{assessment_id}/package-checkout')
+def package_checkout_status(assessment_id:int,request:Request):
+    require_package_commercial_candidate()
+    require_protected_member_authority(request,'package_checkout_status')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        binding=accepted_package_for_checkout(conn,assessment_id,request)
+        paid=paid_receipt(conn,binding)
+        if paid:
+            return {'status':'Paid','quote_id':binding.quote_id,
+                    'amount_cents':binding.amount_cents,'currency':binding.currency,
+                    'paid_at':paid['paid_at'],'receipt_sha256':paid['receipt_sha256'],
+                    'receipt_url':f'/assessments/{assessment_id}/package-payment-receipt'}
+        pending=conn.execute('''SELECT status FROM package_checkout_sessions WHERE
+            tenant_id=? AND assessment_id=? AND acceptance_id=? ORDER BY attempt_no DESC LIMIT 1''',
+            (binding.tenant_id,assessment_id,binding.acceptance_id)).fetchone()
+        return {'status':pending['status'] if pending else 'Not started',
+                'quote_id':binding.quote_id,'amount_cents':binding.amount_cents,
+                'currency':binding.currency}
+    finally:
+        conn.close()
+
+
+@app.get('/assessments/{assessment_id}/package-payment-receipt')
+def package_payment_receipt(assessment_id:int,request:Request):
+    require_package_commercial_candidate()
+    require_protected_member_authority(request,'package_payment_receipt')
+    assessment_row_for_request(request,assessment_id)
+    conn=db()
+    try:
+        binding=accepted_package_for_checkout(conn,assessment_id,request)
+        receipt=paid_receipt(conn,binding)
+        if not receipt:
+            raise HTTPException(404,'A verified payment receipt is not available.')
+        quote=conn.execute('''SELECT level,band,covered_operation FROM package_quote_versions
+            WHERE id=? AND tenant_id=? AND assessment_id=?''',
+            (binding.quote_id,binding.tenant_id,assessment_id)).fetchone()
+        if not quote:
+            raise HTTPException(409,'The paid package scope requires review.')
+        money=f"${binding.amount_cents/100:,.2f}"
+        fields=[
+            ('Package',f"Level {quote['level']}{quote['band']}"),
+            ('Covered operation',quote['covered_operation']),
+            ('Amount paid',money+' USD'),
+            ('Payment recorded',datetime.fromisoformat(receipt['paid_at'].replace('Z','+00:00')).strftime('%d %B %Y at %H:%M UTC')),
+            ('Quote reference',str(binding.quote_id)),
+            ('Payment reference',receipt['stripe_session_id']),
+            ('Receipt fingerprint',receipt['receipt_sha256']),
+        ]
+        rows=''.join('<tr><th scope="row">'+html.escape(label)+'</th><td>'+
+            html.escape(str(value))+'</td></tr>' for label,value in fields)
+        page='''<!doctype html><html lang="en"><head><meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Salus package payment receipt</title><style>
+        @page { size: letter; margin: .75in; }
+        body { font-family: "Times New Roman", serif; color:#152032; max-width:760px; margin:36px auto; }
+        h1,h2,th { font-family: Arial, sans-serif; }
+        h1 { font-size:23px; margin:.2em 0 .5em; }
+        .mark { font: bold 12px Arial,sans-serif; color:#7c2633; letter-spacing:.08em; }
+        table { width:100%; border-collapse:collapse; margin-top:22px; }
+        th,td { text-align:left; padding:11px; border-bottom:1px solid #cbd2db; vertical-align:top; overflow-wrap:anywhere; }
+        th { width:33%; font-size:12px; }
+        .note { font-size:13px; margin-top:22px; }
+        @media print { body { margin:0; } }
+        </style></head><body><main>
+        <p class="mark">CONFIDENTIAL — APPROVED PERSONNEL ONLY</p>
+        <h1>Salus package payment receipt</h1>
+        <p>Payment for the approved assessment package was verified against the accepted quote.
+        Keep this receipt with your signed agreement. The agreed work and records request remain
+        governed by that written scope.</p><table>'''+rows+'''</table>
+        <p class="note">This receipt records payment verification for the stated package.
+        It is not a finding, assessment report, tax determination, or authorization to
+        upload records outside the secure intake instructions.</p><footer>page 1 of 1</footer></main></body></html>'''
+        return HTMLResponse(page,headers={'Cache-Control':'private, no-store',
+            'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"})
+    finally:
+        conn.close()
+
+
+@app.get('/package-checkout-return')
+def package_checkout_return():
+    return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8">
+    <title>Salus checkout update</title></head><body><main>
+    <h1>Payment submitted</h1><p>Your assessment intake opens only after Salus
+    verifies payment for the exact accepted package. This page alone is not a
+    receipt or confirmation of payment.</p><p>Return to your secure Salus
+    account to check the package payment status.</p><p><a href="/">Open Salus</a></p>
+    </main></body></html>''')
+
+
+@app.get('/package-checkout-cancel')
+def package_checkout_cancel():
+    return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8">
+    <title>Salus checkout canceled</title></head><body><main>
+    <h1>Checkout canceled</h1><p>No package intake has opened. You can return
+    to your secure Salus account to review the same written quote.</p>
+    <p><a href="/">Open Salus</a></p></main></body></html>''')
+
+
+@app.post('/api/package-checkout/stripe-webhook')
+async def package_checkout_stripe_webhook(request:Request):
+    # Keep reconciliation available even if the public commercial switch is closed.
+    payload=await request.body()
+    if len(payload)>65536:
+        raise HTTPException(413,'Stripe event exceeds the accepted size.')
+    try:
+        webhook_secret=secret('SALUS_STRIPE_WEBHOOK_SECRET','').strip()
+        stripe_key=secret('SALUS_STRIPE_SECRET_KEY','').strip()
+        event=verify_webhook_signature(payload,request.headers.get('Stripe-Signature',''),
+                                       webhook_secret)
+    except Exception as exc:
+        raise HTTPException(400,'Stripe event signature could not be verified.') from exc
+    if event['type'] in ('charge.refunded','charge.dispute.created',
+                         'payment_intent.canceled','payment_intent.payment_failed'):
+        event_object=(event.get('data') or {}).get('object') or {}
+        payment_intent_id=(event_object.get('payment_intent')
+            if event['type'].startswith('charge.') else event_object.get('id'))
+        conn=db()
+        try:
+            held=hold_payment_event(conn,payment_intent_id,event['id'],event['type'],now())
+            if held:
+                audit(conn,'PACKAGE_PAYMENT_HELD','assessment',held['assessment_id'],
+                    f"checkout_id={held['id']}; event_type={event['type']}",'stripe-webhook')
+            conn.commit()
+            return {'received':True,'outcome':'Held' if held else 'Unmatched'}
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,'The payment hold event requires review.') from exc
+        finally:
+            conn.rollback(); conn.close()
+    if event['type'] not in ('checkout.session.completed',
+                           'checkout.session.async_payment_succeeded'):
+        return {'received':True,'outcome':'Ignored'}
+    event_object=(event.get('data') or {}).get('object') or {}
+    session_id=event_object.get('id','')
+    try:
+        session=retrieve_checkout_session(session_id,stripe_key)
+    except Exception as exc:
+        raise HTTPException(503,'Stripe Session retrieval failed.') from exc
+    conn=db()
+    try:
+        checkout=conn.execute('SELECT * FROM package_checkout_sessions WHERE stripe_session_id=?',
+                              (session_id,)).fetchone()
+        if not checkout:
+            raise HTTPException(409,'The Stripe Session is not tied to a Salus package.')
+        lock_package_assessment(conn,checkout['assessment_id'])
+        quote=conn.execute('SELECT * FROM package_quote_versions WHERE id=? AND tenant_id=? AND assessment_id=?',
+                           (checkout['quote_id'],checkout['tenant_id'],checkout['assessment_id'])).fetchone()
+        accepted=conn.execute('SELECT * FROM package_acceptances WHERE id=? AND tenant_id=? AND assessment_id=?',
+                              (checkout['acceptance_id'],checkout['tenant_id'],checkout['assessment_id'])).fetchone()
+        if (not quote or not accepted or accepted['quote_id']!=checkout['quote_id'] or
+                accepted['quote_sha256']!=quote['content_sha256'] or
+                accepted['agreement_sha256'].lower()!=quote['agreement_sha256'].lower()):
+            raise HTTPException(409,'The Stripe Session no longer matches the accepted package.')
+        binding=CheckoutBinding(checkout['tenant_id'],checkout['assessment_id'],
+            checkout['quote_id'],checkout['acceptance_id'],quote['content_sha256'],
+            quote['agreement_sha256'].lower(),quote['fee_cents'],quote['currency'].lower())
+        paid=record_verified_payment(conn,binding,session,event['id'],now(),
+            stripe_key.startswith(('sk_live_','rk_live_')),event['type'])
+        audit(conn,'PACKAGE_PAYMENT_VERIFIED' if paid['status']=='Paid' else 'PACKAGE_PAYMENT_HELD',
+              'assessment',checkout['assessment_id'],
+              f"checkout_id={paid['id']}; status={paid['status']}",'stripe-webhook')
+        conn.commit()
+        return {'received':True,'outcome':paid['status']}
+    except CheckoutVerificationError as exc:
+        raise HTTPException(409,'The payment did not match the accepted package.') from exc
+    finally:
+        conn.rollback(); conn.close()
+
+
 def authorized_package_intake(conn,assessment_id:int,request:Request):
     assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',(assessment_id,tenant_id(request))).fetchone()
-    accepted=conn.execute('''SELECT q.*,a.member_user_id accepted_member_user_id FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
+    accepted=conn.execute('''SELECT q.*,a.id accepted_id,a.member_user_id accepted_member_user_id FROM package_acceptances a JOIN package_quote_versions q ON q.id=a.quote_id
         WHERE a.tenant_id=? AND a.assessment_id=? ORDER BY a.id DESC LIMIT 1''',(tenant_id(request),assessment_id)).fetchone()
     if not assessment or not accepted: raise HTTPException(409,'The package intake opens after an authorized agreement.')
     verified_package_quote(conn,accepted,request)
@@ -6194,6 +6464,16 @@ def authorized_package_intake(conn,assessment_id:int,request:Request):
     if (not accepted['assessment_scope_sha256'] or accepted['assessment_scope_sha256']!=assessment_scope_digest(assessment)
         or accepted['assessment_version']!=assessment['version']):
         raise HTTPException(409,'The authorized scope changed; review the written package before requesting more records.')
+    if AUTH_MODE=='oidc':
+        try:
+            binding=CheckoutBinding(tenant_id(request),assessment_id,accepted['id'],
+                accepted['accepted_id'],accepted['content_sha256'],
+                accepted['agreement_sha256'].lower(),accepted['fee_cents'],
+                accepted['currency'].lower())
+            if not paid_receipt(conn,binding):
+                raise HTTPException(409,'Payment of the exact accepted package is required before intake opens.')
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,'The package payment record requires Salus review.') from exc
     return accepted
 
 @app.get('/api/assessments/{assessment_id}/package-intake')
