@@ -43,8 +43,10 @@ jobs:
           az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-job.json"
           az containerapp job execution list -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/result-executions.json"
           az containerapp job execution list -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-executions.json"
-          az monitor metrics alert list -g rg-salcapa-dev -o json > "$RUNNER_TEMP/metric-alerts.json"
-          az resource list -g rg-salcapa-dev --resource-type Microsoft.Insights/scheduledQueryRules -o json > "$RUNNER_TEMP/query-alerts.json"
+          az monitor metrics alert show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-result-worker-failed -o json > "$RUNNER_TEMP/result-failed-alert.json"
+          az monitor metrics alert show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inventory-failed -o json > "$RUNNER_TEMP/inventory-failed-alert.json"
+          az resource show -g rg-salcapa-dev --resource-type Microsoft.Insights/scheduledQueryRules --api-version 2023-12-01 -n salcapa-dev-b48224-scan-result-worker-missed -o json > "$RUNNER_TEMP/result-missed-alert.json"
+          az resource show -g rg-salcapa-dev --resource-type Microsoft.Insights/scheduledQueryRules --api-version 2023-12-01 -n salcapa-dev-b48224-scan-inventory-missed -o json > "$RUNNER_TEMP/inventory-missed-alert.json"
           az monitor action-group show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-alerts-v2 -o json > "$RUNNER_TEMP/action-group.json"
           python - "$RUNNER_TEMP" <<'PY'
           import json
@@ -98,16 +100,14 @@ jobs:
           action = load("action-group.json").get("properties", {})
           print("alert_group_enabled=" + str(bool(action.get("enabled"))))
           print("alert_group_receiver_count=" + str(len(action.get("emailReceivers") or [])))
-          known = {
-              "salcapa-dev-b48224-scan-result-worker-failed",
-              "salcapa-dev-b48224-scan-result-worker-missed",
-              "salcapa-dev-b48224-scan-inventory-failed",
-              "salcapa-dev-b48224-scan-inventory-missed",
+          alert_files = {
+              "salcapa-dev-b48224-scan-result-worker-failed": "result-failed-alert.json",
+              "salcapa-dev-b48224-scan-result-worker-missed": "result-missed-alert.json",
+              "salcapa-dev-b48224-scan-inventory-failed": "inventory-failed-alert.json",
+              "salcapa-dev-b48224-scan-inventory-missed": "inventory-missed-alert.json",
           }
-          alerts = {item.get("name"): item for filename in ("metric-alerts.json", "query-alerts.json")
-                    for item in rows(load(filename)) if item.get("name") in known}
-          for name in sorted(known):
-              props = alerts.get(name, {}).get("properties", {})
+          for name, filename in sorted(alert_files.items()):
+              props = load(filename).get("properties", {})
               raw_actions = props.get("actions", [])
               if isinstance(raw_actions, dict):
                   raw_actions = raw_actions.get("actionGroups", [])
