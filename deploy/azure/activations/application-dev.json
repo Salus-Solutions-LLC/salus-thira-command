@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "activation_key": "salcapa-v3.206-application-5e8acd60",
+  "activation_key": "salcapa-v3.207-application-e0778959",
   "operation": "deploy_application",
   "target_environment": "dev",
   "location": "southcentralus",
   "unique_suffix": "b48224",
   "approval_record": "MD-APPROVAL-AZURE-LEAN-20260904",
-  "source_release": "release/v3.206",
-  "source_commit": "5e8acd60b9562683d53bd95c21b85f2786d28343",
-  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:cf5dc588891a89e1171dd12dceb901bdb25cd1a8e8ab7da8bbe4519120a7d51d",
-  "rollback_release": "release/v3.205",
-  "rollback_commit": "1ad0c2af8bd7607902a89e280ba7ee855e896892",
-  "rollback_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:64f1399b3f6093ef75b9b06e8547ebdc29d7cb22e98f57b980a22ef267e8a6d0"
+  "source_release": "release/v3.207",
+  "source_commit": "e0778959affb923a3214570ee5f5b4e5f69ae1cd",
+  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:af1a7f53c3f74d34cb3aade79d5352871f84671003923a6347a6f48aded20bf8",
+  "rollback_release": "release/v3.206",
+  "rollback_commit": "5e8acd60b9562683d53bd95c21b85f2786d28343",
+  "rollback_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:cf5dc588891a89e1171dd12dceb901bdb25cd1a8e8ab7da8bbe4519120a7d51d"
 }
 
 
