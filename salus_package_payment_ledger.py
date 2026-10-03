@@ -53,6 +53,14 @@ CREATE TABLE IF NOT EXISTS package_payment_events (
 );
 CREATE INDEX IF NOT EXISTS idx_package_payment_events_scope
     ON package_payment_events(tenant_id,assessment_id,checkout_id);
+CREATE TABLE IF NOT EXISTS package_payment_holds (
+    payment_intent_id TEXT NOT NULL,
+    stripe_event_id TEXT NOT NULL PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    recorded_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_package_payment_holds_intent
+    ON package_payment_holds(payment_intent_id);
 """
 
 
@@ -123,6 +131,18 @@ def record_verified_payment(conn, binding, session, stripe_event_id, paid_at, ex
         raise CheckoutVerificationError('This Checkout Session cannot authorize the package.')
     if row['status']=='Paid' and row['payment_intent_id'] != proof['payment_intent']:
         raise CheckoutVerificationError('A paid Session cannot change payment identity.')
+    prior_hold = conn.execute('''SELECT stripe_event_id FROM package_payment_holds
+        WHERE payment_intent_id=? LIMIT 1''',(proof['payment_intent'],)).fetchone()
+    if prior_hold:
+        conn.execute('''UPDATE package_checkout_sessions SET status='Held',
+            payment_intent_id=? WHERE id=?''',(proof['payment_intent'],row['id']))
+        conn.execute('''INSERT INTO package_payment_events
+            (tenant_id,assessment_id,checkout_id,stripe_event_id,event_type,outcome,processed_at)
+            VALUES(?,?,?,?,?,?,?)''',
+            (binding.tenant_id,binding.assessment_id,row['id'],stripe_event_id,
+             event_type,'Held',paid_at))
+        return dict(conn.execute('SELECT * FROM package_checkout_sessions WHERE id=?',
+                                 (row['id'],)).fetchone())
     effective_paid_at = row['paid_at'] if row['status']=='Paid' else paid_at
     receipt = hashlib.sha256(json.dumps(
         _receipt_payload(row,proof['payment_intent'],effective_paid_at),
@@ -168,6 +188,14 @@ def hold_payment_event(conn, payment_intent_id, stripe_event_id, event_type, rec
         WHERE payment_intent_id=? AND status IN ('Paid','Held')''',
         (payment_intent_id,)).fetchone()
     if not row:
+        prior = conn.execute('SELECT payment_intent_id FROM package_payment_holds
+                              WHERE stripe_event_id=?',(stripe_event_id,)).fetchone()
+        if prior and prior['payment_intent_id'] != payment_intent_id:
+            raise CheckoutVerificationError('Stripe event identity was already used.')
+        conn.execute('''INSERT OR IGNORE INTO package_payment_holds
+            (payment_intent_id,stripe_event_id,event_type,recorded_at)
+            VALUES(?,?,?,?)''',
+            (payment_intent_id,stripe_event_id,event_type,recorded_at))
         return None
     existing = conn.execute('SELECT * FROM package_payment_events WHERE stripe_event_id=?',
                             (stripe_event_id,)).fetchone()
@@ -175,6 +203,9 @@ def hold_payment_event(conn, payment_intent_id, stripe_event_id, event_type, rec
         if existing['checkout_id'] == row['id'] and existing['outcome'] == 'Held':
             return dict(row)
         raise CheckoutVerificationError('Stripe event identity was already used.')
+    conn.execute('''INSERT OR IGNORE INTO package_payment_holds
+        (payment_intent_id,stripe_event_id,event_type,recorded_at)
+        VALUES(?,?,?,?)''',(payment_intent_id,stripe_event_id,event_type,recorded_at))
     conn.execute("UPDATE package_checkout_sessions SET status='Held' WHERE id=?", (row['id'],))
     conn.execute('''INSERT INTO package_payment_events
         (tenant_id,assessment_id,checkout_id,stripe_event_id,event_type,outcome,processed_at)
