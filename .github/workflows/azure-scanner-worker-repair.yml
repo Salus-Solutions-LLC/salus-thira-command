@@ -1,0 +1,132 @@
+name: SalCAPA protected scanner-result worker repair
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - deploy/azure/activations/scanner-worker-dev.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-scanner-worker-deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected scanner-worker release gate passed.'
+
+  deploy:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.213
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Validate exact reviewed activation and frozen source
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=deploy/azure/activations/scanner-worker-dev.json
+          jq -e '
+            .schema_version == 1 and
+            .operation == "update_scanner_result_worker_image" and
+            .target_environment == "dev" and
+            .resource_group == "rg-salcapa-dev" and
+            .job_name == "salcapa-dev-b48224-scan-worker" and
+            .source_release == "release/v3.213" and
+            .source_commit == "7ec414abe94092e631f0a4b7222fd99ce34b7e26" and
+            .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c" and
+            .rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966" and
+            .approval_record == "MD-SCANNER-WORKER-REPAIR-20261004" and
+            .activation_key == "salcapa-v3.213-scan-worker-7ec414ab" and
+            ((keys - ["schema_version","operation","target_environment","resource_group","job_name","source_release","source_commit","image_digest","rollback_image_digest","approval_record","activation_key"]) | length == 0)
+          ' "$file" >/dev/null
+          test "$(git -C frozen-release rev-parse HEAD)" = "7ec414abe94092e631f0a4b7222fd99ce34b7e26"
+          git merge-base --is-ancestor 7ec414abe94092e631f0a4b7222fd99ce34b7e26 "$GITHUB_SHA"
+          grep -Fq 'SALCAPA_RELEASE_VERSION = "3.213"' frozen-release/salcapa_runtime.py
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Preview exact image-only change and verify rollback
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n rg-salcapa-dev --query location -o tsv)" = "southcentralus"
+          for digest in b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c 0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966; do
+            test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@sha256:$digest" --query digest -o tsv)" = "sha256:$digest"
+          done
+          test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name salcapa:source-7ec414abe94092e631f0a4b7222fd99ce34b7e26 --query digest -o tsv)" = "sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/scan-before.json"
+          python - "$RUNNER_TEMP/scan-before.json" <<'PY'
+          import json, sys
+          job=json.load(open(sys.argv[1],encoding="utf-8"))
+          p=job["properties"]; c=p["configuration"]; t=p["template"]; xs=t["containers"]
+          expected="salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966"
+          assert len(xs)==1 and xs[0]["name"]=="scan-results" and xs[0]["image"]==expected
+          assert xs[0]["command"]==["python","-m","salus_scan_worker"]
+          assert float(xs[0]["resources"]["cpu"])==0.25 and xs[0]["resources"]["memory"]=="0.5Gi"
+          assert c["triggerType"]=="Schedule" and c["scheduleTriggerConfig"]["cronExpression"]=="*/5 * * * *"
+          assert c["replicaTimeout"]==60 and c["replicaRetryLimit"]==0
+          assert len(job["identity"]["userAssignedIdentities"])==2
+          assert len(c["registries"])==1
+          print("PREVIEW: one existing scheduled scanner-result job; image digest changes from approved 3.208 rollback to frozen 3.213. No app, inventory job, identity, schedule or Member switch is targeted.")
+          PY
+      - name: Update only scanner-result worker image, verify, and roll back on failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          group=rg-salcapa-dev
+          job=salcapa-dev-b48224-scan-worker
+          new=salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c
+          old=salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966
+          rollback() {
+            echo 'Scanner worker verification failed; restoring the recorded prior image.' >&2
+            az containerapp job update -g "$group" -n "$job" --image "$old" --output none || true
+          }
+          trap rollback ERR
+          az containerapp job update -g "$group" -n "$job" --image "$new" --output none
+          az containerapp job show -g "$group" -n "$job" -o json > "$RUNNER_TEMP/scan-after.json"
+          python - "$RUNNER_TEMP/scan-before.json" "$RUNNER_TEMP/scan-after.json" "$new" <<'PY'
+          import json, sys
+          before=json.load(open(sys.argv[1],encoding="utf-8"))
+          after=json.load(open(sys.argv[2],encoding="utf-8"))
+          expected=sys.argv[3]
+          b=before["properties"]; a=after["properties"]
+          assert a["template"]["containers"][0]["image"]==expected
+          assert a["configuration"]==b["configuration"], "schedule/registry/timeout drift"
+          assert a["environmentId"]==b["environmentId"], "environment drift"
+          assert after["identity"]==before["identity"], "identity drift"
+          before_container=dict(b["template"]["containers"][0]); after_container=dict(a["template"]["containers"][0])
+          before_container.pop("image"); after_container.pop("image")
+          assert after_container==before_container, "container command/resources/environment drift"
+          print("Verified exact scanner-result image and unchanged identity, schedule, registry, resource bounds, command and environment.")
+          PY
+          trap - ERR
+          echo 'Scanner worker image updated. Member uploads remain closed; fictional Clean/EICAR and alert acceptance remain open.'
