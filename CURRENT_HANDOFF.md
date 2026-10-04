@@ -1,3 +1,7 @@
+## 4 October 2026 UTC — scanner failure alert recovery observed; email receipt open
+
+- Azure Monitor history for `salcapa-dev-b48224-scan-result-worker-failed` shows the same real failure alert fired at 21:56 Central on 3 October and resolved at 15:22 Central on 4 October after the v3.214 worker repair. Both configured action groups, `salcapa-dev-b48224-scan-alerts` and `salcapa-dev-b48224-scan-alerts-v2`, appear in the fired and resolved history. This proves Azure alert transition and action-group triggering, not receipt of the exact 4 October message in Marc's mailbox. Do not induce a new failure or use a sample test email as delivery proof. The separate missed-run and inventory alert routes remain to be qualified.
+
 ## 4 October 2026 UTC — original fictional Clean/EICAR ledger proof; Member gate remains closed
 
 - Marc approved [PR #710](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/710) at exact head `7b26c987cb0ee1f51e21d8ea2024b1021215f1a2` after all three checks passed. It merged as `b63a60d73ac1b8165a085270ee560c6fdb1beb93`. Protected read-only [run 37231980487](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37231980487) started one bounded Azure execution `salcapa-dev-b48224-scan-worker-6a69k7z`; Azure marked that 20:25:08–20:25:41 UTC execution Succeeded. It did not upload or rescan a file.
