@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "operation": "create_private_scanner_test_job",
+  "target_environment": "dev",
+  "resource_group": "rg-salcapa-dev",
+  "location": "southcentralus",
+  "source_release": "release/v3.212",
+  "source_commit": "7867fa72ae404aa5ed37abd104ecc1c69b9ea190",
+  "image_digest": "sha256:36b48158a6cb13bc8f408af0f9b6cefcf49014907ce117e14898a08f892498bc",
+  "approval_record": "MD-PRIVATE-SCANNER-JOB-20261003",
+  "preview_run_id": 37169892674,
+  "initial_executions": 0,
+  "job_timeout_seconds": 1200,
+  "job_cpu": 0.25,
+  "job_memory_gib": 0.5
+}
