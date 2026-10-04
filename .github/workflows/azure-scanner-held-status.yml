@@ -1,0 +1,174 @@
+name: SalCAPA one-time held fictional scanner status
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - deploy/azure/activations/scanner-held-status-dev.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-held-fictional-scan-status-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only fictional status gate passed.'
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RESOURCE_GROUP: rg-salcapa-dev
+      JOB_NAME: salcapa-dev-b48224-scan-worker
+      IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.213
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Enforce exact source, fictional-only probe and one attempt
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          file=deploy/azure/activations/scanner-held-status-dev.json
+          test "$(git log --format=%H -- "$file" | wc -l | tr -d ' ')" = "1"
+          jq -e '
+            .schema_version == 1 and
+            .operation == "inspect_original_fictional_scanner_records_once" and
+            .target_environment == "dev" and
+            .resource_group == "rg-salcapa-dev" and
+            .job_name == "salcapa-dev-b48224-scan-worker" and
+            .source_release == "release/v3.213" and
+            .source_commit == "7ec414abe94092e631f0a4b7222fd99ce34b7e26" and
+            .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c" and
+            .approval_record == "MD-FICTIONAL-SCANNER-STATUS-20261004" and
+            .activation_key == "salcapa-v3.213-held-status-7ec414ab" and
+            ((keys - ["schema_version","operation","target_environment","resource_group","job_name","source_release","source_commit","image_digest","approval_record","activation_key"]) | length == 0)
+          ' "$file" >/dev/null
+          test "$(git -C frozen-release rev-parse HEAD)" = "7ec414abe94092e631f0a4b7222fd99ce34b7e26"
+          git merge-base --is-ancestor 7ec414abe94092e631f0a4b7222fd99ce34b7e26 "$GITHUB_SHA"
+          grep -Fq "SELECT id FROM tenants WHERE slug LIKE 'fictional-scanner-%'" frozen-release/tools/private_scan_queue_probe.py
+          grep -Fq '"2026-10-04T03:00:00", "2026-10-04T03:06:00"' frozen-release/tools/private_scan_queue_probe.py
+          grep -Fq 'queue.peek_messages(max_messages=16)' frozen-release/tools/private_scan_queue_probe.py
+          if grep -Eq 'delete_message|receive_messages|put_blob|upload_blob' frozen-release/tools/private_scan_queue_probe.py; then
+            echo 'Probe unexpectedly mutates the queue or storage.' >&2; exit 1
+          fi
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify exact existing worker before one read-only execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n "$RESOURCE_GROUP" --query location -o tsv)" = southcentralus
+          az containerapp job show -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/worker.json"
+          jq -e --arg image "$IMAGE" '
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/5 * * * *" and
+            .properties.configuration.replicaTimeout == 60 and
+            (.properties.template.containers | length) == 1 and
+            .properties.template.containers[0].image == $image and
+            (.identity.userAssignedIdentities | keys | length) == 2
+          ' "$RUNNER_TEMP/worker.json" >/dev/null
+      - name: Run one bounded read-only fictional status probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          start="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "PROBE_START=$start" >> "$GITHUB_ENV"
+          az containerapp job start -g "$RESOURCE_GROUP" -n "$JOB_NAME" \
+            --image "$IMAGE" --command python --args "-m" "tools.private_scan_queue_probe" \
+            --output json > "$RUNNER_TEMP/probe-start.json"
+          python - "$RUNNER_TEMP/probe-start.json" "$GITHUB_ENV" <<'PY'
+          import json,re,sys
+          value=json.load(open(sys.argv[1],encoding="utf-8"))
+          name=value.get("name","")
+          if not re.fullmatch(r"salcapa-dev-b48224-scan-worker-[a-z0-9-]{1,40}",name):
+              raise SystemExit("Unexpected job execution name; inspect Azure before any retry")
+          containers=(value.get("properties") or {}).get("template",{}).get("containers",[])
+          if containers:
+              if len(containers)!=1 or containers[0].get("command")!=["python"] or containers[0].get("args")!=["-m","tools.private_scan_queue_probe"]:
+                  raise SystemExit("Execution override did not match the read-only probe")
+          with open(sys.argv[2],"a",encoding="utf-8") as out: out.write("PROBE_EXECUTION="+name+"\n")
+          print("One fictional-only read-only status execution started.")
+          PY
+      - name: Inspect terminal state and sanitized result
+        shell: bash
+        run: |
+          set -euo pipefail
+          state=""
+          for attempt in $(seq 1 12); do
+            az containerapp job execution show -g "$RESOURCE_GROUP" -n "$JOB_NAME" --job-execution-name "$PROBE_EXECUTION" -o json > "$RUNNER_TEMP/probe-execution.json"
+            state="$(jq -r '.properties.status // "Unknown"' "$RUNNER_TEMP/probe-execution.json")"
+            case "$state" in Succeeded|Failed|Canceled|Cancelled) break;; esac
+            sleep 15
+          done
+          echo "fictional_status_execution_state=$state"
+          test "$state" = Succeeded
+          workspace="$(az monitor log-analytics workspace show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$workspace"
+          found=0
+          for attempt in $(seq 1 6); do
+            query="ContainerAppConsoleLogs | where TimeGenerated >= datetime($PROBE_START) | where JobName == '$JOB_NAME' | where Log has 'fictional_queue_probe' | project Log | take 20"
+            az monitor log-analytics query --workspace "$workspace" --analytics-query "$query" -o json > "$RUNNER_TEMP/probe-logs.json"
+            if python - "$RUNNER_TEMP/probe-logs.json" <<'PY'
+          import json,sys
+          data=json.load(open(sys.argv[1],encoding="utf-8"))
+          table=(data.get("tables") or [{}])[0] if isinstance(data,dict) else {}
+          columns=[c.get("name") for c in table.get("columns",[])]
+          rows=[dict(zip(columns,row)) for row in table.get("rows",[])]
+          for row in rows:
+              raw=row.get("Log")
+              if not isinstance(raw,str) or len(raw)>8192: continue
+              try: marker=json.loads(raw[raw.index("{"):raw.rindex("}")+1])
+              except (ValueError,json.JSONDecodeError): continue
+              if marker.get("fictional_queue_probe")!="read_only": continue
+              scope=marker.get("fictional_status") or {}
+              for label in ("clean","eicar"):
+                  item=scope.get(label) or {}
+                  status=item.get("status")
+                  if status not in ("Pending","Promoted","Malicious","Unscanned","Reconcile","Other"): status="Other"
+                  print(label+"_status="+status)
+                  print(label+"_has_result_event="+str(item.get("has_result_event") is True))
+                  print(label+"_has_exact_version="+str(item.get("has_exact_version") is True))
+              n=marker.get("peeked_messages")
+              if type(n) is int and 0<=n<=16: print("peeked_messages="+str(n))
+              print("fictional_status_marker=verified")
+              raise SystemExit(0)
+          raise SystemExit(1)
+          PY
+            then found=1; break; fi
+            sleep 20
+          done
+          if [ "$found" != 1 ]; then
+            echo 'Sanitized fictional status marker unavailable; do not infer file safety.' >&2
+            exit 1
+          fi
+          echo 'Read-only status observed. This alone does not prove exact Blob bytes, alert delivery, or Member intake.'
