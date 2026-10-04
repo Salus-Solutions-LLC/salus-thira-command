@@ -1,3 +1,4 @@
+import base64
 import json
 
 from salus_scan_worker import main, process_queue_message, poll_once
@@ -60,6 +61,22 @@ def test_queue_poll_is_bounded_to_five_messages(monkeypatch):
     queue = Queue([json.dumps({'id': str(index)}) for index in range(6)])
     assert poll_once(queue_client=queue, process_event=lambda event: 'Promoted') == 'Acknowledged'
     assert len(queue.deleted) == 5
+
+
+def test_base64_event_grid_envelope_is_bounded_and_fail_closed(monkeypatch):
+    monkeypatch.setenv('SALUS_SCAN_RESULTS_QUEUE_URL',
+                       'https://salusquarantine.queue.core.windows.net/scan-results')
+    monkeypatch.setenv('SALUS_SCAN_RESULT_TOPIC_ID', '/subscriptions/test/topic')
+    wrapped = base64.b64encode(json.dumps({'id': 'fictional'}).encode()).decode()
+    queue = Queue(wrapped)
+    assert poll_once(queue_client=queue, process_event=lambda event: 'Promoted') == 'Acknowledged'
+    assert queue.deleted == [('message-1', 'receipt-1')]
+    assert not process_queue_message(wrapped, process_event=lambda event: 'Unmatched')
+    assert not process_queue_message('%%%', process_event=lambda event: 'Promoted')
+    assert not process_queue_message(base64.b64encode(b'not json').decode(),
+                                     process_event=lambda event: 'Promoted')
+    assert not process_queue_message(base64.b64encode(b'x' * 50000).decode(),
+                                     process_event=lambda event: 'Promoted')
 
 
 def test_queue_never_acks_malformed_or_partial_message():

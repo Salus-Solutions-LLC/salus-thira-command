@@ -10,6 +10,20 @@ import re
 
 
 _SHA256 = re.compile(r"[0-9a-fA-F]{64}\Z")
+_AZURE_ETAG = re.compile(r"0x[0-9a-fA-F]+\Z")
+
+
+def same_blob_etag(recorded, observed):
+    """Match only the same Azure ETag with or without one HTTP quote pair."""
+    def canonical(value):
+        if not isinstance(value, str):
+            return None
+        if len(value) > 2 and value[0] == value[-1] == '"':
+            value = value[1:-1]
+        return value if _AZURE_ETAG.fullmatch(value) else None
+
+    expected = canonical(recorded)
+    return expected is not None and expected == canonical(observed)
 
 
 def defender_event_matches_pending(event, *, topic, blob_uri, etag, sha256):
@@ -27,12 +41,17 @@ def defender_event_matches_pending(event, *, topic, blob_uri, etag, sha256):
     if (event.get('eventType') != 'Microsoft.Security.MalwareScanningResult'
             or event.get('topic') != topic
             or data.get('blobUri') != blob_uri
-            or data.get('eTag') != etag
-            or not isinstance(details.get('sha256'), str)
-            or not _SHA256.fullmatch(details['sha256'])
-            or details['sha256'].lower() != sha256.lower()):
+            or not same_blob_etag(etag, data.get('eTag'))):
         return False
-    return True
+    event_digest = details.get('sha256')
+    if event_digest is None or event_digest == '':
+        # A Clean result without an event digest is still provisional here:
+        # the named Blob version, raw ETag, size and byte hash must be verified
+        # independently before the caller can promote any bytes.
+        return data.get('scanResultType') == 'No threats found'
+    return (isinstance(event_digest, str)
+            and bool(_SHA256.fullmatch(event_digest))
+            and event_digest.lower() == sha256.lower())
 
 
 def defender_result_for_pending(event, *, topic, blob_uri, etag, sha256):

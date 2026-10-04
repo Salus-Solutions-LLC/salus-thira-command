@@ -2,7 +2,8 @@ from copy import deepcopy
 
 from salus_scan_results import (defender_event_matches_pending,
                                 defender_result_for_pending,
-                                qualified_clean_quarantine_object)
+                                qualified_clean_quarantine_object,
+                                same_blob_etag)
 import hashlib
 
 
@@ -99,3 +100,43 @@ def test_pending_versioned_bytes_must_match_clean_event_and_tenant_scope():
     assert not approved(candidate=event('Malicious'))
     assert not approved(candidate=event('Not scanned'))
     assert not approved(candidate={'data': None})
+
+
+def test_quoted_etag_and_missing_clean_digest_require_exact_versioned_bytes():
+    assert same_blob_etag('"0xABC123"', ETAG)
+    assert same_blob_etag(ETAG, '"0xABC123"')
+    for observed in ('0xABC124', '"0xABC124"', '""0xABC123""',
+                     'W/"0xABC123"', '0xABC123 ', None):
+        assert not same_blob_etag(ETAG, observed)
+
+    data = b'fictional clean document'
+    digest = hashlib.sha256(data).hexdigest()
+    manifest = {
+        'tenant_id': 7, 'assessment_id': 8, 'intake_request_id': 9,
+        'status': 'Pending', 'blob_uri': URI, 'blob_version_id': 'version-1',
+        'etag': '"0xABC123"', 'sha256': digest, 'size_bytes': len(data),
+    }
+    snapshot = {'blob_uri': URI, 'blob_version_id': 'version-1',
+                'etag': manifest['etag'], 'bytes': data}
+    clean = event()
+    clean['data']['eTag'] = ETAG
+    clean['data']['scanResultDetails'].pop('sha256')
+    assert defender_result_for_pending(clean, topic=TOPIC, blob_uri=URI,
+                                       etag=manifest['etag'], sha256=digest) == 'Clean'
+    def qualified(item=clean, recorded=manifest, actual=snapshot):
+        return qualified_clean_quarantine_object(
+            item, recorded, actual, topic=TOPIC, tenant_id=7,
+            assessment_id=8, intake_request_id=9)
+
+    assert qualified()
+    assert not qualified(actual=dict(snapshot, blob_version_id='version-2'))
+    assert not qualified(actual=dict(snapshot, bytes=b'changed bytes'))
+    assert not qualified(actual=dict(snapshot, etag=ETAG))
+    assert not qualified(recorded=dict(manifest, sha256='b' * 64))
+    different = deepcopy(clean)
+    different['data']['scanResultDetails']['sha256'] = 'b' * 64
+    assert not qualified(item=different)
+    malicious = deepcopy(clean)
+    malicious['data']['scanResultType'] = 'Malicious'
+    assert defender_result_for_pending(malicious, topic=TOPIC, blob_uri=URI,
+                                       etag=manifest['etag'], sha256=digest) == 'Unscanned'

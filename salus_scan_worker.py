@@ -4,6 +4,8 @@ Run separately from the web process. Never expose this as an HTTP endpoint.
 Unknown and failed results stay on the queue for a governed reconciliation path.
 """
 
+import base64
+import binascii
 import json
 import os
 import re
@@ -21,7 +23,16 @@ def process_queue_message(content, *, process_event):
     try:
         events = json.loads(content)
     except (TypeError, ValueError):
-        return False
+        # Event Grid's Storage Queue delivery may wrap the JSON event in
+        # base64. Decode only valid bounded UTF-8; every result still passes
+        # the same authenticated exact-object checks before acknowledgement.
+        try:
+            decoded = base64.b64decode(content, validate=True)
+            if not decoded or len(decoded) > 65536:
+                return False
+            events = json.loads(decoded.decode('utf-8'))
+        except (binascii.Error, UnicodeError, ValueError):
+            return False
     if isinstance(events, dict):
         events = [events]
     if not isinstance(events, list) or not events or len(events) > 10:
