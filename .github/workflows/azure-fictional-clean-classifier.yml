@@ -102,6 +102,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # The scheduled worker hides received messages for up to 120 seconds.
+          # Begin near minute 3 of its five-minute cycle to read the visible
+          # fictional result without repeating an inconclusive paid execution.
+          for attempt in $(seq 1 36); do
+            minute="$(date -u +%M)"
+            phase="$(( 10#$minute % 5 ))"
+            if [ "$phase" = 3 ]; then break; fi
+            sleep 5
+          done
+          test "$phase" = 3
           start="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           echo "PROBE_START=$start" >> "$GITHUB_ENV"
           python - "$RUNNER_TEMP/worker.json" "$IMAGE" "$RUNNER_TEMP/probe-body.json" <<'PY'
