@@ -939,8 +939,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         topic='/subscriptions/test/resourceGroups/test/providers/Microsoft.EventGrid/topics/test'
         result_event={'id':'event-1','eventType':'Microsoft.Security.MalwareScanningResult',
             'topic':topic,'data':{'blobUri':held_blob_uri,'eTag':'0xE1',
-            'scanResultType':'No threats found','scanResultDetails':{
-                'malwareNamesFound':[]}}}
+            'scanResultType':'No threats found','scanResultDetails':None}}
         outcome=app.process_package_scan_result(result_event,quarantine=fake_quarantine,
             expected_topic=topic)
         assert outcome=='Promoted',outcome
@@ -954,7 +953,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         promoted_id=promoted['id'];conn.close()
         contrary=json.loads(json.dumps(result_event)); contrary['id']='event-2'
         contrary['data']['scanResultType']='Malicious'
-        contrary['data']['scanResultDetails']['sha256']=pending_digest
+        # A later adverse signal without details must still revoke access.
         assert app.process_package_scan_result(contrary,quarantine=fake_quarantine,
             expected_topic=topic)=='Reconcile'
         conn=app.db()
