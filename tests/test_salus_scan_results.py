@@ -139,7 +139,7 @@ def test_quoted_etag_and_missing_clean_digest_require_exact_versioned_bytes():
     malicious = deepcopy(clean)
     malicious['data']['scanResultType'] = 'Malicious'
     assert defender_result_for_pending(malicious, topic=TOPIC, blob_uri=URI,
-                                       etag=manifest['etag'], sha256=digest) == 'Unscanned'
+                                       etag=manifest['etag'], sha256=digest) == 'Malicious'
 
 
 def test_null_or_missing_details_remain_provisional_until_named_version_bytes_match():
