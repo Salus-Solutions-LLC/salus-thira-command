@@ -105,14 +105,32 @@ jobs:
           changes = result.get('changes') or result.get('properties', {}).get('changes')
           if not isinstance(changes, list):
               raise SystemExit('Azure preview did not return a change list')
-          expected = '/providers/microsoft.app/jobs/salcapa-dev-b48224-scan-test'
-          if len(changes) != 1:
-              raise SystemExit(f'Expected one isolated job creation; observed {len(changes)} changes')
-          change = changes[0]
-          kind = str(change.get('changeType', '')).lower()
-          resource = str(change.get('resourceId', '')).lower()
-          if kind != 'create' or not resource.endswith(expected):
-              raise SystemExit('Azure preview is not solely the private scanner job creation')
-          print('Azure preview: one private manual test job Create; zero updates/deletes.')
+          import os
+          expected = (
+              f"/subscriptions/{os.environ['EXPECTED_SUBSCRIPTION_ID']}"
+              f"/resourcegroups/{os.environ['RESOURCE_GROUP']}"
+              "/providers/microsoft.app/jobs/salcapa-dev-b48224-scan-test"
+          ).lower()
+          counts = {'create': 0, 'nochange': 0, 'other': 0}
+          creates = []
+          for change in changes:
+              kind = str(change.get('changeType', '')).lower() if isinstance(change, dict) else ''
+              if kind in ('create', 'nochange'):
+                  counts[kind] += 1
+              else:
+                  counts['other'] += 1
+              if kind == 'create':
+                  creates.append(change)
+          print(
+              'Azure preview change types: '
+              f"Create={counts['create']}, NoChange={counts['nochange']}, "
+              f"other={counts['other']}"
+          )
+          if counts['other'] or len(creates) != 1:
+              raise SystemExit('Azure preview contains unexpected change types or creation count')
+          resource = str(creates[0].get('resourceId', '')).lower()
+          if resource != expected:
+              raise SystemExit('Azure preview creation is not the exact private scanner job')
+          print('Azure preview: one exact private manual test job Create; no modifications or deletions.')
           PY
 
