@@ -25,7 +25,7 @@ jobs:
 
   probe:
     needs: authorize
-    if: github.run_number == 2 && github.run_attempt == 1
+    if: github.run_number == 3 && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -77,6 +77,22 @@ jobs:
                   and env.get('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID')):
               raise SystemExit('Scanner worker environment differs from reviewed probe target')
           print('exact_worker_probe_preflight=passed')
+          PY
+      - name: Wait for scheduled worker visibility to expire
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from datetime import datetime,timedelta,timezone
+          import time
+          now=datetime.now(timezone.utc)
+          base=now.replace(second=0,microsecond=0)-timedelta(minutes=now.minute%5)
+          target=base+timedelta(minutes=2,seconds=30)
+          if target<=now: target+=timedelta(minutes=5)
+          delay=(target-now).total_seconds()
+          if not 0<delay<=300: raise SystemExit('Visibility wait outside bound')
+          print('fictional_queue_visibility_wait_seconds='+str(round(delay)))
+          time.sleep(delay)
           PY
       - name: Start one read-only fictional queue and ledger probe
         shell: bash
@@ -135,7 +151,7 @@ jobs:
           print('safe_fictional_probe_marker_count='+str(len(markers)))
           if markers:
               marker=markers[0]
-              for key in ('fictional_queue_probe','fictional_scope_count','fictional_pending_count','peeked_messages'):
+              for key in ('fictional_queue_probe','fictional_scope_count','fictional_pending_count','approximate_queue_messages','peeked_messages'):
                   if key in marker: print(key+'='+str(marker[key]))
               statuses=marker.get('fictional_status') or {}
               for label in ('clean','eicar'):
