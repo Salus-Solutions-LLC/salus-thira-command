@@ -26,7 +26,7 @@ from managed_database import runtime_database_status, managed_target_status
 from database import connect_database, backend_name, is_sqlite, is_postgres
 from portable_backup import collect_tenant_records, validate_records, replace_tenant_records
 from salus_scan_quarantine import AzureScanQuarantine, QuarantineError
-from salus_scan_results import defender_event_matches_pending, defender_result_for_pending, qualified_clean_quarantine_object
+from salus_scan_results import defender_event_matches_pending, defender_result_for_pending, qualified_clean_quarantine_object, same_blob_etag
 from salus_scan_inventory import (compare_quarantine_versions,
                                   list_azure_quarantine_versions,
                                   record_inventory_exceptions)
@@ -6638,14 +6638,19 @@ def process_package_scan_result(event:dict, *, quarantine=None, expected_topic:s
     try:
         # The URI is a lookup hint only. All security claims are checked against
         # the tenant-bound ledger after serializing the assessment transition.
-        candidate=conn.execute('''SELECT id,assessment_id FROM package_intake_pending_scans
-            WHERE blob_uri=? AND etag=?''',(blob_uri,etag)).fetchone()
-        if not candidate:
+        # Azure may quote the event ETag differently from the ledger. Match
+        # only one canonical ETag and refuse ambiguous URI candidates.
+        matches=[candidate for candidate in conn.execute(
+            '''SELECT id,assessment_id,etag FROM package_intake_pending_scans
+               WHERE blob_uri=?''',(blob_uri,)).fetchall()
+            if same_blob_etag(candidate['etag'],etag)]
+        if len(matches)!=1:
             return 'Unmatched'
+        candidate=matches[0]
         lock_package_assessment(conn,candidate['assessment_id'])
         row=conn.execute('SELECT * FROM package_intake_pending_scans WHERE id=?',
                          (candidate['id'],)).fetchone()
-        if not row or row['blob_uri']!=blob_uri or row['etag']!=etag:
+        if not row or row['blob_uri']!=blob_uri or not same_blob_etag(row['etag'],etag):
             return 'Unmatched'
         pending=dict(row)
         if not defender_event_matches_pending(event,topic=expected_topic,
@@ -6653,7 +6658,7 @@ def process_package_scan_result(event:dict, *, quarantine=None, expected_topic:s
                 sha256=pending['content_sha256']):
             return 'Unmatched'
         result=defender_result_for_pending(event,topic=expected_topic,
-            blob_uri=blob_uri,etag=etag,sha256=pending['content_sha256'])
+            blob_uri=blob_uri,etag=pending['etag'],sha256=pending['content_sha256'])
         if (pending['scan_event_id']==event_id and pending['status'] in ('Promoted','Malicious','Unscanned')
                 and pending['scan_result']==result):
             return pending['status']
