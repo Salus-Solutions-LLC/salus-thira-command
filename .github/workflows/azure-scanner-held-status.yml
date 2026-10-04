@@ -5,7 +5,7 @@ on:
     branches:
       - development/salcapa-platform
     paths:
-      - deploy/azure/activations/scanner-held-status-dev.json
+      - deploy/azure/activations/scanner-held-status-retry-dev.json
 
 permissions:
   contents: read
@@ -52,19 +52,19 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = "1"
-          file=deploy/azure/activations/scanner-held-status-dev.json
+          file=deploy/azure/activations/scanner-held-status-retry-dev.json
           test "$(git log --format=%H -- "$file" | wc -l | tr -d ' ')" = "1"
           jq -e '
             .schema_version == 1 and
-            .operation == "inspect_original_fictional_scanner_records_once" and
+            .operation == "inspect_original_fictional_scanner_records_retry_once" and
             .target_environment == "dev" and
             .resource_group == "rg-salcapa-dev" and
             .job_name == "salcapa-dev-b48224-scan-worker" and
             .source_release == "release/v3.213" and
             .source_commit == "7ec414abe94092e631f0a4b7222fd99ce34b7e26" and
             .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c" and
-            .approval_record == "MD-FICTIONAL-SCANNER-STATUS-20261004" and
-            .activation_key == "salcapa-v3.213-held-status-7ec414ab" and
+            .approval_record == "MD-FICTIONAL-SCANNER-STATUS-RETRY-20261004" and
+            .activation_key == "salcapa-v3.213-held-status-retry-7ec414ab" and
             ((keys - ["schema_version","operation","target_environment","resource_group","job_name","source_release","source_commit","image_digest","approval_record","activation_key"]) | length == 0)
           ' "$file" >/dev/null
           test "$(git -C frozen-release rev-parse HEAD)" = "7ec414abe94092e631f0a4b7222fd99ce34b7e26"
@@ -103,9 +103,22 @@ jobs:
           set -euo pipefail
           start="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           echo "PROBE_START=$start" >> "$GITHUB_ENV"
-          az containerapp job start -g "$RESOURCE_GROUP" -n "$JOB_NAME" \
-            --image "$IMAGE" --command python --args "-m" "tools.private_scan_queue_probe" \
-            --output json > "$RUNNER_TEMP/probe-start.json"
+          python - "$RUNNER_TEMP/worker.json" "$IMAGE" "$RUNNER_TEMP/probe-body.json" <<'PY'
+          import json,sys
+          job=json.load(open(sys.argv[1],encoding="utf-8"))
+          source=job["properties"]["template"]["containers"][0]
+          body={"containers":[{
+              "name":source["name"],"image":sys.argv[2],
+              "command":["python"],"args":["-m","tools.private_scan_queue_probe"],
+              "env":source["env"],"resources":source["resources"],
+          }]}
+          with open(sys.argv[3],"w",encoding="utf-8") as out:
+              json.dump(body,out,separators=(",",":"))
+          print("Reviewed one-execution override prepared from current job settings.")
+          PY
+          uri="https://management.azure.com/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/jobs/$JOB_NAME/start?api-version=2025-07-01"
+          az rest --method post --uri "$uri" --headers Content-Type=application/json \
+            --body @"$RUNNER_TEMP/probe-body.json" --output json > "$RUNNER_TEMP/probe-start.json"
           python - "$RUNNER_TEMP/probe-start.json" "$GITHUB_ENV" <<'PY'
           import json,re,sys
           value=json.load(open(sys.argv[1],encoding="utf-8"))
