@@ -1,21 +1,21 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 04 October 2026 CDT
+last_verified_at: 04 October 2026 10:29 CDT
 current_frozen_release: v3.213
 current_frozen_commit: 7ec414abe94092e631f0a4b7222fd99ce34b7e26
 active_development_branch: development/salcapa-platform
 current_development_head: 7ec414abe94092e631f0a4b7222fd99ce34b7e26
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3213_scanner_exact_object_repair_image
+active_increment: salus_v3213_scanner_repair_immutable_image_publication
 last_completed_increment: v3210_accepted_immutable_application_and_advisor
 candidate_release: v3.213
-validation_pr: pending_exact_pr
+validation_pr: 698
 validation_branch: candidate/scanner-repair-image-v3213-20261004
 validation_base: development/salcapa-platform
 validation_head: pending_exact_head_after_record_update
-validation_gate_state: candidate_source_review_pending
+validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3207_candidate_knowledge_worker_failed_and_rolled_back
 first_root_failing_gate: v3207_office_parser_image_reconstruction
 root_cause: image_reconstruction_overwrote_reviewed_office_parser
