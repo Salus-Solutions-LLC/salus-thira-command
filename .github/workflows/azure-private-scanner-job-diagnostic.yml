@@ -96,6 +96,10 @@ jobs:
           print('identity_count='+str(len(ids)))
           print('image_matches='+str(c.get('image','').endswith('@sha256:36b48158a6cb13bc8f408af0f9b6cefcf49014907ce117e14898a08f892498bc')))
           print('approval_tag_matches='+str((data.get('tags') or {}).get('approvalRecord')=='MD-PRIVATE-SCANNER-JOB-20261003'))
+          print('source_tag_matches='+str((data.get('tags') or {}).get('sourceCommit')=='7867fa72ae404aa5ed37abd104ecc1c69b9ea190'))
+          expected_job='/subscriptions/076f90cd-cc6a-4547-a4ff-de3fc1825472/resourcegroups/rg-salcapa-dev/providers/microsoft.app/jobs/salcapa-dev-b48224-scan-test'
+          print('job_id_matches='+str(str(data.get('id','')).lower()==expected_job))
+          print('identity_type_matches='+str((data.get('identity') or {}).get('type')=='UserAssigned'))
           expected_identity='/subscriptions/076f90cd-cc6a-4547-a4ff-de3fc1825472/resourcegroups/rg-salcapa-dev/providers/microsoft.managedidentity/userassignedidentities/salcapa-dev-b48224-identity'
           print('identity_matches='+str([key.lower() for key in ids]==[expected_identity]))
           manual=cfg.get('manualTriggerConfig') or {}
@@ -103,9 +107,12 @@ jobs:
           print('completion_count_matches='+str(manual.get('replicaCompletionCount')==1))
           resources=c.get('resources') or {}
           print('cpu_matches='+str(str(resources.get('cpu'))=='0.25'))
+          print('cpu_numeric_matches='+str(resources.get('cpu')==0.25 and type(resources.get('cpu')) in (int,float)))
           print('memory_matches='+str(resources.get('memory')=='0.5Gi'))
           print('schedule_absent_or_null='+str(cfg.get('scheduleTriggerConfig') is None))
           print('ingress_absent_or_null='+str(p.get('ingress') is None))
+          print('schedule_key_present='+str('scheduleTriggerConfig' in cfg))
+          print('ingress_key_present='+str('ingress' in p))
           PY
             if az containerapp job execution list -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-scan-test -o json > "$RUNNER_TEMP/job-executions.json" 2> "$RUNNER_TEMP/execution-read-error"; then
               python - "$RUNNER_TEMP/job-executions.json" <<'PY'
