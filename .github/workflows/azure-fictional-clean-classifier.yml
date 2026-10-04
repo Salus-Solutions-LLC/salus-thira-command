@@ -1,0 +1,149 @@
+name: SalCAPA one-time fictional Clean rule classifier
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - deploy/azure/activations/scanner-clean-classifier-dev.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-fictional-clean-classifier-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only fictional status gate passed.'
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RESOURCE_GROUP: rg-salcapa-dev
+      JOB_NAME: salcapa-dev-b48224-scan-worker
+      IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.213
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Enforce exact source, fictional-only probe and one attempt
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          file=deploy/azure/activations/scanner-clean-classifier-dev.json
+          test "$(git log --format=%H -- "$file" | wc -l | tr -d ' ')" = "1"
+          jq -e '
+            .schema_version == 1 and
+            .operation == "classify_original_fictional_clean_event_once" and
+            .target_environment == "dev" and
+            .resource_group == "rg-salcapa-dev" and
+            .job_name == "salcapa-dev-b48224-scan-worker" and
+            .source_release == "release/v3.213" and
+            .source_commit == "7ec414abe94092e631f0a4b7222fd99ce34b7e26" and
+            .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c" and
+            .approval_record == "MD-FICTIONAL-CLEAN-CLASSIFIER-20261004" and
+            .activation_key == "salcapa-v3.213-clean-classifier-7ec414ab" and
+            ((keys - ["schema_version","operation","target_environment","resource_group","job_name","source_release","source_commit","image_digest","approval_record","activation_key"]) | length == 0)
+          ' "$file" >/dev/null
+          test "$(git -C frozen-release rev-parse HEAD)" = "7ec414abe94092e631f0a4b7222fd99ce34b7e26"
+          git merge-base --is-ancestor 7ec414abe94092e631f0a4b7222fd99ce34b7e26 "$GITHUB_SHA"
+          test "$(git log --format=%H -- tools/private_clean_event_classifier.py | wc -l | tr -d ' ')" = "1"
+          python -m py_compile tools/private_clean_event_classifier.py
+          grep -Fq "fictional_clean_classifier" tools/private_clean_event_classifier.py
+          grep -Fq "queue.peek_messages(max_messages=16)" tools/private_clean_event_classifier.py
+          if grep -Eq 'delete_message|receive_messages|put_blob|upload_blob|process_package_scan_result|storage.put_bytes' tools/private_clean_event_classifier.py; then
+            echo 'Classifier unexpectedly mutates queue, storage or ledger.' >&2; exit 1
+          fi
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify exact existing worker before one read-only execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n "$RESOURCE_GROUP" --query location -o tsv)" = southcentralus
+          az containerapp job show -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/worker.json"
+          jq -e --arg image "$IMAGE" '
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/5 * * * *" and
+            .properties.configuration.replicaTimeout == 60 and
+            (.properties.template.containers | length) == 1 and
+            .properties.template.containers[0].image == $image and
+            (.identity.userAssignedIdentities | keys | length) == 2
+          ' "$RUNNER_TEMP/worker.json" >/dev/null
+      - name: Run one bounded read-only fictional Clean classifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          start="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "PROBE_START=$start" >> "$GITHUB_ENV"
+          python - "$RUNNER_TEMP/worker.json" "$IMAGE" "$RUNNER_TEMP/probe-body.json" <<'PY'
+          import json,sys
+          job=json.load(open(sys.argv[1],encoding="utf-8"))
+          source=job["properties"]["template"]["containers"][0]
+          body={"containers":[{
+              "name":source["name"],"image":sys.argv[2],
+              "command":["python"],"args":["-c",open("tools/private_clean_event_classifier.py",encoding="utf-8").read()],
+              "env":source["env"],"resources":{"cpu":source["resources"]["cpu"],"memory":source["resources"]["memory"]},
+          }]}
+          with open(sys.argv[3],"w",encoding="utf-8") as out:
+              json.dump(body,out,separators=(",",":"))
+          print("Reviewed one-execution classifier prepared from current job settings.")
+          PY
+          uri="https://management.azure.com/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/jobs/$JOB_NAME/start?api-version=2025-07-01"
+          az rest --method post --uri "$uri" --headers Content-Type=application/json \
+            --body @"$RUNNER_TEMP/probe-body.json" --output json > "$RUNNER_TEMP/probe-start.json"
+          python - "$RUNNER_TEMP/probe-start.json" "$GITHUB_ENV" <<'PY'
+          import json,re,sys
+          value=json.load(open(sys.argv[1],encoding="utf-8"))
+          name=value.get("name","")
+          if not re.fullmatch(r"salcapa-dev-b48224-scan-worker-[a-z0-9-]{1,40}",name):
+              raise SystemExit("Unexpected job execution name; inspect Azure before any retry")
+          containers=(value.get("properties") or {}).get("template",{}).get("containers",[])
+          if containers:
+              if len(containers)!=1 or containers[0].get("command")!=["python"] or len(containers[0].get("args",[]))!=2 or containers[0]["args"][0]!="-c" or containers[0]["args"][1]!=open("tools/private_clean_event_classifier.py",encoding="utf-8").read():
+                  raise SystemExit("Execution override did not match the read-only probe")
+          with open(sys.argv[2],"a",encoding="utf-8") as out: out.write("PROBE_EXECUTION="+name+"\n")
+          print("One fictional-only read-only classifier execution started.")
+          PY
+      - name: Verify terminal execution state without reading raw logs
+        shell: bash
+        run: |
+          set -euo pipefail
+          state=""
+          for attempt in $(seq 1 12); do
+            az containerapp job execution show -g "$RESOURCE_GROUP" -n "$JOB_NAME" --job-execution-name "$PROBE_EXECUTION" -o json > "$RUNNER_TEMP/classifier-execution.json"
+            state="$(jq -r '.properties.status // "Unknown"' "$RUNNER_TEMP/classifier-execution.json")"
+            case "$state" in Succeeded|Failed|Canceled|Cancelled) break;; esac
+            sleep 15
+          done
+          echo "fictional_clean_classifier_execution_state=$state"
+          test "$state" = Succeeded
+          echo 'Execution succeeded. Read only the settled sanitized marker later; no file-safety conclusion here.'
