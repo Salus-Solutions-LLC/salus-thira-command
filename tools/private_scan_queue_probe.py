@@ -82,16 +82,30 @@ def main():
                 counts["other_scope_or_uri_mismatch"] += 1
                 continue
             counts["fictional_event"] += 1
+            label = "clean" if row["original_name"] == "clean.txt" else "eicar"
             if event.get("eventType") != "Microsoft.Security.MalwareScanningResult":
                 counts["event_type_mismatch"] += 1
             if event.get("topic") != expected_topic:
                 counts["topic_mismatch"] += 1
-            if data.get("eTag") != row["etag"]:
+            event_etag, ledger_etag = data.get("eTag"), row["etag"]
+            if event_etag != ledger_etag:
                 counts["etag_mismatch"] += 1
+                def unquote_one(value):
+                    return value[1:-1] if (isinstance(value, str) and len(value) > 2
+                        and value[0] == value[-1] == '"') else value
+                if (isinstance(event_etag, str) and isinstance(ledger_etag, str)
+                        and unquote_one(event_etag) == unquote_one(ledger_etag)):
+                    counts[label + "_etag_quotes_only"] += 1
+                else:
+                    counts[label + "_etag_value_diff"] += 1
             details = data.get("scanResultDetails")
             digest = details.get("sha256") if isinstance(details, dict) else None
-            if not isinstance(digest, str) or digest.lower() != row["content_sha256"].lower():
+            if not isinstance(digest, str) or not digest:
                 counts["digest_mismatch_or_absent"] += 1
+                counts[label + "_digest_absent"] += 1
+            elif digest.lower() != row["content_sha256"].lower():
+                counts["digest_mismatch_or_absent"] += 1
+                counts[label + "_digest_value_diff"] += 1
             result = data.get("scanResultType")
             if result in ("Malicious", "No threats found", "Not scanned", "Error"):
                 counts["result_" + result.replace(" ", "_")] += 1
@@ -112,6 +126,10 @@ def main():
         "invalid_content", "invalid_json", "base64_wrapped", "invalid_event_shape",
         "other_scope_or_uri_mismatch", "fictional_event", "event_type_mismatch",
         "topic_mismatch", "etag_mismatch", "digest_mismatch_or_absent",
+        "clean_etag_quotes_only", "eicar_etag_quotes_only",
+        "clean_etag_value_diff", "eicar_etag_value_diff",
+        "clean_digest_absent", "eicar_digest_absent",
+        "clean_digest_value_diff", "eicar_digest_value_diff",
         "result_Malicious", "result_No_threats_found", "result_Not_scanned",
         "result_Error", "result_other",
     )
