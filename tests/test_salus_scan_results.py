@@ -168,7 +168,8 @@ def test_null_or_missing_details_remain_provisional_until_named_version_bytes_ma
         assert defender_event_matches_pending(
             clean, topic=TOPIC, blob_uri=URI,
             etag=manifest['etag'], sha256=digest)
-        assert defender_result_for_pending(clean, topic=TOPIC, blob_uri=URI,\n                                          etag=manifest['etag'], sha256=digest) == 'Clean'
+        assert defender_result_for_pending(clean, topic=TOPIC, blob_uri=URI,
+                                          etag=manifest['etag'], sha256=digest) == 'Clean'
         assert qualified(clean)
         assert not qualified(clean, actual=dict(snapshot, blob_version_id='version-2'))
         assert not qualified(clean, actual=dict(snapshot, bytes=b'changed bytes'))
