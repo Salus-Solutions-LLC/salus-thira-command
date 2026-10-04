@@ -47,8 +47,8 @@ jobs:
           az containerapp job execution list -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/executions.json"
           WORKSPACE_ID="$(az monitor log-analytics workspace show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-logs --query customerId -o tsv)"
           test -n "$WORKSPACE_ID"
-          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between(datetime(2026-10-04T03:50:00Z)..datetime(2026-10-04T03:56:00Z)) | where JobName == 'salcapa-dev-b48224-scan-worker' | project TimeGenerated, Log | take 200" -o json > "$RUNNER_TEMP/console.json"
-          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppSystemLogs | where TimeGenerated between(datetime(2026-10-04T03:50:00Z)..datetime(2026-10-04T03:56:00Z)) | extend SafeJob=tostring(column_ifexists('JobName','')), SafeApp=tostring(column_ifexists('ContainerAppName','')), SafeLog=tostring(column_ifexists('Log','')) | where SafeJob == 'salcapa-dev-b48224-scan-worker' or SafeApp == 'salcapa-dev-b48224-scan-worker' | extend Category=case(SafeLog has 'ErrImagePull','ImagePull',SafeLog has 'ContainerCrashing','ContainerCrash',SafeLog has 'Timeout','Timeout',SafeLog has 'Failed','Failed','Other') | summarize Events=count() by Category" -o json > "$RUNNER_TEMP/system.json"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between(datetime(2026-10-04T04:07:00Z)..datetime(2026-10-04T04:12:00Z)) | where JobName == 'salcapa-dev-b48224-scan-worker' | project TimeGenerated, Log | take 200" -o json > "$RUNNER_TEMP/console.json"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppSystemLogs | where TimeGenerated between(datetime(2026-10-04T04:07:00Z)..datetime(2026-10-04T04:12:00Z)) | extend SafeJob=tostring(column_ifexists('JobName','')), SafeApp=tostring(column_ifexists('ContainerAppName','')), SafeLog=tostring(column_ifexists('Log','')) | where SafeJob == 'salcapa-dev-b48224-scan-worker' or SafeApp == 'salcapa-dev-b48224-scan-worker' | extend Category=case(SafeLog has 'ErrImagePull','ImagePull',SafeLog has 'ContainerCrashing','ContainerCrash',SafeLog has 'Timeout','Timeout',SafeLog has 'Failed','Failed','Other') | summarize Events=count() by Category" -o json > "$RUNNER_TEMP/system.json"
           python - "$RUNNER_TEMP/executions.json" "$RUNNER_TEMP/console.json" "$RUNNER_TEMP/system.json" <<'PY'
           import collections,json,sys
           from datetime import datetime,timezone
@@ -59,8 +59,8 @@ jobs:
               cols=[x.get('name') for x in table.get('columns',[])]
               return [dict(zip(cols,row)) for row in table.get('rows',[])]
           executions=records(sys.argv[1])
-          lo=datetime(2026,10,4,3,50,tzinfo=timezone.utc)
-          hi=datetime(2026,10,4,3,56,tzinfo=timezone.utc)
+          lo=datetime(2026,10,4,4,7,tzinfo=timezone.utc)
+          hi=datetime(2026,10,4,4,12,tzinfo=timezone.utc)
           statuses=collections.Counter()
           for row in executions:
               p=row.get('properties') or {}
