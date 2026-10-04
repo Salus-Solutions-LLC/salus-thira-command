@@ -1,3 +1,8 @@
+## 3 October 2026 Central — one-time scanner workflow awaits result-observation correction
+
+- Marc approved PR #678 exact head `791d0152c1932b6fd414b343e3a90c3baec8a95f` after three successful checks; it merged as `7625c2e9274e141d6a46eacaf7348a8b415b239f`. Its protected one-time fictional test workflow is dormant: the required activation file does not exist, and Azure still shows zero private-job executions.
+- A candidate follow-up captures only the opaque execution name and polls its terminal status for up to the reviewed job's twenty-minute bound; it prints no raw application logs. This is needed before any separate activation so a started test has observable success or failure. Exact-source CI and Marc review remain open. The terminal status alone does not prove Clean/EICAR exact-object handling; restricted outcome review and alert/recovery remain separate. Member uploads, quotes, checkout, purchases and receipts remain closed. Owner: Salus engineering; Marc qualifies exact source/activation/output.
+
 ## 3 October 2026 Central — exact private scanner readback passed; one-time execution staged
 
 - Marc approved PR #677 exact head `73633c8344a1d4bc52b94ab46a5981a78bef60dc` after all three checks passed; it merged as `22eb7f6b4f63dde33c51f2c170541ad208966c35`. Protected read-only [run 37171815822](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37171815822) passed the full exact manual-job bounds assertion and reported zero executions. Azure's null schedule field caused the prior false post-create failure; the assertion is corrected. Do not rerun job creation.
