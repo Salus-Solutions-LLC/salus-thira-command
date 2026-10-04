@@ -2214,9 +2214,11 @@ def verified_quote_advisor_receipt_link(conn,quote,request:Request,current,lock:
     return link
 
 def package_workflow_ready():
-    if not PACKAGE_COMMERCIAL_WORKFLOW_ENABLED or ENVIRONMENT=='production':
+    if not PACKAGE_COMMERCIAL_WORKFLOW_ENABLED:
         return False
-    if AUTH_MODE=='oidc':
+    if ENVIRONMENT=='production' and (AUTH_MODE!='oidc' or not COOKIE_SECURE):
+        return False
+    if ENVIRONMENT=='production' or AUTH_MODE=='oidc':
         quarantine_url=os.getenv('SALUS_SCAN_QUARANTINE_URL','').strip()
         return (PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and
                 re.fullmatch(r'https://[a-z0-9]{3,24}\.blob\.core\.windows\.net',quarantine_url) is not None)
