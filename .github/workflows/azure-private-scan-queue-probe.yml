@@ -1,0 +1,147 @@
+name: SalCAPA one-time fictional queue probe
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-private-scan-queue-probe.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-private-scan-queue-probe-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected one-time fictional queue-probe gate passed.'
+
+  probe:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      RESOURCE_GROUP: rg-salcapa-dev
+      JOB_NAME: salcapa-dev-b48224-scan-worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify exact worker identity, image and bounds
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n "$RESOURCE_GROUP" --query location -o tsv)" = southcentralus
+          az containerapp job show -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/worker.json"
+          python - "$RUNNER_TEMP/worker.json" <<'PY'
+          import json,sys
+          job=json.load(open(sys.argv[1],encoding='utf-8'))
+          p=job.get('properties') or {}
+          c=p.get('configuration') or {}
+          t=p.get('template') or {}
+          containers=t.get('containers') or []
+          identities=(job.get('identity') or {}).get('userAssignedIdentities') or {}
+          expected='sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966'
+          if not (p.get('provisioningState')=='Succeeded'
+                  and c.get('triggerType')=='Schedule'
+                  and c.get('replicaTimeout')==60
+                  and c.get('replicaRetryLimit')==0
+                  and len(containers)==1
+                  and str(containers[0].get('image','')).endswith(expected)
+                  and containers[0].get('command')==['python','-m','salus_scan_worker']
+                  and len(identities)==2):
+              raise SystemExit('Scanner worker differs from the reviewed one-time probe target')
+          env={x.get('name'):x.get('value') for x in containers[0].get('env',[])}
+          if not (env.get('SALUS_ENV')=='dev'
+                  and env.get('SALUS_DB_BACKEND')=='postgres'
+                  and env.get('SALUS_PACKAGE_SCAN_MODE')=='defender'
+                  and env.get('SALUS_SCAN_RESULTS_QUEUE_URL','').endswith('/scan-results')
+                  and env.get('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID')):
+              raise SystemExit('Scanner worker environment differs from reviewed probe target')
+          print('exact_worker_probe_preflight=passed')
+          PY
+      - name: Start one read-only fictional queue and ledger probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - "$RUNNER_TEMP/worker.json" tools/private_scan_queue_probe.py "$RUNNER_TEMP/probe-body.json" <<'PY'
+          import base64,json,sys
+          job=json.load(open(sys.argv[1],encoding='utf-8'))
+          source=open(sys.argv[2],'rb').read()
+          if not source or len(source)>12000:
+              raise SystemExit('Probe source size is outside reviewed bound')
+          encoded=base64.b64encode(source).decode('ascii')
+          expr="exec(__import__('base64').b64decode('"+encoded+"'))"
+          template=job['properties']['template']
+          template['containers'][0]['command']=['python','-c',expr]
+          template['containers'][0]['args']=[]
+          with open(sys.argv[3],'w',encoding='utf-8') as out:
+              json.dump(template,out,separators=(',',':'))
+          print('read_only_probe_template_prepared=true')
+          PY
+          JOB_ID="$(az containerapp job show -g "$RESOURCE_GROUP" -n "$JOB_NAME" --query id -o tsv)"
+          test -n "$JOB_ID"
+          az rest --method post --url "https://management.azure.com${JOB_ID}/start?api-version=2025-01-01" --headers Content-Type=application/json --body "@$RUNNER_TEMP/probe-body.json" -o json > "$RUNNER_TEMP/probe-start.json"
+          echo 'read_only_probe_execution_started=true'
+      - name: Check only sanitized fictional probe output
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 120
+          WORKSPACE_ID="$(az monitor log-analytics workspace show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$WORKSPACE_ID"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated > ago(10m) | where JobName == 'salcapa-dev-b48224-scan-worker' | where Log has 'fictional_queue_probe' | project TimeGenerated, Log | order by TimeGenerated desc | take 5" -o json > "$RUNNER_TEMP/probe-markers.json"
+          python - "$RUNNER_TEMP/probe-markers.json" <<'PY'
+          import json,sys
+          data=json.load(open(sys.argv[1],encoding='utf-8'))
+          if isinstance(data,list): rows=data
+          elif isinstance(data,dict):
+              table=(data.get('tables') or [{}])[0]
+              cols=[x.get('name') for x in table.get('columns',[])]
+              rows=[dict(zip(cols,row)) for row in table.get('rows',[])]
+          else: rows=[]
+          markers=[]
+          for row in rows:
+              raw=row.get('Log') if isinstance(row,dict) else None
+              if not isinstance(raw,str) or len(raw)>4096: continue
+              try: marker=json.loads(raw[raw.index('{'):raw.rindex('}')+1])
+              except (ValueError,TypeError,json.JSONDecodeError): continue
+              if marker.get('fictional_queue_probe') in ('read_only','inconclusive'):
+                  markers.append(marker)
+          print('safe_fictional_probe_marker_count='+str(len(markers)))
+          if markers:
+              marker=markers[0]
+              for key in ('fictional_queue_probe','fictional_scope_count','fictional_pending_count','peeked_messages'):
+                  if key in marker: print(key+'='+str(marker[key]))
+              statuses=marker.get('fictional_status') or {}
+              for label in ('clean','eicar'):
+                  value=statuses.get(label) or {}
+                  status=value.get('status')
+                  if status in ('Pending','Promoted','Malicious','Unscanned','Reconcile','Other'):
+                      print(label+'_status='+status)
+                      print(label+'_has_result_event='+str(value.get('has_result_event') is True))
+                      print(label+'_has_exact_version='+str(value.get('has_exact_version') is True))
+              categories=marker.get('event_categories') or {}
+              for key in sorted(categories):
+                  if key.replace('_','').isalnum() and isinstance(categories[key],int):
+                      print('event_category_'+key+'='+str(categories[key]))
+          else:
+              print('safe_fictional_probe_marker_unavailable; no queue or ledger conclusion')
+          PY
