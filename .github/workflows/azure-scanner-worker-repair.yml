@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: release/v3.213
+          ref: release/v3.214
           path: frozen-release
           fetch-depth: 1
           persist-credentials: false
@@ -52,17 +52,17 @@ jobs:
             .target_environment == "dev" and
             .resource_group == "rg-salcapa-dev" and
             .job_name == "salcapa-dev-b48224-scan-worker" and
-            .source_release == "release/v3.213" and
-            .source_commit == "7ec414abe94092e631f0a4b7222fd99ce34b7e26" and
-            .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c" and
-            .rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966" and
-            .approval_record == "MD-SCANNER-WORKER-REPAIR-20261004" and
-            .activation_key == "salcapa-v3.213-scan-worker-7ec414ab" and
+            .source_release == "release/v3.214" and
+            .source_commit == "04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc" and
+            .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0" and
+            .rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c" and
+            .approval_record == "MD-SCANNER-WORKER-V3214-20261004" and
+            .activation_key == "salcapa-v3.214-scan-worker-04b6e6ae" and
             ((keys - ["schema_version","operation","target_environment","resource_group","job_name","source_release","source_commit","image_digest","rollback_image_digest","approval_record","activation_key"]) | length == 0)
           ' "$file" >/dev/null
-          test "$(git -C frozen-release rev-parse HEAD)" = "7ec414abe94092e631f0a4b7222fd99ce34b7e26"
-          git merge-base --is-ancestor 7ec414abe94092e631f0a4b7222fd99ce34b7e26 "$GITHUB_SHA"
-          grep -Fq 'SALCAPA_RELEASE_VERSION = "3.213"' frozen-release/salcapa_runtime.py
+          test "$(git -C frozen-release rev-parse HEAD)" = "04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc"
+          git merge-base --is-ancestor 04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc "$GITHUB_SHA"
+          grep -Fq 'SALCAPA_RELEASE_VERSION = "3.214"' frozen-release/salcapa_runtime.py
       - name: Azure login through workload identity federation
         uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
         with:
@@ -79,16 +79,16 @@ jobs:
           test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
           test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
           test "$(az group show -n rg-salcapa-dev --query location -o tsv)" = "southcentralus"
-          for digest in b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c 0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966; do
+          for digest in c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0 b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c; do
             test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@sha256:$digest" --query digest -o tsv)" = "sha256:$digest"
           done
-          test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name salcapa:source-7ec414abe94092e631f0a4b7222fd99ce34b7e26 --query digest -o tsv)" = "sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c"
+          test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name salcapa:source-04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc --query digest -o tsv)" = "sha256:c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0"
           az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/scan-before.json"
           python - "$RUNNER_TEMP/scan-before.json" <<'PY'
           import json, sys
           job=json.load(open(sys.argv[1],encoding="utf-8"))
           p=job["properties"]; c=p["configuration"]; t=p["template"]; xs=t["containers"]
-          expected="salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966"
+          expected="salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c"
           assert len(xs)==1 and xs[0]["name"]=="scan-results" and xs[0]["image"]==expected
           assert xs[0]["command"]==["python","-m","salus_scan_worker"]
           assert float(xs[0]["resources"]["cpu"])==0.25 and xs[0]["resources"]["memory"]=="0.5Gi"
@@ -96,7 +96,7 @@ jobs:
           assert c["replicaTimeout"]==60 and c["replicaRetryLimit"]==0
           assert len(job["identity"]["userAssignedIdentities"])==2
           assert len(c["registries"])==1
-          print("PREVIEW: one existing scheduled scanner-result job; image digest changes from approved 3.208 rollback to frozen 3.213. No app, inventory job, identity, schedule or Member switch is targeted.")
+          print("PREVIEW: one existing scheduled scanner-result job; image digest changes from current 3.213 to frozen 3.214. No app, inventory job, identity, schedule or Member switch is targeted.")
           PY
       - name: Update only scanner-result worker image, verify, and roll back on failure
         shell: bash
@@ -104,8 +104,8 @@ jobs:
           set -euo pipefail
           group=rg-salcapa-dev
           job=salcapa-dev-b48224-scan-worker
-          new=salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c
-          old=salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966
+          new=salcapadevb48224acr.azurecr.io/salcapa@sha256:c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0
+          old=salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c
           rollback() {
             echo 'Scanner worker verification failed; restoring the recorded prior image.' >&2
             az containerapp job update -g "$group" -n "$job" --image "$old" --output none || true
