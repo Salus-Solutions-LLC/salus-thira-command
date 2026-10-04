@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 03 October 2026 19:39 CDT
-current_frozen_release: v3.211
-current_frozen_commit: c2b83cdc8cd7f45f868de9eeeffbf1fb9f4489ac
+last_verified_at: 04 October 2026 CDT
+current_frozen_release: v3.213
+current_frozen_commit: 7ec414abe94092e631f0a4b7222fd99ce34b7e26
 active_development_branch: development/salcapa-platform
-current_development_head: 7867fa72ae404aa5ed37abd104ecc1c69b9ea190
+current_development_head: 7ec414abe94092e631f0a4b7222fd99ce34b7e26
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3212_private_scanner_acceptance_image
+active_increment: salus_v3213_scanner_exact_object_repair_image
 last_completed_increment: v3210_accepted_immutable_application_and_advisor
-candidate_release: v3.212
-validation_pr: 668
-validation_branch: candidate/scan-acceptance-image-v3212-20261003
+candidate_release: v3.213
+validation_pr: pending_exact_pr
+validation_branch: candidate/scanner-repair-image-v3213-20261004
 validation_base: development/salcapa-platform
-validation_head: pending_exact_head_after_continuity_update
-validation_gate_state: running_after_continuity_repair
+validation_head: pending_exact_head_after_record_update
+validation_gate_state: candidate_source_review_pending
 failed_workflows: v3207_candidate_knowledge_worker_failed_and_rolled_back
 first_root_failing_gate: v3207_office_parser_image_reconstruction
 root_cause: image_reconstruction_overwrote_reviewed_office_parser
 repair_head: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
 repair_summary: v3208_image_and_application_accepted_with_scanner_worker_followup_open
 genuine_blockers: private_clean_adverse_scan_and_alert_proof_open_member_upload_quote_checkout_closed
-next_authorized_step: pass_exact_v3212_candidate_checks_and_review_then_publish_image_before_private_azure_job
+next_authorized_step: pass_exact_v3213_candidate_checks_and_review_then_publish_image_before_scanner_worker_deployment
 deployed_demo_release: v3.210
 deployed_demo_state: accepted_immutable_application_and_advisor_v3210_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3210_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3212_private_scanner_acceptance_failed: The private fictional Clean/EICAR run on the published v3.212 image timed out with both exact Blob versions Pending. Settled probes found base64-wrapped Event Grid queue messages, one-pair ETag quotation differences, and no SHA-256 field on the Clean event. Reviewed PR #695 merged the narrow fail-closed repair as `bd8e1e9beb56086d8529028309c96a6874ef74bc`; reviewed PR #697 froze v3.213 source at `7ec414abe94092e631f0a4b7222fd99ce34b7e26`. The v3.212 image was published for private testing but not accepted for Member uploads or deployed as the application. Accepted live application v3.210 and its rollback remain unchanged. The v3.213 image record is a candidate: exact-head checks, qualified review, protected image readback, guarded scanner-worker deployment, independent fictional Clean/EICAR exact-version outcomes, real alert and recovery proof, commercial/OIDC/Stripe tests, and qualified release are still open. Do not rerun the already used one-time private job. Member uploads, quotes, checkout, purchases and receipts remain closed.
 
 v3211_superseded_before_publication: Frozen v3.211 at `c2b83cdc8cd7f45f868de9eeeffbf1fb9f4489ac` passed its branch guard, but its private manual scanner acceptance job name was 34 characters. Azure's Container Apps Job name rule requires fewer than 32. Draft image PR #666 was closed unmerged before any image or Azure job deployment. Candidate v3.212 at frozen source `7867fa72ae404aa5ed37abd104ecc1c69b9ea190` shortens the job name to 28 characters and adds cross-file regression checks. Accepted app v3.210 remains live; Member uploads, quotes, checkout, purchases and receipts remain closed. PR #668 stages image publication only, subject to exact-head checks and Marc's review. Private Azure what-if, identity/cost, Clean/EICAR exact-object, real alert and commercial/OIDC/payment gates remain separate.
 
