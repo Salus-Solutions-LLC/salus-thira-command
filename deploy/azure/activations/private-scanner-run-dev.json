@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "operation": "run_fictional_private_scanner_once",
+  "target_environment": "dev",
+  "resource_group": "rg-salcapa-dev",
+  "job_name": "salcapa-dev-b48224-scan-test",
+  "source_release": "release/v3.212",
+  "source_commit": "7867fa72ae404aa5ed37abd104ecc1c69b9ea190",
+  "image_digest": "sha256:36b48158a6cb13bc8f408af0f9b6cefcf49014907ce117e14898a08f892498bc",
+  "prior_execution_count": 0,
+  "maximum_executions": 1,
+  "approval_record": "MD-PRIVATE-SCANNER-RUN-20261003"
+}
