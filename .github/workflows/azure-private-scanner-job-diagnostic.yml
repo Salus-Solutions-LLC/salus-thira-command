@@ -147,7 +147,7 @@ jobs:
           else
             echo 'job_read=unavailable; no conclusion about existence or configuration'
           fi
-- name: Read only the fictional scanner outcome marker
+      - name: Read only the fictional scanner outcome marker
         shell: bash
         run: |
           set -euo pipefail
