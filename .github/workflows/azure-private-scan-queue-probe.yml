@@ -25,7 +25,7 @@ jobs:
 
   probe:
     needs: authorize
-    if: github.run_number == 3 && github.run_attempt == 1
+    if: github.run_number == 4 && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -151,7 +151,7 @@ jobs:
           print('safe_fictional_probe_marker_count='+str(len(markers)))
           if markers:
               marker=markers[0]
-              for key in ('fictional_queue_probe','fictional_scope_count','fictional_pending_count','approximate_queue_messages','peeked_messages'):
+              for key in ('fictional_queue_probe','fictional_scope_count','fictional_pending_count','peeked_messages'):
                   if key in marker: print(key+'='+str(marker[key]))
               statuses=marker.get('fictional_status') or {}
               for label in ('clean','eicar'):
