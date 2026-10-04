@@ -32,7 +32,10 @@ def defender_event_matches_pending(event, *, topic, blob_uri, etag, sha256):
         return False
     data = event['data']
     details = data.get('scanResultDetails')
-    if not isinstance(details, dict):
+    # Defender can omit the details object on an authenticated Clean result.
+    # A missing digest never clears a file by itself: the caller must read and
+    # verify the named Blob version, raw ETag, size and byte hash first.
+    if details is not None and not isinstance(details, dict):
         return False
     if not isinstance(sha256, str) or not _SHA256.fullmatch(sha256):
         return False
@@ -43,12 +46,13 @@ def defender_event_matches_pending(event, *, topic, blob_uri, etag, sha256):
             or data.get('blobUri') != blob_uri
             or not same_blob_etag(etag, data.get('eTag'))):
         return False
-    event_digest = details.get('sha256')
+    event_digest = details.get('sha256') if isinstance(details, dict) else None
     if event_digest is None or event_digest == '':
-        # A Clean result without an event digest is still provisional here:
-        # the named Blob version, raw ETag, size and byte hash must be verified
-        # independently before the caller can promote any bytes.
-        return data.get('scanResultType') == 'No threats found'
+        # The event matches the pending object, but a missing digest is only
+        # provisional. Malicious and unknown results must still reach the
+        # hold/reconcile path. Clean promotion requires the independent named
+        # Blob version, raw ETag, size and byte hash checks below.
+        return True
     return (isinstance(event_digest, str)
             and bool(_SHA256.fullmatch(event_digest))
             and event_digest.lower() == sha256.lower())
@@ -60,12 +64,12 @@ def defender_result_for_pending(event, *, topic, blob_uri, etag, sha256):
                                           etag=etag, sha256=sha256):
         return 'Unscanned'
     data = event['data']
-    details = data['scanResultDetails']
+    details = data.get('scanResultDetails')
     if data.get('scanResultType') == 'Malicious':
         return 'Malicious'
     if data.get('scanResultType') != 'No threats found':
         return 'Unscanned'
-    malware_names = details.get('malwareNamesFound', [])
+    malware_names = details.get('malwareNamesFound', []) if isinstance(details, dict) else []
     if not isinstance(malware_names, list) or malware_names:
         return 'Unscanned'
     return 'Clean'

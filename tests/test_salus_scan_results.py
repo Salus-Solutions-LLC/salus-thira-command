@@ -139,4 +139,61 @@ def test_quoted_etag_and_missing_clean_digest_require_exact_versioned_bytes():
     malicious = deepcopy(clean)
     malicious['data']['scanResultType'] = 'Malicious'
     assert defender_result_for_pending(malicious, topic=TOPIC, blob_uri=URI,
-                                       etag=manifest['etag'], sha256=digest) == 'Unscanned'
+                                       etag=manifest['etag'], sha256=digest) == 'Malicious'
+
+
+def test_null_or_missing_details_remain_provisional_until_named_version_bytes_match():
+    data = b'fictional clean document'
+    digest = hashlib.sha256(data).hexdigest()
+    manifest = {
+        'tenant_id': 7, 'assessment_id': 8, 'intake_request_id': 9,
+        'status': 'Pending', 'blob_uri': URI, 'blob_version_id': 'version-1',
+        'etag': '"0xABC123"', 'sha256': digest, 'size_bytes': len(data),
+    }
+    snapshot = {'blob_uri': URI, 'blob_version_id': 'version-1',
+                'etag': manifest['etag'], 'bytes': data}
+
+    def qualified(item, recorded=manifest, actual=snapshot):
+        return qualified_clean_quarantine_object(
+            item, recorded, actual, topic=TOPIC, tenant_id=7,
+            assessment_id=8, intake_request_id=9)
+
+    for absent in (False, True):
+        clean = event()
+        clean['data']['eTag'] = ETAG
+        if absent:
+            clean['data'].pop('scanResultDetails')
+        else:
+            clean['data']['scanResultDetails'] = None
+        assert defender_event_matches_pending(
+            clean, topic=TOPIC, blob_uri=URI,
+            etag=manifest['etag'], sha256=digest)
+        assert defender_result_for_pending(clean, topic=TOPIC, blob_uri=URI,
+                                          etag=manifest['etag'], sha256=digest) == 'Clean'
+        assert qualified(clean)
+        assert not qualified(clean, actual=dict(snapshot, blob_version_id='version-2'))
+        assert not qualified(clean, actual=dict(snapshot, bytes=b'changed bytes'))
+        assert not qualified(clean, actual=dict(snapshot, etag=ETAG))
+        assert not qualified(clean, recorded=dict(manifest, sha256='b' * 64))
+        for key, value in (('eventType', 'Microsoft.Storage.BlobCreated'),
+                           ('topic', TOPIC + '-other')):
+            wrong = deepcopy(clean)
+            wrong[key] = value
+            assert not qualified(wrong)
+        for key, value in (('blobUri', URI + '-other'), ('eTag', '0xOLD')):
+            wrong = deepcopy(clean)
+            wrong['data'][key] = value
+            assert not qualified(wrong)
+        adverse = deepcopy(clean)
+        adverse['data']['scanResultType'] = 'Malicious'
+        assert defender_result_for_pending(
+            adverse, topic=TOPIC, blob_uri=URI,
+            etag=manifest['etag'], sha256=digest) == 'Malicious'
+        assert not qualified(adverse)
+        unknown = deepcopy(clean)
+        unknown['data']['scanResultType'] = 'Not scanned'
+        assert not qualified(unknown)
+
+    malformed = event()
+    malformed['data']['scanResultDetails'] = 'invalid'
+    assert not qualified(malformed)
