@@ -1,3 +1,8 @@
+## 4 October 2026 UTC — frozen v3.214 scanner repair image candidate
+
+- Reviewed PR #707 merged as `04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc`; `release/v3.214` was created at that exact source. The Release Branch Guard passed. Contextual Intake and frozen CI were running at this checkpoint. This candidate changes the protected image activation to that source and updates the bounded image preflight/continuity record for the specific v3.210 accepted app to v3.214 worker-only image gap. It does not deploy the app or worker, alter Member controls, or create another fictional file.
+- Next: complete frozen and exact-head image candidate checks, obtain Marc's exact-image-record review, merge through the governed gate, verify protected immutable image digest, and stage separately reviewed scanner worker promotion with current v3.213 as rollback. Then test the original held fictional Clean version and adverse EICAR hold, real Fired alert email/recovery, and authenticated Level 1 intake. Member uploads, quotes, checkout, purchases and receipts remain CLOSED. Owner: Salus engineering for source/release evidence; Marc for exact-source and qualified live-output decisions. Tierra Linda remains stopped and large-batch #520 paused.
+
 ## 4 October 2026 UTC — observed Clean-shape repair merged; v3.214 candidate
 
 - Marc reviewed and approved [PR #706](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/706) at exact head `44414ab5194a8a335bb790c6ead9f7153826a805`. All three package rollout jobs passed, including the PostgreSQL intake path and Windows checks. It merged as `8df81351fe3a32863739574c352c4f9c0b4138c0`. Local focused pure checks passed five scanner tests. This is source integration, not a deployed worker or accepted Clean file.

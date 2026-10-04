@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 04 October 2026 10:29 CDT
-current_frozen_release: v3.213
-current_frozen_commit: 7ec414abe94092e631f0a4b7222fd99ce34b7e26
+last_verified_at: 04 October 2026 13:48 CDT
+current_frozen_release: v3.214
+current_frozen_commit: 04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc
 active_development_branch: development/salcapa-platform
-current_development_head: 7ec414abe94092e631f0a4b7222fd99ce34b7e26
+current_development_head: 04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3213_scanner_repair_immutable_image_publication
+active_increment: salus_v3214_scanner_null_details_immutable_image_candidate
 last_completed_increment: v3210_accepted_immutable_application_and_advisor
-candidate_release: v3.213
-validation_pr: 698
-validation_branch: candidate/scanner-repair-image-v3213-20261004
+candidate_release: v3.214
+validation_pr: 708
+validation_branch: candidate/scanner-null-repair-image-v3214-20261004
 validation_base: development/salcapa-platform
-validation_head: pending_exact_head_after_record_update
-validation_gate_state: controlled_validation_in_progress
+validation_head: pending_exact_head_after_candidate_checks
+validation_gate_state: exact_candidate_checks_in_progress
 failed_workflows: v3207_candidate_knowledge_worker_failed_and_rolled_back
 first_root_failing_gate: v3207_office_parser_image_reconstruction
 root_cause: image_reconstruction_overwrote_reviewed_office_parser
 repair_head: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
 repair_summary: v3208_image_and_application_accepted_with_scanner_worker_followup_open
 genuine_blockers: private_clean_adverse_scan_and_alert_proof_open_member_upload_quote_checkout_closed
-next_authorized_step: pass_exact_v3213_candidate_checks_and_review_then_publish_image_before_scanner_worker_deployment
+next_authorized_step: pass_exact_v3214_candidate_checks_and_review_then_publish_image_before_scanner_worker_update
 deployed_demo_release: v3.210
 deployed_demo_state: accepted_immutable_application_and_advisor_v3210_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3210_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3213_scanner_clean_event_shape_failed: The v3.213 scheduled scanner worker processed the fictional EICAR result as Malicious but repeatedly held the original fictional Clean event Pending. One-time read-only classifiers found exactly one ledger candidate with matching topic, event type, URI and canonical ETag, a valid recorded SHA-256, and a Clean result with no result-details object or event digest. Marc exact-reviewed PR #706 at `44414ab5194a8a335bb790c6ead9f7153826a805`; all three source test groups passed, including the PostgreSQL intake path, and it merged as `8df81351fe3a32863739574c352c4f9c0b4138c0`. Reviewed PR #707 froze v3.214 at `04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc` after its analytical and package checks. The candidate image is for the scheduled scanner worker only; accepted public app remains v3.210 and current scanner worker remains v3.213 pending separate protected promotion. The v3.213 image remains the worker rollback. Do not claim Clean promotion from code tests. Govern the image readback, exact worker change, original fictional named-version result, adverse hold, real Fired alert email/recovery and qualified live review before opening Member uploads; quote, checkout, purchases and receipts remain closed.
 
 v3212_private_scanner_acceptance_failed: The private fictional Clean/EICAR run on the published v3.212 image timed out with both exact Blob versions Pending. Settled probes found base64-wrapped Event Grid queue messages, one-pair ETag quotation differences, and no SHA-256 field on the Clean event. Reviewed PR #695 merged the narrow fail-closed repair as `bd8e1e9beb56086d8529028309c96a6874ef74bc`; reviewed PR #697 froze v3.213 source at `7ec414abe94092e631f0a4b7222fd99ce34b7e26`. The v3.212 image was published for private testing but not accepted for Member uploads or deployed as the application. Accepted live application v3.210 and its rollback remain unchanged. The v3.213 image record is a candidate: exact-head checks, qualified review, protected image readback, guarded scanner-worker deployment, independent fictional Clean/EICAR exact-version outcomes, real alert and recovery proof, commercial/OIDC/Stripe tests, and qualified release are still open. Do not rerun the already used one-time private job. Member uploads, quotes, checkout, purchases and receipts remain closed.
 
