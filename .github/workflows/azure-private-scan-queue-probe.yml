@@ -91,9 +91,12 @@ jobs:
           encoded=base64.b64encode(source).decode('ascii')
           expr="exec(__import__('base64').b64decode('"+encoded+"'))"
           template=job['properties']['template']
-          body={'containers':template['containers']}
+          allowed=('name','image','resources','env','command','args')
+          body={'containers':[{key:item[key] for key in allowed if key in item}
+                              for item in template['containers']]}
           if template.get('initContainers'):
-              body['initContainers']=template['initContainers']
+              body['initContainers']=[{key:item[key] for key in allowed if key in item}
+                                      for item in template['initContainers']]
           body['containers'][0]['command']=['python','-c',expr]
           body['containers'][0]['args']=[]
           with open(sys.argv[3],'w',encoding='utf-8') as out:
