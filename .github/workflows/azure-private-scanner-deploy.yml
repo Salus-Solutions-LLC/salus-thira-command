@@ -42,17 +42,23 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
           ref: release/v3.212
+          path: frozen-release
           fetch-depth: 1
           persist-credentials: false
       - name: Confirm frozen source and private manual job bounds
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test "$(git -C frozen-release rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
           python - <<'PY'
           from pathlib import Path
-          source = Path('infra/azure/private-scanner-acceptance.bicep').read_text(encoding='utf-8')
+          source = Path('frozen-release/infra/azure/private-scanner-acceptance.bicep').read_text(encoding='utf-8')
           required = (
               "name: '${stem}-scan-test'",
               "triggerType: 'Manual'",
@@ -111,7 +117,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          az bicep build --file infra/azure/private-scanner-acceptance.bicep --outfile "$RUNNER_TEMP/private-scanner.json" >/dev/null
+          az bicep build --file frozen-release/infra/azure/private-scanner-acceptance.bicep --outfile "$RUNNER_TEMP/private-scanner.json" >/dev/null
           az deployment group what-if \
             --resource-group "$RESOURCE_GROUP" \
             --name "salcapa-private-scanner-preview-${GITHUB_RUN_ID}" \
