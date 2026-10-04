@@ -96,7 +96,26 @@ jobs:
           print('identity_count='+str(len(ids)))
           print('image_matches='+str(c.get('image','').endswith('@sha256:36b48158a6cb13bc8f408af0f9b6cefcf49014907ce117e14898a08f892498bc')))
           print('approval_tag_matches='+str((data.get('tags') or {}).get('approvalRecord')=='MD-PRIVATE-SCANNER-JOB-20261003'))
+          expected_identity='/subscriptions/076f90cd-cc6a-4547-a4ff-de3fc1825472/resourcegroups/rg-salcapa-dev/providers/microsoft.managedidentity/userassignedidentities/salcapa-dev-b48224-identity'
+          print('identity_matches='+str([key.lower() for key in ids]==[expected_identity]))
+          manual=cfg.get('manualTriggerConfig') or {}
+          print('parallelism_matches='+str(manual.get('parallelism')==1))
+          print('completion_count_matches='+str(manual.get('replicaCompletionCount')==1))
+          resources=c.get('resources') or {}
+          print('cpu_matches='+str(str(resources.get('cpu'))=='0.25'))
+          print('memory_matches='+str(resources.get('memory')=='0.5Gi'))
+          print('schedule_absent_or_null='+str(cfg.get('scheduleTriggerConfig') is None))
+          print('ingress_absent_or_null='+str(p.get('ingress') is None))
           PY
+            if az containerapp job execution list -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-scan-test -o json > "$RUNNER_TEMP/job-executions.json" 2> "$RUNNER_TEMP/execution-read-error"; then
+              python - "$RUNNER_TEMP/job-executions.json" <<'PY'
+          import json, sys
+          rows=json.load(open(sys.argv[1],encoding='utf-8'))
+          print('execution_count='+str(len(rows) if isinstance(rows,list) else 'unavailable'))
+          PY
+            else
+              echo 'execution_count=unavailable'
+            fi
           else
             echo 'job_read=unavailable; no conclusion about existence or configuration'
           fi
