@@ -51,6 +51,10 @@ def main():
     credential = ManagedIdentityCredential(
         client_id=os.environ["SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID"])
     queue = QueueClient.from_queue_url(queue_url, credential=credential)
+    properties = queue.get_queue_properties()
+    approximate_count = getattr(properties, 'approximate_message_count', None)
+    if type(approximate_count) is not int or approximate_count < 0:
+        raise SystemExit('fictional_queue_probe_count_unavailable')
     messages = list(queue.peek_messages(max_messages=16))
     counts = collections.Counter()
     for message in messages:
@@ -117,6 +121,7 @@ def main():
     )
     print(json.dumps({
         "fictional_queue_probe": "read_only",
+        "approximate_queue_messages": approximate_count,
         "peeked_messages": len(messages),
         "fictional_status": statuses,
         "event_categories": {key: counts[key] for key in allowed},
