@@ -25,6 +25,7 @@ jobs:
 
   probe:
     needs: authorize
+    if: github.run_number == 1 && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
