@@ -25,9 +25,9 @@ jobs:
 
   probe:
     needs: authorize
-    if: github.run_number == 4 && github.run_attempt == 1
+    if: github.run_number == 5 && github.run_attempt == 1
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
       id-token: write
@@ -127,7 +127,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sleep 120
+          sleep 300
           WORKSPACE_ID="$(az monitor log-analytics workspace show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-logs --query customerId -o tsv)"
           test -n "$WORKSPACE_ID"
           az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated > ago(10m) | where JobName == 'salcapa-dev-b48224-scan-worker' | where Log has 'fictional_queue_probe' | project TimeGenerated, Log | order by TimeGenerated desc | take 5" -o json > "$RUNNER_TEMP/probe-markers.json"
