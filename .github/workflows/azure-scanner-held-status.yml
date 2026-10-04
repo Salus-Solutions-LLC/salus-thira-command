@@ -110,7 +110,7 @@ jobs:
           body={"containers":[{
               "name":source["name"],"image":sys.argv[2],
               "command":["python"],"args":["-m","tools.private_scan_queue_probe"],
-              "env":source["env"],"resources":source["resources"],
+              "env":source["env"],"resources":{"cpu":source["resources"]["cpu"],"memory":source["resources"]["memory"]},
           }]}
           with open(sys.argv[3],"w",encoding="utf-8") as out:
               json.dump(body,out,separators=(",",":"))
