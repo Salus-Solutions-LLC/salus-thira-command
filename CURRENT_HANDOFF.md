@@ -1,3 +1,8 @@
+## 3 October 2026 Central — private scanner preview classified, no deployment
+
+- Marc approved exact PR #670 head `8b09e4dc8f5cbd02c18671d03829a163a69012de`; it merged as `7931ee9a2326f46bb7533281708b76589f8e0c23`. Protected preview [run 37169194549](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37169194549) verified frozen 3.212 source, target and immutable image, then failed closed because Azure returned 30 what-if entries rather than the single entry the parser expected. The workflow logged only the count, so change types are not yet proven. No private job was deployed or run.
+- Candidate workflow now counts sanitized Create, NoChange and other entries, permits exactly one Create for the full expected private-job resource ID plus only NoChange entries, and fails on any other change. Exact-source CI and Marc review, protected rerun, identity/cost disposition and separate deployment approval remain open. The approved v3.210 Advisor stays live; Member uploads, quotes, checkout, purchases and receipts stay closed. Owner: Salus engineering; Marc qualifies the exact source and subsequent live output.
+
 ## 3 October 2026 Central — private scanner Azure preview output correction
 
 - Marc approved [PR #669](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/669) exact head `fe80a9e3f3c65b79a96a9f4b718fd8cf96c61179` after three passing checks; it squash merged as `dc1568350fb064cfda4633475e488ce90e6de18b`. Protected preview [run 37168608141](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37168608141) verified frozen source, Azure target and exact image digest, then failed closed parsing an empty Azure what-if output file. No job deployment or run occurred.
