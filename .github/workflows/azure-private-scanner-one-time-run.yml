@@ -39,6 +39,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$(git rev-list --count HEAD -- deploy/azure/activations/private-scanner-run-dev.json)" = 1
           git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
           jq -e --arg source "$SOURCE_COMMIT" --arg digest "$IMAGE_DIGEST" '
             type == "object" and .schema_version == 1 and
