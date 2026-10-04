@@ -5,6 +5,7 @@ Never invoke for a Protected Member. It prints only bounded categories, never
 queue payloads, URIs, file names, hashes, tenant IDs, or file bytes.
 """
 import base64
+import binascii
 import collections
 import json
 import os
@@ -63,7 +64,7 @@ def main():
             try:
                 events = json.loads(base64.b64decode(raw, validate=True).decode("utf-8"))
                 counts["base64_wrapped"] += 1
-            except (ValueError, UnicodeError):
+            except (ValueError, UnicodeError, binascii.Error):
                 counts["invalid_json"] += 1
                 continue
         if isinstance(events, dict):
