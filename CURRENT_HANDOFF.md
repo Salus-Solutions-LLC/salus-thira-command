@@ -1,3 +1,8 @@
+## 3 October 2026 Central — first fictional scanner execution running; outcome query staged
+
+- Marc approved PR #680 exact head `283425fea799db8c54236135f671f35eeaaa8611` after three green checks; it merged as `b81306d5b7cf5baf82fbbe5edf12c2e29ab50cdf`. Protected [run 37172857516](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37172857516) passed activation, exact job and zero-prior-execution checks and started exactly one fictional Clean/EICAR scanner acceptance job. Its terminal status is still being observed. Member upload and payment gates remain closed.
+- A candidate protected read-only query filters Console Logs to the private test job and an `acceptance_run` marker, then prints only safe marker count and whether the Clean and EICAR statuses match expected outcomes. It does not print raw logs, Member data or object identifiers. Exact-source CI and Marc review are open. A marker corroborates the reviewed private script's checks but does not by itself close independent Blob version, alert/recovery, historical discrepancies, cleanup, public Member, commercial/OIDC/Stripe or report release gates. Owner: Salus engineering; Marc qualifies exact source and live output.
+
 ## 3 October 2026 Central — one-time fictional scanner activation candidate
 
 - Marc approved PR #679 exact head `09a0b61e5879c7c86bb8abed3f213134ce265874` after three green checks; it merged as `30a41e169300df548bd07d08d11e93d5082e7106`. The dormant workflow now verifies frozen source/image, exact manual job, first activation-file commit, first GitHub run attempt and zero prior executions; it starts one job only after a separate activation merge, then observes bounded terminal status without raw application logs. It has not run yet.
