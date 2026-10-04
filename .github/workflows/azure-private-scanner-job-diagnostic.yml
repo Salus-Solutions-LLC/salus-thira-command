@@ -1,0 +1,98 @@
+name: SalCAPA private scanner test-job state diagnostic
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-private-scanner-job-diagnostic.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-private-scanner-job-diagnostic-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only job-state diagnostic gate passed.'
+
+  diagnose:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RESOURCE_GROUP: rg-salcapa-dev
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Read only the exact deployment and job state
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n "$RESOURCE_GROUP" --query location -o tsv)" = southcentralus
+          DEPLOYMENT="salcapa-private-scanner-deploy-37170484459"
+          if az deployment group show -g "$RESOURCE_GROUP" -n "$DEPLOYMENT" -o json > "$RUNNER_TEMP/job-deployment.json" 2> "$RUNNER_TEMP/deployment-read-error"; then
+            python - "$RUNNER_TEMP/job-deployment.json" <<'PY'
+          import json, sys
+          data=json.load(open(sys.argv[1],encoding='utf-8'))
+          props=data.get('properties') or {}
+          err=props.get('error') or {}
+          state=str(props.get('provisioningState','unknown'))
+          code=str(err.get('code','none'))
+          print(f"deployment_state={state}; error_code={code if code.replace('_','').isalnum() else 'redacted'}")
+          PY
+            az deployment operation group list -g "$RESOURCE_GROUP" -n "$DEPLOYMENT" -o json > "$RUNNER_TEMP/job-operations.json"
+            python - "$RUNNER_TEMP/job-operations.json" <<'PY'
+          import collections, json, sys
+          rows=json.load(open(sys.argv[1],encoding='utf-8'))
+          counts=collections.Counter()
+          for row in rows:
+              p=row.get('properties') or {}
+              code=((p.get('statusMessage') or {}).get('error') or {}).get('code') or 'none'
+              code=str(code)
+              if not code.replace('_','').isalnum() or len(code)>64: code='redacted'
+              counts[(str(p.get('provisioningState','unknown')),code)]+=1
+          for (state,code),n in sorted(counts.items()):
+              print(f"operation_state={state}; error_code={code}; count={n}")
+          PY
+          else
+            echo 'deployment_read=unavailable; no conclusion about job creation'
+          fi
+          JOB_ID="/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/jobs/salcapa-dev-b48224-scan-test"
+          if az rest --method GET --url "https://management.azure.com$JOB_ID?api-version=2025-01-01" -o json > "$RUNNER_TEMP/job-state.json" 2> "$RUNNER_TEMP/job-read-error"; then
+            python - "$RUNNER_TEMP/job-state.json" <<'PY'
+          import json, sys
+          data=json.load(open(sys.argv[1],encoding='utf-8'))
+          p=data.get('properties') or {}
+          cfg=p.get('configuration') or {}
+          c=((p.get('template') or {}).get('containers') or [{}])[0]
+          ids=(data.get('identity') or {}).get('userAssignedIdentities') or {}
+          print('job_read=success')
+          print('provisioning_state='+str(p.get('provisioningState','unknown')))
+          print('trigger='+str(cfg.get('triggerType','unknown')))
+          print('replica_timeout='+str(cfg.get('replicaTimeout','unknown')))
+          print('replica_retry='+str(cfg.get('replicaRetryLimit','unknown')))
+          print('identity_count='+str(len(ids)))
+          print('image_matches='+str(c.get('image','').endswith('@sha256:36b48158a6cb13bc8f408af0f9b6cefcf49014907ce117e14898a08f892498bc')))
+          print('approval_tag_matches='+str((data.get('tags') or {}).get('approvalRecord')=='MD-PRIVATE-SCANNER-JOB-20261003'))
+          PY
+          else
+            echo 'job_read=unavailable; no conclusion about existence or configuration'
+          fi
