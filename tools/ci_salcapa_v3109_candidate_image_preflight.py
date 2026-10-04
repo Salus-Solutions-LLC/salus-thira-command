@@ -134,11 +134,23 @@ if published_version == accepted_version:
     assert image_publication["source_commit"] == accepted_application["source_commit"]
 else:
     # Publication-staged: ordinarily the next image is the immediate successor.
-    # A one-release skip is allowed only when the intervening frozen release is
-    # explicitly recorded as superseded before publication by a blocking repair.
+    # A bounded release gap is allowed only for an exact recorded repair lineage;
+    # no generic version skip can qualify an image for publication.
     immediate_successor = (accepted_version[0], accepted_version[1] + 1)
     superseding_successor = (accepted_version[0], accepted_version[1] + 2)
-    if (accepted_version, published_version) == ((3, 210), (3, 213)):
+    if (accepted_version, published_version) == ((3, 210), (3, 214)):
+        # v3.213 is the running scanner worker, but its fictional Clean event
+        # stayed Pending. The reviewed null-details repair is frozen in v3.214;
+        # neither v3.211-3.213 became the accepted Member application.
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        assert "current_frozen_release: v3.214" in continuity
+        assert "current_frozen_commit: 04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc" in continuity
+        assert "candidate_release: v3.214" in continuity
+        assert "v3211_superseded_before_publication" in continuity
+        assert "v3212_private_scanner_acceptance_failed" in continuity
+        assert "v3213_scanner_clean_event_shape_failed" in continuity
+        assert image_publication["source_commit"] == "04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc"
+    elif (accepted_version, published_version) == ((3, 210), (3, 213)):
         # v3.211 was superseded before publication. The v3.212 image was
         # published only for private scanner acceptance; that test failed and
         # neither release became the accepted Member application. Require the
