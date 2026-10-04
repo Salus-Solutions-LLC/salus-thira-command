@@ -1,3 +1,8 @@
+## 3 October 2026 Central — private scanner Azure preview output correction
+
+- Marc approved [PR #669](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/669) exact head `fe80a9e3f3c65b79a96a9f4b718fd8cf96c61179` after three passing checks; it squash merged as `dc1568350fb064cfda4633475e488ce90e6de18b`. Protected preview [run 37168608141](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37168608141) verified frozen source, Azure target and exact image digest, then failed closed parsing an empty Azure what-if output file. No job deployment or run occurred.
+- Microsoft Azure CLI documentation says to use `--no-pretty-print` for programmatically inspectable what-if JSON. A one-line workflow correction is under source review; it does not weaken the one-Create/no-other-change assertion or alter the frozen image/template. After exact-head CI and Marc source review, rerun the protected preview and inspect its actual change set, identity and cost. Separate governed deployment and fictional Clean/EICAR live-output review remain required. Member uploads, quotes, checkout, purchases and receipts stay closed; the approved v3.210 Advisor remains live. Owner: Salus engineering, with Marc qualifying exact source and preview.
+
 ## 3 October 2026 Central — frozen 3.212 image published; private scanner preview proposed
 
 - Marc approved corrected PR #667 exact head `6acfacad09fb416ad2382752371656b0f9c68f1d`; it merged as `7867fa72ae404aa5ed37abd104ecc1c69b9ea190`. The 28-character private manual scanner test job name and regression check are in frozen `release/v3.212`; the earlier 3.211 release was superseded before image publication.
