@@ -96,7 +96,7 @@ jobs:
               imageDigest="salcapadevb48224acr.azurecr.io/salcapa@$IMAGE_DIGEST" \
               sourceCommit="$SOURCE_COMMIT" \
               approvalRecord=SALUS-PRIVATE-SCANNER-PREVIEW-ONLY \
-            --output json > "$RUNNER_TEMP/private-scanner-whatif.json"
+            --no-pretty-print --output json > "$RUNNER_TEMP/private-scanner-whatif.json"
           python - "$RUNNER_TEMP/private-scanner-whatif.json" <<'PY'
           import json
           import sys
