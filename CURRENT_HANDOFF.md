@@ -1,3 +1,8 @@
+## 3 October 2026 Central — scanner outcome query rejected before execution; indentation repair candidate
+
+- Marc approved PR #681 exact head `519ce8f51a5aafd45394eeddf6c037d73bfb0078` after three successful checks; it merged as `d0dcd251cef1b1c29596989191c8ad8a4919582d`. GitHub rejected the protected read-only workflow [run 37173171114](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37173171114) before any job executed because the added step's `- name` was at column zero. This made no Azure or Member change.
+- Candidate correction indents the step under the existing diagnostic job. Exact-source CI and Marc review are required before merge. Then inspect the protected query's safe output. The first fictional scanner test [run 37172857516](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37172857516) remains a separate execution; its outcome must be checked independently. Member controls remain closed. Owner: Salus engineering; Marc qualifies exact source and output.
+
 ## 3 October 2026 Central — first fictional scanner execution running; outcome query staged
 
 - Marc approved PR #680 exact head `283425fea799db8c54236135f671f35eeaaa8611` after three green checks; it merged as `b81306d5b7cf5baf82fbbe5edf12c2e29ab50cdf`. Protected [run 37172857516](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37172857516) passed activation, exact job and zero-prior-execution checks and started exactly one fictional Clean/EICAR scanner acceptance job. Its terminal status is still being observed. Member upload and payment gates remain closed.
