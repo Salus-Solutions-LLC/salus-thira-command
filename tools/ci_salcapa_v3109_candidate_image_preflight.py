@@ -138,7 +138,19 @@ else:
     # explicitly recorded as superseded before publication by a blocking repair.
     immediate_successor = (accepted_version[0], accepted_version[1] + 1)
     superseding_successor = (accepted_version[0], accepted_version[1] + 2)
-    if published_version == superseding_successor:
+    if (accepted_version, published_version) == ((3, 210), (3, 213)):
+        # v3.211 was superseded before publication. The v3.212 image was
+        # published only for private scanner acceptance; that test failed and
+        # neither release became the accepted Member application. Require the
+        # exact recorded repair lineage before allowing this bounded skip.
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        assert "current_frozen_release: v3.213" in continuity
+        assert "current_frozen_commit: 7ec414abe94092e631f0a4b7222fd99ce34b7e26" in continuity
+        assert "candidate_release: v3.213" in continuity
+        assert "v3211_superseded_before_publication" in continuity
+        assert "v3212_private_scanner_acceptance_failed" in continuity
+        assert image_publication["source_commit"] == "7ec414abe94092e631f0a4b7222fd99ce34b7e26"
+    elif published_version == superseding_successor:
         continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
         skipped = f"v{immediate_successor[0]}.{immediate_successor[1]}"
         published = f"v{published_version[0]}.{published_version[1]}"
