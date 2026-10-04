@@ -1,3 +1,8 @@
+## 3 October 2026 Central — one-time fictional scanner activation candidate
+
+- Marc approved PR #679 exact head `09a0b61e5879c7c86bb8abed3f213134ce265874` after three green checks; it merged as `30a41e169300df548bd07d08d11e93d5082e7106`. The dormant workflow now verifies frozen source/image, exact manual job, first activation-file commit, first GitHub run attempt and zero prior executions; it starts one job only after a separate activation merge, then observes bounded terminal status without raw application logs. It has not run yet.
+- This candidate activation record names one fictional Clean/EICAR run on the reviewed private manual v3.212 image under approval record `MD-PRIVATE-SCANNER-RUN-20261003`. **Merging the activation will start the job**, create fictional tenant and held Blob test objects, and incur bounded Azure compute/scan/log charges. Exact-source CI, Azure target/bounds, Marc's exact activation approval and live-output review are required. It cannot open Member uploads, quotes, checkout, purchases or receipts. The terminal job status alone is insufficient: prove Clean/EICAR exact-object outcomes, alert delivery/recovery, and cleanup through restricted records. Owner: Salus engineering; Marc qualifies exact activation and output.
+
 ## 3 October 2026 Central — one-time scanner workflow awaits result-observation correction
 
 - Marc approved PR #678 exact head `791d0152c1932b6fd414b343e3a90c3baec8a95f` after three successful checks; it merged as `7625c2e9274e141d6a46eacaf7348a8b415b239f`. Its protected one-time fictional test workflow is dormant: the required activation file does not exist, and Azure still shows zero private-job executions.
