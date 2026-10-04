@@ -116,3 +116,36 @@ jobs:
                   print('probe_system_'+key+'='+str(n))
           PY
 
+      - name: Classify settled scanner-result worker failures
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          WORKSPACE_ID="$(az monitor log-analytics workspace show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$WORKSPACE_ID"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between(datetime(2026-10-04T16:55:00Z)..datetime(2026-10-04T17:30:00Z)) | where JobName == 'salcapa-dev-b48224-scan-worker' | where Log has 'scan_result_job' | project Log | take 100" -o json > "$RUNNER_TEMP/worker-markers.json"
+          python - "$RUNNER_TEMP/worker-markers.json" <<'PY'
+          import collections,json,sys
+          data=json.load(open(sys.argv[1],encoding='utf-8'))
+          table=(data.get('tables') or [{}])[0] if isinstance(data,dict) else {}
+          cols=[x.get('name') for x in table.get('columns',[])]
+          rows=[dict(zip(cols,row)) for row in table.get('rows',[])]
+          counts=collections.Counter()
+          allowed_errors={'QuarantineError','OperationalError','DatabaseError','PermissionError','HttpResponseError','ResourceNotFoundError','RuntimeError','DeadlockDetected'}
+          for row in rows:
+              raw=row.get('Log')
+              if not isinstance(raw,str) or len(raw)>8192 or 'scan_result_job' not in raw: continue
+              try: marker=json.loads(raw[raw.index('{'):raw.rindex('}')+1])
+              except (ValueError,json.JSONDecodeError): continue
+              state=marker.get('scan_result_job')
+              if state=='failed':
+                  phase=marker.get('failure_phase')
+                  error=marker.get('error_type')
+                  counts[('failed',phase if phase in ('poll','reconcile') else 'Other',error if error in allowed_errors else 'Other')]+=1
+              elif state=='completed':
+                  outcome=marker.get('outcome')
+                  counts[('completed',outcome if outcome in ('Held','Acknowledged','Empty') else 'Other','None')]+=1
+          print('safe_scanner_result_marker_count='+str(sum(counts.values())))
+          for key in sorted(counts):
+              print('scan_result_'+ '_'.join(key)+'='+str(counts[key]))
+          PY
