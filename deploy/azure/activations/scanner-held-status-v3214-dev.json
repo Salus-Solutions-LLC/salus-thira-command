@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "operation": "inspect_original_fictional_scanner_records_v3214_once",
+  "target_environment": "dev",
+  "resource_group": "rg-salcapa-dev",
+  "job_name": "salcapa-dev-b48224-scan-worker",
+  "source_release": "release/v3.214",
+  "source_commit": "04b6e6ae47e83dcab9d5c76edb56f95327f1a7fc",
+  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0",
+  "approval_record": "MD-FICTIONAL-SCANNER-STATUS-V3214-20261004",
+  "activation_key": "salcapa-v3.214-held-status-04b6e6ae"
+}
