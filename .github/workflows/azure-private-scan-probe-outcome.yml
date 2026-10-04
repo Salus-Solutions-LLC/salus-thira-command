@@ -1,0 +1,117 @@
+name: SalCAPA private scan probe outcome
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-private-scan-probe-outcome.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only probe outcome gate passed.'
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      RESOURCE_GROUP: rg-salcapa-dev
+      JOB_NAME: salcapa-dev-b48224-scan-worker
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Read exact bounded execution status and safe log categories
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n "$RESOURCE_GROUP" --query location -o tsv)" = southcentralus
+          az containerapp job execution list -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/executions.json"
+          WORKSPACE_ID="$(az monitor log-analytics workspace show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$WORKSPACE_ID"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between(datetime(2026-10-04T03:50:00Z)..datetime(2026-10-04T03:56:00Z)) | where JobName == 'salcapa-dev-b48224-scan-worker' | project TimeGenerated, Log | take 200" -o json > "$RUNNER_TEMP/console.json"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppSystemLogs | where TimeGenerated between(datetime(2026-10-04T03:50:00Z)..datetime(2026-10-04T03:56:00Z)) | extend SafeJob=tostring(column_ifexists('JobName','')), SafeApp=tostring(column_ifexists('ContainerAppName','')), SafeLog=tostring(column_ifexists('Log','')) | where SafeJob == 'salcapa-dev-b48224-scan-worker' or SafeApp == 'salcapa-dev-b48224-scan-worker' | extend Category=case(SafeLog has 'ErrImagePull','ImagePull',SafeLog has 'ContainerCrashing','ContainerCrash',SafeLog has 'Timeout','Timeout',SafeLog has 'Failed','Failed','Other') | summarize Events=count() by Category" -o json > "$RUNNER_TEMP/system.json"
+          python - "$RUNNER_TEMP/executions.json" "$RUNNER_TEMP/console.json" "$RUNNER_TEMP/system.json" <<'PY'
+          import collections,json,sys
+          from datetime import datetime,timezone
+          def records(path):
+              data=json.load(open(path,encoding='utf-8'))
+              if isinstance(data,list): return data
+              table=(data.get('tables') or [{}])[0]
+              cols=[x.get('name') for x in table.get('columns',[])]
+              return [dict(zip(cols,row)) for row in table.get('rows',[])]
+          executions=records(sys.argv[1])
+          lo=datetime(2026,10,4,3,50,tzinfo=timezone.utc)
+          hi=datetime(2026,10,4,3,56,tzinfo=timezone.utc)
+          statuses=collections.Counter()
+          for row in executions:
+              p=row.get('properties') or {}
+              try: t=datetime.fromisoformat(str(p.get('startTime','')).replace('Z','+00:00'))
+              except ValueError: continue
+              if lo<=t<hi:
+                  status=str(p.get('status') or 'Unknown')
+                  statuses[status if status in ('Succeeded','Failed','Running','Pending') else 'Other']+=1
+          print('bounded_probe_execution_count='+str(sum(statuses.values())))
+          for key in ('Succeeded','Failed','Running','Pending','Other'):
+              print('bounded_probe_'+key+'='+str(statuses[key]))
+          console=records(sys.argv[2]); counts=collections.Counter(); markers=[]
+          known={'fictional_queue_probe_guard_failed':'GuardFailed',
+                 'fictional_queue_probe_identity_missing':'IdentityMissing',
+                 'fictional_queue_probe_queue_guard_failed':'QueueGuardFailed',
+                 'ModuleNotFoundError':'ModuleNotFound',
+                 'ImportError':'ImportError',
+                 'PermissionError':'PermissionError',
+                 'OperationalError':'OperationalError',
+                 'Traceback (most recent call last)':'Traceback'}
+          for row in console:
+              raw=row.get('Log') if isinstance(row,dict) else None
+              if not isinstance(raw,str) or len(raw)>8192: continue
+              for phrase,label in known.items():
+                  if phrase in raw: counts[label]+=1
+              if 'fictional_queue_probe' not in raw: continue
+              try: marker=json.loads(raw[raw.index('{'):raw.rindex('}')+1])
+              except (ValueError,TypeError,json.JSONDecodeError): continue
+              if marker.get('fictional_queue_probe') in ('read_only','inconclusive'):
+                  markers.append(marker)
+          print('bounded_probe_console_rows='+str(len(console)))
+          for key in sorted(set(known.values())): print('probe_error_'+key+'='+str(counts[key]))
+          print('safe_fictional_probe_marker_count='+str(len(markers)))
+          if markers:
+              marker=markers[-1]
+              for key in ('fictional_queue_probe','fictional_scope_count','fictional_pending_count','peeked_messages'):
+                  if key in marker: print(key+'='+str(marker[key]))
+              for label in ('clean','eicar'):
+                  value=(marker.get('fictional_status') or {}).get(label) or {}
+                  if value.get('status') in ('Pending','Promoted','Malicious','Unscanned','Reconcile','Other'):
+                      print(label+'_status='+value['status'])
+                      print(label+'_has_result_event='+str(value.get('has_result_event') is True))
+                      print(label+'_has_exact_version='+str(value.get('has_exact_version') is True))
+              for key,value in sorted((marker.get('event_categories') or {}).items()):
+                  if key.replace('_','').isalnum() and type(value) is int:
+                      print('event_category_'+key+'='+str(value))
+          else: print('probe_marker_unavailable; no queue or ledger conclusion')
+          system=records(sys.argv[3]); safe={'ImagePull','ContainerCrash','Timeout','Failed','Other'}
+          for row in system:
+              key=row.get('Category'); n=row.get('Events')
+              if key in safe and type(n) is int and 0<=n<=1000:
+                  print('probe_system_'+key+'='+str(n))
+          PY
+
