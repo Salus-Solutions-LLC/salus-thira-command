@@ -261,3 +261,28 @@ jobs:
           for label in ('Empty','Acknowledged','Held','failed_poll','failed_reconcile','failed_other'):
               print('fictional_window_worker_'+label+'='+str(counts[label]))
           PY
+
+      - name: Summarize Event Grid scan-result delivery metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOPIC_ID="$(az eventgrid topic show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-results --query id -o tsv)"
+          test -n "$TOPIC_ID"
+          az monitor metrics list --resource "$TOPIC_ID" --metrics PublishSuccessCount MatchedEventCount DeliverySuccessCount DeliveryAttemptFailCount DroppedEventCount --aggregation Total --start-time 2026-10-04T03:01:00Z --end-time 2026-10-04T03:20:00Z -o json > "$RUNNER_TEMP/eventgrid-metrics.json"
+          python - "$RUNNER_TEMP/eventgrid-metrics.json" <<'PY'
+          import json, sys
+          data=json.load(open(sys.argv[1],encoding='utf-8'))
+          allowed=('PublishSuccessCount','MatchedEventCount','DeliverySuccessCount','DeliveryAttemptFailCount','DroppedEventCount')
+          found={}
+          for metric in data.get('value',[]):
+              name=(metric.get('name') or {}).get('value')
+              if name not in allowed: continue
+              total=0
+              for series in metric.get('timeseries',[]):
+                  for point in series.get('data',[]):
+                      value=point.get('total')
+                      if isinstance(value,(int,float)): total+=value
+              found[name]=total
+          for name in allowed:
+              print('fictional_window_eventgrid_'+name+'='+str(found.get(name,'unavailable')))
+          PY
