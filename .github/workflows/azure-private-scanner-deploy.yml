@@ -199,7 +199,7 @@ jobs:
             .properties.template.containers[0].image == $image and
             .properties.template.containers[0].resources.cpu == 0.25 and
             .properties.template.containers[0].resources.memory == "0.5Gi" and
-            (.properties.configuration | has("scheduleTriggerConfig") | not) and
+            .properties.configuration.scheduleTriggerConfig == null and
             (.properties | has("ingress") | not)
           ' "$RUNNER_TEMP/private-scanner-job-readback.json" >/dev/null
           echo 'Exact private manual scanner test job created and read back. No execution started.'
