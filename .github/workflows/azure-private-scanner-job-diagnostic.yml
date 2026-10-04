@@ -113,6 +113,27 @@ jobs:
           print('ingress_absent_or_null='+str(p.get('ingress') is None))
           print('schedule_key_present='+str('scheduleTriggerConfig' in cfg))
           print('ingress_key_present='+str('ingress' in p))
+          if not all((
+              str(data.get('id','')).lower()==expected_job,
+              (data.get('tags') or {}).get('sourceCommit')=='7867fa72ae404aa5ed37abd104ecc1c69b9ea190',
+              (data.get('tags') or {}).get('approvalRecord')=='MD-PRIVATE-SCANNER-JOB-20261003',
+              (data.get('identity') or {}).get('type')=='UserAssigned',
+              [key.lower() for key in ids]==[expected_identity],
+              p.get('provisioningState')=='Succeeded',
+              cfg.get('triggerType')=='Manual',
+              cfg.get('replicaTimeout')==1200,
+              cfg.get('replicaRetryLimit')==0,
+              manual.get('parallelism')==1,
+              manual.get('replicaCompletionCount')==1,
+              len((p.get('template') or {}).get('containers') or [])==1,
+              c.get('image')=='salcapadevb48224acr.azurecr.io/salcapa@sha256:36b48158a6cb13bc8f408af0f9b6cefcf49014907ce117e14898a08f892498bc',
+              resources.get('cpu')==0.25 and type(resources.get('cpu')) in (int,float),
+              resources.get('memory')=='0.5Gi',
+              cfg.get('scheduleTriggerConfig') is None,
+              p.get('ingress') is None,
+          )):
+              raise SystemExit('Exact private manual scanner job readback differs from reviewed bounds')
+          print('exact_private_job_readback=passed')
           PY
             if az containerapp job execution list -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-scan-test -o json > "$RUNNER_TEMP/job-executions.json" 2> "$RUNNER_TEMP/execution-read-error"; then
               python - "$RUNNER_TEMP/job-executions.json" <<'PY'
