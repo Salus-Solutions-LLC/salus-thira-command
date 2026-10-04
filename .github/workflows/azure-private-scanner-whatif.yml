@@ -1,0 +1,118 @@
+name: SalCAPA private scanner acceptance preview
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-private-scanner-whatif.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-private-scanner-preview-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only Azure preview gate passed.'
+
+  preview:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SOURCE_RELEASE: release/v3.212
+      SOURCE_COMMIT: 7867fa72ae404aa5ed37abd104ecc1c69b9ea190
+      IMAGE_DIGEST: sha256:36b48158a6cb13bc8f408af0f9b6cefcf49014907ce117e14898a08f892498bc
+      RESOURCE_GROUP: rg-salcapa-dev
+      LOCATION: southcentralus
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.212
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Confirm frozen source and private manual job bounds
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          python - <<'PY'
+          from pathlib import Path
+          source = Path('infra/azure/private-scanner-acceptance.bicep').read_text(encoding='utf-8')
+          required = (
+              "name: '${stem}-scan-test'",
+              "triggerType: 'Manual'",
+              'replicaTimeout: 1200',
+              'replicaRetryLimit: 0',
+              'parallelism: 1',
+              'replicaCompletionCount: 1',
+              "cpu: json('0.25')",
+              "memory: '0.5Gi'",
+          )
+          if any(item not in source for item in required):
+              raise SystemExit('Frozen private-job resource bounds changed')
+          if "ingress:" in source or "scheduleTriggerConfig:" in source:
+              raise SystemExit('Private job has ingress or schedule')
+          print('Frozen manual private job: 0.25 CPU, 0.5 GiB, one replica, 20-minute cap')
+          PY
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify target and image without reading Member files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n "$RESOURCE_GROUP" --query location -o tsv)" = "$LOCATION"
+          actual="$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa:source-$SOURCE_COMMIT" --query digest -o tsv)"
+          test "$actual" = "$IMAGE_DIGEST"
+          echo 'Azure target and frozen image digest verified.'
+      - name: Compile and preview exactly one new private job
+        shell: bash
+        run: |
+          set -euo pipefail
+          az bicep build --file infra/azure/private-scanner-acceptance.bicep --outfile "$RUNNER_TEMP/private-scanner.json" >/dev/null
+          az deployment group what-if \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "salcapa-private-scanner-preview-${GITHUB_RUN_ID}" \
+            --template-file "$RUNNER_TEMP/private-scanner.json" \
+            --parameters environmentName=dev uniqueSuffix=b48224 location="$LOCATION" \
+              imageDigest="salcapadevb48224acr.azurecr.io/salcapa@$IMAGE_DIGEST" \
+              sourceCommit="$SOURCE_COMMIT" \
+              approvalRecord=SALUS-PRIVATE-SCANNER-PREVIEW-ONLY \
+            --output json > "$RUNNER_TEMP/private-scanner-whatif.json"
+          python - "$RUNNER_TEMP/private-scanner-whatif.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          result = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          changes = result.get('changes') or result.get('properties', {}).get('changes')
+          if not isinstance(changes, list):
+              raise SystemExit('Azure preview did not return a change list')
+          expected = '/providers/microsoft.app/jobs/salcapa-dev-b48224-scan-test'
+          if len(changes) != 1:
+              raise SystemExit(f'Expected one isolated job creation; observed {len(changes)} changes')
+          change = changes[0]
+          kind = str(change.get('changeType', '')).lower()
+          resource = str(change.get('resourceId', '')).lower()
+          if kind != 'create' or not resource.endswith(expected):
+              raise SystemExit('Azure preview is not solely the private scanner job creation')
+          print('Azure preview: one private manual test job Create; zero updates/deletes.')
+          PY
+
