@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "operation": "inspect_original_fictional_clean_shape_once",
+  "target_environment": "dev",
+  "resource_group": "rg-salcapa-dev",
+  "job_name": "salcapa-dev-b48224-scan-worker",
+  "source_release": "release/v3.213",
+  "source_commit": "7ec414abe94092e631f0a4b7222fd99ce34b7e26",
+  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:b0b4ea367922a52d0799597970bebeab063e2533770067f72202482e8425570c",
+  "approval_record": "MD-FICTIONAL-CLEAN-SHAPE-20261004",
+  "activation_key": "salcapa-v3.213-clean-shape-7ec414ab"
+}
