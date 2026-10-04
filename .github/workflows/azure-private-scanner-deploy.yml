@@ -174,13 +174,16 @@ jobs:
           az rest --method GET \
             --url "https://management.azure.com$JOB_ID?api-version=2025-01-01" \
             --output json > "$RUNNER_TEMP/private-scanner-job-readback.json"
-          jq -e --arg job "$JOB_ID" \
+          IDENTITY_ID="/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ManagedIdentity/userAssignedIdentities/salcapa-dev-b48224-identity"
+          jq -e --arg job "$JOB_ID" --arg identity "$IDENTITY_ID" \
                 --arg image "salcapadevb48224acr.azurecr.io/salcapa@$IMAGE_DIGEST" \
                 --arg source "$SOURCE_COMMIT" --arg approval "$APPROVAL_RECORD" '
             (.id | ascii_downcase) == ($job | ascii_downcase) and
             .tags.sourceCommit == $source and
             .tags.approvalRecord == $approval and
             .identity.type == "UserAssigned" and
+            (.identity.userAssignedIdentities | keys | length) == 1 and
+            ([.identity.userAssignedIdentities | keys[] | ascii_downcase] | index($identity | ascii_downcase)) != null and
             .properties.configuration.triggerType == "Manual" and
             .properties.configuration.replicaTimeout == 1200 and
             .properties.configuration.replicaRetryLimit == 0 and
