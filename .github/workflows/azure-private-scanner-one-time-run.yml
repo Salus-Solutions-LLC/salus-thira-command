@@ -1,0 +1,102 @@
+name: SalCAPA one-time fictional scanner acceptance
+on:
+  push:
+    branches: [development/salcapa-platform]
+    paths: ['deploy/azure/activations/private-scanner-run-dev.json']
+permissions:
+  contents: read
+concurrency:
+  group: salcapa-private-scanner-one-time-run-dev
+  cancel-in-progress: false
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected fictional scanner execution gate passed.'
+  run:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SOURCE_COMMIT: 7867fa72ae404aa5ed37abd104ecc1c69b9ea190
+      IMAGE_DIGEST: sha256:36b48158a6cb13bc8f408af0f9b6cefcf49014907ce117e14898a08f892498bc
+      RESOURCE_GROUP: rg-salcapa-dev
+      JOB_NAME: salcapa-dev-b48224-scan-test
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify reviewed one-run record
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$(git rev-list --count HEAD -- deploy/azure/activations/private-scanner-run-dev.json)" = 1
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
+          jq -e --arg source "$SOURCE_COMMIT" --arg digest "$IMAGE_DIGEST" '
+            type == "object" and .schema_version == 1 and
+            .operation == "run_fictional_private_scanner_once" and
+            .target_environment == "dev" and
+            .resource_group == "rg-salcapa-dev" and
+            .job_name == "salcapa-dev-b48224-scan-test" and
+            .source_release == "release/v3.212" and
+            .source_commit == $source and .image_digest == $digest and
+            .prior_execution_count == 0 and .maximum_executions == 1 and
+            .approval_record == "MD-PRIVATE-SCANNER-RUN-20261003" and
+            ((keys - ["schema_version","operation","target_environment","resource_group","job_name","source_release","source_commit","image_digest","prior_execution_count","maximum_executions","approval_record"]) | length == 0)
+          ' deploy/azure/activations/private-scanner-run-dev.json >/dev/null
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify exact private job and zero previous executions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n "$RESOURCE_GROUP" --query location -o tsv)" = southcentralus
+          JOB_ID="/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/jobs/$JOB_NAME"
+          az rest --method GET --url "https://management.azure.com$JOB_ID?api-version=2025-01-01" -o json > "$RUNNER_TEMP/job.json"
+          IDENTITY_ID="/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ManagedIdentity/userAssignedIdentities/salcapa-dev-b48224-identity"
+          jq -e --arg job "$JOB_ID" --arg identity "$IDENTITY_ID" --arg digest "$IMAGE_DIGEST" --arg source "$SOURCE_COMMIT" '
+            (.id | ascii_downcase) == ($job | ascii_downcase) and
+            .tags.sourceCommit == $source and
+            .tags.approvalRecord == "MD-PRIVATE-SCANNER-JOB-20261003" and
+            .properties.provisioningState == "Succeeded" and
+            .identity.type == "UserAssigned" and
+            (.identity.userAssignedIdentities | keys | length) == 1 and
+            ([.identity.userAssignedIdentities | keys[] | ascii_downcase] | index($identity | ascii_downcase)) != null and
+            .properties.configuration.triggerType == "Manual" and
+            .properties.configuration.replicaTimeout == 1200 and
+            .properties.configuration.replicaRetryLimit == 0 and
+            .properties.configuration.manualTriggerConfig.parallelism == 1 and
+            .properties.configuration.manualTriggerConfig.replicaCompletionCount == 1 and
+            (.properties.template.containers | length) == 1 and
+            .properties.template.containers[0].image == ("salcapadevb48224acr.azurecr.io/salcapa@" + $digest) and
+            .properties.template.containers[0].resources.cpu == 0.25 and
+            .properties.template.containers[0].resources.memory == "0.5Gi" and
+            .properties.configuration.scheduleTriggerConfig == null and
+            .properties.ingress == null
+          ' "$RUNNER_TEMP/job.json" >/dev/null
+          az containerapp job execution list -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/prior.json"
+          jq -e 'type == "array" and length == 0' "$RUNNER_TEMP/prior.json" >/dev/null
+          echo 'Exact frozen private job verified; prior executions zero.'
+      - name: Start one fictional scanner acceptance execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          az containerapp job start -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/start.json"
+          jq -e '.name | type == "string" and startswith("salcapa-dev-b48224-scan-test-")' "$RUNNER_TEMP/start.json" >/dev/null
+          echo 'One private fictional scanner execution started; inspect its result before any Member switch.'
+
