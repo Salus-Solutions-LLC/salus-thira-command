@@ -10,6 +10,7 @@ on:
       - 'deploy/azure/activations/image-dev.json'
       - 'deploy/azure/activations/application-dev.json'
       - 'docs/demo-deployment-continuity.md'
+      - 'docs/build-continuity.md'
       - 'tools/ci_salcapa_v3109_candidate_image_preflight.py'
       - 'tools/ci_azure_image_publication_contract_smoke.py'
       - '.github/workflows/azure-image-publish.yml'
