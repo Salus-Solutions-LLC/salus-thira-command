@@ -185,3 +185,43 @@ jobs:
           else:
               print('fictional_acceptance_marker_not_available; no file-safety conclusion')
           PY
+
+      - name: Classify the fictional job failure without printing logs
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKSPACE_ID="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$WORKSPACE_ID"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between(datetime(2026-10-04T03:01:00Z)..datetime(2026-10-04T03:20:00Z)) | where JobName == 'salcapa-dev-b48224-scan-test' | project TimeGenerated, Log | take 500" -o json > "$RUNNER_TEMP/private-failure.json"
+          python - "$RUNNER_TEMP/private-failure.json" <<'PY'
+          import collections, json, sys
+          data=json.load(open(sys.argv[1],encoding='utf-8'))
+          if isinstance(data,list):
+              rows=data
+          elif isinstance(data,dict):
+              table=(data.get('tables') or [{}])[0]
+              cols=[x.get('name') for x in table.get('columns',[])]
+              rows=[dict(zip(cols,row)) for row in table.get('rows',[])]
+          else:
+              raise SystemExit('Unexpected log query structure')
+          phrases={
+              'ResultTimeout':'Defender/result-worker acceptance timed out',
+              'CleanNotPromoted':'Clean original was not promoted',
+              'AdverseNotHeld':'EICAR was not detected as Malicious',
+              'MissingResultEvent':'Distinct Defender result event IDs were not recorded',
+              'CleanIntegrity':'Promoted Clean evidence failed independent read-after-write integrity',
+              'AdversePromoted':'A malicious test original was copied to promoted evidence',
+              'Traceback':'Traceback (most recent call last)',
+              'Permission':'PermissionError',
+              'Deadlock':'DeadlockDetected',
+          }
+          counts=collections.Counter()
+          for row in rows:
+              raw=row.get('Log') if isinstance(row,dict) else None
+              if not isinstance(raw,str) or len(raw)>8192: continue
+              for label,phrase in phrases.items():
+                  if phrase in raw: counts[label]+=1
+          print('fictional_job_log_rows='+str(len(rows)))
+          for label in sorted(phrases):
+              print('fictional_failure_'+label+'='+str(counts[label]))
+          PY
