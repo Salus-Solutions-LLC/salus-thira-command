@@ -5,26 +5,26 @@ last_verified_at: 03 October 2026 19:39 CDT
 current_frozen_release: v3.211
 current_frozen_commit: c2b83cdc8cd7f45f868de9eeeffbf1fb9f4489ac
 active_development_branch: development/salcapa-platform
-current_development_head: 87b84e57357ec8b89d72dc4f24e9f1e316ce508b
+current_development_head: 7867fa72ae404aa5ed37abd104ecc1c69b9ea190
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
 active_increment: salus_v3212_private_scanner_acceptance_image
-last_completed_increment: v3208_accepted_immutable_image_and_governed_app_deployment
+last_completed_increment: v3210_accepted_immutable_application_and_advisor
 candidate_release: v3.212
-validation_pr: 638
-validation_branch: candidate/deploy-app-v3208-20261002
+validation_pr: 668
+validation_branch: candidate/scan-acceptance-image-v3212-20261003
 validation_base: development/salcapa-platform
-validation_head: 5e19b847f318fa2aea4b5cac9f2b6c317c2caa4f
-validation_gate_state: all_required_gates_green
+validation_head: pending_exact_head_after_continuity_update
+validation_gate_state: running_after_continuity_repair
 failed_workflows: v3207_candidate_knowledge_worker_failed_and_rolled_back
 first_root_failing_gate: v3207_office_parser_image_reconstruction
 root_cause: image_reconstruction_overwrote_reviewed_office_parser
 repair_head: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
 repair_summary: v3208_image_and_application_accepted_with_scanner_worker_followup_open
-genuine_blockers: scanner_result_worker_v3206_and_member_upload_quote_checkout_closed
-next_authorized_step: deploy_reviewed_scanner_worker_after_specific_approval_then_prove_held_intake_and_quote_bound_payment
-deployed_demo_release: v3.208
-deployed_demo_state: accepted_immutable_application_and_advisor_with_v3206_rollback_scanner_worker_separate
+genuine_blockers: private_clean_adverse_scan_and_alert_proof_open_member_upload_quote_checkout_closed
+next_authorized_step: pass_exact_v3212_candidate_checks_and_review_then_publish_image_before_private_azure_job
+deployed_demo_release: v3.210
+deployed_demo_state: accepted_immutable_application_and_advisor_v3210_member_upload_and_purchase_closed
 ---
 
 # SalCAPA build continuity
@@ -35,7 +35,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 v3211_superseded_before_publication: Frozen v3.211 at `c2b83cdc8cd7f45f868de9eeeffbf1fb9f4489ac` passed its branch guard, but its private manual scanner acceptance job name was 34 characters. Azure's Container Apps Job name rule requires fewer than 32. Draft image PR #666 was closed unmerged before any image or Azure job deployment. Candidate v3.212 at frozen source `7867fa72ae404aa5ed37abd104ecc1c69b9ea190` shortens the job name to 28 characters and adds cross-file regression checks. Accepted app v3.210 remains live; Member uploads, quotes, checkout, purchases and receipts remain closed. PR #668 stages image publication only, subject to exact-head checks and Marc's review. Private Azure what-if, identity/cost, Clean/EICAR exact-object, real alert and commercial/OIDC/payment gates remain separate.
 
-The accepted development application is v3.208 at frozen source `9517d5a3d8ff03ed8e8311f86a34485e16a85ec0` and immutable digest `sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966`. Protected [image run 37089024553](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37089024553) and [application run 37089539089](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37089539089) succeeded. Independent Azure readback showed app revision `salcapa-dev-b48224--0000147` at 100% traffic and the scheduled knowledge job on that digest; its isolated acceptance execution succeeded. Marc approved the exact live 3.208 app and Advisor output. The standing five-minute scanner-result job still used v3.206 at that readback; Member upload, quote, and purchase controls remain closed. Large-batch issue #520 remains paused. The following paragraphs preserve earlier checkpoints as history.
+Historical checkpoint (superseded by the v3.210 live approval above): the accepted development application was v3.208 at frozen source `9517d5a3d8ff03ed8e8311f86a34485e16a85ec0` and immutable digest `sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966`. Protected [image run 37089024553](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37089024553) and [application run 37089539089](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37089539089) succeeded. Independent Azure readback showed app revision `salcapa-dev-b48224--0000147` at 100% traffic and the scheduled knowledge job on that digest; its isolated acceptance execution succeeded. Marc approved the exact live 3.208 app and Advisor output. The standing five-minute scanner-result job still used v3.206 at that readback; Member upload, quote, and purchase controls remain closed. Large-batch issue #520 remains paused. The following paragraphs preserve earlier checkpoints as history.
 
 The v3.197 candidate routes the existing Salus pending folder through the durable bulk worker with an exact, live-verified customer staging sibling and a two-minute schedule. PR #542 exact head `f5a7822da16afc97e24f8d179bd26285ff789899` passed CI, CodeQL, contextual intake, and Azure infrastructure validation before closing without merge; its four tested file blobs were advanced with a non-force development commit `623b94b79469ff1f0b0cbd66b05e9fcb00332b37`. Runtime marker advanced to 3.197 at `892d993702a44376fca3830adcc2cbb662b76dd9`. The first development continuity job failed solely because this record still named candidate v3.196. This update repairs the marker; development gates, freeze, image, Azure activation, and live throughput remain open. v3.196 stays deployed with v3.195 rollback. No files moved.
 
