@@ -65,7 +65,11 @@ jobs:
           counts=collections.Counter()
           for row in rows:
               p=row.get('properties') or {}
-              code=((p.get('statusMessage') or {}).get('error') or {}).get('code') or 'none'
+              message=p.get('statusMessage') or {}
+              if not isinstance(message,dict): message={}
+              error=message.get('error') or {}
+              if not isinstance(error,dict): error={}
+              code=error.get('code') or 'none'
               code=str(code)
               if not code.replace('_','').isalnum() or len(code)>64: code='redacted'
               counts[(str(p.get('provisioningState','unknown')),code)]+=1
