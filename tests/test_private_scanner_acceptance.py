@@ -27,8 +27,16 @@ class PrivateScannerCandidateChecks(unittest.TestCase):
             "AZURE_CLIENT_ID": "fictional-identity-id",
             "SALUS_SCAN_QUARANTINE_URL": "https://fictional.blob.core.windows.net",
             "SALUS_ACCEPTANCE_EXPECTED_QUARANTINE_URL": "https://fictional.blob.core.windows.net",
-            "SALUS_ACCEPTANCE_JOB_NAME": "salcapa-dev-b48224-scan-acceptance",
+            "SALUS_ACCEPTANCE_JOB_NAME": "salcapa-dev-b48224-scan-test",
         }
+
+    def test_azure_job_name_fits_container_apps_limit(self):
+        job_name = self.safe_env["SALUS_ACCEPTANCE_JOB_NAME"]
+        self.assertLess(len(job_name), 32)
+        template = (Path(__file__).resolve().parents[1] / "infra" / "azure" /
+                    "private-scanner-acceptance.bicep").read_text(encoding="utf-8")
+        self.assertIn("name: '${stem}-scan-test'", template)
+        self.assertIn("name: 'SALUS_ACCEPTANCE_JOB_NAME', value: '${stem}-scan-test'", template)
 
     def test_private_job_preflight_requires_every_boundary(self):
         with patch.dict(os.environ, self.safe_env, clear=True):

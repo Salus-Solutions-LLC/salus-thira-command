@@ -37,7 +37,7 @@ def guarded_environment() -> None:
             raise RuntimeError(f"Private scanner acceptance requires {name}={value}.")
     if not os.getenv("AZURE_CLIENT_ID") or not os.getenv("SALUS_SCAN_QUARANTINE_URL"):
         raise RuntimeError("The private job needs its reviewed writer identity and quarantine URL.")
-    if os.getenv("SALUS_ACCEPTANCE_JOB_NAME", "") != "salcapa-dev-b48224-scan-acceptance":
+    if os.getenv("SALUS_ACCEPTANCE_JOB_NAME", "") != "salcapa-dev-b48224-scan-test":
         raise RuntimeError("The private job identity is not the reviewed acceptance job.")
     if os.getenv("SALUS_ACCEPTANCE_EXPECTED_QUARANTINE_URL") != os.getenv("SALUS_SCAN_QUARANTINE_URL"):
         raise RuntimeError("The quarantine URL differs from the reviewed target.")
