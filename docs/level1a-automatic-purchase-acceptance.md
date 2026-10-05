@@ -1,0 +1,27 @@
+# Level 1A Access automatic purchase: release contract
+
+**Status:** Design and acceptance contract only. No Member commerce or upload switch is authorized by this file. Apply SAL-D100, SAL-D101, the approved SOW and the current Program Charter. The current UI branch still uses manual server gates.
+
+## Buyer promise and boundary
+
+Any buyer can purchase **one** named site or function for **$1,500 USD base price**, with four coordinated SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™ reports. The organization’s total size, site count, sector and later need for other services do not disqualify that one unit. The buyer names the selected unit, operating activity, exclusions and authorized contracting person. A missing or contradictory description receives a saved order reference and a correction step; it does not silently change the price or reject an otherwise bounded unit. Additional sites, functions, investigations, security work and SalOPS implementation are voluntary separate scopes.
+
+No per-order Salus category, price, capacity, scope-eligibility, quote or signer approval is permitted on this standard path. Qualified analyst, evidence and report review remain mandatory during delivery. Contracting authority attestation is distinct from rights to disclose records; the latter is checked before protected upload.
+
+## One atomic order
+
+1. Authenticate the buyer and bind tenant, decision owner, one-unit scope digest and an idempotency key. A retry returns the same order; a changed scope creates a new version and invalidates the old acceptance and Checkout Session.
+2. Render the exact controlled agreement from its approved template and order facts. Record template version, rendered bytes SHA-256, tenant, scope digest, amount, tax rule version, creation time and immutable storage version. Read back the same bytes before presenting them. Generated Salus bytes must have a distinct origin attestation; do not falsely label them as malware-scanned customer uploads.
+3. Show the complete agreement for download, one-unit scope, included work, exclusions, base price, itemized tax and exact total before payment. Capture affirmative electronic acceptance with authenticated actor, time, agreement and scope hashes, consent text/version and retry key. No prechecked box or general payment link substitutes for acceptance.
+4. Apply the Salus-approved Texas zero-tax rule only to the exact standard consulting scope where jurisdiction and seller facts support it. Other jurisdictions and expanded services use separately approved rules. Unknown tax is not zero. A tax calculation outage preserves the order and retries without charging; changing the total requires renewed agreement acceptance.
+5. Create one Stripe-hosted Checkout Session bound to the accepted agreement, scope, base, tax, total, currency and tenant. Fulfillment requires a valid signed webhook **and** a server-side retrieved paid Session matching those values. Retries, duplicate, delayed, wrong-amount, refunded and disputed events are idempotent and fail closed.
+6. Persist one immutable, authenticated receipt tied to the paid Session and exact agreement. The Member can download it. Intake remains closed until that receipt is verified.
+7. Before any Member file is usable, stage its exact Blob version in private quarantine. Only an authenticated Clean result matching that object version, ETag and digest may promote it. Missing, malicious, unscanned, mismatched and failed results remain held. Keep the existing small-file path; large-batch issue #520 remains paused.
+
+## Required pre-release proof
+
+Use fictional isolated tenants in the exact protected image and environment. Prove: small and large organizations each buy one selected unit at $1,500 base; a two-location buyer selects one location; missing boundary facts preserve one order ID; unauthorized record disclosure is denied; agreement and price change invalidate consent and Checkout; Texas standard consulting zero tax is an affirmative versioned determination; unsupported jurisdiction does not default to zero; signed Stripe test payment produces one immutable receipt; duplicate and adverse payment events cannot open intake; Clean exact-version file is promoted and EICAR is held; wrong tenant, wrong version, missing scan and worker/alert failure remain held. Verify real alert delivery and recovery, rendered agreement/receipt pages, desktop and phone journey, rollback and qualified exact-source/output review before any public switch.
+
+## Current gaps
+
+The current server requires a Salus `decide` quote, an Access eligibility and capacity confirmation, a Salus-reviewed signer record and an inline-scanned agreement artifact. The current draft UI only lets a Member accept a preissued quote. These are implementation gaps, not buyer conditions. Do not deploy the UI alone as automatic purchase.
