@@ -80,6 +80,58 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         assert downloaded.status_code==200,downloaded.text
         assert sha256(downloaded.content).hexdigest()==issued.json()['agreement_sha256']
         assert not issued.json()['checkout_available'] and not issued.json()['upload_available']
+        accepted=buyer.post(f'/api/level1a/orders/{oid}/accept',json={
+            'quote_id':qid,'agreement_id':aid,
+            'agreement_sha256':issued.json()['agreement_sha256'],
+            'typed_name':'Jane Example',
+            'authority_basis':'Chief executive with contracting authority',
+            'idempotency_key':'fictional-accept-00001',
+            'accept_quote_and_agreement':True})
+        assert accepted.status_code==200,accepted.text
+        app.secret=lambda key,default='': {
+            'SALUS_STRIPE_SECRET_KEY':'rk_test_fictional',
+            'SALUS_STRIPE_WEBHOOK_SECRET':'whsec_fictional'}.get(key,default)
+        app.create_level1a_checkout_session=lambda *args,**kwargs: {
+            'id':'cs_test_example12345678',
+            'url':'https://checkout.stripe.com/c/pay/fictional'}
+        app.os.environ['SALUS_PACKAGE_CHECKOUT_RETURN_ORIGIN']='https://salcapa.salus.solutions'
+        started=buyer.post(f'/api/level1a/orders/{oid}/checkout')
+        assert started.status_code==200 and started.json()['status']=='Pending',started.text
+        conn=app.db()
+        binding=app.binding_for_accepted_order(conn,tenant_id=1,
+            buyer_user_id=uid,order_id=oid)
+        conn.close()
+        paid_session={'id':'cs_test_example12345678','object':'checkout.session',
+            'status':'complete','payment_status':'paid','mode':'payment',
+            'livemode':False,'amount_subtotal':150000,'amount_total':150000,
+            'currency':'usd','total_details':{'amount_tax':0},
+            'client_reference_id':str(binding.acceptance_id),
+            'metadata':binding.metadata(),'payment_intent':'pi_fictional'}
+        app.retrieve_checkout_session=lambda session_id,key: paid_session
+        import hmac,json,time
+        def signed_event(event):
+            payload=json.dumps(event,separators=(',',':')).encode()
+            stamp=str(int(time.time()))
+            signature=hmac.new(b'whsec_fictional',stamp.encode()+b'.'+payload,
+                               'sha256').hexdigest()
+            return buyer.post('/api/package-checkout/stripe-webhook',
+                content=payload,headers={'Stripe-Signature':f't={stamp},v1={signature}'})
+        payment=signed_event({'id':'evt_fictional_paid',
+            'type':'checkout.session.completed',
+            'data':{'object':{'id':'cs_test_example12345678'}}})
+        assert payment.status_code==200 and payment.json()['outcome']=='Paid',payment.text
+        repeated_payment=signed_event({'id':'evt_fictional_paid',
+            'type':'checkout.session.completed',
+            'data':{'object':{'id':'cs_test_example12345678'}}})
+        assert repeated_payment.status_code==200 and repeated_payment.json()['outcome']=='Paid'
+        receipt=buyer.get(f'/api/level1a/orders/{oid}/receipt')
+        assert receipt.status_code==200 and b'Page 1 of 1' in receipt.content,receipt.text
+        assert outsider.get(f'/api/level1a/orders/{oid}/receipt').status_code in (401,403,503)
+        refund=signed_event({'id':'evt_fictional_refund',
+            'type':'charge.refunded',
+            'data':{'object':{'payment_intent':'pi_fictional'}}})
+        assert refund.status_code==200 and refund.json()['outcome']=='Held',refund.text
+        assert buyer.get(f'/api/level1a/orders/{oid}/receipt').status_code==404
     ''')
     completed=subprocess.run([sys.executable,'-c',program],cwd=os.getcwd(),
                              env=env,capture_output=True,text=True,timeout=45)

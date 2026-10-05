@@ -29,6 +29,13 @@ from salus_level1a_agreement_ledger import (AGREEMENT_TABLE_SQL,
     record_issued_download)
 from salus_level1a_acceptance import (ACCEPTANCE_TABLE_SQL,
     AcceptanceConflict, CONSENT_TEXT_V1, accept_issued_agreement)
+from salus_level1a_checkout import (create_level1a_checkout_session,
+    Level1ACheckoutBinding)
+from salus_level1a_payment_ledger import (LEVEL1A_PAYMENT_SQL,
+    binding_for_accepted_order,record_level1a_session,record_level1a_paid,
+    hold_level1a_payment,verified_level1a_receipt,
+    record_level1a_receipt_document,issued_level1a_receipt)
+from salus_level1a_receipt import render_level1a_receipt
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
@@ -1816,6 +1823,7 @@ def init_db():
     conn.executescript(AGREEMENT_TABLE_SQL)
     ensure_column('level1a_agreement_versions','issued_at',"TEXT NOT NULL DEFAULT ''")
     conn.executescript(ACCEPTANCE_TABLE_SQL)
+    conn.executescript(LEVEL1A_PAYMENT_SQL)
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
     ensure_column('evidence_attachments','scanned_at','TEXT NOT NULL DEFAULT ""')
@@ -5923,6 +5931,123 @@ def accept_level1a_order(order_id:int,p:Level1AAcceptanceIn,request:Request):
     finally:
         conn.rollback(); conn.close()
 
+@app.post('/api/level1a/orders/{order_id}/checkout')
+def start_level1a_checkout(order_id:int,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        tid=tenant_id(request);uid=ctx['user_id']
+        try:
+            binding=binding_for_accepted_order(conn,tenant_id=tid,
+                buyer_user_id=uid,order_id=order_id)
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,str(exc)) from exc
+        paid=verified_level1a_receipt(conn,binding)
+        if paid:
+            return {'status':'Paid','order_id':order_id,
+                    'receipt_url':f'/api/level1a/orders/{order_id}/receipt',
+                    'receipt_sha256':paid['receipt_sha256'],
+                    'upload_available':False}
+        previous=conn.execute('''SELECT * FROM level1a_checkout_sessions WHERE
+            tenant_id=? AND buyer_user_id=? AND order_id=? AND acceptance_id=?
+            ORDER BY attempt_no DESC LIMIT 1''',
+            (tid,uid,order_id,binding.acceptance_id)).fetchone()
+        try:
+            stripe_key=secret('SALUS_STRIPE_SECRET_KEY','').strip()
+        except Exception as exc:
+            raise HTTPException(503,'Secure checkout is not configured.') from exc
+        if not stripe_key:
+            raise HTTPException(503,'Secure checkout is not configured.')
+        if previous:
+            if previous['status']!='Pending':
+                raise HTTPException(409,'The prior payment needs reconciliation.')
+            try:
+                session=retrieve_checkout_session(previous['stripe_session_id'],stripe_key)
+            except Exception as exc:
+                raise HTTPException(503,'Unable to verify the current checkout.') from exc
+            if session.get('status')=='open':
+                return {'status':'Pending','checkout_url':previous['checkout_url'],
+                        'order_id':order_id,'amount_cents':binding.amount_cents,
+                        'currency':binding.currency,'upload_available':False}
+            if session.get('status')!='expired':
+                raise HTTPException(409,'The prior payment needs reconciliation.')
+            conn.execute("UPDATE level1a_checkout_sessions SET status='Expired' WHERE id=?",
+                         (previous['id'],))
+        attempt=(previous['attempt_no']+1) if previous else 1
+        origin=os.getenv('SALUS_PACKAGE_CHECKOUT_RETURN_ORIGIN','').strip().rstrip('/')
+        try:
+            session=create_level1a_checkout_session(binding,stripe_key,
+                origin+'/package-checkout-return?session_id={CHECKOUT_SESSION_ID}',
+                origin+'/package-checkout-cancel',attempt_no=attempt)
+            recorded=record_level1a_session(conn,binding,attempt,session['id'],
+                                            session['url'],now())
+        except CheckoutVerificationError as exc:
+            raise HTTPException(503,'Secure checkout needs configuration review.') from exc
+        except Exception as exc:
+            raise HTTPException(503,'Unable to create secure checkout.') from exc
+        audit(conn,'LEVEL1A_CHECKOUT_START','level1a_order',order_id,
+              f'checkout_id={recorded["id"]}; quote_id={binding.quote_id}',
+              actor(request),tenant_override=tid)
+        conn.commit()
+        return {'status':'Pending','checkout_url':recorded['checkout_url'],
+                'order_id':order_id,'amount_cents':binding.amount_cents,
+                'currency':binding.currency,'upload_available':False}
+    finally:
+        conn.rollback();conn.close()
+
+
+@app.get('/api/level1a/orders/{order_id}/checkout')
+def level1a_checkout_status(order_id:int,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        try:
+            binding=binding_for_accepted_order(conn,tenant_id=tenant_id(request),
+                buyer_user_id=ctx['user_id'],order_id=order_id)
+            paid=verified_level1a_receipt(conn,binding)
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,str(exc)) from exc
+        row=conn.execute('''SELECT status FROM level1a_checkout_sessions WHERE
+            tenant_id=? AND buyer_user_id=? AND order_id=? AND acceptance_id=?
+            ORDER BY attempt_no DESC LIMIT 1''',
+            (binding.tenant_id,binding.buyer_user_id,order_id,
+             binding.acceptance_id)).fetchone()
+        return {'status':'Paid' if paid else (row['status'] if row else 'Not started'),
+                'order_id':order_id,'amount_cents':binding.amount_cents,
+                'currency':binding.currency,
+                'receipt_available':bool(paid and paid['receipt_document_sha256']),
+                'upload_available':False}
+    finally:
+        conn.close()
+
+
+@app.get('/api/level1a/orders/{order_id}/receipt')
+def level1a_payment_receipt(order_id:int,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        try:
+            binding=binding_for_accepted_order(conn,tenant_id=tenant_id(request),
+                buyer_user_id=ctx['user_id'],order_id=order_id)
+            paid=verified_level1a_receipt(conn,binding)
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,str(exc)) from exc
+        if not paid or not paid['receipt_stored_name']:
+            raise HTTPException(404,'A verified receipt is not available yet.')
+        try:
+            content=storage.get_bytes(paid['receipt_stored_name'])
+            issued_level1a_receipt(conn,binding,content)
+        except Exception as exc:
+            raise HTTPException(503,'The stored receipt failed integrity review.') from exc
+        return Response(content=content,media_type='text/html; charset=utf-8',
+            headers={'Cache-Control':'private, no-store',
+                     'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+                     'X-Content-SHA256':paid['receipt_document_sha256']})
+    finally:
+        conn.close()
+
+
 @app.post('/api/assessments/{assessment_id}/package-agreements')
 async def upload_package_agreement(assessment_id:int,request:Request,file:UploadFile=File(...)):
     require_package_commercial_candidate(); require(request,'decide')
@@ -6722,12 +6847,19 @@ async def package_checkout_stripe_webhook(request:Request):
             if event['type'].startswith('charge.') else event_object.get('id'))
         conn=db()
         try:
+            level1a_held=hold_level1a_payment(conn,payment_intent_id,
+                event['id'],event['type'],now())
             held=hold_payment_event(conn,payment_intent_id,event['id'],event['type'],now())
+            if level1a_held:
+                audit(conn,'LEVEL1A_PAYMENT_HELD','level1a_order',
+                    level1a_held['order_id'],
+                    f'checkout_id={level1a_held["id"]}; event_type={event["type"]}',
+                    'stripe-webhook',tenant_override=level1a_held['tenant_id'])
             if held:
                 audit(conn,'PACKAGE_PAYMENT_HELD','assessment',held['assessment_id'],
                     f"checkout_id={held['id']}; event_type={event['type']}",'stripe-webhook')
             conn.commit()
-            return {'received':True,'outcome':'Held' if held else 'Unmatched'}
+            return {'received':True,'outcome':'Held' if (held or level1a_held) else 'Unmatched'}
         except CheckoutVerificationError as exc:
             raise HTTPException(409,'The payment hold event requires review.') from exc
         finally:
@@ -6743,6 +6875,48 @@ async def package_checkout_stripe_webhook(request:Request):
         raise HTTPException(503,'Stripe Session retrieval failed.') from exc
     conn=db()
     try:
+        level1a_checkout=conn.execute('''SELECT * FROM level1a_checkout_sessions
+            WHERE stripe_session_id=?''',(session_id,)).fetchone()
+        if level1a_checkout:
+            try:
+                binding=binding_for_accepted_order(conn,
+                    tenant_id=level1a_checkout['tenant_id'],
+                    buyer_user_id=level1a_checkout['buyer_user_id'],
+                    order_id=level1a_checkout['order_id'])
+                paid=record_level1a_paid(conn,binding,session,event['id'],
+                    event['type'],now(),
+                    stripe_key.startswith(('sk_live_','rk_live_')))
+            except CheckoutVerificationError as exc:
+                raise HTTPException(409,'The payment did not match the accepted Level 1A order.') from exc
+            if paid['status']=='Paid':
+                order=conn.execute('SELECT * FROM level1a_orders WHERE id=?',
+                                   (binding.order_id,)).fetchone()
+                quote=conn.execute('SELECT * FROM level1a_quote_versions WHERE id=?',
+                                   (binding.quote_id,)).fetchone()
+                agreement=conn.execute('''SELECT * FROM level1a_agreement_versions
+                    WHERE id=(SELECT agreement_id FROM level1a_acceptances WHERE id=?)''',
+                    (binding.acceptance_id,)).fetchone()
+                content=render_level1a_receipt(order,quote,agreement,paid)
+                digest=hashlib.sha256(content).hexdigest()
+                key=f'level1a/{binding.tenant_id}/{binding.order_id}/receipts/{digest}.html'
+                try:
+                    if paid['receipt_document_sha256']:
+                        if (paid['receipt_document_sha256']!=digest or
+                                paid['receipt_stored_name']!=key):
+                            raise CheckoutVerificationError('The issued receipt version changed.')
+                        issued_level1a_receipt(conn,binding,storage.get_bytes(key))
+                    else:
+                        storage.put_bytes(key,content)
+                        record_level1a_receipt_document(conn,binding,paid['id'],content,
+                                                        key,storage.get_bytes(key))
+                except Exception as exc:
+                    raise HTTPException(503,'The paid receipt could not be safely stored.') from exc
+            audit(conn,'LEVEL1A_PAYMENT_VERIFIED' if paid['status']=='Paid'
+                  else 'LEVEL1A_PAYMENT_HELD','level1a_order',binding.order_id,
+                  f'checkout_id={paid["id"]}; status={paid["status"]}',
+                  'stripe-webhook',tenant_override=binding.tenant_id)
+            conn.commit()
+            return {'received':True,'outcome':paid['status']}
         checkout=conn.execute('SELECT * FROM package_checkout_sessions WHERE stripe_session_id=?',
                               (session_id,)).fetchone()
         if not checkout:
