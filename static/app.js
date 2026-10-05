@@ -656,7 +656,9 @@ function renderIdentity(){
 
 function showLogin(message=''){
   if(systemMode.auth_mode==='oidc'){
-    $('#content').innerHTML=`<div class="card" style="max-width:520px;margin:60px auto"><h2>SalCAPA</h2><p class="subtle">Enterprise identity sign-in is required.</p>${message?`<div class="notice">${esc(message)}</div>`:''}<div class="form-actions"><a class="btn" id="oidc-login" href="https://salcapa.salus.solutions/api/auth/oidc/start">Sign in with SSO</a></div></div>`;
+    const customerLogin=systemMode.customer_signin_available&&systemMode.level1a_purchase_available
+      ? '<a class="btn secondary" id="customer-oidc-login" href="/api/auth/customer/start">Buy Level 1A Access</a>' : '';
+    $('#content').innerHTML=`<div class="card" style="max-width:520px;margin:60px auto"><h2>SalCAPA</h2><p class="subtle">Secure sign-in is required.</p>${message?`<div class="notice">${esc(message)}</div>`:''}<div class="form-actions"><a class="btn" id="oidc-login" href="https://salcapa.salus.solutions/api/auth/oidc/start">Salus and existing Member sign-in</a>${customerLogin}</div></div>`;
     return;
   }
   $('#content').innerHTML=`<div class="card" style="max-width:520px;margin:60px auto"><h2>SalCAPA</h2><p class="subtle">Authenticated session required.</p>${message?`<div class="notice">${esc(message)}</div>`:''}<form id="login-form"><label>Username<input name="username" autocomplete="username" required></label><label style="margin-top:12px">Password<input name="password" type="password" autocomplete="current-password" required></label><div class="form-actions"><button class="btn">Sign In</button></div></form></div>`;
