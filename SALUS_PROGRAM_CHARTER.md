@@ -94,6 +94,7 @@ This map makes every currently approved decision findable in the Charter. The ex
 | SAL-D098 | Apply the one-time, development-only public-rate exception to SAL-D092's missing subscription price sheet; retain the 100 GB cap, $75 total alert, actual-charge review and all source, Azure and live-release gates. |
 | SAL-D099 | Use the approved Level 1A agreement basis and exact Texas consulting-tax determination; complete variable and marked standard terms and prove quote, acceptance, payment, receipt and file gates before issue. |
 | SAL-D100 | Offer Level 1A Access at $1,500 for automatic purchase of one clearly defined assessment unit without per-order Salus price, category, scope-eligibility or signer approval; control scope through explicit inclusions, exclusions and separate written changes. |
+| SAL-D101 | Incorporate Marc-approved proposed Level 1A standard terms into one controlled agreement, completing exact notice, privacy and retention references and governed transaction proof before issue. |
 
 SAL-D020 and SAL-D021 are superseded intake decisions retained in the Decision Register as history; SAL-D022 governs the current intake rule, with the routing clarification in SAL-D024. On approval of a later material decision, reconcile this map and the substantive Charter rule before treating the new decision as implemented.
 
