@@ -6392,6 +6392,14 @@ async def upload_level1a_intake_file(order_id:int,item_id:int,request:Request,
                                      file:UploadFile=File(...)):
     _level1a_upload_ready()
     ctx=_level1a_draft_authority(request);tid=int(ctx['tenant_id'])
+    # Reject unpaid requests before reading or inspecting their file content.
+    # The transactional check below repeats this after the read in case payment
+    # is refunded or disputed during the upload.
+    preflight=db()
+    try:
+        _paid_level1a_intake(preflight,order_id,tid,ctx['user_id'])
+    finally:
+        preflight.close()
     original=safe_filename(file.filename or '')
     if Path(original).suffix.lower() not in LEVEL1A_SMALL_FILE_EXTENSIONS:
         raise HTTPException(422,'This small-file format is not accepted here.')
