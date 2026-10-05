@@ -127,11 +127,106 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         receipt=buyer.get(f'/api/level1a/orders/{oid}/receipt')
         assert receipt.status_code==200 and b'Page 1 of 1' in receipt.content,receipt.text
         assert outsider.get(f'/api/level1a/orders/{oid}/receipt').status_code in (401,403,503)
+        assert buyer.post(f'/api/level1a/orders/{oid}/intake/open').status_code==503
+        app.LEVEL1A_INTAKE_ENABLED=True
+        assert outsider.post(f'/api/level1a/orders/{oid}/intake/open').status_code in (401,403)
+        opened=buyer.post(f'/api/level1a/orders/{oid}/intake/open')
+        assert opened.status_code==200,opened.text
+        assessment_id=opened.json()['assessment_id']
+        again=buyer.post(f'/api/level1a/orders/{oid}/intake/open')
+        assert again.status_code==200 and again.json()['idempotent']
+        assert again.json()['assessment_id']==assessment_id
+        intake=buyer.get(f'/api/level1a/orders/{oid}/intake')
+        assert intake.status_code==200 and len(intake.json()['items'])==7,intake.text
+        assert not intake.json()['disclosure_authority_recorded']
+        assert not intake.json()['upload_available']
+        assert outsider.get(f'/api/level1a/orders/{oid}/intake').status_code in (401,403)
+        import uuid
+        class FictionalQuarantine:
+            def __init__(self): self.objects={};self.wrong_version=False
+            def stage_bytes(self,*,tenant_id,assessment_id,quote_id,intake_request_id,data):
+                digest=sha256(data).hexdigest()
+                name=(f'tenant-{tenant_id}/assessment-{assessment_id}/quote-{quote_id}/'
+                      f'item-{intake_request_id}/{uuid.uuid4().hex}_{digest[:16]}')
+                uri=f'https://fictionalscan.blob.core.windows.net/quarantine/{name}'
+                manifest=dict(tenant_id=tenant_id,assessment_id=assessment_id,
+                    quote_id=quote_id,intake_request_id=intake_request_id,
+                    status='Pending',blob_name=name,blob_uri=uri,
+                    blob_version_id='fictional-v1',etag='"0xABC"',sha256=digest,
+                    size_bytes=len(data))
+                self.objects[uri]=(manifest,data)
+                return manifest
+            def read_version(self,manifest):
+                saved,data=self.objects[manifest['blob_uri']]
+                assert saved['blob_version_id']==manifest['blob_version_id']
+                return {'blob_uri':saved['blob_uri'],
+                        'blob_version_id':'different-version' if self.wrong_version
+                                          else saved['blob_version_id'],
+                        'etag':saved['etag'],'bytes':data}
+        quarantine=FictionalQuarantine()
+        app.package_quarantine=lambda **kwargs: quarantine
+        app.PACKAGE_SCAN_MODE='defender'
+        app.PACKAGE_SCANNER_ACCEPTED=True
+        app.LEVEL1A_UPLOAD_ENABLED=True
+        item_id=intake.json()['items'][0]['id']
+        denied=buyer.post(f'/api/level1a/orders/{oid}/intake/{item_id}/files',
+            files={'file':('clean.pdf',b'fictional clean PDF','application/pdf')})
+        assert denied.status_code==403,denied.text
+        asserted=buyer.post(f'/api/level1a/orders/{oid}/intake/disclosure-authority',
+            json={'authority_basis':'I am the records custodian for the named site',
+                  'confirm_authorized_disclosure':True})
+        assert asserted.status_code==200,asserted.text
+        assert buyer.get(f'/api/level1a/orders/{oid}/intake').json()['disclosure_authority_recorded']
+        assert asserted.json()['upload_available']
+        clean=buyer.post(f'/api/level1a/orders/{oid}/intake/{item_id}/files',
+            files={'file':('clean.pdf',b'fictional clean PDF','application/pdf')})
+        assert clean.status_code==200 and clean.json()['scan_status']=='Pending',clean.text
+        assert buyer.get(f'/api/level1a/orders/{oid}/intake/files/1/download').status_code==404
+        clean_uri=next(iter(quarantine.objects))
+        topic='/subscriptions/fictional/resourceGroups/test/providers/Microsoft.EventGrid/topics/scan'
+        clean_event={'id':'fictional-clean-event','topic':topic,
+            'eventType':'Microsoft.Security.MalwareScanningResult',
+            'data':{'blobUri':clean_uri,'eTag':'0xABC',
+                    'scanResultType':'No threats found'}}
+        wrong_etag={**clean_event,'id':'fictional-wrong-etag',
+            'data':{**clean_event['data'],'eTag':'0xDEF'}}
+        assert app.process_level1a_scan_result(wrong_etag,quarantine=quarantine,
+            expected_topic=topic)=='Unmatched'
+        quarantine.wrong_version=True
+        assert app.process_level1a_scan_result(clean_event,quarantine=quarantine,
+            expected_topic=topic)=='Unmatched'
+        assert buyer.get(f'/api/level1a/orders/{oid}/intake/files/1/download').status_code==404
+        quarantine.wrong_version=False
+        assert app.process_trusted_scan_result(clean_event,
+            expected_topic=topic)=='Promoted'
+        assert app.process_trusted_scan_result(clean_event,
+            expected_topic=topic)=='Promoted'
+        clean_download=buyer.get(f'/api/level1a/orders/{oid}/intake/files/1/download')
+        assert clean_download.status_code==200 and clean_download.content==b'fictional clean PDF'
+        assert outsider.get(f'/api/level1a/orders/{oid}/intake/files/1/download').status_code in (401,403)
+        eicar=buyer.post(f'/api/level1a/orders/{oid}/intake/{item_id}/files',
+            files={'file':('eicar.txt',b'fictional adverse bytes','text/plain')})
+        assert eicar.status_code==200 and eicar.json()['scan_status']=='Pending',eicar.text
+        malicious_uri=list(quarantine.objects)[1]
+        malicious={'id':'fictional-malicious-event','topic':topic,
+            'eventType':'Microsoft.Security.MalwareScanningResult',
+            'data':{'blobUri':malicious_uri,'eTag':'0xABC',
+                    'scanResultType':'Malicious'}}
+        assert app.process_trusted_scan_result(malicious,
+            expected_topic=topic)=='Malicious'
+        assert buyer.get(f'/api/level1a/orders/{oid}/intake/files/2/download').status_code==404
+        contrary={**clean_event,'id':'fictional-later-adverse',
+            'data':{**clean_event['data'],'scanResultType':'Malicious'}}
+        assert app.process_level1a_scan_result(contrary,quarantine=quarantine,
+            expected_topic=topic)=='Reconcile'
+        assert buyer.get(f'/api/level1a/orders/{oid}/intake/files/1/download').status_code==404
         refund=signed_event({'id':'evt_fictional_refund',
             'type':'charge.refunded',
             'data':{'object':{'payment_intent':'pi_fictional'}}})
         assert refund.status_code==200 and refund.json()['outcome']=='Held',refund.text
         assert buyer.get(f'/api/level1a/orders/{oid}/receipt').status_code==404
+        assert buyer.get(f'/api/level1a/orders/{oid}/intake').status_code==409
+        assert buyer.get(f'/api/level1a/orders/{oid}/intake/files/1/download').status_code==409
     ''')
     completed=subprocess.run([sys.executable,'-c',program],cwd=os.getcwd(),
                              env=env,capture_output=True,text=True,timeout=45)
