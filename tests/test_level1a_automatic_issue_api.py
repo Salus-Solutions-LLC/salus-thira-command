@@ -88,6 +88,29 @@ def test_signed_in_issue_retry_and_download(tmp_path):
             'idempotency_key':'fictional-accept-00001',
             'accept_quote_and_agreement':True})
         assert accepted.status_code==200,accepted.text
+        # Even if all public intake switches were mistakenly enabled, an
+        # agreement and account alone cannot open or expose the intake.
+        app.LEVEL1A_INTAKE_ENABLED=True
+        app.LEVEL1A_UPLOAD_ENABLED=True
+        app.PACKAGE_SCANNER_ACCEPTED=True
+        app.PACKAGE_SCAN_MODE='defender'
+        intake_base=f'/api/level1a/orders/{oid}/intake'
+        assert buyer.post(f'{intake_base}/open').status_code==409
+        assert buyer.get(intake_base).status_code==409
+        assert buyer.post(f'{intake_base}/disclosure-authority',json={
+            'authority_basis':'I am the records custodian for the named site',
+            'confirm_authorized_disclosure':True}).status_code==409
+        assert buyer.post(f'{intake_base}/1/files',files={
+            'file':('early.pdf',b'unpaid fictional bytes','application/pdf')}).status_code==409
+        assert buyer.get(f'{intake_base}/files/1/download').status_code==409
+        conn=app.db()
+        assert conn.execute('SELECT COUNT(*) AS n FROM level1a_assessment_links').fetchone()['n']==0
+        assert conn.execute('SELECT COUNT(*) AS n FROM level1a_pending_scans').fetchone()['n']==0
+        conn.close()
+        app.LEVEL1A_INTAKE_ENABLED=False
+        app.LEVEL1A_UPLOAD_ENABLED=False
+        app.PACKAGE_SCANNER_ACCEPTED=False
+        app.PACKAGE_SCAN_MODE=''
         app.secret=lambda key,default='': {
             'SALUS_STRIPE_SECRET_KEY':'rk_test_fictional',
             'SALUS_STRIPE_WEBHOOK_SECRET':'whsec_fictional'}.get(key,default)
