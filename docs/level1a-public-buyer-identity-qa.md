@@ -6,6 +6,8 @@
 
 A previously unknown customer must be able to buy one bounded Level 1A Access unit for $1,500 without per-order Salus approval, accept the exact approved agreement online, prepay through a scope-bound Stripe Checkout, receive an immutable receipt, and submit files that remain held until a verified scan decision. The current production OIDC callback rejects an unprovisioned user while `SALUS_OIDC_AUTO_PROVISION=0`; `_level1a_draft_authority` requires an active Client Executive in an existing Protected Member tenant. Enabling order flags alone cannot satisfy the outcome. Keep them off until the full journey is accepted.
 
+**Portal directory check, 5 October 2026:** The signed-in Salus Azure Owner's *Directories + subscriptions → All Directories* table displayed only `SALUS (salus.solutions)`. This is a scoped observation for that identity, not proof no customer tenant exists elsewhere. Verify exact tenant ownership, eligibility and costs before any creation or integration.
+
 ## Candidate boundary
 
 1. Keep the existing Salus workforce OIDC issuer, preauthorized users, role mapping, sessions and Member tenants unchanged. Do not turn on its shared-tenant auto-provisioning.
