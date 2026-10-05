@@ -2013,6 +2013,8 @@ class Level1AOrderDraftIn(BaseModel):
     exclusions: str = Field(default='',max_length=500)
     decision_owner_role: str = Field(default='',max_length=500)
     notice_email: str = Field(default='',max_length=254)
+    service_use_address: str = Field(default='',max_length=500)
+    service_use_postal_code: str = Field(default='',max_length=30)
     use_country: str = Field(default='',max_length=2)
     use_region: str = Field(default='',max_length=100)
 
@@ -2027,6 +2029,8 @@ class Level1AOrderCorrectionIn(BaseModel):
     exclusions: str = Field(default='',max_length=500)
     decision_owner_role: str = Field(default='',max_length=500)
     notice_email: str = Field(default='',max_length=254)
+    service_use_address: str = Field(default='',max_length=500)
+    service_use_postal_code: str = Field(default='',max_length=30)
     use_country: str = Field(default='',max_length=2)
     use_region: str = Field(default='',max_length=100)
 
@@ -5653,6 +5657,8 @@ def _level1a_order_view(row, idempotent=False):
             'operating_activity':row['operating_activity'],
             'exclusions':row['exclusions'],'decision_owner_role':row['decision_owner_role'],
             'notice_email':row['notice_email'],'use_country':row['use_country'],
+            'service_use_address':row['service_use_address'],
+            'service_use_postal_code':row['service_use_postal_code'],
             'use_region':row['use_region'],'base_price_cents':BASE_PRICE_CENTS,
             'currency':'USD','idempotent':idempotent,
             'checkout_available':False,'upload_available':False}

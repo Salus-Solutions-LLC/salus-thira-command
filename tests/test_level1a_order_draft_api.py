@@ -40,6 +40,8 @@ def test_member_order_reference_and_tenant_boundary(tmp_path):
             'unit_name':'','covered_boundary':'One building and playground',
             'operating_activity':'Daycare','exclusions':'Other sites',
             'decision_owner_role':'Chief executive','notice_email':'buyer@example.test',
+            'service_use_address':'100 Oak Street, Austin, Texas',
+            'service_use_postal_code':'78701',
             'use_country':'US','use_region':'TX'}
         assert analyst.post('/api/level1a/orders',json=payload).status_code==403
         created=buyer.post('/api/level1a/orders',json=payload)
@@ -59,6 +61,8 @@ def test_member_order_reference_and_tenant_boundary(tmp_path):
             'covered_boundary':'One building and playground',
             'operating_activity':'Daycare','exclusions':'Other sites',
             'decision_owner_role':'Chief executive','notice_email':'buyer@example.test',
+            'service_use_address':'100 Oak Street, Austin, Texas',
+            'service_use_postal_code':'78701',
             'use_country':'US','use_region':'TX'})
         assert fixed.status_code==200,fixed.text
         assert fixed.json()['status']=='ReadyForAgreement'
@@ -76,12 +80,16 @@ def test_member_order_reference_and_tenant_boundary(tmp_path):
             'unit_name':'Other','covered_boundary':'Other',
             'operating_activity':'Other','exclusions':'Other',
             'decision_owner_role':'Chief executive','notice_email':'other@example.test',
+            'service_use_address':'100 Oak Street, Austin, Texas',
+            'service_use_postal_code':'78701',
             'use_country':'US','use_region':'TX'}).status_code==409
         assert buyer.patch(url,json={'expected_scope_version':1,
             'buyer_legal_name':'Example Care LLC','unit_kind':'Site',
             'unit_name':'Changed','covered_boundary':'One building and playground',
             'operating_activity':'Daycare','exclusions':'Other sites',
             'decision_owner_role':'Chief executive','notice_email':'buyer@example.test',
+            'service_use_address':'100 Oak Street, Austin, Texas',
+            'service_use_postal_code':'78701',
             'use_country':'US','use_region':'TX'}).status_code==409
         assert buyer.post('/api/assessments/1/package-checkout').status_code==503
         conn=app.db()

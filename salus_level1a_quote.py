@@ -70,6 +70,8 @@ def _unit_from_order(row):
         unit_name=row['unit_name'], covered_boundary=row['covered_boundary'],
         operating_activity=row['operating_activity'], exclusions=row['exclusions'],
         decision_owner_role=row['decision_owner_role'], notice_email=row['notice_email'],
+        service_use_address=row['service_use_address'],
+        service_use_postal_code=row['service_use_postal_code'],
         use_country=row['use_country'], use_region=row['use_region'],
         scope_version=row['scope_version'])
 

@@ -47,6 +47,8 @@ class Level1AUnit:
     exclusions: str
     decision_owner_role: str
     notice_email: str
+    service_use_address: str
+    service_use_postal_code: str
     use_country: str
     use_region: str
     scope_version: int
@@ -67,6 +69,8 @@ class Level1AUnit:
                              ('exclusions', 'Exclusions'),
                              ('decision_owner_role', 'Decision owner role'),
                              ('notice_email', 'Buyer notice email'),
+                             ('service_use_address', 'Service use address'),
+                             ('service_use_postal_code', 'Service use postal code'),
                              ('use_country', 'Service use country'),
                              ('use_region', 'Service use region')):
             object.__setattr__(self, field, _required_text(getattr(self, field), label))
@@ -74,6 +78,8 @@ class Level1AUnit:
         object.__setattr__(self, 'use_region', self.use_region.upper())
         if len(self.use_country) != 2:
             raise OrderBoundaryError('Use a two-letter service use country code.')
+        if self.use_country == 'US' and len(self.use_region) != 2:
+            raise OrderBoundaryError('Use a two-letter service use state code.')
         if ('@' not in self.notice_email or '\n' in self.notice_email or
                 len(self.notice_email) > 254):
             raise OrderBoundaryError('Give a usable buyer notice email.')
@@ -91,6 +97,8 @@ class Level1AUnit:
             'exclusions': self.exclusions,
             'decision_owner_role': self.decision_owner_role,
             'notice_email': self.notice_email,
+            'service_use_address': self.service_use_address,
+            'service_use_postal_code': self.service_use_postal_code,
             'use_country': self.use_country,
             'use_region': self.use_region,
             'scope_version': self.scope_version,

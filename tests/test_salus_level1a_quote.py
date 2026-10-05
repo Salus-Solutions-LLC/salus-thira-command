@@ -13,7 +13,9 @@ def _values(*, region='TX', unit_name='Oak Street daycare'):
             'unit_name':unit_name,'covered_boundary':'Building and playground',
             'operating_activity':'Daycare','exclusions':'Other sites',
             'decision_owner_role':'Chief executive',
-            'notice_email':'buyer@example.test','use_country':'US',
+            'notice_email':'buyer@example.test',
+            'service_use_address':'100 Oak Street, Austin, Texas',
+            'service_use_postal_code':'78701','use_country':'US',
             'use_region':region}
 
 

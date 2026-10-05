@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS level1a_orders (
   exclusions TEXT NOT NULL,
   decision_owner_role TEXT NOT NULL,
   notice_email TEXT NOT NULL,
+  service_use_address TEXT NOT NULL,
+  service_use_postal_code TEXT NOT NULL,
   use_country TEXT NOT NULL,
   use_region TEXT NOT NULL,
   scope_sha256 TEXT NOT NULL DEFAULT '',
@@ -45,7 +47,8 @@ def _snapshot(values):
     return tuple(values[key] for key in
                  ('buyer_legal_name', 'unit_kind', 'unit_name', 'covered_boundary',
                   'operating_activity', 'exclusions', 'decision_owner_role',
-                  'notice_email', 'use_country', 'use_region'))
+                  'notice_email', 'service_use_address',
+                  'service_use_postal_code', 'use_country', 'use_region'))
 
 
 def _scope(tenant_id, buyer_user_id, scope_version, values):
@@ -63,6 +66,8 @@ def _scope(tenant_id, buyer_user_id, scope_version, values):
         'exclusions': unit.exclusions,
         'decision_owner_role': unit.decision_owner_role,
         'notice_email': unit.notice_email,
+        'service_use_address': unit.service_use_address,
+        'service_use_postal_code': unit.service_use_postal_code,
         'use_country': unit.use_country,
         'use_region': unit.use_region,
     }
@@ -74,7 +79,8 @@ def save_draft(conn, *, tenant_id, buyer_user_id, idempotency_key, values, times
     values = {key: values[key] for key in
               ('buyer_legal_name', 'unit_kind', 'unit_name', 'covered_boundary',
                'operating_activity', 'exclusions', 'decision_owner_role',
-               'notice_email', 'use_country', 'use_region')}
+               'notice_email', 'service_use_address',
+               'service_use_postal_code', 'use_country', 'use_region')}
     if any(not isinstance(value, str) or len(value) > 500 for value in values.values()):
         raise OrderConflict('Order answers must be text of at most 500 characters.')
     status, digest, normalized = _scope(tenant_id, buyer_user_id, 1, values)
@@ -88,8 +94,9 @@ def save_draft(conn, *, tenant_id, buyer_user_id, idempotency_key, values, times
     conn.execute('''INSERT INTO level1a_orders
         (tenant_id,buyer_user_id,idempotency_key,scope_version,buyer_legal_name,
          unit_kind,unit_name,covered_boundary,operating_activity,exclusions,
-         decision_owner_role,notice_email,use_country,use_region,scope_sha256,status,created_at,updated_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,buyer_user_id,idempotency_key)
+         decision_owner_role,notice_email,service_use_address,service_use_postal_code,
+         use_country,use_region,scope_sha256,status,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,buyer_user_id,idempotency_key)
         DO NOTHING''', (tenant_id,buyer_user_id,idempotency_key,1,
         *_snapshot(normalized),digest,status,timestamp,timestamp))
     row = conn.execute('''SELECT * FROM level1a_orders
@@ -114,7 +121,8 @@ def correct_draft(conn, *, tenant_id, buyer_user_id, order_id,
     values = {key: values[key] for key in
               ('buyer_legal_name', 'unit_kind', 'unit_name', 'covered_boundary',
                'operating_activity', 'exclusions', 'decision_owner_role',
-               'notice_email', 'use_country', 'use_region')}
+               'notice_email', 'service_use_address',
+               'service_use_postal_code', 'use_country', 'use_region')}
     if any(not isinstance(value, str) or len(value) > 500 for value in values.values()):
         raise OrderConflict('Order answers must be text of at most 500 characters.')
     version = expected_scope_version + 1
@@ -123,7 +131,8 @@ def correct_draft(conn, *, tenant_id, buyer_user_id, order_id,
         return dict(row), True
     result = conn.execute('''UPDATE level1a_orders SET scope_version=?,buyer_legal_name=?,
         unit_kind=?,unit_name=?,covered_boundary=?,operating_activity=?,exclusions=?,
-        decision_owner_role=?,notice_email=?,use_country=?,use_region=?,
+        decision_owner_role=?,notice_email=?,service_use_address=?,
+        service_use_postal_code=?,use_country=?,use_region=?,
         scope_sha256=?,status=?,updated_at=?
         WHERE id=? AND tenant_id=? AND buyer_user_id=? AND scope_version=?
           AND status IN ('NeedsCorrection','ReadyForAgreement')''',

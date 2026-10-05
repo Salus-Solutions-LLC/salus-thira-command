@@ -15,6 +15,8 @@ def unit(**changes):
                   exclusions='Other sites and investigative services',
                   decision_owner_role='Chief executive',
                   notice_email='buyer@example.test',
+                  service_use_address='100 Oak Street, Austin, Texas',
+                  service_use_postal_code='78701',
                   use_country='US',use_region='TX',scope_version=1)
     values.update(changes)
     return Level1AUnit(**values)

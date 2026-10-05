@@ -25,6 +25,8 @@ def answers(**changes):
                   unit_name='Main daycare',covered_boundary='One building and playground',
                   operating_activity='Child care', exclusions='Other sites',
                   decision_owner_role='Chief executive',notice_email='buyer@example.test',
+                  service_use_address='100 Oak Street, Austin, Texas',
+                  service_use_postal_code='78701',
                   use_country='US',use_region='TX')
     result.update(changes)
     return result
