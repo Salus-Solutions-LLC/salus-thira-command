@@ -63,6 +63,14 @@ def test_member_order_reference_and_tenant_boundary(tmp_path):
         assert fixed.status_code==200,fixed.text
         assert fixed.json()['status']=='ReadyForAgreement'
         assert fixed.json()['scope_version']==2 and len(fixed.json()['scope_sha256'])==64
+        assert other.post(url+'/quote').status_code==409
+        quote=buyer.post(url+'/quote')
+        assert quote.status_code==200,quote.text
+        assert quote.json()['base_price_cents']==150000
+        assert quote.json()['tax_cents']==0 and quote.json()['total_cents']==150000
+        assert quote.json()['tax_rule_id']=='TX-STANDARD-CONSULTING-V1'
+        assert not quote.json()['agreement_available']
+        assert buyer.post(url+'/quote').json()['quote_id']==quote.json()['quote_id']
         assert other.patch(url,json={'expected_scope_version':2,
             'buyer_legal_name':'Other','unit_kind':'Site',
             'unit_name':'Other','covered_boundary':'Other',

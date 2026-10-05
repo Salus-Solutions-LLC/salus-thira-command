@@ -21,6 +21,7 @@ from salus_package_path import validate_requested_package_path
 from salus_package_quote import validate_quote, quote_digest, assessment_scope_digest
 from salus_level1a_order import BASE_PRICE_CENTS
 from salus_level1a_order_ledger import ORDER_TABLE_SQL, OrderConflict, save_draft, correct_draft
+from salus_level1a_quote import QUOTE_TABLE_SQL, QuoteUnavailable, quote_for_order
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
@@ -1804,6 +1805,7 @@ def init_db():
     CREATE INDEX IF NOT EXISTS idx_ops_invoice_statements_scope ON ops_invoice_statements(tenant_id,assessment_id,status,id);
     ''')
     conn.executescript(ORDER_TABLE_SQL)
+    conn.executescript(QUOTE_TABLE_SQL)
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
     ensure_column('evidence_attachments','scanned_at','TEXT NOT NULL DEFAULT ""')
@@ -5708,6 +5710,36 @@ def correct_level1a_order_draft(order_id:int,p:Level1AOrderCorrectionIn,request:
                   actor(request),tenant_override=tenant_id(request))
         conn.commit()
         return _level1a_order_view(row,idempotent)
+    finally:
+        conn.rollback(); conn.close()
+
+
+@app.post('/api/level1a/orders/{order_id}/quote')
+def create_level1a_order_quote(order_id:int,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        try:
+            quote=quote_for_order(conn,tenant_id=tenant_id(request),
+                buyer_user_id=ctx['user_id'],order_id=order_id,timestamp=now())
+        except QuoteUnavailable as exc:
+            raise HTTPException(409,str(exc)) from exc
+        audit(conn,'LEVEL1A_QUOTE_REVIEW','level1a_order',order_id,
+              f'quote_id={quote["id"]}; scope_version={quote["scope_version"]}',
+              actor(request),tenant_override=tenant_id(request))
+        conn.commit()
+        return {'order_id':order_id,'quote_id':quote['id'],
+                'scope_version':quote['scope_version'],
+                'scope_sha256':quote['scope_sha256'],
+                'base_price_cents':quote['base_price_cents'],
+                'tax_cents':quote['tax_cents'],
+                'total_cents':quote['total_cents'],
+                'currency':quote['currency'],
+                'tax_rule_id':quote['tax_rule_id'],
+                'tax_decision_reference':quote['tax_decision_reference'],
+                'quote_sha256':quote['quote_sha256'],
+                'agreement_available':False,'checkout_available':False}
     finally:
         conn.rollback(); conn.close()
 
