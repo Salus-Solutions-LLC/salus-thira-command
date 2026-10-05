@@ -24,4 +24,4 @@ Use fictional isolated tenants in the exact protected image and environment. Pro
 
 ## Current gaps
 
-The current server requires a Salus `decide` quote, an Access eligibility and capacity confirmation, a Salus-reviewed signer record and an inline-scanned agreement artifact. The current draft UI only lets a Member accept a preissued quote. These are implementation gaps, not buyer conditions. Do not deploy the UI alone as automatic purchase.
+The legacy package server still requires a Salus `decide` quote, Access eligibility and capacity confirmation, a Salus-reviewed signer record and an inline-scanned agreement artifact. A separate draft Level 1A server path now records the buyer's one-unit order and quote and, only for an exact issued Word version, its download and electronic acceptance. That path has no production agreement issuer, tax coverage outside verified Texas consulting, Stripe integration, paid receipt or authenticated upload release. Its flag defaults off. The draft UI only accepts the legacy preissued quote. These are implementation gaps, not buyer conditions. Do not deploy either draft alone as automatic purchase.

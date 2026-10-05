@@ -77,6 +77,22 @@ def test_changed_quote_cannot_render_old_scope():
                                    sha256(template).hexdigest())
 
 
+def test_approved_terms_revision_fills_all_fields_without_draft_label():
+    unit=_unit(); quote=_quote(unit)
+    source=Document(BytesIO(_synthetic_template()))
+    source.paragraphs[0].text='Level 1A Access Agreement'
+    source.paragraphs[6].text=(
+        'Version and effective date  Standard terms revision 10, 5 October 2026; '
+        'effective only on electronic Member acceptance of the completed issued version')
+    stream=BytesIO(); source.save(stream); template=stream.getvalue()
+    content,digest=render_candidate_agreement(unit,quote,'Alex Example',
+                                               template,sha256(template).hexdigest())
+    body='\n'.join(p.text for p in Document(BytesIO(content)).paragraphs)
+    assert 'Standard terms revision 10' in body
+    assert '[Complete before issue]' not in body and 'Review Draft' not in body
+    assert digest==sha256(content).hexdigest()
+
+
 def test_template_hash_is_required_before_any_buyer_fields_are_rendered():
     unit=_unit(); template=_synthetic_template()
     with pytest.raises(AgreementRenderError,match='controlled Word candidate changed'):

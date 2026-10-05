@@ -32,11 +32,45 @@ CREATE TABLE IF NOT EXISTS level1a_agreement_versions (
 );
 CREATE INDEX IF NOT EXISTS idx_level1a_agreement_buyer
   ON level1a_agreement_versions(tenant_id,buyer_user_id,order_id,id);
+CREATE TABLE IF NOT EXISTS level1a_agreement_downloads (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tenant_id INTEGER NOT NULL,
+  buyer_user_id INTEGER NOT NULL,
+  order_id INTEGER NOT NULL,
+  agreement_id INTEGER NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  downloaded_at TEXT NOT NULL,
+  FOREIGN KEY (agreement_id) REFERENCES level1a_agreement_versions(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_level1a_agreement_download_buyer
+  ON level1a_agreement_downloads(tenant_id,buyer_user_id,order_id,agreement_id);
 '''
 
 
 class AgreementConflict(ValueError):
     pass
+
+
+def record_issued_download(conn, *, tenant_id, buyer_user_id, order_id,
+                           agreement_id, readback, timestamp):
+    """Record a signed-in buyer's successful retrieval of exact issued bytes."""
+    row=conn.execute('''SELECT * FROM level1a_agreement_versions WHERE id=?
+        AND tenant_id=? AND buyer_user_id=? AND order_id=?''',
+        (agreement_id,tenant_id,buyer_user_id,order_id)).fetchone()
+    order=conn.execute('''SELECT * FROM level1a_orders WHERE id=? AND tenant_id=?
+        AND buyer_user_id=?''',(order_id,tenant_id,buyer_user_id)).fetchone()
+    if (not row or not order or row['status']!='Issued' or
+            row['scope_version']!=order['scope_version'] or
+            row['scope_sha256']!=order['scope_sha256'] or
+            order['status'] not in ('ReadyForAgreement','Accepted')):
+        raise AgreementConflict('No current issued agreement is available to download.')
+    if not isinstance(readback, bytes) or sha256(readback).hexdigest()!=row['content_sha256']:
+        raise AgreementConflict('The issued agreement failed storage readback.')
+    conn.execute('''INSERT INTO level1a_agreement_downloads
+        (tenant_id,buyer_user_id,order_id,agreement_id,content_sha256,downloaded_at)
+        VALUES(?,?,?,?,?,?)''',
+        (tenant_id,buyer_user_id,order_id,agreement_id,row['content_sha256'],timestamp))
+    return dict(row)
 
 
 def record_generated_candidate(conn, *, tenant_id, buyer_user_id, order_id,

@@ -60,6 +60,16 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
             sha256(template).hexdigest() != template_sha256.lower()):
         raise AgreementRenderError('The controlled Word candidate changed.')
     doc = Document(BytesIO(template))
+    review_version = ('Version and effective date  Controlled draft revision 9, '
+        '4 October 2026; effective only on electronic Member acceptance of '
+        'the completed issued version')
+    issue_version = ('Version and effective date  Standard terms revision 10, '
+        '5 October 2026; effective only on electronic Member acceptance of '
+        'the completed issued version')
+    template_version_line = next((line for line in (review_version, issue_version)
+        if any(p.text.strip() == line for p in doc.paragraphs)), None)
+    if not template_version_line:
+        raise AgreementRenderError('The controlled template revision is not recognized.')
     replacements = {
         'Protected Member legal name  [Complete before issue]':
             f'Protected Member legal name  {unit.buyer_legal_name}',
@@ -74,8 +84,8 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
         'Scope and quote identifier  [Complete before issue]':
             f'Order and notices  L1A-{quote["order_id"]} / Q{quote["id"]} / '
             f'v{unit.scope_version}; {unit.notice_email}',
-        'Version and effective date  Controlled draft revision 9, 4 October 2026; '
-        'effective only on electronic Member acceptance of the completed issued version':
+        template_version_line:
+            issue_version if template_version_line == issue_version else
             'Version and effective date  Candidate revision 9; effective only '
             'after electronic acceptance of an issued version',
         'Included buildings and outdoor areas  [Complete before issue]':

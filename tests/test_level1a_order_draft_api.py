@@ -19,7 +19,10 @@ def test_member_order_reference_and_tenant_boundary(tmp_path):
     })
     program = textwrap.dedent('''
         from fastapi.testclient import TestClient
+        from hashlib import sha256
         import app
+        from salus_level1a_agreement_ledger import record_generated_candidate
+        from salus_level1a_acceptance import CONSENT_TEXT_V1
 
         conn=app.db()
         other_tenant=conn.execute('INSERT INTO tenants(name,slug,status,created_at) VALUES(?,?,?,?)',
@@ -75,6 +78,44 @@ def test_member_order_reference_and_tenant_boundary(tmp_path):
         assert quote.json()['tax_rule_id']=='TX-STANDARD-CONSULTING-V1'
         assert not quote.json()['agreement_available']
         assert buyer.post(url+'/quote').json()['quote_id']==quote.json()['quote_id']
+        assert buyer.get(url+'/agreements/1/download').status_code==404
+        conn=app.db()
+        buyer_id=conn.execute("SELECT id FROM users WHERE username='buyer-one'").fetchone()['id']
+        word=b'PK\\x03\\x04fictional-issued-word'
+        digest=sha256(word).hexdigest()
+        key=f'level1a/1/{order["order_id"]}/{quote.json()["quote_id"]}/{digest}.docx'
+        app.storage.put_bytes(key,word)
+        agreement=record_generated_candidate(conn,tenant_id=1,buyer_user_id=buyer_id,
+            order_id=order['order_id'],quote_id=quote.json()['quote_id'],
+            template_version='Fictional-approved',template_sha256='a'*64,
+            content=word,readback=app.storage.get_bytes(key),stored_name=key,
+            timestamp=app.now())
+        conn.commit(); conn.close()
+        assert buyer.get(url+f'/agreements/{agreement["id"]}/download').status_code==404
+        # No production route can issue this candidate. This synthetic transition
+        # exercises the buyer-facing contract only inside the isolated test DB.
+        conn=app.db()
+        conn.execute("UPDATE level1a_agreement_versions SET status='Issued' WHERE id=?",
+            (agreement['id'],))
+        conn.commit();conn.close()
+        assert other.get(url+f'/agreements/{agreement["id"]}/download').status_code==404
+        downloaded=buyer.get(url+f'/agreements/{agreement["id"]}/download')
+        assert downloaded.status_code==200,downloaded.text
+        assert downloaded.content==word and downloaded.headers['x-content-sha256']==digest
+        approval={'quote_id':quote.json()['quote_id'],'agreement_id':agreement['id'],
+            'agreement_sha256':digest,'typed_name':'Jordan Buyer',
+            'authority_basis':'I am the authorized company officer.',
+            'idempotency_key':'acceptance-key-0001',
+            'accept_quote_and_agreement':True}
+        assert other.post(url+'/accept',json=approval).status_code==404
+        accepted=buyer.post(url+'/accept',json=approval)
+        assert accepted.status_code==200,accepted.text
+        assert accepted.json()['idempotent'] is False
+        assert buyer.post(url+'/accept',json=approval).json()['idempotent'] is True
+        assert not accepted.json()['checkout_available']
+        assert buyer.patch(url,json={'expected_scope_version':2,
+            **{k:v for k,v in payload.items() if k!='idempotency_key'},
+            'unit_name':'New daycare'}).status_code==409
         assert other.patch(url,json={'expected_scope_version':2,
             'buyer_legal_name':'Other','unit_kind':'Site',
             'unit_name':'Other','covered_boundary':'Other',

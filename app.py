@@ -22,7 +22,10 @@ from salus_package_quote import validate_quote, quote_digest, assessment_scope_d
 from salus_level1a_order import BASE_PRICE_CENTS
 from salus_level1a_order_ledger import ORDER_TABLE_SQL, OrderConflict, save_draft, correct_draft
 from salus_level1a_quote import QUOTE_TABLE_SQL, QuoteUnavailable, quote_for_order
-from salus_level1a_agreement_ledger import AGREEMENT_TABLE_SQL
+from salus_level1a_agreement_ledger import (AGREEMENT_TABLE_SQL,
+    AgreementConflict, record_issued_download)
+from salus_level1a_acceptance import (ACCEPTANCE_TABLE_SQL,
+    AcceptanceConflict, CONSENT_TEXT_V1, accept_issued_agreement)
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
@@ -1808,6 +1811,7 @@ def init_db():
     conn.executescript(ORDER_TABLE_SQL)
     conn.executescript(QUOTE_TABLE_SQL)
     conn.executescript(AGREEMENT_TABLE_SQL)
+    conn.executescript(ACCEPTANCE_TABLE_SQL)
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
     ensure_column('evidence_attachments','scanned_at','TEXT NOT NULL DEFAULT ""')
@@ -2035,6 +2039,16 @@ class Level1AOrderCorrectionIn(BaseModel):
     service_use_postal_code: str = Field(default='',max_length=30)
     use_country: str = Field(default='',max_length=2)
     use_region: str = Field(default='',max_length=100)
+
+class Level1AAcceptanceIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    quote_id: int = Field(gt=0)
+    agreement_id: int = Field(gt=0)
+    agreement_sha256: str = Field(pattern=r'^[a-f0-9]{64}$')
+    typed_name: str = Field(min_length=2,max_length=200)
+    authority_basis: str = Field(min_length=12,max_length=1000)
+    idempotency_key: str = Field(pattern=r'^[A-Za-z0-9_-]{16,120}$')
+    accept_quote_and_agreement: Literal[True]
 
 class PackageMemberAuthorityReviewIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -5748,6 +5762,74 @@ def create_level1a_order_quote(order_id:int,request:Request):
                 'tax_decision_reference':quote['tax_decision_reference'],
                 'quote_sha256':quote['quote_sha256'],
                 'agreement_available':False,'checkout_available':False}
+    finally:
+        conn.rollback(); conn.close()
+
+@app.get('/api/level1a/orders/{order_id}/agreements/{agreement_id}/download')
+def download_level1a_issued_agreement(order_id:int,agreement_id:int,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        item=conn.execute('''SELECT * FROM level1a_agreement_versions WHERE
+            id=? AND tenant_id=? AND buyer_user_id=? AND order_id=?''',
+            (agreement_id,tenant_id(request),ctx['user_id'],order_id)).fetchone()
+        if not item or item['status']!='Issued':
+            raise HTTPException(404,'No issued agreement is available for this order.')
+        try:
+            data=storage.get_bytes(item['stored_name'])
+        except Exception as exc:
+            raise HTTPException(503,'The issued agreement is unavailable.') from exc
+        try:
+            record_issued_download(conn,tenant_id=tenant_id(request),
+                buyer_user_id=ctx['user_id'],order_id=order_id,
+                agreement_id=agreement_id,readback=data,timestamp=now())
+        except AgreementConflict as exc:
+            raise HTTPException(409,str(exc)) from exc
+        audit(conn,'LEVEL1A_AGREEMENT_DOWNLOAD','level1a_order',order_id,
+              f'agreement_id={agreement_id}; sha256={item["content_sha256"]}',
+              actor(request),tenant_override=tenant_id(request))
+        conn.commit()
+        return Response(content=data,
+            media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            headers={'Content-Disposition':'attachment; filename="Salus-Level-1A-Agreement.docx"',
+                     'X-Content-SHA256':item['content_sha256'],
+                     'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})
+    finally:
+        conn.rollback(); conn.close()
+
+@app.post('/api/level1a/orders/{order_id}/accept')
+def accept_level1a_order(order_id:int,p:Level1AAcceptanceIn,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        item=conn.execute('''SELECT stored_name FROM level1a_agreement_versions
+            WHERE id=? AND tenant_id=? AND buyer_user_id=? AND order_id=?
+            AND status='Issued' ''',
+            (p.agreement_id,tenant_id(request),ctx['user_id'],order_id)).fetchone()
+        if not item: raise HTTPException(404,'No issued agreement is available for this order.')
+        try:
+            data=storage.get_bytes(item['stored_name'])
+        except Exception as exc:
+            raise HTTPException(503,'The issued agreement is unavailable.') from exc
+        try:
+            accepted,idempotent=accept_issued_agreement(conn,
+                tenant_id=tenant_id(request),buyer_user_id=ctx['user_id'],
+                order_id=order_id,quote_id=p.quote_id,agreement_id=p.agreement_id,
+                expected_agreement_sha256=p.agreement_sha256,readback=data,
+                consent_text=CONSENT_TEXT_V1,typed_name=p.typed_name,
+                authority_basis=p.authority_basis,
+                idempotency_key=p.idempotency_key,timestamp=now())
+        except AcceptanceConflict as exc:
+            raise HTTPException(409,str(exc)) from exc
+        if not idempotent:
+            audit(conn,'LEVEL1A_AGREEMENT_ACCEPT','level1a_order',order_id,
+                  f'acceptance_id={accepted["id"]}; agreement_sha256={accepted["agreement_sha256"]}',
+                  actor(request),tenant_override=tenant_id(request))
+        conn.commit()
+        return {'order_id':order_id,'acceptance_id':accepted['id'],
+                'accepted_at':accepted['accepted_at'],'idempotent':idempotent,
+                'checkout_available':False,'upload_available':False}
     finally:
         conn.rollback(); conn.close()
 
