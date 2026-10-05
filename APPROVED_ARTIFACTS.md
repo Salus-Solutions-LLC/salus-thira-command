@@ -2,7 +2,7 @@
 
 | Artifact | Role | Authority status |
 |---|---|---|
-| `proposals/SALUS_LEVEL_PACKAGE_BUSINESS_MODEL_CANDIDATE_20260929.md` and `SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md` | Member-neutral Level × band design basis and exact-surface implementation tracker; the crosswalk is at the repository root | Method decisions SAL-D080–SAL-D090 approved by Marc, 29 September 2026; candidate price examples other than eligible Level 1A Access, Word binaries, live copy and software release remain unapproved and separately gated |
+| `proposals/SALUS_LEVEL_PACKAGE_BUSINESS_MODEL_CANDIDATE_20260929.md` and `SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md` | Member-neutral Level × band design basis and exact-surface implementation tracker; the crosswalk is at the repository root | Method decisions SAL-D080–SAL-D090 approved by Marc, 29 September 2026; candidate price examples other than the bounded $1,500 Level 1A Access offer under SAL-D100, Word binaries, live copy and software release remain unapproved and separately gated |
 | `SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md` | Standing item-level source pursuit, proactive discovery, coverage matrix, contradiction and missing-information register, cross-product application, Protected Member execution/completion evidence, active-engagement continuity, challenged stopping and report-impact method across Salus | Approved directions from Marc, 28 September 2026 (SAL-D065–SAL-D068, SAL-D075–SAL-D079); member-neutral method with four-stream reporting and source-to-report integration gates, not proof of a completed Member search, issued report or live workflow |
 | `docs/persistent-assessment-worker.md` | Issue #588 technical design for a persistent, tenant-scoped assessment queue, recovery, telemetry and four-report handoff | Draft implementation contract on PR #587 under SAL-D078/SAL-D079; no worker, Azure activation, interruption test or release acceptance yet |
 | `SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md` | Standing accuracy, consistency, continuity, plain-language, exact same-level receiver-disposition and source-to-release review across Salus methods, questionnaire, four reports, services and learning | Approved direction from Marc, 28 September 2026 (SAL-D063–SAL-D064); member-neutral review method, not proof of exact template, live workflow, Member report or deployment acceptance |
@@ -73,6 +73,10 @@ The Program Charter and the three repository method/report standards incorporate
 ## SAL-D096 module authority and candidate-artifact boundary
 
 The Program Charter and Decision Register now govern the distinct SalINTEL™ Facilities Assessment (FA), Personal Protection Assessment (PPA) and Person of Interest (POI) module requirements and names. `proposals/SALINTEL_FACILITIES_AND_POI_MODULE_SCOPE_20261002.md` is an internal design candidate only; it is not an approved controlled template, live questionnaire, price, public offer, investigation authorization or software release. Exact method, intake, report and service artifacts require separate qualified review and registration before use.
+
+## SAL-D100 Level 1A automatic-purchase refinement
+
+Marc confirmed on 4 October 2026 that any buyer may automatically purchase one defined $1,500 Level 1A Access assessment unit without per-order Salus price, category, capacity, scope-eligibility or signer approval. The exact included work, four reports, buyer inputs, exclusions and written change triggers bound that unit. Additional work is a separate voluntary purchase. This decision refines the historical design wording in SAL-D080/081/085/087/088/099; it is not proof that the current agreement candidate, checkout, receipt or upload software is accepted or published. The local revision 4 automatic agreement candidate remains an unissued candidate pending final standard terms and exact release QA.
 
 ## SAL-D099 Level 1A agreement authority
 
