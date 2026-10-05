@@ -165,7 +165,7 @@ async function entityView(key){
           const approvalPanel=document.createElement('section');
           approvalPanel.className='card';
           approvalPanel.style.marginTop='16px';
-          approvalPanel.innerHTML='<h3>Approve your agreement online</h3><p>First open and save the agreement above. Check that the covered work, exclusions and amount are correct. Only the reviewed decision owner can approve it.</p><form id="package-agreement-approval"><label><input type="checkbox" name="reviewed" required> I have read the agreement and this exact quote.</label><label><input type="checkbox" name="authority" required> I am authorized to approve for the organization and agree to use this electronic record.</label><div class="form-actions"><button class="btn" type="submit">Approve agreement</button></div><p role="status" aria-live="polite"></p></form>';
+          approvalPanel.innerHTML='<h3>Approve your agreement online</h3><p>First open and save the agreement above. Check that the covered work, exclusions and amount are correct. By approving, you attest that you can enter this agreement for the covered organization.</p><form id="package-agreement-approval"><label><input type="checkbox" name="reviewed" required> I have read the agreement and this exact quote.</label><label><input type="checkbox" name="authority" required> I am authorized to approve for the organization and agree to use this electronic record.</label><div class="form-actions"><button class="btn" type="submit">Approve agreement</button></div><p role="status" aria-live="polite"></p></form>';
           quotePanel.appendChild(approvalPanel);
           const approvalForm=approvalPanel.querySelector('form');
           const idempotencyKey=window.crypto.randomUUID().replace(/-/g,'');
