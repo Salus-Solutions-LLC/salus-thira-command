@@ -138,7 +138,19 @@ else:
     # no generic version skip can qualify an image for publication.
     immediate_successor = (accepted_version[0], accepted_version[1] + 1)
     superseding_successor = (accepted_version[0], accepted_version[1] + 2)
-    if (accepted_version, published_version) == ((3, 210), (3, 214)):
+    if (accepted_version, published_version) == ((3, 210), (3, 215)):
+        # v3.214 repaired the scanner worker without promoting the public app.
+        # v3.215 freezes the reviewed Level 1A agreement, checkout, receipt,
+        # and small-file intake source. None of those Member controls is opened
+        # by publishing the image; deployment and live acceptance are separate.
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        assert "current_frozen_release: v3.215" in continuity
+        assert "current_frozen_commit: 5d531157db1e920dd7c4b6c19446d3f273745df9" in continuity
+        assert "candidate_release: v3.215" in continuity
+        assert "v3213_scanner_clean_event_shape_failed" in continuity
+        assert "v3215_level1a_image_candidate" in continuity
+        assert image_publication["source_commit"] == "5d531157db1e920dd7c4b6c19446d3f273745df9"
+    elif (accepted_version, published_version) == ((3, 210), (3, 214)):
         # v3.213 is the running scanner worker, but its fictional Clean event
         # stayed Pending. The reviewed null-details repair is frozen in v3.214;
         # neither v3.211-3.213 became the accepted Member application.
