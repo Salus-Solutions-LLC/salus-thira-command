@@ -29,6 +29,16 @@ from salus_level1a_agreement_ledger import (AGREEMENT_TABLE_SQL,
     record_issued_download)
 from salus_level1a_acceptance import (ACCEPTANCE_TABLE_SQL,
     AcceptanceConflict, CONSENT_TEXT_V1, accept_issued_agreement)
+from salus_level1a_checkout import (create_level1a_checkout_session,
+    Level1ACheckoutBinding)
+from salus_level1a_payment_ledger import (LEVEL1A_PAYMENT_SQL,
+    binding_for_accepted_order,record_level1a_session,record_level1a_paid,
+    hold_level1a_payment,verified_level1a_receipt,
+    record_level1a_receipt_document,issued_level1a_receipt)
+from salus_level1a_receipt import render_level1a_receipt
+from salus_level1a_intake import (INTAKE_SQL, IntakeConflict,
+    DISCLOSURE_STATEMENT_VERSION, ensure_paid_assessment,
+    record_disclosure_authority)
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
@@ -59,6 +69,8 @@ COOKIE_SECURE = os.getenv('SALUS_COOKIE_SECURE', '0').lower() in ('1','true','ye
 ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
 PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_ORDER_DRAFT_ENABLED = os.getenv('SALUS_LEVEL1A_ORDER_DRAFT_ENABLED','0').lower() in ('1','true','yes')
+LEVEL1A_INTAKE_ENABLED = os.getenv('SALUS_LEVEL1A_INTAKE_ENABLED','0').lower() in ('1','true','yes')
+LEVEL1A_UPLOAD_ENABLED = os.getenv('SALUS_LEVEL1A_UPLOAD_ENABLED','0').lower() in ('1','true','yes')
 PACKAGE_SCAN_MODE = os.getenv('SALUS_PACKAGE_SCAN_MODE','inline').strip().lower()
 PACKAGE_SCANNER_ACCEPTED = os.getenv('SALUS_PACKAGE_SCANNER_ACCEPTED','0').lower() in ('1','true','yes')
 
@@ -1816,6 +1828,8 @@ def init_db():
     conn.executescript(AGREEMENT_TABLE_SQL)
     ensure_column('level1a_agreement_versions','issued_at',"TEXT NOT NULL DEFAULT ''")
     conn.executescript(ACCEPTANCE_TABLE_SQL)
+    conn.executescript(LEVEL1A_PAYMENT_SQL)
+    conn.executescript(INTAKE_SQL)
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
     ensure_column('evidence_attachments','scanned_at','TEXT NOT NULL DEFAULT ""')
@@ -2058,6 +2072,11 @@ class Level1AIssueIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     quote_id: int = Field(gt=0)
     signer_name: str = Field(min_length=2,max_length=200)
+
+class Level1ADisclosureAuthorityIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    authority_basis: str = Field(min_length=12,max_length=1000)
+    confirm_authorized_disclosure: Literal[True]
 
 class PackageMemberAuthorityReviewIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -3741,7 +3760,7 @@ def backfill_baseline_versions():
 backfill_baseline_versions()
 
 @app.get('/api/system/mode')
-def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc')}
+def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc'),'level1a_purchase_available':bool(LEVEL1A_ORDER_DRAFT_ENABLED and LEVEL1A_INTAKE_ENABLED and LEVEL1A_UPLOAD_ENABLED and PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and AUTH_MODE in ('session','oidc'))}
 
 @app.get('/api/auth/oidc/start')
 def oidc_start(request:Request):
@@ -5923,6 +5942,366 @@ def accept_level1a_order(order_id:int,p:Level1AAcceptanceIn,request:Request):
     finally:
         conn.rollback(); conn.close()
 
+@app.post('/api/level1a/orders/{order_id}/checkout')
+def start_level1a_checkout(order_id:int,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        tid=tenant_id(request);uid=ctx['user_id']
+        try:
+            binding=binding_for_accepted_order(conn,tenant_id=tid,
+                buyer_user_id=uid,order_id=order_id)
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,str(exc)) from exc
+        paid=verified_level1a_receipt(conn,binding)
+        if paid:
+            return {'status':'Paid','order_id':order_id,
+                    'receipt_url':f'/api/level1a/orders/{order_id}/receipt',
+                    'receipt_sha256':paid['receipt_sha256'],
+                    'upload_available':False}
+        previous=conn.execute('''SELECT * FROM level1a_checkout_sessions WHERE
+            tenant_id=? AND buyer_user_id=? AND order_id=? AND acceptance_id=?
+            ORDER BY attempt_no DESC LIMIT 1''',
+            (tid,uid,order_id,binding.acceptance_id)).fetchone()
+        try:
+            stripe_key=secret('SALUS_STRIPE_SECRET_KEY','').strip()
+        except Exception as exc:
+            raise HTTPException(503,'Secure checkout is not configured.') from exc
+        if not stripe_key:
+            raise HTTPException(503,'Secure checkout is not configured.')
+        if previous:
+            if previous['status']!='Pending':
+                raise HTTPException(409,'The prior payment needs reconciliation.')
+            try:
+                session=retrieve_checkout_session(previous['stripe_session_id'],stripe_key)
+            except Exception as exc:
+                raise HTTPException(503,'Unable to verify the current checkout.') from exc
+            if session.get('status')=='open':
+                return {'status':'Pending','checkout_url':previous['checkout_url'],
+                        'order_id':order_id,'amount_cents':binding.amount_cents,
+                        'currency':binding.currency,'upload_available':False}
+            if session.get('status')!='expired':
+                raise HTTPException(409,'The prior payment needs reconciliation.')
+            conn.execute("UPDATE level1a_checkout_sessions SET status='Expired' WHERE id=?",
+                         (previous['id'],))
+        attempt=(previous['attempt_no']+1) if previous else 1
+        origin=os.getenv('SALUS_PACKAGE_CHECKOUT_RETURN_ORIGIN','').strip().rstrip('/')
+        try:
+            session=create_level1a_checkout_session(binding,stripe_key,
+                origin+'/package-checkout-return?flow=level1a&session_id={CHECKOUT_SESSION_ID}',
+                origin+'/package-checkout-cancel?flow=level1a',attempt_no=attempt)
+            recorded=record_level1a_session(conn,binding,attempt,session['id'],
+                                            session['url'],now())
+        except CheckoutVerificationError as exc:
+            raise HTTPException(503,'Secure checkout needs configuration review.') from exc
+        except Exception as exc:
+            raise HTTPException(503,'Unable to create secure checkout.') from exc
+        audit(conn,'LEVEL1A_CHECKOUT_START','level1a_order',order_id,
+              f'checkout_id={recorded["id"]}; quote_id={binding.quote_id}',
+              actor(request),tenant_override=tid)
+        conn.commit()
+        return {'status':'Pending','checkout_url':recorded['checkout_url'],
+                'order_id':order_id,'amount_cents':binding.amount_cents,
+                'currency':binding.currency,'upload_available':False}
+    finally:
+        conn.rollback();conn.close()
+
+
+@app.get('/api/level1a/orders/{order_id}/checkout')
+def level1a_checkout_status(order_id:int,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        try:
+            binding=binding_for_accepted_order(conn,tenant_id=tenant_id(request),
+                buyer_user_id=ctx['user_id'],order_id=order_id)
+            paid=verified_level1a_receipt(conn,binding)
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,str(exc)) from exc
+        row=conn.execute('''SELECT status FROM level1a_checkout_sessions WHERE
+            tenant_id=? AND buyer_user_id=? AND order_id=? AND acceptance_id=?
+            ORDER BY attempt_no DESC LIMIT 1''',
+            (binding.tenant_id,binding.buyer_user_id,order_id,
+             binding.acceptance_id)).fetchone()
+        return {'status':'Paid' if paid else (row['status'] if row else 'Not started'),
+                'order_id':order_id,'amount_cents':binding.amount_cents,
+                'currency':binding.currency,
+                'receipt_available':bool(paid and paid['receipt_document_sha256']),
+                'upload_available':False}
+    finally:
+        conn.close()
+
+
+@app.get('/api/level1a/orders/{order_id}/receipt')
+def level1a_payment_receipt(order_id:int,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        try:
+            binding=binding_for_accepted_order(conn,tenant_id=tenant_id(request),
+                buyer_user_id=ctx['user_id'],order_id=order_id)
+            paid=verified_level1a_receipt(conn,binding)
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,str(exc)) from exc
+        if not paid or not paid['receipt_stored_name']:
+            raise HTTPException(404,'A verified receipt is not available yet.')
+        try:
+            content=storage.get_bytes(paid['receipt_stored_name'])
+            issued_level1a_receipt(conn,binding,content)
+        except Exception as exc:
+            raise HTTPException(503,'The stored receipt failed integrity review.') from exc
+        return Response(content=content,media_type='text/html; charset=utf-8',
+            headers={'Cache-Control':'private, no-store',
+                     'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+                     'X-Content-SHA256':paid['receipt_document_sha256']})
+    finally:
+        conn.close()
+
+
+def _paid_level1a_intake(conn,order_id:int,tid:int,uid:int):
+    """Recheck current payment and exact stored receipt on every intake action."""
+    if not LEVEL1A_INTAKE_ENABLED:
+        raise HTTPException(503,'Level 1A intake is not released.')
+    try:
+        binding=binding_for_accepted_order(conn,tenant_id=tid,
+            buyer_user_id=uid,order_id=order_id)
+        paid=verified_level1a_receipt(conn,binding)
+        if not paid:
+            raise HTTPException(409,'Verified payment is required before intake.')
+        if not paid['receipt_stored_name']:
+            raise HTTPException(409,'The payment receipt is not ready.')
+        issued_level1a_receipt(conn,binding,storage.get_bytes(paid['receipt_stored_name']))
+    except CheckoutVerificationError as exc:
+        raise HTTPException(409,'The accepted payment and receipt need review.') from exc
+    except (StorageError,FileNotFoundError) as exc:
+        raise HTTPException(503,'The verified receipt is unavailable.') from exc
+    return binding,paid
+
+
+@app.post('/api/level1a/orders/{order_id}/intake/open')
+def open_level1a_intake(order_id:int,request:Request):
+    """Create one same-level assessment after paid, immutable receipt proof."""
+    ctx=_level1a_draft_authority(request);tid=int(ctx['tenant_id'])
+    conn=db()
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        binding,paid=_paid_level1a_intake(conn,order_id,tid,ctx['user_id'])
+        order=conn.execute('''SELECT * FROM level1a_orders WHERE id=? AND tenant_id=?
+            AND buyer_user_id=?''',(order_id,binding.tenant_id,binding.buyer_user_id)).fetchone()
+        try:
+            link,reused=ensure_paid_assessment(conn,binding=binding,paid=paid,
+                order=order,timestamp=now())
+        except IntakeConflict as exc:
+            raise HTTPException(409,str(exc)) from exc
+        if not reused:
+            audit(conn,'LEVEL1A_INTAKE_OPEN','assessment',link['assessment_id'],
+                  f'order_id={order_id}; receipt_sha256={link["receipt_sha256"]}',
+                  ctx['user'],tenant_override=binding.tenant_id)
+        conn.commit()
+        return {'order_id':order_id,'assessment_id':link['assessment_id'],
+                'status':'Records requested','idempotent':reused,
+                'disclosure_authority_required':True,'upload_available':False}
+    finally:
+        conn.rollback();conn.close()
+
+
+@app.get('/api/level1a/orders/{order_id}/intake')
+def get_level1a_intake(order_id:int,request:Request):
+    ctx=_level1a_draft_authority(request);tid=int(ctx['tenant_id'])
+    conn=db()
+    try:
+        binding,_=_paid_level1a_intake(conn,order_id,tid,ctx['user_id'])
+        link=conn.execute('''SELECT * FROM level1a_assessment_links WHERE
+            order_id=? AND tenant_id=? AND buyer_user_id=?''',
+            (order_id,binding.tenant_id,binding.buyer_user_id)).fetchone()
+        if not link or link['scope_sha256']!=binding.scope_sha256:
+            raise HTTPException(404,'This order has no current intake.')
+        rows=[dict(row) for row in conn.execute('''SELECT id,item_key,catalog_version,
+            title,decision_use,requested_form,acceptable_equivalent,status,requested_at
+            FROM level1a_intake_items WHERE tenant_id=? AND order_id=?
+            ORDER BY id''',(binding.tenant_id,order_id))]
+        pending=[dict(row) for row in conn.execute('''SELECT id,intake_request_id,
+            original_name,size_bytes,status,received_at FROM level1a_pending_scans
+            WHERE tenant_id=? AND order_id=? AND status<>'Promoted' ORDER BY id''',
+            (binding.tenant_id,order_id))]
+        uploads=[dict(row) for row in conn.execute('''SELECT id,intake_request_id,
+            original_name,size_bytes,scan_status,uploaded_at FROM level1a_intake_uploads
+            WHERE tenant_id=? AND order_id=? ORDER BY id''',
+            (binding.tenant_id,order_id))]
+        authority=conn.execute('''SELECT statement_version FROM
+            level1a_disclosure_authority WHERE tenant_id=? AND order_id=?
+            AND buyer_user_id=? AND scope_sha256=?''',
+            (binding.tenant_id,order_id,binding.buyer_user_id,
+             binding.scope_sha256)).fetchone()
+        return {'order_id':order_id,'assessment_id':link['assessment_id'],
+                'items':rows,'pending_files':pending,'files':uploads,
+                'disclosure_authority_recorded':bool(authority),
+                'disclosure_statement_version':DISCLOSURE_STATEMENT_VERSION,
+                'notice':'Send only records you are authorized to share for this named unit. '
+                         'Do not send passwords, personal directories, medical files or '
+                         'sensitive annexes through this intake.',
+                'upload_available':bool(LEVEL1A_UPLOAD_ENABLED and authority and
+                    PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender')}
+    finally:
+        conn.close()
+
+
+@app.post('/api/level1a/orders/{order_id}/intake/disclosure-authority')
+def affirm_level1a_disclosure(order_id:int,p:Level1ADisclosureAuthorityIn,
+                              request:Request):
+    ctx=_level1a_draft_authority(request);tid=int(ctx['tenant_id'])
+    conn=db()
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        binding,_=_paid_level1a_intake(conn,order_id,tid,ctx['user_id'])
+        link=conn.execute('''SELECT assessment_id FROM level1a_assessment_links WHERE
+            order_id=? AND tenant_id=? AND buyer_user_id=? AND scope_sha256=?''',
+            (order_id,binding.tenant_id,binding.buyer_user_id,
+             binding.scope_sha256)).fetchone()
+        if not link: raise HTTPException(404,'Open the paid intake first.')
+        try:
+            result,reused=record_disclosure_authority(conn,binding=binding,
+                authority_basis=p.authority_basis,timestamp=now())
+        except IntakeConflict as exc:
+            raise HTTPException(409,str(exc)) from exc
+        if not reused:
+            audit(conn,'LEVEL1A_DISCLOSURE_AUTHORITY','assessment',
+                  link['assessment_id'],f'order_id={order_id}; '
+                  f'version={result["statement_version"]}',ctx['user'],
+                  tenant_override=binding.tenant_id)
+        conn.commit()
+        return {'order_id':order_id,'recorded_at':result['affirmed_at'],
+                'statement_version':result['statement_version'],
+                'idempotent':reused,
+                'upload_available':bool(LEVEL1A_UPLOAD_ENABLED and
+                    PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender')}
+    finally:
+        conn.rollback();conn.close()
+
+
+LEVEL1A_SMALL_FILE_EXTENSIONS={'.pdf','.docx','.xlsx','.pptx','.csv','.txt',
+    '.png','.jpg','.jpeg','.webp','.tif','.tiff','.mp3','.m4a','.wav',
+    '.mp4','.mov'}
+
+
+def _level1a_upload_ready():
+    if not (LEVEL1A_UPLOAD_ENABLED and LEVEL1A_INTAKE_ENABLED and
+            PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender'):
+        raise HTTPException(503,'Level 1A file upload is not released.')
+
+
+@app.post('/api/level1a/orders/{order_id}/intake/{item_id}/files')
+async def upload_level1a_intake_file(order_id:int,item_id:int,request:Request,
+                                     file:UploadFile=File(...)):
+    _level1a_upload_ready()
+    ctx=_level1a_draft_authority(request);tid=int(ctx['tenant_id'])
+    original=safe_filename(file.filename or '')
+    if Path(original).suffix.lower() not in LEVEL1A_SMALL_FILE_EXTENSIONS:
+        raise HTTPException(422,'This small-file format is not accepted here.')
+    content=await file.read(MAX_ATTACHMENT_BYTES+1)
+    if not content or len(content)>MAX_ATTACHMENT_BYTES:
+        raise HTTPException(413,'Use a nonempty file no larger than 25 MB.')
+    digest=hashlib.sha256(content).hexdigest()
+    conn=db();manifest=None
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        binding,_=_paid_level1a_intake(conn,order_id,tid,ctx['user_id'])
+        link=conn.execute('''SELECT * FROM level1a_assessment_links WHERE
+            tenant_id=? AND buyer_user_id=? AND order_id=? AND scope_sha256=?''',
+            (tid,ctx['user_id'],order_id,binding.scope_sha256)).fetchone()
+        authority=conn.execute('''SELECT 1 FROM level1a_disclosure_authority WHERE
+            tenant_id=? AND buyer_user_id=? AND order_id=? AND scope_sha256=?
+            AND statement_version=?''',
+            (tid,ctx['user_id'],order_id,binding.scope_sha256,
+             DISCLOSURE_STATEMENT_VERSION)).fetchone()
+        item=conn.execute('''SELECT * FROM level1a_intake_items WHERE id=?
+            AND tenant_id=? AND order_id=?''',(item_id,tid,order_id)).fetchone()
+        if not link or not authority or not item or item['assessment_id']!=link['assessment_id']:
+            raise HTTPException(403,'The paid intake or records authority is incomplete.')
+        if item['status']!='Requested':
+            raise HTTPException(409,'This records request needs review before another file.')
+        clean=conn.execute('''SELECT id,content_sha256,size_bytes,uploaded_at FROM
+            level1a_intake_uploads WHERE tenant_id=? AND intake_request_id=?
+            AND content_sha256=? AND scan_status='Clean' ''',
+            (tid,item_id,digest)).fetchone()
+        if clean:
+            return {'id':clean['id'],'scan_status':'Clean','idempotent':True}
+        pending=conn.execute('''SELECT * FROM level1a_pending_scans WHERE
+            tenant_id=? AND intake_request_id=? AND content_sha256=?''',
+            (tid,item_id,digest)).fetchone()
+        if pending:
+            if pending['status']!='Pending':
+                raise HTTPException(409,'This file remains held for security review.')
+            return {'id':pending['id'],'scan_status':'Pending','idempotent':True}
+        count=conn.execute('''SELECT
+            (SELECT COUNT(*) FROM level1a_pending_scans WHERE tenant_id=? AND intake_request_id=?)
+           +(SELECT COUNT(*) FROM level1a_intake_uploads WHERE tenant_id=? AND intake_request_id=?) AS n''',
+           (tid,item_id,tid,item_id)).fetchone()['n']
+        if count>=5: raise HTTPException(409,'This request already has five files.')
+        manifest=package_quarantine().stage_bytes(tenant_id=tid,
+            assessment_id=link['assessment_id'],quote_id=binding.quote_id,
+            intake_request_id=item_id,data=content)
+        if any(manifest.get(key)!=value for key,value in (
+                ('tenant_id',tid),('assessment_id',link['assessment_id']),
+                ('quote_id',binding.quote_id),('intake_request_id',item_id),
+                ('sha256',digest),('size_bytes',len(content)),('status','Pending'))):
+            raise QuarantineError('The quarantined object differs from the received file.')
+        ts=now()
+        cur=conn.execute('''INSERT INTO level1a_pending_scans
+            (tenant_id,buyer_user_id,order_id,assessment_id,quote_id,
+             intake_request_id,original_name,blob_name,blob_uri,blob_version_id,
+             etag,content_sha256,size_bytes,status,received_at,updated_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'Pending',?,?)''',
+            (tid,ctx['user_id'],order_id,link['assessment_id'],binding.quote_id,
+             item_id,original,manifest['blob_name'],manifest['blob_uri'],
+             manifest['blob_version_id'],manifest['etag'],digest,len(content),ts,ts))
+        audit(conn,'LEVEL1A_FILE_QUARANTINED','assessment',link['assessment_id'],
+              f'order_id={order_id}; pending_id={cur.lastrowid}',ctx['user'],
+              tenant_override=tid)
+        conn.commit()
+        return {'id':cur.lastrowid,'scan_status':'Pending','idempotent':False}
+    except Exception as exc:
+        conn.rollback()
+        if manifest:
+            try:
+                security_event(request,'LEVEL1A_QUARANTINE_RECONCILE','High',
+                    f'blob_uri={manifest["blob_uri"]}; '
+                    f'version={manifest["blob_version_id"]}')
+            except Exception: pass
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8)
+        record_internal_failure('level1a quarantine staging',error_id,exc)
+        raise HTTPException(503,f'Level 1A quarantine is unavailable. Reference: {error_id}') from exc
+    finally:
+        conn.close()
+
+
+@app.get('/api/level1a/orders/{order_id}/intake/files/{file_id}/download')
+def download_level1a_intake_file(order_id:int,file_id:int,request:Request):
+    _level1a_upload_ready()
+    ctx=_level1a_draft_authority(request);tid=int(ctx['tenant_id'])
+    conn=db()
+    try:
+        binding,_=_paid_level1a_intake(conn,order_id,tid,ctx['user_id'])
+        row=conn.execute('''SELECT * FROM level1a_intake_uploads WHERE
+            id=? AND tenant_id=? AND buyer_user_id=? AND order_id=?
+            AND quote_id=? AND scan_status='Clean' ''',
+            (file_id,tid,ctx['user_id'],order_id,binding.quote_id)).fetchone()
+        if not row: raise HTTPException(404,'No verified clean file is available.')
+        record=dict(row)
+    finally:
+        conn.close()
+    try: data=storage.get_bytes(record['stored_name'])
+    except Exception as exc:
+        raise HTTPException(503,'The verified file is unavailable.') from exc
+    if hashlib.sha256(data).hexdigest()!=record['content_sha256']:
+        raise HTTPException(409,'The verified file failed integrity review.')
+    return Response(content=data,media_type='application/octet-stream',
+        headers={'Content-Disposition':f'attachment; filename="{record["original_name"]}"',
+                 'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
+
+
 @app.post('/api/assessments/{assessment_id}/package-agreements')
 async def upload_package_agreement(assessment_id:int,request:Request,file:UploadFile=File(...)):
     require_package_commercial_candidate(); require(request,'decide')
@@ -6683,23 +7062,25 @@ def package_payment_receipt(assessment_id:int,request:Request):
 
 
 @app.get('/package-checkout-return')
-def package_checkout_return():
+def package_checkout_return(flow:str=''):
+    destination='/?view=level1a' if flow=='level1a' else '/'
     return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8">
     <title>Salus checkout update</title></head><body><main>
     <h1>Payment submitted</h1><p>Your assessment intake opens only after Salus
     verifies payment for the exact accepted package. This page alone is not a
     receipt or confirmation of payment.</p><p>Return to your secure Salus
-    account to check the package payment status.</p><p><a href="/">Open Salus</a></p>
+    account to check the package payment status.</p><p><a href="'''+destination+'''">Open Salus</a></p>
     </main></body></html>''')
 
 
 @app.get('/package-checkout-cancel')
-def package_checkout_cancel():
+def package_checkout_cancel(flow:str=''):
+    destination='/?view=level1a' if flow=='level1a' else '/'
     return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8">
     <title>Salus checkout canceled</title></head><body><main>
     <h1>Checkout canceled</h1><p>No package intake has opened. You can return
     to your secure Salus account to review the same written quote.</p>
-    <p><a href="/">Open Salus</a></p></main></body></html>''')
+    <p><a href="'''+destination+'''">Open Salus</a></p></main></body></html>''')
 
 
 @app.post('/api/package-checkout/stripe-webhook')
@@ -6722,12 +7103,19 @@ async def package_checkout_stripe_webhook(request:Request):
             if event['type'].startswith('charge.') else event_object.get('id'))
         conn=db()
         try:
+            level1a_held=hold_level1a_payment(conn,payment_intent_id,
+                event['id'],event['type'],now())
             held=hold_payment_event(conn,payment_intent_id,event['id'],event['type'],now())
+            if level1a_held:
+                audit(conn,'LEVEL1A_PAYMENT_HELD','level1a_order',
+                    level1a_held['order_id'],
+                    f'checkout_id={level1a_held["id"]}; event_type={event["type"]}',
+                    'stripe-webhook',tenant_override=level1a_held['tenant_id'])
             if held:
                 audit(conn,'PACKAGE_PAYMENT_HELD','assessment',held['assessment_id'],
                     f"checkout_id={held['id']}; event_type={event['type']}",'stripe-webhook')
             conn.commit()
-            return {'received':True,'outcome':'Held' if held else 'Unmatched'}
+            return {'received':True,'outcome':'Held' if (held or level1a_held) else 'Unmatched'}
         except CheckoutVerificationError as exc:
             raise HTTPException(409,'The payment hold event requires review.') from exc
         finally:
@@ -6743,6 +7131,48 @@ async def package_checkout_stripe_webhook(request:Request):
         raise HTTPException(503,'Stripe Session retrieval failed.') from exc
     conn=db()
     try:
+        level1a_checkout=conn.execute('''SELECT * FROM level1a_checkout_sessions
+            WHERE stripe_session_id=?''',(session_id,)).fetchone()
+        if level1a_checkout:
+            try:
+                binding=binding_for_accepted_order(conn,
+                    tenant_id=level1a_checkout['tenant_id'],
+                    buyer_user_id=level1a_checkout['buyer_user_id'],
+                    order_id=level1a_checkout['order_id'])
+                paid=record_level1a_paid(conn,binding,session,event['id'],
+                    event['type'],now(),
+                    stripe_key.startswith(('sk_live_','rk_live_')))
+            except CheckoutVerificationError as exc:
+                raise HTTPException(409,'The payment did not match the accepted Level 1A order.') from exc
+            if paid['status']=='Paid':
+                order=conn.execute('SELECT * FROM level1a_orders WHERE id=?',
+                                   (binding.order_id,)).fetchone()
+                quote=conn.execute('SELECT * FROM level1a_quote_versions WHERE id=?',
+                                   (binding.quote_id,)).fetchone()
+                agreement=conn.execute('''SELECT * FROM level1a_agreement_versions
+                    WHERE id=(SELECT agreement_id FROM level1a_acceptances WHERE id=?)''',
+                    (binding.acceptance_id,)).fetchone()
+                content=render_level1a_receipt(order,quote,agreement,paid)
+                digest=hashlib.sha256(content).hexdigest()
+                key=f'level1a/{binding.tenant_id}/{binding.order_id}/receipts/{digest}.html'
+                try:
+                    if paid['receipt_document_sha256']:
+                        if (paid['receipt_document_sha256']!=digest or
+                                paid['receipt_stored_name']!=key):
+                            raise CheckoutVerificationError('The issued receipt version changed.')
+                        issued_level1a_receipt(conn,binding,storage.get_bytes(key))
+                    else:
+                        storage.put_bytes(key,content)
+                        record_level1a_receipt_document(conn,binding,paid['id'],content,
+                                                        key,storage.get_bytes(key))
+                except Exception as exc:
+                    raise HTTPException(503,'The paid receipt could not be safely stored.') from exc
+            audit(conn,'LEVEL1A_PAYMENT_VERIFIED' if paid['status']=='Paid'
+                  else 'LEVEL1A_PAYMENT_HELD','level1a_order',binding.order_id,
+                  f'checkout_id={paid["id"]}; status={paid["status"]}',
+                  'stripe-webhook',tenant_override=binding.tenant_id)
+            conn.commit()
+            return {'received':True,'outcome':paid['status']}
         checkout=conn.execute('SELECT * FROM package_checkout_sessions WHERE stripe_session_id=?',
                               (session_id,)).fetchone()
         if not checkout:
@@ -6907,6 +7337,34 @@ def reconcile_stale_package_scans(*, max_age_hours:int=24, limit:int=100):
                 conn.commit(); held+=1
         finally:
             conn.rollback();conn.close()
+    return held + reconcile_stale_level1a_scans(cutoff=cutoff,limit=limit)
+
+
+def reconcile_stale_level1a_scans(*, cutoff:str, limit:int):
+    """Keep missing Level 1A results held; silence never means Clean."""
+    lookup=db()
+    try:
+        candidates=[dict(r) for r in lookup.execute('''SELECT id,assessment_id FROM
+            level1a_pending_scans WHERE status='Pending' AND received_at<=?
+            ORDER BY received_at,id LIMIT ?''',(cutoff,limit))]
+    finally: lookup.close()
+    held=0
+    for candidate in candidates:
+        conn=db()
+        try:
+            lock_package_assessment(conn,candidate['assessment_id'])
+            row=conn.execute('SELECT * FROM level1a_pending_scans WHERE id=?',
+                             (candidate['id'],)).fetchone()
+            if row and row['status']=='Pending' and row['received_at']<=cutoff:
+                conn.execute('''UPDATE level1a_pending_scans SET status='Reconcile',
+                    scan_result='Missing result',updated_at=? WHERE id=?''',
+                    (now(),row['id']))
+                audit(conn,'LEVEL1A_SCAN_MISSING','assessment',row['assessment_id'],
+                      f'pending_id={row["id"]}','scan-worker',
+                      tenant_override=row['tenant_id'])
+                conn.commit();held+=1
+        finally:
+            conn.rollback();conn.close()
     return held
 
 def inspect_package_quarantine_inventory(*, quarantine=None, max_versions:int=10000):
@@ -6923,6 +7381,8 @@ def inspect_package_quarantine_inventory(*, quarantine=None, max_versions:int=10
     try:
         ledger=[dict(row) for row in conn.execute('''SELECT tenant_id,blob_name,
             blob_version_id,size_bytes,legal_hold FROM package_intake_pending_scans''')]
+        ledger.extend(dict(row) for row in conn.execute('''SELECT tenant_id,blob_name,
+            blob_version_id,size_bytes,0 AS legal_hold FROM level1a_pending_scans'''))
     finally:
         conn.close()
     result=compare_quarantine_versions(
@@ -7054,6 +7514,115 @@ def process_package_scan_result(event:dict, *, quarantine=None, expected_topic:s
         raise
     finally:
         conn.close()
+
+def process_level1a_scan_result(event:dict, *, quarantine=None, expected_topic:str=''):
+    """Only the trusted queue worker may qualify one exact Level 1A Blob version."""
+    if PACKAGE_SCAN_MODE!='defender' or not expected_topic:
+        raise QuarantineError('The governed result worker is not configured.')
+    if not isinstance(event,dict) or not isinstance(event.get('data'),dict):
+        return 'Unmatched'
+    event_id=event.get('id');uri=event['data'].get('blobUri')
+    etag=event['data'].get('eTag')
+    if not all(isinstance(value,str) and value for value in (event_id,uri,etag)):
+        return 'Unmatched'
+    conn=db()
+    try:
+        matches=[row for row in conn.execute('''SELECT id,assessment_id,etag FROM
+            level1a_pending_scans WHERE blob_uri=?''',(uri,)).fetchall()
+            if same_blob_etag(row['etag'],etag)]
+        if len(matches)!=1: return 'Unmatched'
+        lock_package_assessment(conn,matches[0]['assessment_id'])
+        row=conn.execute('SELECT * FROM level1a_pending_scans WHERE id=?',
+                         (matches[0]['id'],)).fetchone()
+        if not row or row['blob_uri']!=uri or not same_blob_etag(row['etag'],etag):
+            return 'Unmatched'
+        link=conn.execute('''SELECT 1 FROM level1a_assessment_links WHERE
+            tenant_id=? AND buyer_user_id=? AND order_id=? AND assessment_id=?''',
+            (row['tenant_id'],row['buyer_user_id'],row['order_id'],
+             row['assessment_id'])).fetchone()
+        item=conn.execute('''SELECT 1 FROM level1a_intake_items WHERE id=?
+            AND tenant_id=? AND order_id=? AND assessment_id=?''',
+            (row['intake_request_id'],row['tenant_id'],row['order_id'],
+             row['assessment_id'])).fetchone()
+        if not link or not item: return 'Unmatched'
+        pending=dict(row,sha256=row['content_sha256'])
+        if not defender_event_matches_pending(event,topic=expected_topic,
+                blob_uri=uri,etag=row['etag'],sha256=row['content_sha256']):
+            return 'Unmatched'
+        result=defender_result_for_pending(event,topic=expected_topic,
+            blob_uri=uri,etag=row['etag'],sha256=row['content_sha256'])
+        if (row['scan_event_id']==event_id and row['status'] in
+                ('Promoted','Malicious','Unscanned') and row['scan_result']==result):
+            return row['status']
+        if row['status']=='Promoted':
+            if result!='Clean':
+                conn.execute('''UPDATE level1a_intake_uploads SET scan_status='Reconcile'
+                    WHERE id=? AND tenant_id=?''',
+                    (row['promoted_upload_id'],row['tenant_id']))
+                conn.execute('''UPDATE level1a_pending_scans SET status='Reconcile',
+                    scan_result=?,scan_event_id=?,scanned_at=?,updated_at=? WHERE id=?''',
+                    (result,event_id,now(),now(),row['id']))
+                audit(conn,'LEVEL1A_SCAN_CONTRARY','assessment',row['assessment_id'],
+                      f'pending_id={row["id"]}; result={result}','scan-worker',
+                      tenant_override=row['tenant_id'])
+                conn.commit();return 'Reconcile'
+            return 'Promoted'
+        if row['status']!='Pending': return 'Reconcile'
+        if result!='Clean':
+            held='Malicious' if result=='Malicious' else 'Unscanned'
+            conn.execute('''UPDATE level1a_pending_scans SET status=?,scan_result=?,
+                scan_event_id=?,scanned_at=?,updated_at=? WHERE id=? AND status='Pending' ''',
+                (held,result,event_id,now(),now(),row['id']))
+            audit(conn,'LEVEL1A_SCAN_HELD','assessment',row['assessment_id'],
+                  f'pending_id={row["id"]}; result={result}','scan-worker',
+                  tenant_override=row['tenant_id'])
+            conn.commit();return held
+        snapshot=(quarantine or package_quarantine(for_worker=True)).read_version(pending)
+        if not qualified_clean_quarantine_object(event,pending,snapshot,
+                topic=expected_topic,tenant_id=row['tenant_id'],
+                assessment_id=row['assessment_id'],
+                intake_request_id=row['intake_request_id']):
+            return 'Unmatched'
+        version_key=hashlib.sha256(row['blob_version_id'].encode('utf-8')).hexdigest()[:24]
+        key=(f'tenant-{row["tenant_id"]}/assessment-{row["assessment_id"]}/'
+             f'level1a/order-{row["order_id"]}/item-{row["intake_request_id"]}/'
+             f'{version_key}_{row["content_sha256"][:16]}')
+        data=snapshot['bytes']
+        if storage.exists(key):
+            if storage.get_bytes(key)!=data:
+                raise QuarantineError('The existing clean copy has different bytes.')
+        else:
+            storage.put_bytes(key,data)
+        if hashlib.sha256(storage.get_bytes(key)).hexdigest()!=row['content_sha256']:
+            raise QuarantineError('The clean copy failed readback verification.')
+        ts=now()
+        cur=conn.execute('''INSERT INTO level1a_intake_uploads
+            (tenant_id,buyer_user_id,order_id,assessment_id,quote_id,
+             intake_request_id,original_name,stored_name,content_sha256,
+             size_bytes,scan_status,uploaded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,'Clean',?)''',
+            (row['tenant_id'],row['buyer_user_id'],row['order_id'],
+             row['assessment_id'],row['quote_id'],row['intake_request_id'],
+             row['original_name'],key,row['content_sha256'],row['size_bytes'],ts))
+        conn.execute('''UPDATE level1a_pending_scans SET status='Promoted',
+            scan_result='Clean',scan_event_id=?,scanned_at=?,promoted_upload_id=?,
+            updated_at=? WHERE id=? AND status='Pending' ''',
+            (event_id,ts,cur.lastrowid,ts,row['id']))
+        audit(conn,'LEVEL1A_SCAN_PROMOTED','assessment',row['assessment_id'],
+              f'pending_id={row["id"]}; upload_id={cur.lastrowid}',
+              'scan-worker',tenant_override=row['tenant_id'])
+        conn.commit();return 'Promoted'
+    except Exception:
+        conn.rollback();raise
+    finally: conn.close()
+
+
+def process_trusted_scan_result(event:dict, *, expected_topic:str):
+    """Share one governed queue without treating either product as the other."""
+    legacy=process_package_scan_result(event,expected_topic=expected_topic)
+    if legacy!='Unmatched': return legacy
+    return process_level1a_scan_result(event,expected_topic=expected_topic)
+
 
 def stage_package_intake_file(assessment_id:int,item_id:int,request:Request,ctx:dict,
                               original:str,content:bytes,digest:str):
