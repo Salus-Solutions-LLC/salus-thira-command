@@ -168,17 +168,12 @@ async function entityView(key){
           approvalPanel.innerHTML='<h3>Approve your agreement online</h3><p>First open and save the agreement above. Check that the covered work, exclusions and amount are correct. Only the reviewed decision owner can approve it.</p><form id="package-agreement-approval"><label><input type="checkbox" name="reviewed" required> I have read the agreement and this exact quote.</label><label><input type="checkbox" name="authority" required> I am authorized to approve for the organization and agree to use this electronic record.</label><div class="form-actions"><button class="btn" type="submit">Approve agreement</button></div><p role="status" aria-live="polite"></p></form>';
           quotePanel.appendChild(approvalPanel);
           const approvalForm=approvalPanel.querySelector('form');
+          const idempotencyKey=window.crypto.randomUUID().replace(/-/g,'');
           approvalForm.onsubmit=async event=>{
             event.preventDefault();
             if(!approvalForm.reportValidity())return;
             const button=approvalForm.querySelector('button');
             const status=approvalForm.querySelector('[role="status"]');
-            const keyName='salus-package-accept-'+activeAssessmentId+'-'+quote.id+'-'+quote.content_sha256;
-            let idempotencyKey=sessionStorage.getItem(keyName);
-            if(!idempotencyKey){
-              idempotencyKey=window.crypto.randomUUID().replace(/-/g,'');
-              sessionStorage.setItem(keyName,idempotencyKey);
-            }
             button.disabled=true;
             status.textContent='Recording your approval…';
             try{
