@@ -1,3 +1,8 @@
+## 4 October 2026 Central — agreement draft privacy clarification; commerce remains closed
+
+- Marc removed proposed separate Cookie Notice and new Level 1 retention-schedule requirements from the draft agreement. PR #712's source-controlled terms and artifact register now link the published Salus Privacy Notice and preserve existing privacy, records and legal duties. The local five-page combined Word revision 8 was rendered and inspected but remains unissued; the approved SOW binary is unchanged.
+- PR #713's Member-facing form still depends on server-side Salus quote and signer reviews. The live app has not proven automatic one-unit purchase, exact tax/Stripe payment, immutable receipt or scanner-backed authenticated Member upload. Member controls remain closed. Next owner/action: engineering implements and tests the atomic fixed-SKU order; Salus program completes notice, venue and incident wording; Marc/qualified reviewer determines exact source and live output before release. Preserve stopped Tierra Linda and paused large-batch #520.
+
 ## 4 October 2026 Central — Level 1A standard terms approved; combined agreement draft
 
 - Marc approved the proposed Level 1A standard terms in this chat. Decision SAL-D101 and the exact Word source SHA-256 `5506C3D2E6994D9E4850AA532392BD09B546939F22CF1751A2ADDA44A9818626` are recorded on this draft branch, with a text transcription in `docs/level1a-access-standard-terms-20261004.md`. This is terms approval, not a live purchase or waiver of protected release.
