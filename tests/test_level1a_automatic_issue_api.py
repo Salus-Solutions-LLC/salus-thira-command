@@ -97,6 +97,11 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         app.os.environ['SALUS_PACKAGE_CHECKOUT_RETURN_ORIGIN']='https://salcapa.salus.solutions'
         started=buyer.post(f'/api/level1a/orders/{oid}/checkout')
         assert started.status_code==200 and started.json()['status']=='Pending',started.text
+        assert b'href="/?view=level1a"' in buyer.get(
+            '/package-checkout-return?flow=level1a').content
+        assert b'href="/?view=level1a"' in buyer.get(
+            '/package-checkout-cancel?flow=level1a').content
+        assert not buyer.get('/api/system/mode').json()['level1a_purchase_available']
         conn=app.db()
         binding=app.binding_for_accepted_order(conn,tenant_id=1,
             buyer_user_id=uid,order_id=oid)
