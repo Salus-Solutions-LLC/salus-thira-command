@@ -50,6 +50,9 @@ from salus_scan_results import defender_event_matches_pending, defender_result_f
 from salus_scan_inventory import (compare_quarantine_versions,
                                   list_azure_quarantine_versions,
                                   record_inventory_exceptions)
+from salus_customer_identity import CUSTOMER_PROVIDER, bind_verified_buyer, identity_hash
+from salus_customer_oidc import (CLIENT_ASSERTION_TYPE, create_certificate_assertion,
+                                 pkce_challenge, validate_discovery)
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.getenv('SALUS_DB_PATH', os.path.join(BASE_DIR, 'thira.db'))
@@ -102,6 +105,12 @@ OIDC_AUTO_PROVISION = os.getenv('SALUS_OIDC_AUTO_PROVISION','0').lower() in ('1'
 OIDC_SCOPES = os.getenv('SALUS_OIDC_SCOPES','openid profile email').strip()
 OIDC_PROVIDER_NAME = os.getenv('SALUS_OIDC_PROVIDER_NAME','oidc').strip() or 'oidc'
 OIDC_STATE_MINUTES = int(os.getenv('SALUS_OIDC_STATE_MINUTES','10'))
+CUSTOMER_OIDC_ENABLED = os.getenv('SALUS_CUSTOMER_OIDC_ENABLED','0').lower() in ('1','true','yes')
+CUSTOMER_OIDC_TENANT_ID = os.getenv('SALUS_CUSTOMER_OIDC_TENANT_ID','').strip()
+CUSTOMER_OIDC_HOST = os.getenv('SALUS_CUSTOMER_OIDC_HOST','').strip().lower()
+CUSTOMER_OIDC_CLIENT_ID = os.getenv('SALUS_CUSTOMER_OIDC_CLIENT_ID','').strip()
+CUSTOMER_OIDC_DISCOVERY_URL = os.getenv('SALUS_CUSTOMER_OIDC_DISCOVERY_URL','').strip()
+CUSTOMER_OIDC_REDIRECT_URI = os.getenv('SALUS_CUSTOMER_OIDC_REDIRECT_URI','').strip()
 ALLOW_SQLITE_PRODUCTION = os.getenv('SALUS_ALLOW_SQLITE_PRODUCTION','0').lower() in ('1','true','yes')
 SEED_DEMO = os.getenv('SALUS_SEED_DEMO','1' if ENVIRONMENT!='production' else '0').lower() in ('1','true','yes')
 RATE_LIMITER = RateLimiter()
@@ -203,6 +212,25 @@ def init_db():
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       state_hash TEXT NOT NULL UNIQUE,
       nonce TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS customer_identity_bindings (
+      provider TEXT NOT NULL,
+      subject_sha256 TEXT NOT NULL,
+      tenant_id INTEGER NOT NULL UNIQUE,
+      user_id INTEGER NOT NULL UNIQUE,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (provider,subject_sha256),
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS customer_oidc_states (
+      state_hash TEXT PRIMARY KEY,
+      nonce TEXT NOT NULL,
+      code_verifier TEXT NOT NULL,
       expires_at TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
@@ -3289,6 +3317,8 @@ def production_readiness():
         if AUTH_MODE=='oidc' and OIDC_CLIENT_AUTH_METHOD!='managed_identity': issues.append('Production OIDC must use managed identity federation without a client secret.')
         if AUTH_MODE=='oidc' and OIDC_AUTO_PROVISION: issues.append('Production OIDC automatic user provisioning must remain disabled.')
         if AUTH_MODE=='oidc' and oidc_configured() and not oidc_status.get('healthy'): issues.append('OIDC managed identity federation is unavailable.')
+        if CUSTOMER_OIDC_ENABLED and not customer_oidc_configured():
+            issues.append('Customer OIDC is enabled without the reviewed External ID configuration.')
         if DB_BACKEND=='sqlite' and not ALLOW_SQLITE_PRODUCTION: issues.append('SQLite remains the active runtime database. Use SALUS_DB_BACKEND=postgres with SALUS_DATABASE_URL for production, or explicitly authorize SALUS_ALLOW_SQLITE_PRODUCTION=1 for a controlled exception.')
         if secret_status.get('backend')=='env': issues.append('Azure Key Vault or another managed secret provider is recommended for production secrets.')
         if not rate_status.get('enabled'): issues.append('Rate limiting must be enabled in production.')
@@ -3760,7 +3790,7 @@ def backfill_baseline_versions():
 backfill_baseline_versions()
 
 @app.get('/api/system/mode')
-def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc'),'level1a_purchase_available':bool(LEVEL1A_ORDER_DRAFT_ENABLED and LEVEL1A_INTAKE_ENABLED and LEVEL1A_UPLOAD_ENABLED and PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and AUTH_MODE in ('session','oidc'))}
+def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'customer_signin_available':customer_oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc'),'level1a_purchase_available':bool(LEVEL1A_ORDER_DRAFT_ENABLED and LEVEL1A_INTAKE_ENABLED and LEVEL1A_UPLOAD_ENABLED and PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and AUTH_MODE in ('session','oidc'))}
 
 @app.get('/api/auth/oidc/start')
 def oidc_start(request:Request):
@@ -3835,6 +3865,172 @@ def oidc_callback(request:Request,code:str='',state:str='',error:str=''):
     conn.commit(); conn.close()
     security_event(request,'OIDC_LOGIN_SUCCESS','Info',f'user_id={user["id"]}; acceptance={acceptance_key}',tenant=int(user['tenant_id']),user_name=display)
     response=RedirectResponse('/',status_code=302); response.set_cookie('salus_session',token,httponly=True,secure=COOKIE_SECURE,samesite='strict',max_age=SESSION_HOURS*3600,path='/'); response.delete_cookie('salus_oidc_state',path='/'); return response
+
+
+_customer_oidc_cache = {}
+_CUSTOMER_TENANT_ID = 'c4582c39-7d49-4419-b504-005c31e69549'
+_CUSTOMER_HOST = 'salusmemberaccess.ciamlogin.com'
+
+
+def customer_oidc_configured():
+    if not CUSTOMER_OIDC_ENABLED or AUTH_MODE != 'oidc':
+        return False
+    if CUSTOMER_OIDC_TENANT_ID != _CUSTOMER_TENANT_ID or CUSTOMER_OIDC_HOST != _CUSTOMER_HOST:
+        return False
+    if not CUSTOMER_OIDC_CLIENT_ID or not CUSTOMER_OIDC_REDIRECT_URI:
+        return False
+    if CUSTOMER_OIDC_DISCOVERY_URL != (f'https://{_CUSTOMER_HOST}/{_CUSTOMER_TENANT_ID}'
+                                       '/v2.0/.well-known/openid-configuration'):
+        return False
+    if ENVIRONMENT == 'production' and CUSTOMER_OIDC_REDIRECT_URI != (
+            'https://salcapa.salus.solutions/api/auth/customer/callback'):
+        return False
+    return COOKIE_SECURE or ENVIRONMENT != 'production'
+
+
+def customer_oidc_discovery():
+    if not customer_oidc_configured():
+        raise HTTPException(503, 'Customer sign-in is not available')
+    if _customer_oidc_cache.get('config'):
+        return _customer_oidc_cache['config']
+    try:
+        response = httpx.get(CUSTOMER_OIDC_DISCOVERY_URL, timeout=10)
+        response.raise_for_status()
+        config = validate_discovery(response.json(), tenant_host=_CUSTOMER_HOST,
+                                    tenant_id=_CUSTOMER_TENANT_ID)
+    except Exception as exc:
+        record_internal_failure('Customer OIDC discovery', uuid.uuid4().hex, exc)
+        raise HTTPException(503, 'Customer identity provider is unavailable')
+    _customer_oidc_cache['config'] = config
+    return config
+
+
+@app.get('/api/auth/customer/start')
+def customer_oidc_start(request:Request):
+    config = customer_oidc_discovery()
+    state, nonce, verifier = (secrets.token_urlsafe(32), secrets.token_urlsafe(32),
+                              secrets.token_urlsafe(48))
+    expires = (_iso_now_dt()+timedelta(minutes=OIDC_STATE_MINUTES)).replace(
+        microsecond=0).isoformat().replace('+00:00','Z')
+    conn = db()
+    try:
+        conn.execute('DELETE FROM customer_oidc_states WHERE expires_at<?', (now(),))
+        conn.execute('INSERT INTO customer_oidc_states(state_hash,nonce,code_verifier,'
+                     'expires_at,created_at) VALUES(?,?,?,?,?)',
+                     (_hash_token(state), nonce, verifier, expires, now()))
+        conn.commit()
+    finally:
+        conn.close()
+    params = {'client_id': CUSTOMER_OIDC_CLIENT_ID, 'response_type': 'code',
+              'redirect_uri': CUSTOMER_OIDC_REDIRECT_URI,
+              'scope': 'openid profile email', 'state': state, 'nonce': nonce,
+              'code_challenge': pkce_challenge(verifier), 'code_challenge_method': 'S256'}
+    response = RedirectResponse(config['authorization_endpoint'] + '?' +
+                                urllib.parse.urlencode(params), status_code=302)
+    response.set_cookie('salus_customer_oidc_state',state,httponly=True,
+                        secure=COOKIE_SECURE,samesite='lax',
+                        max_age=OIDC_STATE_MINUTES*60,path='/api/auth/customer')
+    return response
+
+
+@app.get('/api/auth/customer/callback', name='customer_oidc_callback')
+def customer_oidc_callback(request:Request,code:str='',state:str='',error:str=''):
+    if not customer_oidc_configured():
+        raise HTTPException(503, 'Customer sign-in is not available')
+    if error or not code:
+        raise HTTPException(401, 'Customer identity provider rejected sign-in')
+    cookie_state = request.cookies.get('salus_customer_oidc_state','')
+    if not state or not cookie_state or not secrets.compare_digest(state,cookie_state):
+        raise HTTPException(401, 'Customer sign-in state is invalid')
+    conn = db()
+    try:
+        row = conn.execute('SELECT * FROM customer_oidc_states WHERE state_hash=?',
+                           (_hash_token(state),)).fetchone()
+        if not row:
+            raise HTTPException(401, 'Customer sign-in state is invalid or expired')
+        conn.execute('DELETE FROM customer_oidc_states WHERE state_hash=?',
+                     (_hash_token(state),))
+        conn.commit()  # A state cannot authorize a second callback, even after failure.
+    finally:
+        conn.close()
+    try:
+        expiry = datetime.fromisoformat(str(row['expires_at']).replace('Z','+00:00'))
+    except Exception:
+        expiry = _iso_now_dt()-timedelta(seconds=1)
+    if expiry <= _iso_now_dt():
+        raise HTTPException(401, 'Customer sign-in state expired')
+    config = customer_oidc_discovery()
+    try:
+        private_key = secret('SALUS_CUSTOMER_OIDC_PRIVATE_KEY_PEM','')
+        certificate = secret('SALUS_CUSTOMER_OIDC_CERTIFICATE_PEM','')
+        if not private_key or not certificate:
+            raise RuntimeError('Customer certificate credential is unavailable')
+        assertion = create_certificate_assertion(
+            client_id=CUSTOMER_OIDC_CLIENT_ID, token_endpoint=config['token_endpoint'],
+            private_key_pem=private_key, certificate_pem=certificate)
+        form = {'grant_type':'authorization_code','code':code,
+                'redirect_uri':CUSTOMER_OIDC_REDIRECT_URI,
+                'client_id':CUSTOMER_OIDC_CLIENT_ID,
+                'code_verifier':row['code_verifier'],
+                'client_assertion_type':CLIENT_ASSERTION_TYPE,
+                'client_assertion':assertion}
+        token_response = httpx.post(config['token_endpoint'],data=form,timeout=15)
+        token_response.raise_for_status()
+        id_token = token_response.json()['id_token']
+        signing_key = jwt.PyJWKClient(config['jwks_uri']).get_signing_key_from_jwt(id_token).key
+        claims = jwt.decode(id_token, signing_key,
+                            algorithms=['RS256','RS384','RS512','ES256','ES384','ES512'],
+                            audience=CUSTOMER_OIDC_CLIENT_ID, issuer=config['issuer'])
+        if claims.get('nonce') != row['nonce']:
+            raise ValueError('Customer nonce mismatch')
+        if str(claims.get('tid') or '') != _CUSTOMER_TENANT_ID:
+            raise ValueError('Customer tenant mismatch')
+        subject = str(claims.get('sub') or '').strip()
+        email = str(claims.get('email') or '').strip().lower()
+        if not subject or claims.get('email_verified') is not True or not email:
+            raise ValueError('Verified customer subject and email are required')
+    except Exception as exc:
+        security_event(request,'CUSTOMER_OIDC_TOKEN_FAILURE','High',type(exc).__name__)
+        raise HTTPException(401, 'Customer identity could not be verified')
+    session_token = secrets.token_urlsafe(32)
+    session_expires = (_iso_now_dt()+timedelta(hours=SESSION_HOURS)).replace(
+        microsecond=0).isoformat().replace('+00:00','Z')
+    accepted_at = now()
+    conn = db()
+    try:
+        buyer_tenant, user_id, _ = bind_verified_buyer(
+            conn,issuer=config['issuer'],subject=subject,email=email,
+            display_name=str(claims.get('name') or email),timestamp=accepted_at)
+        conn.execute('INSERT INTO auth_sessions(user_id,token_hash,expires_at,'
+                     'created_at,last_seen_at) VALUES(?,?,?,?,?)',
+                     (user_id,_hash_token(session_token),session_expires,accepted_at,accepted_at))
+        acceptance_key = uuid.uuid4().hex
+        conn.execute('INSERT INTO identity_acceptance_events(event_key,tenant_id,user_id,'
+                     'identity_provider,external_subject_sha256,mapped_role,mapped_clearance,'
+                     'authority_source,authentication_method,oidc_issuer_sha256,accepted_at,'
+                     'session_expires_at,request_id,source_network_sha256) '
+                     'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                     (acceptance_key,buyer_tenant,user_id,CUSTOMER_PROVIDER,
+                      identity_hash(config['issuer'],subject),'Client Executive','Standard',
+                      'verified_external_buyer_binding','oidc_authorization_code_pkce',
+                      _hash_token(config['issuer']),accepted_at,session_expires,
+                      request_id(request),_hash_token(request_ip(request))
+                      if request_ip(request) else ''))
+        conn.commit()
+    except Exception as exc:
+        conn.rollback()
+        security_event(request,'CUSTOMER_OIDC_BINDING_FAILURE','High',type(exc).__name__)
+        raise HTTPException(403, 'Customer account could not be established')
+    finally:
+        conn.close()
+    security_event(request,'CUSTOMER_OIDC_LOGIN_SUCCESS','Info',
+                   f'user_id={user_id}; acceptance={acceptance_key}',tenant=buyer_tenant)
+    response = RedirectResponse('/?view=level1a',status_code=302)
+    response.set_cookie('salus_session',session_token,httponly=True,
+                        secure=COOKIE_SECURE,samesite='strict',
+                        max_age=SESSION_HOURS*3600,path='/')
+    response.delete_cookie('salus_customer_oidc_state',path='/api/auth/customer')
+    return response
 
 def _normalized_pilot_email(value:str):
     email=str(value or '').strip().lower()
