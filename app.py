@@ -21,9 +21,12 @@ from salus_package_path import validate_requested_package_path
 from salus_package_quote import validate_quote, quote_digest, assessment_scope_digest
 from salus_level1a_order import BASE_PRICE_CENTS
 from salus_level1a_order_ledger import ORDER_TABLE_SQL, OrderConflict, save_draft, correct_draft
-from salus_level1a_quote import QUOTE_TABLE_SQL, QuoteUnavailable, quote_for_order
+from salus_level1a_quote import QUOTE_TABLE_SQL, QuoteUnavailable, quote_for_order, _unit_from_order
+from salus_level1a_agreement import AgreementRenderError, render_candidate_agreement
 from salus_level1a_agreement_ledger import (AGREEMENT_TABLE_SQL,
-    AgreementConflict, record_issued_download)
+    APPROVED_TEMPLATE_KEY, APPROVED_TEMPLATE_SHA256, APPROVED_TEMPLATE_VERSION,
+    AgreementConflict, issue_generated_agreement, record_generated_candidate,
+    record_issued_download)
 from salus_level1a_acceptance import (ACCEPTANCE_TABLE_SQL,
     AcceptanceConflict, CONSENT_TEXT_V1, accept_issued_agreement)
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
@@ -1811,6 +1814,7 @@ def init_db():
     conn.executescript(ORDER_TABLE_SQL)
     conn.executescript(QUOTE_TABLE_SQL)
     conn.executescript(AGREEMENT_TABLE_SQL)
+    ensure_column('level1a_agreement_versions','issued_at',"TEXT NOT NULL DEFAULT ''")
     conn.executescript(ACCEPTANCE_TABLE_SQL)
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
@@ -2049,6 +2053,11 @@ class Level1AAcceptanceIn(BaseModel):
     authority_basis: str = Field(min_length=12,max_length=1000)
     idempotency_key: str = Field(pattern=r'^[A-Za-z0-9_-]{16,120}$')
     accept_quote_and_agreement: Literal[True]
+
+class Level1AIssueIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    quote_id: int = Field(gt=0)
+    signer_name: str = Field(min_length=2,max_length=200)
 
 class PackageMemberAuthorityReviewIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -5762,6 +5771,87 @@ def create_level1a_order_quote(order_id:int,request:Request):
                 'tax_decision_reference':quote['tax_decision_reference'],
                 'quote_sha256':quote['quote_sha256'],
                 'agreement_available':False,'checkout_available':False}
+    finally:
+        conn.rollback(); conn.close()
+
+@app.post('/api/level1a/orders/{order_id}/agreements/issue')
+def issue_level1a_order_agreement(order_id:int,p:Level1AIssueIn,request:Request):
+    """Issue one exact approved Word version for a current signed-in buyer."""
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        tid=tenant_id(request); uid=ctx['user_id']
+        order=conn.execute('''SELECT * FROM level1a_orders WHERE id=?
+            AND tenant_id=? AND buyer_user_id=?''',(order_id,tid,uid)).fetchone()
+        quote=conn.execute('''SELECT * FROM level1a_quote_versions WHERE id=?
+            AND tenant_id=? AND buyer_user_id=? AND order_id=?''',
+            (p.quote_id,tid,uid,order_id)).fetchone()
+        if not order or not quote:
+            raise HTTPException(404,'The selected Member order or quote was not found.')
+        if (order['status']!='ReadyForAgreement' or
+                order['scope_version']!=quote['scope_version'] or
+                order['scope_sha256']!=quote['scope_sha256']):
+            raise HTTPException(409,'Correct the order and refresh its quote first.')
+        try:
+            template=storage.get_bytes(APPROVED_TEMPLATE_KEY)
+        except Exception as exc:
+            raise HTTPException(503,'The approved agreement template is unavailable.') from exc
+        if hashlib.sha256(template).hexdigest()!=APPROVED_TEMPLATE_SHA256:
+            raise HTTPException(503,'The approved agreement template failed integrity review.')
+        try:
+            content,digest=render_candidate_agreement(
+                _unit_from_order(order),dict(quote),p.signer_name,
+                template,APPROVED_TEMPLATE_SHA256)
+        except AgreementRenderError as exc:
+            raise HTTPException(409,str(exc)) from exc
+        key=f'level1a/{tid}/{order_id}/{p.quote_id}/{digest}.docx'
+        existing=conn.execute('''SELECT * FROM level1a_agreement_versions WHERE
+            tenant_id=? AND buyer_user_id=? AND order_id=? AND quote_id=?
+            AND template_sha256=?''',
+            (tid,uid,order_id,p.quote_id,APPROVED_TEMPLATE_SHA256)).fetchone()
+        if existing and existing['content_sha256']!=digest:
+            raise HTTPException(409,'An agreement was already prepared with different signer details.')
+        if not existing:
+            try:
+                storage.put_bytes(key,content)
+                readback=storage.get_bytes(key)
+                candidate=record_generated_candidate(conn,tenant_id=tid,
+                    buyer_user_id=uid,order_id=order_id,quote_id=p.quote_id,
+                    template_version=APPROVED_TEMPLATE_VERSION,
+                    template_sha256=APPROVED_TEMPLATE_SHA256,
+                    content=content,stored_name=key,readback=readback,
+                    timestamp=now())
+            except (StorageError,AgreementConflict) as exc:
+                raise HTTPException(503,'The agreement could not be safely stored.') from exc
+        else:
+            candidate=dict(existing)
+            try:
+                readback=storage.get_bytes(candidate['stored_name'])
+            except Exception as exc:
+                raise HTTPException(503,'The saved agreement is unavailable.') from exc
+        if candidate['status']=='Candidate':
+            try:
+                issued=issue_generated_agreement(conn,tenant_id=tid,
+                    buyer_user_id=uid,order_id=order_id,quote_id=p.quote_id,
+                    agreement_id=candidate['id'],
+                    approved_template_sha256=APPROVED_TEMPLATE_SHA256,
+                    readback=readback,timestamp=now())
+            except AgreementConflict as exc:
+                raise HTTPException(409,str(exc)) from exc
+            audit(conn,'LEVEL1A_AGREEMENT_ISSUE','level1a_order',order_id,
+                  f'agreement_id={issued["id"]}; sha256={digest}',
+                  actor(request),tenant_override=tid)
+        elif (candidate['status']=='Issued' and readback==content and
+              candidate['template_version']==APPROVED_TEMPLATE_VERSION):
+            issued=candidate
+        else:
+            raise HTTPException(409,'The saved agreement is not an issuable version.')
+        conn.commit()
+        return {'order_id':order_id,'quote_id':p.quote_id,
+                'agreement_id':issued['id'],'agreement_sha256':digest,
+                'status':'Issued','idempotent':bool(existing),
+                'checkout_available':False,'upload_available':False}
     finally:
         conn.rollback(); conn.close()
 
