@@ -19,6 +19,8 @@ from salus_package_payment_ledger import (ensure_payment_schema, paid_receipt,
     record_checkout_session, record_verified_payment, hold_payment_event)
 from salus_package_path import validate_requested_package_path
 from salus_package_quote import validate_quote, quote_digest, assessment_scope_digest
+from salus_level1a_order import BASE_PRICE_CENTS
+from salus_level1a_order_ledger import ORDER_TABLE_SQL, OrderConflict, save_draft, correct_draft
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
@@ -48,6 +50,7 @@ ALLOW_RESTORE = os.getenv('SALUS_ALLOW_RESTORE', '0').lower() in ('1','true','ye
 COOKIE_SECURE = os.getenv('SALUS_COOKIE_SECURE', '0').lower() in ('1','true','yes')
 ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
 PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED','0').lower() in ('1','true','yes')
+LEVEL1A_ORDER_DRAFT_ENABLED = os.getenv('SALUS_LEVEL1A_ORDER_DRAFT_ENABLED','0').lower() in ('1','true','yes')
 PACKAGE_SCAN_MODE = os.getenv('SALUS_PACKAGE_SCAN_MODE','inline').strip().lower()
 PACKAGE_SCANNER_ACCEPTED = os.getenv('SALUS_PACKAGE_SCANNER_ACCEPTED','0').lower() in ('1','true','yes')
 
@@ -106,12 +109,13 @@ def record_internal_failure(component: str, error_id: str, exc: Exception) -> No
         pass
 
 
-def audit(conn, action: str, entity_type: str, entity_id: int | None, detail: str = '', user_name: str = 'prototype-user'):
-    tenant=1
-    try:
-        fn=globals().get('infer_tenant'); tenant=fn(conn,entity_type,entity_id) if fn else 1
-    except Exception:
-        pass
+def audit(conn, action: str, entity_type: str, entity_id: int | None, detail: str = '', user_name: str = 'prototype-user', tenant_override: int | None = None):
+    tenant=tenant_override if tenant_override is not None else 1
+    if tenant_override is None:
+        try:
+            fn=globals().get('infer_tenant'); tenant=fn(conn,entity_type,entity_id) if fn else 1
+        except Exception:
+            pass
     cols={r['name'] for r in conn.execute('PRAGMA table_info(audit_log)')}
     if 'tenant_id' in cols:
         conn.execute('INSERT INTO audit_log(ts, user_name, action, entity_type, entity_id, detail, tenant_id) VALUES(?,?,?,?,?,?,?)',(now(),user_name,action,entity_type,entity_id,detail,tenant))
@@ -1799,6 +1803,7 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_ops_invoice_statements_scope ON ops_invoice_statements(tenant_id,assessment_id,status,id);
     ''')
+    conn.executescript(ORDER_TABLE_SQL)
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
     ensure_column('evidence_attachments','scanned_at','TEXT NOT NULL DEFAULT ""')
@@ -1994,6 +1999,26 @@ class PackageAcceptanceIn(BaseModel):
     member_authority_basis: str = Field(min_length=3,max_length=1000)
     idempotency_key: str = Field(pattern=r'^[A-Za-z0-9_-]{16,120}$')
     accept_quote_and_agreement: Literal[True]
+
+class Level1AOrderDraftIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    idempotency_key: str = Field(pattern=r'^[A-Za-z0-9_-]{16,120}$')
+    unit_kind: str = Field(default='',max_length=20)
+    unit_name: str = Field(default='',max_length=500)
+    operating_activity: str = Field(default='',max_length=500)
+    exclusions: str = Field(default='',max_length=500)
+    use_country: str = Field(default='',max_length=2)
+    use_region: str = Field(default='',max_length=100)
+
+class Level1AOrderCorrectionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    expected_scope_version: int = Field(gt=0)
+    unit_kind: str = Field(default='',max_length=20)
+    unit_name: str = Field(default='',max_length=500)
+    operating_activity: str = Field(default='',max_length=500)
+    exclusions: str = Field(default='',max_length=500)
+    use_country: str = Field(default='',max_length=2)
+    use_region: str = Field(default='',max_length=100)
 
 class PackageMemberAuthorityReviewIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -5599,6 +5624,81 @@ def create_assessment(p:AssessmentIn, request:Request):
         'version':1,
     })
     return _member_assessment_view(result) if protected_member_request(request) else result
+
+def _level1a_draft_authority(request:Request):
+    if not LEVEL1A_ORDER_DRAFT_ENABLED:
+        raise HTTPException(503,'Level 1A ordering is not released.')
+    require_protected_member_authority(request,'level1a_order_draft')
+    ctx=auth_context(request)
+    if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
+        raise HTTPException(403,'A verified Protected Member sign-in is required.')
+    return ctx
+
+def _level1a_order_view(row, idempotent=False):
+    return {'order_id':row['id'],'order_reference':f'L1A-{row["id"]}',
+            'status':row['status'],'scope_version':row['scope_version'],
+            'scope_sha256':row['scope_sha256'],'unit_kind':row['unit_kind'],
+            'unit_name':row['unit_name'],'operating_activity':row['operating_activity'],
+            'exclusions':row['exclusions'],'use_country':row['use_country'],
+            'use_region':row['use_region'],'base_price_cents':BASE_PRICE_CENTS,
+            'currency':'USD','idempotent':idempotent,
+            'checkout_available':False,'upload_available':False}
+
+@app.post('/api/level1a/orders')
+def create_level1a_order_draft(p:Level1AOrderDraftIn,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        try:
+            row,idempotent=save_draft(conn,tenant_id=tenant_id(request),
+                buyer_user_id=ctx['user_id'],idempotency_key=p.idempotency_key,
+                values=p.model_dump(exclude={'idempotency_key'}),timestamp=now())
+        except OrderConflict as exc:
+            raise HTTPException(409,str(exc)) from exc
+        if not idempotent:
+            audit(conn,'LEVEL1A_DRAFT_CREATE','level1a_order',row['id'],
+                  f'scope_version={row["scope_version"]}; status={row["status"]}',
+                  actor(request),tenant_override=tenant_id(request))
+        conn.commit()
+        return _level1a_order_view(row,idempotent)
+    finally:
+        conn.rollback(); conn.close()
+
+@app.get('/api/level1a/orders/{order_id}')
+def get_level1a_order_draft(order_id:int,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        row=conn.execute('''SELECT * FROM level1a_orders WHERE id=?
+            AND tenant_id=? AND buyer_user_id=?''',
+            (order_id,tenant_id(request),ctx['user_id'])).fetchone()
+        if not row: raise HTTPException(404,'Order not found.')
+        return _level1a_order_view(row)
+    finally:
+        conn.close()
+
+@app.patch('/api/level1a/orders/{order_id}')
+def correct_level1a_order_draft(order_id:int,p:Level1AOrderCorrectionIn,request:Request):
+    ctx=_level1a_draft_authority(request)
+    conn=db()
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        try:
+            row,idempotent=correct_draft(conn,tenant_id=tenant_id(request),
+                buyer_user_id=ctx['user_id'],order_id=order_id,
+                expected_scope_version=p.expected_scope_version,
+                values=p.model_dump(exclude={'expected_scope_version'}),timestamp=now())
+        except OrderConflict as exc:
+            raise HTTPException(409,str(exc)) from exc
+        if not idempotent:
+            audit(conn,'LEVEL1A_DRAFT_CORRECT','level1a_order',row['id'],
+                  f'scope_version={row["scope_version"]}; status={row["status"]}',
+                  actor(request),tenant_override=tenant_id(request))
+        conn.commit()
+        return _level1a_order_view(row,idempotent)
+    finally:
+        conn.rollback(); conn.close()
 
 @app.post('/api/assessments/{assessment_id}/package-agreements')
 async def upload_package_agreement(assessment_id:int,request:Request,file:UploadFile=File(...)):
