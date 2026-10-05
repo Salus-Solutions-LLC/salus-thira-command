@@ -3760,7 +3760,7 @@ def backfill_baseline_versions():
 backfill_baseline_versions()
 
 @app.get('/api/system/mode')
-def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc')}
+def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc'),'level1a_purchase_available':bool(LEVEL1A_ORDER_DRAFT_ENABLED and LEVEL1A_INTAKE_ENABLED and LEVEL1A_UPLOAD_ENABLED and PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and AUTH_MODE in ('session','oidc'))}
 
 @app.get('/api/auth/oidc/start')
 def oidc_start(request:Request):
@@ -5989,8 +5989,8 @@ def start_level1a_checkout(order_id:int,request:Request):
         origin=os.getenv('SALUS_PACKAGE_CHECKOUT_RETURN_ORIGIN','').strip().rstrip('/')
         try:
             session=create_level1a_checkout_session(binding,stripe_key,
-                origin+'/package-checkout-return?session_id={CHECKOUT_SESSION_ID}',
-                origin+'/package-checkout-cancel',attempt_no=attempt)
+                origin+'/package-checkout-return?flow=level1a&session_id={CHECKOUT_SESSION_ID}',
+                origin+'/package-checkout-cancel?flow=level1a',attempt_no=attempt)
             recorded=record_level1a_session(conn,binding,attempt,session['id'],
                                             session['url'],now())
         except CheckoutVerificationError as exc:
@@ -7062,23 +7062,25 @@ def package_payment_receipt(assessment_id:int,request:Request):
 
 
 @app.get('/package-checkout-return')
-def package_checkout_return():
+def package_checkout_return(flow:str=''):
+    destination='/?view=level1a' if flow=='level1a' else '/'
     return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8">
     <title>Salus checkout update</title></head><body><main>
     <h1>Payment submitted</h1><p>Your assessment intake opens only after Salus
     verifies payment for the exact accepted package. This page alone is not a
     receipt or confirmation of payment.</p><p>Return to your secure Salus
-    account to check the package payment status.</p><p><a href="/">Open Salus</a></p>
+    account to check the package payment status.</p><p><a href="'''+destination+'''">Open Salus</a></p>
     </main></body></html>''')
 
 
 @app.get('/package-checkout-cancel')
-def package_checkout_cancel():
+def package_checkout_cancel(flow:str=''):
+    destination='/?view=level1a' if flow=='level1a' else '/'
     return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8">
     <title>Salus checkout canceled</title></head><body><main>
     <h1>Checkout canceled</h1><p>No package intake has opened. You can return
     to your secure Salus account to review the same written quote.</p>
-    <p><a href="/">Open Salus</a></p></main></body></html>''')
+    <p><a href="'''+destination+'''">Open Salus</a></p></main></body></html>''')
 
 
 @app.post('/api/package-checkout/stripe-webhook')

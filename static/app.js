@@ -39,9 +39,11 @@ function isProtectedMember(){return workspaceState?.experience==='Protected Memb
 function applyWorkspaceNavigation(){
   const protectedMember=isProtectedMember();
   document.querySelectorAll('#nav [data-salus-only="true"]').forEach(item=>{ item.hidden=protectedMember; });
+  const level1aButton=document.querySelector('#nav [data-view="level1a"]');
+  if(level1aButton)level1aButton.hidden=!(protectedMember&&systemMode.level1a_purchase_available);
 }
 
-async function render(){try{if(currentView==='dashboard'||currentView==='common_operating_picture') return dashboard(); if(currentView==='salintel') return salintel(); if(currentView==='salintel_domains') return salintelDomains(); if(currentView==='salops') return salops(); if(currentView==='salthira') return entityView('assessments'); if(currentView==='risk') return riskAnalytics(); if(currentView==='priorities') return prioritization(); if(currentView==='reassessment') return entityView('reassessment_triggers'); if(currentView==='trace') return trace(); if(currentView==='attachments') return attachments(); if(currentView==='governance') return governance(); if(currentView==='audit') return audit(); if(currentView==='backups') return backups(); if(currentView==='security') return securityReadiness(); if(currentView==='implementation') return implementation(); if(currentView==='reports') return reports(); if(currentView==='configuration') return configuration(); return entityView(currentView);}catch(e){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(e.message)}</div>`}}
+async function render(){if(currentView==='level1a')return level1aView();try{if(currentView==='dashboard'||currentView==='common_operating_picture') return dashboard(); if(currentView==='salintel') return salintel(); if(currentView==='salintel_domains') return salintelDomains(); if(currentView==='salops') return salops(); if(currentView==='salthira') return entityView('assessments'); if(currentView==='risk') return riskAnalytics(); if(currentView==='priorities') return prioritization(); if(currentView==='reassessment') return entityView('reassessment_triggers'); if(currentView==='trace') return trace(); if(currentView==='attachments') return attachments(); if(currentView==='governance') return governance(); if(currentView==='audit') return audit(); if(currentView==='backups') return backups(); if(currentView==='security') return securityReadiness(); if(currentView==='implementation') return implementation(); if(currentView==='reports') return reports(); if(currentView==='configuration') return configuration(); return entityView(currentView);}catch(e){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(e.message)}</div>`}}
 
 async function dashboard(){
   const d=await api('/api/salcapa/common-operating-picture'),m=d.metrics,w=d.workspace,readiness=d.protective_readiness,see=d.see,threads=d.coordinate.threads,requests=d.act.decision_requests;copDecisionRequests=requests;
@@ -717,6 +719,7 @@ async function decideRestore(id,decision){const reason=prompt(`Document the ${de
 async function executeRestore(backupId,requestId){if(!confirm('Execute this authorized restore? A pre-restore safety backup will be created first.'))return;await api(`/api/admin/backups/${backupId}/restore?restore_request_id=${requestId}`,{method:'POST'});alert('Authorized restore completed.');location.reload();}
 
 async function initialize(){
+  if(new URLSearchParams(window.location.search).get('view')==='level1a')currentView='level1a';
   try{systemMode=await fetch('/api/system/mode').then(r=>r.json());}catch(e){systemMode={auth_mode:'prototype',restore_enabled:false};}
   if(['session','oidc'].includes(systemMode.auth_mode)){
     const r=await fetch('/api/auth/session'); if(!r.ok){showLogin();return;} accessState=await r.json(); currentUser=accessState.user; currentRole=accessState.role;
