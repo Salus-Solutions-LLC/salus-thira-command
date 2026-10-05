@@ -22,6 +22,7 @@ from salus_package_quote import validate_quote, quote_digest, assessment_scope_d
 from salus_level1a_order import BASE_PRICE_CENTS
 from salus_level1a_order_ledger import ORDER_TABLE_SQL, OrderConflict, save_draft, correct_draft
 from salus_level1a_quote import QUOTE_TABLE_SQL, QuoteUnavailable, quote_for_order
+from salus_level1a_agreement_ledger import AGREEMENT_TABLE_SQL
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
@@ -1806,6 +1807,7 @@ def init_db():
     ''')
     conn.executescript(ORDER_TABLE_SQL)
     conn.executescript(QUOTE_TABLE_SQL)
+    conn.executescript(AGREEMENT_TABLE_SQL)
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
     ensure_column('evidence_attachments','scanned_at','TEXT NOT NULL DEFAULT ""')
