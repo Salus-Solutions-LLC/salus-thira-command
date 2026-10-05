@@ -2003,20 +2003,28 @@ class PackageAcceptanceIn(BaseModel):
 class Level1AOrderDraftIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     idempotency_key: str = Field(pattern=r'^[A-Za-z0-9_-]{16,120}$')
+    buyer_legal_name: str = Field(default='',max_length=500)
     unit_kind: str = Field(default='',max_length=20)
     unit_name: str = Field(default='',max_length=500)
+    covered_boundary: str = Field(default='',max_length=500)
     operating_activity: str = Field(default='',max_length=500)
     exclusions: str = Field(default='',max_length=500)
+    decision_owner_role: str = Field(default='',max_length=500)
+    notice_email: str = Field(default='',max_length=254)
     use_country: str = Field(default='',max_length=2)
     use_region: str = Field(default='',max_length=100)
 
 class Level1AOrderCorrectionIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     expected_scope_version: int = Field(gt=0)
+    buyer_legal_name: str = Field(default='',max_length=500)
     unit_kind: str = Field(default='',max_length=20)
     unit_name: str = Field(default='',max_length=500)
+    covered_boundary: str = Field(default='',max_length=500)
     operating_activity: str = Field(default='',max_length=500)
     exclusions: str = Field(default='',max_length=500)
+    decision_owner_role: str = Field(default='',max_length=500)
+    notice_email: str = Field(default='',max_length=254)
     use_country: str = Field(default='',max_length=2)
     use_region: str = Field(default='',max_length=100)
 
@@ -5637,9 +5645,12 @@ def _level1a_draft_authority(request:Request):
 def _level1a_order_view(row, idempotent=False):
     return {'order_id':row['id'],'order_reference':f'L1A-{row["id"]}',
             'status':row['status'],'scope_version':row['scope_version'],
-            'scope_sha256':row['scope_sha256'],'unit_kind':row['unit_kind'],
-            'unit_name':row['unit_name'],'operating_activity':row['operating_activity'],
-            'exclusions':row['exclusions'],'use_country':row['use_country'],
+            'scope_sha256':row['scope_sha256'],'buyer_legal_name':row['buyer_legal_name'],
+            'unit_kind':row['unit_kind'],'unit_name':row['unit_name'],
+            'covered_boundary':row['covered_boundary'],
+            'operating_activity':row['operating_activity'],
+            'exclusions':row['exclusions'],'decision_owner_role':row['decision_owner_role'],
+            'notice_email':row['notice_email'],'use_country':row['use_country'],
             'use_region':row['use_region'],'base_price_cents':BASE_PRICE_CENTS,
             'currency':'USD','idempotent':idempotent,
             'checkout_available':False,'upload_available':False}

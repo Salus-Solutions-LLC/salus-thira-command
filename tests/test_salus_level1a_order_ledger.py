@@ -21,8 +21,10 @@ def conn():
 
 
 def answers(**changes):
-    result = dict(unit_kind='Site', unit_name='Main daycare',
+    result = dict(buyer_legal_name='Example Care LLC',unit_kind='Site',
+                  unit_name='Main daycare',covered_boundary='One building and playground',
                   operating_activity='Child care', exclusions='Other sites',
+                  decision_owner_role='Chief executive',notice_email='buyer@example.test',
                   use_country='US',use_region='TX')
     result.update(changes)
     return result

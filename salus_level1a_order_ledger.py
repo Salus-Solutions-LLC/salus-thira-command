@@ -14,10 +14,14 @@ CREATE TABLE IF NOT EXISTS level1a_orders (
   buyer_user_id INTEGER NOT NULL,
   idempotency_key TEXT NOT NULL,
   scope_version INTEGER NOT NULL,
+  buyer_legal_name TEXT NOT NULL,
   unit_kind TEXT NOT NULL,
   unit_name TEXT NOT NULL,
+  covered_boundary TEXT NOT NULL,
   operating_activity TEXT NOT NULL,
   exclusions TEXT NOT NULL,
+  decision_owner_role TEXT NOT NULL,
+  notice_email TEXT NOT NULL,
   use_country TEXT NOT NULL,
   use_region TEXT NOT NULL,
   scope_sha256 TEXT NOT NULL DEFAULT '',
@@ -39,8 +43,9 @@ class OrderConflict(ValueError):
 
 def _snapshot(values):
     return tuple(values[key] for key in
-                 ('unit_kind', 'unit_name', 'operating_activity', 'exclusions',
-                  'use_country', 'use_region'))
+                 ('buyer_legal_name', 'unit_kind', 'unit_name', 'covered_boundary',
+                  'operating_activity', 'exclusions', 'decision_owner_role',
+                  'notice_email', 'use_country', 'use_region'))
 
 
 def _scope(tenant_id, buyer_user_id, scope_version, values):
@@ -50,10 +55,14 @@ def _scope(tenant_id, buyer_user_id, scope_version, values):
     except OrderBoundaryError:
         return 'NeedsCorrection', '', values
     return 'ReadyForAgreement', unit.digest(), {
+        'buyer_legal_name': unit.buyer_legal_name,
         'unit_kind': unit.unit_kind,
         'unit_name': unit.unit_name,
+        'covered_boundary': unit.covered_boundary,
         'operating_activity': unit.operating_activity,
         'exclusions': unit.exclusions,
+        'decision_owner_role': unit.decision_owner_role,
+        'notice_email': unit.notice_email,
         'use_country': unit.use_country,
         'use_region': unit.use_region,
     }
@@ -63,8 +72,9 @@ def save_draft(conn, *, tenant_id, buyer_user_id, idempotency_key, values, times
     if not idempotency_key or len(idempotency_key) > 120:
         raise OrderConflict('A bounded order retry key is required.')
     values = {key: values[key] for key in
-              ('unit_kind', 'unit_name', 'operating_activity', 'exclusions',
-               'use_country', 'use_region')}
+              ('buyer_legal_name', 'unit_kind', 'unit_name', 'covered_boundary',
+               'operating_activity', 'exclusions', 'decision_owner_role',
+               'notice_email', 'use_country', 'use_region')}
     if any(not isinstance(value, str) or len(value) > 500 for value in values.values()):
         raise OrderConflict('Order answers must be text of at most 500 characters.')
     status, digest, normalized = _scope(tenant_id, buyer_user_id, 1, values)
@@ -76,9 +86,10 @@ def save_draft(conn, *, tenant_id, buyer_user_id, idempotency_key, values, times
             raise OrderConflict('That retry key belongs to a different order. Correct the saved order instead.')
         return dict(existing), True
     conn.execute('''INSERT INTO level1a_orders
-        (tenant_id,buyer_user_id,idempotency_key,scope_version,unit_kind,unit_name,
-         operating_activity,exclusions,use_country,use_region,scope_sha256,status,created_at,updated_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,buyer_user_id,idempotency_key)
+        (tenant_id,buyer_user_id,idempotency_key,scope_version,buyer_legal_name,
+         unit_kind,unit_name,covered_boundary,operating_activity,exclusions,
+         decision_owner_role,notice_email,use_country,use_region,scope_sha256,status,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,buyer_user_id,idempotency_key)
         DO NOTHING''', (tenant_id,buyer_user_id,idempotency_key,1,
         *_snapshot(normalized),digest,status,timestamp,timestamp))
     row = conn.execute('''SELECT * FROM level1a_orders
@@ -101,16 +112,18 @@ def correct_draft(conn, *, tenant_id, buyer_user_id, order_id,
     if row['scope_version'] != expected_scope_version:
         raise OrderConflict('This order changed. Refresh before correcting it.')
     values = {key: values[key] for key in
-              ('unit_kind', 'unit_name', 'operating_activity', 'exclusions',
-               'use_country', 'use_region')}
+              ('buyer_legal_name', 'unit_kind', 'unit_name', 'covered_boundary',
+               'operating_activity', 'exclusions', 'decision_owner_role',
+               'notice_email', 'use_country', 'use_region')}
     if any(not isinstance(value, str) or len(value) > 500 for value in values.values()):
         raise OrderConflict('Order answers must be text of at most 500 characters.')
     version = expected_scope_version + 1
     status, digest, normalized = _scope(tenant_id,buyer_user_id,version,values)
     if _snapshot(row) == _snapshot(normalized):
         return dict(row), True
-    result = conn.execute('''UPDATE level1a_orders SET scope_version=?,unit_kind=?,
-        unit_name=?,operating_activity=?,exclusions=?,use_country=?,use_region=?,
+    result = conn.execute('''UPDATE level1a_orders SET scope_version=?,buyer_legal_name=?,
+        unit_kind=?,unit_name=?,covered_boundary=?,operating_activity=?,exclusions=?,
+        decision_owner_role=?,notice_email=?,use_country=?,use_region=?,
         scope_sha256=?,status=?,updated_at=?
         WHERE id=? AND tenant_id=? AND buyer_user_id=? AND scope_version=?
           AND status IN ('NeedsCorrection','ReadyForAgreement')''',

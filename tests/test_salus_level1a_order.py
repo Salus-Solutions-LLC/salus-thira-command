@@ -7,9 +7,14 @@ from salus_level1a_order import (
 
 
 def unit(**changes):
-    values = dict(tenant_id=21, buyer_user_id=34, unit_kind='Site',
-                  unit_name='Oak Street daycare', operating_activity='Daycare',
+    values = dict(tenant_id=21, buyer_user_id=34,
+                  buyer_legal_name='Example Care LLC',unit_kind='Site',
+                  unit_name='Oak Street daycare',
+                  covered_boundary='123 Oak Street building and playground',
+                  operating_activity='Daycare',
                   exclusions='Other sites and investigative services',
+                  decision_owner_role='Chief executive',
+                  notice_email='buyer@example.test',
                   use_country='US',use_region='TX',scope_version=1)
     values.update(changes)
     return Level1AUnit(**values)

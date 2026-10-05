@@ -39,10 +39,14 @@ def _required_text(value: str, label: str, limit: int = 500) -> str:
 class Level1AUnit:
     tenant_id: int
     buyer_user_id: int
+    buyer_legal_name: str
     unit_kind: str
     unit_name: str
+    covered_boundary: str
     operating_activity: str
     exclusions: str
+    decision_owner_role: str
+    notice_email: str
     use_country: str
     use_region: str
     scope_version: int
@@ -56,9 +60,13 @@ class Level1AUnit:
             raise OrderBoundaryError('Choose one named site or one named function.')
         if type(self.scope_version) is not int or self.scope_version <= 0:
             raise OrderBoundaryError('A positive scope version is required.')
-        for field, label in (('unit_name', 'Covered unit'),
+        for field, label in (('buyer_legal_name', 'Buyer legal name'),
+                             ('unit_name', 'Covered unit'),
+                             ('covered_boundary', 'Covered boundary'),
                              ('operating_activity', 'Operating activity'),
                              ('exclusions', 'Exclusions'),
+                             ('decision_owner_role', 'Decision owner role'),
+                             ('notice_email', 'Buyer notice email'),
                              ('use_country', 'Service use country'),
                              ('use_region', 'Service use region')):
             object.__setattr__(self, field, _required_text(getattr(self, field), label))
@@ -66,16 +74,23 @@ class Level1AUnit:
         object.__setattr__(self, 'use_region', self.use_region.upper())
         if len(self.use_country) != 2:
             raise OrderBoundaryError('Use a two-letter service use country code.')
+        if ('@' not in self.notice_email or '\n' in self.notice_email or
+                len(self.notice_email) > 254):
+            raise OrderBoundaryError('Give a usable buyer notice email.')
 
     def snapshot(self) -> dict:
         return {
             'sku': SKU,
             'tenant_id': self.tenant_id,
             'buyer_user_id': self.buyer_user_id,
+            'buyer_legal_name': self.buyer_legal_name,
             'unit_kind': self.unit_kind,
             'unit_name': self.unit_name,
+            'covered_boundary': self.covered_boundary,
             'operating_activity': self.operating_activity,
             'exclusions': self.exclusions,
+            'decision_owner_role': self.decision_owner_role,
+            'notice_email': self.notice_email,
             'use_country': self.use_country,
             'use_region': self.use_region,
             'scope_version': self.scope_version,

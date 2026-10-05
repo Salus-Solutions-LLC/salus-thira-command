@@ -35,8 +35,11 @@ def test_member_order_reference_and_tenant_boundary(tmp_path):
             users.append(TestClient(app.app,cookies={'salus_session':token}))
         conn.commit();conn.close()
         buyer,other,analyst=users
-        payload={'idempotency_key':'buyer-order-00000001','unit_kind':'Site',
-            'unit_name':'','operating_activity':'Daycare','exclusions':'Other sites',
+        payload={'idempotency_key':'buyer-order-00000001',
+            'buyer_legal_name':'Example Care LLC','unit_kind':'Site',
+            'unit_name':'','covered_boundary':'One building and playground',
+            'operating_activity':'Daycare','exclusions':'Other sites',
+            'decision_owner_role':'Chief executive','notice_email':'buyer@example.test',
             'use_country':'US','use_region':'TX'}
         assert analyst.post('/api/level1a/orders',json=payload).status_code==403
         created=buyer.post('/api/level1a/orders',json=payload)
@@ -51,17 +54,26 @@ def test_member_order_reference_and_tenant_boundary(tmp_path):
         url=f"/api/level1a/orders/{order['order_id']}"
         assert other.get(url).status_code==404
         fixed=buyer.patch(url,json={
-            'expected_scope_version':1,'unit_kind':'Site','unit_name':'Oak Street daycare',
+            'expected_scope_version':1,'buyer_legal_name':'Example Care LLC',
+            'unit_kind':'Site','unit_name':'Oak Street daycare',
+            'covered_boundary':'One building and playground',
             'operating_activity':'Daycare','exclusions':'Other sites',
+            'decision_owner_role':'Chief executive','notice_email':'buyer@example.test',
             'use_country':'US','use_region':'TX'})
         assert fixed.status_code==200,fixed.text
         assert fixed.json()['status']=='ReadyForAgreement'
         assert fixed.json()['scope_version']==2 and len(fixed.json()['scope_sha256'])==64
-        assert other.patch(url,json={'expected_scope_version':2,'unit_kind':'Site',
-            'unit_name':'Other','operating_activity':'Other','exclusions':'Other',
+        assert other.patch(url,json={'expected_scope_version':2,
+            'buyer_legal_name':'Other','unit_kind':'Site',
+            'unit_name':'Other','covered_boundary':'Other',
+            'operating_activity':'Other','exclusions':'Other',
+            'decision_owner_role':'Chief executive','notice_email':'other@example.test',
             'use_country':'US','use_region':'TX'}).status_code==409
-        assert buyer.patch(url,json={'expected_scope_version':1,'unit_kind':'Site',
-            'unit_name':'Changed','operating_activity':'Daycare','exclusions':'Other sites',
+        assert buyer.patch(url,json={'expected_scope_version':1,
+            'buyer_legal_name':'Example Care LLC','unit_kind':'Site',
+            'unit_name':'Changed','covered_boundary':'One building and playground',
+            'operating_activity':'Daycare','exclusions':'Other sites',
+            'decision_owner_role':'Chief executive','notice_email':'buyer@example.test',
             'use_country':'US','use_region':'TX'}).status_code==409
         assert buyer.post('/api/assessments/1/package-checkout').status_code==503
         conn=app.db()
