@@ -61,8 +61,8 @@ def poll_once(*, queue_client=None, process_event=None):
         credential = ManagedIdentityCredential(client_id=client_id)
         queue_client = QueueClient.from_queue_url(queue_url, credential=credential)
     if process_event is None:
-        from app import process_package_scan_result
-        process_event = lambda event: process_package_scan_result(event, expected_topic=topic)
+        from app import process_trusted_scan_result
+        process_event = lambda event: process_trusted_scan_result(event, expected_topic=topic)
     messages = queue_client.receive_messages(messages_per_page=5, max_messages=5,
                                              visibility_timeout=120)
     held = acknowledged = False

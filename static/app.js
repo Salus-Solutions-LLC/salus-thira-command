@@ -39,9 +39,15 @@ function isProtectedMember(){return workspaceState?.experience==='Protected Memb
 function applyWorkspaceNavigation(){
   const protectedMember=isProtectedMember();
   document.querySelectorAll('#nav [data-salus-only="true"]').forEach(item=>{ item.hidden=protectedMember; });
+  const level1aButton=document.querySelector('#nav [data-view="level1a"]');
+  if(level1aButton){
+    const available=protectedMember&&systemMode.level1a_purchase_available;
+    level1aButton.hidden=!available;
+    level1aButton.style.display=available?'':'none';
+  }
 }
 
-async function render(){try{if(currentView==='dashboard'||currentView==='common_operating_picture') return dashboard(); if(currentView==='salintel') return salintel(); if(currentView==='salintel_domains') return salintelDomains(); if(currentView==='salops') return salops(); if(currentView==='salthira') return entityView('assessments'); if(currentView==='risk') return riskAnalytics(); if(currentView==='priorities') return prioritization(); if(currentView==='reassessment') return entityView('reassessment_triggers'); if(currentView==='trace') return trace(); if(currentView==='attachments') return attachments(); if(currentView==='governance') return governance(); if(currentView==='audit') return audit(); if(currentView==='backups') return backups(); if(currentView==='security') return securityReadiness(); if(currentView==='implementation') return implementation(); if(currentView==='reports') return reports(); if(currentView==='configuration') return configuration(); return entityView(currentView);}catch(e){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(e.message)}</div>`}}
+async function render(){if(currentView==='level1a')return level1aView();try{if(currentView==='dashboard'||currentView==='common_operating_picture') return dashboard(); if(currentView==='salintel') return salintel(); if(currentView==='salintel_domains') return salintelDomains(); if(currentView==='salops') return salops(); if(currentView==='salthira') return entityView('assessments'); if(currentView==='risk') return riskAnalytics(); if(currentView==='priorities') return prioritization(); if(currentView==='reassessment') return entityView('reassessment_triggers'); if(currentView==='trace') return trace(); if(currentView==='attachments') return attachments(); if(currentView==='governance') return governance(); if(currentView==='audit') return audit(); if(currentView==='backups') return backups(); if(currentView==='security') return securityReadiness(); if(currentView==='implementation') return implementation(); if(currentView==='reports') return reports(); if(currentView==='configuration') return configuration(); return entityView(currentView);}catch(e){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(e.message)}</div>`}}
 
 async function dashboard(){
   const d=await api('/api/salcapa/common-operating-picture'),m=d.metrics,w=d.workspace,readiness=d.protective_readiness,see=d.see,threads=d.coordinate.threads,requests=d.act.decision_requests;copDecisionRequests=requests;
@@ -154,13 +160,53 @@ async function entityView(key){
       try{
         const quote=await api(`/api/assessments/${activeAssessmentId}/package-quote`);
         if(quote.status==='Awaiting Salus signer review'){
-          quotePanel.innerHTML='<h2>Your package quote</h2><p>Salus is checking who may review and decide on this quote for the selected operation. The terms and written agreement will appear for that person after the review. No purchase or work has started.</p>';
+          quotePanel.innerHTML='<h2>Your package quote</h2><p>Your fixed-price Level 1A Access order must show one covered site or function, included work, exclusions, agreement and exact total before you pay. You may correct the selected unit. No purchase or work has started.</p>';
         }else{
         const fee=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(quote.fee_cents)/100);
         const currentQuote=quote.status==='Quoted' || quote.status==='Authorized';
         const quoteHeading=currentQuote?'Your package quote':'Previous package quote — no current offer';
         const statusNotice=currentQuote?'':'<p class="notice">This quote is historical. Salus must review the changed scope or issue a new written quote before a new decision.</p>';
         quotePanel.innerHTML=`<h2>${quoteHeading}</h2>${statusNotice}<p><strong>${esc(quote.status)}</strong> · Level ${Number(quote.level)}${esc(quote.band)} ${esc(quote.variant||'')} · ${fee}</p><p><strong>Covered work:</strong> ${esc(quote.covered_operation)}<br><strong>Excluded:</strong> ${esc(quote.exclusions)}<br><strong>Included:</strong> ${esc(quote.included_work)}<br><strong>Reports:</strong> ${esc(quote.report_deliverables)}</p><p><strong>Your inputs:</strong> ${esc(quote.member_inputs)}<br><strong>Evidence and clarification:</strong> ${esc(quote.evidence_allowance)}; ${esc(quote.clarification_allowance)}</p><p><strong>Valid through:</strong> ${esc(fmtPackageDate(quote.valid_until))}<br><strong>Start and delivery:</strong> ${esc(fmtPackageDate(quote.start_date))} / ${esc(fmtPackageDate(quote.delivery_date))}<br><strong>Changes:</strong> ${esc(quote.change_triggers)}</p><p>Separate SalOPS services require their own quote. Read the exact agreement before making any decision.</p><a href="/api/package-agreements/${Number(quote.agreement_artifact_id)}/download" target="_blank" rel="noopener">Download the ${currentQuote?'written':'historical'} agreement</a>`;
+        if(quote.status==='Quoted'){
+          const approvalPanel=document.createElement('section');
+          approvalPanel.className='card';
+          approvalPanel.style.marginTop='16px';
+          approvalPanel.innerHTML='<h3>Approve your agreement online</h3><p>First open and save the agreement above. Check that the covered work, exclusions and amount are correct. By approving, you attest that you can enter this agreement for the covered organization.</p><form id="package-agreement-approval"><label><input type="checkbox" name="reviewed" required> I have read the agreement and this exact quote.</label><label><input type="checkbox" name="authority" required> I am authorized to approve for the organization and agree to use this electronic record.</label><div class="form-actions"><button class="btn" type="submit">Approve agreement</button></div><p role="status" aria-live="polite"></p></form>';
+          quotePanel.appendChild(approvalPanel);
+          const approvalForm=approvalPanel.querySelector('form');
+          const idempotencyKey=window.crypto.randomUUID().replace(/-/g,'');
+          approvalForm.onsubmit=async event=>{
+            event.preventDefault();
+            if(!approvalForm.reportValidity())return;
+            const button=approvalForm.querySelector('button');
+            const status=approvalForm.querySelector('[role="status"]');
+            button.disabled=true;
+            status.textContent='Recording your approval…';
+            try{
+              await api('/api/assessments/'+activeAssessmentId+'/package-acceptance',{
+                method:'POST',
+                body:JSON.stringify({
+                  quote_id:Number(quote.id),
+                  quote_sha256:String(quote.content_sha256),
+                  agreement_sha256:String(quote.agreement_sha256),
+                  member_authority_basis:'I confirm I am authorized to approve this agreement for the covered organization.',
+                  idempotency_key:idempotencyKey,
+                  accept_quote_and_agreement:true
+                })
+              });
+              status.textContent='Agreement approved. Checking the next step…';
+              await render();
+            }catch(error){
+              const detail=String(error.message||'');
+              status.textContent=detail.includes('Download the exact agreement')
+                ?'Open and save the agreement above, then try again.'
+                :detail.includes('superseded')||detail.includes('version does not match')
+                  ?'The agreement or scope changed. Refresh this page and review the current quote.'
+                  :'Approval could not be recorded. No payment was taken. Please try again or contact Salus.';
+              button.disabled=false;
+            }
+          };
+        }
         if(quote.status==='Authorized'){
           const paymentPanel=document.createElement('div');paymentPanel.className='card';paymentPanel.style.marginTop='16px';
           paymentPanel.innerHTML='<h2>Secure package payment</h2><p>Checking the payment for this exact accepted quote…</p>';
@@ -677,7 +723,8 @@ async function decideRestore(id,decision){const reason=prompt(`Document the ${de
 async function executeRestore(backupId,requestId){if(!confirm('Execute this authorized restore? A pre-restore safety backup will be created first.'))return;await api(`/api/admin/backups/${backupId}/restore?restore_request_id=${requestId}`,{method:'POST'});alert('Authorized restore completed.');location.reload();}
 
 async function initialize(){
-  try{systemMode=await fetch('/api/system/mode').then(r=>r.json());}catch(e){systemMode={auth_mode:'prototype',restore_enabled:false};}
+  if(new URLSearchParams(window.location.search).get('view')==='level1a')currentView='level1a';
+  try{systemMode=await fetch('/api/system/mode',{cache:'no-store'}).then(r=>r.json());}catch(e){systemMode={auth_mode:'prototype',restore_enabled:false};}
   if(['session','oidc'].includes(systemMode.auth_mode)){
     const r=await fetch('/api/auth/session'); if(!r.ok){showLogin();return;} accessState=await r.json(); currentUser=accessState.user; currentRole=accessState.role;
   }else{ try{accessState=await api('/api/system/access');}catch(e){} }
