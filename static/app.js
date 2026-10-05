@@ -154,7 +154,7 @@ async function entityView(key){
       try{
         const quote=await api(`/api/assessments/${activeAssessmentId}/package-quote`);
         if(quote.status==='Awaiting Salus signer review'){
-          quotePanel.innerHTML='<h2>Your package quote</h2><p>Salus is checking who may review and decide on this quote for the selected operation. The terms and written agreement will appear for that person after the review. No purchase or work has started.</p>';
+          quotePanel.innerHTML='<h2>Your package quote</h2><p>Your fixed-price Level 1A Access order must show one covered site or function, included work, exclusions, agreement and exact total before you pay. You may correct the selected unit. No purchase or work has started.</p>';
         }else{
         const fee=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(quote.fee_cents)/100);
         const currentQuote=quote.status==='Quoted' || quote.status==='Authorized';
