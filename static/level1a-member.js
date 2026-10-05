@@ -43,7 +43,7 @@ function level1aStart(){
     <label>Site or function name<input name="unit_name" required maxlength="500"></label>
     <label>Covered boundary<input name="covered_boundary" required maxlength="500"></label>
     <label>Operating activity<input name="operating_activity" required maxlength="500"></label>
-    <label>Work excluded from this assessment<input name="exclusions" required maxlength="500"></label>
+    <label>Work excluded from this assessment<input name="exclusions" aria-label="Work excluded from this assessment" required maxlength="500"></label>
     <label>Decision owner role<input name="decision_owner_role" required maxlength="500"></label>
     <label>Notice email<input name="notice_email" type="email" required maxlength="254"></label>
     <label>Where will the service be used?<input name="service_use_address" required maxlength="500" autocomplete="street-address"></label>
@@ -89,7 +89,7 @@ function level1aQuote(state){
 
 function level1aAgreement(state){
   const host=document.querySelector('#level1a-step'),id=Number(state.order_id),agreement=state.agreement;
-  host.innerHTML=`<div class="card"><h2>Read and approve your agreement</h2><p>Download the exact Word agreement. It identifies the covered unit, included work, exclusions and total. Your approval is recorded electronically.</p><p><a class="btn secondary" href="/api/level1a/orders/${id}/agreements/${Number(agreement.agreement_id)}/download">Download the Level 1A agreement</a></p><form id="level1a-accept-form"><label>Your full name<input name="typed_name" required minlength="2" maxlength="200"></label><label>How are you authorized to agree for this organization?<textarea name="authority_basis" required minlength="12" maxlength="1000"></textarea></label><label><input name="accept_quote_and_agreement" type="checkbox" required> I read the exact agreement and quote, approve them for the organization, and agree to use this electronic record.</label><div class="form-actions"><button class="btn">Approve agreement</button></div></form></div>`;
+  host.innerHTML=`<div class="card"><h2>Read and approve your agreement</h2><p>Download the exact Word agreement. It identifies the covered unit, included work, exclusions and total. Your approval is recorded electronically.</p><p><a class="btn secondary" href="/api/level1a/orders/${id}/agreements/${Number(agreement.agreement_id)}/download" target="_blank" rel="noopener">Download the Level 1A agreement</a></p><form id="level1a-accept-form"><label>Your full name<input name="typed_name" required minlength="2" maxlength="200"></label><label>How are you authorized to agree for this organization?<textarea name="authority_basis" required minlength="12" maxlength="1000"></textarea></label><label><input name="accept_quote_and_agreement" type="checkbox" required> I read the exact agreement and quote, approve them for the organization, and agree to use this electronic record.</label><div class="form-actions"><button class="btn">Approve agreement</button></div></form></div>`;
   const key=crypto.randomUUID().replace(/-/g,'');
   host.querySelector('form').onsubmit=async event=>{
     event.preventDefault();const form=event.currentTarget,button=form.querySelector('button');

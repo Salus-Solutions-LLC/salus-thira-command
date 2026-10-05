@@ -40,7 +40,11 @@ function applyWorkspaceNavigation(){
   const protectedMember=isProtectedMember();
   document.querySelectorAll('#nav [data-salus-only="true"]').forEach(item=>{ item.hidden=protectedMember; });
   const level1aButton=document.querySelector('#nav [data-view="level1a"]');
-  if(level1aButton)level1aButton.hidden=!(protectedMember&&systemMode.level1a_purchase_available);
+  if(level1aButton){
+    const available=protectedMember&&systemMode.level1a_purchase_available;
+    level1aButton.hidden=!available;
+    level1aButton.style.display=available?'':'none';
+  }
 }
 
 async function render(){if(currentView==='level1a')return level1aView();try{if(currentView==='dashboard'||currentView==='common_operating_picture') return dashboard(); if(currentView==='salintel') return salintel(); if(currentView==='salintel_domains') return salintelDomains(); if(currentView==='salops') return salops(); if(currentView==='salthira') return entityView('assessments'); if(currentView==='risk') return riskAnalytics(); if(currentView==='priorities') return prioritization(); if(currentView==='reassessment') return entityView('reassessment_triggers'); if(currentView==='trace') return trace(); if(currentView==='attachments') return attachments(); if(currentView==='governance') return governance(); if(currentView==='audit') return audit(); if(currentView==='backups') return backups(); if(currentView==='security') return securityReadiness(); if(currentView==='implementation') return implementation(); if(currentView==='reports') return reports(); if(currentView==='configuration') return configuration(); return entityView(currentView);}catch(e){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(e.message)}</div>`}}
@@ -720,7 +724,7 @@ async function executeRestore(backupId,requestId){if(!confirm('Execute this auth
 
 async function initialize(){
   if(new URLSearchParams(window.location.search).get('view')==='level1a')currentView='level1a';
-  try{systemMode=await fetch('/api/system/mode').then(r=>r.json());}catch(e){systemMode={auth_mode:'prototype',restore_enabled:false};}
+  try{systemMode=await fetch('/api/system/mode',{cache:'no-store'}).then(r=>r.json());}catch(e){systemMode={auth_mode:'prototype',restore_enabled:false};}
   if(['session','oidc'].includes(systemMode.auth_mode)){
     const r=await fetch('/api/auth/session'); if(!r.ok){showLogin();return;} accessState=await r.json(); currentUser=accessState.user; currentRole=accessState.role;
   }else{ try{accessState=await api('/api/system/access');}catch(e){} }
