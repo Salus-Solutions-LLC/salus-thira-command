@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 10:46 CDT
-current_frozen_release: v3.217
-current_frozen_commit: 1b0e972946337a45aa4e8b0ec4360913bfbc2779
+last_verified_at: 06 October 2026 10:55 CDT
+current_frozen_release: v3.218
+current_frozen_commit: b6092778f2fdc79c23e43ef998ce8f155a2f225e
 active_development_branch: development/salcapa-platform
-current_development_head: 61d427cb9b337dbe5cad5b8cd0dd33eb5c327106
+current_development_head: b6092778f2fdc79c23e43ef998ce8f155a2f225e
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3218_customer_issuer_repair_release
-last_completed_increment: v3217_advisor_output_accepted_level1a_controls_closed
+active_increment: salus_v3218_customer_issuer_immutable_image_publication
+last_completed_increment: v3218_source_merged_release_guard_passed
 candidate_release: v3.218
-validation_pr: pending
-validation_branch: candidate/level1a-v3218-source-20261006
+validation_pr: 740
+validation_branch: candidate/level1a-v3218-image-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: local_verified_github_pending
+validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3216_full_ci_failed_stale_workforce_signin_smoke
 first_root_failing_gate: v3216_passwordless_runtime_secret_paths
 root_cause: stale_workforce_signin_button_copy_assertion
 repair_head: 3b87801620f2ec875ac37021ad08aabb0266ce34
 repair_summary: v3217_preserves_both_signin_destinations_without_label_binding
 genuine_blockers: v3216_superseded_before_publication_member_upload_quote_checkout_closed
-next_authorized_step: review_exact_v3218_source_then_freeze_and_test_fictional_buyer_identity_with_commerce_closed
+next_authorized_step: finish_frozen_v3218_ci_then_review_exact_image_record_before_protected_publication
 deployed_demo_release: v3.217
 deployed_demo_state: protected_v3217_deployment_verified_level1a_member_controls_closed
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: protected_v3217_deployment_verified_level1a_member_controls
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3218_customer_issuer_image_candidate: Marc reviewed PR #739 at exact head `dd5241fc0c28540a14df962375203902fdb33bff` after all 20 candidate workflows passed; it merged as `b6092778f2fdc79c23e43ef998ce8f155a2f225e`. `release/v3.218` was created at that exact commit, and its Release Branch Guard passed. Full frozen-release CI and contextual intake checks were still running when this candidate was prepared. This record stages one immutable image from the frozen source after those checks and a separate exact-head review. It does not deploy the application, enable buyer sign-in, open commerce or upload files. Serving app and accepted Advisor remain v3.217; signed buyer token, cross-tenant denial, Stripe, approved Word issue, receipt, scanner-backed intake and Wix checks are unproved.
 
 v3218_customer_issuer_source_candidate: Marc exact-reviewed PR #738 head `b7b4f9f72604cb4d206311c0a84c7372b231086e` after all four candidate check groups passed; it merged as `61d427cb9b337dbe5cad5b8cd0dd33eb5c327106`. The repair pins the customer issuer hostname returned by the live public External ID discovery document while retaining the separately pinned authorization, token and JWKS hostname. A v3.218 runtime-label candidate is staged; it has not been frozen, built or deployed. The accepted public Advisor remains v3.217. Actual buyer ID-token claims, certificate retrieval, billing linkage, cross-tenant denial, Stripe payment, agreement issue, receipt and scanner-backed upload remain unproved; all public buyer and Level 1A purchase/intake/upload controls remain closed.
 
