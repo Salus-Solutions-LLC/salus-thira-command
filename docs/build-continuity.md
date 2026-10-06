@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 07:31 CDT
+last_verified_at: 06 October 2026 07:47 CDT
 current_frozen_release: v3.217
 current_frozen_commit: 1b0e972946337a45aa4e8b0ec4360913bfbc2779
 active_development_branch: development/salcapa-platform
-current_development_head: 1b0e972946337a45aa4e8b0ec4360913bfbc2779
+current_development_head: e0e84a84a3258611306a2febb7209a988e3564d4
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3217_level1a_immutable_image_publication
-last_completed_increment: v3217_frozen_source_release_ci_passed
+active_increment: salus_v3217_level1a_application_promotion
+last_completed_increment: v3217_immutable_image_published_and_read_back
 candidate_release: v3.217
-validation_pr: 734
-validation_branch: candidate/level1a-v3217-image-20261006
+validation_pr: 735
+validation_branch: candidate/level1a-v3217-app-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -22,7 +22,7 @@ root_cause: stale_workforce_signin_button_copy_assertion
 repair_head: 3b87801620f2ec875ac37021ad08aabb0266ce34
 repair_summary: v3217_preserves_both_signin_destinations_without_label_binding
 genuine_blockers: v3216_superseded_before_publication_member_upload_quote_checkout_closed
-next_authorized_step: validate_exact_v3217_image_record_and_obtain_marc_source_review_before_protected_publication
+next_authorized_step: validate_exact_v3217_application_record_and_obtain_marc_source_review_before_protected_deployment
 deployed_demo_release: v3.215
 deployed_demo_state: accepted_immutable_application_v3215_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_application_v3215_member_upload_and_purc
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3217_buyer_identity_image_published: Marc approved PR #734 exact head `6a58042a9454eec251577866d3b7b66ac9f7aa89` after all 18 candidate workflows passed. It merged as `e0e84a84a3258611306a2febb7209a988e3564d4`. Protected image run `37465219982` succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:fdcc5d5868f3b35e1bb6c2b615c1ea3cc79f4552804693daaa0b14f587582485` for frozen source `1b0e972946337a45aa4e8b0ec4360913bfbc2779`. The application deployment record is a separate candidate and retains the currently running v3.215 image as operational rollback; v3.215 has a successful protected deployment but its exact live output remains unaccepted. Qualified v3.210 remains an older registry fallback. Serving app remains v3.215; public buyer sign-in, quote, Checkout, payment, receipt, intake and Member uploads remain closed pending protected deployment and separate live acceptance.
 
 v3217_buyer_identity_image_candidate: Marc reviewed PR #733 at `3b87801620f2ec875ac37021ad08aabb0266ce34`; both PR checks passed and it merged as `1b0e972946337a45aa4e8b0ec4360913bfbc2779`. The `release/v3.217` branch guard, full release CI run `37463667613`, and contextual intake run `37463667710` succeeded. The only source repair removes an obsolete visible-label assertion while retaining checks of the exact workforce and buyer sign-in destinations. This candidate binds the immutable image to the exact frozen v3.217 commit; deployed app v3.215 and v3.210 rollback remain unchanged. Public sign-in, quote, Checkout, payment, receipt, intake and Member uploads remain closed pending live proof and qualified output review.
 
