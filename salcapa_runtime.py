@@ -83,7 +83,7 @@ register_demo_evaluator(core)
 register_mission_map(core.app, core.__dict__)
 register_analytical_actions(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.215"
+SALCAPA_RELEASE_VERSION = "3.216"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 _base_production_readiness = core.production_readiness
