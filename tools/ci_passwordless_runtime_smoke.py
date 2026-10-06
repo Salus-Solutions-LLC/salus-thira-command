@@ -84,7 +84,8 @@ def main() -> None:
     assert "value: runtimeRedirectUri" in infrastructure_source
     assert "output runtimeRedirectUri string = runtimeRedirectUri" in infrastructure_source
     app_ui_source = Path("static/app.js").read_text()
-    assert '<a class="btn" id="oidc-login" href="https://salcapa.salus.solutions/api/auth/oidc/start">Sign in with SSO</a>' in app_ui_source
+    assert 'id="oidc-login" href="https://salcapa.salus.solutions/api/auth/oidc/start"' in app_ui_source
+    assert 'id="customer-oidc-login" href="/api/auth/customer/start"' in app_ui_source
     assert "$('#oidc-login').onclick" not in app_ui_source
     print("PASSWORDLESS_RUNTIME_SECRET_PATHS_PASS")
 
