@@ -23,7 +23,7 @@ BASE = f'https://{HOST}/{TENANT}'
 
 class CustomerOidcProtocolTests(unittest.TestCase):
     def test_discovery_rejects_workforce_or_external_endpoints(self):
-        metadata = {'issuer': BASE + '/v2.0',
+        metadata = {'issuer': f'https://{TENANT}.ciamlogin.com/{TENANT}/v2.0',
                     'authorization_endpoint': BASE + '/oauth2/v2.0/authorize',
                     'token_endpoint': BASE + '/oauth2/v2.0/token',
                     'jwks_uri': BASE + '/discovery/v2.0/keys'}
@@ -31,6 +31,7 @@ class CustomerOidcProtocolTests(unittest.TestCase):
                          metadata)
         for key, bad_value in (
             ('issuer', f'https://login.microsoftonline.com/{TENANT}/v2.0'),
+            ('issuer', BASE + '/v2.0'),
             ('token_endpoint', 'https://attacker.example.test/token'),
             ('jwks_uri', f'https://{HOST}/different-tenant/discovery/v2.0/keys'),
         ):
