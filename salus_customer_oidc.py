@@ -1,6 +1,7 @@
 """Separate, fail-closed Microsoft External ID customer OIDC trust boundary."""
 
 import base64
+import binascii
 import hashlib
 import secrets
 import time
@@ -9,6 +10,8 @@ from urllib.parse import urlparse
 import jwt
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import pkcs12
 
 
 CLIENT_ASSERTION_TYPE = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
@@ -35,6 +38,29 @@ def create_certificate_assertion(*, client_id, token_endpoint, private_key_pem,
     certificate = x509.load_pem_x509_certificate(certificate_pem.encode('utf-8'))
     if key.public_key().public_numbers() != certificate.public_key().public_numbers():
         raise ValueError('Customer identity certificate and private key differ')
+    return _sign_certificate_assertion(client_id=client_id, token_endpoint=token_endpoint,
+                                       key=key, certificate=certificate, issued_at=issued_at)
+
+
+def create_certificate_assertion_from_pfx(*, client_id, token_endpoint,
+                                          pfx_base64, issued_at=None):
+    """Sign with the exportable certificate secret returned by Azure Key Vault."""
+    try:
+        encoded = ''.join(str(pfx_base64).split())
+        raw = base64.b64decode(encoded, validate=True)
+        key, certificate, _ = pkcs12.load_key_and_certificates(raw, None)
+    except (ValueError, TypeError, binascii.Error) as exc:
+        raise ValueError('Invalid customer certificate secret') from exc
+    if not isinstance(key, rsa.RSAPrivateKey) or certificate is None:
+        raise ValueError('Customer certificate private key is unavailable')
+    if key.public_key().public_numbers() != certificate.public_key().public_numbers():
+        raise ValueError('Customer certificate and private key differ')
+    return _sign_certificate_assertion(client_id=client_id, token_endpoint=token_endpoint,
+                                       key=key, certificate=certificate, issued_at=issued_at)
+
+
+def _sign_certificate_assertion(*, client_id, token_endpoint, key, certificate,
+                                issued_at=None):
     moment = int(time.time()) if issued_at is None else int(issued_at)
     thumbprint = base64.urlsafe_b64encode(
         certificate.fingerprint(hashes.SHA256())).rstrip(b'=').decode('ascii')
