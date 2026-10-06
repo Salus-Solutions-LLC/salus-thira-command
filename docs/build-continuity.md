@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 07:22 CDT
-current_frozen_release: v3.216
-current_frozen_commit: 807b2892042d83a9e3f13e0e87eb10eeffe65941
+last_verified_at: 06 October 2026 07:31 CDT
+current_frozen_release: v3.217
+current_frozen_commit: 1b0e972946337a45aa4e8b0ec4360913bfbc2779
 active_development_branch: development/salcapa-platform
-current_development_head: 807b2892042d83a9e3f13e0e87eb10eeffe65941
+current_development_head: 1b0e972946337a45aa4e8b0ec4360913bfbc2779
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3217_level1a_release_ci_repair
-last_completed_increment: v3216_frozen_source_image_publication_cancelled
+active_increment: salus_v3217_level1a_immutable_image_publication
+last_completed_increment: v3217_frozen_source_release_ci_passed
 candidate_release: v3.217
-validation_pr: 733
-validation_branch: repair/level1a-v3217-release-ci-20261006
+validation_pr: 734
+validation_branch: candidate/level1a-v3217-image-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: local_verified_github_pending
-failed_workflows: v3207_candidate_knowledge_worker_failed_and_rolled_back
-first_root_failing_gate: v3207_office_parser_image_reconstruction
-root_cause: image_reconstruction_overwrote_reviewed_office_parser
-repair_head: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
-repair_summary: v3208_image_and_application_accepted_with_scanner_worker_followup_open
-genuine_blockers: v3216_superseded_before_publication_stale_workforce_signin_smoke_member_upload_quote_checkout_closed
-next_authorized_step: validate_exact_v3217_test_repair_and_obtain_marc_source_review_before_freeze
+validation_gate_state: controlled_validation_in_progress
+failed_workflows: v3216_full_ci_failed_stale_workforce_signin_smoke
+first_root_failing_gate: v3216_passwordless_runtime_secret_paths
+root_cause: stale_workforce_signin_button_copy_assertion
+repair_head: 3b87801620f2ec875ac37021ad08aabb0266ce34
+repair_summary: v3217_preserves_both_signin_destinations_without_label_binding
+genuine_blockers: v3216_superseded_before_publication_member_upload_quote_checkout_closed
+next_authorized_step: validate_exact_v3217_image_record_and_obtain_marc_source_review_before_protected_publication
 deployed_demo_release: v3.215
 deployed_demo_state: accepted_immutable_application_v3215_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_application_v3215_member_upload_and_purc
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3217_buyer_identity_image_candidate: Marc reviewed PR #733 at `3b87801620f2ec875ac37021ad08aabb0266ce34`; both PR checks passed and it merged as `1b0e972946337a45aa4e8b0ec4360913bfbc2779`. The `release/v3.217` branch guard, full release CI run `37463667613`, and contextual intake run `37463667710` succeeded. The only source repair removes an obsolete visible-label assertion while retaining checks of the exact workforce and buyer sign-in destinations. This candidate binds the immutable image to the exact frozen v3.217 commit; deployed app v3.215 and v3.210 rollback remain unchanged. Public sign-in, quote, Checkout, payment, receipt, intake and Member uploads remain closed pending live proof and qualified output review.
 
 v3216_superseded_before_publication: Marc reviewed PR #731 at `1be8d1069968cc06f3b3bd15d3970b783fa92c11`; both PR checks passed and it merged as `807b2892042d83a9e3f13e0e87eb10eeffe65941`. The release/v3.216 branch guard succeeded, but full release CI run `37461798530` failed because a passwordless smoke test still required the old visible workforce sign-in button text. The app now labels that same route `Salus and existing Member sign-in` and also provides a separate customer button behind closed controls. No v3.216 image was published; image PR #732 closed unmerged. A narrow test repair and v3.217 runtime identity are candidates. The deployed v3.215 app and v3.210 rollback remain unchanged; Member quote, Checkout, payment, receipt, intake and uploads stay closed.
 

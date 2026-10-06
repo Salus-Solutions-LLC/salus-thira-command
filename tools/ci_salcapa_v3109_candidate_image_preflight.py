@@ -138,7 +138,17 @@ else:
     # no generic version skip can qualify an image for publication.
     immediate_successor = (accepted_version[0], accepted_version[1] + 1)
     superseding_successor = (accepted_version[0], accepted_version[1] + 2)
-    if (accepted_version, published_version) == ((3, 210), (3, 215)):
+    if (accepted_version, published_version) == ((3, 215), (3, 217)):
+        # v3.216 froze the reviewed buyer identity source but its full release
+        # CI failed on an obsolete workforce sign-in label assertion. No
+        # v3.216 image was published; v3.217 repairs only that smoke check.
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        assert "current_frozen_release: v3.217" in continuity
+        assert "current_frozen_commit: 1b0e972946337a45aa4e8b0ec4360913bfbc2779" in continuity
+        assert "candidate_release: v3.217" in continuity
+        assert "v3216_superseded_before_publication" in continuity
+        assert image_publication["source_commit"] == "1b0e972946337a45aa4e8b0ec4360913bfbc2779"
+    elif (accepted_version, published_version) == ((3, 210), (3, 215)):
         # v3.214 repaired the scanner worker without promoting the public app.
         # v3.215 freezes the reviewed Level 1A agreement, checkout, receipt,
         # and small-file intake source. None of those Member controls is opened
