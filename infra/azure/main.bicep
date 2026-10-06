@@ -76,6 +76,9 @@ param packageScanMode string = 'off'
 @description('Set true only after qualified exact-image, clean/hold, alert, recovery and rollback acceptance.')
 param packageScannerAccepted bool = false
 
+@description('Enable the separately reviewed External ID buyer sign-in only after fictional identity acceptance. This does not enable Level 1A orders, checkout, intake or uploads.')
+param customerOidcEnabled bool = false
+
 @description('Exact governed source commit used to provision or update this environment.')
 @minLength(40)
 @maxLength(40)
@@ -529,6 +532,34 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             {
               name: 'SALUS_OIDC_AUTO_PROVISION'
               value: '0'
+            }
+            {
+              name: 'SALUS_CUSTOMER_OIDC_ENABLED'
+              value: customerOidcEnabled ? '1' : '0'
+            }
+            {
+              name: 'SALUS_CUSTOMER_OIDC_TENANT_ID'
+              value: 'c4582c39-7d49-4419-b504-005c31e69549'
+            }
+            {
+              name: 'SALUS_CUSTOMER_OIDC_HOST'
+              value: 'salusmemberaccess.ciamlogin.com'
+            }
+            {
+              name: 'SALUS_CUSTOMER_OIDC_CLIENT_ID'
+              value: '6c32f45b-f4f6-4721-ae7a-9b2ef50e9c68'
+            }
+            {
+              name: 'SALUS_CUSTOMER_OIDC_DISCOVERY_URL'
+              value: 'https://salusmemberaccess.ciamlogin.com/c4582c39-7d49-4419-b504-005c31e69549/v2.0/.well-known/openid-configuration'
+            }
+            {
+              name: 'SALUS_CUSTOMER_OIDC_REDIRECT_URI'
+              value: '${runtimePublicOrigin}/api/auth/customer/callback'
+            }
+            {
+              name: 'SALUS_CUSTOMER_OIDC_CERTIFICATE_PFX_KEYVAULT_NAME'
+              value: 'salus-level1a-buyer-auth'
             }
             {
               name: 'SALUS_COOKIE_SECURE'
