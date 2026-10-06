@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 05 October 2026 11:31 CDT
-current_frozen_release: v3.215
-current_frozen_commit: 5d531157db1e920dd7c4b6c19446d3f273745df9
+last_verified_at: 06 October 2026 07:22 CDT
+current_frozen_release: v3.216
+current_frozen_commit: 807b2892042d83a9e3f13e0e87eb10eeffe65941
 active_development_branch: development/salcapa-platform
-current_development_head: 5d531157db1e920dd7c4b6c19446d3f273745df9
+current_development_head: 807b2892042d83a9e3f13e0e87eb10eeffe65941
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3215_level1a_immutable_image_publication
-last_completed_increment: v3210_accepted_immutable_application_and_advisor
-candidate_release: v3.215
-validation_pr: 718
-validation_branch: candidate/level1a-v3215-image-20261005
+active_increment: salus_v3217_level1a_release_ci_repair
+last_completed_increment: v3216_frozen_source_image_publication_cancelled
+candidate_release: v3.217
+validation_pr: 733
+validation_branch: repair/level1a-v3217-release-ci-20261006
 validation_base: development/salcapa-platform
-validation_head: b606126b687a5a216ea7ec06ff5118c8ba386942
-validation_gate_state: controlled_validation_in_progress
+validation_head: pending_exact_candidate_commit
+validation_gate_state: local_verified_github_pending
 failed_workflows: v3207_candidate_knowledge_worker_failed_and_rolled_back
 first_root_failing_gate: v3207_office_parser_image_reconstruction
 root_cause: image_reconstruction_overwrote_reviewed_office_parser
 repair_head: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
 repair_summary: v3208_image_and_application_accepted_with_scanner_worker_followup_open
-genuine_blockers: private_clean_adverse_scan_and_alert_proof_open_member_upload_quote_checkout_closed
-next_authorized_step: validate_exact_v3215_image_record_and_obtain_marc_source_review_before_protected_publication
-deployed_demo_release: v3.210
-deployed_demo_state: accepted_immutable_application_and_advisor_v3210_member_upload_and_purchase_closed
+genuine_blockers: v3216_superseded_before_publication_stale_workforce_signin_smoke_member_upload_quote_checkout_closed
+next_authorized_step: validate_exact_v3217_test_repair_and_obtain_marc_source_review_before_freeze
+deployed_demo_release: v3.215
+deployed_demo_state: accepted_immutable_application_v3215_member_upload_and_purchase_closed
 ---
 
 # SalCAPA build continuity
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3210_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3216_superseded_before_publication: Marc reviewed PR #731 at `1be8d1069968cc06f3b3bd15d3970b783fa92c11`; both PR checks passed and it merged as `807b2892042d83a9e3f13e0e87eb10eeffe65941`. The release/v3.216 branch guard succeeded, but full release CI run `37461798530` failed because a passwordless smoke test still required the old visible workforce sign-in button text. The app now labels that same route `Salus and existing Member sign-in` and also provides a separate customer button behind closed controls. No v3.216 image was published; image PR #732 closed unmerged. A narrow test repair and v3.217 runtime identity are candidates. The deployed v3.215 app and v3.210 rollback remain unchanged; Member quote, Checkout, payment, receipt, intake and uploads stay closed.
 
 v3215_level1a_image_candidate: Reviewed PR #717 at `375e1b895f58bbf84efffc3d0c22fa95f7d571d2` merged as `5d531157db1e920dd7c4b6c19446d3f273745df9` and froze release/v3.215 at that exact commit. The immutable-release guard passed; its development continuity check failed because the record still named v3.214, which this candidate corrects. The approved Level 1A rev10 Word template was uploaded to the private evidence container, read back byte-for-byte at SHA-256 `63AD42DADC81A054FA28EF55EAADC8DFBD10C9CA983AB81C2D085E033F046CF6`, and the temporary human Blob role was removed. Draft PR #718 stages only a protected v3.215 image record and an exact bounded lineage check. Accepted public app remains v3.210. Member quotes, checkout, payment, upload and receipts remain closed until separate protected deployment and end-to-end acceptance. Do not infer publication or stability from source checks or the template upload.
 
