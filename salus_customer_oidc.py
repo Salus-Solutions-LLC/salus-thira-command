@@ -19,7 +19,9 @@ CLIENT_ASSERTION_TYPE = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
 
 def validate_discovery(metadata, *, tenant_host, tenant_id):
     """Accept only the reviewed single External tenant and its HTTPS endpoints."""
-    expected_issuer = f'https://{tenant_host}/{tenant_id}/v2.0'
+    # The reviewed External ID discovery URL uses the tenant-name host for
+    # endpoints, but its issuer is the tenant-ID host. Pin both independently.
+    expected_issuer = f'https://{tenant_id}.ciamlogin.com/{tenant_id}/v2.0'
     if metadata.get('issuer', '').rstrip('/') != expected_issuer:
         raise ValueError('Customer identity issuer mismatch')
     for key in ('authorization_endpoint', 'token_endpoint', 'jwks_uri'):
