@@ -1,15 +1,19 @@
 """The customer OIDC authority and certificate must be independently pinned."""
 
 import unittest
+import base64
 
 import jwt
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
 from datetime import datetime, timedelta, timezone
 
-from salus_customer_oidc import create_certificate_assertion, validate_discovery
+from salus_customer_oidc import (create_certificate_assertion,
+                                 create_certificate_assertion_from_pfx,
+                                 validate_discovery)
 
 
 HOST = 'salusmemberaccess.ciamlogin.com'
@@ -59,6 +63,36 @@ class CustomerOidcProtocolTests(unittest.TestCase):
         self.assertEqual(claims['iss'], 'fictional-client')
         self.assertEqual(claims['sub'], 'fictional-client')
         self.assertEqual(claims['exp']-claims['iat'], 300)
+
+    def test_key_vault_pfx_secret_signs_same_bound_assertion(self):
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME,
+                                               'Fictional Salus vault test')])
+        certificate = (x509.CertificateBuilder().subject_name(subject)
+                       .issuer_name(subject).public_key(key.public_key())
+                       .serial_number(x509.random_serial_number())
+                       .not_valid_before(datetime.now(timezone.utc)-timedelta(minutes=1))
+                       .not_valid_after(datetime.now(timezone.utc)+timedelta(days=1))
+                       .sign(key, hashes.SHA256()))
+        pfx = pkcs12.serialize_key_and_certificates(
+            b'fictional-test', key, certificate, None, serialization.NoEncryption())
+        token = create_certificate_assertion_from_pfx(
+            client_id='fictional-client', token_endpoint=BASE+'/oauth2/v2.0/token',
+            pfx_base64=base64.b64encode(pfx).decode('ascii'))
+        claims = jwt.decode(token, key.public_key(), algorithms=['PS256'],
+                            audience=BASE+'/oauth2/v2.0/token')
+        self.assertEqual(claims['iss'], 'fictional-client')
+        self.assertEqual(claims['exp']-claims['iat'], 300)
+        self.assertEqual(jwt.get_unverified_header(token)['x5t#S256'],
+                         base64.urlsafe_b64encode(certificate.fingerprint(hashes.SHA256())
+                                                  ).rstrip(b'=').decode('ascii'))
+
+    def test_invalid_pfx_secret_fails_closed(self):
+        for bad in ('not-base64!', base64.b64encode(b'not a certificate').decode('ascii')):
+            with self.assertRaises(ValueError):
+                create_certificate_assertion_from_pfx(
+                    client_id='fictional-client',
+                    token_endpoint=BASE+'/oauth2/v2.0/token', pfx_base64=bad)
 
 
 if __name__ == '__main__':

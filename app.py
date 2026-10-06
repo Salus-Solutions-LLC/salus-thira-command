@@ -51,7 +51,7 @@ from salus_scan_inventory import (compare_quarantine_versions,
                                   list_azure_quarantine_versions,
                                   record_inventory_exceptions)
 from salus_customer_identity import CUSTOMER_PROVIDER, bind_verified_buyer, identity_hash
-from salus_customer_oidc import (CLIENT_ASSERTION_TYPE, create_certificate_assertion,
+from salus_customer_oidc import (CLIENT_ASSERTION_TYPE, create_certificate_assertion_from_pfx,
                                  pkce_challenge, validate_discovery)
 
 BASE_DIR = os.path.dirname(__file__)
@@ -3870,6 +3870,7 @@ def oidc_callback(request:Request,code:str='',state:str='',error:str=''):
 _customer_oidc_cache = {}
 _CUSTOMER_TENANT_ID = 'c4582c39-7d49-4419-b504-005c31e69549'
 _CUSTOMER_HOST = 'salusmemberaccess.ciamlogin.com'
+_CUSTOMER_CLIENT_ID = '6c32f45b-f4f6-4721-ae7a-9b2ef50e9c68'
 
 
 def customer_oidc_configured():
@@ -3877,7 +3878,7 @@ def customer_oidc_configured():
         return False
     if CUSTOMER_OIDC_TENANT_ID != _CUSTOMER_TENANT_ID or CUSTOMER_OIDC_HOST != _CUSTOMER_HOST:
         return False
-    if not CUSTOMER_OIDC_CLIENT_ID or not CUSTOMER_OIDC_REDIRECT_URI:
+    if CUSTOMER_OIDC_CLIENT_ID != _CUSTOMER_CLIENT_ID or not CUSTOMER_OIDC_REDIRECT_URI:
         return False
     if CUSTOMER_OIDC_DISCOVERY_URL != (f'https://{_CUSTOMER_HOST}/{_CUSTOMER_TENANT_ID}'
                                        '/v2.0/.well-known/openid-configuration'):
@@ -3961,13 +3962,12 @@ def customer_oidc_callback(request:Request,code:str='',state:str='',error:str=''
         raise HTTPException(401, 'Customer sign-in state expired')
     config = customer_oidc_discovery()
     try:
-        private_key = secret('SALUS_CUSTOMER_OIDC_PRIVATE_KEY_PEM','')
-        certificate = secret('SALUS_CUSTOMER_OIDC_CERTIFICATE_PEM','')
-        if not private_key or not certificate:
+        certificate_pfx = secret('SALUS_CUSTOMER_OIDC_CERTIFICATE_PFX','')
+        if not certificate_pfx:
             raise RuntimeError('Customer certificate credential is unavailable')
-        assertion = create_certificate_assertion(
+        assertion = create_certificate_assertion_from_pfx(
             client_id=CUSTOMER_OIDC_CLIENT_ID, token_endpoint=config['token_endpoint'],
-            private_key_pem=private_key, certificate_pem=certificate)
+            pfx_base64=certificate_pfx)
         form = {'grant_type':'authorization_code','code':code,
                 'redirect_uri':CUSTOMER_OIDC_REDIRECT_URI,
                 'client_id':CUSTOMER_OIDC_CLIENT_ID,
