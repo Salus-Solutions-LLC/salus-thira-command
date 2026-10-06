@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 10:55 CDT
+last_verified_at: 06 October 2026 11:23 CDT
 current_frozen_release: v3.218
 current_frozen_commit: b6092778f2fdc79c23e43ef998ce8f155a2f225e
 active_development_branch: development/salcapa-platform
-current_development_head: b6092778f2fdc79c23e43ef998ce8f155a2f225e
+current_development_head: 6b2737195a21ef767ad2d5c72d688610e7179f71
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3218_customer_issuer_immutable_image_publication
-last_completed_increment: v3218_source_merged_release_guard_passed
+active_increment: salus_v3218_customer_issuer_application_promotion
+last_completed_increment: v3218_immutable_image_published_and_read_back
 candidate_release: v3.218
-validation_pr: 740
-validation_branch: candidate/level1a-v3218-image-20261006
+validation_pr: 741
+validation_branch: candidate/level1a-v3218-app-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -22,7 +22,7 @@ root_cause: stale_workforce_signin_button_copy_assertion
 repair_head: 3b87801620f2ec875ac37021ad08aabb0266ce34
 repair_summary: v3217_preserves_both_signin_destinations_without_label_binding
 genuine_blockers: v3216_superseded_before_publication_member_upload_quote_checkout_closed
-next_authorized_step: finish_frozen_v3218_ci_then_review_exact_image_record_before_protected_publication
+next_authorized_step: review_exact_v3218_application_record_and_azure_preview_before_protected_deployment
 deployed_demo_release: v3.217
 deployed_demo_state: protected_v3217_deployment_verified_level1a_member_controls_closed
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: protected_v3217_deployment_verified_level1a_member_controls
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3218_customer_issuer_image_published: Marc approved PR #740 at exact head `a11e4c596a7e1dec0d0866b68a4478890764d3d6` after all 18 candidate workflows and full frozen v3.218 release CI passed. It merged as `6b2737195a21ef767ad2d5c72d688610e7179f71`. Protected image run `37494721622` succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:528d4c475aa2540fbdbed998a066aca00ee800a2fc61ab351a8c9c82882f6887` for frozen commit `b6092778f2fdc79c23e43ef998ce8f155a2f225e`. A separate application candidate pins that digest and retains accepted v3.217 as rollback; its checks, Azure preview, exact-head review and deployment remain open. Serving Advisor remains v3.217, and buyer sign-in, Level 1A purchase/intake/upload switches remain off. Real customer token claims, Stripe, approved Word issue, receipt, scanner-backed upload and Wix acceptance are unproved.
 
 v3218_customer_issuer_image_candidate: Marc reviewed PR #739 at exact head `dd5241fc0c28540a14df962375203902fdb33bff` after all 20 candidate workflows passed; it merged as `b6092778f2fdc79c23e43ef998ce8f155a2f225e`. `release/v3.218` was created at that exact commit, and its Release Branch Guard passed. Full frozen-release CI and contextual intake checks were still running when this candidate was prepared. This record stages one immutable image from the frozen source after those checks and a separate exact-head review. It does not deploy the application, enable buyer sign-in, open commerce or upload files. Serving app and accepted Advisor remain v3.217; signed buyer token, cross-tenant denial, Stripe, approved Word issue, receipt, scanner-backed intake and Wix checks are unproved.
 
