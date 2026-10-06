@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 08:10 CDT
+last_verified_at: 06 October 2026 10:46 CDT
 current_frozen_release: v3.217
 current_frozen_commit: 1b0e972946337a45aa4e8b0ec4360913bfbc2779
 active_development_branch: development/salcapa-platform
-current_development_head: 677921f720e1a4d764117e665fb9a75e6dcca421
+current_development_head: 61d427cb9b337dbe5cad5b8cd0dd33eb5c327106
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3217_level1a_live_evaluator_acceptance
-last_completed_increment: v3217_protected_application_deployed_with_member_controls_closed
-candidate_release: v3.217
-validation_pr: 736
-validation_branch: candidate/level1a-v3217-live-handoff-20261006
+active_increment: salus_v3218_customer_issuer_repair_release
+last_completed_increment: v3217_advisor_output_accepted_level1a_controls_closed
+candidate_release: v3.218
+validation_pr: pending
+validation_branch: candidate/level1a-v3218-source-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: controlled_validation_in_progress
+validation_gate_state: local_verified_github_pending
 failed_workflows: v3216_full_ci_failed_stale_workforce_signin_smoke
 first_root_failing_gate: v3216_passwordless_runtime_secret_paths
 root_cause: stale_workforce_signin_button_copy_assertion
 repair_head: 3b87801620f2ec875ac37021ad08aabb0266ce34
 repair_summary: v3217_preserves_both_signin_destinations_without_label_binding
 genuine_blockers: v3216_superseded_before_publication_member_upload_quote_checkout_closed
-next_authorized_step: obtain_exact_live_v3217_output_review_then_prove_fictional_buyer_identity_and_payment_upload_chain
+next_authorized_step: review_exact_v3218_source_then_freeze_and_test_fictional_buyer_identity_with_commerce_closed
 deployed_demo_release: v3.217
 deployed_demo_state: protected_v3217_deployment_verified_level1a_member_controls_closed
 ---
@@ -33,7 +33,9 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ## Current controlled checkpoint
 
-v3217_buyer_identity_application_deployed: Marc reviewed PR #735 exact head `8ef619f08b285dbdf8b486cbff368aaae16b213e` after all 19 candidate workflows passed. It merged as `677921f720e1a4d764117e665fb9a75e6dcca421`. Protected application run `37466765814` succeeded. Azure preview reported 21 modifications, 3 no-change and 18 ignored resources, with no creation or deletion. The run verified the exact v3.217 image, readiness, workforce sign-in configuration, isolated Microsoft 365 intake, a fictional public Protection Advisor journey and the scheduled knowledge worker. The accepted rollback recorded by this deployment is the previously running v3.215 image. This does not prove customer External ID token claims, Stripe payment, Word issue, immutable receipt or scanner-backed Member upload; public buyer sign-in and Level 1A commerce/intake/upload controls remain closed. Marc's exact live v3.217 Advisor output review remains pending.
+v3218_customer_issuer_source_candidate: Marc exact-reviewed PR #738 head `b7b4f9f72604cb4d206311c0a84c7372b231086e` after all four candidate check groups passed; it merged as `61d427cb9b337dbe5cad5b8cd0dd33eb5c327106`. The repair pins the customer issuer hostname returned by the live public External ID discovery document while retaining the separately pinned authorization, token and JWKS hostname. A v3.218 runtime-label candidate is staged; it has not been frozen, built or deployed. The accepted public Advisor remains v3.217. Actual buyer ID-token claims, certificate retrieval, billing linkage, cross-tenant denial, Stripe payment, agreement issue, receipt and scanner-backed upload remain unproved; all public buyer and Level 1A purchase/intake/upload controls remain closed.
+
+v3217_buyer_identity_application_deployed: Marc reviewed PR #735 exact head `8ef619f08b285dbdf8b486cbff368aaae16b213e` after all 19 candidate workflows passed. It merged as `677921f720e1a4d764117e665fb9a75e6dcca421`. Protected application run `37466765814` succeeded. Azure preview reported 21 modifications, 3 no-change and 18 ignored resources, with no creation or deletion. The run verified the exact v3.217 image, readiness, workforce sign-in configuration, isolated Microsoft 365 intake, a fictional public Protection Advisor journey and the scheduled knowledge worker. The accepted rollback recorded by this deployment is the previously running v3.215 image. Marc accepted the exact live v3.217 Advisor output; handoff PR #737 recorded that determination and merged as `9260c7e6f5e33071ba4371f0666a250c50651b61`. This does not prove customer External ID token claims, Stripe payment, Word issue, immutable receipt or scanner-backed Member upload; public buyer sign-in and Level 1A commerce/intake/upload controls remain closed.
 
 v3217_buyer_identity_image_published: Marc approved PR #734 exact head `6a58042a9454eec251577866d3b7b66ac9f7aa89` after all 18 candidate workflows passed. It merged as `e0e84a84a3258611306a2febb7209a988e3564d4`. Protected image run `37465219982` succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:fdcc5d5868f3b35e1bb6c2b615c1ea3cc79f4552804693daaa0b14f587582485` for frozen source `1b0e972946337a45aa4e8b0ec4360913bfbc2779`. The application deployment record is a separate candidate and retains the currently running v3.215 image as operational rollback; v3.215 has a successful protected deployment but its exact live output remains unaccepted. Qualified v3.210 remains an older registry fallback. Serving app remains v3.215; public buyer sign-in, quote, Checkout, payment, receipt, intake and Member uploads remain closed pending protected deployment and separate live acceptance.
 
