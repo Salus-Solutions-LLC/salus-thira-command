@@ -52,7 +52,10 @@
     note.textContent = 'Protection Advisor is loading...';
     note.setAttribute('role', 'status');
     note.setAttribute('aria-live', 'polite');
-    note.style.cssText = 'position:absolute;top:12px;left:50%;transform:translateX(-50%);box-sizing:border-box;width:calc(100% - 24px);max-width:650px;z-index:10;background:#fff;border:2px solid #427799;border-radius:7px;padding:14px 18px;color:#1b2934;font:16px/1.45 Arial,sans-serif;text-align:center;';
+    var visibleWidth = Math.min(host.clientWidth, Math.max(0, window.innerWidth - Math.max(0, host.getBoundingClientRect().left)));
+    var noteWidth = Math.max(160, Math.min(650, visibleWidth - 24));
+    var noteLeft = Math.max(12, (visibleWidth - noteWidth) / 2);
+    note.style.cssText = 'position:absolute;top:12px;left:' + noteLeft + 'px;box-sizing:border-box;width:' + noteWidth + 'px;z-index:10;background:#fff;border:2px solid #427799;border-radius:7px;padding:14px 18px;color:#1b2934;font:16px/1.45 Arial,sans-serif;text-align:center;';
     host.appendChild(note);
   }
 
