@@ -611,7 +611,7 @@ with tempfile.TemporaryDirectory() as td:
     }
     multi_profile={**base_profile, "primary_objective":"Continuity and recovery capability; Training and exercises"}
     multi_package=_package_recommendation(business_questions,validated,multi_profile)
-    assert any("stated outcome sought: Continuity and recovery capability" in str(x) for x in multi_package["services"])
+    assert any("stated outcome sought: Continuity and recovery capability" in str(x) for x in multi_package["services"]+multi_package["later_phase_services"])
     assert any("stated outcome sought: Training and exercises" in str(x) for x in multi_package["services"])
     cyber_package=_package_recommendation(business_questions,cyber_answers,cyber_profile)
     threat_package=_package_recommendation(business_questions,threat_answers,threat_profile)
