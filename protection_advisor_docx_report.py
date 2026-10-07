@@ -221,6 +221,7 @@ def _professional_body(document, fields, result, package) -> None:
     document.add_paragraph(_BOARD_DECISION_NOTICE)
     document.add_paragraph(_LEVEL1A_VALUE_NOTICE)
 
+    document.add_page_break()
     document.add_heading("Readiness Snapshot", level=1)
     _add_table(document, ("Measure", "Result", "Interpretation"), (
         ("Overall result", result.get("recommendation", "Professional review recommended"), "Preliminary decision-support result"),
@@ -259,10 +260,6 @@ def _professional_body(document, fields, result, package) -> None:
     if not cap_rows:
         cap_rows.append(("—", "No capability ranking from this short screen", "Unknown", "All five areas", "Needs Level 1 evidence"))
     _add_table(document, ("Priority", "Capability", "Need", "Mission areas", "Basis"), cap_rows, widths=(.8, 1.9, .8, 1.6, 1.3))
-    document.add_paragraph(
-        "Need scores rank the relative urgency of review within this submission. They are not "
-        "probability estimates, compliance findings, or final measures of readiness."
-    )
     document.add_heading("Conditions Requiring Attention", level=1)
     _add_bullets(document, attention or ("No specific attention topics were preserved in this preliminary record.",))
 
@@ -293,6 +290,7 @@ def _professional_body(document, fields, result, package) -> None:
                 document.add_paragraph(str(hypothesis[key]))
         _add_bullets(document, hypothesis.get("checklist") or ())
 
+    document.add_page_break()
     document.add_heading("Recommended Protection Package", level=1)
     provisional_path = package.get("provisional_path") or {}
     if provisional_path:
