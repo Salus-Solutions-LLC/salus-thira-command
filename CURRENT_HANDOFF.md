@@ -2603,3 +2603,8 @@ Add a governed live diagnostic/acceptance step for the knowledge destination and
 
 - Marc clarified that Part 2 must state that Level 1A Access is required for every customer and identify each applicable choice that reaches beyond it. Draft PR #781 now gives the required-first notice before Part 2, marks wider site/group selections, explains each primary outcome as first-assessment insight or later work, and preserves exact option values. Operation tags remain context, not priced add-ons. The $1,500 one-unit boundary and versioned acknowledgment stay visible; no real-time add-on cart is offered.
 - Owner/next action: Salus engineering verifies the current PR head, all CI and rendered Word/PDF pages; Marc reviews the final exact source and qualified output. Only then proceed through freeze, immutable image, protected deployment and live acceptance. Current live buyer/payment/upload controls remain closed.
+
+### 7 October 2026 — Level 1A value by organization scale
+
+- Marc clarified the customer value proposition: for a truly small organization whose relevant operation fits the one named unit, Level 1A may assess nearly the whole operation at Level 1 source-review depth; for a larger or complex organization, it is the initial assessment and leadership decision paper for later choices. The candidate Part 2 explanation, Board Word/PDF paper, SAL-D105 and service framework now say this without a numerical completeness guarantee or a claim of Level 2/3 validation.
+- Owner/next action remains exact-head CI, rendered-page and qualified output QA, Marc's final exact-source determination, then governed v3.226 freeze and live acceptance. Public Level 1A controls remain closed.
