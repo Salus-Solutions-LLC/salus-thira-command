@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 21:53 CDT
+last_verified_at: 06 October 2026 22:10 CDT
 current_frozen_release: v3.221
 current_frozen_commit: 6e23743a0bcab6eee29530e256246464d791f07d
 active_development_branch: development/salcapa-platform
-current_development_head: 6e23743a0bcab6eee29530e256246464d791f07d
+current_development_head: 2a92477e340e1c1946fedefeb692638eb2e538ff
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3221_buyer_claim_immutable_image_publication
-last_completed_increment: v3221_source_merged_release_ci_passed
+active_increment: salus_v3221_buyer_claim_application_promotion
+last_completed_increment: v3221_immutable_image_published_and_read_back
 candidate_release: v3.221
-validation_pr: 755
-validation_branch: candidate/level1a-v3221-image-20261006
+validation_pr: 756
+validation_branch: candidate/level1a-v3221-app-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -22,7 +22,7 @@ root_cause: v3220_build_continuity_validation_pr_pending
 repair_head: ea02ae362049b9b02fbbbf74f6803720c43c018e
 repair_summary: v3221_records_numeric_validation_pr_and_preserves_claim_validation
 genuine_blockers: v3220_superseded_before_image_publication_member_upload_quote_checkout_closed
-next_authorized_step: review_exact_v3221_image_record_then_build_and_read_back_immutable_image_with_member_controls_closed
+next_authorized_step: review_exact_v3221_application_record_and_azure_preview_before_protected_deployment
 deployed_demo_release: v3.218
 deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3221_buyer_claim_image_published: Marc reviewed PR #755 exact head `99686db9804e778257548faa10559b8038cb9af6` after all 11 current-head checks passed. It merged as `2a92477e340e1c1946fedefeb692638eb2e538ff`. Protected image run `37565111272` succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:a4983a2c176d0367cde728797c8a324ad45faf6593bcc9e7e05e3a7cfc897690` from frozen v3.221 source `6e23743a0bcab6eee29530e256246464d791f07d`. This candidate pins that exact digest for the application with accepted v3.218 image retained for rollback. It does not enable buyer sign-in, payment, receipt, intake or uploads. Azure preview, exact-source review, protected deployment and qualified live output remain separate gates. The accepted public app is v3.218.
 
 v3221_buyer_claim_immutable_image_candidate: Marc reviewed PR #754 exact head `f54da8890ec9d23c365f83d91e32603089521f49` after all four checks passed. It merged as `6e23743a0bcab6eee29530e256246464d791f07d`; `release/v3.221` froze that exact source and all 64 full frozen-release checks passed, including release-record continuity. This candidate points one protected image build to that frozen commit. It does not deploy the app, enable buyer sign-in, open checkout/payment, or accept uploads. Serving and accepted Advisor remain v3.218 with v3.217 rollback. A real production-client verified-email claim, confidential callback, Stripe payment/receipt, and scanner-backed Member intake remain unproved; protect those gates until separate live acceptance.
 
