@@ -138,7 +138,32 @@ else:
     # no generic version skip can qualify an image for publication.
     immediate_successor = (accepted_version[0], accepted_version[1] + 1)
     superseding_successor = (accepted_version[0], accepted_version[1] + 2)
-    if (accepted_version, published_version) == ((3, 218), (3, 221)):
+    if (accepted_version, published_version) == ((3, 221), (3, 223)):
+        # The v3.221 application activation record remains staged after its
+        # protected deployment rolled back to v3.218. The v3.222 image was
+        # never published. Require that precise recorded lineage and rollback.
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        assert accepted_application["rollback_release"] == "release/v3.218"
+        assert accepted_application["rollback_commit"] == "b6092778f2fdc79c23e43ef998ce8f155a2f225e"
+        assert "current_frozen_release: v3.223" in continuity
+        assert "current_frozen_commit: 5dff59b381a0c455f99c6f15d0e2a37c273f4056" in continuity
+        assert "candidate_release: v3.223" in continuity
+        assert "v3221_knowledge_promotion_rolled_back" in continuity
+        assert "v3222_superseded_before_image_publication" in continuity
+        assert image_publication["source_commit"] == "5dff59b381a0c455f99c6f15d0e2a37c273f4056"
+    elif (accepted_version, published_version) == ((3, 218), (3, 223)):
+        # v3.221 image publication preceded a protected 103 MB promotion that
+        # rolled back; v3.222 froze but failed continuity before image build.
+        # Allow only the exact reviewed v3.223 repair source, never a generic
+        # version gap or an inference that Member controls are accepted.
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        assert "current_frozen_release: v3.223" in continuity
+        assert "current_frozen_commit: 5dff59b381a0c455f99c6f15d0e2a37c273f4056" in continuity
+        assert "candidate_release: v3.223" in continuity
+        assert "v3221_knowledge_promotion_rolled_back" in continuity
+        assert "v3222_superseded_before_image_publication" in continuity
+        assert image_publication["source_commit"] == "5dff59b381a0c455f99c6f15d0e2a37c273f4056"
+    elif (accepted_version, published_version) == ((3, 218), (3, 221)):
         # The accepted app remains v3.218. Frozen v3.219 and v3.220 each
         # failed release-record CI before an image could be published. Permit
         # only the reviewed v3.221 source after both failures are recorded.
