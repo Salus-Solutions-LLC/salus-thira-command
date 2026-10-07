@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 22:10 CDT
+last_verified_at: 06 October 2026 22:57 CDT
 current_frozen_release: v3.221
 current_frozen_commit: 6e23743a0bcab6eee29530e256246464d791f07d
 active_development_branch: development/salcapa-platform
-current_development_head: 2a92477e340e1c1946fedefeb692638eb2e538ff
+current_development_head: e380504808f03d6dfd90ed704fc3c8d00abef1af
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3221_buyer_claim_application_promotion
-last_completed_increment: v3221_immutable_image_published_and_read_back
-candidate_release: v3.221
-validation_pr: 756
-validation_branch: candidate/level1a-v3221-app-20261006
+active_increment: salus_v3222_knowledge_upload_repair
+last_completed_increment: v3221_rollback_and_v3222_upload_repair_merged
+candidate_release: v3.222
+validation_pr: pending
+validation_branch: candidate/knowledge-upload-v3222-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3220_full_release_ci_failed_pending_validation_pr
-first_root_failing_gate: v3220_continuity_record
-root_cause: v3220_build_continuity_validation_pr_pending
-repair_head: ea02ae362049b9b02fbbbf74f6803720c43c018e
-repair_summary: v3221_records_numeric_validation_pr_and_preserves_claim_validation
-genuine_blockers: v3220_superseded_before_image_publication_member_upload_quote_checkout_closed
-next_authorized_step: review_exact_v3221_application_record_and_azure_preview_before_protected_deployment
+validation_gate_state: preflight
+failed_workflows: v3221_protected_deployment_37566130383_rolled_back
+first_root_failing_gate: v3221_scheduled_knowledge_worker_promotion
+root_cause: graph_single_put_103344128_bytes_30_second_read_timeout
+repair_head: e380504808f03d6dfd90ed704fc3c8d00abef1af
+repair_summary: v3222_resumable_graph_upload_hash_readback_and_pr_ci_gate
+genuine_blockers: v3222_frozen_ci_image_and_live_103mb_promotion_unproved_member_controls_closed
+next_authorized_step: exact_source_review_then_freeze_v3222_and_verify_immutable_image
 deployed_demo_release: v3.218
 deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,10 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+### 6 October 2026 Central — v3.222 candidate after v3.221 rollback
+
+Protected v3.221 deployment run `37566130383` rolled back after a 103,344,128-byte Microsoft 365 knowledge destination write timed out. Azure's settled worker traceback ended at `httpx.ReadTimeout` in `GraphKnowledgeWriter._put_verified_once`; accepted public v3.218 remains the rollback baseline. Marc exact-reviewed PR #757 head `4665bc0c7c36e79b8d70c9923463e7f84395d688`; its three check groups passed, including the new large-file timeout/retry smoke, and it merged as `e380504808f03d6dfd90ed704fc3c8d00abef1af`. This candidate labels that source v3.222. Frozen-source CI, immutable-image readback, protected deployment, the 103 MB promotion and qualified live output remain separate gates. Buyer sign-in, quote, Stripe payment, receipt, intake and Member uploads remain closed.
 
 v3221_buyer_claim_image_published: Marc reviewed PR #755 exact head `99686db9804e778257548faa10559b8038cb9af6` after all 11 current-head checks passed. It merged as `2a92477e340e1c1946fedefeb692638eb2e538ff`. Protected image run `37565111272` succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:a4983a2c176d0367cde728797c8a324ad45faf6593bcc9e7e05e3a7cfc897690` from frozen v3.221 source `6e23743a0bcab6eee29530e256246464d791f07d`. This candidate pins that exact digest for the application with accepted v3.218 image retained for rollback. It does not enable buyer sign-in, payment, receipt, intake or uploads. Azure preview, exact-source review, protected deployment and qualified live output remain separate gates. The accepted public app is v3.218.
 

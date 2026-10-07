@@ -1,3 +1,8 @@
+## 6 October 2026 Central — v3.222 release candidate staged
+
+- Marc exact-reviewed knowledge upload repair PR #757 head `4665bc0c7c36e79b8d70c9923463e7f84395d688` after all three check groups passed, including the new large-file timeout/retry smoke. It merged as `e380504808f03d6dfd90ed704fc3c8d00abef1af`. This source-only candidate changes the runtime label to v3.222 and corrects the build-continuity record after v3.221 protected run `37566130383` rolled back on a 103,344,128-byte Microsoft Graph upload timeout. Serving accepted app and Advisor remain v3.218; buyer sign-in, Level 1A commerce, receipt, intake and uploads remain CLOSED.
+- Open gate / owner / next action: Salus engineering must pass exact candidate CI and Marc's exact-source review, freeze v3.222, publish and read back an immutable image, then deploy with v3.218 rollback and prove live 103 MB knowledge promotion plus existing Advisor and isolation checks. Marc/qualified reviewer determines exact live output. Preserve stopped Tierra Linda and paused large-batch #520.
+
 ## 6 October 2026 Central — v3.221 knowledge promotion failed; rollback and focused repair staged
 
 - Marc exact-reviewed PR #756 at head `382b857db1cde624c682b8a0a5a30e44e26d66d5`; all 50 checks passed and it merged as `f0255ba7b4747d41b533a615e9dc0f71926ad736`. Protected deployment run `37566130383` passed Azure preview, app readiness, isolated Microsoft 365 intake and fictional Protection Advisor checks, then failed scheduled knowledge promotion on the first 103,344,128-byte source file. The workflow rollback step succeeded. Azure readback showed the scheduled knowledge job on accepted v3.218 image `sha256:528d4c475aa2540fbdbed998a066aca00ee800a2fc61ab351a8c9c82882f6887`; v3.221 is **not accepted**.
