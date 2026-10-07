@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 07 October 2026 13:27 CDT
+last_verified_at: 07 October 2026 14:02 CDT
 current_frozen_release: v3.225
 current_frozen_commit: 08f2b45a46949d23455a125d704fa05c9eaeecfc
 active_development_branch: development/salcapa-platform
-current_development_head: 10f325a255d7e0239faac1e770c202eb6f55fa38
+current_development_head: b61a31d4265c011a5193f5fb93955d43f476c4fc
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3225_application_promotion
-last_completed_increment: v3225_immutable_image_published_and_read_back
-candidate_release: v3.225
-validation_pr: 777
-validation_branch: candidate/advisor-review-v3225-app-20261007
+active_increment: salus_v3226_advisor_part2_choices_and_scope_download
+last_completed_increment: v3225_protected_application_deployed_and_v3226_part2_source_merged
+candidate_release: v3.226
+validation_pr: 779
+validation_branch: candidate/advisor-part2-v3226-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3224_review_link_first_source_codeql_findings
-first_root_failing_gate: v3224_review_link_initial_security_analysis
-root_cause: browser_held_review_return_path_failed_codeql_then_replaced_by_one_time_server_side_continuation
-repair_head: 08f2b45a46949d23455a125d704fa05c9eaeecfc
-repair_summary: v3225_https_advisor_review_email_and_staff_oidc_return_image_published
-genuine_blockers: v3224_image_superseded_before_deployment_v3225_app_not_deployed_live_staff_review_link_and_103mb_exact_hash_archive_unproved_member_controls_closed
-next_authorized_step: exact_v3225_app_record_checks_source_review_azure_preview_and_protected_deployment_then_live_acceptance
-deployed_demo_release: v3.223
-deployed_demo_state: accepted_immutable_application_and_advisor_v3223_member_upload_and_purchase_closed
+failed_workflows: none_for_v3226_candidate
+first_root_failing_gate: pending_v3226_exact_candidate_checks
+root_cause: no_v3226_failure_observed
+repair_head: b61a31d4265c011a5193f5fb93955d43f476c4fc
+repair_summary: v3226_house_of_worship_multi_outcome_scope_download_status_source_merged
+genuine_blockers: v3225_deployed_staff_review_link_unaccepted_v3226_source_unfrozen_image_and_live_part2_download_unproved_103mb_exact_hash_archive_unproved_member_controls_closed
+next_authorized_step: verify_v3226_candidate_checks_source_review_freeze_image_deploy_then_live_part2_and_staff_link_acceptance
+deployed_demo_release: v3.225
+deployed_demo_state: protected_deployed_v3225_advisor_exact_output_pending_acceptance_v3223_last_accepted_member_upload_and_purchase_closed
 ---
 
 # SalCAPA build continuity
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3223_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3226_part2_candidate: PR #778 exact reviewed head `00376653b189534111e35e12589f5cba016f3467` passed all eleven checks and merged as `b61a31d4265c011a5193f5fb93955d43f476c4fc`. It adds House of Worship, multiple outcomes sought with saved-draft compatibility and each outcome in preliminary guidance, and visible status beside the provisional one-page scope summary download. PR #779 is the v3.226 label candidate; it does not publish an image or deploy. v3.225 protected app run `37668085388` succeeded, but the original signed-in staff review link, non-admin denial and exact Part 2 live output remain to be accepted. v3.223 is the last accepted Advisor baseline. Buyer controls and paused large-batch #520 remain closed.
 
 v3225_image_published: Marc reviewed PR #776 exact head `c19f49f16bee202320c80416cd7d151b4d13ce28` after four current-head checks passed. It merged as `10f325a255d7e0239faac1e770c202eb6f55fa38`. Protected image run `37666465604` succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:da608d647d4bb7f946dcc0efb5c76e6b0f46d02fcaced6ff321fd5c7a2b88845` from frozen v3.225 source `08f2b45a46949d23455a125d704fa05c9eaeecfc`. Draft PR #777 stages that digest for protected application deployment and retains accepted v3.223 digest for rollback. Azure preview, exact-head review, protected deployment, original staff-link navigation, non-admin denial, and 103 MB exact-byte knowledge proof remain separate gates. Buyer sign-in, payment, receipt, intake and Member uploads stay closed.
 
