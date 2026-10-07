@@ -240,7 +240,7 @@ with tempfile.TemporaryDirectory() as td:
         "email":"contact@example.com",
         "password":"Correct-Horse-Battery-2026",
         "detailed_assessment_acknowledged":True,
-        "identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0",
+        "identifiable_retention_consent":True,
     })
     assert created.status_code==200,created.text
     assert created.json()["authenticated"] is True
@@ -555,7 +555,7 @@ with tempfile.TemporaryDirectory() as td:
     other_headers = {"X-CSRF-Token":other_started.json()["csrf_token"]}
     other_account = separate_client.post("/public/protection-advisor/account", headers=other_headers, json={
         "email":"other-contact@example.com", "password":"Separate-Account-2026",
-        "detailed_assessment_acknowledged":True, "identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0",
+        "detailed_assessment_acknowledged":True, "identifiable_retention_consent":True,
     })
     assert other_account.status_code == 200, other_account.text
     separate_account_cookie = separate_client.cookies.get("salus_advisor_account")
