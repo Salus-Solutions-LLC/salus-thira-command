@@ -40,6 +40,7 @@ with tempfile.TemporaryDirectory() as td:
     assert NOTIFICATION_FROM=="protectionadvisor@salus.solutions"
     assert len(COVERED_OPERATION_TAGS)==14
     assert "House of Worship" in COVERED_OPERATION_TAGS
+    assert SubmitCommand.model_fields["primary_objective"].is_required()
     assert not SubmitCommand.model_fields["investment_range"].is_required()
     assert not SubmitCommand.model_fields["decision_authority"].is_required()
     assert not SubmitCommand.model_fields["records_coordinator_role"].is_required()
@@ -103,6 +104,11 @@ with tempfile.TemporaryDirectory() as td:
     embedded=client.get("/protection-advisor/embed")
     assert embedded.status_code==200
     assert '<input type="checkbox" name="operationTag" value="House of Worship"> House of Worship' in embedded.text
+    assert "Primary outcomes sought (choose any that apply)" in embedded.text
+    assert embedded.text.count('name="primaryObjective" value=')==10
+    assert "function selectedPrimaryObjectives()" in embedded.text
+    assert 'primary_objective:selectedPrimaryObjectives().join("; ")' in embedded.text
+    assert "primary_objective:primaryObjective.value" not in embedded.text
     assert '<header class="salus-header">' not in embedded.text
     assert '<h1>Protection Advisor™</h1>' not in embedded.text
     assert '<h1 class="visually-hidden">Protection Advisor</h1>' in embedded.text
@@ -305,7 +311,7 @@ with tempfile.TemporaryDirectory() as td:
         "maximum_tolerable_downtime":"4–24 hours",
         "existing_program_maturity":"Partially documented or inconsistently applied",
         "internal_implementation_capacity":"Need Salus implementation support",
-        "primary_objective":"Facility or operational protection improvements",
+        "primary_objective":"Facility or operational protection improvements; Continuity and recovery capability",
         "external_requirements":"Insurance or underwriting concern",
         "recent_concerns":"Continuity\nand competing resources",
         "desired_timing":"Within 90 days",
@@ -320,6 +326,7 @@ with tempfile.TemporaryDirectory() as td:
         ).fetchone()[0])
     assert saved_profile["facility_locations"]=="Central Texas\nHill Country"
     assert saved_profile["essential_functions"]=="Manufacturing\nand secure fulfillment"
+    assert saved_profile["primary_objective"]=="Facility or operational protection improvements; Continuity and recovery capability"
     assert saved_profile["recent_concerns"]=="Continuity\nand competing resources"
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
@@ -602,6 +609,10 @@ with tempfile.TemporaryDirectory() as td:
         "external_requirements":"Recent incident or credible concern",
         "desired_timing":"Immediate concern",
     }
+    multi_profile={**base_profile, "primary_objective":"Continuity and recovery capability; Training and exercises"}
+    multi_package=_package_recommendation(business_questions,validated,multi_profile)
+    assert any("stated outcome sought: Continuity and recovery capability" in str(x) for x in multi_package["services"])
+    assert any("stated outcome sought: Training and exercises" in str(x) for x in multi_package["services"])
     cyber_package=_package_recommendation(business_questions,cyber_answers,cyber_profile)
     threat_package=_package_recommendation(business_questions,threat_answers,threat_profile)
     cyber_signature=[(x["key"],x["level"]) for x in cyber_package["services"]]
