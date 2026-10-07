@@ -4,6 +4,7 @@
 import hashlib
 import sqlite3
 import sys
+import httpx
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -200,6 +201,58 @@ def main():
         writer.put_verified("05 Research and Reference", "duplicate.pdf", data, hashlib.sha256(data).hexdigest())
     assert len(set(exact_client.uploaded)) == 2
 
+    # A timeout after Graph accepted a fragment must resume at Graph's offset,
+    # without sending the fragment twice or losing the source file.
+    large = b"x" * (11 * 1024 * 1024)
+    large_hash = hashlib.sha256(large).hexdigest()
+    class LargeClient:
+        def __init__(self):
+            self.data = bytearray()
+            self.ranges = []
+            self.status_reads = 0
+            self.uploaded = False
+
+        def get(self, url, **kwargs):
+            if url.endswith("/children"):
+                return Response(200, payload={"value": [{"id": "folder123", "name": "05 Research and Reference", "folder": {}}]})
+            if url == "https://tenant.sharepoint.com/upload":
+                self.status_reads += 1
+                return Response(202, payload={"nextExpectedRanges": [f"{len(self.data)}-"]})
+            if url.endswith("/content"):
+                return Response(200, content=bytes(self.data))
+            if url.endswith(":"):
+                return Response(200, payload={"id": "item12345", "webUrl": "https://tenant.sharepoint.com/doc", "eTag": "etag"}) if self.uploaded else Response(404)
+            raise AssertionError(url)
+
+        def post(self, url, **kwargs):
+            assert url.endswith("/createUploadSession")
+            assert kwargs["json"]["item"]["@microsoft.graph.conflictBehavior"] == "fail"
+            return Response(200, payload={"uploadUrl": "https://tenant.sharepoint.com/upload"})
+
+        def put(self, url, **kwargs):
+            assert url == "https://tenant.sharepoint.com/upload"
+            assert "Authorization" not in kwargs["headers"]
+            start = int(kwargs["headers"]["Content-Range"].split(" ")[1].split("-")[0])
+            self.ranges.append(start)
+            assert start == len(self.data)
+            self.data.extend(kwargs["content"])
+            if len(self.ranges) == 1:
+                raise httpx.ReadTimeout("response lost after fragment accepted")
+            if len(self.data) == len(large):
+                self.uploaded = True
+                return Response(201, payload={"id": "item12345", "webUrl": "https://tenant.sharepoint.com/doc", "eTag": "etag"})
+            return Response(202, payload={"nextExpectedRanges": [f"{len(self.data)}-"]})
+
+    large_client = LargeClient()
+    writer.client = large_client
+    writer.destination = destination
+    large_result = writer.put_verified("05 Research and Reference", "large.pdf", large, large_hash)
+    assert large_result["item_id"] == "item12345"
+    assert large_client.status_reads == 1
+    assert large_client.ranges == [0, 5 * 1024 * 1024, 10 * 1024 * 1024]
+    writer.put_verified("05 Research and Reference", "large.pdf", large, large_hash)
+    assert len(large_client.ranges) == 3  # retry verified the already committed file
+
     # Graph can reject a move when the processed folder already has that name.
     class ArchiveConflictClient:
         def __init__(self):
@@ -295,3 +348,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
