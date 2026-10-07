@@ -558,6 +558,34 @@ def _normalize_footer(footer) -> None:
             node.set(qn(f"w:{attribute}"), "Times New Roman")
 
 
+
+def _describe_report_graphics(document) -> None:
+    """Make the approved template's cover shapes and copied logo accessible."""
+    from docx.oxml.ns import qn
+
+    found = set()
+    for graphic in document.element.iter(qn("wp:docPr")):
+        text = " ".join("".join(graphic.getparent().itertext()).split()).lower()
+        if "client" in text and "report reference" in text:
+            key, description = "identity", "Report identification: client, project, reference, and issue date."
+        elif "do not look" in text and "authorized" in text:
+            key, description = "warning", "Authorization warning: do not read this report unless authorized."
+        elif "report handling notice" in text:
+            key, description = "handling", "Report handling notice describing confidential preliminary use and distribution."
+        else:
+            raise ValueError("unrecognized template cover graphic requires accessibility review")
+        graphic.set("descr", description)
+        found.add(key)
+    if found != {"identity", "warning", "handling"}:
+        raise ValueError("approved template cover graphics are missing")
+
+    for section in document.sections:
+        for graphic in section.footer._element.iter(qn("wp:docPr")):
+            if graphic.get("name") != "Picture 1":
+                raise ValueError("unrecognized template footer graphic requires accessibility review")
+            graphic.set("descr", "Salus Solutions logo.")
+
+
 def _apply_report_handling(document, requested_handling: str) -> None:
     """Adapt the approved Salus cover without asserting an unverified CUI designation."""
     display = "CUI review requested" if requested_handling == "CUI" else requested_handling
@@ -714,6 +742,7 @@ def render_protection_advisor_docx(
     # the required phrase and body font to both final parts just before saving.
     _normalize_footer(document.sections[0].footer)
     _normalize_footer(document.sections[-1].footer)
+    _describe_report_graphics(document)
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     document.save(str(destination))
