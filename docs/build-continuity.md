@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3223_knowledge_upload_release_record_repair
 last_completed_increment: v3222_release_record_failed_before_image_publication
 candidate_release: v3.223
-validation_pr: pending
+validation_pr: 759
 validation_branch: candidate/knowledge-upload-v3223-record-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
