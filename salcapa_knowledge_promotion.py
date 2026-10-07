@@ -444,6 +444,7 @@ class GraphKnowledgeWriter:
         verify = self.client.get(
             f"{GRAPH_ROOT}/drives/{self.destination.drive_id}/items/{item_id}/content",
             headers=self._headers() | {"Accept": "application/octet-stream"},
+            timeout=120.0 if len(content) > _GRAPH_SIMPLE_UPLOAD_LIMIT else 30.0,
         )
         if verify.status_code in {302, 303, 307, 308}:
             location = str(verify.headers.get("Location", ""))
@@ -458,7 +459,8 @@ class GraphKnowledgeWriter:
                     "Knowledge destination returned an untrusted verification location"
                 )
             verify = self.client.get(
-                location, headers={"Accept": "application/octet-stream"}
+                location, headers={"Accept": "application/octet-stream"},
+                timeout=120.0 if len(content) > _GRAPH_SIMPLE_UPLOAD_LIMIT else 30.0,
             )
         if verify.status_code != 200:
             raise KnowledgePromotionError("Knowledge destination verification failed")
