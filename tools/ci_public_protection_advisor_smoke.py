@@ -285,7 +285,7 @@ with tempfile.TemporaryDirectory() as td:
         })
         assert saved.status_code==200,(q,saved.text)
 
-    submitted=client.post("/public/protection-advisor/submit",headers=headers,json={
+    submission_payload={
         "protected_member_code_name":"Blue Lantern",
         "project_code_name":"Steady Harbor",
         "handling_profile":"Federal CUI",
@@ -323,7 +323,12 @@ with tempfile.TemporaryDirectory() as td:
         "decision_authority":"Executive leadership",
         "records_coordinator_role":"Operations manager",
         "investment_range":"Need phased options",
-    })
+    }
+    missing_scope_notice={k:v for k,v in submission_payload.items() if k not in ("access_scope_acknowledged","access_scope_notice_version")}
+    assert client.post("/public/protection-advisor/submit",headers=headers,json=missing_scope_notice).status_code==422
+    assert client.post("/public/protection-advisor/submit",headers=headers,json={**submission_payload,"access_scope_acknowledged":False}).status_code==400
+    assert client.post("/public/protection-advisor/submit",headers=headers,json={**submission_payload,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-0.9.0"}).status_code==400
+    submitted=client.post("/public/protection-advisor/submit",headers=headers,json=submission_payload)
     assert submitted.status_code==200,submitted.text
     with sqlite3.connect(db_path) as conn:
         saved_profile=json.loads(conn.execute(
@@ -332,6 +337,8 @@ with tempfile.TemporaryDirectory() as td:
     assert saved_profile["facility_locations"]=="Central Texas\nHill Country"
     assert saved_profile["essential_functions"]=="Manufacturing\nand secure fulfillment"
     assert saved_profile["primary_objective"]=="Facility or operational protection improvements; Continuity and recovery capability"
+    assert saved_profile["access_scope_acknowledged"] is True
+    assert saved_profile["access_scope_notice_version"]=="SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0"
     assert saved_profile["recent_concerns"]=="Continuity\nand competing resources"
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
