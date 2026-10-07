@@ -16,7 +16,9 @@ def test_consistent_scope_answers_support_only_their_own_band():
             "group_priorities": group,
         })
         assert result["band"] == expected
-        assert result["status"] == "Provisional — Salus scope review required"
+        assert result["status"] == "Provisional — starting unit and any later scope need confirmation"
+        assert result["required_first_path"] == "Level 1A"
+        assert result["later_path"] == (f"Possible Level 1{expected}" if expected in {"B", "C"} else "")
 
 
 def test_conflicting_or_incomplete_scope_answers_require_review():
@@ -37,4 +39,4 @@ def test_conflicting_or_incomplete_scope_answers_require_review():
         })
         assert result["band"] == ""
         assert result["label"] == "Level 1 band to confirm"
-        assert "price" in result["next_step"]
+        assert "Level 1A" in result["next_step"]

@@ -26,11 +26,11 @@ assert 'revenue' not in str(suggest_provisional_level_1_path({'decision_units':'
 access_path = suggest_provisional_level_1_path({'decision_units':'One','separate_findings':'No','group_priorities':'No'})
 receipt = draft_level_1_scope_receipt({'covered_operation':'One fictional child-care site','decision_authority':'Director'}, access_path)
 assert receipt['requested_boundary'] == 'One fictional child-care site'
-assert '$1,500' in receipt['price_state'] and 'only if' in receipt['price_state']
+assert '$1,500' in receipt['price_state'] and 'not priced add-ons' in receipt['price_state']
 assert 'organization chart' in receipt['member_prepares'][0]
 assert len(receipt['milestones']) == 5
 assert [item['choice'] for item in receipt['choices']] == [
-    'Correct the scope', 'Request a fixed quote', 'Discuss a separate service', 'Decline for now',
+    'Correct the scope', 'Discuss later work', 'Discuss a separate service', 'Decline for now',
 ]
 assert 'starting point' in receipt['lead_sentence']
 print('Requested package path checks passed')

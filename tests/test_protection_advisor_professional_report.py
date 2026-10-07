@@ -209,7 +209,7 @@ def test_board_decision_paper_has_all_reports_levels_paths_and_readable_spacing(
                       "Level 1A", "Level 1B", "Level 1C", "Level 2A", "Level 2B",
                       "Level 2C", "Level 3A", "Level 3B", "Level 3C"):
             assert label in text
-        assert "eligible Level 1A Access" in text
+        assert "fixed $1,500 prepaid Level 1A Access" in text
         assert "separately scoped" in text
     normal = reopened.styles["Normal"].paragraph_format
     assert normal.space_after.pt >= 8

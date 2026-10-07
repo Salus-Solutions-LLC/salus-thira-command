@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory() as td:
     assert not SubmitCommand.model_fields["decision_authority"].is_required()
     assert not SubmitCommand.model_fields["records_coordinator_role"].is_required()
     role_unknown=draft_level_1_scope_receipt({}, {"band":"", "label":"Level 1 band to confirm"})
-    assert role_unknown["version"]=="SPA-SCOPE-RECEIPT-0.4.0"
+    assert role_unknown["version"]=="SPA-SCOPE-RECEIPT-0.6.0"
     assert "Assign a decision role" in role_unknown["decision_owner"]
     assert "Assign a records coordinator" in role_unknown["records_coordinator"]
     assert len(CORE_CAPABILITIES)==32
@@ -105,6 +105,15 @@ with tempfile.TemporaryDirectory() as td:
     assert embedded.status_code==200
     assert '<input type="checkbox" name="operationTag" value="House of Worship"> House of Worship' in embedded.text
     assert "Primary outcomes sought (choose any that apply)" in embedded.text
+    assert 'id="accessScopeGuide"' in embedded.text
+    assert 'id="accessScopeAcknowledged"' in embedded.text
+    assert "Required first assessment for every customer" in embedded.text
+    assert "Everyone begins with one Level 1A Access assessment." in embedded.text
+    assert "Several facilities — additional sites are later work" in embedded.text
+    assert "Two named sites or operations — second unit is later work" in embedded.text
+    assert "Training delivery and exercises are later work." in embedded.text
+    assert "Selection records a need; it does not add work" in embedded.text
+    assert "access_scope_notice_version:\"SPA-LEVEL1A-ACCESS-BOUNDARY-1.1.0\"" in embedded.text
     assert embedded.text.count('name="primaryObjective" value=')==10
     assert "function selectedPrimaryObjectives()" in embedded.text
     assert 'primary_objective:selectedPrimaryObjectives().join("; ")' in embedded.text
@@ -187,7 +196,7 @@ with tempfile.TemporaryDirectory() as td:
     csrf=payload["csrf_token"]
     headers={"X-CSRF-Token":csrf}
     questions=payload["questions"]
-    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
+    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.4.0"
     assert len(questions)==9
     assert all(q["key"] not in {"volunteer_roles","public_access"} for q in questions)
     assert all(q["capabilities"] and q["mission_areas"] and q["services"] for q in questions)
@@ -219,7 +228,7 @@ with tempfile.TemporaryDirectory() as td:
         "protected_member_code_name":"Blocked Member","project_code_name":"Blocked Project",
         "handling_profile":"Commercial Confidential",
         "organization_name":"Blocked","contact_name":"Blocked","contact_email":"contact@example.com",
-        "detailed_assessment_acknowledged":True,"identifiable_retention_consent":True,
+        "detailed_assessment_acknowledged":True,"identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.1.0",
         "facility_scope":"One facility","facility_locations":"Texas","personnel_range":"26–100",
         "affected_population_range":"101–500","annual_revenue_range":"$5 million–$25 million",
         "specific_activities":[],"essential_functions":"Services",
@@ -282,7 +291,7 @@ with tempfile.TemporaryDirectory() as td:
         })
         assert saved.status_code==200,(q,saved.text)
 
-    submitted=client.post("/public/protection-advisor/submit",headers=headers,json={
+    submission_payload={
         "protected_member_code_name":"Blue Lantern",
         "project_code_name":"Steady Harbor",
         "handling_profile":"Federal CUI",
@@ -294,7 +303,7 @@ with tempfile.TemporaryDirectory() as td:
         "contact_name":"Assessment Contact",
         "contact_email":"contact@example.com",
         "detailed_assessment_acknowledged":True,
-        "identifiable_retention_consent":True,
+        "identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.1.0",
         "facility_scope":"Several facilities",
         "covered_operation":"Two named manufacturing and fulfillment sites",
         "decision_units":"Two",
@@ -320,7 +329,12 @@ with tempfile.TemporaryDirectory() as td:
         "decision_authority":"Executive leadership",
         "records_coordinator_role":"Operations manager",
         "investment_range":"Need phased options",
-    })
+    }
+    missing_scope_notice={k:v for k,v in submission_payload.items() if k not in ("access_scope_acknowledged","access_scope_notice_version")}
+    assert client.post("/public/protection-advisor/submit",headers=headers,json=missing_scope_notice).status_code==422
+    assert client.post("/public/protection-advisor/submit",headers=headers,json={**submission_payload,"access_scope_acknowledged":False}).status_code==400
+    assert client.post("/public/protection-advisor/submit",headers=headers,json={**submission_payload,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-0.9.0"}).status_code==400
+    submitted=client.post("/public/protection-advisor/submit",headers=headers,json=submission_payload)
     assert submitted.status_code==200,submitted.text
     with sqlite3.connect(db_path) as conn:
         saved_profile=json.loads(conn.execute(
@@ -329,15 +343,17 @@ with tempfile.TemporaryDirectory() as td:
     assert saved_profile["facility_locations"]=="Central Texas\nHill Country"
     assert saved_profile["essential_functions"]=="Manufacturing\nand secure fulfillment"
     assert saved_profile["primary_objective"]=="Facility or operational protection improvements; Continuity and recovery capability"
+    assert saved_profile["access_scope_acknowledged"] is True
+    assert saved_profile["access_scope_notice_version"]=="SPA-LEVEL1A-ACCESS-BOUNDARY-1.1.0"
     assert saved_profile["recent_concerns"]=="Continuity\nand competing resources"
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
-    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.6.0"
-    assert package["primary_service"]["title"]=="Level 1 SalCAPA™ Package"
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.8.0"
+    assert package["primary_service"]["title"]=="Level 1A SalCAPA™ Package"
     assert package["primary_service"]["level"]==1
     assert package["provisional_path"]["band"]=="B"
-    assert "written quote" in package["provisional_path"]["next_step"]
+    assert "qualified Level 1A completion" in package["provisional_path"]["next_step"]
     assert package["scope_receipt"]["requested_boundary"]=="Two named manufacturing and fulfillment sites"
     assert package["scope_receipt"]["records_coordinator"]=="Operations manager"
     assert "organization chart" in package["scope_receipt"]["member_prepares"][0]
@@ -345,7 +361,7 @@ with tempfile.TemporaryDirectory() as td:
     assert "written scope" in package["scope_receipt"]["schedule_state"]
     assert len(package["scope_receipt"]["milestones"]) == 5
     assert len(package["scope_receipt"]["choices"]) == 4
-    assert package["sequence"][0]=="Level 1 SalCAPA™ package — four coordinated reports"
+    assert package["sequence"][0]=="Level 1A first — four coordinated reports for one named unit"
     assert result["preliminary_hypothesis"]["working_assumption"]
     assert any(value is not None for value in result["mission_area_scores"].values())
     assert 1<=len(package["services"])<=4
@@ -441,8 +457,8 @@ with tempfile.TemporaryDirectory() as td:
     account=conn.execute("SELECT * FROM advisor_public_accounts").fetchone()
     assert account["email"]=="contact@example.com"
     assert session["status"]=="Submitted"
-    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
-    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.3.0"
+    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.4.0"
+    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.5.0"
     assert json.loads(profile["profile_json"])["covered_operation_tags"]==[
         "Manufacturing or industrial work","Warehouse or distribution"]
     assert json.loads(profile["profile_json"])["records_coordinator_role"]=="Operations manager"
