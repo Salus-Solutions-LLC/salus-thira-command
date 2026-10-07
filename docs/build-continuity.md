@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 07 October 2026 16:42 CDT
-current_frozen_release: v3.225
-current_frozen_commit: 08f2b45a46949d23455a125d704fa05c9eaeecfc
+last_verified_at: 07 October 2026 17:52 CDT
+current_frozen_release: v3.226
+current_frozen_commit: e525f0f65c355e8d6f1966dd3a5001cf95cddc58
 active_development_branch: development/salcapa-platform
-current_development_head: 8b27ac2cc5530027cdcb355ff215b04bc7615924
+current_development_head: e525f0f65c355e8d6f1966dd3a5001cf95cddc58
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3226_advisor_board_paper_release
-last_completed_increment: v3225_protected_application_deployed_and_v3226_advisor_source_merged
+active_increment: salus_v3226_immutable_image_publication
+last_completed_increment: v3226_advisor_source_merged_and_frozen
 candidate_release: v3.226
-validation_pr: 781
-validation_branch: candidate/advisor-board-v3226-20261007
+validation_pr: 782
+validation_branch: candidate/advisor-board-v3226-image-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3226_candidate
-first_root_failing_gate: pending_v3226_exact_candidate_checks
+failed_workflows: none_for_v3226_source_candidate
+first_root_failing_gate: pending_v3226_image_candidate_checks
 root_cause: no_v3226_failure_observed
-repair_head: 8b27ac2cc5530027cdcb355ff215b04bc7615924
-repair_summary: v3226_part2_choices_and_board_report_source_merged
-genuine_blockers: v3225_output_superseded_by_v3226_advisor_candidate_staff_review_link_unaccepted_v3226_image_and_live_word_pdf_download_unproved_103mb_exact_hash_archive_unproved_member_controls_closed
-next_authorized_step: verify_v3226_exact_candidate_checks_and_source_review_then_freeze_image_deploy_live_board_report_acceptance
+repair_head: e525f0f65c355e8d6f1966dd3a5001cf95cddc58
+repair_summary: v3226_part2_board_report_and_level1a_first_source_frozen
+genuine_blockers: v3226_image_unpublished_live_word_pdf_scope_download_and_staff_review_link_unaccepted_103mb_exact_hash_archive_unproved_member_controls_closed
+next_authorized_step: finish_frozen_v3226_ci_then_exact_image_record_review_and_protected_immutable_build
 deployed_demo_release: v3.225
 deployed_demo_state: protected_deployed_v3225_advisor_exact_output_pending_acceptance_v3223_last_accepted_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,10 @@ deployed_demo_state: protected_deployed_v3225_advisor_exact_output_pending_accep
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+### 7 October 2026 Central — frozen v3.226 image candidate
+
+Marc approved PR #781 at exact head `8cb109d527c96e45d7fa11b3f8eec475179a1647` after twelve checks passed. It merged as `e525f0f65c355e8d6f1966dd3a5001cf95cddc58`, and `release/v3.226` froze that exact source. The immutable-release guard passed; full frozen CI is running. Draft PR #782 stages one immutable image from this source; its candidate checks, exact-source review, protected build and digest readback remain open. Serving app v3.225 is not yet accepted as Advisor output; v3.223 remains the last Marc-accepted baseline. The original staff review link, live Part 2 choices, one-page summary download, Board Word/PDF output and 103 MB knowledge item remain unaccepted. Buyer sign-in, payment, receipt, intake and Member uploads stay closed; large-batch #520 and Tierra Linda remain paused.
 
 v3226_board_paper_candidate: Marc approved PR #780 exact reviewed report source at `dac53e16515a5ee58f93dcedbb6cee83a0e4f8e8` after all eleven checks passed; it merged as `8b27ac2cc5530027cdcb355ff215b04bc7615924`. The combined candidate includes the already reviewed Part 2 House of Worship, multi-outcome and visible provisional scope-download feedback from PR #778. The Word/PDF board paper source explains the four products, Levels 1-3 and nine Level x band paths. Fictional QA rendered 10 Word pages and 9 PDF pages; one intentionally blank page 2 is retained. PR #781 labels this combined source v3.226. It does not deploy. v3.225 is running but v3.223 remains the last Marc-accepted Advisor output and rollback. The original staff review link, real one-page download, live board output and 103 MB knowledge file remain unaccepted. Buyer sign-in, payment, receipt, intake and Member uploads remain closed.
 
