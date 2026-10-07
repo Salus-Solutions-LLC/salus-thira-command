@@ -105,6 +105,9 @@ with tempfile.TemporaryDirectory() as td:
     assert embedded.status_code==200
     assert '<input type="checkbox" name="operationTag" value="House of Worship"> House of Worship' in embedded.text
     assert "Primary outcomes sought (choose any that apply)" in embedded.text
+    assert 'id="accessScopeGuide"' in embedded.text
+    assert 'id="accessScopeAcknowledged"' in embedded.text
+    assert "access_scope_notice_version:\"SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0\"" in embedded.text
     assert embedded.text.count('name="primaryObjective" value=')==10
     assert "function selectedPrimaryObjectives()" in embedded.text
     assert 'primary_objective:selectedPrimaryObjectives().join("; ")' in embedded.text
@@ -219,7 +222,7 @@ with tempfile.TemporaryDirectory() as td:
         "protected_member_code_name":"Blocked Member","project_code_name":"Blocked Project",
         "handling_profile":"Commercial Confidential",
         "organization_name":"Blocked","contact_name":"Blocked","contact_email":"contact@example.com",
-        "detailed_assessment_acknowledged":True,"identifiable_retention_consent":True,
+        "detailed_assessment_acknowledged":True,"identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0",
         "facility_scope":"One facility","facility_locations":"Texas","personnel_range":"26–100",
         "affected_population_range":"101–500","annual_revenue_range":"$5 million–$25 million",
         "specific_activities":[],"essential_functions":"Services",
@@ -237,7 +240,7 @@ with tempfile.TemporaryDirectory() as td:
         "email":"contact@example.com",
         "password":"Correct-Horse-Battery-2026",
         "detailed_assessment_acknowledged":True,
-        "identifiable_retention_consent":True,
+        "identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0",
     })
     assert created.status_code==200,created.text
     assert created.json()["authenticated"] is True
@@ -294,7 +297,7 @@ with tempfile.TemporaryDirectory() as td:
         "contact_name":"Assessment Contact",
         "contact_email":"contact@example.com",
         "detailed_assessment_acknowledged":True,
-        "identifiable_retention_consent":True,
+        "identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0",
         "facility_scope":"Several facilities",
         "covered_operation":"Two named manufacturing and fulfillment sites",
         "decision_units":"Two",
@@ -552,7 +555,7 @@ with tempfile.TemporaryDirectory() as td:
     other_headers = {"X-CSRF-Token":other_started.json()["csrf_token"]}
     other_account = separate_client.post("/public/protection-advisor/account", headers=other_headers, json={
         "email":"other-contact@example.com", "password":"Separate-Account-2026",
-        "detailed_assessment_acknowledged":True, "identifiable_retention_consent":True,
+        "detailed_assessment_acknowledged":True, "identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0",
     })
     assert other_account.status_code == 200, other_account.text
     separate_account_cookie = separate_client.cookies.get("salus_advisor_account")
