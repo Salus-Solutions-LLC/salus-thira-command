@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory() as td:
     assert not SubmitCommand.model_fields["decision_authority"].is_required()
     assert not SubmitCommand.model_fields["records_coordinator_role"].is_required()
     role_unknown=draft_level_1_scope_receipt({}, {"band":"", "label":"Level 1 band to confirm"})
-    assert role_unknown["version"]=="SPA-SCOPE-RECEIPT-0.4.0"
+    assert role_unknown["version"]=="SPA-SCOPE-RECEIPT-0.5.0"
     assert "Assign a decision role" in role_unknown["decision_owner"]
     assert "Assign a records coordinator" in role_unknown["records_coordinator"]
     assert len(CORE_CAPABILITIES)==32
