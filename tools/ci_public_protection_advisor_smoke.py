@@ -121,7 +121,9 @@ with tempfile.TemporaryDirectory() as td:
     assert embedded.text.count('onclick="printAdvisor(&quot;part2&quot;)"') == 2
     assert embedded.text.count("Download Scope and Readiness Report") == 2
     assert '"/public/protection-advisor/scope-receipt.pdf":"/public/protection-advisor/report.pdf"' in embedded.text
-    assert "Download one-page scope receipt" in embedded.text
+    assert "Download provisional one-page scope summary" in embedded.text
+    assert 'id="scopeReceiptStatus" class="muted" role="status" aria-live="polite"' in embedded.text
+    assert 'getElementById(isReceipt?"scopeReceiptStatus":"detailedReportStatus")' in embedded.text
     assert 'credentials:"same-origin"' in embedded.text
     assert 'headers:{"X-CSRF-Token":csrf}' in embedded.text
     assert "response.blob()" in embedded.text
