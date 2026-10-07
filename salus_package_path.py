@@ -39,11 +39,11 @@ def suggest_provisional_level_1_path(profile: dict) -> dict[str, str]:
     else:
         band, reason = '', 'The covered units, comparisons and group priorities need a short scoping conversation before Salus suggests a band.'
     if band == 'A':
-        next_step = ('Start with one named Level 1A unit. Eligible Access is $1,500 prepaid without per-order Salus approval; otherwise request a separate Level 1A Standard quote.')
+        next_step = ('Start with the fixed $1,500 prepaid Level 1A Access assessment for one named unit. Save other needs for a later human discussion and separate quote after qualified reports.')
     elif band:
-        next_step = (f'Start with one named Level 1A unit; the possible Level 1{band} need is later and separately scoped after qualified Level 1A completion.')
+        next_step = (f'Start with the fixed $1,500 prepaid Level 1A Access assessment for one named unit; the possible Level 1{band} need is considered and priced separately after qualified Level 1A completion.')
     else:
-        next_step = 'Choose the first named Level 1A unit; clarify any wider or deeper need before a separate scope or price.'
+        next_step = 'Choose the first named Level 1A Access unit at the fixed $1,500 prepaid price; save wider or deeper needs for discussion and separate pricing after qualified reports.'
     return {
         'label': f'Possible Level 1{band}' if band else 'Level 1 band to confirm',
         'band': band,
@@ -58,7 +58,7 @@ def suggest_provisional_level_1_path(profile: dict) -> dict[str, str]:
 def draft_level_1_scope_receipt(profile: dict, path: dict[str, str]) -> dict:
     """Give the prospect a short preparation record, not a quote or contract."""
     boundary = str(profile.get('covered_operation') or 'the operation to confirm')
-    price = ('$1,500 for an eligible, bounded Level 1A Access unit; otherwise a separate Level 1A Standard quote. Any wider or deeper work is separately scoped')
+    price = ('$1,500 prepaid for the first named Level 1A Access unit. Wider or deeper work is not added to that price; Salus discusses and quotes it after the qualified Level 1A reports')
     return {
         'version': 'SPA-SCOPE-RECEIPT-0.5.0',
         'receipt_id': '',  # Bound to the single submission identity at save time.
@@ -74,13 +74,13 @@ def draft_level_1_scope_receipt(profile: dict, path: dict[str, str]) -> dict:
             'If available: a list of critical utilities and suppliers, without passwords or sensitive access details.',
         ],
         'salus_deliverable': 'A qualified Level 1 package contains separate SalINTEL, SalTHIRA, SalOPS and SalCAPA reports for the agreed boundary.',
-        'price_state': 'Level 1A Access is $1,500 only if the named one-unit order meets its published boundary; otherwise Level 1A Standard requires a separate quote. Later B/C or Level 2/3 work is separately scoped.',
+        'price_state': 'The first Level 1A Access unit is $1,500 prepaid, with applicable tax shown before checkout. Other Part 2 selections are not priced add-ons; additional work is discussed and separately quoted after qualified Level 1A reports.',
         'schedule_state': 'Start and delivery dates are set in the written scope after Salus confirms capacity and receives authorization.',
         'decision_owner': str(profile.get('decision_authority') or 'Assign a decision role before agreeing to Level 1.'),
         'records_coordinator': str(profile.get('records_coordinator_role') or 'Assign a records coordinator before authorized file transfer.'),
-        'next_step': 'Choose the first named Level 1A unit and its exclusions. If Access eligible, review and accept the exact $1,500 prepaid agreement; otherwise request a Level 1A Standard quote. Revisit wider needs after qualified Level 1A reports.',
+        'next_step': 'Choose one named Level 1A Access unit and its exclusions, then review the exact $1,500 prepaid agreement and applicable tax. Revisit wider needs with Salus after qualified Level 1A reports.',
         'milestones': [
-            {'step': 'Confirm scope', 'owner': 'Protected Member decision owner; Salus for Standard or later scope', 'complete_when': 'The exact first Level 1A unit, exclusions and Access eligibility or Standard quote are recorded.'},
+            {'step': 'Confirm scope', 'owner': 'Protected Member decision owner', 'complete_when': 'The exact first Level 1A Access unit, exclusions and fixed $1,500 price are recorded.'},
             {'step': 'Provide records', 'owner': 'Authorized records coordinator', 'complete_when': 'The agreed minimum packet or a missing-record explanation is received securely.'},
             {'step': 'Complete assessment', 'owner': 'Qualified Salus team', 'complete_when': 'The four scoped reports pass evidence, analyst and quality review.'},
             {'step': 'Review results', 'owner': 'Salus and decision owner', 'complete_when': 'Findings, limits and options are explained to the Member.'},
@@ -88,7 +88,7 @@ def draft_level_1_scope_receipt(profile: dict, path: dict[str, str]) -> dict:
         ],
         'choices': [
             {'choice': 'Correct the scope', 'effect': 'Revise the first one-unit boundary before agreement or payment; wider needs remain separate.'},
-            {'choice': 'Request a fixed quote', 'effect': 'Eligible Access uses its approved $1,500 price automatically; Standard or later work needs a separate written quote.'},
+            {'choice': 'Discuss later work', 'effect': 'The first Access unit stays fixed at $1,500; Salus discusses and quotes any additional scope after qualified Level 1A reports.'},
             {'choice': 'Discuss a separate service', 'effect': 'Salus checks suitability and sends a separate proposal if appropriate.'},
             {'choice': 'Decline for now', 'effect': 'No assessment or separate service begins.'},
         ],
