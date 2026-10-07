@@ -1,0 +1,188 @@
+name: SalCAPA one-time knowledge destination verification branch
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - deploy/azure/activations/knowledge-destination-branch-v3223-dev.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-knowledge-destination-branch-v3223-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected one-time, read-only destination-branch gate passed.'
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RESOURCE_GROUP: rg-salcapa-dev
+      JOB_NAME: salcapa-dev-b48224-kb-scan
+      IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Enforce exact one-time activation and read-only source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          test "$(git hash-object tools/knowledge_destination_branch_probe.py)" = "8f8d5ad96e211f4f73d4b8eb76894e786ac9a3dc"
+          file=deploy/azure/activations/knowledge-destination-branch-v3223-dev.json
+          test "$(git log --format=%H -- "$file" | wc -l | tr -d ' ')" = "1"
+          jq -e '
+            .schema_version == 1 and
+            .operation == "inspect_knowledge_destination_branch_v3223_once" and
+            .target_environment == "dev" and
+            .resource_group == "rg-salcapa-dev" and
+            .job_name == "salcapa-dev-b48224-kb-scan" and
+            .source_release == "release/v3.223" and
+            .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c" and
+            .approval_record == "MD-KNOWLEDGE-DESTINATION-BRANCH-V3223-20261007" and
+            .activation_key == "salcapa-v3.223-destination-branch-once" and
+            ((keys - ["schema_version","operation","target_environment","resource_group","job_name","source_release","image_digest","approval_record","activation_key"]) | length == 0)
+          ' "$file" >/dev/null
+          python -m py_compile tools/knowledge_destination_branch_probe.py
+          python tests/test_knowledge_destination_branch_probe.py
+          if grep -Eq 'import app|import salcapa_runtime|DELETE|UPDATE|INSERT|upload_blob|put_blob|receive_messages' tools/knowledge_destination_branch_probe.py; then
+            echo 'Read-only source contract failed.' >&2; exit 1
+          fi
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify existing job identity image and limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n "$RESOURCE_GROUP" --query location -o tsv)" = southcentralus
+          az containerapp job show -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/job.json"
+          jq -e --arg image "$IMAGE" '
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *" and
+            .properties.configuration.replicaTimeout == 900 and
+            .properties.configuration.replicaRetryLimit == 0 and
+            (.properties.template.containers | length) == 1 and
+            .properties.template.containers[0].image == $image and
+            .properties.template.containers[0].resources.cpu == 0.25 and
+            .properties.template.containers[0].resources.memory == "0.5Gi" and
+            (.identity.userAssignedIdentities | keys | length) == 1
+          ' "$RUNNER_TEMP/job.json" >/dev/null
+      - name: Start one bounded read-only transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PROBE_START=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          python - "$RUNNER_TEMP/job.json" "$IMAGE" "$RUNNER_TEMP/probe-body.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          job=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          source=job["properties"]["template"]["containers"][0]
+          script=Path("tools/knowledge_destination_branch_probe.py").read_text(encoding="utf-8")
+          body={"containers":[{
+              "name":source["name"],"image":sys.argv[2],
+              "command":["python"],"args":["-c",script],
+              "env":source["env"],
+              "resources":{"cpu":source["resources"]["cpu"],"memory":source["resources"]["memory"]},
+          }]}
+          Path(sys.argv[3]).write_text(json.dumps(body,separators=(",",":")),encoding="utf-8")
+          print("Reviewed read-only override prepared from current job settings.")
+          PY
+          uri="https://management.azure.com/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/jobs/$JOB_NAME/start?api-version=2025-07-01"
+          az rest --method post --uri "$uri" --headers Content-Type=application/json \
+            --body @"$RUNNER_TEMP/probe-body.json" --output json > "$RUNNER_TEMP/probe-start.json"
+          python - "$RUNNER_TEMP/probe-start.json" "$GITHUB_ENV" <<'PY'
+          import json,re,sys
+          value=json.load(open(sys.argv[1],encoding="utf-8"))
+          name=value.get("name","")
+          if not re.fullmatch(r"salcapa-dev-b48224-kb-scan-[a-z0-9-]{1,40}",name):
+              raise SystemExit("Unexpected execution name; inspect Azure before any retry")
+          with open(sys.argv[2],"a",encoding="utf-8") as out:
+              out.write("PROBE_EXECUTION="+name+"\n")
+          print("One read-only destination-branch execution started.")
+          PY
+      - name: Verify terminal state and sanitized destination branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          state=""
+          for attempt in $(seq 1 24); do
+            az containerapp job execution show -g "$RESOURCE_GROUP" -n "$JOB_NAME" --job-execution-name "$PROBE_EXECUTION" -o json > "$RUNNER_TEMP/probe-execution.json"
+            state="$(jq -r '.properties.status // "Unknown"' "$RUNNER_TEMP/probe-execution.json")"
+            case "$state" in Succeeded|Failed|Canceled|Cancelled) break;; esac
+            sleep 15
+          done
+          echo "destination_branch_execution_state=$state"
+          test "$state" = Succeeded
+          workspace="$(az monitor log-analytics workspace show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$workspace"
+          found=0
+          for attempt in $(seq 1 16); do
+            query="ContainerAppConsoleLogs | where TimeGenerated >= datetime($PROBE_START) | where JobName == '$JOB_NAME' | where Log startswith 'SALUS_DESTINATION_BRANCH_DIAGNOSTIC=' | project Log | take 3"
+            az monitor log-analytics query --workspace "$workspace" --analytics-query "$query" -o json > "$RUNNER_TEMP/probe-logs.json"
+            if python - "$RUNNER_TEMP/probe-logs.json" <<'PY'
+          import json,sys
+          data=json.load(open(sys.argv[1],encoding="utf-8"))
+          table=(data.get("tables") or [{}])[0] if isinstance(data,dict) else {}
+          columns=[c.get("name") for c in table.get("columns",[])]
+          rows=[dict(zip(columns,row)) for row in table.get("rows",[])]
+          prefix="SALUS_DESTINATION_BRANCH_DIAGNOSTIC="
+          markers=[]
+          for row in rows:
+              raw=row.get("Log")
+              if not isinstance(raw,str) or len(raw)>2048 or not raw.startswith(prefix): continue
+              try: marker=json.loads(raw.split(prefix,1)[1])
+              except (ValueError,json.JSONDecodeError): continue
+              if not isinstance(marker,dict) or set(marker)!={"candidate_count","observations"}: continue
+              if marker["candidate_count"]!=1 or not isinstance(marker["observations"],list): continue
+              if not 1<=len(marker["observations"])<=2: continue
+              allowed={"path_kind","metadata_status","item_identity_valid","first_status","final_status","redirect_trusted","size_match","hash_match"}
+              valid=True
+              for item in marker["observations"]:
+                  if not isinstance(item,dict) or not set(item)<=allowed or not {"path_kind","metadata_status"}<=set(item): valid=False; break
+                  if item["path_kind"] not in {"primary","original_fallback"}: valid=False; break
+                  for key in ("metadata_status","first_status","final_status"):
+                      if key in item and (type(item[key]) is not int or not 0<=item[key]<=599): valid=False
+                  for key in ("item_identity_valid","redirect_trusted","size_match","hash_match"):
+                      if key in item and type(item[key]) is not bool: valid=False
+              if not valid: continue
+              markers.append(marker)
+          if len(markers)!=1: raise SystemExit(1)
+          marker=markers[0]
+          print("candidate_count=1")
+          for item in marker["observations"]:
+              print("path_kind="+item["path_kind"])
+              for key in ("metadata_status","item_identity_valid","first_status","final_status","redirect_trusted","size_match","hash_match"):
+                  if key in item: print(key+"="+str(item[key]))
+          PY
+            then found=1; break; fi
+            sleep 30
+          done
+          if [ "$found" != 1 ]; then
+            echo 'Sanitized branch marker unavailable; do not infer the cause.' >&2
+            exit 1
+          fi
+          echo 'Read-only destination observation obtained; source archive remains unverified.'
