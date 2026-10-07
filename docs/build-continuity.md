@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 07 October 2026 11:05 CDT
-current_frozen_release: v3.223
-current_frozen_commit: 5dff59b381a0c455f99c6f15d0e2a37c273f4056
+last_verified_at: 07 October 2026 11:18 CDT
+current_frozen_release: v3.224
+current_frozen_commit: f19be501975b1a80dbbec509b4cae45f878f44fe
 active_development_branch: development/salcapa-platform
-current_development_head: 05eeb2824e6f4c65657941dfaaef2942acfb48c5
+current_development_head: f19be501975b1a80dbbec509b4cae45f878f44fe
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3224_knowledge_exact_original_repair
-last_completed_increment: v3223_app_deployed_and_v3224_exact_original_source_merged
+active_increment: salus_v3224_immutable_image_publication
+last_completed_increment: v3224_source_frozen_release_guard_and_contextual_checks_passed
 candidate_release: v3.224
-validation_pr: 772
-validation_branch: candidate/knowledge-exact-original-v3224-20261007
+validation_pr: 773
+validation_branch: candidate/knowledge-exact-original-v3224-image-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: preflight
+validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3223_knowledge_103mb_destination_verification_retry
 first_root_failing_gate: v3223_knowledge_destination_exact_byte_verification
 root_cause: primary_destination_metadata_and_raw_size_above_103344128_byte_source
-repair_head: 05eeb2824e6f4c65657941dfaaef2942acfb48c5
-repair_summary: v3224_generic_bounded_exact_original_fallback_after_destination_transform
-genuine_blockers: v3223_knowledge_repair_superseded_by_v3224_exact_original_source_live_hash_and_archive_unproved_member_controls_closed
-next_authorized_step: exact_v3224_candidate_checks_and_source_review_then_freeze_image_and_protected_live_hash_archive_acceptance
+repair_head: f19be501975b1a80dbbec509b4cae45f878f44fe
+repair_summary: v3224_exact_original_source_frozen_and_image_record_staged
+genuine_blockers: v3224_full_frozen_release_ci_image_publication_and_live_103mb_exact_hash_archive_unproved_member_controls_closed
+next_authorized_step: finish_frozen_release_ci_then_exact_image_record_review_and_protected_immutable_build
 deployed_demo_release: v3.223
 deployed_demo_state: accepted_immutable_application_and_advisor_v3223_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,11 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3223_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+### 7 October 2026 Central — frozen v3.224 image candidate
+
+Marc approved PR #772 exact head `08b959582da34a17e1e36802cbe2425b799f77a5` after all eleven checks passed; it merged as `f19be501975b1a80dbbec509b4cae45f878f44fe`. `release/v3.224` froze that commit; the release guard and contextual intake checks passed, with full release CI still running at this checkpoint. Draft PR #773 stages only the exact frozen image record. Publication requires its current-head checks and Marc's source review, then protected image readback. The accepted live app remains v3.223; the 103,344,128-byte knowledge destination and source archive are not accepted. Buyer sign-in, Level 1A payment, receipt, intake and Member uploads stay closed, with large-batch #520 and Tierra Linda paused.
+
 
 ### 7 October 2026 Central — v3.224 exact-original repair candidate
 
