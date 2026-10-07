@@ -1,5 +1,7 @@
 """Direct email review links keep staff authentication and the exact return path."""
 
+import sqlite3
+
 import pytest
 from fastapi import HTTPException, Request
 
@@ -62,3 +64,31 @@ def test_session_mode_shows_a_readable_sign_in_instruction():
     assert response.status_code == 401
     assert b"Sign in required" in response.body
     assert response.headers["x-frame-options"] == "DENY"
+
+
+def test_staff_continuation_is_one_time_and_keeps_exact_path(tmp_path, monkeypatch):
+    path = "/protection-advisor/review/" + SUBMISSION
+    db_path = tmp_path / "continuation.db"
+
+    def database():
+        connection = sqlite3.connect(db_path)
+        connection.row_factory = sqlite3.Row
+        return connection
+
+    with database() as connection:
+        connection.execute("CREATE TABLE oidc_review_continuations ("
+                           "state_hash TEXT PRIMARY KEY, review_path TEXT NOT NULL, "
+                           "session_token_hash TEXT UNIQUE, expires_at TEXT NOT NULL)")
+        connection.execute("INSERT INTO oidc_review_continuations VALUES (?,?,?,?)",
+                           ("state", path, app._hash_token("fictional-session"), "9999-12-31T00:00:00Z"))
+
+    monkeypatch.setattr(app, "db", database)
+    monkeypatch.setattr(app, "require", lambda request, permission: None)
+    request = _request("/api/auth/oidc/continue")
+    request.scope["headers"] = [(b"cookie", b"salus_session=fictional-session")]
+    response = app.oidc_continue(request)
+    assert response.status_code == 302
+    assert response.headers["location"] == path
+    with pytest.raises(HTTPException) as exc:
+        app.oidc_continue(request)
+    assert exc.value.status_code == 404
