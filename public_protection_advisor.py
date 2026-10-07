@@ -1798,6 +1798,15 @@ def _review_access_response(request: Request, require: Any, auth_mode: str) -> R
     return None
 
 
+def _review_url(request: Request, submission_key: str) -> str:
+    origin = (
+        "https://salcapa.salus.solutions"
+        if request.url.hostname == "salcapa.salus.solutions"
+        else str(request.base_url).rstrip("/")
+    )
+    return origin + "/protection-advisor/review/" + submission_key
+
+
 def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
     conn = ctx["db"]()
     try:
@@ -2641,12 +2650,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 ("SPA-EVENT-"+secrets.token_hex(16).upper(),session["session_key"],"Submitted for Salus Review",created,_sha(_json({"snapshot_sha256":_sha(_json(snapshot))}))))
             conn.commit()
 
-            review_origin = (
-                "https://salcapa.salus.solutions"
-                if request.url.hostname == "salcapa.salus.solutions"
-                else str(request.base_url).rstrip("/")
-            )
-            review_url = review_origin + "/protection-advisor/review/" + submission_key
+            review_url = _review_url(request, submission_key)
             internal_key = "SPA-NOTIFY-" + secrets.token_hex(16).upper()
             participant_key = "SPA-NOTIFY-" + secrets.token_hex(16).upper()
             internal_body = (
