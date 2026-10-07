@@ -329,7 +329,7 @@ def _professional_body(document, fields, result, package) -> None:
             f"{primary.get('summary', '')}"
         )
         document.add_paragraph(f"Why start here: {primary.get('why', '')}")
-    document.add_paragraph("All new Protected Members begin with the Level 1 integrated assessment. Level 2 and Level 3 require qualified prior packages. Eligible Level 1A Access is a fixed, prepaid self-service offer within its stated boundary; other scopes and optional services require a separate quote and authorization.")
+    document.add_paragraph("Every new Protected Member first completes a qualified Level 1A integrated assessment for one named site or function. Part 2 may signal later Level 1B/C or Level 2/3 work, but those needs do not enlarge the first scope or permit direct entry. Eligible 1A Access is fixed at $1,500 prepaid; 1A Standard and later work require separate written scopes and quotes.")
     sequence = package.get("sequence") or []
     document.add_heading("Recommended Sequence", level=1)
     sequence_rows = _sequence_rows(package)
@@ -368,7 +368,7 @@ def _professional_body(document, fields, result, package) -> None:
     document.add_heading("Assessment Depth: Levels 1, 2, and 3", level=1)
     document.add_paragraph(
         "The level describes the depth of evidence and validation. It is separate from the A, B, "
-        "or C band, which describes the width of the named operating boundary. Each later level "
+        "or C band, which describes the width of the named operating boundary. A qualified Level 1A comes first; wider Level 1B/C work follows separately. Each later level "
         "requires a qualified prior-level package and a new written scope."
     )
     _add_table(document, ("Depth", "Included work and decision value"), _ASSESSMENT_LEVELS, widths=(2.0, 4.4))
@@ -383,13 +383,13 @@ def _professional_body(document, fields, result, package) -> None:
     document.add_paragraph(
         "Only the eligible Level 1A Access offer has an approved automatic $1,500 prepay path. "
         "It does not require per-order Salus approval when the order fits its stated boundary. "
-        "Other paths and expanded scopes need a separate written quote and authorization."
+        "A Level 1A unit outside Access needs a Standard quote; wider bands and deeper levels require a separate later scope, quote and authorization."
     )
     document.add_heading("Board Investment Gate", level=1)
     _add_bullets(document, (
-        "Authorize a named Level 1 boundary, decision owner, evidence access, and spending limit.",
+        "Authorize the first named Level 1A unit, decision owner, evidence access, exclusions, and spending limit.",
         "Require the four reports to distinguish verified evidence, reported conditions, assumptions, and unknowns.",
-        "Review the Level 1 priorities and alternatives before authorizing Level 2 validation or Level 3 specialist work.",
+        "Review the qualified Level 1A priorities and alternatives before authorizing Level 1B/C, Level 2 validation or Level 3 specialist work.",
         "Track approved actions, accountable owners, due dates, and proof of improvement.",
     ))
 
@@ -411,9 +411,9 @@ def _professional_body(document, fields, result, package) -> None:
 
     document.add_heading("Decision Required", level=1)
     document.add_paragraph(
-        "The next decision is whether to authorize the stated Level 1 boundary and spending limit. "
+        "The next decision is whether to authorize the first named Level 1A unit, exclusions and spending limit. "
         "An eligible Level 1A Access order can proceed automatically after agreement acceptance and prepayment; "
-        "a broader scope needs a separate written quote. Level 2 or Level 3 investment should await qualified findings."
+        "a Level 1A Standard scope needs a separate written quote. Level 1B/C and deeper investment await qualified prerequisite reports."
     )
 
     document.add_heading("Important Notice", level=1)
@@ -978,12 +978,12 @@ def render_protection_advisor_pdf(
         P("Leadership is deciding whether to fund a defined first assessment that turns reported concerns into an evidence-based safety, security, and wellbeing investment plan. The questionnaire is a screen, not proof that controls have failed."),
         P(_BOARD_DECISION_NOTICE),
         P("Four Reports for the Board", h1),
-        P("Each approved assessment produces four coordinated reports for the same named boundary. Level 1 is source-based and identifies unknowns; later levels revise the reports with deeper evidence."),
+        P("Each approved assessment produces four coordinated reports for the same named boundary. The required first Level 1A is source-based and identifies unknowns; later bands and levels require qualified prerequisites and separate scope."),
         T(("Report and role", "What the Board receives"),
           tuple((f"{name} — {role}", description) for name, role, description in _BOARD_REPORTS),
           (1.75 * inch, 4.35 * inch)),
         P("Assessment Depth: Levels 1, 2, and 3", h1),
-        P("The level describes depth of evidence and validation. The A, B, or C band describes the width of the named boundary. Later levels require a qualified prior-level package and a new written scope."),
+        P("The level describes depth of evidence and validation. The A, B, or C band describes the width of the named boundary. Every new customer starts with a qualified Level 1A for one named unit. Wider bands and later levels need qualified prerequisites and new written scopes."),
         T(("Depth", "Included work and decision value"), _ASSESSMENT_LEVELS,
           (1.85 * inch, 4.25 * inch)),
         P("Assessment Scope: Bands A, B, and C", h1),
@@ -991,16 +991,16 @@ def render_protection_advisor_pdf(
         P("Nine Assessment Paths", h1),
         T(("Path", "Boundary and work included"), _ASSESSMENT_PATHS,
           (1.0 * inch, 5.1 * inch)),
-        P("Only eligible Level 1A Access has an approved automatic $1,500 prepay path without per-order Salus approval. Other paths and expanded scopes require a separate written quote and authorization."),
+        P("Only eligible Level 1A Access has an approved automatic $1,500 prepay path without per-order Salus approval. Level 1A Standard and later paths require separate written scopes, quotes and authorization after their prerequisites."),
         P("Board Investment Gate", h1),
         *bullets((
-            "Authorize a named Level 1 boundary, decision owner, evidence access, and spending limit.",
+            "Authorize the first named Level 1A unit, decision owner, evidence access, exclusions, and spending limit.",
             "Require four reports that distinguish verified evidence, reported conditions, assumptions, and unknowns.",
-            "Review Level 1 priorities and alternatives before authorizing Level 2 or Level 3.",
+            "Review qualified Level 1A priorities before authorizing Level 1B/C, Level 2 or Level 3.",
             "Track approved actions, accountable owners, due dates, and proof of improvement.",
         )),
     ]
-    story += [P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Human Review and Decision Points", h1), P("Eligible, bounded Level 1A Access may be purchased automatically at its fixed prepaid price. Automated screening does not establish a final risk finding or authorize expanded work. A qualified Salus reviewer confirms findings, other scopes, specialists, pricing, handling, and protective decisions."), P("Recommended Immediate Actions", h1), T(("Timing", "Action", "Responsible party"), (("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"), ("Before purchase", "Confirm the boundary and Access eligibility, or request a separate written quote.", "Decision owner"), ("Before paid work", "Accept the applicable agreement and prepay the approved fee.", "Protected Member"), ("After agreement", "Request only records needed for the agreed Level 1 boundary.", "Salus"), ("After assessment", "Review the four reports, options and any separately proposed service.", "Salus and decision owner")), (1.3 * inch, 3.35 * inch, 1.45 * inch)), P("Decision Required", h1), P("The next decision is whether to authorize the Level 1 boundary and spending limit. Eligible Level 1A Access can proceed automatically after agreement acceptance and prepayment; broader scope needs a separate quote. Later-level investment awaits qualified findings."), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor maps its questions to a 32-capability framework across Prevention, Protection, Mitigation, Response, and Recovery. A short screen leaves unasked capabilities unknown. Any scores only organize professional review; they do not establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Reported-need indicator; higher means more need, not measured readiness"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Separate service", "Optional proposal with its own scope and authority; not a package-level label")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Possible separate service", "Offer status", "Preliminary rationale"), _service_rows(package), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
+    story += [P("Preliminary Scope for Salus Review", h1), P("A Salus professional should validate the Protected Member's objectives, operating environment, authorities, evidence, facilities, dependencies, handling requirements, desired outcomes, schedule, and resources before finalizing an engagement."), P("Human Review and Decision Points", h1), P("Eligible, bounded Level 1A Access may be purchased automatically at its fixed prepaid price. Automated screening does not establish a final risk finding or authorize expanded work. A qualified Salus reviewer confirms findings, other scopes, specialists, pricing, handling, and protective decisions."), P("Recommended Immediate Actions", h1), T(("Timing", "Action", "Responsible party"), (("Now", "Assign an authorized Salus reviewer and confirm secure handling.", "Salus"), ("Before purchase", "Confirm the boundary and Access eligibility, or request a separate written quote.", "Decision owner"), ("Before paid work", "Accept the applicable agreement and prepay the approved fee.", "Protected Member"), ("After agreement", "Request only records needed for the agreed Level 1 boundary.", "Salus"), ("After assessment", "Review the four reports, options and any separately proposed service.", "Salus and decision owner")), (1.3 * inch, 3.35 * inch, 1.45 * inch)), P("Decision Required", h1), P("The next decision is whether to authorize the first Level 1A unit, exclusions and spending limit. Eligible Level 1A Access can proceed automatically after agreement acceptance and prepayment; Level 1A Standard needs a separate quote. Wider-band and deeper work awaits qualified prerequisite reports."), P("Important Notice", h1), P("This preliminary report is based on self-reported information and automated screening. It is not a certification or a legal, insurance, regulatory, engineering, medical, cybersecurity, or safety determination. Final conclusions require qualified Salus review."), PageBreak(), P("Appendix A Assessment Method", h1), P("Protection Advisor maps its questions to a 32-capability framework across Prevention, Protection, Mitigation, Response, and Recovery. A short screen leaves unasked capabilities unknown. Any scores only organize professional review; they do not establish risk, compliance, or readiness."), P("Interpretation Rules", h2), T(("Element", "How it should be interpreted"), (("Mission area score", "Reported-need indicator; higher means more need, not measured readiness"), ("Need score", "Relative priority; not probability or consequence"), ("Reported need", "Condition that may require improvement or validation"), ("Information gap", "Unknown that could alter findings, priorities, or scope"), ("Separate service", "Optional proposal with its own scope and authority; not a package-level label")), (1.6 * inch, 4.5 * inch)), PageBreak(), P("Appendix B Preliminary Service Rationale", h1), P(package.get("rationale") or "Service recommendations require Salus professional validation."), T(("Possible separate service", "Offer status", "Preliminary rationale"), _service_rows(package), (2.05 * inch, .8 * inch, 3.25 * inch), centered_columns=(1,)), P("Limitations", h2), P("This report does not contain enough validated evidence to support final findings about specific facilities, personnel, threats, controls, compliance, costs, schedules, or operational effectiveness.")]
     # Appendices can follow the decision on the same page. Reserving a new
     # page for each one left large, unhelpful blank areas in short reports.
     for index in reversed(range(len(story) - 1)):
