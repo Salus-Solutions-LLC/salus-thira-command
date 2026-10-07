@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 11:23 CDT
-current_frozen_release: v3.218
-current_frozen_commit: b6092778f2fdc79c23e43ef998ce8f155a2f225e
+last_verified_at: 06 October 2026 21:28 CDT
+current_frozen_release: v3.219
+current_frozen_commit: 7d07f091fd90abcb6921020d9589cc934c896b6b
 active_development_branch: development/salcapa-platform
-current_development_head: 6b2737195a21ef767ad2d5c72d688610e7179f71
+current_development_head: 7d07f091fd90abcb6921020d9589cc934c896b6b
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3218_customer_issuer_application_promotion
-last_completed_increment: v3218_immutable_image_published_and_read_back
-candidate_release: v3.218
-validation_pr: 741
-validation_branch: candidate/level1a-v3218-app-20261006
+active_increment: salus_v3220_buyer_claim_release_record_repair
+last_completed_increment: v3219_frozen_source_image_publication_cancelled
+candidate_release: v3.220
+validation_pr: pending
+validation_branch: repair/level1a-v3220-release-continuity-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3216_full_ci_failed_stale_workforce_signin_smoke
-first_root_failing_gate: v3216_passwordless_runtime_secret_paths
-root_cause: stale_workforce_signin_button_copy_assertion
-repair_head: 3b87801620f2ec875ac37021ad08aabb0266ce34
-repair_summary: v3217_preserves_both_signin_destinations_without_label_binding
-genuine_blockers: v3216_superseded_before_publication_member_upload_quote_checkout_closed
-next_authorized_step: review_exact_v3218_application_record_and_azure_preview_before_protected_deployment
-deployed_demo_release: v3.217
-deployed_demo_state: protected_v3217_deployment_verified_level1a_member_controls_closed
+validation_gate_state: local_verified_github_pending
+failed_workflows: v3219_full_release_ci_failed_stale_candidate_version
+first_root_failing_gate: v3219_continuity_record
+root_cause: v3219_build_continuity_candidate_release_still_v3218
+repair_head: 7d07f091fd90abcb6921020d9589cc934c896b6b
+repair_summary: v3220_aligns_build_continuity_with_runtime_and_preserves_claim_validation
+genuine_blockers: v3219_superseded_before_image_publication_member_upload_quote_checkout_closed
+next_authorized_step: review_exact_v3220_source_then_freeze_and_test_fictional_buyer_identity_with_commerce_closed
+deployed_demo_release: v3.218
+deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upload_and_purchase_closed
 ---
 
 # SalCAPA build continuity
@@ -32,6 +32,8 @@ deployed_demo_state: protected_v3217_deployment_verified_level1a_member_controls
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3220_verified_email_release_record_repair_candidate: Marc reviewed PR #752 exact head `6bd48995a001a5d026fe73655cc37467409acb02` after all 49 candidate checks passed; it merged as `7d07f091fd90abcb6921020d9589cc934c896b6b`, and `release/v3.219` froze that commit. The release branch guard passed, but its continuity-record check failed because this record still named v3.218 as candidate while runtime named 3.219. No v3.219 immutable image was built or deployed. The reviewed fail-closed buyer verified-email repair merged earlier as PR #751; Marc separately approved adding only `verified_primary_email` to the existing buyer app's ID token, and Azure readback confirmed exactly that optional claim. Neither step proves a real signed production-client token or callback. This successor candidate aligns the record and labels the next source v3.220, with all buyer sign-in, quote, Stripe, receipt, intake and upload controls closed. Accepted public app remains v3.218 with v3.217 rollback. Exact source review, full release CI, image readback, Azure preview/deployment and live identity, payment and scanner acceptance are separate gates.
 
 v3218_customer_issuer_image_published: Marc approved PR #740 at exact head `a11e4c596a7e1dec0d0866b68a4478890764d3d6` after all 18 candidate workflows and full frozen v3.218 release CI passed. It merged as `6b2737195a21ef767ad2d5c72d688610e7179f71`. Protected image run `37494721622` succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:528d4c475aa2540fbdbed998a066aca00ee800a2fc61ab351a8c9c82882f6887` for frozen commit `b6092778f2fdc79c23e43ef998ce8f155a2f225e`. A separate application candidate pins that digest and retains accepted v3.217 as rollback; its checks, Azure preview, exact-head review and deployment remain open. Serving Advisor remains v3.217, and buyer sign-in, Level 1A purchase/intake/upload switches remain off. Real customer token claims, Stripe, approved Word issue, receipt, scanner-backed upload and Wix acceptance are unproved.
 
