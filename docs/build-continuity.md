@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 07 October 2026 12:23 CDT
-current_frozen_release: v3.224
-current_frozen_commit: f19be501975b1a80dbbec509b4cae45f878f44fe
+last_verified_at: 07 October 2026 12:36 CDT
+current_frozen_release: v3.225
+current_frozen_commit: 08f2b45a46949d23455a125d704fa05c9eaeecfc
 active_development_branch: development/salcapa-platform
-current_development_head: e3e6f74fe4408c5fa4d311fbe00c039a316e406b
+current_development_head: 08f2b45a46949d23455a125d704fa05c9eaeecfc
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3225_advisor_review_email_navigation
-last_completed_increment: v3224_immutable_image_published_and_v3225_review_link_repair_source_merged
+active_increment: salus_v3225_immutable_image_publication
+last_completed_increment: v3225_source_frozen_after_all_candidate_checks_v3224_image_superseded
 candidate_release: v3.225
-validation_pr: 775
-validation_branch: candidate/advisor-review-v3225-20261007
+validation_pr: 776
+validation_branch: candidate/advisor-review-v3225-image-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3224_review_link_first_source_codeql_findings
 first_root_failing_gate: v3224_review_link_initial_security_analysis
 root_cause: browser_held_review_return_path_failed_codeql_then_replaced_by_one_time_server_side_continuation
-repair_head: e3e6f74fe4408c5fa4d311fbe00c039a316e406b
-repair_summary: v3225_https_advisor_review_email_and_staff_oidc_return_source_merged
+repair_head: 08f2b45a46949d23455a125d704fa05c9eaeecfc
+repair_summary: v3225_https_advisor_review_email_and_staff_oidc_return_frozen_image_staged
 genuine_blockers: v3224_image_superseded_before_deployment_v3225_image_and_app_not_published_live_staff_review_link_and_103mb_exact_hash_archive_unproved_member_controls_closed
-next_authorized_step: exact_v3225_candidate_checks_source_review_freeze_image_and_protected_app_deployment_then_live_review_link_acceptance
+next_authorized_step: finish_frozen_v3225_ci_then_exact_image_record_review_and_protected_immutable_build
 deployed_demo_release: v3.223
 deployed_demo_state: accepted_immutable_application_and_advisor_v3223_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,12 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3223_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+### 7 October 2026 Central — frozen v3.225 image candidate
+
+Marc approved PR #775 exact head `c0f70d93f1da237259a286f6395fcc2c82308d5f` after all nineteen candidate workflows passed. It merged as `08f2b45a46949d23455a125d704fa05c9eaeecfc`; `release/v3.225` froze that source. Development push and frozen branch checks are running. The published v3.224 image was never deployed and is superseded by the staff review-link repair. Draft PR #776 stages only a v3.225 image from the frozen source and an exact lineage preflight; it does not deploy the app or open any Member control. Its current-head checks, qualified source review, protected image build, and registry digest readback remain required. Accepted app and Advisor remain v3.223, with v3.223 retained for application rollback. The original staff review link and 103 MB knowledge destination/archive still lack live acceptance. Buyer sign-in, payment, receipt, intake, and Member uploads stay closed; large-batch #520 and Tierra Linda remain paused.
+
+v3224_image_superseded_before_deployment: Protected image run `37654976352` published v3.224 digest `sha256:14fdffd4c18951ef1cbb5f461b360240ecf658ab8f7617966b9726d3234d278f`, but the accepted v3.223 application never deployed it. The reviewed v3.225 staff review-link repair is its exact successor candidate.
 
 ### 7 October 2026 Central — v3.225 staff review-link repair candidate
 
