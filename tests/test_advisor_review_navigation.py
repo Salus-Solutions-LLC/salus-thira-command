@@ -7,7 +7,7 @@ import app
 from public_protection_advisor import _review_access_response
 
 
-SUBMISSION = "SPA-SUBMISSION-9569A6E7F2A970D329F58FE7685CC964"
+SUBMISSION = "SPA-SUBMISSION-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
 def _request(path):
