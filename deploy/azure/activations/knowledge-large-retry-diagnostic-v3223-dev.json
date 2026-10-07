@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "operation": "inspect_large_knowledge_retry_category_v3223_once",
+  "target_environment": "dev",
+  "resource_group": "rg-salcapa-dev",
+  "job_name": "salcapa-dev-b48224-kb-scan",
+  "source_release": "release/v3.223",
+  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c",
+  "approval_record": "MD-LARGE-KNOWLEDGE-RETRY-V3223-20261007",
+  "activation_key": "salcapa-v3.223-large-retry-category-once"
+}
+
