@@ -50,7 +50,7 @@ _ASSESSMENT_PATHS = (
     ("Level 3C", "Approved compound-scenario and specialist assurance across the named Level 2C slice; support strategy, residual-risk, and resource decisions with traceable evidence."),
 )
 
-_LEVEL1A_VALUE_NOTICE = ("For a very small organization whose relevant operation fits one named site or function, Level 1A may assess nearly the whole operation at source-review depth, subject to available evidence and stated exclusions. For a larger or more complex organization, the same Level 1A is an initial assessment and leadership decision paper that identifies the next questions. It does not claim a numerical completeness percentage or replace separately approved validation.")
+_LEVEL1A_VALUE_NOTICE = ("For a very small organization fitting one named unit, Level 1A may assess nearly its whole operation at source-review depth. For a larger or more complex organization, it is an initial assessment and Board decision paper. Neither is a completeness percentage or Level 2/3 validation.")
 
 _BOARD_DECISION_NOTICE = (
     "This paper frames an investment decision; it does not establish that a specific threat, "
