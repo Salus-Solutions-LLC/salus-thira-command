@@ -18,7 +18,7 @@ validation_head: pending_exact_candidate_commit
 validation_gate_state: preflight
 failed_workflows: v3223_candidate_image_preflight_missing_exact_v3218_to_v3223_lineage
 first_root_failing_gate: v3223_exact_frozen_reference_image
-root_cause: preflight_lacked_bounded_v3218_to_v3223_case_after_v3221_rollback_and_unbuilt_v3222
+root_cause: preflight_lacked_bounded_v3221_staged_record_to_v3223_case_after_rollback_and_unbuilt_v3222
 repair_head: 5dff59b381a0c455f99c6f15d0e2a37c273f4056
 repair_summary: v3223_exact_image_lineage_for_v3218_accepted_app_and_skipped_release_history
 genuine_blockers: v3221_knowledge_promotion_rolled_back_v3222_unbuilt_v3223_image_and_live_103mb_promotion_unproved_member_controls_closed
@@ -35,7 +35,7 @@ This non-sensitive engineering record is the restart point for the unified SalCA
 
 ### 6 October 2026 Central — v3.223 frozen source and exact image lineage
 
-Marc approved and merged PR #759 as `5dff59b381a0c455f99c6f15d0e2a37c273f4056`; `release/v3.223` is frozen at that commit. The release guard, contextual intake, and full frozen checks passed. Accepted application v3.218 remains live. A v3.221 image was published, but protected deployment run `37566130383` rolled back after a 103,344,128-byte Graph knowledge upload timed out. Frozen v3.222 was superseded before image publication when its continuity check failed. PR #761 stages only the exact v3.223 image. Its first candidate run failed because the historical reference-image preflight lacked an explicit v3.218-to-v3.223 case. This bounded case requires the exact frozen commit and both intervening failures; it grants no generic release skip. Image build, readback, protected deployment, live 103 MB promotion, and qualified output review remain open. Buyer sign-in, checkout, payment, receipt, intake, and Member uploads remain closed.
+Marc approved and merged PR #759 as `5dff59b381a0c455f99c6f15d0e2a37c273f4056`; `release/v3.223` is frozen at that commit. The release guard, contextual intake, and full frozen checks passed. Accepted application v3.218 remains live. A v3.221 image was published, but protected deployment run `37566130383` rolled back after a 103,344,128-byte Graph knowledge upload timed out; its application activation record still names v3.221 while the live app is v3.218. Frozen v3.222 was superseded before image publication when its continuity check failed. PR #761 stages only the exact v3.223 image. Its first candidate run failed because the historical reference-image preflight lacked an explicit v3.218-to-v3.223 case. This bounded case requires the exact frozen commit and both intervening failures; it grants no generic release skip. Image build, readback, protected deployment, live 103 MB promotion, and qualified output review remain open. Buyer sign-in, checkout, payment, receipt, intake, and Member uploads remain closed.
 
 v3221_knowledge_promotion_rolled_back: Protected v3.221 deployment run `37566130383` rolled back to accepted v3.218 after the 103,344,128-byte Graph knowledge write timed out. The published v3.221 image is not an accepted application.
 
