@@ -343,7 +343,7 @@ with tempfile.TemporaryDirectory() as td:
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
-    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.6.0"
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.7.0"
     assert package["primary_service"]["title"]=="Level 1 SalCAPA™ Package"
     assert package["primary_service"]["level"]==1
     assert package["provisional_path"]["band"]=="B"
