@@ -107,7 +107,13 @@ with tempfile.TemporaryDirectory() as td:
     assert "Primary outcomes sought (choose any that apply)" in embedded.text
     assert 'id="accessScopeGuide"' in embedded.text
     assert 'id="accessScopeAcknowledged"' in embedded.text
-    assert "access_scope_notice_version:\"SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0\"" in embedded.text
+    assert "Required first assessment for every customer" in embedded.text
+    assert "Everyone begins with one Level 1A Access assessment." in embedded.text
+    assert "Several facilities — additional sites are later work" in embedded.text
+    assert "Two named sites or operations — second unit is later work" in embedded.text
+    assert "Training delivery and exercises are later work." in embedded.text
+    assert "Selection records a need; it does not add work" in embedded.text
+    assert "access_scope_notice_version:\"SPA-LEVEL1A-ACCESS-BOUNDARY-1.1.0\"" in embedded.text
     assert embedded.text.count('name="primaryObjective" value=')==10
     assert "function selectedPrimaryObjectives()" in embedded.text
     assert 'primary_objective:selectedPrimaryObjectives().join("; ")' in embedded.text
@@ -190,7 +196,7 @@ with tempfile.TemporaryDirectory() as td:
     csrf=payload["csrf_token"]
     headers={"X-CSRF-Token":csrf}
     questions=payload["questions"]
-    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
+    assert payload["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.4.0"
     assert len(questions)==9
     assert all(q["key"] not in {"volunteer_roles","public_access"} for q in questions)
     assert all(q["capabilities"] and q["mission_areas"] and q["services"] for q in questions)
@@ -222,7 +228,7 @@ with tempfile.TemporaryDirectory() as td:
         "protected_member_code_name":"Blocked Member","project_code_name":"Blocked Project",
         "handling_profile":"Commercial Confidential",
         "organization_name":"Blocked","contact_name":"Blocked","contact_email":"contact@example.com",
-        "detailed_assessment_acknowledged":True,"identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0",
+        "detailed_assessment_acknowledged":True,"identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.1.0",
         "facility_scope":"One facility","facility_locations":"Texas","personnel_range":"26–100",
         "affected_population_range":"101–500","annual_revenue_range":"$5 million–$25 million",
         "specific_activities":[],"essential_functions":"Services",
@@ -297,7 +303,7 @@ with tempfile.TemporaryDirectory() as td:
         "contact_name":"Assessment Contact",
         "contact_email":"contact@example.com",
         "detailed_assessment_acknowledged":True,
-        "identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0",
+        "identifiable_retention_consent":True,"access_scope_acknowledged":True,"access_scope_notice_version":"SPA-LEVEL1A-ACCESS-BOUNDARY-1.1.0",
         "facility_scope":"Several facilities",
         "covered_operation":"Two named manufacturing and fulfillment sites",
         "decision_units":"Two",
@@ -338,7 +344,7 @@ with tempfile.TemporaryDirectory() as td:
     assert saved_profile["essential_functions"]=="Manufacturing\nand secure fulfillment"
     assert saved_profile["primary_objective"]=="Facility or operational protection improvements; Continuity and recovery capability"
     assert saved_profile["access_scope_acknowledged"] is True
-    assert saved_profile["access_scope_notice_version"]=="SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0"
+    assert saved_profile["access_scope_notice_version"]=="SPA-LEVEL1A-ACCESS-BOUNDARY-1.1.0"
     assert saved_profile["recent_concerns"]=="Continuity\nand competing resources"
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
@@ -451,8 +457,8 @@ with tempfile.TemporaryDirectory() as td:
     account=conn.execute("SELECT * FROM advisor_public_accounts").fetchone()
     assert account["email"]=="contact@example.com"
     assert session["status"]=="Submitted"
-    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
-    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.4.0"
+    assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.4.0"
+    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.5.0"
     assert json.loads(profile["profile_json"])["covered_operation_tags"]==[
         "Manufacturing or industrial work","Warehouse or distribution"]
     assert json.loads(profile["profile_json"])["records_coordinator_role"]=="Operations manager"
