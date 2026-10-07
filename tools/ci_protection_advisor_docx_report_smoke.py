@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 
 from docx import Document
 from docx.enum.section import WD_SECTION
+from docx.oxml.ns import qn
 
 from protection_advisor_docx_report import _professional_body, render_protection_advisor_docx, render_protection_advisor_pdf, render_scope_receipt_pdf
 from protection_advisor_report_contract import build_report_context
@@ -35,6 +36,15 @@ with TemporaryDirectory() as tmp:
     )
 
     rendered = Document(output)
+    cover_graphics = list(rendered.element.iter(qn("wp:docPr")))
+    assert len(cover_graphics) == 3
+    assert all(graphic.get("descr") for graphic in cover_graphics)
+    footer_graphics = [
+        graphic for section in rendered.sections
+        for graphic in section.footer._element.iter(qn("wp:docPr"))
+    ]
+    assert len(footer_graphics) == 2
+    assert all(graphic.get("descr") == "Salus Solutions logo." for graphic in footer_graphics)
     text = "\n".join(
         [p.text for p in rendered.paragraphs]
         + [cell.text for table in rendered.tables for row in table.rows for cell in row.cells]
