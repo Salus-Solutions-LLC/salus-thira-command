@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException, Request
 
 import app
-from public_protection_advisor import _review_access_response
+from public_protection_advisor import _review_access_response, _review_url
 
 
 SUBMISSION = "SPA-SUBMISSION-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -36,6 +36,13 @@ def test_review_return_cannot_leave_the_staff_review_area():
     for path in ("https://evil.example", "//evil.example", "/api/admin/readiness",
                  "/protection-advisor/review/SPA-SUBMISSION-other", "/protection-advisor/review/../"):
         assert app.staff_oidc_return_path(path) == "/"
+
+def test_staff_email_link_uses_https_despite_http_proxy_scheme():
+    path = "/protection-advisor/review/" + SUBMISSION
+    request = _request(path)
+    request.scope["scheme"] = "http"
+    assert _review_url(request, SUBMISSION) == "https://salcapa.salus.solutions" + path
+
 
 
 def test_review_never_redirects_a_signed_in_non_admin():
