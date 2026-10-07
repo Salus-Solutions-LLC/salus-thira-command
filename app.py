@@ -3792,8 +3792,15 @@ backfill_baseline_versions()
 @app.get('/api/system/mode')
 def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'customer_signin_available':customer_oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc'),'level1a_purchase_available':bool(LEVEL1A_ORDER_DRAFT_ENABLED and LEVEL1A_INTAKE_ENABLED and LEVEL1A_UPLOAD_ENABLED and PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and AUTH_MODE in ('session','oidc'))}
 
+def staff_oidc_return_path(value:str)->str:
+    if value == '/protection-advisor/review' or re.fullmatch(
+        r'/protection-advisor/review/SPA-SUBMISSION-[A-F0-9]{32}', value or ''
+    ):
+        return value
+    return '/'
+
 @app.get('/api/auth/oidc/start')
-def oidc_start(request:Request):
+def oidc_start(request:Request, next:str=''):
     if AUTH_MODE!='oidc': raise HTTPException(409,'OIDC authentication is not enabled.')
     cfg=oidc_discovery(); state=secrets.token_urlsafe(32); nonce=secrets.token_urlsafe(24)
     expires=(_iso_now_dt()+timedelta(minutes=OIDC_STATE_MINUTES)).replace(microsecond=0).isoformat().replace('+00:00','Z')
@@ -3801,6 +3808,11 @@ def oidc_start(request:Request):
     params={'client_id':OIDC_CLIENT_ID,'response_type':'code','redirect_uri':oidc_redirect_uri(request),'scope':OIDC_SCOPES,'state':state,'nonce':nonce}
     url=cfg['authorization_endpoint']+'?'+urllib.parse.urlencode(params)
     response=RedirectResponse(url,status_code=302); response.set_cookie('salus_oidc_state',state,httponly=True,secure=COOKIE_SECURE,samesite='lax',max_age=OIDC_STATE_MINUTES*60,path='/')
+    return_path=staff_oidc_return_path(next)
+    if return_path!='/':
+        response.set_cookie('salus_oidc_return',return_path,httponly=True,secure=COOKIE_SECURE,samesite='lax',max_age=OIDC_STATE_MINUTES*60,path='/api/auth/oidc')
+    else:
+        response.delete_cookie('salus_oidc_return',path='/api/auth/oidc')
     return response
 
 @app.get('/api/auth/oidc/callback',name='oidc_callback')
@@ -3864,7 +3876,17 @@ def oidc_callback(request:Request,code:str='',state:str='',error:str=''):
     conn.execute('INSERT INTO identity_acceptance_events(event_key,tenant_id,user_id,identity_provider,external_subject_sha256,mapped_role,mapped_clearance,authority_source,authentication_method,oidc_issuer_sha256,accepted_at,session_expires_at,request_id,source_network_sha256) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(acceptance_key,int(user['tenant_id']),int(user['id']),OIDC_PROVIDER_NAME,_hash_token(subject),user['role'],user['sensitivity_clearance'] or 'Standard','server_user_mapping','oidc_authorization_code',_hash_token(cfg['issuer']),accepted_at,session_expires,request_id(request),_hash_token(request_ip(request)) if request_ip(request) else ''))
     conn.commit(); conn.close()
     security_event(request,'OIDC_LOGIN_SUCCESS','Info',f'user_id={user["id"]}; acceptance={acceptance_key}',tenant=int(user['tenant_id']),user_name=display)
-    response=RedirectResponse('/',status_code=302); response.set_cookie('salus_session',token,httponly=True,secure=COOKIE_SECURE,samesite='strict',max_age=SESSION_HOURS*3600,path='/'); response.delete_cookie('salus_oidc_state',path='/'); return response
+    return_path=staff_oidc_return_path(request.cookies.get('salus_oidc_return',''))
+    if return_path!='/':
+        # Complete the cross-site identity callback before navigating with the Strict session cookie.
+        response=HTMLResponse("<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+            "<meta name='referrer' content='no-referrer'><title>Opening Salus review</title></head>"
+            "<body><main><h1>Opening your Salus review</h1><p><a href='"+html.escape(return_path,quote=True)+"'>"
+            "Continue to review</a></p></main><script>location.replace("+json.dumps(return_path)+")</script></body></html>",
+            headers={'Cache-Control':'no-store','X-Frame-Options':'DENY','Referrer-Policy':'no-referrer'})
+    else:
+        response=RedirectResponse('/',status_code=302)
+    response.set_cookie('salus_session',token,httponly=True,secure=COOKIE_SECURE,samesite='strict',max_age=SESSION_HOURS*3600,path='/'); response.delete_cookie('salus_oidc_state',path='/'); response.delete_cookie('salus_oidc_return',path='/api/auth/oidc'); return response
 
 
 _customer_oidc_cache = {}
