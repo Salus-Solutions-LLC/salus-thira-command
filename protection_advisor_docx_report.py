@@ -971,7 +971,7 @@ def render_protection_advisor_pdf(
         if receipt.get("choices"):
             story.append(P("Your choices", h2))
             story += bullets(f"{item['choice']} — {item['effect']}" for item in receipt["choices"])
-    story += [P(f"The possible paid next step is {primary.get('title', 'Professional Review')}. {primary.get('summary', '')}"), P("Why start here: " + str(primary.get("why", ""))), P("Recommended Sequence", h1), T(("Phase", "Service", "Purpose"), _sequence_rows(package), (.65 * inch, 2.45 * inch, 3.0 * inch), centered_columns=(0,))]
+    story += [P(f"The possible paid next step is {primary.get('title', 'Professional Review')}. {primary.get('summary', '')}"), P("Why start here: " + str(primary.get("why", ""))), P(_LEVEL1A_VALUE_NOTICE), P("Recommended Sequence", h1), T(("Phase", "Service", "Purpose"), _sequence_rows(package), (.65 * inch, 2.45 * inch, 3.0 * inch), centered_columns=(0,))]
     if package.get("later_phase_services"):
         story.append(P("Other Services to Discuss After Salus Review", h1))
     for service in package.get("later_phase_services") or []:
@@ -980,7 +980,6 @@ def render_protection_advisor_pdf(
         P("Board Decision Brief", h1),
         P("Leadership is deciding whether to fund a defined first assessment that turns reported concerns into an evidence-based safety, security, and wellbeing investment plan. The questionnaire is a screen, not proof that controls have failed."),
         P(_BOARD_DECISION_NOTICE),
-        P(_LEVEL1A_VALUE_NOTICE),
         P("Four Reports for the Board", h1),
         P("Each approved assessment produces four coordinated reports for the same named boundary. The required first Level 1A is source-based and identifies unknowns; later bands and levels require qualified prerequisites and separate scope."),
         T(("Report and role", "What the Board receives"),
