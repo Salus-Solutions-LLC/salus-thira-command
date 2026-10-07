@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 21:28 CDT
-current_frozen_release: v3.219
-current_frozen_commit: 7d07f091fd90abcb6921020d9589cc934c896b6b
+last_verified_at: 06 October 2026 21:39 CDT
+current_frozen_release: v3.220
+current_frozen_commit: ea02ae362049b9b02fbbbf74f6803720c43c018e
 active_development_branch: development/salcapa-platform
-current_development_head: 7d07f091fd90abcb6921020d9589cc934c896b6b
+current_development_head: ea02ae362049b9b02fbbbf74f6803720c43c018e
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3220_buyer_claim_release_record_repair
-last_completed_increment: v3219_frozen_source_image_publication_cancelled
-candidate_release: v3.220
-validation_pr: pending
-validation_branch: repair/level1a-v3220-release-continuity-20261006
+active_increment: salus_v3221_buyer_claim_release_record_repair
+last_completed_increment: v3220_frozen_source_image_publication_cancelled
+candidate_release: v3.221
+validation_pr: 754
+validation_branch: repair/level1a-v3221-release-record-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: local_verified_github_pending
-failed_workflows: v3219_full_release_ci_failed_stale_candidate_version
-first_root_failing_gate: v3219_continuity_record
-root_cause: v3219_build_continuity_candidate_release_still_v3218
-repair_head: 7d07f091fd90abcb6921020d9589cc934c896b6b
-repair_summary: v3220_aligns_build_continuity_with_runtime_and_preserves_claim_validation
-genuine_blockers: v3219_superseded_before_image_publication_member_upload_quote_checkout_closed
-next_authorized_step: review_exact_v3220_source_then_freeze_and_test_fictional_buyer_identity_with_commerce_closed
+failed_workflows: v3220_full_release_ci_failed_pending_validation_pr
+first_root_failing_gate: v3220_continuity_record
+root_cause: v3220_build_continuity_validation_pr_pending
+repair_head: ea02ae362049b9b02fbbbf74f6803720c43c018e
+repair_summary: v3221_records_numeric_validation_pr_and_preserves_claim_validation
+genuine_blockers: v3220_superseded_before_image_publication_member_upload_quote_checkout_closed
+next_authorized_step: review_exact_v3221_source_then_freeze_and_test_fictional_buyer_identity_with_commerce_closed
 deployed_demo_release: v3.218
 deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3221_buyer_claim_release_record_repair_candidate: Marc approved PR #753 at exact head `5779c83cc7c2781062a6f84a7b84088d5bf3469a` after its four checks passed; it merged as `ea02ae362049b9b02fbbbf74f6803720c43c018e`. `release/v3.220` froze that commit. The release branch guard passed, but its deployment-continuity test failed because the build record's validation PR value was `pending` rather than numeric. No v3.220 immutable image was built or deployed. This successor corrects that record and labels the unchanged reviewed verified-email code v3.221. Keep buyer sign-in, quote, Stripe checkout/payment, receipt, intake and upload closed; accepted public app remains v3.218 with v3.217 rollback. Do not publish before exact-source review, full frozen CI, immutable-image readback, Azure preview, and live identity, payment and scanner acceptance.
 
 v3220_verified_email_release_record_repair_candidate: Marc reviewed PR #752 exact head `6bd48995a001a5d026fe73655cc37467409acb02` after all 49 candidate checks passed; it merged as `7d07f091fd90abcb6921020d9589cc934c896b6b`, and `release/v3.219` froze that commit. The release branch guard passed, but its continuity-record check failed because this record still named v3.218 as candidate while runtime named 3.219. No v3.219 immutable image was built or deployed. The reviewed fail-closed buyer verified-email repair merged earlier as PR #751; Marc separately approved adding only `verified_primary_email` to the existing buyer app's ID token, and Azure readback confirmed exactly that optional claim. Neither step proves a real signed production-client token or callback. This successor candidate aligns the record and labels the next source v3.220, with all buyer sign-in, quote, Stripe, receipt, intake and upload controls closed. Accepted public app remains v3.218 with v3.217 rollback. Exact source review, full release CI, image readback, Azure preview/deployment and live identity, payment and scanner acceptance are separate gates.
 
@@ -99,3 +101,4 @@ Human-First Communications and Human Trust & Comprehension doctrine remain in fo
 Never place credentials, confidential Protected Member information, personal information, investigation content, secrets, or unnecessary financial data in this file.
 
 Keep Microsoft Graph access least-privilege, exact-folder scoped, auditable, revocable, and separately governed from report publication or other write paths.
+
