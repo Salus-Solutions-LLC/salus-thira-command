@@ -344,10 +344,10 @@ with tempfile.TemporaryDirectory() as td:
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
     assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.7.0"
-    assert package["primary_service"]["title"]=="Level 1 SalCAPA™ Package"
+    assert package["primary_service"]["title"]=="Level 1A SalCAPA™ Package"
     assert package["primary_service"]["level"]==1
     assert package["provisional_path"]["band"]=="B"
-    assert "written quote" in package["provisional_path"]["next_step"]
+    assert "qualified Level 1A completion" in package["provisional_path"]["next_step"]
     assert package["scope_receipt"]["requested_boundary"]=="Two named manufacturing and fulfillment sites"
     assert package["scope_receipt"]["records_coordinator"]=="Operations manager"
     assert "organization chart" in package["scope_receipt"]["member_prepares"][0]
@@ -355,7 +355,7 @@ with tempfile.TemporaryDirectory() as td:
     assert "written scope" in package["scope_receipt"]["schedule_state"]
     assert len(package["scope_receipt"]["milestones"]) == 5
     assert len(package["scope_receipt"]["choices"]) == 4
-    assert package["sequence"][0]=="Level 1 SalCAPA™ package — four coordinated reports"
+    assert package["sequence"][0]=="Level 1A first — four coordinated reports for one named unit"
     assert result["preliminary_hypothesis"]["working_assumption"]
     assert any(value is not None for value in result["mission_area_scores"].values())
     assert 1<=len(package["services"])<=4
