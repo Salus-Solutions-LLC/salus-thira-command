@@ -187,3 +187,32 @@ def test_requested_cui_is_visible_without_an_approved_marking(tmp_path: Path):
         assert images and any(obj.get_object().get("/Subtype") == "/Image" for obj in images.get_object().values())
     source = Path("public_protection_advisor.py").read_text(encoding="utf-8")
     assert 'handling = "CUI" if "CUI" in str(identity.get("handling_profile", "")) else "Confidential"' in source
+
+
+def test_board_decision_paper_has_all_reports_levels_paths_and_readable_spacing(tmp_path: Path):
+    document = Document()
+    _professional_body(document, _context().as_template_fields(), RESULT, PACKAGE)
+    docx_path = tmp_path / "board.docx"
+    document.save(docx_path)
+    reopened = Document(docx_path)
+    docx_text = "\n".join(
+        [p.text for p in reopened.paragraphs]
+        + [cell.text for table in reopened.tables for row in table.rows for cell in row.cells]
+    )
+    pdf_path = render_protection_advisor_pdf(
+        output_path=tmp_path / "board.pdf", context=_context(), result=RESULT, package=PACKAGE,
+    )
+    pdf_text = "\n".join(page.extract_text() or "" for page in PdfReader(pdf_path).pages)
+    for text in (docx_text, pdf_text):
+        for label in ("Board Decision Brief", "Four Reports for the Board", "Nine Assessment Paths",
+                      "Board Investment Gate", "SalINTEL", "SalTHIRA", "SalOPS", "SalCAPA",
+                      "Level 1A", "Level 1B", "Level 1C", "Level 2A", "Level 2B",
+                      "Level 2C", "Level 3A", "Level 3B", "Level 3C"):
+            assert label in text
+        assert "eligible Level 1A Access" in text
+        assert "separately scoped" in text
+    normal = reopened.styles["Normal"].paragraph_format
+    assert normal.space_after.pt >= 8
+    assert reopened.styles["Heading 1"].paragraph_format.space_before.pt >= 12
+    first_bullet = next(p for p in reopened.paragraphs if p.text.startswith("• "))
+    assert first_bullet.paragraph_format.space_before.pt >= 5
