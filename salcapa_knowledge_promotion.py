@@ -1467,4 +1467,3 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
 
     promote.__annotations__["request"] = Request
     app.post("/api/integrations/m365/knowledge/candidates/{candidate_id}/promote", include_in_schema=False)(promote)
-
