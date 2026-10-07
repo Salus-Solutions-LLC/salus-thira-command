@@ -157,6 +157,8 @@
 
 | SAL-D103 | Add **House of Worship** as an optional covered-operation choice in Protection Advisor Part 2 under “What work happens in the operation?” Keep the existing choices and the separate broad organization-type answer. This choice describes the actual work in the proposed boundary for routing examples, justified follow-up questions and records; it never by itself sets risk, compliance, price, band or eligibility, and it does not certify a faith organization or a Protected Member. The exact questionnaire, report and live page remain subject to source checks, qualified review and governed release. | Marc explicitly requested this Part 2 choice on 7 October 2026; approved customer-experience requirement, implementation and publication separately gated |
 
+| SAL-D104 | In Protection Advisor Part 2 section 3, let the respondent choose multiple listed outcomes sought from Salus. Preserve and display every selected outcome in the saved draft, submitted profile and preliminary service guidance; keep “Not sure” exclusive. Existing single-outcome records remain readable. These responses describe requested help, not authorized services, a verified finding, price or a changed Level 1 scope. Apply exact questionnaire, data, report and live release checks. | Marc explicitly requested multiple selections for “Primary outcome sought” on 7 October 2026; approved customer-experience requirement, implementation and publication separately gated |
+
 ## Register maintenance rule
 
 Add a dated entry whenever Marc approves a material change to terminology, architecture, methodology, governance, report design, data handling, release policy, or customer experience. Never silently replace an approved decision; mark it superseded and reference the new decision.
