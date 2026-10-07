@@ -138,7 +138,18 @@ else:
     # no generic version skip can qualify an image for publication.
     immediate_successor = (accepted_version[0], accepted_version[1] + 1)
     superseding_successor = (accepted_version[0], accepted_version[1] + 2)
-    if (accepted_version, published_version) == ((3, 221), (3, 223)):
+    if (accepted_version, published_version) == ((3, 223), (3, 225)):
+        # v3.224 was published but never deployed. The staff review-link
+        # repair supersedes that unused image while v3.223 remains accepted.
+        # Require the exact frozen successor and recorded rollback lineage.
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        assert accepted_application["rollback_release"] == "release/v3.218"
+        assert "current_frozen_release: v3.225" in continuity
+        assert "current_frozen_commit: 08f2b45a46949d23455a125d704fa05c9eaeecfc" in continuity
+        assert "candidate_release: v3.225" in continuity
+        assert "v3224_image_superseded_before_deployment" in continuity
+        assert image_publication["source_commit"] == "08f2b45a46949d23455a125d704fa05c9eaeecfc"
+    elif (accepted_version, published_version) == ((3, 221), (3, 223)):
         # The v3.221 application activation record remains staged after its
         # protected deployment rolled back to v3.218. The v3.222 image was
         # never published. Require that precise recorded lineage and rollback.
