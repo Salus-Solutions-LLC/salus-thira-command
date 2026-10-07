@@ -66,8 +66,8 @@ HANDLING_PROFILES = {
     "Government Contractor CUI", "Specialized Regulated Information",
 }
 HANDLING_REVIEW_REQUIRED = HANDLING_PROFILES - {"Commercial Confidential"}
-PACKAGE_PROFILE_VERSION = "SPA-SERVICE-PROFILE-2.3.0"
-PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-2.7.0"
+PACKAGE_PROFILE_VERSION = "SPA-SERVICE-PROFILE-2.4.0"
+PACKAGE_RECOMMENDATION_VERSION = "SPA-PACKAGE-RECOMMENDATION-2.8.0"
 ACCESS_SCOPE_NOTICE_VERSION = "SPA-LEVEL1A-ACCESS-BOUNDARY-1.0.0"
 SESSION_HOURS = 24  # Browser authentication lifetime only; retained records do not expire here.
 NOTIFICATION_MODE = os.getenv("SALUS_ADVISOR_NOTIFICATION_MODE", "outbox").strip().lower()
@@ -1117,7 +1117,7 @@ def _result(questions: list[dict[str, Any]], answers: dict[str, dict[str, Any]])
         "priority_capabilities": [row for row in capability_rows if row["need_score"] is not None and row["need_score"] > 0][:8],
         "mission_area_scores": mission_scores,
         "core_capabilities_considered": len(CORE_CAPABILITIES),
-        "notice": short_screen_notice + "A paid assessment begins with a qualified Level 1A SalCAPA™ package for one named site or function. Wider bands and deeper levels are later, separately scoped options. Eligible Level 1A Access has an approved $1,500 prepaid path; other scopes need a quote.",
+        "notice": short_screen_notice + "The first paid assessment is the fixed $1,500 prepaid Level 1A Access package for one named site or function. Wider bands, deeper levels and separate services are discussed and priced after its qualified reports.",
         "manual_next_step": "Qualification, scoping, proposal, onboarding, and service delivery remain human-controlled.",
     }
 
@@ -1270,7 +1270,7 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <label>How many operations need their own decision?<select id="decisionUnits"><option value="Not sure">Not sure yet</option><option value="One">One combined operation</option><option value="Two">Two named sites or operations</option><option value="Group">A group needing shared priorities</option></select></label>
 <label>Will different sites or activities need separate findings and a comparison?<select id="separateFindings"><option value="Not sure">Not sure yet</option><option value="No">No, one combined set of findings</option><option value="Yes">Yes, separate findings and a comparison</option></select></label>
 <label>Must leadership rank investments across a group of sites or activities?<select id="groupPriorities"><option value="Not sure">Not sure yet</option><option value="No">No</option><option value="Yes">Yes</option></select></label>
-<p class="muted">These answers may suggest wider Level 1B/C work later. Every new assessment starts with one named Level 1A site or function. Eligible Level 1A Access is $1,500 prepaid; other first-unit scope requires a separate Level 1A Standard quote.</p><p id="accessScopeGuide" class="muted" role="status" aria-live="polite">The $1,500 Access assessment covers one named site or function only. Other requested work is retained for a later, separately scoped decision.</p>
+<p class="muted">These answers may suggest wider Level 1B/C work later. Every new assessment starts with one named Level 1A site or function. The first Level 1A Access unit is $1,500 prepaid. Other selections do not change that price; Salus discusses and prices additional work after the qualified Level 1A reports.</p><p id="accessScopeGuide" class="muted" role="status" aria-live="polite">The $1,500 Access assessment covers one named site or function only. Other requested work is retained for a later, separately scoped decision.</p>
 <label>Facility locations or general service area<textarea id="facilityLocations" maxlength="1500" placeholder="Provide addresses or general locations appropriate for this preliminary review. Do not provide access codes, floor plans, or sensitive security details."></textarea></label>
 <label>Personnel and population range<select id="personnelRange"><option value="">Choose an option</option><option>1–25</option><option>26–100</option><option>101–500</option><option>501–2,500</option><option>2,501–10,000</option><option>More than 10,000</option><option>Varies significantly</option><option>Prefer to discuss with Salus</option></select></label>
 <label>People who may be affected, served, present, or dependent on operations<select id="affectedPopulationRange"><option value="">Choose an option</option><option>1–25</option><option>26–100</option><option>101–500</option><option>501–2,500</option><option>2,501–10,000</option><option>More than 10,000</option><option>Varies significantly</option><option>Not sure</option><option>Prefer to discuss with Salus</option></select></label>
@@ -1280,7 +1280,7 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <label>Maximum tolerable interruption for the most essential function<select id="maximumTolerableDowntime"><option value="">Choose an option</option><option>Less than 4 hours</option><option>4–24 hours</option><option>1–3 days</option><option>4–7 days</option><option>More than 7 days</option><option>Not established</option><option>Not sure</option><option>Prefer to discuss with Salus</option></select></label>
 <label>Current protection and preparedness program<select id="existingProgramMaturity"><option value="">Choose an option</option><option>Recently assessed, documented, and validated</option><option>Documented but not recently tested</option><option>Partially documented or inconsistently applied</option><option>Mostly informal</option><option>Little or no current program</option><option>Not sure</option><option>Prefer to discuss with Salus</option></select></label>
 <label>Internal capacity to implement improvements<select id="internalImplementationCapacity"><option value="">Choose an option</option><option>Dedicated qualified team</option><option>Shared or part-time personnel</option><option>Limited internal capacity</option><option>Need Salus implementation support</option><option>Not sure</option><option>Prefer to discuss with Salus</option></select></label>
-<h3 class="profile-section">3. What you need from Salus</h3><fieldset><legend>Primary outcomes sought (choose any that apply)</legend><div id="primaryObjectives">__PRIMARY_OUTCOMES__</div></fieldset><p class="muted">Select every outcome you want us to consider. Selection records a need; it does not add work to the $1,500 Level 1A Access assessment. Work beyond its one-unit source review needs a later written scope and price.</p>
+<h3 class="profile-section">3. What you need from Salus</h3><fieldset><legend>Primary outcomes sought (choose any that apply)</legend><div id="primaryObjectives">__PRIMARY_OUTCOMES__</div></fieldset><p class="muted">Select every outcome you want us to consider. Selection records a need; it does not add work to the $1,500 Level 1A Access assessment. Work beyond its one-unit source review is discussed and separately priced only after the qualified Level 1A reports.</p>
 <label>External requirement or decision driver<select id="externalRequirements"><option value="">Choose an option</option><option>Regulatory or statutory requirement</option><option>Contract or customer requirement</option><option>Insurance or underwriting concern</option><option>Board, executive, or governance requirement</option><option>Recent incident or credible concern</option><option>Future planning or budget decision</option><option>No known external requirement</option><option>Not sure</option><option>Prefer to discuss with Salus</option></select></label>
 <label>Recent incidents, concerns, deadlines, or reasons for seeking assistance<textarea id="recentConcerns" maxlength="1200"></textarea></label>
 <label>Desired timing<select id="desiredTiming"><option value="">Choose an option</option><option>Immediate concern</option><option>Within 30 days</option><option>Within 90 days</option><option>Within 6 months</option><option>Planning for a future budget cycle</option><option>Not sure</option></select></label>
@@ -1643,7 +1643,7 @@ def _package_recommendation(
         "mission_area_scores": mission_scores,
         "core_capabilities_considered": len(CORE_CAPABILITIES),
         "rationale": "The first Level 1A package connects reported conditions, strengths and unknowns for one named unit to four coordinated SalINTEL, SalTHIRA, SalOPS and SalCAPA decisions. A broader band or deeper level is a later, separately scoped decision after qualified prerequisite reports.",
-        "notice": "Preliminary — not an approved assessment or expanded purchase. Eligible Level 1A Access may be bought at $1,500 for its exact one-unit boundary without per-order Salus approval; Level 1A Standard and later work need separate written scope and quote. Level 1B/C and all Level 2/3 paths require qualified Level 1A first. Level 2 also needs qualified Level 1 coverage of its boundary; Level 3 needs qualified Level 2. Formal findings and reports require professional review.",
+        "notice": "Preliminary — not an approved assessment or expanded purchase. The first Level 1A Access unit has the fixed $1,500 prepaid price and no per-order Salus approval. Part 2 selections beyond its written boundary do not change that price; after qualified Level 1A reports, Salus and the Protected Member can discuss and separately price additional work. Level 1B/C and all Level 2/3 paths require qualified Level 1A first. Level 2 also needs qualified Level 1 coverage of its boundary; Level 3 needs qualified Level 2. Formal findings and reports require professional review.",
         "version": PACKAGE_RECOMMENDATION_VERSION,
     }
 
@@ -2993,7 +2993,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 # reconstructed using today's renderer or handling data.
                 if (revision_no != int(latest_identity["revision_no"])
                         or row["package_recommendation_version"] != PACKAGE_RECOMMENDATION_VERSION
-                        or receipt.get("version") != "SPA-SCOPE-RECEIPT-0.5.0"):
+                        or receipt.get("version") != "SPA-SCOPE-RECEIPT-0.6.0"):
                     raise HTTPException(409, "This earlier receipt needs Salus review")
                 identity_version_payload = {
                     key: identity[key] for key in (
