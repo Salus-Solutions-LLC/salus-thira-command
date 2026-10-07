@@ -50,6 +50,8 @@ _ASSESSMENT_PATHS = (
     ("Level 3C", "Approved compound-scenario and specialist assurance across the named Level 2C slice; support strategy, residual-risk, and resource decisions with traceable evidence."),
 )
 
+_LEVEL1A_VALUE_NOTICE = ("For a very small organization whose relevant operation fits one named site or function, Level 1A may assess nearly the whole operation at source-review depth, subject to available evidence and stated exclusions. For a larger or more complex organization, the same Level 1A is an initial assessment and leadership decision paper that identifies the next questions. It does not claim a numerical completeness percentage or replace separately approved validation.")
+
 _BOARD_DECISION_NOTICE = (
     "This paper frames an investment decision; it does not establish that a specific threat, "
     "failure, loss, compliance breach, or return on investment has been proven. The Board should "
@@ -217,6 +219,7 @@ def _professional_body(document, fields, result, package) -> None:
         "not a finding that controls have failed."
     )
     document.add_paragraph(_BOARD_DECISION_NOTICE)
+    document.add_paragraph(_LEVEL1A_VALUE_NOTICE)
 
     document.add_heading("Readiness Snapshot", level=1)
     _add_table(document, ("Measure", "Result", "Interpretation"), (
@@ -977,6 +980,7 @@ def render_protection_advisor_pdf(
         P("Board Decision Brief", h1),
         P("Leadership is deciding whether to fund a defined first assessment that turns reported concerns into an evidence-based safety, security, and wellbeing investment plan. The questionnaire is a screen, not proof that controls have failed."),
         P(_BOARD_DECISION_NOTICE),
+        P(_LEVEL1A_VALUE_NOTICE),
         P("Four Reports for the Board", h1),
         P("Each approved assessment produces four coordinated reports for the same named boundary. The required first Level 1A is source-based and identifies unknowns; later bands and levels require qualified prerequisites and separate scope."),
         T(("Report and role", "What the Board receives"),
