@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 22:57 CDT
-current_frozen_release: v3.221
-current_frozen_commit: 6e23743a0bcab6eee29530e256246464d791f07d
+last_verified_at: 06 October 2026 23:06 CDT
+current_frozen_release: v3.222
+current_frozen_commit: 8eee4598a3eced19fb0f9b3c15a17b9dc79b3b45
 active_development_branch: development/salcapa-platform
-current_development_head: e380504808f03d6dfd90ed704fc3c8d00abef1af
+current_development_head: 8eee4598a3eced19fb0f9b3c15a17b9dc79b3b45
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3222_knowledge_upload_repair
-last_completed_increment: v3221_rollback_and_v3222_upload_repair_merged
-candidate_release: v3.222
-validation_pr: pending
-validation_branch: candidate/knowledge-upload-v3222-20261006
+active_increment: salus_v3223_knowledge_upload_release_record_repair
+last_completed_increment: v3222_release_record_failed_before_image_publication
+candidate_release: v3.223
+validation_pr: 759
+validation_branch: candidate/knowledge-upload-v3223-record-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: preflight
-failed_workflows: v3221_protected_deployment_37566130383_rolled_back
-first_root_failing_gate: v3221_scheduled_knowledge_worker_promotion
-root_cause: graph_single_put_103344128_bytes_30_second_read_timeout
-repair_head: e380504808f03d6dfd90ed704fc3c8d00abef1af
-repair_summary: v3222_resumable_graph_upload_hash_readback_and_pr_ci_gate
-genuine_blockers: v3222_frozen_ci_image_and_live_103mb_promotion_unproved_member_controls_closed
-next_authorized_step: exact_source_review_then_freeze_v3222_and_verify_immutable_image
+failed_workflows: v3222_build_continuity_smoke_failed_missing_superseded_marker
+first_root_failing_gate: v3222_demo_deployment_continuity
+root_cause: v3222_genuine_blockers_lacked_superseded_marker
+repair_head: 8eee4598a3eced19fb0f9b3c15a17b9dc79b3b45
+repair_summary: v3223_records_v3222_supersession_and_adds_pr_continuity_gate
+genuine_blockers: v3222_superseded_before_image_publication_v3223_frozen_ci_and_live_103mb_promotion_unproved_member_controls_closed
+next_authorized_step: review_exact_v3223_source_after_full_candidate_continuity_checks
 deployed_demo_release: v3.218
 deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,10 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+### 6 October 2026 Central — v3.222 source superseded before image publication
+
+Marc approved exact v3.222 candidate PR #758 at head `b03cba1d9057a18c17634179eccab80d4c8d6099` after 11 green candidate checks; it merged as `8eee4598a3eced19fb0f9b3c15a17b9dc79b3b45`, and `release/v3.222` froze that commit. The release branch guard passed, but the first development continuity run failed in `ci_demo_deployment_continuity_smoke.py` because the record did not label v3.221 as superseded. No v3.222 image activation was changed or published. This successor v3.223 adds that release-record marker and places the same continuity smoke in pull request CI. The reviewed Microsoft Graph resumable-upload repair is unchanged. Accepted public v3.218 remains live, and buyer sign-in, commerce, receipts, intake and Member uploads remain closed pending frozen CI, one immutable image, protected live 103 MB promotion and qualified output review.
 
 ### 6 October 2026 Central — v3.222 candidate after v3.221 rollback
 

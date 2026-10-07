@@ -40,6 +40,10 @@ on:
       - APPROVED_ARTIFACTS.md
       - SALUS_CHAT_STARTUP_PROTOCOL.md
       - CURRENT_HANDOFF.md
+      - docs/build-continuity.md
+      - docs/demo-deployment-continuity.md
+      - tools/ci_build_continuity_smoke.py
+      - tools/ci_demo_deployment_continuity_smoke.py
       - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
       - .github/workflows/salus-package-rollout.yml
       - infra/azure/defender-storage-scanner.bicep
@@ -86,6 +90,10 @@ on:
       - APPROVED_ARTIFACTS.md
       - SALUS_CHAT_STARTUP_PROTOCOL.md
       - CURRENT_HANDOFF.md
+      - docs/build-continuity.md
+      - docs/demo-deployment-continuity.md
+      - tools/ci_build_continuity_smoke.py
+      - tools/ci_demo_deployment_continuity_smoke.py
       - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
       - .github/workflows/salus-package-rollout.yml
       - infra/azure/defender-storage-scanner.bicep
@@ -120,6 +128,10 @@ jobs:
         run: python tools/ci_salcapa_office_processing_smoke.py
       - name: Verify resumable knowledge promotion after Graph timeout
         run: python tools/ci_m365_knowledge_promotion_smoke.py
+      - name: Verify release continuity before source freeze
+        run: |
+          python tools/ci_build_continuity_smoke.py
+          python tools/ci_demo_deployment_continuity_smoke.py
       - name: Verify stable parser coverage for M365 acceptance
         run: |
           sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
