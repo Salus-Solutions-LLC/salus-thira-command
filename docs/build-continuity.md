@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 07 October 2026 11:18 CDT
+last_verified_at: 07 October 2026 12:23 CDT
 current_frozen_release: v3.224
 current_frozen_commit: f19be501975b1a80dbbec509b4cae45f878f44fe
 active_development_branch: development/salcapa-platform
-current_development_head: f19be501975b1a80dbbec509b4cae45f878f44fe
+current_development_head: e3e6f74fe4408c5fa4d311fbe00c039a316e406b
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3224_immutable_image_publication
-last_completed_increment: v3224_source_frozen_release_guard_and_contextual_checks_passed
-candidate_release: v3.224
-validation_pr: 773
-validation_branch: candidate/knowledge-exact-original-v3224-image-20261007
+active_increment: salus_v3225_advisor_review_email_navigation
+last_completed_increment: v3224_immutable_image_published_and_v3225_review_link_repair_source_merged
+candidate_release: v3.225
+validation_pr: 775
+validation_branch: candidate/advisor-review-v3225-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3223_knowledge_103mb_destination_verification_retry
-first_root_failing_gate: v3223_knowledge_destination_exact_byte_verification
-root_cause: primary_destination_metadata_and_raw_size_above_103344128_byte_source
-repair_head: f19be501975b1a80dbbec509b4cae45f878f44fe
-repair_summary: v3224_exact_original_source_frozen_and_image_record_staged
-genuine_blockers: v3224_full_frozen_release_ci_image_publication_and_live_103mb_exact_hash_archive_unproved_member_controls_closed
-next_authorized_step: finish_frozen_release_ci_then_exact_image_record_review_and_protected_immutable_build
+failed_workflows: v3224_review_link_first_source_codeql_findings
+first_root_failing_gate: v3224_review_link_initial_security_analysis
+root_cause: browser_held_review_return_path_failed_codeql_then_replaced_by_one_time_server_side_continuation
+repair_head: e3e6f74fe4408c5fa4d311fbe00c039a316e406b
+repair_summary: v3225_https_advisor_review_email_and_staff_oidc_return_source_merged
+genuine_blockers: v3225_image_and_app_not_published_live_staff_review_link_and_103mb_exact_hash_archive_unproved_member_controls_closed
+next_authorized_step: exact_v3225_candidate_checks_source_review_freeze_image_and_protected_app_deployment_then_live_review_link_acceptance
 deployed_demo_release: v3.223
 deployed_demo_state: accepted_immutable_application_and_advisor_v3223_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,10 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3223_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+### 7 October 2026 Central — v3.225 staff review-link repair candidate
+
+Marc's real staff notification contained an HTTP SalCAPA review URL; opening it displayed no review content. The accepted live app v3.223 required an administrator session and had no email-link sign-in return path. PR #774 at exact reviewed head `cd4c0c16d0e2dd9f6e322f14cbdb3d9940b1f19b` passed all five workflow groups including CodeQL and merged as `e3e6f74fe4408c5fa4d311fbe00c039a316e406b`. Its first design failed CodeQL and was not merged. The corrected design pins HTTPS and keeps a one-time exact review return on the server; staff authentication and administrator authorization remain mandatory. Draft PR #775 labels this repair v3.225. A v3.224 immutable image was published in protected run `37654976352` at digest `sha256:14fdffd4c18951ef1cbb5f461b360240ecf658ab8f7617966b9726d3234d278f`, but v3.224 was not deployed. Accepted live app and Advisor remain v3.223. Next: complete exact v3.225 checks and source review, freeze and build one immutable successor image, stage protected deployment with v3.223 rollback, then verify the original staff review link and existing 103 MB knowledge item. Level 1A buyer/payment/intake/uploads stay closed.
 
 ### 7 October 2026 Central — frozen v3.224 image candidate
 
