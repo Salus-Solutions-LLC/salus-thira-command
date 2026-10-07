@@ -67,7 +67,7 @@ def draft_level_1_scope_receipt(profile: dict, path: dict[str, str]) -> dict:
         'requested_boundary': str(profile.get('covered_operation') or 'Operation or function to confirm'),
         'requested_location': str(profile.get('facility_locations') or 'Location to confirm'),
         'possible_path': path['label'],
-        'outside_boundary': 'Other sites and functions remain outside the proposed scope unless the written agreement names them.',
+        'outside_boundary': 'Other sites and functions are outside the first $1,500 Level 1A Access assessment. Any added coverage requires a later discussion, separate written scope, price and authorization after the qualified first reports.',
         'member_prepares': [
             'A simple organization chart showing reporting lines, decision authority and role responsibilities.',
             'If available: a site or floor map, emergency or continuity plan and recent incident summary.',
