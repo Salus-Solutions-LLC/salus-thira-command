@@ -38,7 +38,8 @@ with tempfile.TemporaryDirectory() as td:
     from salus_package_path import draft_level_1_scope_receipt
 
     assert NOTIFICATION_FROM=="protectionadvisor@salus.solutions"
-    assert len(COVERED_OPERATION_TAGS)==13
+    assert len(COVERED_OPERATION_TAGS)==14
+    assert "House of Worship" in COVERED_OPERATION_TAGS
     assert not SubmitCommand.model_fields["investment_range"].is_required()
     assert not SubmitCommand.model_fields["decision_authority"].is_required()
     assert not SubmitCommand.model_fields["records_coordinator_role"].is_required()
@@ -101,6 +102,7 @@ with tempfile.TemporaryDirectory() as td:
 
     embedded=client.get("/protection-advisor/embed")
     assert embedded.status_code==200
+    assert '<input type="checkbox" name="operationTag" value="House of Worship"> House of Worship' in embedded.text
     assert '<header class="salus-header">' not in embedded.text
     assert '<h1>Protection Advisor™</h1>' not in embedded.text
     assert '<h1 class="visually-hidden">Protection Advisor</h1>' in embedded.text
