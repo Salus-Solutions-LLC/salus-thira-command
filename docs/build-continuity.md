@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 23:06 CDT
-current_frozen_release: v3.222
-current_frozen_commit: 8eee4598a3eced19fb0f9b3c15a17b9dc79b3b45
+last_verified_at: 06 October 2026 23:42 CDT
+current_frozen_release: v3.223
+current_frozen_commit: 5dff59b381a0c455f99c6f15d0e2a37c273f4056
 active_development_branch: development/salcapa-platform
-current_development_head: 8eee4598a3eced19fb0f9b3c15a17b9dc79b3b45
+current_development_head: bf0b6783619bde4897da4b8cac78f3101e67769a
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3223_knowledge_upload_release_record_repair
-last_completed_increment: v3222_release_record_failed_before_image_publication
+active_increment: salus_v3223_immutable_image_candidate
+last_completed_increment: v3223_frozen_release_checks_passed
 candidate_release: v3.223
-validation_pr: 759
-validation_branch: candidate/knowledge-upload-v3223-record-20261006
+validation_pr: 761
+validation_branch: candidate/knowledge-upload-v3223-image-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: preflight
-failed_workflows: v3222_build_continuity_smoke_failed_missing_superseded_marker
-first_root_failing_gate: v3222_demo_deployment_continuity
-root_cause: v3222_genuine_blockers_lacked_superseded_marker
-repair_head: 8eee4598a3eced19fb0f9b3c15a17b9dc79b3b45
-repair_summary: v3223_records_v3222_supersession_and_adds_pr_continuity_gate
-genuine_blockers: v3222_superseded_before_image_publication_v3223_frozen_ci_and_live_103mb_promotion_unproved_member_controls_closed
-next_authorized_step: review_exact_v3223_source_after_full_candidate_continuity_checks
+failed_workflows: v3223_candidate_image_preflight_missing_exact_v3218_to_v3223_lineage
+first_root_failing_gate: v3223_exact_frozen_reference_image
+root_cause: preflight_lacked_bounded_v3218_to_v3223_case_after_v3221_rollback_and_unbuilt_v3222
+repair_head: 5dff59b381a0c455f99c6f15d0e2a37c273f4056
+repair_summary: v3223_exact_image_lineage_for_v3218_accepted_app_and_skipped_release_history
+genuine_blockers: v3221_knowledge_promotion_rolled_back_v3222_unbuilt_v3223_image_and_live_103mb_promotion_unproved_member_controls_closed
+next_authorized_step: review_exact_v3223_image_record_after_all_candidate_checks
 deployed_demo_release: v3.218
 deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,14 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+### 6 October 2026 Central — v3.223 frozen source and exact image lineage
+
+Marc approved and merged PR #759 as `5dff59b381a0c455f99c6f15d0e2a37c273f4056`; `release/v3.223` is frozen at that commit. The release guard, contextual intake, and full frozen checks passed. Accepted application v3.218 remains live. A v3.221 image was published, but protected deployment run `37566130383` rolled back after a 103,344,128-byte Graph knowledge upload timed out. Frozen v3.222 was superseded before image publication when its continuity check failed. PR #761 stages only the exact v3.223 image. Its first candidate run failed because the historical reference-image preflight lacked an explicit v3.218-to-v3.223 case. This bounded case requires the exact frozen commit and both intervening failures; it grants no generic release skip. Image build, readback, protected deployment, live 103 MB promotion, and qualified output review remain open. Buyer sign-in, checkout, payment, receipt, intake, and Member uploads remain closed.
+
+v3221_knowledge_promotion_rolled_back: Protected v3.221 deployment run `37566130383` rolled back to accepted v3.218 after the 103,344,128-byte Graph knowledge write timed out. The published v3.221 image is not an accepted application.
+
+v3222_superseded_before_image_publication: Frozen v3.222 at `8eee4598a3eced19fb0f9b3c15a17b9dc79b3b45` failed deployment-continuity CI. No v3.222 immutable image was published.
 
 ### 6 October 2026 Central — v3.222 source superseded before image publication
 
