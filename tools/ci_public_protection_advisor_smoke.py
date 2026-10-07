@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory() as td:
     assert not SubmitCommand.model_fields["decision_authority"].is_required()
     assert not SubmitCommand.model_fields["records_coordinator_role"].is_required()
     role_unknown=draft_level_1_scope_receipt({}, {"band":"", "label":"Level 1 band to confirm"})
-    assert role_unknown["version"]=="SPA-SCOPE-RECEIPT-0.5.0"
+    assert role_unknown["version"]=="SPA-SCOPE-RECEIPT-0.6.0"
     assert "Assign a decision role" in role_unknown["decision_owner"]
     assert "Assign a records coordinator" in role_unknown["records_coordinator"]
     assert len(CORE_CAPABILITIES)==32
@@ -343,11 +343,11 @@ with tempfile.TemporaryDirectory() as td:
     result=submitted.json()["result"]
     assert result["status"]=="Preliminary — Salus Review Required"
     package=submitted.json()["package"]
-    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.7.0"
+    assert package["version"]=="SPA-PACKAGE-RECOMMENDATION-2.8.0"
     assert package["primary_service"]["title"]=="Level 1A SalCAPA™ Package"
     assert package["primary_service"]["level"]==1
     assert package["provisional_path"]["band"]=="B"
-    assert "qualified Level 1A completion" in package["provisional_path"]["next_step"]
+    assert "qualified Level 1A reports" in package["provisional_path"]["next_step"]
     assert package["scope_receipt"]["requested_boundary"]=="Two named manufacturing and fulfillment sites"
     assert package["scope_receipt"]["records_coordinator"]=="Operations manager"
     assert "organization chart" in package["scope_receipt"]["member_prepares"][0]
@@ -452,7 +452,7 @@ with tempfile.TemporaryDirectory() as td:
     assert account["email"]=="contact@example.com"
     assert session["status"]=="Submitted"
     assert submission["questionnaire_version"]=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0"
-    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.3.0"
+    assert profile["profile_version"]=="SPA-SERVICE-PROFILE-2.4.0"
     assert json.loads(profile["profile_json"])["covered_operation_tags"]==[
         "Manufacturing or industrial work","Warehouse or distribution"]
     assert json.loads(profile["profile_json"])["records_coordinator_role"]=="Operations manager"
