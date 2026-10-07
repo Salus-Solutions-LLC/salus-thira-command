@@ -101,4 +101,3 @@ Human-First Communications and Human Trust & Comprehension doctrine remain in fo
 Never place credentials, confidential Protected Member information, personal information, investigation content, secrets, or unnecessary financial data in this file.
 
 Keep Microsoft Graph access least-privilege, exact-folder scoped, auditable, revocable, and separately governed from report publication or other write paths.
-
