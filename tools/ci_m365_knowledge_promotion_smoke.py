@@ -176,7 +176,7 @@ def main():
     verified = writer.put_verified("05 Research and Reference", "example.docx", original, original_hash)
     assert verified["item_id"] == "item12345"
     assert len(fake_client.uploaded) == 2
-    assert fake_client.uploaded[-1].endswith(f"example.{original_hash[:24]}.docx.{original_hash[:16]}.original.bin")
+    assert fake_client.uploaded[-1].endswith(f"example.{original_hash[:24]}.docx.{original_hash}.original.bin")
     # Same-title, different-content documents must get different library paths.
     class ExactClient:
         def __init__(self):
