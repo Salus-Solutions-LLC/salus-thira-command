@@ -46,6 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = "1"
+          test "$(git hash-object tools/knowledge_large_retry_probe.py)" = "e84785a5ca34227219451c8a7da3507b48d90b2d"
           file=deploy/azure/activations/knowledge-large-retry-diagnostic-v3223-dev.json
           test "$(git log --format=%H -- "$file" | wc -l | tr -d ' ')" = "1"
           jq -e '
