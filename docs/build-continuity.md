@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 21:39 CDT
-current_frozen_release: v3.220
-current_frozen_commit: ea02ae362049b9b02fbbbf74f6803720c43c018e
+last_verified_at: 06 October 2026 21:53 CDT
+current_frozen_release: v3.221
+current_frozen_commit: 6e23743a0bcab6eee29530e256246464d791f07d
 active_development_branch: development/salcapa-platform
-current_development_head: ea02ae362049b9b02fbbbf74f6803720c43c018e
+current_development_head: 6e23743a0bcab6eee29530e256246464d791f07d
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3221_buyer_claim_release_record_repair
-last_completed_increment: v3220_frozen_source_image_publication_cancelled
+active_increment: salus_v3221_buyer_claim_immutable_image_publication
+last_completed_increment: v3221_source_merged_release_ci_passed
 candidate_release: v3.221
-validation_pr: 754
-validation_branch: repair/level1a-v3221-release-record-20261006
+validation_pr: 755
+validation_branch: candidate/level1a-v3221-image-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: local_verified_github_pending
+validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3220_full_release_ci_failed_pending_validation_pr
 first_root_failing_gate: v3220_continuity_record
 root_cause: v3220_build_continuity_validation_pr_pending
 repair_head: ea02ae362049b9b02fbbbf74f6803720c43c018e
 repair_summary: v3221_records_numeric_validation_pr_and_preserves_claim_validation
 genuine_blockers: v3220_superseded_before_image_publication_member_upload_quote_checkout_closed
-next_authorized_step: review_exact_v3221_source_then_freeze_and_test_fictional_buyer_identity_with_commerce_closed
+next_authorized_step: review_exact_v3221_image_record_then_build_and_read_back_immutable_image_with_member_controls_closed
 deployed_demo_release: v3.218
 deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3221_buyer_claim_immutable_image_candidate: Marc reviewed PR #754 exact head `f54da8890ec9d23c365f83d91e32603089521f49` after all four checks passed. It merged as `6e23743a0bcab6eee29530e256246464d791f07d`; `release/v3.221` froze that exact source and all 64 full frozen-release checks passed, including release-record continuity. This candidate points one protected image build to that frozen commit. It does not deploy the app, enable buyer sign-in, open checkout/payment, or accept uploads. Serving and accepted Advisor remain v3.218 with v3.217 rollback. A real production-client verified-email claim, confidential callback, Stripe payment/receipt, and scanner-backed Member intake remain unproved; protect those gates until separate live acceptance.
 
 v3221_buyer_claim_release_record_repair_candidate: Marc approved PR #753 at exact head `5779c83cc7c2781062a6f84a7b84088d5bf3469a` after its four checks passed; it merged as `ea02ae362049b9b02fbbbf74f6803720c43c018e`. `release/v3.220` froze that commit. The release branch guard passed, but its deployment-continuity test failed because the build record's validation PR value was `pending` rather than numeric. No v3.220 immutable image was built or deployed. This successor corrects that record and labels the unchanged reviewed verified-email code v3.221. Keep buyer sign-in, quote, Stripe checkout/payment, receipt, intake and upload closed; accepted public app remains v3.218 with v3.217 rollback. Do not publish before exact-source review, full frozen CI, immutable-image readback, Azure preview, and live identity, payment and scanner acceptance.
 

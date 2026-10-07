@@ -138,7 +138,18 @@ else:
     # no generic version skip can qualify an image for publication.
     immediate_successor = (accepted_version[0], accepted_version[1] + 1)
     superseding_successor = (accepted_version[0], accepted_version[1] + 2)
-    if (accepted_version, published_version) == ((3, 215), (3, 217)):
+    if (accepted_version, published_version) == ((3, 218), (3, 221)):
+        # The accepted app remains v3.218. Frozen v3.219 and v3.220 each
+        # failed release-record CI before an image could be published. Permit
+        # only the reviewed v3.221 source after both failures are recorded.
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        assert "current_frozen_release: v3.221" in continuity
+        assert "current_frozen_commit: 6e23743a0bcab6eee29530e256246464d791f07d" in continuity
+        assert "candidate_release: v3.221" in continuity
+        assert "No v3.219 immutable image was built or deployed" in continuity
+        assert "No v3.220 immutable image was built or deployed" in continuity
+        assert image_publication["source_commit"] == "6e23743a0bcab6eee29530e256246464d791f07d"
+    elif (accepted_version, published_version) == ((3, 215), (3, 217)):
         # v3.216 froze the reviewed buyer identity source but its full release
         # CI failed on an obsolete workforce sign-in label assertion. No
         # v3.216 image was published; v3.217 repairs only that smoke check.
