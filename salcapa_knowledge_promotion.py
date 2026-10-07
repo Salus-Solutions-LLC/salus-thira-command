@@ -465,11 +465,12 @@ class GraphKnowledgeWriter:
         if verify.status_code != 200:
             raise KnowledgePromotionError("Knowledge destination verification failed")
         if hashlib.sha256(verify.content).hexdigest() != sha256:
-            # SharePoint can rewrite Office package metadata after upload. Keep a
-            # byte-exact, hash-bound original under an opaque extension while
-            # leaving the Office rendering available for ordinary reading.
-            if office_fallback and name.lower().endswith((".docx", ".xlsx", ".pptx")):
-                original_name = f"{name}.{sha256[:16]}.original.bin"
+            # A destination can change bytes for any file type. Preserve the
+            # visible primary item, but only promote a separately verified exact
+            # original. Bound its name and recurse at most once.
+            if office_fallback:
+                suffix = f".{sha256}.original.bin"
+                original_name = name[:max(1, 240 - len(suffix))] + suffix
                 return self._put_verified_once(
                     folder_name, original_name, content, sha256, office_fallback=False
                 )
