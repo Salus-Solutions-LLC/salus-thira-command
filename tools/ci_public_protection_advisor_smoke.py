@@ -347,7 +347,7 @@ with tempfile.TemporaryDirectory() as td:
     assert package["primary_service"]["title"]=="Level 1A SalCAPA™ Package"
     assert package["primary_service"]["level"]==1
     assert package["provisional_path"]["band"]=="B"
-    assert "qualified Level 1A reports" in package["provisional_path"]["next_step"]
+    assert "qualified Level 1A completion" in package["provisional_path"]["next_step"]
     assert package["scope_receipt"]["requested_boundary"]=="Two named manufacturing and fulfillment sites"
     assert package["scope_receipt"]["records_coordinator"]=="Operations manager"
     assert "organization chart" in package["scope_receipt"]["member_prepares"][0]
