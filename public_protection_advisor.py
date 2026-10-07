@@ -220,6 +220,7 @@ COVERED_OPERATION_TAGS = {
     "Residential association or multi-tenant property",
     "Construction or field work",
     "Healthcare or human services",
+    "House of Worship",
     "Education",
     "Food, hospitality or events",
     "Public service or critical infrastructure",
@@ -377,7 +378,7 @@ class SubmitCommand(BaseModel):
     personnel_range: str = Field(min_length=1, max_length=80)
     affected_population_range: str = Field(min_length=1, max_length=80)
     annual_revenue_range: str = Field(default="", max_length=80)
-    covered_operation_tags: list[str] = Field(default_factory=list, max_length=13)
+    covered_operation_tags: list[str] = Field(default_factory=list, max_length=14)
     specific_activities: list[str] = Field(default_factory=list, max_length=10)
     essential_functions: str = Field(default="", max_length=1200)
     maximum_tolerable_downtime: str = Field(min_length=1, max_length=80)
