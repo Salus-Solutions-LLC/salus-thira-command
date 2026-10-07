@@ -14,6 +14,7 @@ import os
 import secrets
 import tempfile
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 from azure.identity import ManagedIdentityCredential
@@ -1775,6 +1776,37 @@ main{{max-width:960px}}table{{width:100%;border-collapse:collapse}}td{{padding:1
 <h2>Assessment answers</h2><table>{answer_rows}</table></main></body></html>"""
 
 
+def _review_access_response(request: Request, require: Any, auth_mode: str) -> Response | None:
+    try:
+        require(request, "admin")
+    except HTTPException as exc:
+        if exc.status_code != 401:
+            raise
+        if auth_mode != "oidc":
+            return HTMLResponse(
+                "<!doctype html><html lang='en'><head><meta charset='utf-8'><title>Salus sign-in required</title></head>"
+                "<body><main><h1>Sign in required</h1><p>Sign in to your authorized SalCAPA workspace, "
+                "then reopen the review link from your email.</p></main></body></html>",
+                status_code=401,
+                headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY"},
+            )
+        return RedirectResponse(
+            "/api/auth/oidc/start?next=" + quote(request.url.path, safe=""),
+            status_code=302,
+            headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+        )
+    return None
+
+
+def _review_url(request: Request, submission_key: str) -> str:
+    origin = (
+        "https://salcapa.salus.solutions"
+        if request.url.hostname == "salcapa.salus.solutions"
+        else str(request.base_url).rstrip("/")
+    )
+    return origin + "/protection-advisor/review/" + submission_key
+
+
 def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
     conn = ctx["db"]()
     try:
@@ -1820,7 +1852,9 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
 
     @app.get("/protection-advisor/review", response_class=HTMLResponse)
     def protection_advisor_review(request: Request) -> HTMLResponse:
-        ctx["require"](request, "admin")
+        access_response = _review_access_response(request, ctx["require"], ctx["AUTH_MODE"])
+        if access_response is not None:
+            return access_response
         conn = ctx["db"]()
         try:
             _initialize(conn)
@@ -1839,7 +1873,9 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
 
     @app.get("/protection-advisor/review/{submission_key}", response_class=HTMLResponse)
     def protection_advisor_review_detail(submission_key: str, request: Request) -> HTMLResponse:
-        ctx["require"](request, "admin")
+        access_response = _review_access_response(request, ctx["require"], ctx["AUTH_MODE"])
+        if access_response is not None:
+            return access_response
         if not submission_key.startswith("SPA-SUBMISSION-"):
             raise HTTPException(404, "Submission not found")
         conn = ctx["db"]()
@@ -2614,7 +2650,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
                 ("SPA-EVENT-"+secrets.token_hex(16).upper(),session["session_key"],"Submitted for Salus Review",created,_sha(_json({"snapshot_sha256":_sha(_json(snapshot))}))))
             conn.commit()
 
-            review_url = str(request.base_url).rstrip("/") + "/protection-advisor/review/" + submission_key
+            review_url = _review_url(request, submission_key)
             internal_key = "SPA-NOTIFY-" + secrets.token_hex(16).upper()
             participant_key = "SPA-NOTIFY-" + secrets.token_hex(16).upper()
             internal_body = (
