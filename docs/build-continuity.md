@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 October 2026 23:46 CDT
+last_verified_at: 06 October 2026 23:57 CDT
 current_frozen_release: v3.223
 current_frozen_commit: 5dff59b381a0c455f99c6f15d0e2a37c273f4056
 active_development_branch: development/salcapa-platform
-current_development_head: bf0b6783619bde4897da4b8cac78f3101e67769a
+current_development_head: d9192742b0b475bbf09e72289bde380403ece4b9
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3223_immutable_image_publication
-last_completed_increment: v3223_frozen_release_checks_passed
+active_increment: salus_v3223_application_promotion
+last_completed_increment: v3223_immutable_image_published_and_read_back
 candidate_release: v3.223
-validation_pr: 761
-validation_branch: candidate/knowledge-upload-v3223-image-20261006
+validation_pr: 762
+validation_branch: candidate/knowledge-upload-v3223-app-20261006
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -21,8 +21,8 @@ first_root_failing_gate: v3223_exact_frozen_reference_image_and_build_continuity
 root_cause: preflight_lacked_exact_v3221_staged_record_lineage_and_build_record_used_unfrozen_candidate_state
 repair_head: 5dff59b381a0c455f99c6f15d0e2a37c273f4056
 repair_summary: v3223_exact_staged_record_lineage_and_frozen_image_publication_state
-genuine_blockers: v3221_knowledge_promotion_rolled_back_v3222_unbuilt_v3223_image_and_live_103mb_promotion_unproved_member_controls_closed
-next_authorized_step: review_exact_v3223_image_record_after_all_candidate_checks
+genuine_blockers: v3221_knowledge_promotion_rolled_back_v3222_unbuilt_v3223_app_and_live_103mb_promotion_unproved_member_controls_closed
+next_authorized_step: review_exact_v3223_application_record_and_azure_preview_before_protected_deployment
 deployed_demo_release: v3.218
 deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upload_and_purchase_closed
 ---
@@ -32,6 +32,8 @@ deployed_demo_state: accepted_immutable_application_and_advisor_v3218_member_upl
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
 ## Current controlled checkpoint
+
+v3223_knowledge_upload_image_published: Marc reviewed PR #761 exact head `e2f744de18cbbe6da4db450a4b8adca0792229b7` after all 47 checks passed; it merged as `d9192742b0b475bbf09e72289bde380403ece4b9`. Protected image run `37573573664` succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` from frozen v3.223 source `5dff59b381a0c455f99c6f15d0e2a37c273f4056`. A separate application candidate pins that digest with accepted v3.218 as rollback. Its Azure preview, exact-head review, deployment and live 103 MB knowledge write remain open. Buyer sign-in, checkout, payment, receipts, intake and Member uploads remain closed.
 
 ### 6 October 2026 Central — v3.223 frozen source and exact image lineage
 
