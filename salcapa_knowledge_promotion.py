@@ -49,6 +49,9 @@ TARGETS = {
     "09 Historical Material",
     "99 Superseded and Retained",
 }
+
+_GRAPH_SIMPLE_UPLOAD_LIMIT = 10 * 1024 * 1024
+_GRAPH_UPLOAD_CHUNK = 5 * 1024 * 1024  # 16 multiples of Graph's 320 KiB unit.
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
 _AUTO_ACTOR = "SalCAPA Policy Engine"
 
@@ -411,14 +414,30 @@ class GraphKnowledgeWriter:
     ) -> dict[str, Any]:
         folder_id = self._resolve_folder(folder_name)
         safe_name = quote(name, safe="")
-        response = self.client.put(
-            f"{GRAPH_ROOT}/drives/{self.destination.drive_id}/items/{folder_id}:/{safe_name}:/content",
-            headers=self._headers() | {"Content-Type": "application/octet-stream"},
-            content=content,
+        item_path = (
+            f"{GRAPH_ROOT}/drives/{self.destination.drive_id}/items/{folder_id}:/{safe_name}:"
         )
-        if response.status_code not in {200, 201}:
-            raise KnowledgePromotionError("Approved knowledge file could not be written")
-        item = response.json()
+        if len(content) > _GRAPH_SIMPLE_UPLOAD_LIMIT:
+            # The name is bound to the source hash. A previous attempt may have
+            # completed on Graph after its response timed out; verify it first.
+            existing = self.client.get(
+                item_path, headers=self._headers() | {"Accept": "application/json"}
+            )
+            if existing.status_code == 200:
+                item = existing.json()
+            elif existing.status_code == 404:
+                item = self._upload_large(item_path, content)
+            else:
+                raise KnowledgePromotionError("Knowledge destination could not be checked")
+        else:
+            response = self.client.put(
+                f"{item_path}/content",
+                headers=self._headers() | {"Content-Type": "application/octet-stream"},
+                content=content,
+            )
+            if response.status_code not in {200, 201}:
+                raise KnowledgePromotionError("Approved knowledge file could not be written")
+            item = response.json()
         item_id = str(item.get("id", ""))
         if not _IDENTIFIER.fullmatch(item_id):
             raise KnowledgePromotionError("Knowledge destination identity was incomplete")
@@ -458,6 +477,69 @@ class GraphKnowledgeWriter:
         if parsed.scheme != "https" or not (parsed.hostname or "").endswith(".sharepoint.com"):
             raise KnowledgePromotionError("Knowledge destination returned an untrusted location")
         return {"item_id": item_id, "web_url": web_url, "etag": str(item.get("eTag", ""))[:512]}
+
+    def _upload_large(self, item_path: str, content: bytes) -> dict[str, Any]:
+        session = self.client.post(
+            f"{item_path}/createUploadSession",
+            headers=self._headers() | {"Content-Type": "application/json"},
+            json={"item": {"@microsoft.graph.conflictBehavior": "fail"}},
+        )
+        if session.status_code != 200:
+            raise KnowledgePromotionError("Knowledge upload session could not be created")
+        upload_url = str(session.json().get("uploadUrl", ""))
+        parsed = urlparse(upload_url)
+        host = (parsed.hostname or "").lower()
+        if (
+            parsed.scheme != "https" or parsed.username or parsed.password
+            or not (host.endswith(".sharepoint.com") or host.endswith(".up.1drv.com"))
+        ):
+            raise KnowledgePromotionError("Knowledge upload session returned an untrusted location")
+        offset = 0
+        unchanged_statuses = 0
+        # Upload URLs are bearer capabilities: never log them or attach Graph auth.
+        while offset < len(content):
+            end = min(offset + _GRAPH_UPLOAD_CHUNK, len(content))
+            try:
+                response = self.client.put(
+                    upload_url,
+                    headers={
+                        "Content-Length": str(end - offset),
+                        "Content-Range": f"bytes {offset}-{end - 1}/{len(content)}",
+                    },
+                    content=content[offset:end],
+                    timeout=120.0,
+                )
+            except httpx.TimeoutException:
+                # Never resend an ambiguous fragment before asking the session
+                # which bytes Graph has committed.
+                try:
+                    response = self.client.get(upload_url, timeout=30.0)
+                except httpx.HTTPError as status_exc:
+                    raise KnowledgePromotionError("Knowledge upload status is unavailable") from status_exc
+            if response.status_code in {200, 201}:
+                item = response.json()
+                if not isinstance(item, dict) or not item.get("id"):
+                    raise KnowledgePromotionError("Knowledge upload completion was incomplete")
+                return item
+            if response.status_code != 202:
+                raise KnowledgePromotionError("Knowledge upload did not complete")
+            ranges = response.json().get("nextExpectedRanges", [])
+            if not isinstance(ranges, list) or len(ranges) != 1:
+                raise KnowledgePromotionError("Knowledge upload status was ambiguous")
+            match = re.fullmatch(r"([0-9]+)-(?:[0-9]+)?", str(ranges[0]))
+            if not match:
+                raise KnowledgePromotionError("Knowledge upload range was invalid")
+            next_offset = int(match.group(1))
+            if next_offset == offset:
+                unchanged_statuses += 1
+                if unchanged_statuses > 2:
+                    raise KnowledgePromotionError("Knowledge upload made no verified progress")
+                continue
+            if not offset < next_offset <= end:
+                raise KnowledgePromotionError("Knowledge upload made no verified progress")
+            unchanged_statuses = 0
+            offset = next_offset
+        raise KnowledgePromotionError("Knowledge upload completion was not confirmed")
 
     def archive_verified_source(
         self, item_id: str, etag: str, name: str, sha256: str
@@ -1385,3 +1467,4 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
 
     promote.__annotations__["request"] = Request
     app.post("/api/integrations/m365/knowledge/candidates/{candidate_id}/promote", include_in_schema=False)(promote)
+
