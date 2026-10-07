@@ -60,7 +60,7 @@ def draft_level_1_scope_receipt(profile: dict, path: dict[str, str]) -> dict:
     boundary = str(profile.get('covered_operation') or 'the operation to confirm')
     price = ('$1,500 prepaid for the first named Level 1A Access unit. Wider or deeper work is not added to that price; Salus discusses and quotes it after the qualified Level 1A reports')
     return {
-        'version': 'SPA-SCOPE-RECEIPT-0.5.0',
+        'version': 'SPA-SCOPE-RECEIPT-0.6.0',
         'receipt_id': '',  # Bound to the single submission identity at save time.
         'status': 'Provisional preparation summary — no assessment or purchase authorized',
         'lead_sentence': (f'Level 1A is the required starting point for one named unit within {boundary}. ' + (f'{path["label"]} describes a possible later, separately scoped need. ' if path['band'] in {'B', 'C'} else '') + f'The price is {price}.'),
