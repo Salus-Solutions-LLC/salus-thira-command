@@ -227,6 +227,20 @@ COVERED_OPERATION_TAGS = {
     "Mobile or remote operations",
 }
 
+PRIMARY_OUTCOME_OPTIONS = (
+    "Independent assessment and priorities",
+    "Plans, procedures, and decision support",
+    "Facility or operational protection improvements",
+    "Training and exercises",
+    "Continuity and recovery capability",
+    "Protective intelligence and monitoring",
+    "Implementation assistance",
+    "Immediate incident or crisis support",
+    "Comprehensive protection program",
+    "Not sure",
+)
+
+
 FAITH_QUESTION = ("volunteer_roles", "Where volunteers have protective or emergency responsibilities, are their roles current, understood, and practiced?", "capability", ("Operational Coordination", "Planning"), ("training", "planning"), 1.3)
 SCHOOL_QUESTION = ("reunification", "Have student accountability and family reunification procedures been tested with responsible personnel?", "response", ("Mass Care Services", "Operational Coordination", "Public Information and Warning"), ("planning", "training"), 1.5)
 PUBLIC_QUESTION = ("public_access", "Are public access, visitor management, and concerning-behavior reporting handled consistently?", "protection", ("Access Control and Identity Verification", "Screening, Search, and Detection", "Intelligence and Information Sharing"), ("facility", "protection", "protective_intelligence"), 1.5)
@@ -384,7 +398,7 @@ class SubmitCommand(BaseModel):
     maximum_tolerable_downtime: str = Field(min_length=1, max_length=80)
     existing_program_maturity: str = Field(min_length=1, max_length=100)
     internal_implementation_capacity: str = Field(min_length=1, max_length=100)
-    primary_objective: str = Field(min_length=1, max_length=120)
+    primary_objective: str = Field(min_length=1, max_length=600)
     external_requirements: str = Field(min_length=1, max_length=120)
     recent_concerns: str = Field(default="", max_length=1200)
     desired_timing: str = Field(min_length=1, max_length=80)
@@ -432,6 +446,16 @@ class SubmitCommand(BaseModel):
         if any(item not in COVERED_OPERATION_TAGS for item in cleaned):
             raise ValueError("unsupported covered operation")
         return cleaned
+
+    @field_validator("primary_objective")
+    @classmethod
+    def valid_primary_objective(cls, value: str) -> str:
+        selected = [item.strip() for item in value.split(";") if item.strip()]
+        if (not selected or len(selected) != len(set(selected))
+                or any(item not in PRIMARY_OUTCOME_OPTIONS for item in selected)
+                or ("Not sure" in selected and len(selected) > 1)):
+            raise ValueError("choose one or more listed outcomes, or Not sure alone")
+        return "; ".join(selected)
 
     @field_validator("handling_profile")
     @classmethod
@@ -1147,6 +1171,10 @@ def _page(include_shell: bool = True) -> str:
         f'<label class="choice"><input type="checkbox" name="activity" value="{html.escape(item)}"> {html.escape(item)}</label>'
         for item in sorted(ACTIVITY_OPTIONS)
     )
+    primary_outcomes = "".join(
+        f'<label class="choice"><input type="checkbox" name="primaryObjective" value="{html.escape(item)}"> {html.escape(item)}</label>'
+        for item in PRIMARY_OUTCOME_OPTIONS
+    )
     operation_tags = "".join(
         f'<label class="choice"><input type="checkbox" name="operationTag" value="{html.escape(item)}"> {html.escape(item)}</label>'
         for item in sorted(COVERED_OPERATION_TAGS)
@@ -1249,7 +1277,7 @@ __PAGE_INTRO__\n<p><a class="action" href="#accountAccess" onclick="openAccountL
 <label>Maximum tolerable interruption for the most essential function<select id="maximumTolerableDowntime"><option value="">Choose an option</option><option>Less than 4 hours</option><option>4–24 hours</option><option>1–3 days</option><option>4–7 days</option><option>More than 7 days</option><option>Not established</option><option>Not sure</option><option>Prefer to discuss with Salus</option></select></label>
 <label>Current protection and preparedness program<select id="existingProgramMaturity"><option value="">Choose an option</option><option>Recently assessed, documented, and validated</option><option>Documented but not recently tested</option><option>Partially documented or inconsistently applied</option><option>Mostly informal</option><option>Little or no current program</option><option>Not sure</option><option>Prefer to discuss with Salus</option></select></label>
 <label>Internal capacity to implement improvements<select id="internalImplementationCapacity"><option value="">Choose an option</option><option>Dedicated qualified team</option><option>Shared or part-time personnel</option><option>Limited internal capacity</option><option>Need Salus implementation support</option><option>Not sure</option><option>Prefer to discuss with Salus</option></select></label>
-<h3 class="profile-section">3. What you need from Salus</h3><label>Primary outcome sought<select id="primaryObjective"><option value="">Choose an option</option><option>Independent assessment and priorities</option><option>Plans, procedures, and decision support</option><option>Facility or operational protection improvements</option><option>Training and exercises</option><option>Continuity and recovery capability</option><option>Protective intelligence and monitoring</option><option>Implementation assistance</option><option>Immediate incident or crisis support</option><option>Comprehensive protection program</option><option>Not sure</option></select></label>
+<h3 class="profile-section">3. What you need from Salus</h3><fieldset><legend>Primary outcomes sought (choose any that apply)</legend><div id="primaryObjectives">__PRIMARY_OUTCOMES__</div></fieldset>
 <label>External requirement or decision driver<select id="externalRequirements"><option value="">Choose an option</option><option>Regulatory or statutory requirement</option><option>Contract or customer requirement</option><option>Insurance or underwriting concern</option><option>Board, executive, or governance requirement</option><option>Recent incident or credible concern</option><option>Future planning or budget decision</option><option>No known external requirement</option><option>Not sure</option><option>Prefer to discuss with Salus</option></select></label>
 <label>Recent incidents, concerns, deadlines, or reasons for seeking assistance<textarea id="recentConcerns" maxlength="1200"></textarea></label>
 <label>Desired timing<select id="desiredTiming"><option value="">Choose an option</option><option>Immediate concern</option><option>Within 30 days</option><option>Within 90 days</option><option>Within 6 months</option><option>Planning for a future budget cycle</option><option>Not sure</option></select></label>
@@ -1316,8 +1344,10 @@ async function loginAccount(){accountError.textContent="";try{const data=await c
 async function requestPasswordReset(){accountError.textContent="";try{await call("/public/protection-advisor/password-reset-request",{method:"POST",body:JSON.stringify({email:loginEmail.value})});accountError.textContent="If the account exists, a password-reset message has been requested."}catch(x){accountError.textContent=x.message}}
 async function resetAccountPassword(){accountError.textContent="";try{const token=new URLSearchParams(location.search).get("reset_token")||"";await call("/public/protection-advisor/password-reset",{method:"POST",body:JSON.stringify({token:token,new_password:resetPassword.value})});accountError.textContent="Password reset. Sign in with the new password.";resetPanel.classList.add("hidden")}catch(x){accountError.textContent=x.message}}
 function selectedOperationTags(){return [...document.querySelectorAll('input[name="operationTag"]:checked')].map(x=>x.value)}
-function draftFields(){return {protected_member_code_name:protectedMemberCode.value,project_code_name:projectCode.value,handling_profile:handlingProfile.value,handling_authority:handlingAuthority.value,designating_agency:designatingAgency.value,contract_reference:contractReference.value,dissemination_controls:disseminationControls.value,organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,facility_scope:facilityScope.value,covered_operation:coveredOperation.value,decision_units:decisionUnits.value,separate_findings:separateFindings.value,group_priorities:groupPriorities.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,covered_operation_tags:selectedOperationTags(),specific_activities:[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value),essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,records_coordinator_role:recordsCoordinatorRole.value,investment_range:investmentRange.value}}
-function hydrateDraft(d){const ids={protected_member_code_name:"protectedMemberCode",project_code_name:"projectCode",handling_profile:"handlingProfile",handling_authority:"handlingAuthority",designating_agency:"designatingAgency",contract_reference:"contractReference",dissemination_controls:"disseminationControls",organization_name:"organizationName",contact_name:"contactName",facility_scope:"facilityScope",covered_operation:"coveredOperation",decision_units:"decisionUnits",separate_findings:"separateFindings",group_priorities:"groupPriorities",facility_locations:"facilityLocations",personnel_range:"personnelRange",affected_population_range:"affectedPopulationRange",annual_revenue_range:"revenueRange",essential_functions:"essentialFunctions",maximum_tolerable_downtime:"maximumTolerableDowntime",existing_program_maturity:"existingProgramMaturity",internal_implementation_capacity:"internalImplementationCapacity",primary_objective:"primaryObjective",external_requirements:"externalRequirements",recent_concerns:"recentConcerns",desired_timing:"desiredTiming",decision_authority:"decisionAuthority",records_coordinator_role:"recordsCoordinatorRole",investment_range:"investmentRange"};Object.entries(ids).forEach(([k,id])=>{if(d[k]!==undefined)document.getElementById(id).value=d[k]});(d.specific_activities||[]).forEach(v=>{const el=[...document.querySelectorAll('input[name="activity"]')].find(x=>x.value===v);if(el)el.checked=true});document.querySelectorAll('input[name="operationTag"]').forEach(el=>{el.checked=(d.covered_operation_tags||[]).includes(el.value)});syncAdvisorCardChoices()}
+function selectedPrimaryObjectives(){return [...document.querySelectorAll('input[name="primaryObjective"]:checked')].map(x=>x.value)}
+function syncPrimaryObjectives(changed){if(!changed.checked)return;document.querySelectorAll('input[name="primaryObjective"]').forEach(el=>{if(el!==changed&&(changed.value==="Not sure"||el.value==="Not sure"))el.checked=false})}
+function draftFields(){return {protected_member_code_name:protectedMemberCode.value,project_code_name:projectCode.value,handling_profile:handlingProfile.value,handling_authority:handlingAuthority.value,designating_agency:designatingAgency.value,contract_reference:contractReference.value,dissemination_controls:disseminationControls.value,organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,facility_scope:facilityScope.value,covered_operation:coveredOperation.value,decision_units:decisionUnits.value,separate_findings:separateFindings.value,group_priorities:groupPriorities.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,covered_operation_tags:selectedOperationTags(),specific_activities:[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value),essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:selectedPrimaryObjectives().join("; "),external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,records_coordinator_role:recordsCoordinatorRole.value,investment_range:investmentRange.value}}
+function hydrateDraft(d){const ids={protected_member_code_name:"protectedMemberCode",project_code_name:"projectCode",handling_profile:"handlingProfile",handling_authority:"handlingAuthority",designating_agency:"designatingAgency",contract_reference:"contractReference",dissemination_controls:"disseminationControls",organization_name:"organizationName",contact_name:"contactName",facility_scope:"facilityScope",covered_operation:"coveredOperation",decision_units:"decisionUnits",separate_findings:"separateFindings",group_priorities:"groupPriorities",facility_locations:"facilityLocations",personnel_range:"personnelRange",affected_population_range:"affectedPopulationRange",annual_revenue_range:"revenueRange",essential_functions:"essentialFunctions",maximum_tolerable_downtime:"maximumTolerableDowntime",existing_program_maturity:"existingProgramMaturity",internal_implementation_capacity:"internalImplementationCapacity",external_requirements:"externalRequirements",recent_concerns:"recentConcerns",desired_timing:"desiredTiming",decision_authority:"decisionAuthority",records_coordinator_role:"recordsCoordinatorRole",investment_range:"investmentRange"};Object.entries(ids).forEach(([k,id])=>{if(d[k]!==undefined)document.getElementById(id).value=d[k]});(d.specific_activities||[]).forEach(v=>{const el=[...document.querySelectorAll('input[name="activity"]')].find(x=>x.value===v);if(el)el.checked=true});document.querySelectorAll('input[name="operationTag"]').forEach(el=>{el.checked=(d.covered_operation_tags||[]).includes(el.value)});document.querySelectorAll('input[name="primaryObjective"]').forEach(el=>{el.checked=(d.primary_objective||"").split(";").map(v=>v.trim()).includes(el.value)});syncAdvisorCardChoices()}
 const advisorCardFieldIds=["facilityScope","existingProgramMaturity","internalImplementationCapacity","desiredTiming"];
 function syncAdvisorCardChoices(){
   advisorCardFieldIds.forEach(id=>{
@@ -1356,7 +1386,7 @@ function initAdvisorCardChoices(){
 }
 initAdvisorCardChoices();
 let draftTimer=null;
-function enableAutosave(){profile.querySelectorAll("input,select,textarea").forEach(el=>el.addEventListener("change",()=>{clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,500)}))}
+function enableAutosave(){profile.querySelectorAll("input,select,textarea").forEach(el=>el.addEventListener("change",()=>{if(el.name==="primaryObjective")syncPrimaryObjectives(el);clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,500)}))}
 async function saveDraft(){draftStatus.textContent="Saving…";try{const data=await call("/public/protection-advisor/draft",{method:"POST",body:JSON.stringify({fields:draftFields()})});draftStatus.textContent="Saved "+advisorTimestamp(data.updated_at)}catch(x){draftStatus.textContent="Draft not saved: "+x.message}}
 async function logoutAccount(){try{await call("/public/protection-advisor/logout",{method:"POST",body:"{}"})}finally{location.reload()}}
 async function submitProfile(){submitError.textContent="";try{const selected=[...document.querySelectorAll('input[name="activity"]:checked')].map(x=>x.value);const data=await call("/public/protection-advisor/submit",{method:"POST",body:JSON.stringify({protected_member_code_name:protectedMemberCode.value,project_code_name:projectCode.value,handling_profile:handlingProfile.value,handling_authority:handlingAuthority.value,designating_agency:designatingAgency.value,contract_reference:contractReference.value,dissemination_controls:disseminationControls.value,organization_name:organizationName.value,contact_name:contactName.value,contact_email:contactEmail.value,detailed_assessment_acknowledged:detailAck.checked,identifiable_retention_consent:identifiableConsent.checked,facility_scope:facilityScope.value,covered_operation:coveredOperation.value,decision_units:decisionUnits.value,separate_findings:separateFindings.value,group_priorities:groupPriorities.value,facility_locations:facilityLocations.value,personnel_range:personnelRange.value,affected_population_range:affectedPopulationRange.value,annual_revenue_range:revenueRange.value,covered_operation_tags:selectedOperationTags(),specific_activities:selected,essential_functions:essentialFunctions.value,maximum_tolerable_downtime:maximumTolerableDowntime.value,existing_program_maturity:existingProgramMaturity.value,internal_implementation_capacity:internalImplementationCapacity.value,primary_objective:primaryObjective.value,external_requirements:externalRequirements.value,recent_concerns:recentConcerns.value,desired_timing:desiredTiming.value,decision_authority:decisionAuthority.value,records_coordinator_role:recordsCoordinatorRole.value,investment_range:investmentRange.value})});profile.classList.add("hidden");const p=data.package;advisorResultReference=data.result_reference;reportIdentity=data.report_identity||{};package.classList.remove("hidden");package.innerHTML=advisorPrintMeta("Part 2 — Scope and Readiness Profile",advisorResultReference,true,reportIdentity)+reportIdentityControls(reportIdentity)+'<p class="eyebrow">Provisional Level 1 Package Path</p>'+hypothesisMarkup(data.result.preliminary_hypothesis)+packageMarkup(p)+'<div class="print-actions"><button type="button" onclick="printAdvisor(&quot;part2&quot;)">Download Scope and Readiness Report &gt;</button><p id="detailedReportStatus" class="muted" role="status" aria-live="polite"></p></div><div class="print-footer">Salus Solutions · www.salus.solutions · '+escapeAdvisorHtml(advisorResultReference)+'</div>';package.scrollIntoView({behavior:"smooth"});reportProtectionAdvisorHeight()}catch(x){submitError.textContent=x.message}}
@@ -1373,7 +1403,7 @@ const reportProtectionAdvisorLoad=()=>setTimeout(()=>{
 },0);
 new ResizeObserver(reportProtectionAdvisorHeight).observe(document.documentElement);
 window.addEventListener("load",()=>{reportProtectionAdvisorHeight();reportProtectionAdvisorLoad()});
-</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__OPERATION_TAGS__", operation_tags).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header() if include_shell else "").replace("__PAGE_INTRO__", page_intro).replace("__EMBED_CSS__", embed_css).replace("__HANDOFF_ENABLED__", "1" if os.getenv("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED", "0").lower() in ("1","true","yes") and os.getenv("SALUS_ENV","development").lower() != "production" else "0")
+</script></body></html>""".replace("__OPTIONS__", options).replace("__ACTIVITIES__", activities).replace("__OPERATION_TAGS__", operation_tags).replace("__PRIMARY_OUTCOMES__", primary_outcomes).replace("__SALUS_THEME__", _salus_theme_css()).replace("__SALUS_HEADER__", _salus_header() if include_shell else "").replace("__PAGE_INTRO__", page_intro).replace("__EMBED_CSS__", embed_css).replace("__HANDOFF_ENABLED__", "1" if os.getenv("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED", "0").lower() in ("1","true","yes") and os.getenv("SALUS_ENV","development").lower() != "production" else "0")
 
 
 def _service_catalog_page() -> str:
@@ -1526,12 +1556,13 @@ def _package_recommendation(
         "Immediate incident or crisis support": "incident_support",
         "Comprehensive protection program": "implementation",
     }
-    objective = profile.get("primary_objective", "")
-    if objective in objective_rules:
-        add(objective_rules[objective], 4.0, f"stated primary objective: {objective}")
-    if objective == "Comprehensive protection program":
-        add("salthira", 2.0, "comprehensive program requested")
-        add("monitoring", 2.0, "comprehensive program requested")
+    objectives = [item.strip() for item in profile.get("primary_objective", "").split(";") if item.strip()]
+    for objective in objectives:
+        if objective in objective_rules:
+            add(objective_rules[objective], 4.0, f"stated outcome sought: {objective}")
+        if objective == "Comprehensive protection program":
+            add("salthira", 2.0, "comprehensive program requested")
+            add("monitoring", 2.0, "comprehensive program requested")
 
     timing = profile.get("desired_timing", "")
     if timing == "Immediate concern":
