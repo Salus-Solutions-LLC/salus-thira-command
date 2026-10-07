@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 
 from salus_customer_oidc import (create_certificate_assertion,
                                  create_certificate_assertion_from_pfx,
-                                 validate_discovery)
+                                 validate_discovery, verified_customer_email)
 
 
 HOST = 'salusmemberaccess.ciamlogin.com'
@@ -87,6 +87,32 @@ class CustomerOidcProtocolTests(unittest.TestCase):
         self.assertEqual(jwt.get_unverified_header(token)['x5t#S256'],
                          base64.urlsafe_b64encode(certificate.fingerprint(hashes.SHA256())
                                                   ).rstrip(b'=').decode('ascii'))
+
+    def test_customer_email_requires_a_matching_provider_verification_claim(self):
+        self.assertEqual(verified_customer_email({
+            'email': ' Buyer@Example.Test ', 'verified_primary_email': 'buyer@example.test'}),
+            'buyer@example.test')
+        self.assertEqual(verified_customer_email({
+            'email': 'buyer@example.test', 'email_verified': True}),
+            'buyer@example.test')
+
+    def test_customer_email_claims_fail_closed_on_absence_or_contradiction(self):
+        invalid = (
+            {'email': 'buyer@example.test', 'idp': 'mail'},
+            {'email': 'buyer@example.test', 'email_verified': False},
+            {'email': 'buyer@example.test', 'email_verified': False,
+             'verified_primary_email': 'buyer@example.test'},
+            {'email': 'buyer@example.test', 'verified_primary_email': 'other@example.test'},
+            {'email': 'buyer@example.test', 'email_verified': True,
+             'verified_primary_email': 'other@example.test'},
+            {'email': 'buyer@example.test', 'verified_primary_email': ['buyer@example.test']},
+            {'email': 'buyer@example.test', 'verified_primary_email': ''},
+            {'email': ['buyer@example.test'], 'email_verified': True},
+            {'email': 'buyer @example.test', 'email_verified': True},
+        )
+        for claims in invalid:
+            with self.subTest(claims=claims), self.assertRaises(ValueError):
+                verified_customer_email(claims)
 
     def test_invalid_pfx_secret_fails_closed(self):
         for bad in ('not-base64!', base64.b64encode(b'not a certificate').decode('ascii')):

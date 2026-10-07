@@ -76,3 +76,32 @@ def _sign_certificate_assertion(*, client_id, token_endpoint, key, certificate,
 def pkce_challenge(verifier):
     return base64.urlsafe_b64encode(hashlib.sha256(verifier.encode('ascii')).digest()
                                     ).rstrip(b'=').decode('ascii')
+
+
+def verified_customer_email(claims):
+    """Return an address only when a signed provider claim verifies that address.
+
+    The caller must first validate token signature, issuer, audience, tenant,
+    nonce and subject. The ordinary email claim alone is never sufficient.
+    """
+    if not isinstance(claims, dict):
+        raise ValueError('Customer identity claims are invalid')
+    raw_email = claims.get('email')
+    if not isinstance(raw_email, str):
+        raise ValueError('Customer email is missing')
+    email = raw_email.strip().lower()
+    if (not email or email.count('@') != 1
+            or any(character.isspace() for character in email)):
+        raise ValueError('Customer email is invalid')
+    primary = claims.get('verified_primary_email')
+    if primary is not None:
+        if (not isinstance(primary, str)
+                or not primary.strip()
+                or primary.strip().lower() != email):
+            raise ValueError('Verified primary email differs from customer email')
+    asserted = claims.get('email_verified')
+    if asserted is not None and asserted is not True:
+        raise ValueError('Customer email verification is contradicted')
+    if asserted is not True and primary is None:
+        raise ValueError('Customer email verification is missing')
+    return email

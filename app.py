@@ -52,7 +52,7 @@ from salus_scan_inventory import (compare_quarantine_versions,
                                   record_inventory_exceptions)
 from salus_customer_identity import CUSTOMER_PROVIDER, bind_verified_buyer, identity_hash
 from salus_customer_oidc import (CLIENT_ASSERTION_TYPE, create_certificate_assertion_from_pfx,
-                                 pkce_challenge, validate_discovery)
+                                 pkce_challenge, validate_discovery, verified_customer_email)
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.getenv('SALUS_DB_PATH', os.path.join(BASE_DIR, 'thira.db'))
@@ -3986,9 +3986,9 @@ def customer_oidc_callback(request:Request,code:str='',state:str='',error:str=''
         if str(claims.get('tid') or '') != _CUSTOMER_TENANT_ID:
             raise ValueError('Customer tenant mismatch')
         subject = str(claims.get('sub') or '').strip()
-        email = str(claims.get('email') or '').strip().lower()
-        if not subject or claims.get('email_verified') is not True or not email:
-            raise ValueError('Verified customer subject and email are required')
+        if not subject:
+            raise ValueError('Verified customer subject is required')
+        email = verified_customer_email(claims)
     except Exception as exc:
         security_event(request,'CUSTOMER_OIDC_TOKEN_FAILURE','High',type(exc).__name__)
         raise HTTPException(401, 'Customer identity could not be verified')
