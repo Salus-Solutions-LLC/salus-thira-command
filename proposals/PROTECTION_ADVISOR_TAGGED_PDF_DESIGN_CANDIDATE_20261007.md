@@ -1,28 +1,30 @@
 # Protection Advisor tagged PDF design candidate
 
 Date: 07-10-2026
-Status: Candidate for qualified design review. No runtime, image, Azure, or public control change is authorized by this record.
+Status: Candidate revision 2 for qualified design review. This revision corrects the production-route assumption in revision 1. It changes no runtime, image, Azure resource, or public control.
 
 ## Problem and observed evidence
 
-The fictional Board report PDF made by the current ReportLab path has 10 pages and /Lang en-US, but no /StructTreeRoot or /MarkInfo. It therefore has no tagged reading structure for headings, paragraphs, tables, or figures. The approved Word template and generated Word report are the visual authority. PR #783 merged as b67e7e83dcf5c90971556b08ebf15ddd7aca4b5a and added alternative descriptions to five Word graphics; it did not change the direct PDF generator.
+A fictional Board PDF made by the direct ReportLab path has ten pages and /Lang en-US but no /StructTreeRoot or /MarkInfo. It has no tagged reading structure for headings, paragraphs, tables, or figures. PR #783 merged as b67e7e83dcf5c90971556b08ebf15ddd7aca4b5a and added alternative descriptions to the three cover graphics and two footer logos in generated Word reports. Frozen v3.226 predates that repair and has no published image.
 
-An isolated Windows QA conversion of that repaired fictional Word report with LibreOffice Writer PDF export and UseTaggedPDF=true produced 10 pages, /Lang en-US, /StructTreeRoot, and /MarkInfo /Marked true. The structure contains heading, paragraph, table, table-row, header-cell, data-cell, and figure roles. Three cover figures have alternative descriptions. A 72 dpi contact sheet of all ten pages shows the expected blank second page, report sections, blue headings, black body, watermark, and footer. This is a prototype result, not accessibility certification or live acceptance. Footer-logo semantics and reading order require independent review.
+Local Windows QA converted the repaired fictional Word report with LibreOffice Writer UseTaggedPDF=true. The output retained ten pages and has /Lang en-US, /StructTreeRoot, /MarkInfo /Marked true, heading/table/figure roles and three cover-figure descriptions. All ten pages were rendered in a contact sheet with the expected blank second page, blue headings, black body, watermark and footer. This proves a local candidate, not full accessibility, font fidelity, live route behavior or release acceptance.
 
-## Proposed implementation boundary
+## Existing governed PDF path that must be tested first
 
-1. Render the Board report DOCX from the approved template and the same governed Part 1 and Part 2 objects. Preserve the existing report reference, handling label, audit lineage, authorization, and review state.
-2. Convert only that local DOCX to a tagged PDF with a pinned LibreOffice Writer version in the immutable application image. Run the conversion as the unprivileged application user, with no network and a private per-request working directory. Pass arguments without a shell. Bound time, memory, input size, page count, and output size; fail closed on conversion or validation error.
-3. Check that the result has the expected page count, blank page 2, /Lang, /StructTreeRoot, /MarkInfo, required heading and table roles, and alternative descriptions. These machine checks are screening gates. A qualified reviewer must inspect reading order, table navigation, contrast, every rendered page, and substantive DOCX/PDF/print parity.
-4. Keep the current ReportLab path only as a comparison fixture during migration. Never silently fall back to an untagged PDF in the public download path.
-5. Treat the one-page scope receipt as a separate PDF route requiring its own accessible source and acceptance. The Board-report change alone does not clear that gate.
+The current public report route in `public_protection_advisor.py` already renders the approved-template DOCX and calls `convert_member_docx_to_pdf` in `protection_advisor_member_reports.py` when the exact local Arial and Times font files are absent. That helper temporarily places the DOCX in the governed Microsoft 365 report folder, requests Graph `content?format=pdf`, validates the PDF envelope and size, removes the temporary DOCX, and stores the issued PDF separately under its report reference, revision, SHA-256 and size. The direct ReportLab route is selected only where those exact local font files are available. The Linux application image does not install them. PR #599 introduced this fallback and merged as 0716eb1f2bbc2916862bda83b28f01514aecf0ef.
 
-## Before release
+Therefore no new converter or image package should be selected until a fictional PDF from the **actual Microsoft 365 conversion route** is inspected. Revision 1 of this design proposed LibreOffice in the application image before checking that existing path; that proposal is superseded by this section.
 
-- Confirm the exact LibreOffice package version, license, image-size and cold-start effects, Azure preview, and expected incremental cost before adding it to the protected image.
-- Build a fictional report in the same Linux image and compare every page and section to the approved Word report. Exercise malicious input, conversion timeout, missing fonts, partial files, concurrent requests, and cleanup.
-- Run automated structure checks plus independent assistive-technology review. Record qualified review of the exact Word and PDF outputs.
-- Preserve the accepted v3.223 rollback. Freeze a successor release only after source, accessibility, security, cost, and container tests pass. Image publication, Azure deployment, live download verification, and final acceptance remain separate governed gates.
-- Keep Level 1A buyer sign-in, checkout, payment, receipt, intake, and upload controls closed pending their own live acceptance.
+## Acceptance and implementation sequence
 
-Owner: Salus implementation team for candidate and tests; Marc Duncan for qualified exact-design/source/output determinations under the Program Charter.
+1. Obtain a fictional current Board report through the existing governed Microsoft 365 conversion path. Confirm the exact source Word template and repaired generator, document identity, stored SHA-256, page count, font substitution/embedding, blank second page, layout and complete substantive content. Do not read or disclose another Protected Member's report.
+2. Inspect the returned PDF for /Lang, /StructTreeRoot, /MarkInfo, heading and table roles, figure descriptions and reading order. Render and review every page and compare it with the exact Word original and print output. An automated structure check alone cannot certify accessibility.
+3. If the current path yields an acceptable tagged PDF, add fail-closed output validation and exact-version regression evidence to that path. Preserve its temporary-file cleanup, storage identity, authorization and immutable snapshot controls.
+4. If it does not, prototype the smallest approved change to the existing Microsoft 365 conversion path. Only if that path cannot meet the report standard should the local LibreOffice candidate be reconsidered. A local candidate requires pinned Linux package, licensed font source and exact font proof, image-size/cold-start and cost check, no-network/least-privilege execution, bounded time/memory/output, concurrency and cleanup tests, and a separate reviewed source and Azure release.
+5. No public route may silently fall back to an untagged PDF. The one-page scope receipt has its own source and accessibility acceptance; the Board report result does not clear it.
+
+## Release boundary
+
+Qualified reviewers must inspect exact Word and PDF outputs, table navigation, figure handling, contrast, reading order and every rendered page. Source tests, protected image publication, Azure preview/deployment, live report download, and final output acceptance are separate gates. Retain accepted v3.223 for rollback. Keep Level 1A buyer sign-in, checkout, payment, receipt, intake and uploads closed pending their own live evidence.
+
+Owner: Salus engineering for isolated fictional test and evidence; Marc Duncan or named qualified reviewer for exact design, source and output determinations.
