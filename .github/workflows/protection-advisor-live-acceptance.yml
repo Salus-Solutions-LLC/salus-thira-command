@@ -72,6 +72,7 @@ jobs:
       - name: Exercise public consent, account, resume, package, and review handoff
         env:
           PROTECTION_ADVISOR_BASE_URL: https://salcapa-dev-b48224.ashycoast-29444a28.southcentralus.azurecontainerapps.io
+          PROTECTION_ADVISOR_FICTIONAL_REPORT_EXPORT_DIR: ${{ runner.temp }}/advisor-fictional-report
         run: |
           set -euo pipefail
           SOURCE_RELEASE="$(jq -r '.source_release' deploy/azure/activations/application-dev.json)"
@@ -80,3 +81,16 @@ jobs:
             "$PROTECTION_ADVISOR_BASE_URL/api/system/mode" > /tmp/salcapa-advisor-mode.json
           test "$(jq -r '.version' /tmp/salcapa-advisor-mode.json)" = "$EXPECTED_VERSION"
           bash tools/live_public_protection_advisor_acceptance.sh
+
+      - name: Retain fictional PDF outputs for qualified review
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fictional-protection-advisor-pdfs
+          path: ${{ runner.temp }}/advisor-fictional-report/*.pdf
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Remove local fictional PDF copies
+        if: always()
+        run: rm -rf -- "${{ runner.temp }}/advisor-fictional-report"
