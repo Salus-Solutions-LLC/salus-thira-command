@@ -56,6 +56,7 @@ jobs:
             (.source_commit | test("^[0-9a-f]{40}$")) and
             (.image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
             (.previous_application_image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
+            (.previous_worker_image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
             (.rollback_release | test("^release/v3\\.[0-9]+$")) and
             (.rollback_commit | test("^[0-9a-f]{40}$")) and
             (.rollback_image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
@@ -63,6 +64,7 @@ jobs:
             (.source_commit != .rollback_commit) and
             (.image_digest != .rollback_image_digest) and
             (.image_digest != .previous_application_image_digest) and
+            (.image_digest != .previous_worker_image_digest) and
             (.previous_application_image_digest != .rollback_image_digest) and
             ((keys - [
               "activation_key",
@@ -71,6 +73,7 @@ jobs:
               "location",
               "operation",
               "previous_application_image_digest",
+              "previous_worker_image_digest",
               "rollback_commit",
               "rollback_image_digest",
               "rollback_release",
@@ -102,6 +105,7 @@ jobs:
             echo "rollback_commit=$ROLLBACK_COMMIT"
             echo "image_digest=$(jq -r '.image_digest' "$ACTIVATION_FILE")"
             echo "previous_app_image=$(jq -r '.previous_application_image_digest' "$ACTIVATION_FILE")"
+            echo "previous_worker_image=$(jq -r '.previous_worker_image_digest' "$ACTIVATION_FILE")"
             echo "rollback_image=$(jq -r '.rollback_image_digest' "$ACTIVATION_FILE")"
             echo "unique_suffix=$(jq -r '.unique_suffix' "$ACTIVATION_FILE")"
             echo "location=$(jq -r '.location' "$ACTIVATION_FILE")"
@@ -194,6 +198,7 @@ jobs:
           IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
           ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
           PREVIOUS_APP_IMAGE: ${{ steps.activation.outputs.previous_app_image }}
+          PREVIOUS_WORKER_IMAGE: ${{ steps.activation.outputs.previous_worker_image }}
           SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
           ROLLBACK_COMMIT: ${{ steps.activation.outputs.rollback_commit }}
         run: |
@@ -204,7 +209,7 @@ jobs:
           test "$(az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-pg --query authConfig.passwordAuth --output tsv)" = "Disabled"
           test "$(az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-pg --query network.publicNetworkAccess --output tsv)" = "Disabled"
           test "$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query adminUserEnabled --output tsv)" = "false"
-          for image in "$IMAGE_DIGEST" "$ROLLBACK_IMAGE" "$PREVIOUS_APP_IMAGE"; do
+          for image in "$IMAGE_DIGEST" "$ROLLBACK_IMAGE" "$PREVIOUS_APP_IMAGE" "$PREVIOUS_WORKER_IMAGE"; do
             digest="${image##*@}"
             test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@$digest" --query digest --output tsv)" = "$digest"
           done
@@ -216,7 +221,7 @@ jobs:
             *) echo "Unexpected deployed application image; stopping before Azure preview." >&2; exit 1 ;;
           esac
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/salcapa-rollback-job.json
-          jq -e --arg image "$ROLLBACK_IMAGE" '
+          jq -e --arg image "$PREVIOUS_WORKER_IMAGE" '
             .properties.template.containers[0].image == $image and
             .properties.configuration.triggerType == "Schedule" and
             .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
@@ -224,7 +229,7 @@ jobs:
           JOB_ID="$(jq -r '.id' /tmp/salcapa-rollback-job.json)"
           test -n "$JOB_ID"
           az rest --method get --uri "${JOB_ID}?api-version=2025-07-01" --output json > /tmp/salcapa-job-rest-preflight.json
-          jq -e --arg image "$ROLLBACK_IMAGE" '
+          jq -e --arg image "$PREVIOUS_WORKER_IMAGE" '
             .properties.template.containers[0].image == $image and
             .properties.configuration.triggerType == "Schedule" and
             .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
@@ -235,7 +240,7 @@ jobs:
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
-          ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
+          PREVIOUS_WORKER_IMAGE: ${{ steps.activation.outputs.previous_worker_image }}
           SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
           UNIQUE_SUFFIX: ${{ steps.activation.outputs.unique_suffix }}
           LOCATION: ${{ steps.activation.outputs.location }}
@@ -267,7 +272,7 @@ jobs:
             location="$LOCATION"
             environmentName=dev
             containerImageDigest="$IMAGE_DIGEST"
-            knowledgeWorkerImageDigest="$ROLLBACK_IMAGE"
+            knowledgeWorkerImageDigest="$PREVIOUS_WORKER_IMAGE"
             provisionApplication=true
             entraTenantId="$ENTRA_TENANT_ID"
             entraRuntimeClientId="$ENTRA_RUNTIME_CLIENT_ID"
@@ -442,12 +447,12 @@ jobs:
       - name: Verify accepted worker remains active during application acceptance
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
+          PREVIOUS_WORKER_IMAGE: ${{ steps.activation.outputs.previous_worker_image }}
         run: |
           set -euo pipefail
           JOB_NAME=salcapa-dev-b48224-kb-scan
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
-          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$ROLLBACK_IMAGE"
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-knowledge-job.json)" = "$PREVIOUS_WORKER_IMAGE"
           test "$(jq -r '.properties.configuration.triggerType' /tmp/salcapa-knowledge-job.json)" = "Schedule"
           test "$(jq -r '.properties.configuration.scheduleTriggerConfig.cronExpression' /tmp/salcapa-knowledge-job.json)" = "*/2 * * * *"
 
@@ -554,12 +559,12 @@ jobs:
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
-          ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
+          PREVIOUS_WORKER_IMAGE: ${{ steps.activation.outputs.previous_worker_image }}
         run: |
           set -euo pipefail
           JOB_NAME=salcapa-dev-b48224-kb-scan
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
-          jq -e --arg image "$ROLLBACK_IMAGE" '
+          jq -e --arg image "$PREVIOUS_WORKER_IMAGE" '
             .properties.template.containers[0].image == $image and
             .properties.configuration.triggerType == "Schedule" and
             .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *"
@@ -573,7 +578,7 @@ jobs:
             --body '{"properties":{"configuration":{"triggerType":"Manual"}}}' \
             --output none --only-show-errors
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
-          jq -e --arg image "$ROLLBACK_IMAGE" '
+          jq -e --arg image "$PREVIOUS_WORKER_IMAGE" '
             .properties.template.containers[0].image == $image and
             .properties.configuration.triggerType == "Manual"
           ' /tmp/salcapa-knowledge-job.json >/dev/null
@@ -590,7 +595,7 @@ jobs:
           # Azure replaces the entire execution template when an image override
           # is supplied. Preserve the worker command, environment, resources,
           # and secret references when testing the candidate image.
-          jq -e --arg image "$ROLLBACK_IMAGE" '
+          jq -e --arg image "$PREVIOUS_WORKER_IMAGE" '
             (.properties.template.containers | length) == 1 and
             .properties.template.containers[0].name == "salcapa-knowledge-scan" and
             .properties.template.containers[0].image == $image and
@@ -598,14 +603,14 @@ jobs:
           ' /tmp/salcapa-knowledge-job.json >/dev/null
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
             --query properties.template --output yaml > "$RUNNER_TEMP/salcapa-candidate-worker-template.yaml"
-          python - "$RUNNER_TEMP/salcapa-candidate-worker-template.yaml" "$ROLLBACK_IMAGE" "$IMAGE_DIGEST" <<'PY'
+          python - "$RUNNER_TEMP/salcapa-candidate-worker-template.yaml" "$PREVIOUS_WORKER_IMAGE" "$IMAGE_DIGEST" <<'PY'
           import sys
           from pathlib import Path
 
           path = Path(sys.argv[1])
           original = path.read_text(encoding="utf-8")
           if original.count(sys.argv[2]) != 1:
-              raise SystemExit("Expected one accepted worker image in execution template")
+              raise SystemExit("Expected one previous worker image in execution template")
           path.write_text(original.replace(sys.argv[2], sys.argv[3]), encoding="utf-8")
           PY
           # The candidate execution runs only after all accepted runs end.
@@ -634,7 +639,7 @@ jobs:
           fi
           az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-knowledge-scan --tail 50 --format text --only-show-errors 2>&1 | grep 'SALCAPA_KNOWLEDGE_BATCH=' || true
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json > /tmp/salcapa-knowledge-job.json
-          jq -e --arg image "$ROLLBACK_IMAGE" '
+          jq -e --arg image "$PREVIOUS_WORKER_IMAGE" '
             .properties.template.containers[0].image == $image and
             .properties.configuration.triggerType == "Manual"
           ' /tmp/salcapa-knowledge-job.json >/dev/null
