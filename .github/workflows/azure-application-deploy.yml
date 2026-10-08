@@ -444,7 +444,7 @@ jobs:
             echo "- Public production cutover: not performed"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify accepted worker remains active during application acceptance
+      - name: Verify previous worker remains active during application acceptance
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           PREVIOUS_WORKER_IMAGE: ${{ steps.activation.outputs.previous_worker_image }}
