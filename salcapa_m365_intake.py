@@ -187,8 +187,12 @@ class GovernedM365Intake:
 
     def list_files(self, *, pending_only: bool = False, processed_only: bool = False, max_files: int | None = None) -> list[dict[str, Any]]:
         """List bounded files; optionally select a finite pending batch window."""
-        if max_files is not None and (not pending_only or not isinstance(max_files, int) or not 1 <= max_files <= 1000):
-            raise ValueError("A bounded file window requires pending-only intake")
+        if max_files is not None and (
+            not (pending_only or processed_only)
+            or not isinstance(max_files, int)
+            or not 1 <= max_files <= 1000
+        ):
+            raise ValueError("A bounded file window requires one intake subtree")
         if pending_only and processed_only:
             raise ValueError("Only one intake subtree can be selected")
         select = (
