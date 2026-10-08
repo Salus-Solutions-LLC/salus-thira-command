@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 08 October 2026 10:20 CDT
+last_verified_at: 08 October 2026 10:47 CDT
 current_frozen_release: v3.229
 current_frozen_commit: 9dc3d88475221d27b78521ba0350f8bfc71252c9
 active_development_branch: development/salcapa-platform
-current_development_head: 9dc3d88475221d27b78521ba0350f8bfc71252c9
+current_development_head: 85ad65a789fdbe6e69e82966062f97323c8d5055
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3229_immutable_image_publication
-last_completed_increment: v3229_source_frozen_after_candidate_checks_v3228_rollback_verified
+active_increment: salus_v3229_application_promotion
+last_completed_increment: v3229_immutable_image_published_and_read_back_v3223_accepted_rollback_retained
 candidate_release: v3.229
-validation_pr: 803
-validation_branch: codex/pa-v3229-image
+validation_pr: 804
+validation_branch: codex/pa-v3229-deploy
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -20,9 +20,9 @@ failed_workflows: v3228_application_runs_37749342301_and_37764578678
 first_root_failing_gate: fictional_advisor_session_and_consent_acceptance
 root_cause: frozen_v3228_test_expected_questionnaire_v230_but_runtime_declared_v240
 repair_head: 9dc3d88475221d27b78521ba0350f8bfc71252c9
-repair_summary: reviewed_test_version_alignment_frozen_v3229_image_record_staged
-genuine_blockers: v3228_superseded_after_live_advisor_test_failure_v3229_image_azure_preview_fictional_advisor_word_pdf_staff_link_103mb_exact_hash_member_controls_closed
-next_authorized_step: verify_frozen_v3229_checks_then_exact_image_review_and_protected_immutable_build
+repair_summary: reviewed_test_version_alignment_frozen_v3229_image_published_and_read_back
+genuine_blockers: v3228_superseded_after_live_advisor_test_failure_v3229_azure_preview_fictional_advisor_word_pdf_staff_link_103mb_exact_hash_member_controls_closed
+next_authorized_step: verify_v3229_deployment_candidate_ci_then_exact_source_review_and_protected_azure_preview
 deployed_demo_release: v3.223
 deployed_demo_state: accepted_v3223_restored_after_v3228_advisor_test_failure_member_purchase_and_upload_closed
 ---
@@ -186,3 +186,8 @@ PR #801 exact head `b0b9ea4c07734246a0cd2215f6450fcf6126c4e8` passed four checks
 ## 8 October 2026 Central — frozen v3.229 image candidate
 
 Marc approved PR #802 exact head `511310d21ad18c112ec63423c7b6db2fcdbaf0d8` after four candidate checks passed; it merged as `9dc3d88475221d27b78521ba0350f8bfc71252c9`. Immutable `release/v3.229` froze that source, and Release Branch Guard passed. Full frozen CI and contextual intake checks remain under verification. The only Advisor acceptance-source change corrects the questionnaire 2.4.0 expectation and guards it in CI. This image candidate names the exact frozen source; it has not built or deployed an image. Accepted v3.223 remains live after protected v3.228 run `37764578678` failed its fictional Advisor test and rolled back. Next: complete frozen checks, exact-source image record review, protected image publication/readback, and a separate reviewed Azure activation with v3.223 rollback. Member controls remain closed.
+
+
+## 8 October 2026 Central — v3.229 immutable image published; Azure deployment staged
+
+Marc approved PR #803 exact head `bf906884426b92b3359e50c8c03c8fd8ff49e184` after 54 successful candidate checks; it merged as `85ad65a789fdbe6e69e82966062f97323c8d5055`. Protected [image run 37802943456](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37802943456) succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:a5b06b3e155cbfe1da08a7800634f65efb38614fea985566bac1591163bafd6d` from frozen `release/v3.229` commit `9dc3d88475221d27b78521ba0350f8bfc71252c9`. This published an image only; accepted v3.223 remains live. A separately reviewed candidate stages this digest for protected Azure what-if/deployment and retains accepted v3.223 application/worker images for rollback. It removes the v3.228-only retry marker. Live Advisor test response, Board output, staff link and Member commerce remain unaccepted or closed.
