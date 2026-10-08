@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 07 October 2026 23:10 CDT
-current_frozen_release: v3.227
-current_frozen_commit: 4051de44505bdeb5f29e80292adc81719052feea
+last_verified_at: 07 October 2026 23:22 CDT
+current_frozen_release: v3.228
+current_frozen_commit: 56524b7591526f90a75953cbcf70d47164a23bc0
 active_development_branch: development/salcapa-platform
-current_development_head: 21d55114b5c56bd27bdb5ecf2a7a8179f781e64a
+current_development_head: 56524b7591526f90a75953cbcf70d47164a23bc0
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3228_m365_acceptance_repair
-last_completed_increment: v3227_m365_empty_pending_failed_and_v3223_rollback_verified
+active_increment: salus_v3228_immutable_image_publication
+last_completed_increment: v3228_source_frozen_after_48_candidate_checks_v3227_rollback_verified
 candidate_release: v3.228
-validation_pr: 796
-validation_branch: candidate/m365-empty-pending-v3228-20261007
+validation_pr: 797
+validation_branch: candidate/m365-v3228-image-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3227_application_run_37723483866_m365_no_acceptance_file
 first_root_failing_gate: m365_acceptance_pending_only_listing_empty
 root_cause: release_acceptance_assumed_nonempty_pending_subtree
-repair_head: 21d55114b5c56bd27bdb5ecf2a7a8179f781e64a
-repair_summary: bounded_processed_fallback_for_empty_pending_with_live_byte_and_version_checks
-genuine_blockers: v3227_superseded_after_failed_m365_acceptance_v3228_exact_source_review_immutable_image_azure_preview_live_m365_advisor_word_pdf_staff_link_and_worker_acceptance_103mb_exact_hash_unproved_member_controls_closed
-next_authorized_step: complete_v3228_candidate_checks_and_exact_source_review_then_freeze_without_opening_member_controls
+repair_head: 56524b7591526f90a75953cbcf70d47164a23bc0
+repair_summary: reviewed_bounded_archive_acceptance_source_frozen_image_record_staged
+genuine_blockers: v3227_superseded_after_failed_m365_acceptance_v3228_image_azure_preview_live_m365_advisor_word_pdf_staff_link_and_worker_acceptance_103mb_exact_hash_unproved_member_controls_closed
+next_authorized_step: verify_frozen_v3228_checks_then_exact_image_review_and_protected_immutable_build
 deployed_demo_release: v3.223
 deployed_demo_state: protected_v3223_restored_after_v3227_m365_failure_member_purchase_and_upload_closed
 ---
@@ -171,3 +171,8 @@ Keep Microsoft Graph access least-privilege, exact-folder scoped, auditable, rev
 ## 7 October 2026 Central — v3.228 Microsoft 365 acceptance source candidate
 
 Marc exact-reviewed PR #795 head `a6e2020868bd274f37d55374c9dd3971581da085` after thirteen green checks; it merged as `21d55114b5c56bd27bdb5ecf2a7a8179f781e64a`. It permits a bounded processed-subtree read only if the governed pending folder exists but contains no eligible file; missing or unsupported acceptance material still fails. The source verifies the current parent, ETag, exact bytes, hash and parser behavior and keeps public buyer controls closed. Candidate v3.228 changes the runtime label and corrects the build record after protected v3.227 run [37723483866](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37723483866) rolled back to accepted v3.223. This candidate has no image or deployment. Next: exact candidate CI and Marc source review, freeze, separate protected immutable image/readback and Azure preview/deployment, then live Microsoft 365, Advisor, worker and qualified Board Word/PDF acceptance. The 103 MB exact-hash item, paused large-batch #520, stopped Tierra Linda and closed buyer/payment/upload controls remain separate.
+
+
+## 7 October 2026 Central — frozen v3.228 image candidate
+
+PR #796 exact head `618d566d935fb82c337050442d8e95b9201ba482` passed all 48 checks and merged after Marc's source review as `56524b7591526f90a75953cbcf70d47164a23bc0`. `release/v3.228` froze that source. Release Branch Guard passed; full frozen CI and contextual intake checks remain to be verified before image publication. This PR stages only one image activation for that exact source. No v3.228 image, Azure deployment, fictional Advisor run, Board output acceptance or Member purchase/upload is implied. Protected v3.227 deployment run [37723483866](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37723483866) failed Microsoft 365 acceptance and rolled back to v3.223. Next: frozen checks, exact image-record review, protected build/readback, then separate Azure preview/deployment and live output gates.
