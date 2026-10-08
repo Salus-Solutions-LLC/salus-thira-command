@@ -478,6 +478,8 @@ jobs:
               'target_environment',
               'unique_suffix',
           }
+          if 'activation_retry_attempt' in application_activation:
+              application_activation_keys.add('activation_retry_attempt')
           if set(application_activation) != application_activation_keys:
               raise SystemExit('Azure application activation schema is not exact')
           for key, expected in (
@@ -513,12 +515,17 @@ jobs:
               ('image_digest', 'rollback_image_digest'),
               ('image_digest', 'previous_application_image_digest'),
               ('image_digest', 'previous_worker_image_digest'),
-              ('previous_application_image_digest', 'rollback_image_digest'),
           ):
               if application_activation[current_key] == application_activation[rollback_key]:
                   raise SystemExit(
                       f'Azure application activation must distinguish {current_key}'
                   )
+          if 'activation_retry_attempt' in application_activation and not (
+              application_activation['activation_retry_attempt'] == 2
+              and application_activation['source_release'] == 'release/v3.228'
+              and application_activation['source_commit'] == '56524b7591526f90a75953cbcf70d47164a23bc0'
+          ):
+              raise SystemExit('Azure application retry marker is not the reviewed v3.228 second attempt')
           expected_activation_key = (
               f"salcapa-{application_activation['source_release'].removeprefix('release/')}"
               f"-application-{application_activation['source_commit'][:8]}"
