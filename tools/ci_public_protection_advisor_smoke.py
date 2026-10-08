@@ -39,6 +39,8 @@ with tempfile.TemporaryDirectory() as td:
 
     assert NOTIFICATION_FROM=="protectionadvisor@salus.solutions"
     acceptance_script=(ROOT/"tools/live_public_protection_advisor_acceptance.sh").read_text(encoding="utf-8")
+    assert f'.questionnaire_version=="{QUESTIONNAIRE_VERSION}"' in acceptance_script
+    assert f'questionnaire_version:"{QUESTIONNAIRE_VERSION}"' in acceptance_script
     assert acceptance_script.count(QUESTIONNAIRE_VERSION)==2, "live acceptance must match the current questionnaire"
     assert len(COVERED_OPERATION_TAGS)==14
     assert "House of Worship" in COVERED_OPERATION_TAGS
