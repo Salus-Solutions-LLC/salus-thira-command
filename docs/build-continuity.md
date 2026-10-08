@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 08 October 2026 18:41 CDT
+last_verified_at: 08 October 2026 18:54 CDT
 current_frozen_release: v3.230
 current_frozen_commit: 1157a071c5c2daed864783737e5b84543671cd9c
 active_development_branch: development/salcapa-platform
-current_development_head: 1157a071c5c2daed864783737e5b84543671cd9c
+current_development_head: a1255fddad564211b5e7880d0119e46dbc29aa8a
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3230_immutable_image_publication
-last_completed_increment: v3230_source_frozen_after_48_candidate_checks_v3229_rollback_verified
+active_increment: salus_v3230_application_promotion
+last_completed_increment: v3230_immutable_image_published_and_read_back_v3223_accepted_rollback_retained
 candidate_release: v3.230
-validation_pr: 807
-validation_branch: codex/pa-v3230-image
+validation_pr: 808
+validation_branch: codex/pa-v3230-deploy
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -20,9 +20,9 @@ failed_workflows: v3229_application_run_37810084255
 first_root_failing_gate: fictional_advisor_submission_422
 root_cause: frozen_v3229_test_missing_level1a_scope_ack_and_retired_primary_outcome
 repair_head: 1157a071c5c2daed864783737e5b84543671cd9c
-repair_summary: reviewed_submit_fixture_frozen_v3230_image_record_staged
-genuine_blockers: v3229_superseded_after_live_advisor_submit_failure_v3230_image_azure_preview_fictional_advisor_word_pdf_staff_link_103mb_exact_hash_member_controls_closed
-next_authorized_step: verify_frozen_v3230_checks_then_exact_image_review_and_protected_immutable_build
+repair_summary: reviewed_submit_fixture_frozen_v3230_image_published_and_read_back
+genuine_blockers: v3229_superseded_after_live_advisor_submit_failure_v3230_azure_preview_fictional_advisor_word_pdf_staff_link_103mb_exact_hash_member_controls_closed
+next_authorized_step: verify_v3230_deployment_candidate_ci_then_exact_source_review_and_protected_azure_preview
 deployed_demo_release: v3.223
 deployed_demo_state: accepted_v3223_restored_after_v3229_advisor_submit_failure_member_purchase_and_upload_closed
 ---
@@ -201,3 +201,8 @@ Marc approved PR #805 exact head `211bc321b1e086bb4380a464d9c24737dd50796c` afte
 ## 8 October 2026 Central — frozen v3.230 image candidate
 
 Marc approved PR #806 exact head `778913c7c287266b1ab117b310272b88aa6380d3` after 48 passing candidate checks; it merged as `1157a071c5c2daed864783737e5b84543671cd9c`. `release/v3.230` froze that source and Release Branch Guard passed. Contextual intake passed; full frozen CI remains under verification. The reviewed source changes only the fictional Advisor acceptance fixture and its drift guard; runtime behavior is otherwise unchanged. This image candidate pins the frozen source but has not built or deployed an image. Accepted v3.223 remains live after protected v3.229 run `37810084255` failed at fictional submit HTTP 422 and rolled back. Next: finish frozen checks, exact image-source review, protected build/readback, then a separate reviewed Azure activation with v3.223 rollback. Qualified live Word/PDF, Part 2 receipt/staff link, 103 MB exact hash and buyer/payment/upload gates remain open.
+
+
+## 8 October 2026 Central — v3.230 immutable image published; Azure deployment staged
+
+Marc approved PR #807 exact head `265fd7329e8c4732081ae93876cc5d5cb209d5d7` after 47 passing candidate checks; it merged as `a1255fddad564211b5e7880d0119e46dbc29aa8a`. Protected [image run 37861734187](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37861734187) succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:1a2083762f5664cc148da5c0dbe789bea67b185954488ad0e68a555ec93a79a4` from frozen `release/v3.230` commit `1157a071c5c2daed864783737e5b84543671cd9c`. This published an image only; accepted v3.223 remains live. A separately reviewed candidate stages this digest for protected Azure what-if/deployment and retains accepted v3.223 app/worker images for rollback. Live fictional Advisor submission/report, Board output, staff link, 103 MB exact hash and Member commerce remain unaccepted or closed.
