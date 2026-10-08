@@ -65,7 +65,7 @@ jobs:
             (.image_digest != .rollback_image_digest) and
             (.image_digest != .previous_application_image_digest) and
             (.image_digest != .previous_worker_image_digest) and
-            ((.activation_retry_attempt // 1) == 1 or (
+            ((has("activation_retry_attempt") | not) or (
               .activation_retry_attempt == 2 and
               .source_release == "release/v3.228" and
               .source_commit == "56524b7591526f90a75953cbcf70d47164a23bc0"
