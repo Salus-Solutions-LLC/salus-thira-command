@@ -138,7 +138,20 @@ else:
     # no generic version skip can qualify an image for publication.
     immediate_successor = (accepted_version[0], accepted_version[1] + 1)
     superseding_successor = (accepted_version[0], accepted_version[1] + 2)
-    if (accepted_version, published_version) == ((3, 223), (3, 225)):
+    if (accepted_version, published_version) == ((3, 225), (3, 227)):
+        # Frozen v3.226 was withheld before image publication because the
+        # generated Word report lacked five graphic descriptions. The reviewed
+        # v3.227 source repairs that output while the deployed v3.225 image
+        # still retains accepted v3.223 for rollback.
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        assert accepted_application["rollback_release"] == "release/v3.223"
+        assert accepted_application["rollback_commit"] == "5dff59b381a0c455f99c6f15d0e2a37c273f4056"
+        assert "current_frozen_release: v3.227" in continuity
+        assert "current_frozen_commit: 4051de44505bdeb5f29e80292adc81719052feea" in continuity
+        assert "candidate_release: v3.227" in continuity
+        assert "v3226_superseded_before_publication" in continuity
+        assert image_publication["source_commit"] == "4051de44505bdeb5f29e80292adc81719052feea"
+    elif (accepted_version, published_version) == ((3, 223), (3, 225)):
         # v3.224 was published but never deployed. The staff review-link
         # repair supersedes that unused image while v3.223 remains accepted.
         # Require the exact frozen successor and recorded rollback lineage.
