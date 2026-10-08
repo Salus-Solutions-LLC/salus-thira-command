@@ -36,6 +36,8 @@ The protected workflow creates an in-network one-time Container Apps Job. Its te
 
 `application-dev.json` is recognized only after the exact application source is frozen and its non-root image is published by immutable Azure Container Registry digest. The record fixes the environment, region, suffix, approval record, release branch, source commit, and digest; unknown or mutable inputs fail closed.
 
+The record separately pins the image currently running before promotion (`previous_application_image_digest`) and the last accepted rollback image (`rollback_image_digest`). These can differ. Before Azure what-if, the workflow accepts only the pinned previous application image or the accepted rollback image, and checks that the scheduled worker is still on the accepted image. An unexpected application image stops the release.
+
 The protected workflow authenticates through GitHub workload identity federation, confirms the exact subscription, tenant, resource group, private PostgreSQL configuration, disabled registry administrator, and immutable image before running Azure what-if and deployment. It then verifies the live image, user-assigned identity, HTTPS-only ingress, zero-to-one replica cost boundary, absence of application secrets, readiness endpoint, and Microsoft Entra authorization redirect.
 
 The first deployment uses the Azure-generated development address. It does not add custom DNS, create a client secret, or perform public production cutover. Creating or editing this README never activates Azure.

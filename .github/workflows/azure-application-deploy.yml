@@ -55,18 +55,22 @@ jobs:
             (.source_release | test("^release/v3\\.[0-9]+$")) and
             (.source_commit | test("^[0-9a-f]{40}$")) and
             (.image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
+            (.previous_application_image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
             (.rollback_release | test("^release/v3\\.[0-9]+$")) and
             (.rollback_commit | test("^[0-9a-f]{40}$")) and
             (.rollback_image_digest | test("^salcapadevb48224acr\\.azurecr\\.io/salcapa@sha256:[0-9a-f]{64}$")) and
             (.source_release != .rollback_release) and
             (.source_commit != .rollback_commit) and
             (.image_digest != .rollback_image_digest) and
+            (.image_digest != .previous_application_image_digest) and
+            (.previous_application_image_digest != .rollback_image_digest) and
             ((keys - [
               "activation_key",
               "approval_record",
               "image_digest",
               "location",
               "operation",
+              "previous_application_image_digest",
               "rollback_commit",
               "rollback_image_digest",
               "rollback_release",
@@ -97,6 +101,7 @@ jobs:
             echo "rollback_release=$ROLLBACK_RELEASE"
             echo "rollback_commit=$ROLLBACK_COMMIT"
             echo "image_digest=$(jq -r '.image_digest' "$ACTIVATION_FILE")"
+            echo "previous_app_image=$(jq -r '.previous_application_image_digest' "$ACTIVATION_FILE")"
             echo "rollback_image=$(jq -r '.rollback_image_digest' "$ACTIVATION_FILE")"
             echo "unique_suffix=$(jq -r '.unique_suffix' "$ACTIVATION_FILE")"
             echo "location=$(jq -r '.location' "$ACTIVATION_FILE")"
@@ -188,6 +193,7 @@ jobs:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           IMAGE_DIGEST: ${{ steps.activation.outputs.image_digest }}
           ROLLBACK_IMAGE: ${{ steps.activation.outputs.rollback_image }}
+          PREVIOUS_APP_IMAGE: ${{ steps.activation.outputs.previous_app_image }}
           SOURCE_COMMIT: ${{ steps.activation.outputs.source_commit }}
           ROLLBACK_COMMIT: ${{ steps.activation.outputs.rollback_commit }}
         run: |
@@ -198,13 +204,17 @@ jobs:
           test "$(az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-pg --query authConfig.passwordAuth --output tsv)" = "Disabled"
           test "$(az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-pg --query network.publicNetworkAccess --output tsv)" = "Disabled"
           test "$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query adminUserEnabled --output tsv)" = "false"
-          for image in "$IMAGE_DIGEST" "$ROLLBACK_IMAGE"; do
+          for image in "$IMAGE_DIGEST" "$ROLLBACK_IMAGE" "$PREVIOUS_APP_IMAGE"; do
             digest="${image##*@}"
             test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@$digest" --query digest --output tsv)" = "$digest"
           done
           test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa:source-$SOURCE_COMMIT" --query digest --output tsv)" = "${IMAGE_DIGEST##*@}"
           test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa:source-$ROLLBACK_COMMIT" --query digest --output tsv)" = "${ROLLBACK_IMAGE##*@}"
-          test "$(az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --query 'properties.template.containers[0].image' --output tsv)" = "$ROLLBACK_IMAGE"
+          CURRENT_APP_IMAGE="$(az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --query 'properties.template.containers[0].image' --output tsv)"
+          case "$CURRENT_APP_IMAGE" in
+            "$PREVIOUS_APP_IMAGE"|"$ROLLBACK_IMAGE") ;;
+            *) echo "Unexpected deployed application image; stopping before Azure preview." >&2; exit 1 ;;
+          esac
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/salcapa-rollback-job.json
           jq -e --arg image "$ROLLBACK_IMAGE" '
             .properties.template.containers[0].image == $image and

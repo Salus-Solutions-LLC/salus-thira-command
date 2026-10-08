@@ -9,6 +9,7 @@
   "source_release": "release/v3.227",
   "source_commit": "4051de44505bdeb5f29e80292adc81719052feea",
   "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:0f66010b44ff4a846b9069f5d4df99d8d89b644588782bb4ad65e3ec8c80e173",
+  "previous_application_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:da608d647d4bb7f946dcc0efb5c76e6b0f46d02fcaced6ff321fd5c7a2b88845",
   "rollback_release": "release/v3.223",
   "rollback_commit": "5dff59b381a0c455f99c6f15d0e2a37c273f4056",
   "rollback_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c"
