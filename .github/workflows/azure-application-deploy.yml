@@ -65,8 +65,14 @@ jobs:
             (.image_digest != .rollback_image_digest) and
             (.image_digest != .previous_application_image_digest) and
             (.image_digest != .previous_worker_image_digest) and
+            ((.activation_retry_attempt // 1) == 1 or (
+              .activation_retry_attempt == 2 and
+              .source_release == "release/v3.228" and
+              .source_commit == "56524b7591526f90a75953cbcf70d47164a23bc0"
+            )) and
             ((keys - [
               "activation_key",
+              "activation_retry_attempt",
               "approval_record",
               "image_digest",
               "location",
@@ -549,9 +555,21 @@ jobs:
         run: |
           set -euo pipefail
           EXPECTED_VERSION="${EXPECTED_RELEASE#release/v}"
-          curl --connect-timeout 10 --max-time 30 --fail --silent --show-error \
-            "$PROTECTION_ADVISOR_BASE_URL/api/system/mode" > /tmp/salcapa-advisor-mode.json
-          test "$(jq -r '.version' /tmp/salcapa-advisor-mode.json)" = "$EXPECTED_VERSION"
+          # The approved app scales to zero. After the long Microsoft 365 check,
+          # give the same immutable revision bounded time to wake before testing.
+          MODE_READY=false
+          for attempt in $(seq 1 6); do
+            STATUS="$(curl --connect-timeout 10 --max-time 30 --silent --show-error \
+              --output /tmp/salcapa-advisor-mode.json --write-out '%{http_code}' \
+              "$PROTECTION_ADVISOR_BASE_URL/api/system/mode" || true)"
+            if [ "$STATUS" = "200" ]; then
+              test "$(jq -r '.version' /tmp/salcapa-advisor-mode.json)" = "$EXPECTED_VERSION"
+              MODE_READY=true
+              break
+            fi
+            if [ "$attempt" -lt 6 ]; then sleep 10; fi
+          done
+          test "$MODE_READY" = true
           bash frozen-release/tools/live_public_protection_advisor_acceptance.sh
 
       - name: Promote and verify scheduled worker after application acceptance
