@@ -133,6 +133,14 @@ def main() -> None:
     # Parser coverage uses inert fixtures below so backlog ordering cannot
     # accidentally remove a format from acceptance or fail a valid release.
     files = intake.list_files(pending_only=True, max_files=500)
+    if not intake._pending_folder_id:
+        raise RuntimeError("M365_INTAKE_PENDING_FOLDER_MISSING")
+    source_subtree = "pending"
+    if not files:
+        # A healthy scheduled worker may have emptied the queue. Keep the live
+        # byte/provenance check by reading one bounded, governed archive sample.
+        files = intake.list_files(processed_only=True, max_files=500)
+        source_subtree = "processed"
     if not files:
         raise RuntimeError("M365_INTAKE_NO_ACCEPTANCE_FILE")
     if not any("/" in str(item.get("relative_path", "")) for item in files):
@@ -147,6 +155,11 @@ def main() -> None:
                 int(current["size"]), str(current["id"])
             ):
                 samples[family] = item
+
+    if source_subtree == "processed":
+        # Archived records are evidence, so read the smallest single sample.
+        family = min(samples, key=lambda key: (int(samples[key]["size"]), str(samples[key]["id"])))
+        samples = {family: samples[family]}
 
     accepted_live = []
     for family in sorted(samples):
@@ -199,7 +212,8 @@ def main() -> None:
     print(
         "M365_LIVE_GOVERNED_EXTRACTION_PASS "
         f"drive_type={str(drive.get('driveType', 'unknown'))[:32]} "
-        f"file_count={len(files)} nested=true max_file_bytes={config.max_file_bytes} "
+        f"source_subtree={source_subtree} file_count={len(files)} nested=true "
+        f"max_file_bytes={config.max_file_bytes} "
         f"live_families={','.join(item.split(':', 1)[0] for item in accepted_live) or 'none'} "
         f"fixture_families={','.join(accepted_fixtures)} "
         f"sample_bytes={len(content)} sample_sha256={hashlib.sha256(content).hexdigest()}"
