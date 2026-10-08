@@ -158,6 +158,8 @@ def main() -> None:
 
     if source_subtree == "processed":
         # Archived records are evidence, so read the smallest single sample.
+        if not samples:
+            raise RuntimeError("M365_INTAKE_NO_SUPPORTED_ACCEPTANCE_FILE")
         family = min(samples, key=lambda key: (int(samples[key]["size"]), str(samples[key]["id"])))
         samples = {family: samples[family]}
 
@@ -193,7 +195,11 @@ def main() -> None:
             f"{family}:extracted:{hashlib.sha256(text.encode('utf-8')).hexdigest()}"
         )
 
-    sample = min(files, key=lambda item: (item["size"] == 0, item["size"], item["id"]))
+    sample = (
+        next(iter(samples.values()))
+        if source_subtree == "processed"
+        else min(files, key=lambda item: (item["size"] == 0, item["size"], item["id"]))
+    )
     # Exercise the same bounded, current-parent read used by the backlog scanner.
     bound = intake.read_listed_document(
         sample, access_classification="Salus Internal"
