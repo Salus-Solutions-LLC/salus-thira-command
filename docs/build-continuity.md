@@ -8,26 +8,28 @@ active_development_branch: development/salcapa-platform
 current_development_head: 07a50e2e3bb5eda10a016deb3d09408da133fe3c
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3227_application_promotion
-last_completed_increment: v3227_immutable_image_published_and_read_back
+active_increment: salus_v3227_application_preflight_repair
+last_completed_increment: v3227_application_attempt_stopped_before_azure_preview
 candidate_release: v3.227
-validation_pr: 792
-validation_branch: candidate/advisor-board-v3227-app-20261007
+validation_pr: 793
+validation_branch: candidate/advisor-v3227-deploy-preflight-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3226_image_pr_closed_unmerged_before_publication
-first_root_failing_gate: v3226_fictional_word_graphics_missing_descriptions
-root_cause: frozen_v3226_predates_five_word_graphic_descriptions
+failed_workflows: v3227_application_run_37720031976_preflight_failed_before_whatif
+first_root_failing_gate: current_app_v3225_compared_to_accepted_rollback_v3223
+root_cause: deployment_preflight_conflated_current_running_app_with_accepted_rollback
 repair_head: 4051de44505bdeb5f29e80292adc81719052feea
-repair_summary: v3227_board_word_accessibility_source_and_immutable_image_published
-genuine_blockers: v3226_image_superseded_before_publication_v3227_app_not_deployed_live_board_word_pdf_and_staff_link_unaccepted_103mb_exact_hash_unproved_member_controls_closed
-next_authorized_step: exact_v3227_app_record_checks_source_review_azure_preview_protected_deployment_then_live_board_output_acceptance
+repair_summary: pin_previous_v3225_app_digest_separately_from_v3223_rollback
+genuine_blockers: v3227_app_preflight_repair_unreviewed_app_not_deployed_live_board_word_pdf_and_staff_link_unaccepted_103mb_exact_hash_unproved_member_controls_closed
+next_authorized_step: exact_pr793_checks_source_review_separate_protected_deployment_then_live_board_output_acceptance
 deployed_demo_release: v3.225
 deployed_demo_state: protected_v3225_running_v3223_last_accepted_advisor_member_purchase_and_upload_closed
 ---
 
 # SalCAPA build continuity
+
+v3227_preflight_failure: PR #792 exact head `c4a4925eabb08eaefb0c81f800550d118a59e0a4` passed ten checks and merged as `14ea5011b37b44943dcebfcbd60b7be0dc99f182`. Protected run [37720031976](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37720031976) failed before Azure what-if because the guard expected the v3.223 accepted rollback image on the currently running v3.225 app. Draft PR #793 records the v3.225 prior-app digest separately and preserves v3.223 rollback; CI, exact-source review and live deployment are pending. Buyer controls remain closed.
 
 v3227_image_published: PR #791 exact head `c8be43a95bd8d62d09321b77c777804b55011a03` passed ten checks and merged after Marc's contextual approval as `07a50e2e3bb5eda10a016deb3d09408da133fe3c`. Protected image run [37719106466](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37719106466) succeeded and Azure read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:0f66010b44ff4a846b9069f5d4df99d8d89b644588782bb4ad65e3ec8c80e173` from frozen v3.227 source `4051de44505bdeb5f29e80292adc81719052feea`. Draft PR #792 stages only that digest for protected application deployment with accepted v3.223 retained for rollback. Azure preview, exact-head review, deployment and qualified live Board output remain separate gates; Level 1A buyer controls stay closed.
 
