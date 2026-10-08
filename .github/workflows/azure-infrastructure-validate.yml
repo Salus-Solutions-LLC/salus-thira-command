@@ -468,6 +468,7 @@ jobs:
               'location',
               'operation',
               'previous_application_image_digest',
+              'previous_worker_image_digest',
               'rollback_commit',
               'rollback_image_digest',
               'rollback_release',
@@ -503,7 +504,7 @@ jobs:
           for key in ('source_commit', 'rollback_commit'):
               if not commit_pattern.fullmatch(application_activation[key]):
                   raise SystemExit(f'Azure application activation has invalid {key}')
-          for key in ('image_digest', 'previous_application_image_digest', 'rollback_image_digest'):
+          for key in ('image_digest', 'previous_application_image_digest', 'previous_worker_image_digest', 'rollback_image_digest'):
               if not image_pattern.fullmatch(application_activation[key]):
                   raise SystemExit(f'Azure application activation has invalid {key}')
           for current_key, rollback_key in (
@@ -511,6 +512,7 @@ jobs:
               ('source_commit', 'rollback_commit'),
               ('image_digest', 'rollback_image_digest'),
               ('image_digest', 'previous_application_image_digest'),
+              ('image_digest', 'previous_worker_image_digest'),
               ('previous_application_image_digest', 'rollback_image_digest'),
           ):
               if application_activation[current_key] == application_activation[rollback_key]:
@@ -539,7 +541,9 @@ jobs:
               'adminUserEnabled --output tsv)" = "false"',
               'az acr manifest show-metadata',
               'PREVIOUS_APP_IMAGE:',
-              'for image in "$IMAGE_DIGEST" "$ROLLBACK_IMAGE" "$PREVIOUS_APP_IMAGE"',
+              'PREVIOUS_WORKER_IMAGE:',
+              'for image in "$IMAGE_DIGEST" "$ROLLBACK_IMAGE" "$PREVIOUS_APP_IMAGE" "$PREVIOUS_WORKER_IMAGE"',
+              'knowledgeWorkerImageDigest="$PREVIOUS_WORKER_IMAGE"',
               'case "$CURRENT_APP_IMAGE" in',
               'az deployment group what-if',
               'az deployment group create',
