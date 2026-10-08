@@ -32,12 +32,14 @@ with tempfile.TemporaryDirectory() as td:
     from fastapi.testclient import TestClient
     from public_protection_advisor import (
         CORE_CAPABILITIES, COVERED_OPERATION_TAGS, NOTIFICATION_FROM, QUESTION_BLUEPRINTS,
-        SubmitCommand, _package_recommendation,
+        QUESTIONNAIRE_VERSION, SubmitCommand, _package_recommendation,
         _page, _questions, _review_detail, _review_page, _verification_page,
     )
     from salus_package_path import draft_level_1_scope_receipt
 
     assert NOTIFICATION_FROM=="protectionadvisor@salus.solutions"
+    acceptance_script=(ROOT/"tools/live_public_protection_advisor_acceptance.sh").read_text(encoding="utf-8")
+    assert acceptance_script.count(QUESTIONNAIRE_VERSION)==2, "live acceptance must match the current questionnaire"
     assert len(COVERED_OPERATION_TAGS)==14
     assert "House of Worship" in COVERED_OPERATION_TAGS
     assert SubmitCommand.model_fields["primary_objective"].is_required()
