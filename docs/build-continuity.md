@@ -1,33 +1,40 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 07 October 2026 20:00 CDT
-current_frozen_release: v3.226
-current_frozen_commit: e525f0f65c355e8d6f1966dd3a5001cf95cddc58
+last_verified_at: 07 October 2026 20:37 CDT
+current_frozen_release: v3.227
+current_frozen_commit: 4051de44505bdeb5f29e80292adc81719052feea
 active_development_branch: development/salcapa-platform
-current_development_head: 9998a2a1402ec0823a9319e1cd028e731efaa1ac
+current_development_head: 4051de44505bdeb5f29e80292adc81719052feea
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3227_advisor_board_paper_accessibility_release
-last_completed_increment: v3226_frozen_without_image_and_v3227_source_repairs_merged
+active_increment: salus_v3227_immutable_image_publication
+last_completed_increment: v3227_source_frozen_after_all_candidate_checks_v3226_image_superseded
 candidate_release: v3.227
-validation_pr: 790
-validation_branch: candidate/advisor-board-v3227-20261007
+validation_pr: 791
+validation_branch: candidate/advisor-board-v3227-image-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3226_image_pr_closed_unmerged_before_publication
 first_root_failing_gate: v3226_fictional_word_graphics_missing_descriptions
 root_cause: frozen_v3226_predates_five_word_graphic_descriptions
-repair_head: b67e7e83dcf5c90971556b08ebf15ddd7aca4b5a
-repair_summary: reviewed_word_descriptions_plus_content_free_graph_pdf_check_and_one_day_fictional_output_qa_route
-genuine_blockers: v3226_frozen_image_superseded_before_publication_v3227_exact_source_review_immutable_image_azure_preview_live_word_pdf_visual_reading_order_and_staff_link_acceptance_103mb_exact_hash_unproved_member_controls_closed
-next_authorized_step: complete_v3227_candidate_checks_and_exact_source_review_then_freeze_without_opening_member_controls
+repair_head: 4051de44505bdeb5f29e80292adc81719052feea
+repair_summary: reviewed_v3227_board_word_accessibility_source_frozen_image_record_staged
+genuine_blockers: v3226_image_superseded_before_publication_v3227_image_app_live_word_pdf_review_and_staff_link_unproved_103mb_exact_hash_unproved_member_controls_closed
+next_authorized_step: verify_frozen_v3227_release_checks_then_exact_image_record_review_and_protected_immutable_build
 deployed_demo_release: v3.225
 deployed_demo_state: protected_v3225_running_v3223_last_accepted_advisor_member_purchase_and_upload_closed
 ---
 
 # SalCAPA build continuity
+
+## 7 October 2026 Central — frozen v3.227 image candidate
+
+Marc reviewed PR #790 exact head `44a9bd8175d85b24c95039e085e97999c92978a3` after 48 checks passed; it merged as `4051de44505bdeb5f29e80292adc81719052feea` and `release/v3.227` froze that source. The release guard passed; full frozen CI and contextual intake checks remain to be verified before image publication. Draft PR #791 stages one image record for that exact source and a narrow lineage preflight. It does not deploy the app, execute a fictional acceptance job, or open buyer controls. Accepted Advisor output remains v3.223; live app is v3.225 with v3.223 retained for rollback.
+
+v3226_superseded_before_publication: Frozen `release/v3.226` at `e525f0f65c355e8d6f1966dd3a5001cf95cddc58` never produced an immutable image. PR #782 was closed unmerged after fictional Word QA found five approved-template graphics without descriptions. Exact-reviewed PR #783 repaired those descriptions in the v3.227 source. The live v3.225 fictional Graph PDF structure run cannot qualify that later repair. The image, protected Azure deployment, and qualified Board Word/PDF output reviews remain separate gates.
+
 
 ## 7 October 2026 Central — v3.227 Board report accessibility candidate
 
