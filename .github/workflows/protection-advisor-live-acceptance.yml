@@ -2,6 +2,11 @@ name: Protection Advisor live acceptance
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - .github/workflows/protection-advisor-live-acceptance.yml
 
 permissions:
   contents: read
@@ -12,6 +17,11 @@ concurrency:
 
 jobs:
   acceptance:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' &&
+       fromJSON(github.run_attempt) == 1 &&
+       startsWith(github.event.head_commit.message, 'Merge pull request #000 '))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment: salcapa-dev-approval
