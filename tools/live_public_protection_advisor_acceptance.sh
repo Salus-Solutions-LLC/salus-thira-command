@@ -165,13 +165,16 @@ curl -fsS -c "$COOKIE" -b "$COOKIE" -H "X-CSRF-Token: $CSRF" \
   -o "$WORK/receipt-again.pdf" "$BASE/public/protection-advisor/scope-receipt.pdf"
 cmp "$WORK/receipt-first.pdf" "$WORK/receipt-again.pdf"
 
+STAGE="fictional PDF structure screening"
+PDF_STRUCTURE="$(python tools/advisor_pdf_structure_metadata.py "$WORK/report-first.pdf" "$WORK/receipt-first.pdf")"
+
 STAGE="test content deletion"
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
   -d '{}' "$BASE/public/protection-advisor/delete" > "$WORK/delete-result.json"
 jq -e '.deleted==true' "$WORK/delete-result.json" >/dev/null
 DELETED=1
 
-ACCEPTANCE="$(jq -nc --arg email "$EMAIL" --argjson acceptance "$SUMMARY" '{public_page_security_headers:true,questionnaire_version:"SPA-PUBLIC-QUESTIONNAIRE-2.3.0",questions:9,core_capability_framework:32,directly_mapped_capabilities:18,mission_areas:5,primary_consent:true,secondary_deidentified_consent:false,account_email:$email,email_verification:"Delivered",save_resume:true,submission:$acceptance,test_content_deleted:true}')"
+ACCEPTANCE="$(jq -nc --arg email "$EMAIL" --argjson acceptance "$SUMMARY" --argjson pdf_structure "$PDF_STRUCTURE" '{pdf_structure:$pdf_structure,public_page_security_headers:true,questionnaire_version:"SPA-PUBLIC-QUESTIONNAIRE-2.3.0",questions:9,core_capability_framework:32,directly_mapped_capabilities:18,mission_areas:5,primary_consent:true,secondary_deidentified_consent:false,account_email:$email,email_verification:"Delivered",save_resume:true,submission:$acceptance,test_content_deleted:true}')"
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   {
     echo "### Protection Advisor live acceptance"
