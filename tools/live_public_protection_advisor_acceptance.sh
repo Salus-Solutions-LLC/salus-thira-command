@@ -51,7 +51,7 @@ jq -nc '{organization_type:"Business",primary_consent:true,secondary_deidentifie
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' \
   -d @"$WORK/start.json" "$BASE/public/protection-advisor/session" > "$WORK/session.json"
 CSRF="$(jq -r '.csrf_token' "$WORK/session.json")"
-jq -e '.questionnaire_version=="SPA-PUBLIC-QUESTIONNAIRE-2.3.0" and (.questions|length)==9' "$WORK/session.json" >/dev/null
+jq -e '.questionnaire_version=="SPA-PUBLIC-QUESTIONNAIRE-2.4.0" and (.questions|length)==9' "$WORK/session.json" >/dev/null
 jq -e '[.questions[].mission_areas[]]|unique|sort == ["Mitigation","Prevention","Protection","Recovery","Response"]' "$WORK/session.json" >/dev/null
 jq -e '[.questions[].capabilities[]]|unique|length == 18' "$WORK/session.json" >/dev/null
 
@@ -182,7 +182,7 @@ if [ -n "${PROTECTION_ADVISOR_FICTIONAL_REPORT_EXPORT_DIR:-}" ]; then
   install -m 600 "$WORK/receipt-first.pdf" "$PROTECTION_ADVISOR_FICTIONAL_REPORT_EXPORT_DIR/fictional-scope-receipt.pdf"
 fi
 
-ACCEPTANCE="$(jq -nc --arg email "$EMAIL" --argjson acceptance "$SUMMARY" --argjson pdf_structure "$PDF_STRUCTURE" '{pdf_structure:$pdf_structure,public_page_security_headers:true,questionnaire_version:"SPA-PUBLIC-QUESTIONNAIRE-2.3.0",questions:9,core_capability_framework:32,directly_mapped_capabilities:18,mission_areas:5,primary_consent:true,secondary_deidentified_consent:false,account_email:$email,email_verification:"Delivered",save_resume:true,submission:$acceptance,test_content_deleted:true}')"
+ACCEPTANCE="$(jq -nc --arg email "$EMAIL" --argjson acceptance "$SUMMARY" --argjson pdf_structure "$PDF_STRUCTURE" '{pdf_structure:$pdf_structure,public_page_security_headers:true,questionnaire_version:"SPA-PUBLIC-QUESTIONNAIRE-2.4.0",questions:9,core_capability_framework:32,directly_mapped_capabilities:18,mission_areas:5,primary_consent:true,secondary_deidentified_consent:false,account_email:$email,email_verification:"Delivered",save_resume:true,submission:$acceptance,test_content_deleted:true}')"
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   {
     echo "### Protection Advisor live acceptance"
