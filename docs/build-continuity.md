@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 08 October 2026 10:47 CDT
+last_verified_at: 08 October 2026 18:30 CDT
 current_frozen_release: v3.229
 current_frozen_commit: 9dc3d88475221d27b78521ba0350f8bfc71252c9
 active_development_branch: development/salcapa-platform
-current_development_head: 85ad65a789fdbe6e69e82966062f97323c8d5055
+current_development_head: 910f57bdd491b455120b1fce957cad929c146d32
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3229_application_promotion
-last_completed_increment: v3229_immutable_image_published_and_read_back_v3223_accepted_rollback_retained
-candidate_release: v3.229
-validation_pr: 804
-validation_branch: codex/pa-v3229-deploy
+active_increment: salus_v3230_advisor_submit_acceptance_source
+last_completed_increment: v3229_fictional_advisor_submit_rejected_v3223_rollback_verified
+candidate_release: v3.230
+validation_pr: 806
+validation_branch: codex/advisor-acceptance-v3230
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3228_application_runs_37749342301_and_37764578678
-first_root_failing_gate: fictional_advisor_session_and_consent_acceptance
-root_cause: frozen_v3228_test_expected_questionnaire_v230_but_runtime_declared_v240
-repair_head: 9dc3d88475221d27b78521ba0350f8bfc71252c9
-repair_summary: reviewed_test_version_alignment_frozen_v3229_image_published_and_read_back
-genuine_blockers: v3228_superseded_after_live_advisor_test_failure_v3229_azure_preview_fictional_advisor_word_pdf_staff_link_103mb_exact_hash_member_controls_closed
-next_authorized_step: verify_v3229_deployment_candidate_ci_then_exact_source_review_and_protected_azure_preview
+failed_workflows: v3229_application_run_37810084255
+first_root_failing_gate: fictional_advisor_submission_422
+root_cause: frozen_v3229_test_missing_level1a_scope_ack_and_retired_primary_outcome
+repair_head: 910f57bdd491b455120b1fce957cad929c146d32
+repair_summary: reviewed_submit_fixture_and_ci_contract_guard_merged_as_pr805
+genuine_blockers: v3229_superseded_after_failed_live_advisor_submission_v3230_exact_source_review_frozen_ci_image_azure_preview_fictional_advisor_word_pdf_staff_link_103mb_exact_hash_member_controls_closed
+next_authorized_step: verify_v3230_candidate_ci_then_exact_source_review_before_freeze
 deployed_demo_release: v3.223
-deployed_demo_state: accepted_v3223_restored_after_v3228_advisor_test_failure_member_purchase_and_upload_closed
+deployed_demo_state: accepted_v3223_restored_after_v3229_advisor_submit_failure_member_purchase_and_upload_closed
 ---
 
 # SalCAPA build continuity
@@ -191,3 +191,8 @@ Marc approved PR #802 exact head `511310d21ad18c112ec63423c7b6db2fcdbaf0d8` afte
 ## 8 October 2026 Central — v3.229 immutable image published; Azure deployment staged
 
 Marc approved PR #803 exact head `bf906884426b92b3359e50c8c03c8fd8ff49e184` after 54 successful candidate checks; it merged as `85ad65a789fdbe6e69e82966062f97323c8d5055`. Protected [image run 37802943456](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37802943456) succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:a5b06b3e155cbfe1da08a7800634f65efb38614fea985566bac1591163bafd6d` from frozen `release/v3.229` commit `9dc3d88475221d27b78521ba0350f8bfc71252c9`. This published an image only; accepted v3.223 remains live. A separately reviewed candidate stages this digest for protected Azure what-if/deployment and retains accepted v3.223 application/worker images for rollback. It removes the v3.228-only retry marker. Live Advisor test response, Board output, staff link and Member commerce remain unaccepted or closed.
+
+
+## 8 October 2026 Central — v3.230 corrected fictional Advisor submit source candidate
+
+Marc approved PR #805 exact head `211bc321b1e086bb4380a464d9c24737dd50796c` after four green checks, including the public Advisor smoke; it merged as `910f57bdd491b455120b1fce957cad929c146d32`. Protected v3.229 [run 37810084255](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37810084255) failed at the fictional submit HTTP 422 and restored accepted v3.223. The test fixture now supplies the current Level 1A boundary acknowledgment/version and listed Part 2 outcome, with a CI drift guard. This candidate labels that corrected source v3.230. It does not build an image, deploy Azure, run a fictional test, or open buyer controls. Next: full candidate CI, Marc's exact-source review, freeze, separately reviewed image and Azure deployment, and qualified live report review. The 103 MB exact-hash, paused large-batch #520, stopped Tierra Linda and closed buyer/payment/upload controls remain separate.
