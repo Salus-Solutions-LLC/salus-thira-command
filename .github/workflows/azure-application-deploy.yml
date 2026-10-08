@@ -569,7 +569,10 @@ jobs:
             fi
             if [ "$attempt" -lt 6 ]; then sleep 10; fi
           done
-          test "$MODE_READY" = true
+          if [ "$MODE_READY" != true ]; then
+            echo "Advisor mode did not respond after bounded retries; last HTTP status: $STATUS" >&2
+            exit 1
+          fi
           bash frozen-release/tools/live_public_protection_advisor_acceptance.sh
 
       - name: Promote and verify scheduled worker after application acceptance
