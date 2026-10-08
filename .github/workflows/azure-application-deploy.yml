@@ -65,7 +65,6 @@ jobs:
             (.image_digest != .rollback_image_digest) and
             (.image_digest != .previous_application_image_digest) and
             (.image_digest != .previous_worker_image_digest) and
-            (.previous_application_image_digest != .rollback_image_digest) and
             ((keys - [
               "activation_key",
               "approval_record",
