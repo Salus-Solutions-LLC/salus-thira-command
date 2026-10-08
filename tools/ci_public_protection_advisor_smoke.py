@@ -31,7 +31,8 @@ with tempfile.TemporaryDirectory() as td:
     app_module=importlib.import_module("app")
     from fastapi.testclient import TestClient
     from public_protection_advisor import (
-        CORE_CAPABILITIES, COVERED_OPERATION_TAGS, NOTIFICATION_FROM, QUESTION_BLUEPRINTS,
+        ACCESS_SCOPE_NOTICE_VERSION, CORE_CAPABILITIES, COVERED_OPERATION_TAGS,
+        NOTIFICATION_FROM, PRIMARY_OUTCOME_OPTIONS, QUESTION_BLUEPRINTS,
         QUESTIONNAIRE_VERSION, SubmitCommand, _package_recommendation,
         _page, _questions, _review_detail, _review_page, _verification_page,
     )
@@ -42,6 +43,10 @@ with tempfile.TemporaryDirectory() as td:
     assert f'.questionnaire_version=="{QUESTIONNAIRE_VERSION}"' in acceptance_script
     assert f'questionnaire_version:"{QUESTIONNAIRE_VERSION}"' in acceptance_script
     assert acceptance_script.count(QUESTIONNAIRE_VERSION)==2, "live acceptance must match the current questionnaire"
+    assert f'access_scope_notice_version:"{ACCESS_SCOPE_NOTICE_VERSION}"' in acceptance_script
+    assert "access_scope_acknowledged:true" in acceptance_script
+    assert "Independent assessment and priorities" in PRIMARY_OUTCOME_OPTIONS
+    assert acceptance_script.count('primary_objective:"Independent assessment and priorities"')==2
     assert len(COVERED_OPERATION_TAGS)==14
     assert "House of Worship" in COVERED_OPERATION_TAGS
     assert SubmitCommand.model_fields["primary_objective"].is_required()
