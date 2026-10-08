@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 07 October 2026 20:37 CDT
+last_verified_at: 07 October 2026 21:45 CDT
 current_frozen_release: v3.227
 current_frozen_commit: 4051de44505bdeb5f29e80292adc81719052feea
 active_development_branch: development/salcapa-platform
-current_development_head: 4051de44505bdeb5f29e80292adc81719052feea
+current_development_head: 07a50e2e3bb5eda10a016deb3d09408da133fe3c
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3227_immutable_image_publication
-last_completed_increment: v3227_source_frozen_after_all_candidate_checks_v3226_image_superseded
+active_increment: salus_v3227_application_promotion
+last_completed_increment: v3227_immutable_image_published_and_read_back
 candidate_release: v3.227
-validation_pr: 791
-validation_branch: candidate/advisor-board-v3227-image-20261007
+validation_pr: 792
+validation_branch: candidate/advisor-board-v3227-app-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -20,14 +20,17 @@ failed_workflows: v3226_image_pr_closed_unmerged_before_publication
 first_root_failing_gate: v3226_fictional_word_graphics_missing_descriptions
 root_cause: frozen_v3226_predates_five_word_graphic_descriptions
 repair_head: 4051de44505bdeb5f29e80292adc81719052feea
-repair_summary: reviewed_v3227_board_word_accessibility_source_frozen_image_record_staged
-genuine_blockers: v3226_image_superseded_before_publication_v3227_image_app_live_word_pdf_review_and_staff_link_unproved_103mb_exact_hash_unproved_member_controls_closed
-next_authorized_step: verify_frozen_v3227_release_checks_then_exact_image_record_review_and_protected_immutable_build
+repair_summary: v3227_board_word_accessibility_source_and_immutable_image_published
+genuine_blockers: v3226_image_superseded_before_publication_v3227_app_not_deployed_live_board_word_pdf_and_staff_link_unaccepted_103mb_exact_hash_unproved_member_controls_closed
+next_authorized_step: exact_v3227_app_record_checks_source_review_azure_preview_protected_deployment_then_live_board_output_acceptance
 deployed_demo_release: v3.225
 deployed_demo_state: protected_v3225_running_v3223_last_accepted_advisor_member_purchase_and_upload_closed
 ---
 
 # SalCAPA build continuity
+
+v3227_image_published: PR #791 exact head `c8be43a95bd8d62d09321b77c777804b55011a03` passed ten checks and merged after Marc's contextual approval as `07a50e2e3bb5eda10a016deb3d09408da133fe3c`. Protected image run [37719106466](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37719106466) succeeded and Azure read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:0f66010b44ff4a846b9069f5d4df99d8d89b644588782bb4ad65e3ec8c80e173` from frozen v3.227 source `4051de44505bdeb5f29e80292adc81719052feea`. Draft PR #792 stages only that digest for protected application deployment with accepted v3.223 retained for rollback. Azure preview, exact-head review, deployment and qualified live Board output remain separate gates; Level 1A buyer controls stay closed.
+
 
 ## 7 October 2026 Central — frozen v3.227 image candidate
 
