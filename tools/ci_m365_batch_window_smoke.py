@@ -88,6 +88,27 @@ def main():
         "10 Pending Classification/member-folder/document-599.txt"
     )
 
+    archive = f"{GRAPH_ROOT}/drives/{config.drive_id}/items/archived0001/children"
+    pages[archive] = {"value": [
+        {
+            "id": "archive00001", "name": "fixture.txt",
+            "file": {"mimeType": "text/plain"}, "size": 7,
+            "eTag": "archive-etag",
+            "lastModifiedDateTime": "2026-10-07T00:00:00Z",
+        },
+        {
+            "id": "archive00002", "name": "later.txt",
+            "file": {"mimeType": "text/plain"}, "size": 8,
+            "eTag": "later-etag",
+            "lastModifiedDateTime": "2026-10-07T00:00:00Z",
+        },
+    ]}
+    processed = intake.list_files(processed_only=True, max_files=1)
+    assert len(processed) == 1
+    assert processed[0]["relative_path"] == "90 Processed Intake/fixture.txt"
+    assert processed[0]["id"] in intake._listed_items
+    assert all("Pending Classification" not in row["relative_path"] for row in processed)
+
     print("M365_BATCH_WINDOW_PASS")
 
 
