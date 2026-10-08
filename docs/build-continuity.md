@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3227_advisor_board_paper_accessibility_release
 last_completed_increment: v3226_frozen_without_image_and_v3227_source_repairs_merged
 candidate_release: v3.227
-validation_pr: pending
+validation_pr: 790
 validation_branch: candidate/advisor-board-v3227-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
