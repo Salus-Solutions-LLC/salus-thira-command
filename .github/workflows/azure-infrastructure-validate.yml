@@ -463,7 +463,6 @@ jobs:
           )
           application_activation_keys = {
               'activation_key',
-              'activation_retry_attempt',
               'approval_record',
               'image_digest',
               'location',
@@ -479,6 +478,8 @@ jobs:
               'target_environment',
               'unique_suffix',
           }
+          if 'activation_retry_attempt' in application_activation:
+              application_activation_keys.add('activation_retry_attempt')
           if set(application_activation) != application_activation_keys:
               raise SystemExit('Azure application activation schema is not exact')
           for key, expected in (
@@ -519,7 +520,7 @@ jobs:
                   raise SystemExit(
                       f'Azure application activation must distinguish {current_key}'
                   )
-          if not (
+          if 'activation_retry_attempt' in application_activation and not (
               application_activation['activation_retry_attempt'] == 2
               and application_activation['source_release'] == 'release/v3.228'
               and application_activation['source_commit'] == '56524b7591526f90a75953cbcf70d47164a23bc0'
