@@ -52,6 +52,13 @@ jobs:
           git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
           git merge-base --is-ancestor "$ROLLBACK_COMMIT" "$GITHUB_SHA"
 
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned PDF structure reader
+        run: python -m pip install --disable-pip-version-check pypdf==6.19.0
+
       - name: Exercise public consent, account, resume, package, and review handoff
         env:
           PROTECTION_ADVISOR_BASE_URL: https://salcapa-dev-b48224.ashycoast-29444a28.southcentralus.azurecontainerapps.io
