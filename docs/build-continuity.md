@@ -1,33 +1,38 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 07 October 2026 16:42 CDT
-current_frozen_release: v3.225
-current_frozen_commit: 08f2b45a46949d23455a125d704fa05c9eaeecfc
+last_verified_at: 07 October 2026 20:00 CDT
+current_frozen_release: v3.226
+current_frozen_commit: e525f0f65c355e8d6f1966dd3a5001cf95cddc58
 active_development_branch: development/salcapa-platform
-current_development_head: 8b27ac2cc5530027cdcb355ff215b04bc7615924
+current_development_head: 9998a2a1402ec0823a9319e1cd028e731efaa1ac
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3226_advisor_board_paper_release
-last_completed_increment: v3225_protected_application_deployed_and_v3226_advisor_source_merged
-candidate_release: v3.226
-validation_pr: 781
-validation_branch: candidate/advisor-board-v3226-20261007
+active_increment: salus_v3227_advisor_board_paper_accessibility_release
+last_completed_increment: v3226_frozen_without_image_and_v3227_source_repairs_merged
+candidate_release: v3.227
+validation_pr: 790
+validation_branch: candidate/advisor-board-v3227-20261007
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3226_candidate
-first_root_failing_gate: pending_v3226_exact_candidate_checks
-root_cause: no_v3226_failure_observed
-repair_head: 8b27ac2cc5530027cdcb355ff215b04bc7615924
-repair_summary: v3226_part2_choices_and_board_report_source_merged
-genuine_blockers: v3225_output_superseded_by_v3226_advisor_candidate_staff_review_link_unaccepted_v3226_image_and_live_word_pdf_download_unproved_103mb_exact_hash_archive_unproved_member_controls_closed
-next_authorized_step: verify_v3226_exact_candidate_checks_and_source_review_then_freeze_image_deploy_live_board_report_acceptance
+failed_workflows: v3226_image_pr_closed_unmerged_before_publication
+first_root_failing_gate: v3226_fictional_word_graphics_missing_descriptions
+root_cause: frozen_v3226_predates_five_word_graphic_descriptions
+repair_head: b67e7e83dcf5c90971556b08ebf15ddd7aca4b5a
+repair_summary: reviewed_word_descriptions_plus_content_free_graph_pdf_check_and_one_day_fictional_output_qa_route
+genuine_blockers: v3226_frozen_image_superseded_before_publication_v3227_exact_source_review_immutable_image_azure_preview_live_word_pdf_visual_reading_order_and_staff_link_acceptance_103mb_exact_hash_unproved_member_controls_closed
+next_authorized_step: complete_v3227_candidate_checks_and_exact_source_review_then_freeze_without_opening_member_controls
 deployed_demo_release: v3.225
-deployed_demo_state: protected_deployed_v3225_advisor_exact_output_pending_acceptance_v3223_last_accepted_member_upload_and_purchase_closed
+deployed_demo_state: protected_v3225_running_v3223_last_accepted_advisor_member_purchase_and_upload_closed
 ---
 
 # SalCAPA build continuity
+
+## 7 October 2026 Central — v3.227 Board report accessibility candidate
+
+Frozen v3.226 at `e525f0f65c355e8d6f1966dd3a5001cf95cddc58` was not published: PR #782 was closed before image creation because the generated Word report omitted descriptions for five approved-template graphics. Marc exact-reviewed the narrow repair in PR #783; it merged as `b67e7e83dcf5c90971556b08ebf15ddd7aca4b5a`. The live v3.225 fictional Graph PDF test [37709488856](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37709488856) succeeded and deleted its fictional account, but that deployed source predates the Word repair. Its tags and zero described figures cannot prove repaired-output accessibility. PR #789 merged a dormant one-day private artifact route for the next fictional PDFs as `9998a2a1402ec0823a9319e1cd028e731efaa1ac`; its push acceptance job was skipped. This v3.227 candidate labels the reviewed source only. No image, Azure deployment, accepted Board output or Member purchase/upload is implied. Next: exact-head CI and Marc source review, freeze, separate immutable-image and protected Azure reviews with v3.223 rollback, then one bounded fictional Graph/Word output test with qualified every-page and reading-order review.
+
 
 This non-sensitive engineering record is the restart point for the unified SalCAPA build.
 
