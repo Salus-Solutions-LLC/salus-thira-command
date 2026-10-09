@@ -2113,6 +2113,10 @@ class Level1ADisclosureAuthorityIn(BaseModel):
     authority_basis: str = Field(min_length=12,max_length=1000)
     confirm_authorized_disclosure: Literal[True]
 
+class Level1AIntakeResponseIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    status: Literal['Requested','Not held','Not known','Prefer to discuss']
+
 class PackageMemberAuthorityReviewIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     quote_id: int = Field(gt=0)
@@ -6385,6 +6389,46 @@ def get_level1a_intake(order_id:int,request:Request):
                     PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender')}
     finally:
         conn.close()
+
+
+@app.patch('/api/level1a/orders/{order_id}/intake/{item_id}/response')
+def respond_level1a_intake(order_id:int,item_id:int,p:Level1AIntakeResponseIn,
+                          request:Request):
+    """Record a paid Member's answer without treating an absent file as evidence."""
+    ctx=_level1a_draft_authority(request);tid=int(ctx['tenant_id'])
+    conn=db()
+    try:
+        if is_sqlite(): conn.execute('BEGIN IMMEDIATE')
+        binding,_=_paid_level1a_intake(conn,order_id,tid,ctx['user_id'])
+        link=conn.execute('''SELECT assessment_id FROM level1a_assessment_links
+            WHERE tenant_id=? AND buyer_user_id=? AND order_id=?
+            AND scope_sha256=?''',
+            (tid,ctx['user_id'],order_id,binding.scope_sha256)).fetchone()
+        if not link: raise HTTPException(404,'Open the paid intake first.')
+        item=conn.execute('''SELECT id,status FROM level1a_intake_items
+            WHERE id=? AND tenant_id=? AND order_id=? AND assessment_id=?''',
+            (item_id,tid,order_id,link['assessment_id'])).fetchone()
+        if not item: raise HTTPException(404,'Requested item not found in this intake.')
+        reused=item['status']==p.status
+        if not reused:
+            has_file=conn.execute('''SELECT 1 FROM level1a_intake_uploads
+                WHERE tenant_id=? AND order_id=? AND intake_request_id=? LIMIT 1''',
+                (tid,order_id,item_id)).fetchone()
+            pending=conn.execute('''SELECT 1 FROM level1a_pending_scans
+                WHERE tenant_id=? AND order_id=? AND intake_request_id=? LIMIT 1''',
+                (tid,order_id,item_id)).fetchone()
+            if has_file or pending:
+                raise HTTPException(409,'A file is received or held for this item. Ask Salus to reconcile it before changing the response.')
+            conn.execute('''UPDATE level1a_intake_items SET status=?
+                WHERE id=? AND tenant_id=? AND order_id=?''',
+                (p.status,item_id,tid,order_id))
+            audit(conn,'LEVEL1A_INTAKE_RESPONSE','assessment',link['assessment_id'],
+                  f'order_id={order_id}; item_id={item_id}; status={p.status}',
+                  ctx['user'],tenant_override=tid)
+            conn.commit()
+        return {'item_id':item_id,'status':p.status,'idempotent':reused}
+    finally:
+        conn.rollback();conn.close()
 
 
 @app.post('/api/level1a/orders/{order_id}/intake/disclosure-authority')
