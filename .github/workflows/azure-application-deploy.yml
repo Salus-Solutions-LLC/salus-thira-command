@@ -155,6 +155,13 @@ jobs:
                   raise SystemExit(f'{directory} runtime release identity does not match activation')
           PY
 
+      - name: Prepare frozen PDF screening dependency before Azure deployment
+        run: |
+          set -euo pipefail
+          grep -Fxq 'pypdf==6.19.0' frozen-release/requirements.txt
+          python -m pip install --disable-pip-version-check --no-deps pypdf==6.19.0
+          python -c 'from pypdf import PdfReader'
+
       - name: Validate required non-secret repository variables
         env:
           AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
