@@ -75,7 +75,7 @@ def test_member_order_reference_and_tenant_boundary(tmp_path):
         assert quote.status_code==200,quote.text
         assert quote.json()['base_price_cents']==150000
         assert quote.json()['tax_cents']==0 and quote.json()['total_cents']==150000
-        assert quote.json()['tax_rule_id']=='TX-STANDARD-CONSULTING-V1'
+        assert quote.json()['tax_rule_id']=='TX-PERFORMED-LEVEL1A-V1'
         assert not quote.json()['agreement_available']
         assert buyer.post(url+'/quote').json()['quote_id']==quote.json()['quote_id']
         assert buyer.get(url+'/agreements/1/download').status_code==404
