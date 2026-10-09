@@ -204,8 +204,6 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         assert buyer.get(intake_base).json()['items'][0]['status']=='Not held'
         assert buyer.patch(response_url,json={'status':'Not held'}).json()['idempotent'] is True
         assert buyer.patch(response_url,json={'status':'Invalid'}).status_code==422
-        assert buyer.post(f'/api/level1a/orders/{oid}/intake/{item_id}/files',
-            files={'file':('blocked.pdf',b'fictional bytes','application/pdf')}).status_code==409
         reset=buyer.patch(response_url,json={'status':'Requested'})
         assert reset.status_code==200 and reset.json()['status']=='Requested'
         denied=buyer.post(f'/api/level1a/orders/{oid}/intake/{item_id}/files',
@@ -217,6 +215,10 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         assert asserted.status_code==200,asserted.text
         assert buyer.get(f'/api/level1a/orders/{oid}/intake').json()['disclosure_authority_recorded']
         assert asserted.json()['upload_available']
+        assert buyer.patch(response_url,json={'status':'Prefer to discuss'}).status_code==200
+        assert buyer.post(f'/api/level1a/orders/{oid}/intake/{item_id}/files',
+            files={'file':('blocked.pdf',b'fictional bytes','application/pdf')}).status_code==409
+        assert buyer.patch(response_url,json={'status':'Requested'}).status_code==200
         clean=buyer.post(f'/api/level1a/orders/{oid}/intake/{item_id}/files',
             files={'file':('clean.pdf',b'fictional clean PDF','application/pdf')})
         assert clean.status_code==200 and clean.json()['scan_status']=='Pending',clean.text
