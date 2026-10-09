@@ -211,6 +211,15 @@ def test_board_decision_paper_has_all_reports_levels_paths_and_readable_spacing(
             assert label in text
         assert "fixed $1,500 prepaid Level 1A Access" in text
         assert "separately scoped" in text
+        normalized = " ".join(text.split())
+        for case_fact in (
+            "Are decision authority and succession documented and understood?",
+            "Recovery targets require validation.",
+            "Review a representative decision handoff in Level 1.",
+            "The proposed sequence addresses connected capability needs.",
+            "Emergency Planning and Crisis Communications",
+        ):
+            assert case_fact in normalized
     normal = reopened.styles["Normal"].paragraph_format
     assert normal.space_after.pt >= 8
     assert reopened.styles["Heading 1"].paragraph_format.space_before.pt >= 12
