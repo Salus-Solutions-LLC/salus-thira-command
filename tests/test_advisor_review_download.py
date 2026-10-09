@@ -38,6 +38,9 @@ def test_approved_review_page_prepares_then_offers_both_downloads():
     unapproved = _review_detail(row, {**approved, "handling_status": "Pending"})
     assert "id='report-form'" not in unapproved
     assert base + "/report.docx" not in unapproved
+    director_pending = _review_detail(row, {**approved, "handling_status": "Pending"}, can_approve_handling=False)
+    assert "id=\"handling-form\"" not in director_pending
+    assert "A System Administrator must approve report handling" in director_pending
 
 
 def test_stored_advisor_download_is_anchored_and_validated(monkeypatch):
@@ -163,8 +166,16 @@ def test_staff_download_requires_authority_and_approved_handling(tmp_path):
         word = admin.get(base + "/report.docx")
         assert word.status_code == 200, word.text
         assert word.content.startswith(b"PK\x03\x04")
-        nonadmin = TestClient(app.app, headers={"X-Salus-Role": "Contributor"})
-        assert nonadmin.get(base + "/report.pdf").status_code == 403
+        director = TestClient(app.app, headers={"X-Salus-Role": "Assessment Director"})
+        detail = director.get("/protection-advisor/review/" + key)
+        assert detail.status_code == 200, detail.text
+        assert "Download Word report" in detail.text
+        assert director.get(base + "/report.pdf").status_code == 200
+        assert director.get(base + "/report.docx").status_code == 200
+        assert director.post(base + "/report").status_code == 409
+        nonreviewer = TestClient(app.app, headers={"X-Salus-Role": "Contributor"})
+        assert nonreviewer.get("/protection-advisor/review/" + key).status_code == 403
+        assert nonreviewer.get(base + "/report.pdf").status_code == 403
         assert admin.get(base + "/report.html").status_code == 404
         conn = app.db()
         conn.execute("UPDATE advisor_public_report_identity_revisions SET handling_status='Pending' WHERE session_key=?",
@@ -172,6 +183,11 @@ def test_staff_download_requires_authority_and_approved_handling(tmp_path):
         conn.commit()
         conn.close()
         assert admin.get(base + "/report.pdf").status_code == 409
+        assert director.get(base + "/report.pdf").status_code == 409
+        pending_page = director.get("/protection-advisor/review/" + key)
+        assert pending_page.status_code == 200
+        assert "id=\"handling-form\"" not in pending_page.text
+        assert "A System Administrator must approve report handling" in pending_page.text
     ''')
     completed = subprocess.run([sys.executable, "-c", program], env=env, capture_output=True,
                                text=True, timeout=80)
