@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 15:21 CDT
-current_frozen_release: v3.232
-current_frozen_commit: 35a3e5597ab94343d842a7999494c171c7ded6ed
+last_verified_at: 09 October 2026 15:30 CDT
+current_frozen_release: v3.233
+current_frozen_commit: e1f15b5a261e172d59c5d44c98fe82bbd6021504
 active_development_branch: development/salcapa-platform
-current_development_head: 6b12355047892b28fdf9fc353b575be6a3ff0c61
+current_development_head: e1f15b5a261e172d59c5d44c98fe82bbd6021504
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3233_advisor_review_download_release
-last_completed_increment: v3232_deployed_administrator_account_live_review_link_confirmed
+active_increment: salus_v3233_immutable_image_publication
+last_completed_increment: v3233_source_frozen_v3232_serving_with_v3223_rollback
 candidate_release: v3.233
-validation_pr: 829
-validation_branch: codex/advisor-download-v3233-20261009
+validation_pr: 831
+validation_branch: codex/advisor-download-v3233-image-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_for_v3233_candidate
 first_root_failing_gate: raw_json_from_staff_report_prepare_button
 root_cause: staff_review_form_navigated_directly_to_json_api_without_word_pdf_download_links
-repair_head: 6b12355047892b28fdf9fc353b575be6a3ff0c61
-repair_summary: reviewed_staff_download_source_merged_pr_828_with_authorized_word_pdf_routes
+repair_head: e1f15b5a261e172d59c5d44c98fe82bbd6021504
+repair_summary: reviewed_staff_download_source_frozen_v3233_with_authorized_word_pdf_routes
 genuine_blockers: v3231_superseded_before_image_v3233_exact_source_ci_image_deployment_live_word_pdf_download_acceptance_buyer_commerce_and_intake_closed
-next_authorized_step: verify_v3233_candidate_checks_then_Marc_exact_source_review_before_freeze
+next_authorized_step: verify_frozen_v3233_ci_and_image_candidate_before_exact_source_review
 deployed_demo_release: v3.232
 deployed_demo_state: v3232_serving_with_v3223_rollback_member_purchase_and_upload_closed
 ---
@@ -221,3 +221,8 @@ Marc approved PR #823 exact head `0e9d51b525f3728fa4ccfe828604ae2154c126cf` afte
 ## 9 October 2026 Central — v3.233 Advisor download candidate
 
 PR #828 at exact head `4e22ba6a525ac520c642d36cc2cb4eef2ecaeb27` passed four check groups and merged as `6b12355047892b28fdf9fc353b575be6a3ff0c61` after Marc's exact-source approval. It keeps the staff reviewer on the governed submission page, prepares the existing Word/PDF files and offers authenticated downloads; Salus Solutions Assessment Directors can review and download but cannot approve handling. The current work account has displayed the original EOP Green review page, as Marc confirmed. This v3.233 candidate labels that source plus the previously merged canonical HTTPS staff email link. It deploys nothing and keeps all buyer controls closed. Verify full frozen checks, publish/read back one immutable image, stage a separately reviewed protected deployment with v3.223 rollback, then prove live Word/PDF files and reviewer denial before accepting output.
+
+
+## 9 October 2026 Central — frozen v3.233 image candidate
+
+Marc approved PR #829 exact head `f43890b5efdb10c6600bd6a8efacc5be05331f4b` after all four corrected checks passed. It merged as `e1f15b5a261e172d59c5d44c98fe82bbd6021504`; immutable `release/v3.233` points to that same commit. The initial candidate gate had rejected a release-record omission, which was corrected before Marc's final exact-source approval. PR #831 stages only the frozen source for one protected image publication. No new image or Azure application deployment is claimed here. v3.232 continues serving with v3.223 retained for rollback. Live Word/PDF open-and-render, nonadministrator denial, and all Level 1A buyer identity/payment/intake/scanner acceptance remain open; buyer controls stay closed.
