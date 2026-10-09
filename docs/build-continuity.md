@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 15:30 CDT
+last_verified_at: 09 October 2026 16:45 CDT
 current_frozen_release: v3.233
 current_frozen_commit: e1f15b5a261e172d59c5d44c98fe82bbd6021504
 active_development_branch: development/salcapa-platform
-current_development_head: e1f15b5a261e172d59c5d44c98fe82bbd6021504
+current_development_head: 9677e5b901a8aa14e0e53864a2b1d7d72fe8e00d
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3233_immutable_image_publication
-last_completed_increment: v3233_source_frozen_v3232_serving_with_v3223_rollback
-candidate_release: v3.233
-validation_pr: 831
-validation_branch: codex/advisor-download-v3233-image-20261009
+active_increment: salus_v3234_paid_intake_response_release
+last_completed_increment: v3233_staff_downloads_deployed_accepted_ci_registry_repaired
+candidate_release: v3.234
+validation_pr: pending
+validation_branch: codex/level1a-intake-v3234-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3233_candidate
-first_root_failing_gate: raw_json_from_staff_report_prepare_button
-root_cause: staff_review_form_navigated_directly_to_json_api_without_word_pdf_download_links
-repair_head: e1f15b5a261e172d59c5d44c98fe82bbd6021504
-repair_summary: reviewed_staff_download_source_frozen_v3233_with_authorized_word_pdf_routes
-genuine_blockers: v3231_superseded_before_image_v3233_exact_source_ci_image_deployment_live_word_pdf_download_acceptance_buyer_commerce_and_intake_closed
-next_authorized_step: verify_frozen_v3233_ci_and_image_candidate_before_exact_source_review
-deployed_demo_release: v3.232
-deployed_demo_state: v3232_serving_with_v3223_rollback_member_purchase_and_upload_closed
+failed_workflows: v3233_postmerge_dockerhub_rate_limits_repaired_pr834_pr835
+first_root_failing_gate: remaining_ci_postgres_pulls_blocked_before_tests
+root_cause: unauthenticated_dockerhub_pull_rate_limits_across_workflows
+repair_head: 9677e5b901a8aa14e0e53864a2b1d7d72fe8e00d
+repair_summary: reviewed_paid_intake_response_source_and_public_official_image_mirrors
+genuine_blockers: v3234_exact_source_ci_image_deployment_live_buyer_acceptance_customer_controls_closed
+next_authorized_step: verify_exact_candidate_checks_then_Marc_source_review_before_freeze
+deployed_demo_release: v3.233
+deployed_demo_state: v3233_serving_with_v3223_rollback_customer_purchase_intake_upload_closed
 ---
 
 # SalCAPA build continuity
@@ -226,3 +226,8 @@ PR #828 at exact head `4e22ba6a525ac520c642d36cc2cb4eef2ecaeb27` passed four che
 ## 9 October 2026 Central — frozen v3.233 image candidate
 
 Marc approved PR #829 exact head `f43890b5efdb10c6600bd6a8efacc5be05331f4b` after all four corrected checks passed. It merged as `e1f15b5a261e172d59c5d44c98fe82bbd6021504`; immutable `release/v3.233` points to that same commit. The initial candidate gate had rejected a release-record omission, which was corrected before Marc's final exact-source approval. PR #831 stages only the frozen source for one protected image publication. No new image or Azure application deployment is claimed here. v3.232 continues serving with v3.223 retained for rollback. Live Word/PDF open-and-render, nonadministrator denial, and all Level 1A buyer identity/payment/intake/scanner acceptance remain open; buyer controls stay closed.
+
+
+## 9 October 2026 Central — v3.234 paid-intake response release candidate
+
+Marc exact-approved PR #835 head `21933c2162f5397f09478d1e4f56472cbdfd2d0e` after ten passing checks; it merged as `9677e5b901a8aa14e0e53864a2b1d7d72fe8e00d`. This candidate labels that source v3.234, including PR #830's reviewed post-payment records-availability answers. It does not deploy or enable customer sign-in, checkout, intake or uploads. Serving v3.233 staff Word/PDF outputs remain accepted for the exact EOP Green record; accepted v3.223 remains available for rollback. Verify the full candidate and frozen source before image publication. The public Level 1A journey still needs authoritative verified-email callback, approved rev10 Word template exact-byte Azure storage readback, signed Stripe test Checkout/webhook and server-retrieved paid Session, immutable receipt and tax/location binding, scanner exact-version Clean/EICAR with alert and recovery, desktop/phone flow, rollback and qualified output acceptance before any customer switch opens.
