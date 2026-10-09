@@ -136,7 +136,7 @@ def test_staff_download_requires_authority_and_approved_handling(tmp_path):
           (key,session,"Fictional Organization","Fictional Contact","fictional@example.invalid",
            "{}","a"*64,"questions-v1","recommendation-v1","consent-v1","retention-v1",0,
            "{}","Awaiting Salus Review",app.now()))
-        conn.execute("""INSERT INTO advisor_public_report_identity_revisions
+        conn.execute("""INSERT INTO advisor_public_accounts\n          (account_key,email,password_salt,password_hash,status,created_at)\n          VALUES(?,?,?,?,?,?)""",\n          ("SPA-ACCOUNT-DOWNLOAD","fictional@example.invalid","salt","hash","Active",app.now()))\n        conn.execute("""INSERT INTO advisor_public_report_identity_revisions
           (revision_key,account_key,session_key,revision_no,protected_member_code_name,
            project_code_name,handling_profile,handling_status,created_by,created_at,content_sha256)
           VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
