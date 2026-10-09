@@ -1749,7 +1749,7 @@ th{{font:600 .85rem Arial,Helvetica,sans-serif;text-transform:uppercase}}.notice
 <p><a href="/">&lt; SalCAPA Command Center</a></p></main></body></html>"""
 
 
-def _review_detail(row: dict[str, Any], identity: dict[str, Any] | None = None) -> str:
+def _review_detail(row: dict[str, Any], identity: dict[str, Any] | None = None, *, can_approve_handling: bool = True) -> str:
     result = json.loads(row["result_json"])
     identity = identity or {}
     identity_html = (
@@ -1767,7 +1767,7 @@ def _review_detail(row: dict[str, Any], identity: dict[str, Any] | None = None) 
         for profile in sorted(HANDLING_PROFILES)
     )
     handling_action_html = ""
-    if identity.get("handling_status") != "Approved":
+    if identity.get("handling_status") != "Approved" and can_approve_handling:
         handling_action_html = f"""
         <h2>Approve report handling</h2>
         <form id="handling-form" class="review-form">
@@ -1800,6 +1800,8 @@ def _review_detail(row: dict[str, Any], identity: dict[str, Any] | None = None) 
         }});
         </script>
         """
+    elif identity.get("handling_status") != "Approved":
+        handling_action_html = "<p class='notice'>A System Administrator must approve report handling before preparation or download.</p>"
 
     report_base = "/api/protection-advisor/review/" + html.escape(str(row["submission_key"]))
     report_action_html = (
@@ -1854,7 +1856,7 @@ main{{max-width:960px}}table{{width:100%;border-collapse:collapse}}td{{padding:1
 
 def _review_access_response(request: Request, require: Any, auth_mode: str) -> Response | None:
     try:
-        require(request, "admin")
+        require(request, "read")
     except HTTPException as exc:
         if exc.status_code != 401:
             raise
@@ -1896,6 +1898,26 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
         if not allowed:
             raise HTTPException(429, f"Please wait {retry} seconds before trying again")
 
+    def require_staff_review(request: Request, _permission: str = "read") -> None:
+        """Allow only Salus administrators and Salus Assessment Directors."""
+        auth = ctx["auth_context"](request)
+        role = auth.get("role")
+        if role == "System Administrator":
+            return
+        if role != "Assessment Director":
+            raise HTTPException(403, "Salus staff review authority is required")
+        if ctx["AUTH_MODE"] == "prototype":
+            return
+        conn = ctx["db"]()
+        try:
+            tenant = conn.execute(
+                "SELECT name, status FROM tenants WHERE id=?", (auth.get("tenant_id"),)
+            ).fetchone()
+            if not tenant or tenant["status"] != "Active" or str(tenant["name"]).casefold() != "salus solutions":
+                raise HTTPException(403, "Salus staff review authority is required")
+        finally:
+            conn.close()
+
     @app.post("/public/protection-advisor/performance", status_code=204)
     def protection_advisor_performance(request: Request, event: AdvisorPerformanceEvent) -> Response:
         limited(request)
@@ -1925,7 +1947,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
 
     @app.get("/protection-advisor/review", response_class=HTMLResponse)
     def protection_advisor_review(request: Request) -> HTMLResponse:
-        access_response = _review_access_response(request, ctx["require"], ctx["AUTH_MODE"])
+        access_response = _review_access_response(request, require_staff_review, ctx["AUTH_MODE"])
         if access_response is not None:
             return access_response
         conn = ctx["db"]()
@@ -1946,7 +1968,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
 
     @app.get("/protection-advisor/review/{submission_key}", response_class=HTMLResponse)
     def protection_advisor_review_detail(submission_key: str, request: Request) -> HTMLResponse:
-        access_response = _review_access_response(request, ctx["require"], ctx["AUTH_MODE"])
+        access_response = _review_access_response(request, require_staff_review, ctx["AUTH_MODE"])
         if access_response is not None:
             return access_response
         if not submission_key.startswith("SPA-SUBMISSION-"):
@@ -1960,7 +1982,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
             if not row:
                 raise HTTPException(404, "Submission not found")
             identity = _latest_report_identity(conn, row["session_key"])
-            return HTMLResponse(_review_detail(dict(row), identity), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY"})
+            return HTMLResponse(_review_detail(dict(row), identity, can_approve_handling=ctx["auth_context"](request)["role"] == "System Administrator"), headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY"})
         finally:
             conn.close()
 
@@ -2012,7 +2034,7 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
     @app.post("/api/protection-advisor/review/{submission_key}/report")
     def prepare_protection_advisor_review_report(submission_key: str, request: Request) -> dict[str, Any]:
         """Prepare the branded DOCX only for an authenticated Salus reviewer."""
-        ctx["require"](request, "admin")
+        require_staff_review(request)
         if not submission_key.startswith("SPA-SUBMISSION-"):
             raise HTTPException(404, "Submission not found")
         conn = ctx["db"]()
@@ -2069,8 +2091,8 @@ def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:
     def download_protection_advisor_review_report(
         submission_key: str, file_format: str, request: Request
     ) -> Response:
-        """Download only this submission's stored report for a Salus administrator."""
-        ctx["require"](request, "admin")
+        """Download this submission's stored report for an authorized Salus reviewer."""
+        require_staff_review(request)
         if not re.fullmatch(r"SPA-SUBMISSION-[A-F0-9]{32}", submission_key):
             raise HTTPException(404, "Submission not found")
         if file_format not in {"docx", "pdf"}:
