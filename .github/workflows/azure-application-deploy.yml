@@ -66,9 +66,10 @@ jobs:
             (.image_digest != .previous_application_image_digest) and
             (.image_digest != .previous_worker_image_digest) and
             ((has("activation_retry_attempt") | not) or (
-              .activation_retry_attempt == 2 and
-              .source_release == "release/v3.228" and
-              .source_commit == "56524b7591526f90a75953cbcf70d47164a23bc0"
+              .activation_retry_attempt == 2 and (
+                (.source_release == "release/v3.228" and .source_commit == "56524b7591526f90a75953cbcf70d47164a23bc0") or
+                (.source_release == "release/v3.230" and .source_commit == "1157a071c5c2daed864783737e5b84543671cd9c")
+              )
             )) and
             ((keys - [
               "activation_key",
