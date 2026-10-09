@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 17:41 CDT
+last_verified_at: 09 October 2026 17:49 CDT
 current_frozen_release: v3.234
 current_frozen_commit: 34aff714b986b510e291fb8b147f8c5d7d733088
 active_development_branch: development/salcapa-platform
@@ -235,4 +235,6 @@ Marc exact-approved PR #835 head `21933c2162f5397f09478d1e4f56472cbdfd2d0e` afte
 
 ## 9 October 2026 Central — frozen v3.234 image candidate
 
-Marc approved PR #836 at exact head `76b227031c2d6fd000d8926915411e22e5d83d55` after all eleven candidate/PR checks passed; it merged as `34aff714b986b510e291fb8b147f8c5d7d733088`, and immutable `release/v3.234` points to that exact commit. PR #837 stages one protected image from the frozen source. The release-branch immutability guard passed. All 64 frozen-source checks passed after one bounded retry of the PostgreSQL image pull that Amazon ECR Public had rate-limited before tests. The image activation contract and exact frozen reference preflight passed on the candidate branch; its remaining non-image checks are finishing. No new image or Azure app deployment is claimed. Serving v3.233 staff Word/PDF outputs remain accepted, with v3.223 retained for rollback. Level 1A buyer sign-in, payment, intake and uploads remain CLOSED; Texas-only quote scope, draft tax authority, verified email, template readback, signed Stripe test payment and scanner gates remain open.
+Marc approved PR #836 at exact head `76b227031c2d6fd000d8926915411e22e5d83d55` after all eleven candidate/PR checks passed; it merged as `34aff714b986b510e291fb8b147f8c5d7d733088`, and immutable `release/v3.234` points to that exact commit. PR #837 stages one protected image from the frozen source. The release-branch immutability guard passed. All 64 frozen-source checks passed after one bounded retry of the PostgreSQL image pull that Amazon ECR Public had rate-limited before tests. All 44 candidate checks passed, including the image activation contract and exact frozen reference preflight. No new image or Azure app deployment is claimed. Serving v3.233 staff Word/PDF outputs remain accepted, with v3.223 retained for rollback. Level 1A buyer sign-in, payment, intake and uploads remain CLOSED; Texas-only quote scope, draft tax authority, verified email, template readback, signed Stripe test payment and scanner gates remain open.
+
+Marc stated that the intended all-location customer quote should add no tax. The current reviewed source documents only a Texas zero-tax determination, and no qualified all-location applicability decision has been recorded. Preserve the non-Texas stop gate pending the exact legal/tax determination and its source review; do not publish a universal zero-tax representation from this image candidate.
