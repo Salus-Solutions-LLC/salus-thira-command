@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "activation_key": "salcapa-v3.230-application-1157a071",
+  "activation_retry_attempt": 2,
   "operation": "deploy_application",
   "target_environment": "dev",
   "location": "southcentralus",
