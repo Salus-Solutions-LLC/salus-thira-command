@@ -1852,12 +1852,9 @@ def _review_access_response(request: Request, require: Any, auth_mode: str) -> R
 
 
 def _review_url(request: Request, submission_key: str) -> str:
-    origin = (
-        "https://salcapa.salus.solutions"
-        if request.url.hostname == "salcapa.salus.solutions"
-        else str(request.base_url).rstrip("/")
-    )
-    return origin + "/protection-advisor/review/" + submission_key
+    # Notifications are opened outside the current request. Azure ingress and
+    # proxy hosts are implementation details and must never become email links.
+    return "https://salcapa.salus.solutions/protection-advisor/review/" + submission_key
 
 
 def register_public_protection_advisor(app: Any, ctx: dict[str, Any]) -> None:

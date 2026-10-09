@@ -47,6 +47,14 @@ def test_staff_email_link_uses_https_despite_http_proxy_scheme():
 
 
 
+def test_staff_email_link_never_uses_the_azure_development_host():
+    path = "/protection-advisor/review/" + SUBMISSION
+    request = _request(path)
+    request.scope["scheme"] = "http"
+    request.scope["server"] = ("salcapa-dev-b48224.ashycoast-29444a28.southcentralus.azurecontainerapps.io", 80)
+    assert _review_url(request, SUBMISSION) == "https://salcapa.salus.solutions" + path
+
+
 def test_review_never_redirects_a_signed_in_non_admin():
     def denied(_request, _permission):
         raise HTTPException(403, "Not authorized")
