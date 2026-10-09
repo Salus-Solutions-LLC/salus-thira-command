@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 17:34 CDT
+last_verified_at: 09 October 2026 17:41 CDT
 current_frozen_release: v3.234
 current_frozen_commit: 34aff714b986b510e291fb8b147f8c5d7d733088
 active_development_branch: development/salcapa-platform
@@ -16,13 +16,13 @@ validation_branch: codex/level1a-v3234-image-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3234_postmerge_public_ecr_rate_limit_one_postgres_job_retry_pending
-first_root_failing_gate: public_ecr_postgres_pull_rate_exceeded_before_test
-root_cause: public_ecr_rate_limit_transient_pending_retry
+failed_workflows: v3234_postmerge_public_ecr_rate_limit_one_postgres_job_retried_successfully
+first_root_failing_gate: public_ecr_postgres_pull_rate_exceeded_before_test_retried
+root_cause: transient_public_ecr_rate_limit_resolved_on_bounded_retry
 repair_head: 34aff714b986b510e291fb8b147f8c5d7d733088
 repair_summary: reviewed_paid_intake_source_frozen_v3234
 genuine_blockers: v3233_source_superseded_only_after_v3234_image_deployment_live_buyer_acceptance_customer_controls_closed
-next_authorized_step: verify_v3234_full_source_ci_and_image_candidate_then_Marc_exact_source_review
+next_authorized_step: verify_final_image_candidate_checks_then_Marc_exact_source_review
 deployed_demo_release: v3.233
 deployed_demo_state: v3233_serving_with_v3223_rollback_customer_purchase_intake_upload_closed
 ---
@@ -235,4 +235,4 @@ Marc exact-approved PR #835 head `21933c2162f5397f09478d1e4f56472cbdfd2d0e` afte
 
 ## 9 October 2026 Central — frozen v3.234 image candidate
 
-Marc approved PR #836 at exact head `76b227031c2d6fd000d8926915411e22e5d83d55` after all eleven candidate/PR checks passed; it merged as `34aff714b986b510e291fb8b147f8c5d7d733088`, and immutable `release/v3.234` points to that exact commit. PR #837 stages one protected image from the frozen source. The release-branch immutability guard passed. Full post-merge source CI is still running; one PostgreSQL job stopped before tests because Amazon ECR Public returned a rate limit and awaits a bounded retry after its workflow run ends. No new image or Azure app deployment is claimed. Serving v3.233 staff Word/PDF outputs remain accepted, with v3.223 retained for rollback. Level 1A buyer sign-in, payment, intake and uploads remain CLOSED; Texas-only quote scope, draft tax authority, verified email, template readback, signed Stripe test payment and scanner gates remain open.
+Marc approved PR #836 at exact head `76b227031c2d6fd000d8926915411e22e5d83d55` after all eleven candidate/PR checks passed; it merged as `34aff714b986b510e291fb8b147f8c5d7d733088`, and immutable `release/v3.234` points to that exact commit. PR #837 stages one protected image from the frozen source. The release-branch immutability guard passed. All 64 frozen-source checks passed after one bounded retry of the PostgreSQL image pull that Amazon ECR Public had rate-limited before tests. The image activation contract and exact frozen reference preflight passed on the candidate branch; its remaining non-image checks are finishing. No new image or Azure app deployment is claimed. Serving v3.233 staff Word/PDF outputs remain accepted, with v3.223 retained for rollback. Level 1A buyer sign-in, payment, intake and uploads remain CLOSED; Texas-only quote scope, draft tax authority, verified email, template readback, signed Stripe test payment and scanner gates remain open.
