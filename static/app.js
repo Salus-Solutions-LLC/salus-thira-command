@@ -39,6 +39,8 @@ function isProtectedMember(){return workspaceState?.experience==='Protected Memb
 function applyWorkspaceNavigation(){
   const protectedMember=isProtectedMember();
   document.querySelectorAll('#nav [data-salus-only="true"]').forEach(item=>{ item.hidden=protectedMember; });
+  const adminOnly= !protectedMember && currentRole==='System Administrator';
+  document.querySelectorAll('#nav [data-admin-only="true"]').forEach(item=>{ item.hidden=!adminOnly; item.style.display=adminOnly?'':'none'; });
   const level1aButton=document.querySelector('#nav [data-view="level1a"]');
   if(level1aButton){
     const available=protectedMember&&systemMode.level1a_purchase_available;
