@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 01:14 CDT
-current_frozen_release: v3.231
-current_frozen_commit: b14a197a481a0763fb56d5c2e99979c0d801b262
+last_verified_at: 09 October 2026 01:19 CDT
+current_frozen_release: v3.232
+current_frozen_commit: 35a3e5597ab94343d842a7999494c171c7ded6ed
 active_development_branch: development/salcapa-platform
-current_development_head: 7c9df8197f2933bee8efdd5e625ca4e88ff4c67c
+current_development_head: 35a3e5597ab94343d842a7999494c171c7ded6ed
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3232_administrator_navigation_release
-last_completed_increment: v3231_frozen_infrastructure_gate_failed_before_image_v3230_application_serving_with_v3223_rollback
+active_increment: salus_v3232_immutable_image_publication
+last_completed_increment: v3232_source_frozen_v3231_gate_failed_before_image_v3230_serving_with_v3223_rollback
 candidate_release: v3.232
-validation_pr: 823
-validation_branch: codex/admin-v3232-release-20261009
+validation_pr: 824
+validation_branch: codex/admin-v3232-image-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3231_infrastructure_validation_run_37891888070
 first_root_failing_gate: v3231_infrastructure_policy_rejected_v3230_second_attempt_marker
 root_cause: infrastructure_validator_hardcoded_only_v3228_retry_pair_while_v3230_activation_uses_reviewed_second_attempt
-repair_head: 7c9df8197f2933bee8efdd5e625ca4e88ff4c67c
-repair_summary: exact_reviewed_v3230_second_attempt_pair_added_to_infrastructure_policy
+repair_head: 35a3e5597ab94343d842a7999494c171c7ded6ed
+repair_summary: exact_reviewed_retry_policy_and_administrator_navigation_frozen_v3232
 genuine_blockers: v3231_superseded_before_image_after_frozen_infrastructure_gate_failure_v3232_exact_source_ci_image_deployment_admin_preauthorization_staff_link_member_controls_closed
-next_authorized_step: verify_v3232_candidate_ci_then_exact_source_review_before_freeze
+next_authorized_step: verify_frozen_v3232_ci_then_exact_image_source_review_before_protected_build
 deployed_demo_release: v3.230
 deployed_demo_state: v3230_serving_with_v3223_rollback_member_purchase_and_upload_closed
 ---
@@ -211,3 +211,8 @@ Marc approved PR #807 exact head `265fd7329e8c4732081ae93876cc5d5cb209d5d7` afte
 ## 9 October 2026 Central — v3.232 successor after v3.231 prepublication gate failure
 
 Frozen `release/v3.231` at `b14a197a481a0763fb56d5c2e99979c0d801b262` did not publish an image because Azure infrastructure validation [run 37891888070](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37891888070) rejected the current v3.230 application's documented second-attempt marker. Draft image PR #821 closed without merge or protected build. Marc exact-approved narrow PR #822 head `97af6b6576c3f6fd78d8eaa06a20b2ba81946321` after three passing checks; it merged as `7c9df8197f2933bee8efdd5e625ca4e88ff4c67c`. Its policy now recognizes only exact reviewed v3.228 and v3.230 second-attempt release/commit pairs and still rejects all others. This candidate labels that correction plus administrator navigation v3.232; it does not build an image, deploy, grant an account or open Member controls. Verify development validation and full candidate checks before exact source review and freeze, then stage one separately reviewed immutable image and protected deployment with v3.223 rollback. Current-account login, exact staff review and nonadministrator denial remain live acceptance gates. The 103 MB knowledge hash and Level 1A buyer/payment/intake/scan gates remain open; large-batch #520 and Tierra Linda remain paused.
+
+
+## 9 October 2026 Central — frozen v3.232 image candidate
+
+Marc approved PR #823 exact head `0e9d51b525f3728fa4ccfe828604ae2154c126cf` after four passing checks. It merged as `35a3e5597ab94343d842a7999494c171c7ded6ed`; immutable `release/v3.232` points there. Its source includes the administrator-only account navigation and narrowly recognizes the current v3.230 second-attempt activation in infrastructure validation. Frozen CI is under verification. This separate image candidate pins only the frozen source; it has not built or deployed an image. v3.230 continues serving with accepted v3.223 for rollback. Current work-account preauthorization, exact original staff review, nonadministrator denial and old-account retirement remain live gates; buyer/payment/intake/uploads stay closed. The 103 MB knowledge hash, paused large-batch #520 and stopped Tierra Linda remain separate.
