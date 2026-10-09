@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 01:19 CDT
+last_verified_at: 09 October 2026 15:21 CDT
 current_frozen_release: v3.232
 current_frozen_commit: 35a3e5597ab94343d842a7999494c171c7ded6ed
 active_development_branch: development/salcapa-platform
-current_development_head: 35a3e5597ab94343d842a7999494c171c7ded6ed
+current_development_head: 6b12355047892b28fdf9fc353b575be6a3ff0c61
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3232_immutable_image_publication
-last_completed_increment: v3232_source_frozen_v3231_gate_failed_before_image_v3230_serving_with_v3223_rollback
-candidate_release: v3.232
-validation_pr: 824
-validation_branch: codex/admin-v3232-image-20261009
+active_increment: salus_v3233_advisor_review_download_release
+last_completed_increment: v3232_deployed_administrator_account_live_review_link_confirmed
+candidate_release: v3.233
+validation_pr: 829
+validation_branch: codex/advisor-download-v3233-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3231_infrastructure_validation_run_37891888070
-first_root_failing_gate: v3231_infrastructure_policy_rejected_v3230_second_attempt_marker
-root_cause: infrastructure_validator_hardcoded_only_v3228_retry_pair_while_v3230_activation_uses_reviewed_second_attempt
-repair_head: 35a3e5597ab94343d842a7999494c171c7ded6ed
-repair_summary: exact_reviewed_retry_policy_and_administrator_navigation_frozen_v3232
-genuine_blockers: v3231_superseded_before_image_after_frozen_infrastructure_gate_failure_v3232_exact_source_ci_image_deployment_admin_preauthorization_staff_link_member_controls_closed
-next_authorized_step: verify_frozen_v3232_ci_then_exact_image_source_review_before_protected_build
-deployed_demo_release: v3.230
-deployed_demo_state: v3230_serving_with_v3223_rollback_member_purchase_and_upload_closed
+failed_workflows: none_for_v3233_candidate
+first_root_failing_gate: raw_json_from_staff_report_prepare_button
+root_cause: staff_review_form_navigated_directly_to_json_api_without_word_pdf_download_links
+repair_head: 6b12355047892b28fdf9fc353b575be6a3ff0c61
+repair_summary: reviewed_staff_download_source_merged_pr_828_with_authorized_word_pdf_routes
+genuine_blockers: v3231_superseded_before_image_v3233_exact_source_ci_image_deployment_live_word_pdf_download_acceptance_buyer_commerce_and_intake_closed
+next_authorized_step: verify_v3233_candidate_checks_then_Marc_exact_source_review_before_freeze
+deployed_demo_release: v3.232
+deployed_demo_state: v3232_serving_with_v3223_rollback_member_purchase_and_upload_closed
 ---
 
 # SalCAPA build continuity
@@ -216,3 +216,8 @@ Frozen `release/v3.231` at `b14a197a481a0763fb56d5c2e99979c0d801b262` did not pu
 ## 9 October 2026 Central — frozen v3.232 image candidate
 
 Marc approved PR #823 exact head `0e9d51b525f3728fa4ccfe828604ae2154c126cf` after four passing checks. It merged as `35a3e5597ab94343d842a7999494c171c7ded6ed`; immutable `release/v3.232` points there. Its source includes the administrator-only account navigation and narrowly recognizes the current v3.230 second-attempt activation in infrastructure validation. Frozen CI is under verification. This separate image candidate pins only the frozen source; it has not built or deployed an image. v3.230 continues serving with accepted v3.223 for rollback. Current work-account preauthorization, exact original staff review, nonadministrator denial and old-account retirement remain live gates; buyer/payment/intake/uploads stay closed. The 103 MB knowledge hash, paused large-batch #520 and stopped Tierra Linda remain separate.
+
+
+## 9 October 2026 Central — v3.233 Advisor download candidate
+
+PR #828 at exact head `4e22ba6a525ac520c642d36cc2cb4eef2ecaeb27` passed four check groups and merged as `6b12355047892b28fdf9fc353b575be6a3ff0c61` after Marc's exact-source approval. It keeps the staff reviewer on the governed submission page, prepares the existing Word/PDF files and offers authenticated downloads; Salus Solutions Assessment Directors can review and download but cannot approve handling. The current work account has displayed the original EOP Green review page, as Marc confirmed. This v3.233 candidate labels that source plus the previously merged canonical HTTPS staff email link. It deploys nothing and keeps all buyer controls closed. Verify full frozen checks, publish/read back one immutable image, stage a separately reviewed protected deployment with v3.223 rollback, then prove live Word/PDF files and reviewer denial before accepting output.
