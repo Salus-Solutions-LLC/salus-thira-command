@@ -520,12 +520,18 @@ jobs:
                   raise SystemExit(
                       f'Azure application activation must distinguish {current_key}'
                   )
+          reviewed_second_attempts = {
+              ('release/v3.228', '56524b7591526f90a75953cbcf70d47164a23bc0'),
+              ('release/v3.230', '1157a071c5c2daed864783737e5b84543671cd9c'),
+          }
           if 'activation_retry_attempt' in application_activation and not (
               application_activation['activation_retry_attempt'] == 2
-              and application_activation['source_release'] == 'release/v3.228'
-              and application_activation['source_commit'] == '56524b7591526f90a75953cbcf70d47164a23bc0'
+              and (
+                  application_activation['source_release'],
+                  application_activation['source_commit'],
+              ) in reviewed_second_attempts
           ):
-              raise SystemExit('Azure application retry marker is not the reviewed v3.228 second attempt')
+              raise SystemExit('Azure application retry marker is not an exact reviewed second attempt')
           expected_activation_key = (
               f"salcapa-{application_activation['source_release'].removeprefix('release/')}"
               f"-application-{application_activation['source_commit'][:8]}"
