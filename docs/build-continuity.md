@@ -236,3 +236,5 @@ Marc exact-approved PR #835 head `21933c2162f5397f09478d1e4f56472cbdfd2d0e` afte
 ## 9 October 2026 Central — frozen v3.234 image candidate
 
 Marc approved PR #836 at exact head `76b227031c2d6fd000d8926915411e22e5d83d55` after all eleven candidate/PR checks passed; it merged as `34aff714b986b510e291fb8b147f8c5d7d733088`, and immutable `release/v3.234` points to that exact commit. PR #837 stages one protected image from the frozen source. The release-branch immutability guard passed. Full post-merge source CI is still running; one PostgreSQL job stopped before tests because Amazon ECR Public returned a rate limit and awaits a bounded retry after its workflow run ends. No new image or Azure app deployment is claimed. Serving v3.233 staff Word/PDF outputs remain accepted, with v3.223 retained for rollback. Level 1A buyer sign-in, payment, intake and uploads remain CLOSED; Texas-only quote scope, draft tax authority, verified email, template readback, signed Stripe test payment and scanner gates remain open.
+
+Candidate-only preflight marker: the immutable v3.234 image activation remains unmerged and unpublished until its exact source review.
