@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3231_immutable_image_publication
 last_completed_increment: v3231_source_frozen_v3230_application_serving_with_v3223_rollback
 candidate_release: v3.231
-validation_pr: pending
+validation_pr: 821
 validation_branch: codex/admin-v3231-image-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
