@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 01:02 CDT
-current_frozen_release: v3.230
-current_frozen_commit: 1157a071c5c2daed864783737e5b84543671cd9c
+last_verified_at: 09 October 2026 01:07 CDT
+current_frozen_release: v3.231
+current_frozen_commit: b14a197a481a0763fb56d5c2e99979c0d801b262
 active_development_branch: development/salcapa-platform
-current_development_head: c883d847e06f41e7d5950c5feb0c95b933634172
+current_development_head: b14a197a481a0763fb56d5c2e99979c0d801b262
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3231_administrator_navigation_release
-last_completed_increment: v3230_application_serving_with_v3223_rollback_administrator_navigation_source_merged
+active_increment: salus_v3231_immutable_image_publication
+last_completed_increment: v3231_source_frozen_v3230_application_serving_with_v3223_rollback
 candidate_release: v3.231
-validation_pr: 820
-validation_branch: codex/admin-access-v3231-20261009
+validation_pr: pending
+validation_branch: codex/admin-v3231-image-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_for_v3230_administrator_navigation
 first_root_failing_gate: staff_email_review_unprovisioned_current_work_account
 root_cause: current_work_account_immutable_entra_id_differs_from_original_bootstrap_administrator_id
-repair_head: c883d847e06f41e7d5950c5feb0c95b933634172
-repair_summary: administrator_only_account_management_navigation_merged
+repair_head: b14a197a481a0763fb56d5c2e99979c0d801b262
+repair_summary: administrator_only_account_management_navigation_frozen_v3231_image_record_staged
 genuine_blockers: v3230_not_superseded_until_v3231_live_acceptance_v3231_frozen_ci_image_deployment_admin_preauthorization_staff_link_member_controls_closed
-next_authorized_step: verify_v3231_release_source_ci_then_exact_review_before_freeze_image_and_protected_deploy
+next_authorized_step: verify_frozen_v3231_ci_then_exact_image_review_before_protected_build
 deployed_demo_release: v3.230
 deployed_demo_state: v3230_serving_with_v3223_rollback_member_purchase_and_upload_closed
 ---
@@ -206,3 +206,8 @@ Marc approved PR #806 exact head `778913c7c287266b1ab117b310272b88aa6380d3` afte
 ## 8 October 2026 Central — v3.230 immutable image published; Azure deployment staged
 
 Marc approved PR #807 exact head `265fd7329e8c4732081ae93876cc5d5cb209d5d7` after 47 passing candidate checks; it merged as `a1255fddad564211b5e7880d0119e46dbc29aa8a`. Protected [image run 37861734187](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37861734187) succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:1a2083762f5664cc148da5c0dbe789bea67b185954488ad0e68a555ec93a79a4` from frozen `release/v3.230` commit `1157a071c5c2daed864783737e5b84543671cd9c`. This published an image only; accepted v3.223 remains live. A separately reviewed candidate stages this digest for protected Azure what-if/deployment and retains accepted v3.223 app/worker images for rollback. Live fictional Advisor submission/report, Board output, staff link, 103 MB exact hash and Member commerce remain unaccepted or closed.
+
+
+## 9 October 2026 Central — v3.231 frozen image candidate
+
+Marc approved PR #820 exact head `3fb68f4d1d32f1b1340cd0c719f0959cd9a8bd47` after four successful candidate checks. It merged as `b14a197a481a0763fb56d5c2e99979c0d801b262`; immutable `release/v3.231` points there. The source adds administrator-only navigation to the existing account authorization screen. The image candidate pins only that frozen source; no image, Azure deployment, account grant, or Member control change follows from this record alone. Frozen CI, exact image source review, protected image build and registry digest readback remain required. The currently serving v3.230 and accepted v3.223 rollback remain in place. The current work identity must be preauthorized by the existing administrator, then prove sign-in, exact staff review and nonadministrator denial before the old account is disabled. Level 1A buyer, payment, receipt, intake and uploads remain closed; the 103 MB knowledge hash, paused large-batch #520 and stopped Tierra Linda remain separate.
