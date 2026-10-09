@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 01:02 CDT
-current_frozen_release: v3.230
-current_frozen_commit: 1157a071c5c2daed864783737e5b84543671cd9c
+last_verified_at: 09 October 2026 01:14 CDT
+current_frozen_release: v3.231
+current_frozen_commit: b14a197a481a0763fb56d5c2e99979c0d801b262
 active_development_branch: development/salcapa-platform
-current_development_head: c883d847e06f41e7d5950c5feb0c95b933634172
+current_development_head: 7c9df8197f2933bee8efdd5e625ca4e88ff4c67c
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3231_administrator_navigation_release
-last_completed_increment: v3230_application_serving_with_v3223_rollback_administrator_navigation_source_merged
-candidate_release: v3.231
-validation_pr: 820
-validation_branch: codex/admin-access-v3231-20261009
+active_increment: salus_v3232_administrator_navigation_release
+last_completed_increment: v3231_frozen_infrastructure_gate_failed_before_image_v3230_application_serving_with_v3223_rollback
+candidate_release: v3.232
+validation_pr: 823
+validation_branch: codex/admin-v3232-release-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3230_administrator_navigation
-first_root_failing_gate: staff_email_review_unprovisioned_current_work_account
-root_cause: current_work_account_immutable_entra_id_differs_from_original_bootstrap_administrator_id
-repair_head: c883d847e06f41e7d5950c5feb0c95b933634172
-repair_summary: administrator_only_account_management_navigation_merged
-genuine_blockers: v3230_not_superseded_until_v3231_live_acceptance_v3231_frozen_ci_image_deployment_admin_preauthorization_staff_link_member_controls_closed
-next_authorized_step: verify_v3231_release_source_ci_then_exact_review_before_freeze_image_and_protected_deploy
+failed_workflows: v3231_infrastructure_validation_run_37891888070
+first_root_failing_gate: v3231_infrastructure_policy_rejected_v3230_second_attempt_marker
+root_cause: infrastructure_validator_hardcoded_only_v3228_retry_pair_while_v3230_activation_uses_reviewed_second_attempt
+repair_head: 7c9df8197f2933bee8efdd5e625ca4e88ff4c67c
+repair_summary: exact_reviewed_v3230_second_attempt_pair_added_to_infrastructure_policy
+genuine_blockers: v3231_superseded_before_image_after_frozen_infrastructure_gate_failure_v3232_exact_source_ci_image_deployment_admin_preauthorization_staff_link_member_controls_closed
+next_authorized_step: verify_v3232_candidate_ci_then_exact_source_review_before_freeze
 deployed_demo_release: v3.230
 deployed_demo_state: v3230_serving_with_v3223_rollback_member_purchase_and_upload_closed
 ---
@@ -206,3 +206,8 @@ Marc approved PR #806 exact head `778913c7c287266b1ab117b310272b88aa6380d3` afte
 ## 8 October 2026 Central — v3.230 immutable image published; Azure deployment staged
 
 Marc approved PR #807 exact head `265fd7329e8c4732081ae93876cc5d5cb209d5d7` after 47 passing candidate checks; it merged as `a1255fddad564211b5e7880d0119e46dbc29aa8a`. Protected [image run 37861734187](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37861734187) succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:1a2083762f5664cc148da5c0dbe789bea67b185954488ad0e68a555ec93a79a4` from frozen `release/v3.230` commit `1157a071c5c2daed864783737e5b84543671cd9c`. This published an image only; accepted v3.223 remains live. A separately reviewed candidate stages this digest for protected Azure what-if/deployment and retains accepted v3.223 app/worker images for rollback. Live fictional Advisor submission/report, Board output, staff link, 103 MB exact hash and Member commerce remain unaccepted or closed.
+
+
+## 9 October 2026 Central — v3.232 successor after v3.231 prepublication gate failure
+
+Frozen `release/v3.231` at `b14a197a481a0763fb56d5c2e99979c0d801b262` did not publish an image because Azure infrastructure validation [run 37891888070](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37891888070) rejected the current v3.230 application's documented second-attempt marker. Draft image PR #821 closed without merge or protected build. Marc exact-approved narrow PR #822 head `97af6b6576c3f6fd78d8eaa06a20b2ba81946321` after three passing checks; it merged as `7c9df8197f2933bee8efdd5e625ca4e88ff4c67c`. Its policy now recognizes only exact reviewed v3.228 and v3.230 second-attempt release/commit pairs and still rejects all others. This candidate labels that correction plus administrator navigation v3.232; it does not build an image, deploy, grant an account or open Member controls. Verify development validation and full candidate checks before exact source review and freeze, then stage one separately reviewed immutable image and protected deployment with v3.223 rollback. Current-account login, exact staff review and nonadministrator denial remain live acceptance gates. The 103 MB knowledge hash and Level 1A buyer/payment/intake/scan gates remain open; large-batch #520 and Tierra Linda remain paused.
