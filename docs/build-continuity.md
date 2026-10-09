@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3232_administrator_navigation_release
 last_completed_increment: v3231_frozen_infrastructure_gate_failed_before_image_v3230_application_serving_with_v3223_rollback
 candidate_release: v3.232
-validation_pr: pending
+validation_pr: 823
 validation_branch: codex/admin-v3232-release-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
