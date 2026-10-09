@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 16:45 CDT
-current_frozen_release: v3.233
-current_frozen_commit: e1f15b5a261e172d59c5d44c98fe82bbd6021504
+last_verified_at: 09 October 2026 17:34 CDT
+current_frozen_release: v3.234
+current_frozen_commit: 34aff714b986b510e291fb8b147f8c5d7d733088
 active_development_branch: development/salcapa-platform
-current_development_head: 9677e5b901a8aa14e0e53864a2b1d7d72fe8e00d
+current_development_head: 34aff714b986b510e291fb8b147f8c5d7d733088
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3234_paid_intake_response_release
-last_completed_increment: v3233_staff_downloads_deployed_accepted_ci_registry_repaired
+active_increment: salus_v3234_immutable_image_publication
+last_completed_increment: v3234_source_frozen_v3233_serving_with_v3223_rollback
 candidate_release: v3.234
-validation_pr: 836
-validation_branch: codex/level1a-intake-v3234-20261009
+validation_pr: 837
+validation_branch: codex/level1a-v3234-image-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3233_postmerge_dockerhub_rate_limits_repaired_pr834_pr835
-first_root_failing_gate: remaining_ci_postgres_pulls_blocked_before_tests
-root_cause: unauthenticated_dockerhub_pull_rate_limits_across_workflows
-repair_head: 9677e5b901a8aa14e0e53864a2b1d7d72fe8e00d
-repair_summary: reviewed_paid_intake_response_source_and_public_official_image_mirrors
-genuine_blockers: v3233_source_to_be_superseded_only_after_v3234_release_exact_source_ci_image_deployment_live_buyer_acceptance_customer_controls_closed
-next_authorized_step: verify_exact_candidate_checks_then_Marc_source_review_before_freeze
+failed_workflows: v3234_postmerge_public_ecr_rate_limit_one_postgres_job_retry_pending
+first_root_failing_gate: public_ecr_postgres_pull_rate_exceeded_before_test
+root_cause: public_ecr_rate_limit_transient_pending_retry
+repair_head: 34aff714b986b510e291fb8b147f8c5d7d733088
+repair_summary: reviewed_paid_intake_source_frozen_v3234
+genuine_blockers: v3233_source_superseded_only_after_v3234_image_deployment_live_buyer_acceptance_customer_controls_closed
+next_authorized_step: verify_v3234_full_source_ci_and_image_candidate_then_Marc_exact_source_review
 deployed_demo_release: v3.233
 deployed_demo_state: v3233_serving_with_v3223_rollback_customer_purchase_intake_upload_closed
 ---
@@ -231,3 +231,8 @@ Marc approved PR #829 exact head `f43890b5efdb10c6600bd6a8efacc5be05331f4b` afte
 ## 9 October 2026 Central — v3.234 paid-intake response release candidate
 
 Marc exact-approved PR #835 head `21933c2162f5397f09478d1e4f56472cbdfd2d0e` after ten passing checks; it merged as `9677e5b901a8aa14e0e53864a2b1d7d72fe8e00d`. This candidate labels that source v3.234, including PR #830's reviewed post-payment records-availability answers. It does not deploy or enable customer sign-in, checkout, intake or uploads. Serving v3.233 staff Word/PDF outputs remain accepted for the exact EOP Green record; accepted v3.223 remains available for rollback. Verify the full candidate and frozen source before image publication. The public Level 1A journey still needs authoritative verified-email callback, approved rev10 Word template exact-byte Azure storage readback, signed Stripe test Checkout/webhook and server-retrieved paid Session, immutable receipt and tax/location binding, scanner exact-version Clean/EICAR with alert and recovery, desktop/phone flow, rollback and qualified output acceptance before any customer switch opens.
+
+
+## 9 October 2026 Central — frozen v3.234 image candidate
+
+Marc approved PR #836 at exact head `76b227031c2d6fd000d8926915411e22e5d83d55` after all eleven candidate/PR checks passed; it merged as `34aff714b986b510e291fb8b147f8c5d7d733088`, and immutable `release/v3.234` points to that exact commit. PR #837 stages one protected image from the frozen source. The release-branch immutability guard passed. Full post-merge source CI is still running; one PostgreSQL job stopped before tests because Amazon ECR Public returned a rate limit and awaits a bounded retry after its workflow run ends. No new image or Azure app deployment is claimed. Serving v3.233 staff Word/PDF outputs remain accepted, with v3.223 retained for rollback. Level 1A buyer sign-in, payment, intake and uploads remain CLOSED; Texas-only quote scope, draft tax authority, verified email, template readback, signed Stripe test payment and scanner gates remain open.
