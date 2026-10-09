@@ -133,7 +133,7 @@ async function level1aPayment(state){
 async function level1aIntake(state){
   const id=Number(state.order_id),host=document.querySelector('#level1a-step');
   let intake;try{intake=await api(`/api/level1a/orders/${id}/intake`)}catch{level1aError();return}
-  host.innerHTML=`<div class="card"><h2>Your Level 1 records request</h2><p>${esc(intake.notice)}</p><p>Use an existing equivalent or tell Salus if an item is unavailable. Each requested item accepts up to five files, 25 MB each. Files stay held until the security scan clears the exact version.</p>${intake.disclosure_authority_recorded?'':`<form id="level1a-disclosure"><label>How are you authorized to share these records?<textarea name="authority_basis" required minlength="12" maxlength="1000"></textarea></label><label><input type="checkbox" required> I am authorized to disclose records for this named unit.</label><button class="btn">Confirm records authority</button></form>`}</div><div id="level1a-items"></div>`;
+  host.innerHTML=`<div class="card"><h2>Your Level 1 records request</h2><p>${esc(intake.notice)}</p><p>For each requested item, choose whether you can provide it, do not hold it, do not know, or prefer to discuss it. An existing equivalent is welcome. Each requested item accepts up to five files, 25 MB each. Files stay held until the security scan clears the exact version.</p>${intake.disclosure_authority_recorded?'':`<form id="level1a-disclosure"><label>How are you authorized to share these records?<textarea name="authority_basis" required minlength="12" maxlength="1000"></textarea></label><label><input type="checkbox" required> I am authorized to disclose records for this named unit.</label><button class="btn">Confirm records authority</button></form>`}</div><div id="level1a-items"></div>`;
   const authorityForm=host.querySelector('#level1a-disclosure');
   if(authorityForm)authorityForm.onsubmit=async event=>{event.preventDefault();const button=authorityForm.querySelector('button');if(!authorityForm.reportValidity())return;button.disabled=true;try{await api(`/api/level1a/orders/${id}/intake/disclosure-authority`,{method:'POST',body:JSON.stringify({authority_basis:new FormData(authorityForm).get('authority_basis'),confirm_authorized_disclosure:true})});level1aIntake(state)}catch{level1aError();button.disabled=false}};
   const itemHost=host.querySelector('#level1a-items');
@@ -141,9 +141,27 @@ async function level1aIntake(state){
     const section=document.createElement('section');section.className='card';
     const files=intake.files.filter(file=>Number(file.intake_request_id)===Number(item.id));
     const pending=intake.pending_files.filter(file=>Number(file.intake_request_id)===Number(item.id));
-    section.innerHTML=`<h3>${esc(item.title)}</h3><p><strong>Why requested:</strong> ${esc(item.decision_use)}<br><strong>Accepted form:</strong> ${esc(item.requested_form)}<br><strong>Equivalent:</strong> ${esc(item.acceptable_equivalent)}</p><p>${files.map(file=>`<a href="/api/level1a/orders/${id}/intake/files/${Number(file.id)}/download">${esc(file.original_name)}</a> — cleared`).join('<br>')}${pending.map(file=>`${esc(file.original_name)} — ${esc(file.status)}`).join('<br>')}</p>${intake.upload_available?`<form data-item-id="${Number(item.id)}"><label>Send a requested file<input name="file" type="file" required accept=".pdf,.docx,.xlsx,.pptx,.csv,.txt,.png,.jpg,.jpeg,.webp,.tif,.tiff,.mp3,.m4a,.wav,.mp4,.mov"></label><button class="btn secondary">Send for security scan</button></form>`:''}`;
+    section.innerHTML=`<h3>${esc(item.title)}</h3><p><strong>Why requested:</strong> ${esc(item.decision_use)}<br><strong>Accepted form:</strong> ${esc(item.requested_form)}<br><strong>Equivalent:</strong> ${esc(item.acceptable_equivalent)}</p><p>${files.map(file=>`<a href="/api/level1a/orders/${id}/intake/files/${Number(file.id)}/download">${esc(file.original_name)}</a> — cleared`).join('<br>')}${pending.map(file=>`${esc(file.original_name)} — ${esc(file.status)}`).join('<br>')}</p>${intake.upload_available&&item.status==='Requested'&&!files.length&&!pending.length?`<form data-item-id="${Number(item.id)}"><label>Send a requested file<input name="file" type="file" required accept=".pdf,.docx,.xlsx,.pptx,.csv,.txt,.png,.jpg,.jpeg,.webp,.tif,.tiff,.mp3,.m4a,.wav,.mp4,.mov"></label><button class="btn secondary">Send for security scan</button></form>`:''}`;
     itemHost.appendChild(section);
-    const form=section.querySelector('form');
+    if(!files.length&&!pending.length){
+      const responseForm=document.createElement('form');
+      responseForm.className='level1a-response-form';
+      const label=document.createElement('label');label.textContent='Record availability';
+      const select=document.createElement('select');select.name='status';
+      for(const status of ['Requested','Not held','Not known','Prefer to discuss']){
+        const option=document.createElement('option');option.value=status;option.textContent=status;
+        option.selected=item.status===status;select.appendChild(option);
+      }
+      const save=document.createElement('button');save.className='btn secondary';save.textContent='Save response';
+      label.appendChild(select);responseForm.append(label,save);section.appendChild(responseForm);
+      responseForm.onsubmit=async event=>{
+        event.preventDefault();save.disabled=true;
+        try{await api('/api/level1a/orders/'+id+'/intake/'+Number(item.id)+'/response',
+          {method:'PATCH',body:JSON.stringify({status:select.value})});await level1aIntake(state)}
+        catch{level1aError();save.disabled=false}
+      };
+    }
+    const form=section.querySelector('form[data-item-id]');
     if(form)form.onsubmit=async event=>{event.preventDefault();if(!form.reportValidity())return;const button=form.querySelector('button');button.disabled=true;const data=new FormData(form);try{const response=await fetch(`/api/level1a/orders/${id}/intake/${Number(item.id)}/files`,{method:'POST',headers:authHeaders(),body:data});if(!response.ok)throw Error('Upload failed');await level1aIntake(state)}catch{level1aError();button.disabled=false}};
   }
 }

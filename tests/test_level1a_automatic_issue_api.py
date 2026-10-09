@@ -197,6 +197,15 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         app.PACKAGE_SCANNER_ACCEPTED=True
         app.LEVEL1A_UPLOAD_ENABLED=True
         item_id=intake.json()['items'][0]['id']
+        response_url=f'/api/level1a/orders/{oid}/intake/{item_id}/response'
+        assert outsider.patch(response_url,json={'status':'Not held'}).status_code in (401,403)
+        answered=buyer.patch(response_url,json={'status':'Not held'})
+        assert answered.status_code==200 and answered.json()['idempotent'] is False,answered.text
+        assert buyer.get(intake_base).json()['items'][0]['status']=='Not held'
+        assert buyer.patch(response_url,json={'status':'Not held'}).json()['idempotent'] is True
+        assert buyer.patch(response_url,json={'status':'Invalid'}).status_code==422
+        reset=buyer.patch(response_url,json={'status':'Requested'})
+        assert reset.status_code==200 and reset.json()['status']=='Requested'
         denied=buyer.post(f'/api/level1a/orders/{oid}/intake/{item_id}/files',
             files={'file':('clean.pdf',b'fictional clean PDF','application/pdf')})
         assert denied.status_code==403,denied.text
@@ -206,9 +215,14 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         assert asserted.status_code==200,asserted.text
         assert buyer.get(f'/api/level1a/orders/{oid}/intake').json()['disclosure_authority_recorded']
         assert asserted.json()['upload_available']
+        assert buyer.patch(response_url,json={'status':'Prefer to discuss'}).status_code==200
+        assert buyer.post(f'/api/level1a/orders/{oid}/intake/{item_id}/files',
+            files={'file':('blocked.pdf',b'fictional bytes','application/pdf')}).status_code==409
+        assert buyer.patch(response_url,json={'status':'Requested'}).status_code==200
         clean=buyer.post(f'/api/level1a/orders/{oid}/intake/{item_id}/files',
             files={'file':('clean.pdf',b'fictional clean PDF','application/pdf')})
         assert clean.status_code==200 and clean.json()['scan_status']=='Pending',clean.text
+        assert buyer.patch(response_url,json={'status':'Not known'}).status_code==409
         assert buyer.get(f'/api/level1a/orders/{oid}/intake/files/1/download').status_code==404
         clean_uri=next(iter(quarantine.objects))
         topic='/subscriptions/fictional/resourceGroups/test/providers/Microsoft.EventGrid/topics/scan'
@@ -254,6 +268,8 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         assert refund.status_code==200 and refund.json()['outcome']=='Held',refund.text
         assert buyer.get(f'/api/level1a/orders/{oid}/receipt').status_code==404
         assert buyer.get(f'/api/level1a/orders/{oid}/intake').status_code==409
+        assert buyer.patch(response_url,json={'status':'Prefer to discuss'}).status_code==409
+        assert buyer.patch(f'{intake_base}/1/response',json={'status':'Not held'}).status_code==409
         assert buyer.get(f'/api/level1a/orders/{oid}/intake/files/1/download').status_code==409
     ''')
     completed=subprocess.run([sys.executable,'-c',program],cwd=os.getcwd(),
