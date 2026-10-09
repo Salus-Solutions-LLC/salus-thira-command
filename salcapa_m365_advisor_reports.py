@@ -134,6 +134,6 @@ def read_advisor_report(submission_key: str, file_format: str) -> bytes:
         raise M365ReportError("Stored Protection Advisor report size is invalid")
     if file_format == "pdf" and not content.startswith(b"%PDF"):
         raise M365ReportError("Stored Protection Advisor PDF is invalid")
-    if file_format == "docx" and not content.startswith(b"PK\\x03\\x04"):
+    if file_format == "docx" and not content.startswith(b"PK\x03\x04"):
         raise M365ReportError("Stored Protection Advisor Word file is invalid")
     return content
