@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 22:13 CDT
+last_verified_at: 09 October 2026 22:19 CDT
 current_frozen_release: v3.236
 current_frozen_commit: 237f7e9fa6b7e0cca3c31b52fe006c856584387c
 active_development_branch: development/salcapa-platform
-current_development_head: 237f7e9fa6b7e0cca3c31b52fe006c856584387c
+current_development_head: ae407e11f6276ea82ab152edc5baf99e5ea326f8
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3236_immutable_image_publication
-last_completed_increment: v3236_source_frozen_v3235_serving_with_v3234_prior
+active_increment: salus_v3236_application_promotion
+last_completed_increment: v3236_immutable_image_published_v3235_serving
 candidate_release: v3.236
-validation_pr: 849
-validation_branch: codex/level1a-v3236-image-20261009
+validation_pr: 850
+validation_branch: codex/level1a-v3236-deploy-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3236_image_candidate_yet
-first_root_failing_gate: none_for_v3236_image_candidate_yet
-root_cause: none_for_v3236_image_candidate_yet
-repair_head: 237f7e9fa6b7e0cca3c31b52fe006c856584387c
-repair_summary: customer_oidc_return_source_frozen_v3236_image_publication_stage
-genuine_blockers: v3235_source_superseded_only_after_v3236_image_deployment_live_verified_buyer_callback_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
-next_authorized_step: verify_frozen_ci_and_image_candidate_checks_then_Marc_exact_source_review
+failed_workflows: none_for_v3236_deployment_candidate_yet
+first_root_failing_gate: none_for_v3236_deployment_candidate_yet
+root_cause: none_for_v3236_deployment_candidate_yet
+repair_head: ae407e11f6276ea82ab152edc5baf99e5ea326f8
+repair_summary: customer_oidc_return_v3236_image_published_protected_deployment_stage
+genuine_blockers: v3235_source_superseded_only_after_v3236_protected_deployment_live_verified_buyer_callback_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
+next_authorized_step: verify_deployment_candidate_checks_then_Marc_exact_source_review_and_protected_Azure_preview
 deployed_demo_release: v3.235
 deployed_demo_state: v3235_app_worker_serving_v3234_prior_v3223_rollback_customer_purchase_intake_upload_closed
 ---
@@ -273,3 +273,9 @@ The first v3.236 candidate continuity check found that the explicit v3.235 super
 ## 9 October 2026 Central — frozen v3.236 image candidate
 
 Marc approved PR #848 at exact head `919496d1c9d648591aa38fe171067b9d093e2e84` after all four required checks passed. It merged as `237f7e9fa6b7e0cca3c31b52fe006c856584387c`; protected `release/v3.236` points to that exact commit, and the release branch guard passed. Draft PR #849 pins that source for one protected immutable image build and registry readback. Full frozen-source checks, exact candidate checks and Marc's exact-source review remain required before image merge. Serving app and worker are v3.235; buyer sign-in, payment, receipt, intake and uploads remain CLOSED. The image build alone will not accept live buyer return or payment.
+
+
+## 9 October 2026 Central — verified v3.236 image and protected deployment candidate
+
+- Marc approved PR #849 exact head `a8facbfe8b12c6f058101c080772b17c7cc63dcf` after all three image candidate and all 64 frozen-source checks passed. It merged as `ae407e11f6276ea82ab152edc5baf99e5ea326f8`. Protected [image run 38019948148](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38019948148) succeeded and read back immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:7103856362489fbbabfeac9b3de9efc8b4401bbcbf92de51e45b6367c4653ae4` from frozen commit `237f7e9fa6b7e0cca3c31b52fe006c856584387c`.
+- Draft PR #850 stages that digest for one protected Azure preview/deployment. It retains running v3.235 digest `sha256:bec2310c4536c32a2a3013ce48844882f2d284b74fc5e11ab87826e138db00c8` as prior and accepted v3.223 digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` for rollback. Candidate checks, Marc's exact-source review, protected deployment and live buyer acceptance remain open. Buyer sign-in, payment, receipt, intake and uploads stay CLOSED.
