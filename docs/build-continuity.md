@@ -8,7 +8,7 @@ active_development_branch: development/salcapa-platform
 current_development_head: 12131275251e1507077fe1e050b372b1ea8b82d6
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3238_protected_application_deployment
+active_increment: salus_v3238_application_promotion
 last_completed_increment: v3238_immutable_image_published_v3237_serving_customer_controls_closed
 candidate_release: v3.238
 validation_pr: 864
