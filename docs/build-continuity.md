@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 11:17 CDT
+last_verified_at: 10 October 2026 11:35 CDT
 current_frozen_release: v3.238
 current_frozen_commit: 12131275251e1507077fe1e050b372b1ea8b82d6
 active_development_branch: development/salcapa-platform
 current_development_head: 12131275251e1507077fe1e050b372b1ea8b82d6
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3238_immutable_image_publication
-last_completed_increment: v3238_source_frozen_v3237_serving_customer_controls_closed
+active_increment: salus_v3238_application_promotion
+last_completed_increment: v3238_immutable_image_published_v3237_serving_customer_controls_closed
 candidate_release: v3.238
-validation_pr: 863
-validation_branch: codex/level1a-v3238-image-20261010
+validation_pr: 864
+validation_branch: codex/level1a-v3238-deploy-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3238_image_candidate_yet
-first_root_failing_gate: none_for_v3238_image_candidate_yet
-root_cause: none_for_v3238_image_candidate_yet
+failed_workflows: none_for_v3238_deployment_candidate_yet
+first_root_failing_gate: none_for_v3238_deployment_candidate_yet
+root_cause: none_for_v3238_deployment_candidate_yet
 repair_head: 12131275251e1507077fe1e050b372b1ea8b82d6
-repair_summary: closed_checkout_pilot_source_frozen_v3238_image_publication_stage
+repair_summary: closed_checkout_pilot_v3238_image_published_protected_deployment_stage
 genuine_blockers: v3237_source_superseded_only_after_v3238_image_deployment_single_inbox_pilot_and_paid_checkout_intake_scanner_wix_acceptance
-next_authorized_step: verify_frozen_ci_and_image_candidate_checks_then_Marc_exact_source_review
+next_authorized_step: verify_deployment_candidate_checks_then_Marc_exact_source_review_and_protected_Azure_deployment
 deployed_demo_release: v3.237
 deployed_demo_state: v3237_app_worker_serving_v3236_prior_v3223_rollback_customer_signin_order_checkout_intake_upload_closed
 ---
@@ -317,3 +317,8 @@ Marc approved PR #861 exact head `ae0d85eab695c71ba22e1a1cd9e73e0f69d2354f` afte
 ## 10 October 2026 Central — frozen v3.238 image candidate
 
 Marc approved PR #862 exact head `a618f831ab35c05ab39e2fad2f05984804a81e2b` after five required checks passed; it merged as `12131275251e1507077fe1e050b372b1ea8b82d6`. Protected `release/v3.238` points to that exact commit. PR #863 pins it for one immutable image publication and registry readback. Serving app and worker remain v3.237 with customer sign-in, ordering, checkout, intake, uploads, and scanner closed. Frozen-source CI, image candidate checks, Marc's exact review, protected publication, and deployment are open. No public buyer release follows from image publication alone.
+
+## 10 October 2026 Central — v3.238 protected deployment candidate
+
+- Marc approved PR #863 exact head `8bae4878f0aa1156b5002c3d72a31610cd980d81` after three checks passed. It merged as `3701c23796a5e1c26aea96663019f44cdae5d957`; protected image run [38067898318](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38067898318) built frozen `release/v3.238` source `12131275251e1507077fe1e050b372b1ea8b82d6` and read back immutable registry digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:d51bb111dadd216bfffb743ef611cff4a550cfc440df02b0d87c94f081dfe502`.
+- Draft PR #864 stages that digest for one protected Azure application and worker deployment. It records the still-serving v3.237 digest as both prior images and preserves v3.223 rollback. No buyer setting is changed by this source. v3.237 remains serving until protected deployment succeeds; customer sign-in, draft ordering, payment, intake, uploads, and scanning remain closed. The separate, Marc-approved single-inbox pilot setting change follows deployment verification with checkout still closed.
