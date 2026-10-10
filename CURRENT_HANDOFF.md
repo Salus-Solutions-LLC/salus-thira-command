@@ -2986,3 +2986,10 @@ Marc exact-approved image PR #831 head `20f1b73eb91466dbb365d972b63bfc98e244064c
 - Marc approved PR #848 exact head `919496d1c9d648591aa38fe171067b9d093e2e84` after all four required checks passed. It merged as `237f7e9fa6b7e0cca3c31b52fe006c856584387c`; `release/v3.236` points to that commit and its release guard passed.
 - Draft PR #849 pins one protected immutable image of the customer sign-in return repair. Full frozen-source checks, candidate checks, Marc's exact-head review, image publication/readback and a separately reviewed Azure deployment remain open. Serving app and worker stay v3.235 with v3.234 prior and v3.223 rollback. Customer payment, intake and uploads remain CLOSED.
 - **Next action:** finish image gates, then protected deployment and live fictional buyer sign-in acceptance before signed Stripe sandbox payment, receipt, scanner-held intake and Wix desktop/phone acceptance. Preserve all buyer controls closed until the separately reviewed switch.
+
+
+## 9 October 2026 Central — verified v3.236 image; protected deployment candidate
+
+- Marc approved PR #849 exact head `a8facbfe8b12c6f058101c080772b17c7cc63dcf` after all three image-candidate and all 64 frozen-source checks passed. It merged as `ae407e11f6276ea82ab152edc5baf99e5ea326f8`.
+- Protected [image run 38019948148](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38019948148) succeeded and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:7103856362489fbbabfeac9b3de9efc8b4401bbcbf92de51e45b6367c4653ae4` from frozen v3.236 commit `237f7e9fa6b7e0cca3c31b52fe006c856584387c`.
+- Draft PR #850 stages one protected Azure preview/deployment with v3.235 as prior and v3.223 for rollback. Its candidate checks and Marc's exact-head approval are required before merge. The app and worker still serve v3.235; buyer sign-in, payment, receipt, intake and uploads remain CLOSED. Live buyer, Stripe, scanner and Wix acceptance remain open after deployment.
