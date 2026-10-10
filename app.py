@@ -72,6 +72,7 @@ COOKIE_SECURE = os.getenv('SALUS_COOKIE_SECURE', '0').lower() in ('1','true','ye
 ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
 PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_ORDER_DRAFT_ENABLED = os.getenv('SALUS_LEVEL1A_ORDER_DRAFT_ENABLED','0').lower() in ('1','true','yes')
+LEVEL1A_CHECKOUT_ENABLED = os.getenv('SALUS_LEVEL1A_CHECKOUT_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_PILOT_EMAIL = os.getenv('SALUS_LEVEL1A_PILOT_EMAIL','').strip().casefold()
 LEVEL1A_INTAKE_ENABLED = os.getenv('SALUS_LEVEL1A_INTAKE_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_UPLOAD_ENABLED = os.getenv('SALUS_LEVEL1A_UPLOAD_ENABLED','0').lower() in ('1','true','yes')
@@ -3802,7 +3803,7 @@ def backfill_baseline_versions():
 backfill_baseline_versions()
 
 @app.get('/api/system/mode')
-def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'customer_signin_available':customer_oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc'),'level1a_purchase_available':bool(LEVEL1A_ORDER_DRAFT_ENABLED and LEVEL1A_INTAKE_ENABLED and LEVEL1A_UPLOAD_ENABLED and PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and AUTH_MODE in ('session','oidc'))}
+def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'customer_signin_available':customer_oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc'),'level1a_purchase_available':bool(LEVEL1A_ORDER_DRAFT_ENABLED and LEVEL1A_CHECKOUT_ENABLED and LEVEL1A_INTAKE_ENABLED and LEVEL1A_UPLOAD_ENABLED and PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and AUTH_MODE in ('session','oidc'))}
 
 def staff_oidc_return_path(value:str)->str:
     if value == '/protection-advisor/review' or re.fullmatch(
@@ -6210,6 +6211,8 @@ def accept_level1a_order(order_id:int,p:Level1AAcceptanceIn,request:Request):
 
 @app.post('/api/level1a/orders/{order_id}/checkout')
 def start_level1a_checkout(order_id:int,request:Request):
+    if not LEVEL1A_CHECKOUT_ENABLED:
+        raise HTTPException(503,'Level 1A checkout is not released.')
     ctx=_level1a_draft_authority(request)
     conn=db()
     try:
