@@ -4073,7 +4073,14 @@ def customer_oidc_callback(request:Request,code:str='',state:str='',error:str=''
         conn.close()
     security_event(request,'CUSTOMER_OIDC_LOGIN_SUCCESS','Info',
                    f'user_id={user_id}; acceptance={acceptance_key}',tenant=buyer_tenant)
-    response = RedirectResponse('/?view=level1a',status_code=302)
+    # Finish the cross-site identity callback before navigating with the Strict session cookie.
+    response = HTMLResponse("<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+        "<meta name='referrer' content='no-referrer'><title>Opening Level 1A</title></head>"
+        "<body><main><h1>Opening your Level 1A assessment</h1>"
+        "<p><a href='/?view=level1a'>Continue to your assessment</a></p></main>"
+        "<script>location.replace('/?view=level1a')</script></body></html>",
+        headers={'Cache-Control':'no-store','X-Frame-Options':'DENY',
+                 'Referrer-Policy':'no-referrer'})
     response.set_cookie('salus_session',session_token,httponly=True,
                         secure=COOKIE_SECURE,samesite='strict',
                         max_age=SESSION_HOURS*3600,path='/')
