@@ -82,8 +82,11 @@ param customerOidcEnabled bool = false
 @description('One verified external buyer inbox permitted during protected Level 1A acceptance. Empty by default; do not put the address in source.')
 param level1aPilotEmail string = ''
 
-@description('Protected Level 1A order and checkout gate, closed by default.')
+@description('Protected Level 1A order draft gate, closed by default.')
 param level1aOrderDraftEnabled bool = false
+
+@description('Protected Level 1A Stripe checkout gate, closed by default.')
+param level1aCheckoutEnabled bool = false
 
 @description('Protected paid-before-intake gate, closed by default.')
 param level1aIntakeEnabled bool = false
@@ -728,6 +731,10 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             {
               name: 'SALUS_LEVEL1A_ORDER_DRAFT_ENABLED'
               value: level1aOrderDraftEnabled ? '1' : '0'
+            }
+            {
+              name: 'SALUS_LEVEL1A_CHECKOUT_ENABLED'
+              value: level1aCheckoutEnabled ? '1' : '0'
             }
             {
               name: 'SALUS_LEVEL1A_INTAKE_ENABLED'
