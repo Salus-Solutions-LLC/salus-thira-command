@@ -2979,3 +2979,10 @@ Marc exact-approved image PR #831 head `20f1b73eb91466dbb365d972b63bfc98e244064c
 - Marc approved PR #847 exact head `20f15258f6505904f412e7eb22221f6803a7df01` after all four required checks passed; it merged as `ae33aa352512fce2a5f11cbc7a9191e01a0bad0a`. The browser return repair is integrated source, not a deployed or live-accepted buyer flow.
 - The next candidate labels that source v3.236. The serving app and worker remain v3.235, with v3.234 prior and v3.223 rollback. Customer sign-in, payment, receipt, intake and uploads remain CLOSED.
 - **Next action:** finish v3.236 candidate checks and Marc's exact-source review, freeze and publish the immutable image, deploy through protected Azure with rollback, and prove live fictional buyer identity, signed Stripe sandbox payment/receipt, exact-version scanner-held intake and the Wix journey before any separately reviewed customer switch.
+
+
+## 9 October 2026 Central — frozen v3.236 image candidate
+
+- Marc approved PR #848 exact head `919496d1c9d648591aa38fe171067b9d093e2e84` after all four required checks passed. It merged as `237f7e9fa6b7e0cca3c31b52fe006c856584387c`; `release/v3.236` points to that commit and its release guard passed.
+- Draft PR #849 pins one protected immutable image of the customer sign-in return repair. Full frozen-source checks, candidate checks, Marc's exact-head review, image publication/readback and a separately reviewed Azure deployment remain open. Serving app and worker stay v3.235 with v3.234 prior and v3.223 rollback. Customer payment, intake and uploads remain CLOSED.
+- **Next action:** finish image gates, then protected deployment and live fictional buyer sign-in acceptance before signed Stripe sandbox payment, receipt, scanner-held intake and Wix desktop/phone acceptance. Preserve all buyer controls closed until the separately reviewed switch.
