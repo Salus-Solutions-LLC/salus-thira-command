@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 13:21 CDT
-current_frozen_release: v3.238
-current_frozen_commit: 12131275251e1507077fe1e050b372b1ea8b82d6
+last_verified_at: 10 October 2026 13:30 CDT
+current_frozen_release: v3.239
+current_frozen_commit: f75d73b028739ff64d9df4598e8fe6b6b811fa32
 active_development_branch: development/salcapa-platform
-current_development_head: 75998c3fcbbf134bda485278b0417feff592adc9
+current_development_head: f75d73b028739ff64d9df4598e8fe6b6b811fa32
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3239_customer_oidc_safe_diagnostics_candidate
-last_completed_increment: v3238_protected_deployment_and_closed_checkout_single_inbox_pilot
+active_increment: salus_v3239_customer_oidc_diagnostic_immutable_image_publication
+last_completed_increment: v3239_safe_signin_diagnostics_source_frozen
 candidate_release: v3.239
-validation_pr: 867
-validation_branch: codex/v3239-customer-oidc-diagnostics-20261010
+validation_pr: pending
+validation_branch: codex/v3239-oidc-diagnostic-image-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_observed_for_v3239_candidate
+failed_workflows: none_for_v3239_frozen_source
 first_root_failing_gate: live_customer_oidc_callback
 root_cause: unresolved_ValueError_stage_not_logged_in_v3238
-repair_head: 75998c3fcbbf134bda485278b0417feff592adc9
-repair_summary: safe_static_oidc_stage_logging_without_trust_predicate_change
-genuine_blockers: v3238_source_superseded_by_v3239_candidate_customer_oidc_validation_stage_then_verified_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: validate_v3239_source_then_Marc_exact_source_review_and_governed_image_deployment_for_one_controlled_retry
+repair_head: f75d73b028739ff64d9df4598e8fe6b6b811fa32
+repair_summary: v3239_frozen_source_pinned_for_protected_immutable_image_publication
+genuine_blockers: v3238_serving_customer_oidc_stage_unknown_and_verified_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.238
 deployed_demo_state: v3238_app_worker_serving_revision_0000176_v3237_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
@@ -332,3 +332,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved exact PR #866 commit `b2c8b3985289ea1b1e140ce6284db62edfa0414e` after all required checks passed; squash merge `75998c3fcbbf134bda485278b0417feff592adc9` added fixed, non-sensitive validation stage markers to the customer sign-in failure security event. The provider callback remains fail closed and the root cause is not yet known.
 - This v3.239 candidate labels that source for governed freeze and later immutable image publication. Serving v3.238 still rejects the single-inbox test at identity verification. The app has not established an accepted customer session, draft, purchase, intake, or upload from that attempt. Checkout, intake, uploads, and scanning remain closed.
 - Next: source CI and Marc exact-source review, protected image/deployment with rollback, then one controlled single-inbox retry to identify the failed stage. Repair the actual provider or app issue separately without accepting an unverified email or opening public controls.
+
+## 10 October 2026 Central — v3.239 frozen source and protected image candidate
+
+- Marc approved PR #867 exact head `39ec71d4da70d851b124b9b6c8f980354555c87a` after five checks passed. It merged as `f75d73b028739ff64d9df4598e8fe6b6b811fa32`; protected `release/v3.239` was created from that exact commit.
+- This candidate pins that frozen source for one immutable image build and registry readback. It does not deploy or modify buyer settings. Serving v3.238 still rejects the protected single-inbox callback with an unknown validation stage; checkout, intake, uploads, and scanning remain closed.
+- Next: frozen-source and image-candidate checks, Marc's exact-source review, protected image publication and readback, then a separate deployment candidate with rollback before one controlled sign-in retry. Buyer acceptance and root-cause repair remain open.
