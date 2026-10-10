@@ -72,6 +72,7 @@ COOKIE_SECURE = os.getenv('SALUS_COOKIE_SECURE', '0').lower() in ('1','true','ye
 ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
 PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_ORDER_DRAFT_ENABLED = os.getenv('SALUS_LEVEL1A_ORDER_DRAFT_ENABLED','0').lower() in ('1','true','yes')
+LEVEL1A_PILOT_EMAIL = os.getenv('SALUS_LEVEL1A_PILOT_EMAIL','').strip().casefold()
 LEVEL1A_INTAKE_ENABLED = os.getenv('SALUS_LEVEL1A_INTAKE_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_UPLOAD_ENABLED = os.getenv('SALUS_LEVEL1A_UPLOAD_ENABLED','0').lower() in ('1','true','yes')
 PACKAGE_SCAN_MODE = os.getenv('SALUS_PACKAGE_SCAN_MODE','inline').strip().lower()
@@ -4040,6 +4041,9 @@ def customer_oidc_callback(request:Request,code:str='',state:str='',error:str=''
     except Exception as exc:
         security_event(request,'CUSTOMER_OIDC_TOKEN_FAILURE','High',type(exc).__name__)
         raise HTTPException(401, 'Customer identity could not be verified')
+    if LEVEL1A_PILOT_EMAIL and email.casefold() != LEVEL1A_PILOT_EMAIL:
+        security_event(request,'CUSTOMER_OIDC_PILOT_DENIED','Medium','verified_email_outside_pilot')
+        raise HTTPException(403, 'Customer sign-in is limited to the protected pilot.')
     session_token = secrets.token_urlsafe(32)
     session_expires = (_iso_now_dt()+timedelta(hours=SESSION_HOURS)).replace(
         microsecond=0).isoformat().replace('+00:00','Z')
@@ -5941,6 +5945,17 @@ def _level1a_draft_authority(request:Request):
     ctx=auth_context(request)
     if ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id'):
         raise HTTPException(403,'A verified Protected Member sign-in is required.')
+    if LEVEL1A_PILOT_EMAIL:
+        conn=db()
+        try:
+            buyer=conn.execute('SELECT email,identity_provider FROM users WHERE id=? AND tenant_id=?',
+                               (ctx['user_id'],ctx['tenant_id'])).fetchone()
+        finally:
+            conn.close()
+        if (not buyer or buyer['identity_provider'] != CUSTOMER_PROVIDER or
+                str(buyer['email'] or '').strip().casefold() != LEVEL1A_PILOT_EMAIL):
+            security_event(request,'LEVEL1A_PILOT_DENIED','Medium','buyer_outside_pilot')
+            raise HTTPException(403,'Level 1A access is limited to the protected pilot.')
     return ctx
 
 def _level1a_order_view(row, idempotent=False):
