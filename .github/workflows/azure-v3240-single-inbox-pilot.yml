@@ -1,0 +1,140 @@
+name: SalCAPA v3.240 protected single-inbox diagnostic pilot
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3240-single-inbox-pilot.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-application-deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - name: Record protected pilot approval gate passage
+        run: echo "Protected single-inbox pilot approval gate passed."
+
+  pilot:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify exact target, immutable image, and closed starting state
+        id: preflight
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$EXPECTED_SUBSCRIPTION" = "076f90cd-cc6a-4547-a4ff-de3fc1825472"
+          test "$EXPECTED_TENANT" = "e06fd260-a201-44da-b03b-9cde7e119d04"
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224 -o json > /tmp/salcapa-before-pilot.json
+          jq -e '
+            def env_value($name):
+              ([.properties.template.containers[0].env[] | select(.name == $name) | .value] | last) // "";
+            .properties.template.containers[0].image ==
+              "salcapadevb48224acr.azurecr.io/salcapa@sha256:7fbd22123d7270e7c5fe5046cfc7533f74110793803da25ca89b0564b3fc2df4" and
+            .properties.latestRevisionName == "salcapa-dev-b48224--0000179" and
+            env_value("SALUS_CUSTOMER_OIDC_ENABLED") == "0" and
+            env_value("SALUS_LEVEL1A_PILOT_EMAIL") == "" and
+            (env_value("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED") | IN(""; "0")) and
+            (env_value("SALUS_LEVEL1A_CHECKOUT_ENABLED") | IN(""; "0")) and
+            (env_value("SALUS_LEVEL1A_INTAKE_ENABLED") | IN(""; "0")) and
+            (env_value("SALUS_LEVEL1A_UPLOAD_ENABLED") | IN(""; "0")) and
+            (env_value("SALUS_PACKAGE_SCANNER_ACCEPTED") | IN(""; "0"))
+          ' /tmp/salcapa-before-pilot.json > /dev/null
+          echo "Exact v3.240 image and closed buyer controls verified."
+
+      - name: Enable only the named diagnostic buyer and draft
+        id: change
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          az containerapp update -g "$RESOURCE_GROUP" -n salcapa-dev-b48224 \
+            --set-env-vars \
+              SALUS_CUSTOMER_OIDC_ENABLED=1 \
+              SALUS_LEVEL1A_PILOT_EMAIL=MDuncan@Salus.email \
+              SALUS_LEVEL1A_ORDER_DRAFT_ENABLED=1 \
+            --only-show-errors -o none
+
+      - name: Verify new revision, readiness, immutable image, and closed controls
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            az containerapp show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224 -o json > /tmp/salcapa-after-pilot.json
+            if jq -e '
+              def env_value($name):
+                ([.properties.template.containers[0].env[] | select(.name == $name) | .value] | last) // "";
+              .properties.template.containers[0].image ==
+                "salcapadevb48224acr.azurecr.io/salcapa@sha256:7fbd22123d7270e7c5fe5046cfc7533f74110793803da25ca89b0564b3fc2df4" and
+              .properties.latestRevisionName != "salcapa-dev-b48224--0000179" and
+              env_value("SALUS_CUSTOMER_OIDC_ENABLED") == "1" and
+              (env_value("SALUS_LEVEL1A_PILOT_EMAIL") | ascii_downcase) == "mduncan@salus.email" and
+              env_value("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED") == "1" and
+              (env_value("SALUS_LEVEL1A_CHECKOUT_ENABLED") | IN(""; "0")) and
+              (env_value("SALUS_LEVEL1A_INTAKE_ENABLED") | IN(""; "0")) and
+              (env_value("SALUS_LEVEL1A_UPLOAD_ENABLED") | IN(""; "0")) and
+              (env_value("SALUS_PACKAGE_SCANNER_ACCEPTED") | IN(""; "0"))
+            ' /tmp/salcapa-after-pilot.json > /dev/null; then
+              fqdn="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/salcapa-after-pilot.json)"
+              status="$(curl --connect-timeout 5 --max-time 15 -sS -o /tmp/salcapa-pilot-ready.json -w '%{http_code}' "https://$fqdn/health/ready" || true)"
+              if test "$status" = 200; then
+                echo "New v3.240 revision is ready. Single-inbox sign-in and draft on; payment, intake, uploads, scanning off."
+                exit 0
+              fi
+            fi
+            sleep 10
+          done
+          echo "Pilot revision did not reach verified ready state." >&2
+          exit 1
+
+      - name: Reclose buyer pilot if change or verification fails
+        if: failure() && steps.preflight.outcome == 'success'
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          az containerapp update -g "$RESOURCE_GROUP" -n salcapa-dev-b48224 \
+            --set-env-vars \
+              SALUS_CUSTOMER_OIDC_ENABLED=0 \
+              SALUS_LEVEL1A_PILOT_EMAIL= \
+              SALUS_LEVEL1A_ORDER_DRAFT_ENABLED=0 \
+            --only-show-errors -o none
+          az containerapp show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224 -o json > /tmp/salcapa-reclosed.json
+          jq -e '
+            def env_value($name):
+              ([.properties.template.containers[0].env[] | select(.name == $name) | .value] | last) // "";
+            .properties.template.containers[0].image ==
+              "salcapadevb48224acr.azurecr.io/salcapa@sha256:7fbd22123d7270e7c5fe5046cfc7533f74110793803da25ca89b0564b3fc2df4" and
+            env_value("SALUS_CUSTOMER_OIDC_ENABLED") == "0" and
+            env_value("SALUS_LEVEL1A_PILOT_EMAIL") == "" and
+            env_value("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED") == "0"
+          ' /tmp/salcapa-reclosed.json > /dev/null
+          echo "Buyer pilot reclosed after failed change."
