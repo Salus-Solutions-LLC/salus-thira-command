@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 17:43 CDT
+last_verified_at: 09 October 2026 20:54 CDT
 current_frozen_release: v3.234
 current_frozen_commit: 34aff714b986b510e291fb8b147f8c5d7d733088
 active_development_branch: development/salcapa-platform
-current_development_head: 34aff714b986b510e291fb8b147f8c5d7d733088
+current_development_head: aa42ef1a8f20c50e06679fc3f9a5212fdb62fe2d
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3234_immutable_image_publication
-last_completed_increment: v3234_source_frozen_v3233_serving_with_v3223_rollback
-candidate_release: v3.234
-validation_pr: 837
-validation_branch: codex/level1a-v3234-image-20261009
+active_increment: salus_v3235_level1a_rev11_release_candidate
+last_completed_increment: v3234_staff_app_deployed_buyer_controls_closed
+candidate_release: v3.235
+validation_pr: 843
+validation_branch: codex/level1a-rev11-storage-readback-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3234_postmerge_public_ecr_rate_limit_one_postgres_job_retried_successfully
-first_root_failing_gate: public_ecr_postgres_pull_rate_exceeded_before_test_retried
-root_cause: transient_public_ecr_rate_limit_resolved_on_bounded_retry
-repair_head: 34aff714b986b510e291fb8b147f8c5d7d733088
-repair_summary: reviewed_paid_intake_source_frozen_v3234
-genuine_blockers: v3233_source_superseded_only_after_v3234_image_deployment_live_buyer_acceptance_customer_controls_closed
-next_authorized_step: verify_final_image_candidate_checks_then_Marc_exact_source_review
-deployed_demo_release: v3.233
-deployed_demo_state: v3233_serving_with_v3223_rollback_customer_purchase_intake_upload_closed
+failed_workflows: none_for_v3235_candidate_yet
+first_root_failing_gate: none_for_v3235_candidate_yet
+root_cause: none_for_v3235_candidate_yet
+repair_head: aa42ef1a8f20c50e06679fc3f9a5212fdb62fe2d
+repair_summary: approved_rev11_template_exact_byte_storage_readback_and_source_binding
+genuine_blockers: v3235_exact_source_ci_review_freeze_image_deployment_live_buyer_payment_intake_scanner_acceptance_customer_controls_closed
+next_authorized_step: verify_candidate_checks_then_Marc_exact_source_review_before_freeze
+deployed_demo_release: v3.234
+deployed_demo_state: v3234_serving_with_v3233_prior_v3223_rollback_customer_purchase_intake_upload_closed
 ---
 
 # SalCAPA build continuity
@@ -238,3 +238,8 @@ Marc exact-approved PR #835 head `21933c2162f5397f09478d1e4f56472cbdfd2d0e` afte
 Marc approved PR #836 at exact head `76b227031c2d6fd000d8926915411e22e5d83d55` after all eleven candidate/PR checks passed; it merged as `34aff714b986b510e291fb8b147f8c5d7d733088`, and immutable `release/v3.234` points to that exact commit. PR #837 stages one protected image from the frozen source. The release-branch immutability guard passed. All 64 frozen-source checks passed after one bounded retry of the PostgreSQL image pull that Amazon ECR Public had rate-limited before tests. All 44 candidate checks passed, including the image activation contract and exact frozen reference preflight. No new image or Azure app deployment is claimed. Serving v3.233 staff Word/PDF outputs remain accepted, with v3.223 retained for rollback. Level 1A buyer sign-in, payment, intake and uploads remain CLOSED; Texas-only quote scope, draft tax authority, verified email, template readback, signed Stripe test payment and scanner gates remain open.
 
 Marc stated that the intended all-location customer quote should add no tax. The current reviewed source documents only a Texas zero-tax determination, and no qualified all-location applicability decision has been recorded. Preserve the non-Texas stop gate pending the exact legal/tax determination and its source review; do not publish a universal zero-tax representation from this image candidate.
+
+
+## 9 October 2026 Central — v3.235 Level 1A revision 11 release candidate
+
+PR #842 at Marc-approved head `ffbf908371396ad2772a8c712f0c634895885e6d` passed all three required checks and merged as `aa42ef1a8f20c50e06679fc3f9a5212fdb62fe2d`. The approved five-page Word revision 11 SHA-256 `3466397BA28E74BF21E0DC36E26A526CCD5D0984DFF2EF196B2605B171A9C29E` passed Azure exact-byte readback at private `evidence/level1a/templates/3466397ba28e74bf21e0dc36e26a526ccd5d0984dff2ef196b2605b171a9c29e.docx`, version `2026-10-10T01:27:07.6427502Z`. The temporary user data role was removed. This candidate labels that integrated source v3.235 and records the storage result; it does not deploy or open buyer sign-in, payment, receipt, intake or uploads. Serving v3.234 remains in place with v3.233 as prior and v3.223 for rollback. Verify full candidate checks, obtain Marc's exact-head source review, then freeze/build/publish and complete protected live acceptance. A separate OneDrive copy with mismatched hash is excluded.
