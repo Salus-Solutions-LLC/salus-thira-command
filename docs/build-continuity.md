@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3240_customer_email_diagnostic_application_promotion
 last_completed_increment: v3240_immutable_image_publication_and_registry_readback
 candidate_release: v3.240
-validation_pr: pending
+validation_pr: 873
 validation_branch: codex/v3240-customer-email-diagnostic-deploy-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
