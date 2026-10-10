@@ -17,6 +17,26 @@ from cryptography.hazmat.primitives.serialization import pkcs12
 CLIENT_ASSERTION_TYPE = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
 
 
+class CustomerEmailMissing(ValueError):
+    """The signed token did not include an email claim."""
+
+
+class CustomerEmailInvalid(ValueError):
+    """The signed token email was not a usable address."""
+
+
+class CustomerVerifiedEmailMismatch(ValueError):
+    """The signed authoritative address did not match the email claim."""
+
+
+class CustomerEmailVerificationContradicted(ValueError):
+    """The provider explicitly denied verification."""
+
+
+class CustomerEmailVerificationMissing(ValueError):
+    """The provider did not assert verification."""
+
+
 def validate_discovery(metadata, *, tenant_host, tenant_id):
     """Accept only the reviewed single External tenant and its HTTPS endpoints."""
     # The reviewed External ID discovery URL uses the tenant-name host for
@@ -88,20 +108,23 @@ def verified_customer_email(claims):
         raise ValueError('Customer identity claims are invalid')
     raw_email = claims.get('email')
     if not isinstance(raw_email, str):
-        raise ValueError('Customer email is missing')
+        raise CustomerEmailMissing('Customer email is missing')
     email = raw_email.strip().lower()
     if (not email or email.count('@') != 1
             or any(character.isspace() for character in email)):
-        raise ValueError('Customer email is invalid')
+        raise CustomerEmailInvalid('Customer email is invalid')
     primary = claims.get('verified_primary_email')
     if primary is not None:
         if (not isinstance(primary, str)
                 or not primary.strip()
                 or primary.strip().lower() != email):
-            raise ValueError('Verified primary email differs from customer email')
+            raise CustomerVerifiedEmailMismatch(
+                'Verified primary email differs from customer email')
     asserted = claims.get('email_verified')
     if asserted is not None and asserted is not True:
-        raise ValueError('Customer email verification is contradicted')
+        raise CustomerEmailVerificationContradicted(
+            'Customer email verification is contradicted')
     if asserted is not True and primary is None:
-        raise ValueError('Customer email verification is missing')
+        raise CustomerEmailVerificationMissing(
+            'Customer email verification is missing')
     return email
