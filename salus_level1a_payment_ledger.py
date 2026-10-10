@@ -5,7 +5,9 @@ import json
 
 from salus_level1a_checkout import (Level1ACheckoutBinding,
                                     verify_level1a_paid_session)
-from salus_level1a_quote import QuoteFacts
+from salus_level1a_order import (ApprovedTaxDecision, OrderBoundaryError,
+                                 TaxDecisionError)
+from salus_level1a_quote import QuoteFacts, _unit_from_order
 from salus_stripe_checkout import CheckoutVerificationError
 
 
@@ -82,6 +84,12 @@ def binding_for_accepted_order(conn, *, tenant_id, buyer_user_id, order_id):
     if not quote or not agreement or agreement['status']!='Issued':
         raise CheckoutVerificationError('The accepted quote or issued agreement is missing.')
     facts=QuoteFacts(**{key:quote[key] for key in QuoteFacts.__dataclass_fields__})
+    tax=ApprovedTaxDecision(quote['scope_sha256'],quote['tax_rule_id'],
+        quote['tax_jurisdiction'],quote['tax_cents'],quote['tax_decision_reference'])
+    try:
+        approved_total=tax.total_cents(_unit_from_order(order))
+    except (OrderBoundaryError,TaxDecisionError) as exc:
+        raise CheckoutVerificationError('The accepted tax decision is invalid.') from exc
     if (facts.sha256()!=quote['quote_sha256'] or
             order['scope_version']!=accepted['scope_version'] or
             order['scope_sha256']!=accepted['scope_sha256'] or
@@ -90,10 +98,9 @@ def binding_for_accepted_order(conn, *, tenant_id, buyer_user_id, order_id):
             agreement['content_sha256']!=accepted['agreement_sha256'] or
             agreement['quote_id']!=quote['id'] or
             accepted['agreement_id']!=agreement['id'] or
-            quote['tax_rule_id']!='TX-STANDARD-CONSULTING-V1' or
-            quote['tax_jurisdiction']!='TX' or
-            quote['tax_decision_reference']!='SAL-D099' or
-            (order['use_country'],order['use_region'])!=('US','TX')):
+            quote['tax_rule_id'] not in ('TX-STANDARD-CONSULTING-V1',
+                                         'TX-PERFORMED-LEVEL1A-V1') or
+            quote['total_cents']!=approved_total):
         raise CheckoutVerificationError('The accepted scope, quote or tax decision changed.')
     return Level1ACheckoutBinding(tenant_id,buyer_user_id,order_id,quote['id'],
         accepted['id'],accepted['scope_sha256'],accepted['quote_sha256'],

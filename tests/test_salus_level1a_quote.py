@@ -43,7 +43,7 @@ def test_quote_is_immutable_and_new_scope_needs_new_price():
                           order_id=order['id'],timestamp='t3')
     assert first['id']==again['id']
     assert (first['base_price_cents'],first['tax_cents'],first['total_cents'])==(150000,0,150000)
-    assert first['tax_decision_reference']=='SAL-D099'
+    assert first['tax_decision_reference']=='SAL-D106'
     with pytest.raises(QuoteUnavailable):
         quote_for_order(conn,tenant_id=2,buyer_user_id=22,
                         order_id=order['id'],timestamp='t4')
@@ -58,12 +58,23 @@ def test_quote_is_immutable_and_new_scope_needs_new_price():
     assert conn.execute('SELECT COUNT(*) FROM level1a_quote_versions').fetchone()[0]==2
 
 
-def test_unknown_jurisdiction_is_not_zero_tax():
+def test_other_us_state_keeps_fixed_total_and_exact_tax_basis():
     conn=_database()
     order,_=save_draft(conn,tenant_id=1,buyer_user_id=11,
         idempotency_key='unique-order-0002',values=_values(region='OK'),timestamp='t1')
-    with pytest.raises(QuoteUnavailable,match='tax calculation'):
+    quote=quote_for_order(conn,tenant_id=1,buyer_user_id=11,
+                          order_id=order['id'],timestamp='t2')
+    assert (quote['base_price_cents'],quote['tax_cents'],quote['total_cents'])==(150000,0,150000)
+    assert (quote['tax_rule_id'],quote['tax_decision_reference'])==('TX-PERFORMED-LEVEL1A-V1','SAL-D106')
+    assert conn.execute('SELECT COUNT(*) FROM level1a_quote_versions').fetchone()[0]==1
+
+
+def test_other_country_remains_unavailable():
+    conn=_database()
+    values=_values(region='ON') | {'use_country':'CA'}
+    order,_=save_draft(conn,tenant_id=1,buyer_user_id=11,
+        idempotency_key='unique-order-0003',values=values,timestamp='t1')
+    with pytest.raises(QuoteUnavailable,match='tax determination'):
         quote_for_order(conn,tenant_id=1,buyer_user_id=11,
                         order_id=order['id'],timestamp='t2')
     assert conn.execute('SELECT COUNT(*) FROM level1a_quote_versions').fetchone()[0]==0
-    assert conn.execute('SELECT COUNT(*) FROM level1a_orders').fetchone()[0]==1

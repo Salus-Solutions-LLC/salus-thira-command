@@ -1,7 +1,7 @@
 """Immutable price facts for one standard Level 1A Access order version.
 
-The only automatic tax decision in this module is Salus's recorded Texas
-standard-consulting determination. An unknown location never becomes zero tax.
+The automatic tax decision covers the currently scoped Texas-performed Level 1A
+assessment for U.S. buyers under SAL-D106. Other countries remain fail-closed.
 """
 
 from dataclasses import dataclass
@@ -88,10 +88,10 @@ def quote_for_order(conn, *, tenant_id, buyer_user_id, order_id, timestamp):
     unit = _unit_from_order(order)
     if unit.digest() != order['scope_sha256']:
         raise QuoteUnavailable('The saved scope needs reconciliation before pricing.')
-    if (unit.use_country, unit.use_region) != ('US', 'TX'):
-        raise QuoteUnavailable('A verified tax calculation for this service-use location is pending.')
-    tax = ApprovedTaxDecision(unit.digest(), 'TX-STANDARD-CONSULTING-V1',
-                              'TX', 0, 'SAL-D099')
+    if unit.use_country != 'US':
+        raise QuoteUnavailable('A verified tax determination for this service-use country is pending.')
+    tax = ApprovedTaxDecision(unit.digest(), 'TX-PERFORMED-LEVEL1A-V1',
+                              'TX', 0, 'SAL-D106')
     try:
         total = tax.total_cents(unit)
     except TaxDecisionError as exc:

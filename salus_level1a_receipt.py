@@ -3,17 +3,32 @@
 from datetime import datetime
 from html import escape
 
+from salus_level1a_order import (ApprovedTaxDecision, OrderBoundaryError,
+                                 TaxDecisionError)
+from salus_level1a_quote import _unit_from_order
 from salus_stripe_checkout import CheckoutVerificationError
 
 
 def render_level1a_receipt(order,quote,agreement,paid):
-    if (not order or not quote or not agreement or not paid or
-            paid['status']!='Paid' or paid['order_id']!=order['id'] or
+    if not order or not quote or not agreement or not paid:
+        raise CheckoutVerificationError('The receipt does not match one paid Level 1A order.')
+    tax=ApprovedTaxDecision(quote['scope_sha256'],quote['tax_rule_id'],
+        quote['tax_jurisdiction'],quote['tax_cents'],quote['tax_decision_reference'])
+    try:
+        approved_total=tax.total_cents(_unit_from_order(order))
+    except (OrderBoundaryError,TaxDecisionError) as exc:
+        raise CheckoutVerificationError('The receipt tax decision needs review.') from exc
+    if (paid['status']!='Paid' or paid['order_id']!=order['id'] or
             paid['quote_id']!=quote['id'] or
+            paid['quote_sha256']!=quote['quote_sha256'] or
+            quote['scope_sha256']!=order['scope_sha256'] or
             paid['agreement_sha256']!=agreement['content_sha256'] or
-            paid['base_price_cents']!=150_000 or paid['tax_cents']!=0 or
-            paid['amount_cents']!=150_000 or paid['currency']!='usd' or
-            quote['tax_rule_id']!='TX-STANDARD-CONSULTING-V1'):
+            paid['base_price_cents']!=quote['base_price_cents'] or
+            paid['tax_cents']!=quote['tax_cents'] or
+            paid['amount_cents']!=quote['total_cents'] or
+            paid['amount_cents']!=approved_total or paid['currency']!='usd' or
+            quote['tax_rule_id'] not in ('TX-STANDARD-CONSULTING-V1',
+                                         'TX-PERFORMED-LEVEL1A-V1')):
         raise CheckoutVerificationError('The receipt does not match one paid Level 1A order.')
     try:
         paid_at=datetime.fromisoformat(paid['paid_at'].replace('Z','+00:00'))
@@ -24,7 +39,7 @@ def render_level1a_receipt(order,quote,agreement,paid):
             ('Covered unit',order['unit_name']),
             ('Scope boundary',order['covered_boundary']),
             ('Base price','$1,500.00 USD'),
-            ('Sales tax','$0.00 USD — Texas standard consulting'),
+            ('Sales tax','$0.00 USD — approved assessment tax decision'),
             ('Total paid','$1,500.00 USD'),
             ('Payment verified',date_text),
             ('Order reference',f'L1A-{order["id"]}'),

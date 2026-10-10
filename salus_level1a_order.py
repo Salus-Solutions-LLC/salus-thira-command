@@ -10,11 +10,15 @@ import json
 
 
 BASE_PRICE_CENTS = 150_000
+_US_STATE_CODES = frozenset('AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split())
 SKU = 'SALUS-LEVEL-1A-ACCESS-V1'
 _APPROVED_TAX_RULES = {
     # Salus's recorded determination applies only to the standard consulting
     # SKU in Texas. It is not a fallback for other jurisdictions or services.
     'TX-STANDARD-CONSULTING-V1': ('TX', 0, 'SAL-D099'),
+    # The currently scoped Texas-performed Level 1A assessment has a fixed
+    # zero-tax determination for U.S. buyers under the recorded SAL-D106 rule.
+    'TX-PERFORMED-LEVEL1A-V1': ('TX', 0, 'SAL-D106'),
 }
 
 
@@ -78,8 +82,8 @@ class Level1AUnit:
         object.__setattr__(self, 'use_region', self.use_region.upper())
         if len(self.use_country) != 2:
             raise OrderBoundaryError('Use a two-letter service use country code.')
-        if self.use_country == 'US' and len(self.use_region) != 2:
-            raise OrderBoundaryError('Use a two-letter service use state code.')
+        if self.use_country == 'US' and self.use_region not in _US_STATE_CODES:
+            raise OrderBoundaryError('Use a valid two-letter service use state code.')
         if ('@' not in self.notice_email or '\n' in self.notice_email or
                 len(self.notice_email) > 254):
             raise OrderBoundaryError('Give a usable buyer notice email.')
@@ -133,4 +137,6 @@ class ApprovedTaxDecision:
         if self.rule_id == 'TX-STANDARD-CONSULTING-V1' and (
                 unit.use_country != 'US' or unit.use_region != 'TX'):
             raise TaxDecisionError('The Texas consulting rule does not cover this service use location.')
+        if self.rule_id == 'TX-PERFORMED-LEVEL1A-V1' and unit.use_country != 'US':
+            raise TaxDecisionError('The Level 1A tax rule does not cover this service use country.')
         return BASE_PRICE_CENTS + self.tax_cents

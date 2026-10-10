@@ -37,7 +37,7 @@ async function level1aView(){
 
 function level1aStart(){
   const host=document.querySelector('#level1a-step');
-  host.innerHTML=`<div class="card"><h2>Define the covered unit</h2><p>Choose one site or one function. Name its boundary and exclusions so the fixed price stays clear. This online quote currently covers services used in Texas; other locations need a verified tax rule before checkout.</p><form id="level1a-order-form">
+  host.innerHTML=`<div class="card"><h2>Define the covered unit</h2><p>Choose one site or one function. Name its boundary and exclusions so the fixed price stays clear. Enter the U.S. state where you will use the assessment. Salus performs the Level 1A assessment in Texas, and the approved buyer total is $1,500.</p><form id="level1a-order-form">
     <label>Organization legal name<input name="buyer_legal_name" required maxlength="500"></label>
     <label>Covered unit type<select name="unit_kind" required><option value="">Select one</option><option value="Site">One site</option><option value="Function">One function</option></select></label>
     <label>Site or function name<input name="unit_name" required maxlength="500"></label>
@@ -48,7 +48,7 @@ function level1aStart(){
     <label>Notice email<input name="notice_email" type="email" required maxlength="254"></label>
     <label>Where will the service be used?<input name="service_use_address" required maxlength="500" autocomplete="street-address"></label>
     <label>Postal code<input name="service_use_postal_code" required maxlength="30" autocomplete="postal-code"></label>
-    <label>State where the service will be used<input name="use_region" value="TX" required minlength="2" maxlength="2" pattern="[A-Za-z]{2}" autocomplete="address-level1"></label>
+    <label>State where the service will be used<input name="use_region" required minlength="2" maxlength="2" pattern="[A-Za-z]{2}" autocomplete="address-level1"></label>
     <input name="use_country" type="hidden" value="US">
     <div class="form-actions"><button class="btn" type="submit">Review exact scope and price</button></div>
   </form></div>`;

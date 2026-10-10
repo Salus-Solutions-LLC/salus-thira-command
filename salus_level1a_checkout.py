@@ -1,7 +1,7 @@
 """Stripe Checkout facts for one accepted standard Level 1A order.
 
-Only the recorded Texas consulting zero-tax rule is supported here. Other
-jurisdictions need a separately approved tax engine and itemized agreement.
+The recorded SAL-D106 Level 1A U.S.-buyer zero-tax rule supports this fixed
+$1,500 Checkout. Other countries and any changed tax result remain closed.
 """
 
 from dataclasses import dataclass
@@ -37,7 +37,7 @@ class Level1ACheckoutBinding:
             raise CheckoutVerificationError('Checkout requires exact scope and agreement hashes.')
         if (self.base_price_cents!=150_000 or self.tax_cents!=0 or
                 self.amount_cents!=150_000 or self.currency!='usd'):
-            raise CheckoutVerificationError('Only the approved $1,500 Texas consulting total is enabled.')
+            raise CheckoutVerificationError('Only the approved $1,500 Level 1A total with the recorded zero-tax quote is enabled.')
 
     def metadata(self):
         return {'salus_product':'level1a_access',
