@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 11:13 CDT
-current_frozen_release: v3.237
-current_frozen_commit: 0d267c000553dfd36e96e8ca3362060b1f13f5e9
+last_verified_at: 10 October 2026 11:17 CDT
+current_frozen_release: v3.238
+current_frozen_commit: 12131275251e1507077fe1e050b372b1ea8b82d6
 active_development_branch: development/salcapa-platform
-current_development_head: 62266292a666ab98a25bda8987ef78646dd7a28f
+current_development_head: 12131275251e1507077fe1e050b372b1ea8b82d6
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3238_closed_checkout_buyer_pilot_release_candidate
-last_completed_increment: v3237_protected_app_worker_serving_checkout_and_intake_closed
+active_increment: salus_v3238_immutable_image_publication
+last_completed_increment: v3238_source_frozen_v3237_serving_customer_controls_closed
 candidate_release: v3.238
-validation_pr: 862
-validation_branch: codex/level1a-v3238-pilot-release-20261010
+validation_pr: 863
+validation_branch: codex/level1a-v3238-image-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3238_release_candidate_yet
-first_root_failing_gate: none_for_v3238_release_candidate_yet
-root_cause: none_for_v3238_release_candidate_yet
-repair_head: 62266292a666ab98a25bda8987ef78646dd7a28f
-repair_summary: independent_checkout_gate_and_draft_pilot_visibility_merged_v3237_serving
-genuine_blockers: v3237_source_superseded_only_after_v3238_exact_source_ci_review_freeze_image_deployment_then_single_inbox_pilot_and_paid_checkout_intake_scanner_wix_acceptance
-next_authorized_step: verify_v3238_candidate_checks_then_Marc_exact_source_review_before_freeze
+failed_workflows: none_for_v3238_image_candidate_yet
+first_root_failing_gate: none_for_v3238_image_candidate_yet
+root_cause: none_for_v3238_image_candidate_yet
+repair_head: 12131275251e1507077fe1e050b372b1ea8b82d6
+repair_summary: closed_checkout_pilot_source_frozen_v3238_image_publication_stage
+genuine_blockers: v3237_source_superseded_only_after_v3238_image_deployment_single_inbox_pilot_and_paid_checkout_intake_scanner_wix_acceptance
+next_authorized_step: verify_frozen_ci_and_image_candidate_checks_then_Marc_exact_source_review
 deployed_demo_release: v3.237
 deployed_demo_state: v3237_app_worker_serving_v3236_prior_v3223_rollback_customer_signin_order_checkout_intake_upload_closed
 ---
@@ -312,3 +312,8 @@ Marc approved PR #854 exact head `ae59dd8f9302007739d72571e35d81bb064eedd1` afte
 ## 10 October 2026 Central — v3.238 closed-checkout pilot release candidate
 
 Marc approved PR #861 exact head `ae0d85eab695c71ba22e1a1cd9e73e0f69d2354f` after four required checks passed; it merged as `62266292a666ab98a25bda8987ef78646dd7a28f`. The change gives Level 1A draft review a separate visibility signal and closes Stripe checkout behind a new default-off switch. The approved single-inbox Azure settings were not applied to v3.237 because its draft switch could have exposed checkout. This candidate labels the corrected source v3.238. Exact release-source CI, Marc review, freeze, immutable image publication, protected deployment, and live buyer proof remain open. Public payment, intake, uploads, and scanning stay closed.
+
+
+## 10 October 2026 Central — frozen v3.238 image candidate
+
+Marc approved PR #862 exact head `a618f831ab35c05ab39e2fad2f05984804a81e2b` after five required checks passed; it merged as `12131275251e1507077fe1e050b372b1ea8b82d6`. Protected `release/v3.238` points to that exact commit. PR #863 pins it for one immutable image publication and registry readback. Serving app and worker remain v3.237 with customer sign-in, ordering, checkout, intake, uploads, and scanner closed. Frozen-source CI, image candidate checks, Marc's exact review, protected publication, and deployment are open. No public buyer release follows from image publication alone.
