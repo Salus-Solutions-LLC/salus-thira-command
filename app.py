@@ -4011,6 +4011,7 @@ def customer_oidc_callback(request:Request,code:str='',state:str='',error:str=''
     if expiry <= _iso_now_dt():
         raise HTTPException(401, 'Customer sign-in state expired')
     config = customer_oidc_discovery()
+    stage = 'certificate'
     try:
         certificate_pfx = secret('SALUS_CUSTOMER_OIDC_CERTIFICATE_PFX','')
         if not certificate_pfx:
@@ -4024,23 +4025,30 @@ def customer_oidc_callback(request:Request,code:str='',state:str='',error:str=''
                 'code_verifier':row['code_verifier'],
                 'client_assertion_type':CLIENT_ASSERTION_TYPE,
                 'client_assertion':assertion}
+        stage = 'token_exchange'
         token_response = httpx.post(config['token_endpoint'],data=form,timeout=15)
         token_response.raise_for_status()
         id_token = token_response.json()['id_token']
+        stage = 'token_signature'
         signing_key = jwt.PyJWKClient(config['jwks_uri']).get_signing_key_from_jwt(id_token).key
         claims = jwt.decode(id_token, signing_key,
                             algorithms=['RS256','RS384','RS512','ES256','ES384','ES512'],
                             audience=CUSTOMER_OIDC_CLIENT_ID, issuer=config['issuer'])
+        stage = 'nonce'
         if claims.get('nonce') != row['nonce']:
             raise ValueError('Customer nonce mismatch')
+        stage = 'tenant'
         if str(claims.get('tid') or '') != _CUSTOMER_TENANT_ID:
             raise ValueError('Customer tenant mismatch')
+        stage = 'subject'
         subject = str(claims.get('sub') or '').strip()
         if not subject:
             raise ValueError('Verified customer subject is required')
+        stage = 'email_verification'
         email = verified_customer_email(claims)
     except Exception as exc:
-        security_event(request,'CUSTOMER_OIDC_TOKEN_FAILURE','High',type(exc).__name__)
+        security_event(request,'CUSTOMER_OIDC_TOKEN_FAILURE','High',
+                       f'stage={stage};error={type(exc).__name__}')
         raise HTTPException(401, 'Customer identity could not be verified')
     if LEVEL1A_PILOT_EMAIL and email.casefold() != LEVEL1A_PILOT_EMAIL:
         security_event(request,'CUSTOMER_OIDC_PILOT_DENIED','Medium','verified_email_outside_pilot')
