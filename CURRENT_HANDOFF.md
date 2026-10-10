@@ -2972,3 +2972,10 @@ Marc exact-approved image PR #831 head `20f1b73eb91466dbb365d972b63bfc98e244064c
 - A customer OIDC callback defect was found in deployed v3.235 source: it set a `SameSite=Strict` session cookie and immediately sent an HTTP redirect from the cross-site identity return to `/?view=level1a`. A browser can omit that cookie during the redirect chain. The staff review return already uses an intermediate same-site page for this reason.
 - Branch `fix/level1a-customer-oidc-return` changes the successful customer callback to a no-store, non-framable same-site completion page with a Level 1A link and local navigation. It preserves the Strict session cookie, verified-email binding, tenant isolation, and all closed buyer controls. This is source review only; no live buyer acceptance or deployment is claimed.
 - **Next action:** run the candidate checks, obtain Marc's review of the exact PR head, then use the governed immutable release and protected deployment process. Verify the live fictional buyer return before proceeding to signed Stripe sandbox payment, rendered rev11 agreement and receipt, scanner-held intake, Wix desktop/phone journey, and a separately reviewed public switch.
+
+
+## 9 October 2026 Central — customer sign-in repair merged; v3.236 candidate
+
+- Marc approved PR #847 exact head `20f15258f6505904f412e7eb22221f6803a7df01` after all four required checks passed; it merged as `ae33aa352512fce2a5f11cbc7a9191e01a0bad0a`. The browser return repair is integrated source, not a deployed or live-accepted buyer flow.
+- The next candidate labels that source v3.236. The serving app and worker remain v3.235, with v3.234 prior and v3.223 rollback. Customer sign-in, payment, receipt, intake and uploads remain CLOSED.
+- **Next action:** finish v3.236 candidate checks and Marc's exact-source review, freeze and publish the immutable image, deploy through protected Azure with rollback, and prove live fictional buyer identity, signed Stripe sandbox payment/receipt, exact-version scanner-held intake and the Wix journey before any separately reviewed customer switch.

@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 21:42 CDT
+last_verified_at: 09 October 2026 22:07 CDT
 current_frozen_release: v3.235
 current_frozen_commit: 69940ebc7ac05a1f693f891eb2c5c26efd1190ca
 active_development_branch: development/salcapa-platform
-current_development_head: 2a7a4b8bfa4aa97f8284cd88ba6767cf29f77484
+current_development_head: ae33aa352512fce2a5f11cbc7a9191e01a0bad0a
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3235_live_evaluator_acceptance
+active_increment: salus_v3236_customer_oidc_return_release_candidate
 last_completed_increment: v3235_protected_application_worker_deployment_passed_customer_controls_closed
-candidate_release: v3.235
-validation_pr: 846
-validation_branch: codex/level1a-v3235-deployment-handoff-20261009
+candidate_release: v3.236
+validation_pr: 848
+validation_branch: codex/level1a-v3236-customer-return-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3235_handoff_candidate_yet
-first_root_failing_gate: none_for_v3235_handoff_candidate_yet
-root_cause: none_for_v3235_handoff_candidate_yet
-repair_head: 2a7a4b8bfa4aa97f8284cd88ba6767cf29f77484
-repair_summary: protected_v3235_app_worker_deployed_customer_controls_closed
-genuine_blockers: live_verified_buyer_callback_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
-next_authorized_step: verify_handoff_candidate_checks_then_Marc_exact_source_review_and_live_buyer_acceptance
+failed_workflows: none_for_v3236_candidate_yet
+first_root_failing_gate: none_for_v3236_candidate_yet
+root_cause: none_for_v3236_candidate_yet
+repair_head: ae33aa352512fce2a5f11cbc7a9191e01a0bad0a
+repair_summary: customer_oidc_strict_cookie_return_repair_merged_v3235_serving
+genuine_blockers: v3235_source_superseded_only_after_v3236_exact_source_ci_review_freeze_image_deployment_live_verified_buyer_callback_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
+next_authorized_step: verify_v3236_candidate_checks_then_Marc_exact_source_review_before_freeze
 deployed_demo_release: v3.235
 deployed_demo_state: v3235_app_worker_serving_v3234_prior_v3223_rollback_customer_purchase_intake_upload_closed
 ---
@@ -258,3 +258,13 @@ Protected image run `38015756859` succeeded and read back immutable digest `salc
 ## 9 October 2026 Central — protected v3.235 deployment passed; buyer controls closed
 
 Marc approved PR #845 exact head `d1d9816c5afeda9f227f69873507660074585a7c` after all three checks passed. Merge `2a7a4b8bfa4aa97f8284cd88ba6767cf29f77484` started protected [Azure run 38016884542](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38016884542). It passed immutable image and target readback, what-if/deploy, runtime/identity/readiness, isolated Microsoft 365 intake and temporary job cleanup, fictional Protection Advisor, and scheduled worker promotion. The same v3.235 image digest `sha256:bec2310c4536c32a2a3013ce48844882f2d284b74fc5e11ab87826e138db00c8` serves the app and worker. v3.234 is prior; accepted v3.223 remains rollback. This does not accept public payment, receipt or Member file intake. Buyer controls remain CLOSED pending live verified-email callback, signed Stripe test Checkout and retrieved paid Session, immutable receipt, paid-before-intake and exact-version Clean/EICAR scanner with alert/recovery, desktop/phone Wix journey and qualified output review. Do not infer issue #520 backlog completion from worker candidate counts.
+
+
+## 9 October 2026 Central — v3.236 customer sign-in return release candidate
+
+- Marc approved PR #847 exact head `20f15258f6505904f412e7eb22221f6803a7df01` after all four required checks passed. It merged as `ae33aa352512fce2a5f11cbc7a9191e01a0bad0a`. The successful customer OIDC callback now completes the cross-site return on a no-store Salus page before local navigation with the existing Strict session cookie. Verified-email identity binding and all closed buyer controls are preserved.
+- This candidate labels that merged source v3.236. Serving app and worker remain v3.235 with v3.234 as prior and v3.223 for rollback. No v3.236 image or Azure deployment exists yet, and no live buyer callback or payment acceptance is claimed.
+- **Next:** pass candidate checks, obtain Marc's exact-head release-source review, freeze `release/v3.236`, publish/read back one immutable image and use the protected Azure preview/deployment. Then prove the live fictional buyer callback, signed Stripe sandbox paid Session and receipt, scanner-held intake and Wix desktop/phone journey before a separately reviewed public switch.
+
+
+The first v3.236 candidate continuity check found that the explicit v3.235 supersession condition was omitted from the machine-readable blocker field. That field was corrected before release; the failed candidate head is not approved or frozen.
