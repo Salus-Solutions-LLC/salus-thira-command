@@ -8,8 +8,8 @@ function level1aError(){level1aStatus('This step could not be completed. No new 
 async function level1aView(){
   const host=$('#content');
   $('#page-title').textContent='Level 1A Access';
-  $('#page-subtitle').textContent='One defined site or function · fixed $1,500 assessment · secure online purchase';
-  if(!isProtectedMember()||!systemMode.level1a_purchase_available){
+  $('#page-subtitle').textContent=systemMode.level1a_checkout_available?'One defined site or function · fixed $1,500 assessment · secure online purchase':'Protected review of one defined site or function · no payment today';
+  if(!isProtectedMember()||!(systemMode.level1a_draft_available||systemMode.level1a_purchase_available)){
     host.innerHTML='<div class="notice">Level 1A online purchase is not available yet.</div>';
     return;
   }
@@ -114,6 +114,10 @@ async function level1aPayment(state){
   }
   if(!['Not started','Pending','Expired'].includes(payment.status)){
     host.innerHTML='<div class="notice"><h2>Payment needs review</h2><p>No records request is open. Contact Salus with your order reference; do not start another payment.</p></div>';
+    return;
+  }
+  if(!systemMode.level1a_checkout_available){
+    host.innerHTML='<div class="notice"><h2>Agreement recorded</h2><p>This protected review has stopped before payment. Salus will contact you when checkout is ready. No payment or records request has been opened.</p></div>';
     return;
   }
   host.innerHTML='<div class="card"><h2>Secure payment</h2><p>Stripe handles the $1,500 Level 1A Access payment for your accepted agreement. The records request opens only after Salus verifies the exact payment.</p><button class="btn" id="level1a-checkout">Continue to secure checkout</button> <button class="btn secondary" id="level1a-refresh">Check payment status</button></div>';
