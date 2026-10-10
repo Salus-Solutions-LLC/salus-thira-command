@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 14:30 CDT
+last_verified_at: 10 October 2026 14:42 CDT
 current_frozen_release: v3.240
 current_frozen_commit: e2200b2183b6ea437e51923e3180930be4378a28
 active_development_branch: development/salcapa-platform
-current_development_head: e2200b2183b6ea437e51923e3180930be4378a28
+current_development_head: 1bc0b824235f3e5765579fe161c2651db12a52b8
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3240_customer_email_diagnostic_immutable_image_publication
-last_completed_increment: v3240_safe_email_diagnostic_source_frozen
+active_increment: salus_v3240_customer_email_diagnostic_application_promotion
+last_completed_increment: v3240_immutable_image_publication_and_registry_readback
 candidate_release: v3.240
-validation_pr: 872
-validation_branch: codex/v3240-customer-email-diagnostic-image-20261010
+validation_pr: pending
+validation_branch: codex/v3240-customer-email-diagnostic-deploy-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3240_frozen_source
+failed_workflows: none_for_v3240_image_publication
 first_root_failing_gate: live_customer_oidc_email_verification
 root_cause: signed_token_email_verification_rejection_category_unidentified
 repair_head: e2200b2183b6ea437e51923e3180930be4378a28
-repair_summary: v3240_frozen_source_pinned_for_protected_immutable_image_publication
+repair_summary: verified_v3240_digest_staged_for_protected_app_worker_promotion
 genuine_blockers: verified_email_rejection_category_identity_fix_and_named_buyer_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+next_authorized_step: pass_deployment_candidate_checks_then_Marc_exact_head_review_and_protected_Azure_readback
 deployed_demo_release: v3.239
 deployed_demo_state: v3239_app_worker_serving_revision_0000178_v3238_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
@@ -355,3 +355,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #871 exact head `0d39d041d6150e606aade4058536ee21523842d9` after all three required jobs passed; it merged as `e2200b2183b6ea437e51923e3180930be4378a28`. Protected `release/v3.240` froze that exact safe diagnostic source. The customer email trust rule is unchanged.
 - This candidate pins the frozen source for one immutable image build and registry readback. It does not deploy or change buyer settings. Serving v3.239 still rejects the single-inbox callback at email verification; checkout, intake, uploads, and scanning remain closed.
 - Next: frozen-source and image-candidate checks, Marc exact-source review, protected image publication and readback, then a separate app/worker deployment with rollback before one controlled sign-in retry. Buyer acceptance and root-cause repair remain open.
+
+## 10 October 2026 Central — v3.240 protected diagnostic deployment candidate
+
+- Marc approved PR #872 exact head `181f14e8a90df258cfee40030f9c5621b32d1612` after its required checks and candidate image preflight passed. Squash merge `1bc0b824235f3e5765579fe161c2651db12a52b8` triggered protected [image run 38080598099](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38080598099), which succeeded. Azure registry readback returned immutable `salcapadevb48224acr.azurecr.io/salcapa@sha256:7fbd22123d7270e7c5fe5046cfc7533f74110793803da25ca89b0564b3fc2df4` from frozen v3.240 commit `e2200b2183b6ea437e51923e3180930be4378a28`.
+- The deployment candidate stages that digest for the protected app and worker. It preserves serving v3.239 digest `sha256:ec35d859a222858729edf15b110a60502d636ea4d98b5d168a89b010b4b16c84` as both prior images and accepted v3.223 digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` for rollback. It changes no customer email acceptance predicate or buyer setting.
+- v3.239 still serves the one-inbox draft pilot, with checkout, intake, uploads and scanning closed. Deployment, Azure readback and one controlled sign-in to classify the verified-email failure remain open. Public buyer acceptance and root-cause repair are not established by this diagnostic image.
