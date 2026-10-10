@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 23:06 CDT
-current_frozen_release: v3.236
-current_frozen_commit: 237f7e9fa6b7e0cca3c31b52fe006c856584387c
+last_verified_at: 09 October 2026 23:18 CDT
+current_frozen_release: v3.237
+current_frozen_commit: 0d267c000553dfd36e96e8ca3362060b1f13f5e9
 active_development_branch: development/salcapa-platform
-current_development_head: 91caa915c60730988a997abc275afa1b90dc231a
+current_development_head: 0d267c000553dfd36e96e8ca3362060b1f13f5e9
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3237_protected_buyer_pilot_release_candidate
-last_completed_increment: v3236_protected_application_worker_deployment_passed_customer_controls_closed
+active_increment: salus_v3237_immutable_image_publication
+last_completed_increment: v3237_source_frozen_v3236_serving_customer_controls_closed
 candidate_release: v3.237
-validation_pr: 853
-validation_branch: codex/level1a-v3237-pilot-release-20261009
+validation_pr: 854
+validation_branch: codex/level1a-v3237-image-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3237_candidate_yet
-first_root_failing_gate: none_for_v3237_candidate_yet
-root_cause: none_for_v3237_candidate_yet
-repair_head: 91caa915c60730988a997abc275afa1b90dc231a
-repair_summary: one_verified_external_buyer_pilot_gate_merged_v3236_serving
-genuine_blockers: v3236_source_superseded_only_after_v3237_exact_source_ci_review_freeze_image_deployment_live_pilot_verified_buyer_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
-next_authorized_step: verify_v3237_candidate_checks_then_Marc_exact_source_review_before_freeze
+failed_workflows: none_for_v3237_image_candidate_yet
+first_root_failing_gate: none_for_v3237_image_candidate_yet
+root_cause: none_for_v3237_image_candidate_yet
+repair_head: 0d267c000553dfd36e96e8ca3362060b1f13f5e9
+repair_summary: verified_external_buyer_pilot_source_frozen_v3237_image_publication_stage
+genuine_blockers: v3236_source_superseded_only_after_v3237_image_deployment_live_pilot_verified_buyer_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
+next_authorized_step: verify_frozen_ci_and_image_candidate_checks_then_Marc_exact_source_review
 deployed_demo_release: v3.236
 deployed_demo_state: v3236_app_worker_serving_v3235_prior_v3223_rollback_customer_purchase_intake_upload_closed
 ---
@@ -289,3 +289,8 @@ Marc approved PR #850 exact head `06ed9f863761e6eb8a6cb5440a1b49c635e4f6d9` afte
 ## 9 October 2026 Central — v3.237 protected buyer pilot release candidate
 
 Marc approved PR #852 exact head `d52ba9336e89db9b82d129b303ad7eda0038a835` after all four checks passed. It merged as `91caa915c60730988a997abc275afa1b90dc231a`. The source restricts customer sign-in and Level 1A routes to one configured verified external buyer inbox and adds closed-default deployment parameters. No inbox address is in source. Serving app and worker remain v3.236; buyer payment, intake and uploads remain CLOSED. This candidate labels the merged source v3.237. Exact candidate checks, Marc's source review, freeze, immutable image, protected deployment and live pilot acceptance remain open. Do not claim public buyer launch from this source merge.
+
+
+## 9 October 2026 Central — frozen v3.237 image candidate
+
+Marc approved PR #853 exact head `acf461eb01aec268bb04827b708ad8bb37f49998` after all four checks passed. It merged as `0d267c000553dfd36e96e8ca3362060b1f13f5e9`; `release/v3.237` points to that exact commit. Frozen-source and branch guard checks are running. Draft PR #854 pins that source for one protected immutable image build and registry readback. Image publication, protected deployment and live pilot acceptance remain open. Serving app and worker are v3.236; buyer sign-in, checkout/payment, receipt, intake and uploads remain CLOSED.
