@@ -16,6 +16,7 @@ R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 REL = "http://schemas.openxmlformats.org/package/2006/relationships"
 WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
 WP14 = "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+V = "urn:schemas-microsoft-com:vml"
 
 
 def qn(namespace: str, tag: str) -> str:
@@ -84,6 +85,8 @@ def main() -> None:
     drawing_ids: list[str] = []
     drawing_anchor_ids: list[str] = []
     drawing_edit_ids: list[str] = []
+    vml_master_toc_shapes = 0
+    malformed_vml_master_toc_shapes = 0
     if document is not None:
         for node in document.iter(qn(W, "bookmarkStart")):
             bookmark_names.append(node.get(qn(W, "name"), ""))
@@ -99,6 +102,11 @@ def main() -> None:
                 master_toc_links += 1
                 if anchor != "Master_Table_of_Contents":
                     malformed_master_toc_links += 1
+        for node in document.iter(qn(V, "rect")):
+            if "MASTER TOC" in text(node).upper():
+                vml_master_toc_shapes += 1
+                if node.get("href") != "#Master_Table_of_Contents":
+                    malformed_vml_master_toc_shapes += 1
         drawing_ids = [node.get("id", "") for node in document.iter(qn(WP, "docPr"))]
         for node in document.iter():
             anchor_id = node.get(qn(WP14, "anchorId"))
@@ -116,6 +124,8 @@ def main() -> None:
     duplicate_drawing_edit_ids = duplicates(drawing_edit_ids)
     if malformed_master_toc_links:
         problems.append(f"MASTER TOC links with incorrect internal target: {malformed_master_toc_links}")
+    if malformed_vml_master_toc_shapes:
+        problems.append(f"MASTER TOC VML fallbacks with incorrect internal target: {malformed_vml_master_toc_shapes}")
     if duplicate_drawing_ids:
         problems.append("duplicate drawing IDs: " + ", ".join(duplicate_drawing_ids))
     if duplicate_drawing_anchor_ids:
@@ -183,6 +193,8 @@ def main() -> None:
         "external_relationships": external_rels,
         "master_toc_body_hyperlinks": master_toc_links,
         "malformed_master_toc_body_hyperlinks": malformed_master_toc_links,
+        "master_toc_vml_fallback_shapes": vml_master_toc_shapes,
+        "malformed_master_toc_vml_fallback_shapes": malformed_vml_master_toc_shapes,
         "master_toc_header_footer_instances": header_footer_toc,
         "drawing_ids": len(drawing_ids),
         "duplicate_drawing_ids": duplicate_drawing_ids,
@@ -202,3 +214,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
