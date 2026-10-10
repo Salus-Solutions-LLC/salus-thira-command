@@ -11,7 +11,11 @@ from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
 from datetime import datetime, timedelta, timezone
 
-from salus_customer_oidc import (create_certificate_assertion,
+from salus_customer_oidc import (CustomerEmailInvalid, CustomerEmailMissing,
+                                 CustomerEmailVerificationContradicted,
+                                 CustomerEmailVerificationMissing,
+                                 CustomerVerifiedEmailMismatch,
+                                 create_certificate_assertion,
                                  create_certificate_assertion_from_pfx,
                                  validate_discovery, verified_customer_email)
 
@@ -112,6 +116,22 @@ class CustomerOidcProtocolTests(unittest.TestCase):
         )
         for claims in invalid:
             with self.subTest(claims=claims), self.assertRaises(ValueError):
+                verified_customer_email(claims)
+
+    def test_customer_email_failure_types_are_safe_and_specific(self):
+        cases = (
+            ({'email': None}, CustomerEmailMissing),
+            ({'email': 'not-an-address'}, CustomerEmailInvalid),
+            ({'email': 'buyer@example.test',
+              'verified_primary_email': 'other@example.test'},
+             CustomerVerifiedEmailMismatch),
+            ({'email': 'buyer@example.test', 'email_verified': False},
+             CustomerEmailVerificationContradicted),
+            ({'email': 'buyer@example.test'},
+             CustomerEmailVerificationMissing),
+        )
+        for claims, expected in cases:
+            with self.subTest(expected=expected), self.assertRaises(expected):
                 verified_customer_email(claims)
 
     def test_invalid_pfx_secret_fails_closed(self):
