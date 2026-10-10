@@ -77,6 +77,18 @@ def test_changed_quote_cannot_render_old_scope():
                                    sha256(template).hexdigest())
 
 
+def test_member_total_cannot_exceed_approved_fixed_price():
+    unit=_unit(); quote=_quote(unit)
+    facts=QuoteFacts(1,2,3,1,unit.digest(),'TX-STANDARD-CONSULTING-V1',
+        'SAL-D099','TX',150000,100,150100,'USD')
+    quote.update(facts.__dict__)
+    quote['quote_sha256']=facts.sha256()
+    template=_synthetic_template()
+    with pytest.raises(AgreementRenderError,match='itemized price is inconsistent'):
+        render_candidate_agreement(unit,quote,'Alex Example',template,
+                                   sha256(template).hexdigest())
+
+
 def test_approved_terms_revision_fills_all_fields_without_draft_label():
     unit=_unit(); quote=_quote(unit)
     source=Document(BytesIO(_synthetic_template()))

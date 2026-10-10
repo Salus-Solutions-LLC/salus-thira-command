@@ -92,8 +92,8 @@ def issue_generated_agreement(conn, *, tenant_id, buyer_user_id, order_id,
         raise AgreementConflict('The candidate is not the current approved order version.')
     facts=QuoteFacts(**{key: quote[key] for key in QuoteFacts.__dataclass_fields__})
     if (facts.sha256()!=quote['quote_sha256'] or
-            facts.base_price_cents!=150_000 or facts.tax_cents<0 or
-            facts.total_cents!=facts.base_price_cents+facts.tax_cents or
+            facts.base_price_cents!=150_000 or facts.tax_cents!=0 or
+            facts.total_cents!=150_000 or
             facts.currency!='USD'):
         raise AgreementConflict('The candidate price no longer matches its approved facts.')
     if (not isinstance(readback,bytes) or len(readback)>2_000_000 or

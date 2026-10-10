@@ -50,8 +50,8 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
     facts = QuoteFacts(**{key: quote[key] for key in QuoteFacts.__dataclass_fields__})
     if facts.sha256() != quote['quote_sha256']:
         raise AgreementRenderError('The quote content changed.')
-    if (facts.base_price_cents != 150_000 or
-            facts.total_cents != facts.base_price_cents + facts.tax_cents or
+    if (facts.base_price_cents != 150_000 or facts.tax_cents != 0 or
+            facts.total_cents != 150_000 or
             facts.currency != 'USD'):
         raise AgreementRenderError('The itemized price is inconsistent.')
     if (not isinstance(template, bytes) or
