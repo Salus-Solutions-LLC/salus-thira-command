@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3240_customer_email_rejection_diagnostic_candidate
 last_completed_increment: v3239_protected_deployment_and_verified_email_failure_stage
 candidate_release: v3.240
-validation_pr: pending
+validation_pr: 871
 validation_branch: codex/v3240-customer-email-diagnostic-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
