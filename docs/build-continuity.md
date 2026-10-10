@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 21:04 CDT
+last_verified_at: 09 October 2026 21:11 CDT
 current_frozen_release: v3.235
 current_frozen_commit: 69940ebc7ac05a1f693f891eb2c5c26efd1190ca
 active_development_branch: development/salcapa-platform
-current_development_head: 69940ebc7ac05a1f693f891eb2c5c26efd1190ca
+current_development_head: 1f50afb1afae85242430e878ae44091f4f495897
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3235_immutable_image_publication
-last_completed_increment: v3235_source_frozen_v3234_serving_with_v3233_prior
+active_increment: salus_v3235_protected_application_deployment
+last_completed_increment: v3235_immutable_image_published_v3234_serving
 candidate_release: v3.235
-validation_pr: 844
-validation_branch: codex/level1a-v3235-image-20261009
+validation_pr: 845
+validation_branch: codex/level1a-v3235-deploy-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3235_image_candidate_yet
-first_root_failing_gate: none_for_v3235_image_candidate_yet
-root_cause: none_for_v3235_image_candidate_yet
-repair_head: 69940ebc7ac05a1f693f891eb2c5c26efd1190ca
-repair_summary: approved_rev11_source_frozen_v3235_image_publication_stage
-genuine_blockers: v3234_source_superseded_only_after_v3235_image_deployment_live_buyer_payment_intake_scanner_acceptance_customer_controls_closed
-next_authorized_step: verify_frozen_ci_and_image_candidate_checks_then_Marc_exact_source_review
+failed_workflows: none_for_v3235_deployment_candidate_yet
+first_root_failing_gate: none_for_v3235_deployment_candidate_yet
+root_cause: none_for_v3235_deployment_candidate_yet
+repair_head: 1f50afb1afae85242430e878ae44091f4f495897
+repair_summary: verified_v3235_image_staged_for_protected_azure_deployment
+genuine_blockers: v3234_source_superseded_only_after_v3235_protected_deployment_and_live_buyer_payment_intake_scanner_acceptance_customer_controls_closed
+next_authorized_step: verify_deployment_candidate_checks_then_Marc_exact_source_review
 deployed_demo_release: v3.234
 deployed_demo_state: v3234_serving_with_v3233_prior_v3223_rollback_customer_purchase_intake_upload_closed
 ---
@@ -248,3 +248,8 @@ PR #842 at Marc-approved head `ffbf908371396ad2772a8c712f0c634895885e6d` passed 
 ## 9 October 2026 Central — frozen v3.235 image candidate
 
 Marc approved PR #843 at exact head `72671ecbfa705e057237e0d5ffe3f4e54097ed81` after four successful checks. It merged as `69940ebc7ac05a1f693f891eb2c5c26efd1190ca`; protected `release/v3.235` points to that exact commit, and its branch guard passed. The approved revision 11 Word template passed private Azure exact-byte readback. Draft PR #844 pins that frozen source for one protected image publication and registry readback. Full frozen-source CI, exact candidate checks and Marc's exact-source review remain gates before image merge. Serving v3.234 continues with buyer sign-in, payment, receipt, intake and uploads CLOSED; v3.233 is prior and v3.223 remains rollback. An image build alone does not accept public buyer payment or assessment delivery.
+
+
+## 9 October 2026 Central — verified v3.235 image and deployment candidate
+
+Protected image run `38015756859` succeeded and read back immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:bec2310c4536c32a2a3013ce48844882f2d284b74fc5e11ab87826e138db00c8` from frozen commit `69940ebc7ac05a1f693f891eb2c5c26efd1190ca`. PR #845 stages a protected Azure preview/deployment with v3.234 image `sha256:955dd734d5cd9ccf65c3b7010cf5387cad2846a7b49053f3cf56be7ff523a8a9` as prior and v3.223 `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` for rollback. Candidate CI, Marc's exact-source review, protected deployment and live acceptance remain open. Buyer sign-in, payment, receipt, intake and uploads stay CLOSED.
