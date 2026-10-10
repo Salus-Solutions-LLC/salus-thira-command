@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 14:17 CDT
-current_frozen_release: v3.239
-current_frozen_commit: f75d73b028739ff64d9df4598e8fe6b6b811fa32
+last_verified_at: 10 October 2026 14:30 CDT
+current_frozen_release: v3.240
+current_frozen_commit: e2200b2183b6ea437e51923e3180930be4378a28
 active_development_branch: development/salcapa-platform
-current_development_head: 672fc98ea48d8619ff1870e074f2f3ffd74dc0b1
+current_development_head: e2200b2183b6ea437e51923e3180930be4378a28
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3240_customer_email_rejection_diagnostic_candidate
-last_completed_increment: v3239_protected_deployment_and_verified_email_failure_stage
+active_increment: salus_v3240_customer_email_diagnostic_immutable_image_publication
+last_completed_increment: v3240_safe_email_diagnostic_source_frozen
 candidate_release: v3.240
-validation_pr: 871
-validation_branch: codex/v3240-customer-email-diagnostic-20261010
+validation_pr: pending
+validation_branch: codex/v3240-customer-email-diagnostic-image-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_observed_for_v3240_candidate
+failed_workflows: none_for_v3240_frozen_source
 first_root_failing_gate: live_customer_oidc_email_verification
 root_cause: signed_token_email_verification_rejection_category_unidentified
-repair_head: 672fc98ea48d8619ff1870e074f2f3ffd74dc0b1
-repair_summary: safe_valueerror_subclasses_for_email_verification_without_trust_change
-genuine_blockers: v3239_source_superseded_by_v3240_candidate_then_verified_email_rejection_category_identity_fix_and_named_buyer_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: validate_v3240_source_then_Marc_exact_review_freeze_image_deploy_and_one_named_inbox_retry
+repair_head: e2200b2183b6ea437e51923e3180930be4378a28
+repair_summary: v3240_frozen_source_pinned_for_protected_immutable_image_publication
+genuine_blockers: verified_email_rejection_category_identity_fix_and_named_buyer_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.239
 deployed_demo_state: v3239_app_worker_serving_revision_0000178_v3238_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
@@ -349,3 +349,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc approved PR #870 exact head `d3322a1d0428e514d5a05c04e017c0155b3ee51d` after all three required checks passed; squash merge `672fc98ea48d8619ff1870e074f2f3ffd74dc0b1` updated development. The change preserves all existing customer email trust predicates and logs only a fixed `ValueError` subclass for the exact verified-email rejection. The governed handoff records successful v3.239 deployment, Azure revision `0000178`, and three fresh `stage=email_verification` failures.
 - This v3.240 candidate labels that diagnostic source only. v3.239 still serves the protected one-inbox pilot; checkout, intake, uploads, and scanning remain closed. Next: pass exact-source checks, Marc review, freeze, immutable image publication and protected deployment, then repeat one named-inbox sign-in. The diagnostic candidate does not establish buyer acceptance or public purchase readiness.
+
+## 10 October 2026 Central — v3.240 frozen source and protected image candidate
+
+- Marc approved PR #871 exact head `0d39d041d6150e606aade4058536ee21523842d9` after all three required jobs passed; it merged as `e2200b2183b6ea437e51923e3180930be4378a28`. Protected `release/v3.240` froze that exact safe diagnostic source. The customer email trust rule is unchanged.
+- This candidate pins the frozen source for one immutable image build and registry readback. It does not deploy or change buyer settings. Serving v3.239 still rejects the single-inbox callback at email verification; checkout, intake, uploads, and scanning remain closed.
+- Next: frozen-source and image-candidate checks, Marc exact-source review, protected image publication and readback, then a separate app/worker deployment with rollback before one controlled sign-in retry. Buyer acceptance and root-cause repair remain open.
