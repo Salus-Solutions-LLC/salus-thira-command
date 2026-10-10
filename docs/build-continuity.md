@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 22:19 CDT
+last_verified_at: 09 October 2026 22:48 CDT
 current_frozen_release: v3.236
 current_frozen_commit: 237f7e9fa6b7e0cca3c31b52fe006c856584387c
 active_development_branch: development/salcapa-platform
-current_development_head: ae407e11f6276ea82ab152edc5baf99e5ea326f8
+current_development_head: 6a9c225be75c9d6f58224abdad814fcf78228e4b
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3236_application_promotion
-last_completed_increment: v3236_immutable_image_published_v3235_serving
+active_increment: salus_v3236_live_buyer_acceptance
+last_completed_increment: v3236_protected_application_worker_deployment_passed_customer_controls_closed
 candidate_release: v3.236
-validation_pr: 850
-validation_branch: codex/level1a-v3236-deploy-20261009
+validation_pr: 851
+validation_branch: codex/level1a-v3236-live-handoff-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3236_deployment_candidate_yet
-first_root_failing_gate: none_for_v3236_deployment_candidate_yet
-root_cause: none_for_v3236_deployment_candidate_yet
-repair_head: ae407e11f6276ea82ab152edc5baf99e5ea326f8
-repair_summary: customer_oidc_return_v3236_image_published_protected_deployment_stage
-genuine_blockers: v3235_source_superseded_only_after_v3236_protected_deployment_live_verified_buyer_callback_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
-next_authorized_step: verify_deployment_candidate_checks_then_Marc_exact_source_review_and_protected_Azure_preview
-deployed_demo_release: v3.235
-deployed_demo_state: v3235_app_worker_serving_v3234_prior_v3223_rollback_customer_purchase_intake_upload_closed
+failed_workflows: none_for_v3236_handoff_candidate_yet
+first_root_failing_gate: none_for_v3236_handoff_candidate_yet
+root_cause: none_for_v3236_handoff_candidate_yet
+repair_head: 6a9c225be75c9d6f58224abdad814fcf78228e4b
+repair_summary: protected_v3236_app_worker_deployed_customer_controls_closed
+genuine_blockers: live_verified_buyer_callback_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
+next_authorized_step: verify_handoff_candidate_checks_then_Marc_exact_source_review_and_live_buyer_acceptance
+deployed_demo_release: v3.236
+deployed_demo_state: v3236_app_worker_serving_v3235_prior_v3223_rollback_customer_purchase_intake_upload_closed
 ---
 
 # SalCAPA build continuity
@@ -279,3 +279,8 @@ Marc approved PR #848 at exact head `919496d1c9d648591aa38fe171067b9d093e2e84` a
 
 - Marc approved PR #849 exact head `a8facbfe8b12c6f058101c080772b17c7cc63dcf` after all three image candidate and all 64 frozen-source checks passed. It merged as `ae407e11f6276ea82ab152edc5baf99e5ea326f8`. Protected [image run 38019948148](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38019948148) succeeded and read back immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:7103856362489fbbabfeac9b3de9efc8b4401bbcbf92de51e45b6367c4653ae4` from frozen commit `237f7e9fa6b7e0cca3c31b52fe006c856584387c`.
 - Draft PR #850 stages that digest for one protected Azure preview/deployment. It retains running v3.235 digest `sha256:bec2310c4536c32a2a3013ce48844882f2d284b74fc5e11ab87826e138db00c8` as prior and accepted v3.223 digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` for rollback. Candidate checks, Marc's exact-source review, protected deployment and live buyer acceptance remain open. Buyer sign-in, payment, receipt, intake and uploads stay CLOSED.
+
+
+## 9 October 2026 Central — protected v3.236 deployment passed; buyer controls closed
+
+Marc approved PR #850 exact head `06ed9f863761e6eb8a6cb5440a1b49c635e4f6d9` after three checks passed. Merge `6a9c225be75c9d6f58224abdad814fcf78228e4b` started protected [Azure run 38020870805](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38020870805). It passed immutable image and target readback, what-if/deploy, runtime/identity/readiness, isolated Microsoft 365 intake and temporary job cleanup, fictional Protection Advisor, and scheduled worker promotion. Rollback was not needed. The v3.236 image `sha256:7103856362489fbbabfeac9b3de9efc8b4401bbcbf92de51e45b6367c4653ae4` serves the app and worker; v3.235 `sha256:bec2310c4536c32a2a3013ce48844882f2d284b74fc5e11ab87826e138db00c8` is prior and accepted v3.223 `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` remains rollback. The worker logged two automatic retries; its candidate count is not issue #520 backlog completion evidence. Buyer sign-in, checkout, payment, receipt, intake and uploads stay CLOSED pending live verified-email buyer return and Member isolation, generated revision 11 agreement, signed Stripe sandbox paid Session and immutable receipt, paid-before-intake, exact-version scanner Clean/EICAR with alert/recovery, Wix desktop/phone journey and qualified output review. Public activation requires separate source review.
