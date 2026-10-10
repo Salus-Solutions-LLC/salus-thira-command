@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3239_customer_oidc_diagnostic_immutable_image_publication
 last_completed_increment: v3239_safe_signin_diagnostics_source_frozen
 candidate_release: v3.239
-validation_pr: pending
+validation_pr: 868
 validation_branch: codex/v3239-oidc-diagnostic-image-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
