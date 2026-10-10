@@ -3108,3 +3108,9 @@ Marc exact-approved image PR #831 head `20f1b73eb91466dbb365d972b63bfc98e244064c
 
 - Marc approved PR #870 exact head `d3322a1d0428e514d5a05c04e017c0155b3ee51d` after all three checks passed. Squash merge `672fc98ea48d8619ff1870e074f2f3ffd74dc0b1` preserves the existing verified-email acceptance rule while classifying the fixed rejection reason in the existing safe event. No Azure setting or release image changed.
 - A v3.240 source candidate labels that diagnostic. The protected v3.239 image still serves the single-inbox draft pilot on revision `0000178`; three callback failures remain at `stage=email_verification`. Checkout, intake, uploads, and scanning remain closed. Next: exact-source CI and Marc review, immutable freeze/image, protected deployment/readback, then one named-inbox retry to identify the actual email claim failure. Do not claim buyer or public purchase acceptance.
+
+## 10 October 2026 Central — v3.240 source frozen; diagnostic image candidate
+
+- Marc approved PR #871 exact head `0d39d041d6150e606aade4058536ee21523842d9` after all three checks passed. Squash merge `e2200b2183b6ea437e51923e3180930be4378a28` is frozen as `release/v3.240`; it contains the safe verified-email rejection classes, version label and release records without changing identity acceptance.
+- A separate image candidate pins that exact frozen commit for one protected immutable build. No v3.240 image is published or deployed. v3.239 still serves the single-inbox pilot on revision `0000178`; payment, intake, uploads and scanning remain closed. The live callback is still rejected at email verification.
+- Next: pass frozen-source and image-candidate gates, obtain Marc exact-head review, publish/read back the image digest, stage protected app/worker deployment with prior image and rollback, then repeat one controlled sign-in to identify the rejection class. No buyer acceptance or public payment authorization is claimed.
