@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 21:11 CDT
+last_verified_at: 09 October 2026 21:42 CDT
 current_frozen_release: v3.235
 current_frozen_commit: 69940ebc7ac05a1f693f891eb2c5c26efd1190ca
 active_development_branch: development/salcapa-platform
-current_development_head: 1f50afb1afae85242430e878ae44091f4f495897
+current_development_head: 2a7a4b8bfa4aa97f8284cd88ba6767cf29f77484
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3235_application_promotion
-last_completed_increment: v3235_immutable_image_published_v3234_serving
+active_increment: salus_v3235_live_evaluator_acceptance
+last_completed_increment: v3235_protected_application_worker_deployment_passed_customer_controls_closed
 candidate_release: v3.235
-validation_pr: 845
-validation_branch: codex/level1a-v3235-deploy-20261009
+validation_pr: 846
+validation_branch: codex/level1a-v3235-deployment-handoff-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3235_deployment_candidate_yet
-first_root_failing_gate: none_for_v3235_deployment_candidate_yet
-root_cause: none_for_v3235_deployment_candidate_yet
-repair_head: 1f50afb1afae85242430e878ae44091f4f495897
-repair_summary: verified_v3235_image_staged_for_protected_azure_deployment
-genuine_blockers: v3234_source_superseded_only_after_v3235_protected_deployment_and_live_buyer_payment_intake_scanner_acceptance_customer_controls_closed
-next_authorized_step: verify_deployment_candidate_checks_then_Marc_exact_source_review
-deployed_demo_release: v3.234
-deployed_demo_state: v3234_serving_with_v3233_prior_v3223_rollback_customer_purchase_intake_upload_closed
+failed_workflows: none_for_v3235_handoff_candidate_yet
+first_root_failing_gate: none_for_v3235_handoff_candidate_yet
+root_cause: none_for_v3235_handoff_candidate_yet
+repair_head: 2a7a4b8bfa4aa97f8284cd88ba6767cf29f77484
+repair_summary: protected_v3235_app_worker_deployed_customer_controls_closed
+genuine_blockers: live_verified_buyer_callback_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
+next_authorized_step: verify_handoff_candidate_checks_then_Marc_exact_source_review_and_live_buyer_acceptance
+deployed_demo_release: v3.235
+deployed_demo_state: v3235_app_worker_serving_v3234_prior_v3223_rollback_customer_purchase_intake_upload_closed
 ---
 
 # SalCAPA build continuity
@@ -253,3 +253,8 @@ Marc approved PR #843 at exact head `72671ecbfa705e057237e0d5ffe3f4e54097ed81` a
 ## 9 October 2026 Central — verified v3.235 image and deployment candidate
 
 Protected image run `38015756859` succeeded and read back immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:bec2310c4536c32a2a3013ce48844882f2d284b74fc5e11ab87826e138db00c8` from frozen commit `69940ebc7ac05a1f693f891eb2c5c26efd1190ca`. PR #845 stages a protected Azure preview/deployment with v3.234 image `sha256:955dd734d5cd9ccf65c3b7010cf5387cad2846a7b49053f3cf56be7ff523a8a9` as prior and v3.223 `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` for rollback. Candidate CI, Marc's exact-source review, protected deployment and live acceptance remain open. Buyer sign-in, payment, receipt, intake and uploads stay CLOSED.
+
+
+## 9 October 2026 Central — protected v3.235 deployment passed; buyer controls closed
+
+Marc approved PR #845 exact head `d1d9816c5afeda9f227f69873507660074585a7c` after all three checks passed. Merge `2a7a4b8bfa4aa97f8284cd88ba6767cf29f77484` started protected [Azure run 38016884542](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38016884542). It passed immutable image and target readback, what-if/deploy, runtime/identity/readiness, isolated Microsoft 365 intake and temporary job cleanup, fictional Protection Advisor, and scheduled worker promotion. The same v3.235 image digest `sha256:bec2310c4536c32a2a3013ce48844882f2d284b74fc5e11ab87826e138db00c8` serves the app and worker. v3.234 is prior; accepted v3.223 remains rollback. This does not accept public payment, receipt or Member file intake. Buyer controls remain CLOSED pending live verified-email callback, signed Stripe test Checkout and retrieved paid Session, immutable receipt, paid-before-intake and exact-version Clean/EICAR scanner with alert/recovery, desktop/phone Wix journey and qualified output review. Do not infer issue #520 backlog completion from worker candidate counts.
