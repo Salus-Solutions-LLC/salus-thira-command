@@ -11,11 +11,11 @@ active_build_system_issue: 520
 active_increment: salus_v3239_customer_oidc_safe_diagnostics_candidate
 last_completed_increment: v3238_protected_deployment_and_closed_checkout_single_inbox_pilot
 candidate_release: v3.239
-validation_pr: pending
+validation_pr: 867
 validation_branch: codex/v3239-customer-oidc-diagnostics-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: source_candidate_under_validation
+validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_observed_for_v3239_candidate
 first_root_failing_gate: live_customer_oidc_callback
 root_cause: unresolved_ValueError_stage_not_logged_in_v3238
