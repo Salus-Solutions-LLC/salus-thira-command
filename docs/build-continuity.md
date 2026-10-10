@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 22:48 CDT
+last_verified_at: 09 October 2026 23:06 CDT
 current_frozen_release: v3.236
 current_frozen_commit: 237f7e9fa6b7e0cca3c31b52fe006c856584387c
 active_development_branch: development/salcapa-platform
-current_development_head: 6a9c225be75c9d6f58224abdad814fcf78228e4b
+current_development_head: 91caa915c60730988a997abc275afa1b90dc231a
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3236_live_evaluator_acceptance
+active_increment: salus_v3237_protected_buyer_pilot_release_candidate
 last_completed_increment: v3236_protected_application_worker_deployment_passed_customer_controls_closed
-candidate_release: v3.236
-validation_pr: 851
-validation_branch: codex/level1a-v3236-live-handoff-20261009
+candidate_release: v3.237
+validation_pr: 853
+validation_branch: codex/level1a-v3237-pilot-release-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3236_handoff_candidate_yet
-first_root_failing_gate: none_for_v3236_handoff_candidate_yet
-root_cause: none_for_v3236_handoff_candidate_yet
-repair_head: 6a9c225be75c9d6f58224abdad814fcf78228e4b
-repair_summary: protected_v3236_app_worker_deployed_customer_controls_closed
-genuine_blockers: live_verified_buyer_callback_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
-next_authorized_step: verify_handoff_candidate_checks_then_Marc_exact_source_review_and_live_buyer_acceptance
+failed_workflows: none_for_v3237_candidate_yet
+first_root_failing_gate: none_for_v3237_candidate_yet
+root_cause: none_for_v3237_candidate_yet
+repair_head: 91caa915c60730988a997abc275afa1b90dc231a
+repair_summary: one_verified_external_buyer_pilot_gate_merged_v3236_serving
+genuine_blockers: v3236_source_superseded_only_after_v3237_exact_source_ci_review_freeze_image_deployment_live_pilot_verified_buyer_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
+next_authorized_step: verify_v3237_candidate_checks_then_Marc_exact_source_review_before_freeze
 deployed_demo_release: v3.236
 deployed_demo_state: v3236_app_worker_serving_v3235_prior_v3223_rollback_customer_purchase_intake_upload_closed
 ---
@@ -284,3 +284,8 @@ Marc approved PR #848 at exact head `919496d1c9d648591aa38fe171067b9d093e2e84` a
 ## 9 October 2026 Central — protected v3.236 deployment passed; buyer controls closed
 
 Marc approved PR #850 exact head `06ed9f863761e6eb8a6cb5440a1b49c635e4f6d9` after three checks passed. Merge `6a9c225be75c9d6f58224abdad814fcf78228e4b` started protected [Azure run 38020870805](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38020870805). It passed immutable image and target readback, what-if/deploy, runtime/identity/readiness, isolated Microsoft 365 intake and temporary job cleanup, fictional Protection Advisor, and scheduled worker promotion. Rollback was not needed. The v3.236 image `sha256:7103856362489fbbabfeac9b3de9efc8b4401bbcbf92de51e45b6367c4653ae4` serves the app and worker; v3.235 `sha256:bec2310c4536c32a2a3013ce48844882f2d284b74fc5e11ab87826e138db00c8` is prior and accepted v3.223 `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` remains rollback. The worker logged two automatic retries; its candidate count is not issue #520 backlog completion evidence. Buyer sign-in, checkout, payment, receipt, intake and uploads stay CLOSED pending live verified-email buyer return and Member isolation, generated revision 11 agreement, signed Stripe sandbox paid Session and immutable receipt, paid-before-intake, exact-version scanner Clean/EICAR with alert/recovery, Wix desktop/phone journey and qualified output review. Public activation requires separate source review.
+
+
+## 9 October 2026 Central — v3.237 protected buyer pilot release candidate
+
+Marc approved PR #852 exact head `d52ba9336e89db9b82d129b303ad7eda0038a835` after all four checks passed. It merged as `91caa915c60730988a997abc275afa1b90dc231a`. The source restricts customer sign-in and Level 1A routes to one configured verified external buyer inbox and adds closed-default deployment parameters. No inbox address is in source. Serving app and worker remain v3.236; buyer payment, intake and uploads remain CLOSED. This candidate labels the merged source v3.237. Exact candidate checks, Marc's source review, freeze, immutable image, protected deployment and live pilot acceptance remain open. Do not claim public buyer launch from this source merge.
