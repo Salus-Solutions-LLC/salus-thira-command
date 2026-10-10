@@ -72,7 +72,8 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
     rev11_issued = ('Version and effective date  Standard terms revision 11, '
         '9 October 2026; effective only on electronic Member acceptance of '
         'the completed issued version')
-    template_version_line = next((line for line in (review_version, issue_version, rev11_candidate)
+    template_version_line = next((line for line in (review_version, issue_version,
+                                                   rev11_candidate, rev11_issued)
         if any(p.text.strip() == line for p in doc.paragraphs)), None)
     if not template_version_line:
         raise AgreementRenderError('The controlled template revision is not recognized.')
@@ -91,7 +92,7 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
             f'Order and notices  L1A-{quote["order_id"]} / Q{quote["id"]} / '
             f'v{unit.scope_version}; {unit.notice_email}',
         template_version_line:
-            (rev11_issued if template_version_line == rev11_candidate else
+            (rev11_issued if template_version_line in (rev11_candidate, rev11_issued) else
              issue_version if template_version_line == issue_version else
              'Version and effective date  Candidate revision 9; effective only '
              'after electronic acceptance of an issued version'),
