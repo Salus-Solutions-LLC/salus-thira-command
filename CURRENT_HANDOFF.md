@@ -3055,3 +3055,9 @@ Marc exact-approved image PR #831 head `20f1b73eb91466dbb365d972b63bfc98e244064c
 - Marc approved PR #861 exact head `ae0d85eab695c71ba22e1a1cd9e73e0f69d2354f` after all four required checks passed. Squash merge `62266292a666ab98a25bda8987ef78646dd7a28f` is the corrected source for a draft-only protected pilot. It separates buyer draft visibility from purchase readiness and rejects checkout while the new default-off payment gate is closed.
 - v3.237 still serves the app and worker. Its buyer sign-in, draft orders, payment, intake, uploads, and scanner remain closed. Marc approved changing sign-in, one pilot inbox, and draft ordering only while payment stays off. Those Azure changes were not applied to v3.237 because its draft control could expose checkout.
 - This candidate labels the corrected source v3.238. Next: exact release-source CI and Marc review, immutable freeze and image, protected deployment/readback, then apply only the approved single-inbox draft-pilot settings with checkout, intake, uploads, and scanner off. Live buyer, paid Stripe, scanner, Wix and complimentary fulfillment acceptance remain open before public launch.
+
+
+## 10 October 2026 Central — v3.238 frozen source and image candidate
+
+- Marc approved PR #862 exact head `a618f831ab35c05ab39e2fad2f05984804a81e2b` after five checks passed. Squash merge `12131275251e1507077fe1e050b372b1ea8b82d6` is frozen at `release/v3.238` for the corrected draft-only pilot.
+- Draft PR #863 pins the frozen commit for one protected immutable image build and registry readback. No Azure buyer settings were changed. v3.237 still serves app and worker with buyer sign-in, draft orders, checkout, intake, uploads, and scanner closed. Next: image and frozen-source checks, Marc exact-head review, image publication/readback, protected deployment, and then the previously approved one-inbox draft pilot while checkout remains off.
