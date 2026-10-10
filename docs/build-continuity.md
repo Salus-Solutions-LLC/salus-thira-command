@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 13:39 CDT
+last_verified_at: 10 October 2026 14:17 CDT
 current_frozen_release: v3.239
 current_frozen_commit: f75d73b028739ff64d9df4598e8fe6b6b811fa32
 active_development_branch: development/salcapa-platform
-current_development_head: 82752c3f00f700c97cd0a48edbf7d65049c82135
+current_development_head: 672fc98ea48d8619ff1870e074f2f3ffd74dc0b1
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3239_customer_oidc_diagnostic_application_promotion
-last_completed_increment: v3239_immutable_image_publication_and_registry_readback
-candidate_release: v3.239
-validation_pr: 869
-validation_branch: codex/v3239-oidc-diagnostic-deploy-20261010
+active_increment: salus_v3240_customer_email_rejection_diagnostic_candidate
+last_completed_increment: v3239_protected_deployment_and_verified_email_failure_stage
+candidate_release: v3.240
+validation_pr: pending
+validation_branch: codex/v3240-customer-email-diagnostic-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3239_image_publication
-first_root_failing_gate: live_customer_oidc_callback
-root_cause: unresolved_ValueError_stage_not_logged_in_v3238
-repair_head: f75d73b028739ff64d9df4598e8fe6b6b811fa32
-repair_summary: verified_v3239_digest_staged_for_protected_app_worker_promotion
-genuine_blockers: v3238_serving_customer_oidc_stage_unknown_and_verified_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: pass_deployment_candidate_checks_then_Marc_exact_head_review_and_protected_Azure_readback
-deployed_demo_release: v3.238
-deployed_demo_state: v3238_app_worker_serving_revision_0000176_v3237_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
+failed_workflows: none_observed_for_v3240_candidate
+first_root_failing_gate: live_customer_oidc_email_verification
+root_cause: signed_token_email_verification_rejection_category_unidentified
+repair_head: 672fc98ea48d8619ff1870e074f2f3ffd74dc0b1
+repair_summary: safe_valueerror_subclasses_for_email_verification_without_trust_change
+genuine_blockers: verified_email_rejection_category_then_identity_fix_and_named_buyer_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: validate_v3240_source_then_Marc_exact_review_freeze_image_deploy_and_one_named_inbox_retry
+deployed_demo_release: v3.239
+deployed_demo_state: v3239_app_worker_serving_revision_0000178_v3238_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
@@ -344,3 +344,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #868 exact head `5b8fbec080812884393c300d2435b16634c181b9` after the release guard, frozen-source jobs and image-candidate jobs passed. It merged as `82752c3f00f700c97cd0a48edbf7d65049c82135` and triggered protected image run [38076412506](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38076412506), which succeeded. Registry readback returned `salcapadevb48224acr.azurecr.io/salcapa@sha256:ec35d859a222858729edf15b110a60502d636ea4d98b5d168a89b010b4b16c84` for frozen `release/v3.239` commit `f75d73b028739ff64d9df4598e8fe6b6b811fa32`.
 - PR #869 stages that exact digest for protected app and worker promotion, preserving v3.238 digest `sha256:d51bb111dadd216bfffb743ef611cff4a550cfc440df02b0d87c94f081dfe502` as prior and accepted v3.223 digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` for failed-promotion rollback. It does not open buyer payment, intake, upload, or scanner controls.
 - The deployment and buyer retry remain open. v3.238 still serves the configured single-inbox draft pilot, and the customer identity rejection is not yet diagnosed. Next: complete PR #869 checks and exact-source review, deploy/read back Azure, then perform one controlled sign-in to capture the safe failure stage and repair the actual cause.
+
+## 10 October 2026 Central — v3.240 safe email-rejection diagnostic candidate
+
+- Marc approved PR #870 exact head `d3322a1d0428e514d5a05c04e017c0155b3ee51d` after all three required checks passed; squash merge `672fc98ea48d8619ff1870e074f2f3ffd74dc0b1` updated development. The change preserves all existing customer email trust predicates and logs only a fixed `ValueError` subclass for the exact verified-email rejection. The governed handoff records successful v3.239 deployment, Azure revision `0000178`, and three fresh `stage=email_verification` failures.
+- This v3.240 candidate labels that diagnostic source only. v3.239 still serves the protected one-inbox pilot; checkout, intake, uploads, and scanning remain closed. Next: pass exact-source checks, Marc review, freeze, immutable image publication and protected deployment, then repeat one named-inbox sign-in. The diagnostic candidate does not establish buyer acceptance or public purchase readiness.
