@@ -97,3 +97,31 @@ def test_template_hash_is_required_before_any_buyer_fields_are_rendered():
     unit=_unit(); template=_synthetic_template()
     with pytest.raises(AgreementRenderError,match='controlled Word candidate changed'):
         render_candidate_agreement(unit,_quote(unit),'Alex Example',template,'0'*64)
+
+
+def test_approved_rev11_template_removes_review_labels_from_issued_copy():
+    unit=_unit(); quote=_quote(unit)
+    source=Document(BytesIO(_synthetic_template()))
+    source.paragraphs[0].text='Level 1A Access Agreement'
+    source.paragraphs[6].text=(
+        'Version and effective date  Candidate standard terms revision 11, '
+        '9 October 2026; effective only after Salus approval, governed issue and '
+        'electronic Member acceptance of the completed version')
+    source.add_paragraph(
+        'Candidate revision for review 9 October 2026; based on standard terms approved 5 October 2026')
+    source.add_paragraph('Part B  Standard terms')
+    source.add_paragraph(
+        'Part B contains the proposed revised standard terms for one Level 1A Access unit. '
+        'The published Privacy Notice is at https://www.salus.solutions/privacy-notice. '
+        'Member-specific scope, buyer identity, tax treatment and the $1,500 total are '
+        'completed in the online order before the buyer accepts the exact agreement. '
+        'A completed agreement is issued only through the governed automated order '
+        'journey after its release checks pass.')
+    stream=BytesIO(); source.save(stream); template=stream.getvalue()
+    content,_=render_candidate_agreement(unit,quote,'Alex Example',
+        template,sha256(template).hexdigest())
+    body='\n'.join(p.text for p in Document(BytesIO(content)).paragraphs)
+    assert 'Standard terms revision 11, 9 October 2026' in body
+    assert 'Approved standard terms revision 11' in body
+    assert 'Part B contains the approved standard terms' in body
+    assert 'Candidate' not in body and 'proposed revised standard terms' not in body

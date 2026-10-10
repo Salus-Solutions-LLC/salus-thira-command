@@ -67,7 +67,7 @@ def _issued_word(order, quote, *, draft=False):
     doc=Document()
     for line in (
         'Level 1A Access Statement of Work',
-        'Version and effective date  Standard terms revision 10, 5 October 2026; '
+        'Version and effective date  Standard terms revision 11, 9 October 2026; '
         'effective only on electronic Member acceptance of the completed issued version',
         f'Protected Member legal name  {order["buyer_legal_name"]}',
         f'Primary operating activity  {order["operating_activity"]}',
@@ -124,6 +124,27 @@ def test_issue_rejects_draft_word_even_with_matching_saved_hash():
         template_sha256=APPROVED_TEMPLATE_SHA256,content=word,readback=word,
         stored_name=f'level1a/1/{order["id"]}/{quote["id"]}/{digest}.docx',
         timestamp='t3')
+    with pytest.raises(AgreementConflict,match='drafting or incomplete'):
+        issue_generated_agreement(conn,tenant_id=1,buyer_user_id=2,
+            order_id=order['id'],quote_id=quote['id'],agreement_id=candidate['id'],
+            approved_template_sha256=APPROVED_TEMPLATE_SHA256,readback=word,timestamp='t4')
+
+
+def test_issue_rejects_rev11_candidate_label_even_without_review_draft():
+    conn=_database()
+    order,_=save_draft(conn,tenant_id=1,buyer_user_id=2,
+        idempotency_key='agreement-order-rev11-candidate',values=_values(),timestamp='t1')
+    quote=quote_for_order(conn,tenant_id=1,buyer_user_id=2,
+                          order_id=order['id'],timestamp='t2')
+    word=_issued_word(order,quote)
+    doc=Document(BytesIO(word))
+    doc.add_paragraph('Candidate revision for review 9 October 2026')
+    stream=BytesIO(); doc.save(stream); word=stream.getvalue()
+    digest=sha256(word).hexdigest()
+    candidate=record_generated_candidate(conn,tenant_id=1,buyer_user_id=2,
+        order_id=order['id'],quote_id=quote['id'],template_version=APPROVED_TEMPLATE_VERSION,
+        template_sha256=APPROVED_TEMPLATE_SHA256,content=word,readback=word,
+        stored_name=f'level1a/1/{order["id"]}/{quote["id"]}/{digest}.docx',timestamp='t3')
     with pytest.raises(AgreementConflict,match='drafting or incomplete'):
         issue_generated_agreement(conn,tenant_id=1,buyer_user_id=2,
             order_id=order['id'],quote_id=quote['id'],agreement_id=candidate['id'],

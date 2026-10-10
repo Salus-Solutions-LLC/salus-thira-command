@@ -66,7 +66,13 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
     issue_version = ('Version and effective date  Standard terms revision 10, '
         '5 October 2026; effective only on electronic Member acceptance of '
         'the completed issued version')
-    template_version_line = next((line for line in (review_version, issue_version)
+    rev11_candidate = ('Version and effective date  Candidate standard terms revision 11, '
+        '9 October 2026; effective only after Salus approval, governed issue and '
+        'electronic Member acceptance of the completed version')
+    rev11_issued = ('Version and effective date  Standard terms revision 11, '
+        '9 October 2026; effective only on electronic Member acceptance of '
+        'the completed issued version')
+    template_version_line = next((line for line in (review_version, issue_version, rev11_candidate)
         if any(p.text.strip() == line for p in doc.paragraphs)), None)
     if not template_version_line:
         raise AgreementRenderError('The controlled template revision is not recognized.')
@@ -85,14 +91,31 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
             f'Order and notices  L1A-{quote["order_id"]} / Q{quote["id"]} / '
             f'v{unit.scope_version}; {unit.notice_email}',
         template_version_line:
-            issue_version if template_version_line == issue_version else
-            'Version and effective date  Candidate revision 9; effective only '
-            'after electronic acceptance of an issued version',
+            (rev11_issued if template_version_line == rev11_candidate else
+             issue_version if template_version_line == issue_version else
+             'Version and effective date  Candidate revision 9; effective only '
+             'after electronic acceptance of an issued version'),
         'Included buildings and outdoor areas  [Complete before issue]':
             f'Covered boundary  {unit.covered_boundary}',
         'Express exclusions  [Complete before issue]':
             f'Express exclusions  {unit.exclusions}',
     }
+    if template_version_line == rev11_candidate:
+        replacements.update({
+            'Candidate revision for review 9 October 2026; based on standard terms approved 5 October 2026':
+                'Approved standard terms revision 11, 9 October 2026',
+            ('Part B contains the proposed revised standard terms for one Level 1A Access unit. '
+             'The published Privacy Notice is at https://www.salus.solutions/privacy-notice. '
+             'Member-specific scope, buyer identity, tax treatment and the $1,500 total are '
+             'completed in the online order before the buyer accepts the exact agreement. '
+             'A completed agreement is issued only through the governed automated order '
+             'journey after its release checks pass.'):
+                ('Part B contains the approved standard terms for one Level 1A Access unit. '
+                 'The published Privacy Notice is at https://www.salus.solutions/privacy-notice. '
+                 'Member-specific scope, buyer identity, tax treatment and the $1,500 total are '
+                 'completed in the online order before the buyer accepts the exact agreement. '
+                 'This completed agreement is issued through the governed automated order journey.'),
+        })
     tax_text = (f'Applicable tax and total  {_money(facts.tax_cents)} tax; '
                 f'{_money(facts.total_cents)} total USD; '
                 f'{facts.tax_rule_id} ({facts.tax_decision_reference})')
@@ -107,6 +130,13 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
             count += 1
     if count != len(replacements) + 1:
         raise AgreementRenderError('The controlled template fields were not all found.')
+    if template_version_line == rev11_candidate:
+        part_b = next((p for p in doc.paragraphs if p.text.strip() == 'Part B  Standard terms'), None)
+        if part_b is None:
+            part_b = next((p for p in doc.paragraphs if p.text.strip() == 'Part B Standard terms'), None)
+        if part_b is None:
+            raise AgreementRenderError('The controlled Part B heading was not found.')
+        part_b.paragraph_format.page_break_before = True
     all_text = '\n'.join(p.text for p in doc.paragraphs)
     if '[Complete before issue]' in all_text or 'Applicable tax and total  [' in all_text:
         raise AgreementRenderError('A buyer-specific field remains incomplete.')
