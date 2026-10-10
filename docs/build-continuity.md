@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 13:30 CDT
+last_verified_at: 10 October 2026 13:39 CDT
 current_frozen_release: v3.239
 current_frozen_commit: f75d73b028739ff64d9df4598e8fe6b6b811fa32
 active_development_branch: development/salcapa-platform
-current_development_head: f75d73b028739ff64d9df4598e8fe6b6b811fa32
+current_development_head: 82752c3f00f700c97cd0a48edbf7d65049c82135
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3239_customer_oidc_diagnostic_immutable_image_publication
-last_completed_increment: v3239_safe_signin_diagnostics_source_frozen
+active_increment: salus_v3239_customer_oidc_diagnostic_application_promotion
+last_completed_increment: v3239_immutable_image_publication_and_registry_readback
 candidate_release: v3.239
-validation_pr: 868
-validation_branch: codex/v3239-oidc-diagnostic-image-20261010
+validation_pr: 869
+validation_branch: codex/v3239-oidc-diagnostic-deploy-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3239_frozen_source
+failed_workflows: none_for_v3239_image_publication
 first_root_failing_gate: live_customer_oidc_callback
 root_cause: unresolved_ValueError_stage_not_logged_in_v3238
 repair_head: f75d73b028739ff64d9df4598e8fe6b6b811fa32
-repair_summary: v3239_frozen_source_pinned_for_protected_immutable_image_publication
+repair_summary: verified_v3239_digest_staged_for_protected_app_worker_promotion
 genuine_blockers: v3238_serving_customer_oidc_stage_unknown_and_verified_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+next_authorized_step: pass_deployment_candidate_checks_then_Marc_exact_head_review_and_protected_Azure_readback
 deployed_demo_release: v3.238
 deployed_demo_state: v3238_app_worker_serving_revision_0000176_v3237_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
@@ -338,3 +338,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #867 exact head `39ec71d4da70d851b124b9b6c8f980354555c87a` after five checks passed. It merged as `f75d73b028739ff64d9df4598e8fe6b6b811fa32`; protected `release/v3.239` was created from that exact commit.
 - This candidate pins that frozen source for one immutable image build and registry readback. It does not deploy or modify buyer settings. Serving v3.238 still rejects the protected single-inbox callback with an unknown validation stage; checkout, intake, uploads, and scanning remain closed.
 - Next: frozen-source and image-candidate checks, Marc's exact-source review, protected image publication and readback, then a separate deployment candidate with rollback before one controlled sign-in retry. Buyer acceptance and root-cause repair remain open.
+
+## 10 October 2026 Central — v3.239 protected diagnostic deployment candidate
+
+- Marc approved PR #868 exact head `5b8fbec080812884393c300d2435b16634c181b9` after the release guard, frozen-source jobs and image-candidate jobs passed. It merged as `82752c3f00f700c97cd0a48edbf7d65049c82135` and triggered protected image run [38076412506](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38076412506), which succeeded. Registry readback returned `salcapadevb48224acr.azurecr.io/salcapa@sha256:ec35d859a222858729edf15b110a60502d636ea4d98b5d168a89b010b4b16c84` for frozen `release/v3.239` commit `f75d73b028739ff64d9df4598e8fe6b6b811fa32`.
+- PR #869 stages that exact digest for protected app and worker promotion, preserving v3.238 digest `sha256:d51bb111dadd216bfffb743ef611cff4a550cfc440df02b0d87c94f081dfe502` as prior and accepted v3.223 digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` for failed-promotion rollback. It does not open buyer payment, intake, upload, or scanner controls.
+- The deployment and buyer retry remain open. v3.238 still serves the configured single-inbox draft pilot, and the customer identity rejection is not yet diagnosed. Next: complete PR #869 checks and exact-source review, deploy/read back Azure, then perform one controlled sign-in to capture the safe failure stage and repair the actual cause.
