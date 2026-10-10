@@ -118,6 +118,9 @@ def test_signed_in_issue_retry_and_download(tmp_path):
             'id':'cs_test_example12345678',
             'url':'https://checkout.stripe.com/c/pay/fictional'}
         app.os.environ['SALUS_PACKAGE_CHECKOUT_RETURN_ORIGIN']='https://salcapa.salus.solutions'
+        # Draft ordering alone must never create a Stripe session.
+        assert buyer.post(f'/api/level1a/orders/{oid}/checkout').status_code==503
+        app.LEVEL1A_CHECKOUT_ENABLED=True
         started=buyer.post(f'/api/level1a/orders/{oid}/checkout')
         assert started.status_code==200 and started.json()['status']=='Pending',started.text
         assert b'href="/?view=level1a"' in buyer.get(
