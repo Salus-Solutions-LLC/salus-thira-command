@@ -43,7 +43,7 @@ function applyWorkspaceNavigation(){
   document.querySelectorAll('#nav [data-admin-only="true"]').forEach(item=>{ item.hidden=!adminOnly; item.style.display=adminOnly?'':'none'; });
   const level1aButton=document.querySelector('#nav [data-view="level1a"]');
   if(level1aButton){
-    const available=protectedMember&&systemMode.level1a_purchase_available;
+    const available=protectedMember&&(systemMode.level1a_draft_available||systemMode.level1a_purchase_available);
     level1aButton.hidden=!available;
     level1aButton.style.display=available?'':'none';
   }
@@ -658,8 +658,8 @@ function renderIdentity(){
 
 function showLogin(message=''){
   if(systemMode.auth_mode==='oidc'){
-    const customerLogin=systemMode.customer_signin_available&&systemMode.level1a_purchase_available
-      ? '<a class="btn secondary" id="customer-oidc-login" href="/api/auth/customer/start">Buy Level 1A Access</a>' : '';
+    const customerLogin=systemMode.customer_signin_available&&(systemMode.level1a_draft_available||systemMode.level1a_purchase_available)
+      ? `<a class="btn secondary" id="customer-oidc-login" href="/api/auth/customer/start">${systemMode.level1a_purchase_available?'Buy Level 1A Access':'Review Level 1A pilot'}</a>` : '';
     $('#content').innerHTML=`<div class="card" style="max-width:520px;margin:60px auto"><h2>SalCAPA</h2><p class="subtle">Secure sign-in is required.</p>${message?`<div class="notice">${esc(message)}</div>`:''}<div class="form-actions"><a class="btn" id="oidc-login" href="https://salcapa.salus.solutions/api/auth/oidc/start">Salus and existing Member sign-in</a>${customerLogin}</div></div>`;
     return;
   }
