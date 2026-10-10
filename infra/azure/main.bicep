@@ -79,6 +79,18 @@ param packageScannerAccepted bool = false
 @description('Enable the separately reviewed External ID buyer sign-in only after fictional identity acceptance. This does not enable Level 1A orders, checkout, intake or uploads.')
 param customerOidcEnabled bool = false
 
+@description('One verified external buyer inbox permitted during protected Level 1A acceptance. Empty by default; do not put the address in source.')
+param level1aPilotEmail string = ''
+
+@description('Protected Level 1A order and checkout gate, closed by default.')
+param level1aOrderDraftEnabled bool = false
+
+@description('Protected paid-before-intake gate, closed by default.')
+param level1aIntakeEnabled bool = false
+
+@description('Protected scanner-held buyer upload gate, closed by default.')
+param level1aUploadEnabled bool = false
+
 @description('Exact governed source commit used to provision or update this environment.')
 @minLength(40)
 @maxLength(40)
@@ -538,6 +550,10 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
               value: customerOidcEnabled ? '1' : '0'
             }
             {
+              name: 'SALUS_LEVEL1A_PILOT_EMAIL'
+              value: level1aPilotEmail
+            }
+            {
               name: 'SALUS_CUSTOMER_OIDC_TENANT_ID'
               value: 'c4582c39-7d49-4419-b504-005c31e69549'
             }
@@ -708,6 +724,18 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = if (provisionAp
             {
               name: 'SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED'
               value: packageCommercialWorkflowEnabled ? '1' : '0'
+            }
+            {
+              name: 'SALUS_LEVEL1A_ORDER_DRAFT_ENABLED'
+              value: level1aOrderDraftEnabled ? '1' : '0'
+            }
+            {
+              name: 'SALUS_LEVEL1A_INTAKE_ENABLED'
+              value: level1aIntakeEnabled ? '1' : '0'
+            }
+            {
+              name: 'SALUS_LEVEL1A_UPLOAD_ENABLED'
+              value: level1aUploadEnabled ? '1' : '0'
             }
             {
               name: 'SALUS_PACKAGE_SCAN_MODE'
