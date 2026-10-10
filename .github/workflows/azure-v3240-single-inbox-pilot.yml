@@ -61,11 +61,11 @@ jobs:
             .properties.latestRevisionName == "salcapa-dev-b48224--0000179" and
             env_value("SALUS_CUSTOMER_OIDC_ENABLED") == "0" and
             env_value("SALUS_LEVEL1A_PILOT_EMAIL") == "" and
-            (env_value("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED") | IN(""; "0")) and
-            (env_value("SALUS_LEVEL1A_CHECKOUT_ENABLED") | IN(""; "0")) and
-            (env_value("SALUS_LEVEL1A_INTAKE_ENABLED") | IN(""; "0")) and
-            (env_value("SALUS_LEVEL1A_UPLOAD_ENABLED") | IN(""; "0")) and
-            (env_value("SALUS_PACKAGE_SCANNER_ACCEPTED") | IN(""; "0"))
+            (env_value("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED") == "" or env_value("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED") == "0") and
+            (env_value("SALUS_LEVEL1A_CHECKOUT_ENABLED") == "" or env_value("SALUS_LEVEL1A_CHECKOUT_ENABLED") == "0") and
+            (env_value("SALUS_LEVEL1A_INTAKE_ENABLED") == "" or env_value("SALUS_LEVEL1A_INTAKE_ENABLED") == "0") and
+            (env_value("SALUS_LEVEL1A_UPLOAD_ENABLED") == "" or env_value("SALUS_LEVEL1A_UPLOAD_ENABLED") == "0") and
+            (env_value("SALUS_PACKAGE_SCANNER_ACCEPTED") == "" or env_value("SALUS_PACKAGE_SCANNER_ACCEPTED") == "0")
           ' /tmp/salcapa-before-pilot.json > /dev/null
           echo "Exact v3.240 image and closed buyer controls verified."
 
@@ -98,10 +98,10 @@ jobs:
               env_value("SALUS_CUSTOMER_OIDC_ENABLED") == "1" and
               (env_value("SALUS_LEVEL1A_PILOT_EMAIL") | ascii_downcase) == "mduncan@salus.email" and
               env_value("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED") == "1" and
-              (env_value("SALUS_LEVEL1A_CHECKOUT_ENABLED") | IN(""; "0")) and
-              (env_value("SALUS_LEVEL1A_INTAKE_ENABLED") | IN(""; "0")) and
-              (env_value("SALUS_LEVEL1A_UPLOAD_ENABLED") | IN(""; "0")) and
-              (env_value("SALUS_PACKAGE_SCANNER_ACCEPTED") | IN(""; "0"))
+              (env_value("SALUS_LEVEL1A_CHECKOUT_ENABLED") == "" or env_value("SALUS_LEVEL1A_CHECKOUT_ENABLED") == "0") and
+              (env_value("SALUS_LEVEL1A_INTAKE_ENABLED") == "" or env_value("SALUS_LEVEL1A_INTAKE_ENABLED") == "0") and
+              (env_value("SALUS_LEVEL1A_UPLOAD_ENABLED") == "" or env_value("SALUS_LEVEL1A_UPLOAD_ENABLED") == "0") and
+              (env_value("SALUS_PACKAGE_SCANNER_ACCEPTED") == "" or env_value("SALUS_PACKAGE_SCANNER_ACCEPTED") == "0")
             ' /tmp/salcapa-after-pilot.json > /dev/null; then
               fqdn="$(jq -r '.properties.configuration.ingress.fqdn' /tmp/salcapa-after-pilot.json)"
               status="$(curl --connect-timeout 5 --max-time 15 -sS -o /tmp/salcapa-pilot-ready.json -w '%{http_code}' "https://$fqdn/health/ready" || true)"
