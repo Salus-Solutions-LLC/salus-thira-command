@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 23:18 CDT
+last_verified_at: 09 October 2026 23:26 CDT
 current_frozen_release: v3.237
 current_frozen_commit: 0d267c000553dfd36e96e8ca3362060b1f13f5e9
 active_development_branch: development/salcapa-platform
-current_development_head: 0d267c000553dfd36e96e8ca3362060b1f13f5e9
+current_development_head: b1ca02316265cdd273ccee6333227c32659a41bf
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3237_immutable_image_publication
-last_completed_increment: v3237_source_frozen_v3236_serving_customer_controls_closed
+active_increment: salus_v3237_application_promotion
+last_completed_increment: v3237_immutable_image_published_v3236_serving_customer_controls_closed
 candidate_release: v3.237
-validation_pr: 854
-validation_branch: codex/level1a-v3237-image-20261009
+validation_pr: 855
+validation_branch: codex/level1a-v3237-deploy-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3237_image_candidate_yet
-first_root_failing_gate: none_for_v3237_image_candidate_yet
-root_cause: none_for_v3237_image_candidate_yet
-repair_head: 0d267c000553dfd36e96e8ca3362060b1f13f5e9
-repair_summary: verified_external_buyer_pilot_source_frozen_v3237_image_publication_stage
-genuine_blockers: v3236_source_superseded_only_after_v3237_image_deployment_live_pilot_verified_buyer_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
-next_authorized_step: verify_frozen_ci_and_image_candidate_checks_then_Marc_exact_source_review
+failed_workflows: none_for_v3237_deployment_candidate_yet
+first_root_failing_gate: none_for_v3237_deployment_candidate_yet
+root_cause: none_for_v3237_deployment_candidate_yet
+repair_head: b1ca02316265cdd273ccee6333227c32659a41bf
+repair_summary: verified_external_buyer_pilot_v3237_image_published_protected_deployment_stage
+genuine_blockers: v3236_source_superseded_only_after_v3237_protected_deployment_live_pilot_verified_buyer_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
+next_authorized_step: verify_deployment_candidate_checks_then_Marc_exact_source_review_and_protected_Azure_preview
 deployed_demo_release: v3.236
 deployed_demo_state: v3236_app_worker_serving_v3235_prior_v3223_rollback_customer_purchase_intake_upload_closed
 ---
@@ -294,3 +294,8 @@ Marc approved PR #852 exact head `d52ba9336e89db9b82d129b303ad7eda0038a835` afte
 ## 9 October 2026 Central — frozen v3.237 image candidate
 
 Marc approved PR #853 exact head `acf461eb01aec268bb04827b708ad8bb37f49998` after all four checks passed. It merged as `0d267c000553dfd36e96e8ca3362060b1f13f5e9`; `release/v3.237` points to that exact commit. Frozen-source and branch guard checks are running. Draft PR #854 pins that source for one protected immutable image build and registry readback. Image publication, protected deployment and live pilot acceptance remain open. Serving app and worker are v3.236; buyer sign-in, checkout/payment, receipt, intake and uploads remain CLOSED.
+
+
+## 9 October 2026 Central — verified v3.237 pilot image and protected deployment candidate
+
+Marc approved PR #854 exact head `ae59dd8f9302007739d72571e35d81bb064eedd1` after all three image-candidate and all 64 frozen-source checks passed. It merged as `b1ca02316265cdd273ccee6333227c32659a41bf`. Protected image run [38023914527](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38023914527) succeeded and read back immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:3ba4febc557f4e3dff55ca417e1e8b62eae428db0e46ff4f7d1f840955a20595` from frozen v3.237 commit `0d267c000553dfd36e96e8ca3362060b1f13f5e9`. Draft PR #855 stages that digest for protected Azure preview/deployment with v3.236 prior and v3.223 rollback. Candidate checks and Marc's exact-source review are required. The app and worker still serve v3.236; customer sign-in, payment, receipt, intake and uploads remain CLOSED. The deployment does not enable the pilot.
