@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 23:26 CDT
+last_verified_at: 10 October 2026 11:13 CDT
 current_frozen_release: v3.237
 current_frozen_commit: 0d267c000553dfd36e96e8ca3362060b1f13f5e9
 active_development_branch: development/salcapa-platform
-current_development_head: b1ca02316265cdd273ccee6333227c32659a41bf
+current_development_head: 62266292a666ab98a25bda8987ef78646dd7a28f
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3237_application_promotion
-last_completed_increment: v3237_immutable_image_published_v3236_serving_customer_controls_closed
-candidate_release: v3.237
-validation_pr: 855
-validation_branch: codex/level1a-v3237-deploy-20261009
+active_increment: salus_v3238_closed_checkout_buyer_pilot_release_candidate
+last_completed_increment: v3237_protected_app_worker_serving_checkout_and_intake_closed
+candidate_release: v3.238
+validation_pr: pending
+validation_branch: codex/level1a-v3238-pilot-release-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3237_deployment_candidate_yet
-first_root_failing_gate: none_for_v3237_deployment_candidate_yet
-root_cause: none_for_v3237_deployment_candidate_yet
-repair_head: b1ca02316265cdd273ccee6333227c32659a41bf
-repair_summary: verified_external_buyer_pilot_v3237_image_published_protected_deployment_stage
-genuine_blockers: v3236_source_superseded_only_after_v3237_protected_deployment_live_pilot_verified_buyer_signed_stripe_paid_session_receipt_scanned_intake_wix_journey_customer_controls_closed
-next_authorized_step: verify_deployment_candidate_checks_then_Marc_exact_source_review_and_protected_Azure_preview
-deployed_demo_release: v3.236
-deployed_demo_state: v3236_app_worker_serving_v3235_prior_v3223_rollback_customer_purchase_intake_upload_closed
+failed_workflows: none_for_v3238_release_candidate_yet
+first_root_failing_gate: none_for_v3238_release_candidate_yet
+root_cause: none_for_v3238_release_candidate_yet
+repair_head: 62266292a666ab98a25bda8987ef78646dd7a28f
+repair_summary: independent_checkout_gate_and_draft_pilot_visibility_merged_v3237_serving
+genuine_blockers: v3238_exact_source_ci_review_freeze_image_deployment_then_single_inbox_pilot_and_paid_checkout_intake_scanner_wix_acceptance
+next_authorized_step: verify_v3238_candidate_checks_then_Marc_exact_source_review_before_freeze
+deployed_demo_release: v3.237
+deployed_demo_state: v3237_app_worker_serving_v3236_prior_v3223_rollback_customer_signin_order_checkout_intake_upload_closed
 ---
 
 # SalCAPA build continuity
@@ -307,3 +307,8 @@ Marc approved PR #854 exact head `ae59dd8f9302007739d72571e35d81bb064eedd1` afte
 - This was a closed-control deployment. The protected pilot inbox is not yet configured in Azure, and public customer sign-in, checkout/payment, receipt, intake and uploads remain CLOSED. Isolated intake and fictional Advisor success are not a signed-in paid buyer journey. Live verified-email buyer return and Member isolation, rendered revision 11 agreement, signed Stripe sandbox payment with server-retrieved paid Session and immutable receipt, paid-before-intake, exact-version scanner Clean/EICAR plus alert/recovery, Wix desktop/phone journey, and qualified output review are still open before a separately reviewed public switch.
 - Marc approved discretionary complimentary assessments for named Protected Members at all Level 1 A/B/C bands. [Issue #856](https://github.com/Salus-Solutions-LLC/salus-thira-command/issues/856) records the implementation requirements. Marc approved [PR #857](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/857) exact head `c06b55a549eb9201ee6bdf712012010f313e4570` after all three checks passed; merge `3b474b9f8e2e44068f5d7d249d9bc432a22962cf` records SAL-D108 and the Charter exception. The current automatic Level 1A checkout still requires $1,500 and verified Stripe payment; the broader package quote still rejects a zero fee. No complimentary order, authorization, receipt or intake path has been implemented or released. Level 1B/C customer issue remains separately gated.
 - **Next actions:** implement a distinct, audited Marc-approved zero-charge authorization that preserves agreement, scope, prerequisite, intake/scanner and four-report controls; validate and release it through exact-source review. Separately conduct the protected one-inbox Level 1A buyer acceptance and the remaining Stripe, scanner, Wix and report checks before any public activation. Keep all switches closed until evidence supports a separate release decision.
+
+
+## 10 October 2026 Central — v3.238 closed-checkout pilot release candidate
+
+Marc approved PR #861 exact head `ae0d85eab695c71ba22e1a1cd9e73e0f69d2354f` after four required checks passed; it merged as `62266292a666ab98a25bda8987ef78646dd7a28f`. The change gives Level 1A draft review a separate visibility signal and closes Stripe checkout behind a new default-off switch. The approved single-inbox Azure settings were not applied to v3.237 because its draft switch could have exposed checkout. This candidate labels the corrected source v3.238. Exact release-source CI, Marc review, freeze, immutable image publication, protected deployment, and live buyer proof remain open. Public payment, intake, uploads, and scanning stay closed.
