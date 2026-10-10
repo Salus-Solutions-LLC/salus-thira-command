@@ -355,3 +355,5 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #871 exact head `0d39d041d6150e606aade4058536ee21523842d9` after all three required jobs passed; it merged as `e2200b2183b6ea437e51923e3180930be4378a28`. Protected `release/v3.240` froze that exact safe diagnostic source. The customer email trust rule is unchanged.
 - This candidate pins the frozen source for one immutable image build and registry readback. It does not deploy or change buyer settings. Serving v3.239 still rejects the single-inbox callback at email verification; checkout, intake, uploads, and scanning remain closed.
 - Next: frozen-source and image-candidate checks, Marc exact-source review, protected image publication and readback, then a separate app/worker deployment with rollback before one controlled sign-in retry. Buyer acceptance and root-cause repair remain open.
+
+Candidate-only validation trigger: compare the immutable image activation and frozen source at PR #872 head `181f14e8a90df258cfee40030f9c5621b32d1612`. This branch is not the release source or deployment branch.
