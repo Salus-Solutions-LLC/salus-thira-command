@@ -8,7 +8,7 @@ active_development_branch: development/salcapa-platform
 current_development_head: 6a9c225be75c9d6f58224abdad814fcf78228e4b
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3236_live_buyer_acceptance
+active_increment: salus_v3236_live_evaluator_acceptance
 last_completed_increment: v3236_protected_application_worker_deployment_passed_customer_controls_closed
 candidate_release: v3.236
 validation_pr: 851
