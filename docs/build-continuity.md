@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 October 2026 20:54 CDT
-current_frozen_release: v3.234
-current_frozen_commit: 34aff714b986b510e291fb8b147f8c5d7d733088
+last_verified_at: 09 October 2026 21:04 CDT
+current_frozen_release: v3.235
+current_frozen_commit: 69940ebc7ac05a1f693f891eb2c5c26efd1190ca
 active_development_branch: development/salcapa-platform
-current_development_head: aa42ef1a8f20c50e06679fc3f9a5212fdb62fe2d
+current_development_head: 69940ebc7ac05a1f693f891eb2c5c26efd1190ca
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3235_level1a_rev11_release_candidate
-last_completed_increment: v3234_staff_app_deployed_buyer_controls_closed
+active_increment: salus_v3235_immutable_image_publication
+last_completed_increment: v3235_source_frozen_v3234_serving_with_v3233_prior
 candidate_release: v3.235
-validation_pr: 843
-validation_branch: codex/level1a-rev11-storage-readback-20261009
+validation_pr: 844
+validation_branch: codex/level1a-v3235-image-20261009
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3235_candidate_yet
-first_root_failing_gate: none_for_v3235_candidate_yet
-root_cause: none_for_v3235_candidate_yet
-repair_head: aa42ef1a8f20c50e06679fc3f9a5212fdb62fe2d
-repair_summary: approved_rev11_template_exact_byte_storage_readback_and_source_binding
-genuine_blockers: v3234_source_superseded_only_after_v3235_exact_source_ci_review_freeze_image_deployment_live_buyer_payment_intake_scanner_acceptance_customer_controls_closed
-next_authorized_step: verify_candidate_checks_then_Marc_exact_source_review_before_freeze
+failed_workflows: none_for_v3235_image_candidate_yet
+first_root_failing_gate: none_for_v3235_image_candidate_yet
+root_cause: none_for_v3235_image_candidate_yet
+repair_head: 69940ebc7ac05a1f693f891eb2c5c26efd1190ca
+repair_summary: approved_rev11_source_frozen_v3235_image_publication_stage
+genuine_blockers: v3234_source_superseded_only_after_v3235_image_deployment_live_buyer_payment_intake_scanner_acceptance_customer_controls_closed
+next_authorized_step: verify_frozen_ci_and_image_candidate_checks_then_Marc_exact_source_review
 deployed_demo_release: v3.234
 deployed_demo_state: v3234_serving_with_v3233_prior_v3223_rollback_customer_purchase_intake_upload_closed
 ---
@@ -243,3 +243,8 @@ Marc stated that the intended all-location customer quote should add no tax. The
 ## 9 October 2026 Central — v3.235 Level 1A revision 11 release candidate
 
 PR #842 at Marc-approved head `ffbf908371396ad2772a8c712f0c634895885e6d` passed all three required checks and merged as `aa42ef1a8f20c50e06679fc3f9a5212fdb62fe2d`. The approved five-page Word revision 11 SHA-256 `3466397BA28E74BF21E0DC36E26A526CCD5D0984DFF2EF196B2605B171A9C29E` passed Azure exact-byte readback at private `evidence/level1a/templates/3466397ba28e74bf21e0dc36e26a526ccd5d0984dff2ef196b2605b171a9c29e.docx`, version `2026-10-10T01:27:07.6427502Z`. The temporary user data role was removed. This candidate labels that integrated source v3.235 and records the storage result; it does not deploy or open buyer sign-in, payment, receipt, intake or uploads. Serving v3.234 remains in place with v3.233 as prior and v3.223 for rollback. Verify full candidate checks, obtain Marc's exact-head source review, then freeze/build/publish and complete protected live acceptance. A separate OneDrive copy with mismatched hash is excluded.
+
+
+## 9 October 2026 Central — frozen v3.235 image candidate
+
+Marc approved PR #843 at exact head `72671ecbfa705e057237e0d5ffe3f4e54097ed81` after four successful checks. It merged as `69940ebc7ac05a1f693f891eb2c5c26efd1190ca`; protected `release/v3.235` points to that exact commit, and its branch guard passed. The approved revision 11 Word template passed private Azure exact-byte readback. Draft PR #844 pins that frozen source for one protected image publication and registry readback. Full frozen-source CI, exact candidate checks and Marc's exact-source review remain gates before image merge. Serving v3.234 continues with buyer sign-in, payment, receipt, intake and uploads CLOSED; v3.233 is prior and v3.223 remains rollback. An image build alone does not accept public buyer payment or assessment delivery.
