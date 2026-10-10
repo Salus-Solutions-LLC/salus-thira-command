@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 12:08 CDT
+last_verified_at: 10 October 2026 13:21 CDT
 current_frozen_release: v3.238
 current_frozen_commit: 12131275251e1507077fe1e050b372b1ea8b82d6
 active_development_branch: development/salcapa-platform
-current_development_head: 8111b3c0da240483d4f39c8ae1f40c224d7e6a7b
+current_development_head: 75998c3fcbbf134bda485278b0417feff592adc9
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3238_live_evaluator_acceptance
+active_increment: salus_v3239_customer_oidc_safe_diagnostics_candidate
 last_completed_increment: v3238_protected_deployment_and_closed_checkout_single_inbox_pilot
-candidate_release: v3.238
-validation_pr: 865
-validation_branch: codex/v3238-pilot-handoff-20261010
+candidate_release: v3.239
+validation_pr: pending
+validation_branch: codex/v3239-customer-oidc-diagnostics-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3238_protected_deployment
-first_root_failing_gate: none_for_v3238_protected_deployment
-root_cause: none_for_v3238_protected_deployment
-repair_head: 12131275251e1507077fe1e050b372b1ea8b82d6
-repair_summary: v3238_app_worker_deployed_single_inbox_draft_enabled_checkout_intake_upload_scanner_closed
-genuine_blockers: buyer_identity_creation_permission_and_verified_signin_draft_then_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: obtain_explicit_external_test_buyer_identity_creation_authorization_then_verify_single_inbox_buyer_draft
+validation_gate_state: source_candidate_under_validation
+failed_workflows: none_observed_for_v3239_candidate
+first_root_failing_gate: live_customer_oidc_callback
+root_cause: unresolved_ValueError_stage_not_logged_in_v3238
+repair_head: 75998c3fcbbf134bda485278b0417feff592adc9
+repair_summary: safe_static_oidc_stage_logging_without_trust_predicate_change
+genuine_blockers: customer_oidc_validation_stage_then_verified_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: validate_v3239_source_then_Marc_exact_source_review_and_governed_image_deployment_for_one_controlled_retry
 deployed_demo_release: v3.238
 deployed_demo_state: v3238_app_worker_serving_revision_0000176_v3237_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
@@ -326,3 +326,9 @@ Marc approved PR #862 exact head `a618f831ab35c05ab39e2fad2f05984804a81e2b` afte
 ## 10 October 2026 Central — protected v3.238 deployed; draft-only pilot configured
 
 Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` after three checks passed; squash merge `8111b3c0da240483d4f39c8ae1f40c224d7e6a7b` triggered protected deployment run [38068690821](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38068690821), which succeeded. Azure readback confirmed immutable v3.238 image `sha256:d51bb111dadd216bfffb743ef611cff4a550cfc440df02b0d87c94f081dfe502` on app revision `salcapa-dev-b48224--0000175`; scheduled worker promotion also succeeded. Under Marc's already approved three-setting pilot scope, Azure created revision `salcapa-dev-b48224--0000176` with the same image, customer sign-in and Level 1A draft enabled for `MDuncan@Salus.email`. Readback kept checkout, intake, upload and scanner off. Public readiness and system-mode routes returned HTTP 200; the mode stated draft available and checkout/purchase unavailable. Browser reached Salus Member Access; the named inbox has no existing identity. Automatic approval review blocked external test-account creation pending explicit authorization, so no buyer draft or acceptance was completed. Public paid and complimentary fulfillment gates remain separate.
+
+## 10 October 2026 Central — v3.239 safe identity diagnostic source candidate
+
+- Marc approved exact PR #866 commit `b2c8b3985289ea1b1e140ce6284db62edfa0414e` after all required checks passed; squash merge `75998c3fcbbf134bda485278b0417feff592adc9` added fixed, non-sensitive validation stage markers to the customer sign-in failure security event. The provider callback remains fail closed and the root cause is not yet known.
+- This v3.239 candidate labels that source for governed freeze and later immutable image publication. Serving v3.238 still rejects the single-inbox test at identity verification. The app has not established an accepted customer session, draft, purchase, intake, or upload from that attempt. Checkout, intake, uploads, and scanning remain closed.
+- Next: source CI and Marc exact-source review, protected image/deployment with rollback, then one controlled single-inbox retry to identify the failed stage. Repair the actual provider or app issue separately without accepting an unverified email or opening public controls.
