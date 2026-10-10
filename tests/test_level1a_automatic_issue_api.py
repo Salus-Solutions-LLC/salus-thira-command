@@ -29,7 +29,7 @@ def test_signed_in_issue_retry_and_download(tmp_path):
             'Primary operating activity  [Complete before issue]',
             'Decision owner role and authorized signatory  [Complete before issue]',
             'Scope and quote identifier  [Complete before issue]',
-            'Version and effective date  Standard terms revision 10, 5 October 2026; '
+            'Version and effective date  Standard terms revision 11, 9 October 2026; '
             'effective only on electronic Member acceptance of the completed issued version',
             'Included buildings and outdoor areas  [Complete before issue]',
             'Express exclusions  [Complete before issue]',

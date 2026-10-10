@@ -56,10 +56,10 @@ class AgreementConflict(ValueError):
     pass
 
 
-# Exact five-page Word issue template approved by Marc on 5 October 2026.
+# Exact five-page Word issue template approved by Marc on 9 October 2026.
 # A separately governed release must place these bytes in controlled storage.
-APPROVED_TEMPLATE_SHA256 = '63ad42dadc81a054fa28ef55eaadc8dfbd10c9ca983ab81c2d085e033f046cf6'
-APPROVED_TEMPLATE_VERSION = 'Level1A-Rev10-20261005'
+APPROVED_TEMPLATE_SHA256 = '3466397ba28e74bf21e0dc36e26a526ccd5d0984dff2ef196b2605b171a9c29e'
+APPROVED_TEMPLATE_VERSION = 'Level1A-Rev11-20261009'
 APPROVED_TEMPLATE_KEY = f'level1a/templates/{APPROVED_TEMPLATE_SHA256}.docx'
 
 
@@ -92,8 +92,8 @@ def issue_generated_agreement(conn, *, tenant_id, buyer_user_id, order_id,
         raise AgreementConflict('The candidate is not the current approved order version.')
     facts=QuoteFacts(**{key: quote[key] for key in QuoteFacts.__dataclass_fields__})
     if (facts.sha256()!=quote['quote_sha256'] or
-            facts.base_price_cents!=150_000 or facts.tax_cents<0 or
-            facts.total_cents!=facts.base_price_cents+facts.tax_cents or
+            facts.base_price_cents!=150_000 or facts.tax_cents!=0 or
+            facts.total_cents!=150_000 or
             facts.currency!='USD'):
         raise AgreementConflict('The candidate price no longer matches its approved facts.')
     if (not isinstance(readback,bytes) or len(readback)>2_000_000 or
@@ -114,11 +114,13 @@ def issue_generated_agreement(conn, *, tenant_id, buyer_user_id, order_id,
               f'Express exclusions  {order["exclusions"]}',
               f'Order and notices  L1A-{order_id} / Q{quote_id} / v{order["scope_version"]}; {order["notice_email"]}',
               f'${facts.total_cents / 100:,.2f} total USD; {facts.tax_rule_id} ({facts.tax_decision_reference})')
-    if ('Standard terms revision 10, 5 October 2026' not in text or
+    if ('Standard terms revision 11, 9 October 2026' not in text or
             any(item not in text for item in required) or
             any(marker in text+headers+footers for marker in
                 ('[Complete before issue]','Review Draft','CANDIDATE FOR REVIEW',
-                 'Confidential review copy','Applicable tax and total  ['))):
+                 'Candidate revision for review','Candidate standard terms',
+                 'proposed revised standard terms','Confidential review copy',
+                 'Applicable tax and total  ['))):
         raise AgreementConflict('The agreement still contains drafting or incomplete text.')
     result=conn.execute('''UPDATE level1a_agreement_versions
         SET status='Issued',issued_at=? WHERE id=? AND tenant_id=?
