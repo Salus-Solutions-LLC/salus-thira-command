@@ -143,9 +143,15 @@ class CustomerOidcProtocolTests(unittest.TestCase):
                                    'issuerAssignedId': 'buyer@example.test'}]}
         self.assertEqual(verified_customer_email_from_graph(claims, profile),
                          'buyer@example.test')
+        # Entra's OIDC v2.0 email passcode method is `emailotp`.
+        self.assertEqual(verified_customer_email_from_graph(
+            dict(claims, amr=['emailotp']), profile), 'buyer@example.test')
         invalid = (
             (dict(claims, amr=[]), profile),
+            (dict(claims, amr=['mfa']), profile),
             (dict(claims, amr=['pwd', 'otp']), profile),
+            (dict(claims, amr=['pwd', 'emailotp']), profile),
+            (dict(claims, amr=['fed', 'emailotp']), profile),
             (dict(claims, idp='google'), profile),
             (dict(claims, email_verified=False), profile),
             (dict(claims, email='other@example.test'), profile),
