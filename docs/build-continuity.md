@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 10:36 CDT
-current_frozen_release: v3.241
-current_frozen_commit: 57ae5a8fd1fa0b29367058ed33643d1a9f6e5b2a
+last_verified_at: 11 October 2026 13:17 CDT
+current_frozen_release: v3.242
+current_frozen_commit: d13729429172b3563b7084a0c332effcf3f87094
 active_development_branch: development/salcapa-platform
-current_development_head: 11ba5d8a9c5ce4f4e420b718e69ee22d857b66e5
+current_development_head: d13729429172b3563b7084a0c332effcf3f87094
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3242_m365_bounded_listing_source_candidate
-last_completed_increment: v3241_deployment_rolled_back_and_m365_listing_repair_merged
+active_increment: salus_v3242_m365_bounded_listing_immutable_image_publication
+last_completed_increment: v3242_m365_bounded_listing_source_frozen
 candidate_release: v3.242
-validation_pr: 884
-validation_branch: codex/v3242-m365-bounded-listing-20261011
+validation_pr: 885
+validation_branch: codex/v3242-m365-bounded-image-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3241_protected_deployment_run_38146104129
 first_root_failing_gate: m365_bounded_list_acceptance
 root_cause: bounded_list_buffered_all_Graph_pages_before_applying_500_file_window
-repair_head: 11ba5d8a9c5ce4f4e420b718e69ee22d857b66e5
-repair_summary: stream_Graph_pages_then_stop_at_bounded_window_retain_20000_item_guard
-genuine_blockers: v3241_superseded_after_failed_M365_acceptance_v3242_freeze_image_protected_deploy_live_m365_acceptance_then_named_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_v3242_CI_then_Marc_exact_source_review_freeze_image_and_protected_deployment
+repair_head: d13729429172b3563b7084a0c332effcf3f87094
+repair_summary: v3242_frozen_source_pinned_for_protected_immutable_image_publication
+genuine_blockers: v3241_superseded_after_failed_M365_acceptance_v3242_image_protected_deploy_live_M365_acceptance_then_named_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.223
 deployed_demo_state: v3223_app_worker_restored_after_v3241_M365_acceptance_failure_buyer_pilot_readback_pending_checkout_intake_upload_scanner_closed
 ---
@@ -391,3 +391,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #883 at exact head `cc631905116d363936f78b3baf2dafae5818968e` after all three required checks passed. Squash merge `11ba5d8a9c5ce4f4e420b718e69ee22d857b66e5` repairs the Microsoft 365 acceptance failure by yielding validated Graph pages before the requested 500-file window ends. The 20,000-item traversal ceiling remains for unbounded listing, with next-link and cycle checks retained. No buyer identity, authorization, payment, intake enablement, upload, scanner, or Azure resource control changed.
 - This candidate labels that merged repair v3.242. The failed v3.241 protected deployment restored accepted v3.223 app and worker; the v3.241 immutable image remains published but is not accepted serving state. The buyer pilot setting state requires Azure readback. A frozen v3.242 source, protected immutable image, deployment, bounded Microsoft 365 acceptance, and fresh named-inbox buyer sign-in and draft review remain open.
 - Next: pass exact candidate checks, obtain Marc's exact-source approval, freeze one v3.242 commit, then separately publish/read back the image and stage protected deployment with verified rollback. Keep checkout/payment, intake, uploads, and scanning closed.
+
+## 11 October 2026 Central — v3.242 frozen source and protected image candidate
+
+- Marc approved PR #884 at exact head `f43000c86ecb87c3d3e69cc48f07887471c99587` after its required Analytical Actions, package, PostgreSQL and Windows checks passed. Squash merge `d13729429172b3563b7084a0c332effcf3f87094` froze `release/v3.242` at that exact source. The bounded Microsoft 365 listing repair was previously merged in PR #883; this release does not change buyer identity acceptance or Azure settings.
+- Draft PR #885 pins the frozen source for one protected immutable image publication and registry digest readback. Accepted v3.223 app and worker remain restored after v3.241 deployment run 38146104129 failed Microsoft 365 acceptance; v3.241 is published but unaccepted. Buyer pilot settings require live Azure readback. No v3.242 image or deployment exists yet.
+- Next: pass frozen-source and image-candidate gates, obtain Marc's exact-head review, publish and read back the image, then stage separately reviewed protected app/worker deployment with v3.223 rollback. Keep checkout/payment, intake, uploads, and scanning closed. Buyer sign-in and draft review remain unaccepted.
