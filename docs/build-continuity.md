@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 13:27 CDT
+last_verified_at: 11 October 2026 16:16 CDT
 current_frozen_release: v3.242
 current_frozen_commit: d13729429172b3563b7084a0c332effcf3f87094
 active_development_branch: development/salcapa-platform
-current_development_head: e25e8a3e6bf5f220bbd3f9678b7c55ef7ca10ab2
+current_development_head: 35017b6912f245bf8b24578d0285ea36542524d4
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3242_m365_bounded_listing_application_promotion
-last_completed_increment: v3242_m365_bounded_listing_immutable_image_published
+active_increment: salus_v3242_single_inbox_live_evaluator_acceptance
+last_completed_increment: v3242_protected_application_and_worker_promotion
 candidate_release: v3.242
-validation_pr: 886
-validation_branch: codex/v3242-m365-bounded-deploy-20261011
+validation_pr: 887
+validation_branch: codex/v3242-single-inbox-pilot-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -20,11 +20,11 @@ failed_workflows: v3241_protected_deployment_run_38146104129
 first_root_failing_gate: m365_bounded_list_acceptance
 root_cause: bounded_list_buffered_all_Graph_pages_before_applying_500_file_window
 repair_head: d13729429172b3563b7084a0c332effcf3f87094
-repair_summary: v3242_verified_immutable_image_staged_with_v3223_prior_and_rollback
-genuine_blockers: v3242_protected_deploy_live_M365_acceptance_then_named_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_deployment_candidate_checks_then_Marc_exact_PR_review
-deployed_demo_release: v3.223
-deployed_demo_state: v3223_app_worker_restored_after_v3241_M365_acceptance_failure_buyer_pilot_readback_pending_checkout_intake_upload_scanner_closed
+repair_summary: v3242_protected_app_worker_passed_M365_Advisor_single_inbox_pilot_candidate
+genuine_blockers: named_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_pilot_candidate_checks_then_Marc_exact_PR_review_and_access_change_approval
+deployed_demo_release: v3.242
+deployed_demo_state: v3242_protected_app_worker_verified_M365_Advisor_buyer_signin_draft_closed_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
@@ -403,3 +403,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #885 exact head `2b4cdc350510cee299f29561940714d2bbfac082` after its required checks passed. Squash merge `e25e8a3e6bf5f220bbd3f9678b7c55ef7ca10ab2` triggered protected [image run 38163443691](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38163443691), which passed source identity, publication and Azure registry readback. Immutable image: `salcapadevb48224acr.azurecr.io/salcapa@sha256:4d7edd396ffdf38a1e4b59b659a703ab9f9de925ed8ea2fa0901f053749c0a5f` from frozen v3.242 commit `d13729429172b3563b7084a0c332effcf3f87094`.
 - Draft PR #886 stages exactly that digest for protected deployment. It pins the restored accepted v3.223 digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` as prior app and worker and as rollback; the protected preflight checks actual Azure state before preview. No v3.242 app revision or live Microsoft 365 acceptance exists yet.
 - Next: pass required PR checks and Marc exact-head review, then run protected Azure preview, deployment and live Microsoft 365, Advisor, and worker acceptance with rollback. Buyer sign-in and Level 1A draft acceptance remain separate. Checkout/payment, intake, uploads and scanning remain closed.
+
+## 11 October 2026 Central — v3.242 protected deployment passed; single-inbox pilot candidate
+
+- Marc approved PR #886 current exact head `50057826f66241cac68e0ac8ce750907a9657fcb` after package, PostgreSQL and Windows checks passed. Squash merge `35017b6912f245bf8b24578d0285ea36542524d4` triggered protected [deployment run 38174825831](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38174825831), which passed Azure image/preflight, app deployment, live readiness/identity/ingress/sign-in contract, isolated Microsoft 365 intake, fictional Protection Advisor and scheduled worker promotion. The deployed immutable app and worker image is `salcapadevb48224acr.azurecr.io/salcapa@sha256:4d7edd396ffdf38a1e4b59b659a703ab9f9de925ed8ea2fa0901f053749c0a5f`; accepted v3.223 remains rollback. This is protected deployment acceptance, not buyer acceptance.
+- Draft PR #887 stages a guarded single-inbox pilot on exactly that image for `MDuncan@Salus.email`. It checks Azure target, closed starting controls, changed ready revision, and that checkout, intake, uploads and scanner remain closed. It recloses the pilot on a failed change or verification. It cannot run until required CI, Marc exact-head review and access-change approval.
+- Next: verify and approve the exact pilot source, then run the protected pilot, obtain one fresh user-led buyer sign-in and Level 1A draft review, and record actual `amr`/Graph outcome. Payment, intake, uploads, scanning, public commerce, Wix and complimentary issuance retain separate gates.
