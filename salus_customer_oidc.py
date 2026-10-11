@@ -37,6 +37,14 @@ class CustomerEmailVerificationMissing(ValueError):
     """The provider did not assert verification."""
 
 
+class CustomerOtpMethodMissing(ValueError):
+    """The signed token did not assert one-time-passcode authentication."""
+
+
+class CustomerGraphIdentityMismatch(ValueError):
+    """The signed subject and Graph email sign-in identity did not agree."""
+
+
 def validate_discovery(metadata, *, tenant_host, tenant_id):
     """Accept only the reviewed single External tenant and its HTTPS endpoints."""
     # The reviewed External ID discovery URL uses the tenant-name host for
@@ -127,4 +135,42 @@ def verified_customer_email(claims):
     if asserted is not True and primary is None:
         raise CustomerEmailVerificationMissing(
             'Customer email verification is missing')
+    return email
+
+def verified_customer_email_from_graph(claims, profile):
+    """Verify an OTP-only customer's address against Graph's own sign-in identity.
+
+    This path is only used after the signed ID token has passed issuer, audience,
+    tenant, nonce and subject validation and lacks an authoritative email claim.
+    The delegated Graph token must come from the same authorization-code exchange.
+    """
+    try:
+        verified_customer_email(claims)
+    except CustomerEmailVerificationMissing:
+        pass
+    else:
+        raise ValueError('Graph fallback requires missing provider verification')
+    if claims.get('idp') != 'mail':
+        raise CustomerOtpMethodMissing('Customer did not use the mail provider')
+    amr = claims.get('amr')
+    if not isinstance(amr, list) or 'otp' not in amr or any(
+            method in amr for method in ('pwd', 'fed', 'none')):
+        raise CustomerOtpMethodMissing('Customer OTP authentication is not asserted')
+    oid = claims.get('oid')
+    if not isinstance(oid, str) or not oid.strip():
+        raise CustomerGraphIdentityMismatch('Customer object ID is missing')
+    if not isinstance(profile, dict) or profile.get('id') != oid:
+        raise CustomerGraphIdentityMismatch('Graph account differs from signed customer')
+    identities = profile.get('identities')
+    if not isinstance(identities, list):
+        raise CustomerGraphIdentityMismatch('Graph sign-in identities are missing')
+    email = claims['email'].strip().lower()
+    mail_identities = [identity for identity in identities
+                       if isinstance(identity, dict)
+                       and identity.get('signInType') == 'federated'
+                       and identity.get('issuer') == 'mail']
+    if (len(mail_identities) != 1
+            or not isinstance(mail_identities[0].get('issuerAssignedId'), str)
+            or mail_identities[0]['issuerAssignedId'].strip().lower() != email):
+        raise CustomerGraphIdentityMismatch('Graph mail sign-in identity differs')
     return email
