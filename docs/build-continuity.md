@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 14:42 CDT
+last_verified_at: 10 October 2026 22:21 CDT
 current_frozen_release: v3.240
 current_frozen_commit: e2200b2183b6ea437e51923e3180930be4378a28
 active_development_branch: development/salcapa-platform
-current_development_head: 1bc0b824235f3e5765579fe161c2651db12a52b8
+current_development_head: 609100affe55672632fbd87fe59f0a40f7f34566
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3240_customer_email_diagnostic_application_promotion
-last_completed_increment: v3240_immutable_image_publication_and_registry_readback
-candidate_release: v3.240
-validation_pr: 873
-validation_branch: codex/v3240-customer-email-diagnostic-deploy-20261010
+active_increment: salus_v3241_customer_otp_graph_identity_source_candidate
+last_completed_increment: v3240_protected_single_inbox_pilot_and_verified_email_failure_class
+candidate_release: v3.241
+validation_pr: 878
+validation_branch: codex/v3241-customer-otp-binding-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3240_image_publication
+failed_workflows: none_observed_for_v3241_candidate
 first_root_failing_gate: live_customer_oidc_email_verification
-root_cause: signed_token_email_verification_rejection_category_unidentified
-repair_head: e2200b2183b6ea437e51923e3180930be4378a28
-repair_summary: verified_v3240_digest_staged_for_protected_app_worker_promotion
-genuine_blockers: verified_email_rejection_category_identity_fix_and_named_buyer_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: pass_deployment_candidate_checks_then_Marc_exact_head_review_and_protected_Azure_readback
-deployed_demo_release: v3.239
-deployed_demo_state: v3239_app_worker_serving_revision_0000178_v3238_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
+root_cause: external_id_token_omits_email_verification_claim_after_successful_email_otp
+repair_head: 609100affe55672632fbd87fe59f0a40f7f34566
+repair_summary: signed_mail_otp_and_delegated_graph_self_identity_binding_fail_closed
+genuine_blockers: v3241_source_image_deployment_and_live_named_buyer_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_v3241_CI_then_Marc_exact_source_review_freeze_image_deploy_and_live_test
+deployed_demo_release: v3.240
+deployed_demo_state: v3240_app_worker_serving_revision_0000180_v3239_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
@@ -361,3 +361,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #872 exact head `181f14e8a90df258cfee40030f9c5621b32d1612` after its required checks and candidate image preflight passed. Squash merge `1bc0b824235f3e5765579fe161c2651db12a52b8` triggered protected [image run 38080598099](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38080598099), which succeeded. Azure registry readback returned immutable `salcapadevb48224acr.azurecr.io/salcapa@sha256:7fbd22123d7270e7c5fe5046cfc7533f74110793803da25ca89b0564b3fc2df4` from frozen v3.240 commit `e2200b2183b6ea437e51923e3180930be4378a28`.
 - The deployment candidate stages that digest for the protected app and worker. It preserves serving v3.239 digest `sha256:ec35d859a222858729edf15b110a60502d636ea4d98b5d168a89b010b4b16c84` as both prior images and accepted v3.223 digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` for rollback. It changes no customer email acceptance predicate or buyer setting.
 - v3.239 still serves the one-inbox draft pilot, with checkout, intake, uploads and scanning closed. Deployment, Azure readback and one controlled sign-in to classify the verified-email failure remain open. Public buyer acceptance and root-cause repair are not established by this diagnostic image.
+
+## 10 October 2026 Central — v3.241 guarded buyer identity source candidate
+
+- Marc approved PR #877 exact head `e07fb779911806dd23c6282e3ed86ccc249812b2` after all four required jobs passed. Squash merge `609100affe55672632fbd87fe59f0a40f7f34566` adds a fail-closed alternate verified-email path: signed `idp=mail` and `amr=otp`, then a delegated Microsoft Graph self-profile from the same code exchange whose object ID and sole mail sign-in address match the signed token. All contradiction, omission, mismatch, and Graph errors remain denied. No protected app release changed.
+- Marc separately approved adding only the `amr` optional ID-token claim to the buyer app registration; Azure portal readback shows `amr` beside the existing `verified_primary_email` claim. External ID warns that an unsupported claim may not appear in issued tokens. Runtime `amr` presence and Graph self-profile availability are not yet proven.
+- This v3.241 candidate labels that merged repair. Protected v3.240 revision `0000180` remains the single-inbox draft pilot; checkout, payment, intake, uploads, and scanning remain closed. Next: required source checks, Marc exact-head review and freeze, one immutable image with registry readback, separately reviewed app/worker deployment with prior image and rollback, and one fresh named-inbox buyer sign-in. Neither CI nor version labeling establishes buyer acceptance.
