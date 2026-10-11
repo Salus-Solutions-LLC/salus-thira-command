@@ -425,3 +425,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc approved PR #888 exact head `dc346d4c97f162491156aadab771ee74cb47d0b2`; merge `fe5beb171dce518f4904ee1c1f75a5ec696aad36` triggered [run 38180951457](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38180951457). The run stopped at Azure login with `AADSTS700213` before querying logs because its inspection job used an unregistered environment federated subject. No buyer stage was learned and no Azure setting changed.
 - A candidate separates the protected environment approval from Azure federated login as in the verified pilot workflow. The read-only query and safe output are unchanged. Next: CI, Marc's exact-head review, re-run and identify the failure stage before any code repair. Buyer acceptance remains failed; checkout, intake, uploads and scanning remain closed.
+
+## 11 October 2026 Central — buyer email-code claim mismatch candidate
+
+- PR #889 was exact-approved and merged as `956fa936bac131cc8df6db29fc3ac6081800993c`; protected [run 38181417519](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38181417519) authenticated and returned only `stage=email_verification;error=CustomerOtpMethodMissing` from the prior fresh buyer attempt.
+- The candidate broadens the existing signed mail-OTP method check to Microsoft's documented `emailotp` OIDC value, keeps legacy `otp` and all identity/Graph correspondence checks, and adds positive and negative protocol tests. The safe marker does not prove which value was in the prior token; live customer acceptance remains required after governed release. No Azure or commerce setting changes in this candidate.
