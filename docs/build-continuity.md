@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3242_m365_bounded_listing_source_candidate
 last_completed_increment: v3241_deployment_rolled_back_and_m365_listing_repair_merged
 candidate_release: v3.242
-validation_pr: pending
+validation_pr: 884
 validation_branch: codex/v3242-m365-bounded-listing-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
