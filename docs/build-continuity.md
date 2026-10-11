@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 13:17 CDT
+last_verified_at: 11 October 2026 13:27 CDT
 current_frozen_release: v3.242
 current_frozen_commit: d13729429172b3563b7084a0c332effcf3f87094
 active_development_branch: development/salcapa-platform
-current_development_head: d13729429172b3563b7084a0c332effcf3f87094
+current_development_head: e25e8a3e6bf5f220bbd3f9678b7c55ef7ca10ab2
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3242_m365_bounded_listing_immutable_image_publication
-last_completed_increment: v3242_m365_bounded_listing_source_frozen
+active_increment: salus_v3242_m365_bounded_listing_protected_deployment
+last_completed_increment: v3242_m365_bounded_listing_immutable_image_published
 candidate_release: v3.242
-validation_pr: 885
-validation_branch: codex/v3242-m365-bounded-image-20261011
+validation_pr: 886
+validation_branch: codex/v3242-m365-bounded-deploy-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -20,9 +20,9 @@ failed_workflows: v3241_protected_deployment_run_38146104129
 first_root_failing_gate: m365_bounded_list_acceptance
 root_cause: bounded_list_buffered_all_Graph_pages_before_applying_500_file_window
 repair_head: d13729429172b3563b7084a0c332effcf3f87094
-repair_summary: v3242_frozen_source_pinned_for_protected_immutable_image_publication
-genuine_blockers: v3241_superseded_after_failed_M365_acceptance_v3242_image_protected_deploy_live_M365_acceptance_then_named_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+repair_summary: v3242_verified_immutable_image_staged_with_v3223_prior_and_rollback
+genuine_blockers: v3242_protected_deploy_live_M365_acceptance_then_named_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_deployment_candidate_checks_then_Marc_exact_PR_review
 deployed_demo_release: v3.223
 deployed_demo_state: v3223_app_worker_restored_after_v3241_M365_acceptance_failure_buyer_pilot_readback_pending_checkout_intake_upload_scanner_closed
 ---
@@ -397,3 +397,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #884 at exact head `f43000c86ecb87c3d3e69cc48f07887471c99587` after its required Analytical Actions, package, PostgreSQL and Windows checks passed. Squash merge `d13729429172b3563b7084a0c332effcf3f87094` froze `release/v3.242` at that exact source. The bounded Microsoft 365 listing repair was previously merged in PR #883; this release does not change buyer identity acceptance or Azure settings.
 - Draft PR #885 pins the frozen source for one protected immutable image publication and registry digest readback. Accepted v3.223 app and worker remain restored after v3.241 deployment run 38146104129 failed Microsoft 365 acceptance; v3.241 is published but unaccepted. Buyer pilot settings require live Azure readback. No v3.242 image or deployment exists yet.
 - Next: pass frozen-source and image-candidate gates, obtain Marc's exact-head review, publish and read back the image, then stage separately reviewed protected app/worker deployment with v3.223 rollback. Keep checkout/payment, intake, uploads, and scanning closed. Buyer sign-in and draft review remain unaccepted.
+
+## 11 October 2026 Central — verified v3.242 image; protected deployment candidate
+
+- Marc approved PR #885 exact head `2b4cdc350510cee299f29561940714d2bbfac082` after its required checks passed. Squash merge `e25e8a3e6bf5f220bbd3f9678b7c55ef7ca10ab2` triggered protected [image run 38163443691](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38163443691), which passed source identity, publication and Azure registry readback. Immutable image: `salcapadevb48224acr.azurecr.io/salcapa@sha256:4d7edd396ffdf38a1e4b59b659a703ab9f9de925ed8ea2fa0901f053749c0a5f` from frozen v3.242 commit `d13729429172b3563b7084a0c332effcf3f87094`.
+- Draft PR #886 stages exactly that digest for protected deployment. It pins the restored accepted v3.223 digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` as prior app and worker and as rollback; the protected preflight checks actual Azure state before preview. No v3.242 app revision or live Microsoft 365 acceptance exists yet.
+- Next: pass required PR checks and Marc exact-head review, then run protected Azure preview, deployment and live Microsoft 365, Advisor, and worker acceptance with rollback. Buyer sign-in and Level 1A draft acceptance remain separate. Checkout/payment, intake, uploads and scanning remain closed.
