@@ -51,8 +51,10 @@ from salus_scan_inventory import (compare_quarantine_versions,
                                   list_azure_quarantine_versions,
                                   record_inventory_exceptions)
 from salus_customer_identity import CUSTOMER_PROVIDER, bind_verified_buyer, identity_hash
-from salus_customer_oidc import (CLIENT_ASSERTION_TYPE, create_certificate_assertion_from_pfx,
-                                 pkce_challenge, validate_discovery, verified_customer_email)
+from salus_customer_oidc import (CLIENT_ASSERTION_TYPE, CustomerEmailVerificationMissing,
+                                 create_certificate_assertion_from_pfx, pkce_challenge,
+                                 validate_discovery, verified_customer_email,
+                                 verified_customer_email_from_graph)
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.getenv('SALUS_DB_PATH', os.path.join(BASE_DIR, 'thira.db'))
@@ -3974,7 +3976,8 @@ def customer_oidc_start(request:Request):
         conn.close()
     params = {'client_id': CUSTOMER_OIDC_CLIENT_ID, 'response_type': 'code',
               'redirect_uri': CUSTOMER_OIDC_REDIRECT_URI,
-              'scope': 'openid profile email', 'state': state, 'nonce': nonce,
+              'scope': 'openid profile email https://graph.microsoft.com/User.Read',
+              'state': state, 'nonce': nonce,
               'code_challenge': pkce_challenge(verifier), 'code_challenge_method': 'S256'}
     response = RedirectResponse(config['authorization_endpoint'] + '?' +
                                 urllib.parse.urlencode(params), status_code=302)
@@ -4028,7 +4031,8 @@ def customer_oidc_callback(request:Request,code:str='',state:str='',error:str=''
         stage = 'token_exchange'
         token_response = httpx.post(config['token_endpoint'],data=form,timeout=15)
         token_response.raise_for_status()
-        id_token = token_response.json()['id_token']
+        token_payload = token_response.json()
+        id_token = token_payload['id_token']
         stage = 'token_signature'
         signing_key = jwt.PyJWKClient(config['jwks_uri']).get_signing_key_from_jwt(id_token).key
         claims = jwt.decode(id_token, signing_key,
@@ -4045,7 +4049,22 @@ def customer_oidc_callback(request:Request,code:str='',state:str='',error:str=''
         if not subject:
             raise ValueError('Verified customer subject is required')
         stage = 'email_verification'
-        email = verified_customer_email(claims)
+        try:
+            email = verified_customer_email(claims)
+        except CustomerEmailVerificationMissing:
+            stage = 'graph_self_profile'
+            graph_token = token_payload.get('access_token')
+            if not isinstance(graph_token, str) or not graph_token:
+                raise ValueError('Delegated customer profile token is missing')
+            graph_response = httpx.get(
+                'https://graph.microsoft.com/v1.0/me',
+                params={'$select': 'id,identities'},
+                headers={'Authorization': 'Bearer ' + graph_token},
+                timeout=10)
+            graph_response.raise_for_status()
+            stage = 'email_verification'
+            email = verified_customer_email_from_graph(
+                claims, graph_response.json())
     except Exception as exc:
         security_event(request,'CUSTOMER_OIDC_TOKEN_FAILURE','High',
                        f'stage={stage};error={type(exc).__name__}')
