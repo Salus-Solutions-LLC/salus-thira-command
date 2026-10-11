@@ -17,7 +17,8 @@ from salus_customer_oidc import (CustomerEmailInvalid, CustomerEmailMissing,
                                  CustomerVerifiedEmailMismatch,
                                  create_certificate_assertion,
                                  create_certificate_assertion_from_pfx,
-                                 validate_discovery, verified_customer_email)
+                                 validate_discovery, verified_customer_email,
+                                 verified_customer_email_from_graph)
 
 
 HOST = 'salusmemberaccess.ciamlogin.com'
@@ -133,6 +134,34 @@ class CustomerOidcProtocolTests(unittest.TestCase):
         for claims, expected in cases:
             with self.subTest(expected=expected), self.assertRaises(expected):
                 verified_customer_email(claims)
+
+    def test_email_otp_graph_binding_requires_the_signed_account_and_one_mail_identity(self):
+        claims = {'email': ' Buyer@Example.Test ', 'oid': 'fictional-object-id',
+                  'idp': 'mail', 'amr': ['otp']}
+        profile = {'id': 'fictional-object-id',
+                   'identities': [{'signInType': 'federated', 'issuer': 'mail',
+                                   'issuerAssignedId': 'buyer@example.test'}]}
+        self.assertEqual(verified_customer_email_from_graph(claims, profile),
+                         'buyer@example.test')
+        invalid = (
+            (dict(claims, amr=[]), profile),
+            (dict(claims, amr=['pwd', 'otp']), profile),
+            (dict(claims, idp='google'), profile),
+            (dict(claims, email_verified=False), profile),
+            (dict(claims, email='other@example.test'), profile),
+            (dict(claims, oid='other-object-id'), profile),
+            (claims, dict(profile, id='other-object-id')),
+            (claims, dict(profile, identities=[])),
+            (claims, dict(profile, identities=[
+                profile['identities'][0], profile['identities'][0]])),
+            (claims, dict(profile, identities=[
+                {'signInType': 'emailAddress', 'issuer': 'mail',
+                 'issuerAssignedId': 'buyer@example.test'}])),
+        )
+        for bad_claims, bad_profile in invalid:
+            with self.subTest(claims=bad_claims, profile=bad_profile):
+                with self.assertRaises(ValueError):
+                    verified_customer_email_from_graph(bad_claims, bad_profile)
 
     def test_invalid_pfx_secret_fails_closed(self):
         for bad in ('not-base64!', base64.b64encode(b'not a certificate').decode('ascii')):
