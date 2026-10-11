@@ -11,10 +11,19 @@ permissions:
   contents: read
 
 jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - name: Record protected diagnostic approval gate passage
+        run: echo "Protected read-only diagnostic approval gate passed."
+
   inspect:
+    needs: authorize
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: salcapa-dev-approval
     permissions:
       contents: read
       id-token: write

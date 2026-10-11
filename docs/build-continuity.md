@@ -420,3 +420,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc repeated the named-inbox sign-in in a fresh private Edge tab after pilot run 38177167155; `/api/auth/customer/callback` returned HTTP 401 `Customer identity could not be verified`. Buyer session and Level 1A draft acceptance remain open. Do not retain the authorization code visible in the screenshot's address bar.
 - Draft PR #888 adds a protected one-time read-only Log Analytics check for the deployed `CUSTOMER_OIDC_TOKEN_FAILURE` marker. It prints only the allowlisted validation stage and exception class; it does not change app code, Azure settings, payment, intake, uploads or scanning. Exact-source review and CI precede merge and diagnostic execution. Next: repair the observed validation stage under governed release controls.
+
+## 11 October 2026 Central — protected buyer diagnostic federation correction candidate
+
+- Marc approved PR #888 exact head `dc346d4c97f162491156aadab771ee74cb47d0b2`; merge `fe5beb171dce518f4904ee1c1f75a5ec696aad36` triggered [run 38180951457](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38180951457). The run stopped at Azure login with `AADSTS700213` before querying logs because its inspection job used an unregistered environment federated subject. No buyer stage was learned and no Azure setting changed.
+- A candidate separates the protected environment approval from Azure federated login as in the verified pilot workflow. The read-only query and safe output are unchanged. Next: CI, Marc's exact-head review, re-run and identify the failure stage before any code repair. Buyer acceptance remains failed; checkout, intake, uploads and scanning remain closed.
