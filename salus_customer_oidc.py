@@ -153,7 +153,7 @@ def verified_customer_email_from_graph(claims, profile):
     if claims.get('idp') != 'mail':
         raise CustomerOtpMethodMissing('Customer did not use the mail provider')
     amr = claims.get('amr')
-    if not isinstance(amr, list) or 'otp' not in amr or any(
+    if not isinstance(amr, list) or not {'otp', 'emailotp'}.intersection(amr) or any(
             method in amr for method in ('pwd', 'fed', 'none')):
         raise CustomerOtpMethodMissing('Customer OTP authentication is not asserted')
     oid = claims.get('oid')
