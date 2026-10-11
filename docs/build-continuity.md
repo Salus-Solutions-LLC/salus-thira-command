@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 17:48 CDT
-current_frozen_release: v3.242
-current_frozen_commit: d13729429172b3563b7084a0c332effcf3f87094
+last_verified_at: 11 October 2026 18:05 CDT
+current_frozen_release: v3.243
+current_frozen_commit: 3433f3559712608b4a1a6cc5c4605c4fc504b6ab
 active_development_branch: development/salcapa-platform
-current_development_head: 969b09a65702b32aa4cb418e6eb0b2f4f71b8c8c
+current_development_head: 3433f3559712608b4a1a6cc5c4605c4fc504b6ab
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3243_emailotp_customer_oidc_source_candidate
-last_completed_increment: v3242_protected_diagnostic_and_emailotp_source_repair_merged
+active_increment: salus_v3243_emailotp_immutable_image_publication
+last_completed_increment: v3243_emailotp_source_frozen
 candidate_release: v3.243
-validation_pr: 891
-validation_branch: codex/v3243-emailotp-source-20261011
+validation_pr: 892
+validation_branch: codex/v3243-emailotp-image-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3242_live_buyer_signin_failed_http_401
 first_root_failing_gate: customer_oidc_email_verification
 root_cause: signed_mail_otp_method_check_accepts_otp_but_not_documented_emailotp_candidate
-repair_head: 969b09a65702b32aa4cb418e6eb0b2f4f71b8c8c
-repair_summary: accept_signed_emailotp_and_otp_with_same_account_Graph_binding
-genuine_blockers: v3242_superseded_by_v3243_only_after_source_freeze_then_image_deploy_pilot_live_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_v3243_CI_then_Marc_exact_source_review_and_freeze
+repair_head: 3433f3559712608b4a1a6cc5c4605c4fc504b6ab
+repair_summary: frozen_v3243_signed_emailotp_source_pinned_for_immutable_image
+genuine_blockers: v3242_superseded_after_v3243_freeze_image_deploy_pilot_live_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.242
 deployed_demo_state: v3242_single_inbox_pilot_signin_draft_enabled_buyer_identity_failed_checkout_intake_upload_scanner_closed
 ---
@@ -435,3 +435,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc approved PR #890 exact head `7a55a22f99519fa87edc4f600a7f5bd37a8d1942` after all three required checks passed; merge `969b09a65702b32aa4cb418e6eb0b2f4f71b8c8c` adds Microsoft's documented signed `emailotp` method alongside `otp` in the existing mail-provider and Graph identity binding. Password, federation, missing method, account and address mismatches remain rejected. This is a source repair, not a live buyer acceptance.
 - v3.243 candidate labels that merged repair only. The verified v3.242 image remains serving with the named-inbox pilot enabled and buyer sign-in failing. Next: all candidate checks, Marc exact-source review, freeze one commit, immutable image/readback, separate protected deployment and named-inbox pilot, then one fresh buyer-led sign-in and draft review. Checkout/payment, intake, uploads, scanning, Wix and complimentary issuance remain separately closed or open gates as recorded.
+
+## 11 October 2026 Central — v3.243 frozen source and protected image candidate
+
+- Marc approved PR #891 exact head `db647b98fe9b6ab5844e74cd36935997e30048c8` after every required candidate check passed. Squash merge `3433f3559712608b4a1a6cc5c4605c4fc504b6ab` froze `release/v3.243`. The signed `emailotp` repair was previously merged in PR #890; live buyer acceptance remains unproven.
+- This candidate pins the frozen v3.243 commit for one protected immutable image publication and Azure registry digest readback. v3.242 remains the serving image with named-inbox draft pilot; the latest buyer sign-in failed HTTP 401. Next: pass frozen-source and image-candidate gates, obtain Marc exact-head image approval, publish/read back the image, then stage separately reviewed protected deployment and buyer test. Checkout/payment, intake, uploads and scanning remain closed.
