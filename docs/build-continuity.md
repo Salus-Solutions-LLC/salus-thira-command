@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3243_emailotp_immutable_image_publication
 last_completed_increment: v3243_emailotp_source_frozen
 candidate_release: v3.243
-validation_pr: pending_image_candidate_pr
+validation_pr: 892
 validation_branch: codex/v3243-emailotp-image-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
