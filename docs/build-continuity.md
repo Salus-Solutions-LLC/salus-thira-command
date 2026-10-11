@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 22:21 CDT
-current_frozen_release: v3.240
-current_frozen_commit: e2200b2183b6ea437e51923e3180930be4378a28
+last_verified_at: 10 October 2026 22:30 CDT
+current_frozen_release: v3.241
+current_frozen_commit: 57ae5a8fd1fa0b29367058ed33643d1a9f6e5b2a
 active_development_branch: development/salcapa-platform
-current_development_head: 609100affe55672632fbd87fe59f0a40f7f34566
+current_development_head: 57ae5a8fd1fa0b29367058ed33643d1a9f6e5b2a
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3241_customer_otp_graph_identity_source_candidate
-last_completed_increment: v3240_protected_single_inbox_pilot_and_verified_email_failure_class
+active_increment: salus_v3241_customer_otp_graph_identity_immutable_image_publication
+last_completed_increment: v3241_customer_otp_graph_identity_source_frozen
 candidate_release: v3.241
-validation_pr: 878
-validation_branch: codex/v3241-customer-otp-binding-20261010
+validation_pr: 879
+validation_branch: codex/v3241-customer-otp-image-20261010
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_observed_for_v3241_candidate
+failed_workflows: none_for_v3241_frozen_source
 first_root_failing_gate: live_customer_oidc_email_verification
 root_cause: external_id_token_omits_email_verification_claim_after_successful_email_otp
-repair_head: 609100affe55672632fbd87fe59f0a40f7f34566
-repair_summary: signed_mail_otp_and_delegated_graph_self_identity_binding_fail_closed
+repair_head: 57ae5a8fd1fa0b29367058ed33643d1a9f6e5b2a
+repair_summary: v3241_frozen_source_pinned_for_protected_immutable_image_publication
 genuine_blockers: v3240_to_be_superseded_by_v3241_only_after_freeze_then_live_named_buyer_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_v3241_CI_then_Marc_exact_source_review_freeze_image_deploy_and_live_test
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.240
 deployed_demo_state: v3240_app_worker_serving_revision_0000180_v3239_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
@@ -367,3 +367,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #877 exact head `e07fb779911806dd23c6282e3ed86ccc249812b2` after all four required jobs passed. Squash merge `609100affe55672632fbd87fe59f0a40f7f34566` adds a fail-closed alternate verified-email path: signed `idp=mail` and `amr=otp`, then a delegated Microsoft Graph self-profile from the same code exchange whose object ID and sole mail sign-in address match the signed token. All contradiction, omission, mismatch, and Graph errors remain denied. No protected app release changed.
 - Marc separately approved adding only the `amr` optional ID-token claim to the buyer app registration; Azure portal readback shows `amr` beside the existing `verified_primary_email` claim. External ID warns that an unsupported claim may not appear in issued tokens. Runtime `amr` presence and Graph self-profile availability are not yet proven.
 - This v3.241 candidate labels that merged repair. Protected v3.240 revision `0000180` remains the single-inbox draft pilot; checkout, payment, intake, uploads, and scanning remain closed. Next: required source checks, Marc exact-head review and freeze, one immutable image with registry readback, separately reviewed app/worker deployment with prior image and rollback, and one fresh named-inbox buyer sign-in. Neither CI nor version labeling establishes buyer acceptance.
+
+## 10 October 2026 Central — v3.241 frozen source and protected image candidate
+
+- Marc approved PR #878 exact head `14dcb08e4aa9e31fb7bf6d30a0058d89ba1df31c` after all four required checks passed; squash merge `57ae5a8fd1fa0b29367058ed33643d1a9f6e5b2a` froze that source as `release/v3.241`. The guarded mail/OTP plus same-account Graph identity fallback is the only app change from v3.240. It has not been exercised in protected Azure.
+- This candidate pins that frozen commit for one immutable image build and registry digest readback. The buyer app registration requests `amr`, but the actual signed claim and delegated Graph response remain unproven. Serving v3.240 still rejects the one-inbox buyer at email verification; checkout, payment, intake, uploads, and scanning remain closed.
+- Next: frozen-source and image-candidate checks, Marc exact-source review, image publication and readback, then separate protected app/worker deployment with v3.240 prior and v3.223 rollback before one controlled buyer retry. No buyer acceptance is claimed.
