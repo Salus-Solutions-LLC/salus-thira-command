@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 10 October 2026 23:16 CDT
+last_verified_at: 11 October 2026 10:36 CDT
 current_frozen_release: v3.241
 current_frozen_commit: 57ae5a8fd1fa0b29367058ed33643d1a9f6e5b2a
 active_development_branch: development/salcapa-platform
-current_development_head: 054c1d8901410348b3ce929cdf5fca14c69ee8e7
+current_development_head: 11ba5d8a9c5ce4f4e420b718e69ee22d857b66e5
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3241_customer_otp_graph_identity_application_promotion
-last_completed_increment: v3241_immutable_image_publication_and_registry_readback
-candidate_release: v3.241
-validation_pr: 880
-validation_branch: codex/v3241-customer-otp-deploy-20261010
+active_increment: salus_v3242_m365_bounded_listing_source_candidate
+last_completed_increment: v3241_deployment_rolled_back_and_m365_listing_repair_merged
+candidate_release: v3.242
+validation_pr: 884
+validation_branch: codex/v3242-m365-bounded-listing-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3241_image_publication
-first_root_failing_gate: live_customer_oidc_email_verification
-root_cause: external_id_token_omits_email_verification_claim_after_successful_email_otp
-repair_head: 57ae5a8fd1fa0b29367058ed33643d1a9f6e5b2a
-repair_summary: verified_v3241_digest_staged_for_protected_app_worker_promotion
-genuine_blockers: v3240_to_be_superseded_by_v3241_only_after_freeze_then_live_named_buyer_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: pass_deployment_candidate_checks_then_Marc_exact_head_review_and_protected_Azure_readback
-deployed_demo_release: v3.240
-deployed_demo_state: v3240_app_worker_serving_revision_0000180_v3239_prior_v3223_rollback_single_inbox_signin_draft_enabled_checkout_intake_upload_scanner_closed
+failed_workflows: v3241_protected_deployment_run_38146104129
+first_root_failing_gate: m365_bounded_list_acceptance
+root_cause: bounded_list_buffered_all_Graph_pages_before_applying_500_file_window
+repair_head: 11ba5d8a9c5ce4f4e420b718e69ee22d857b66e5
+repair_summary: stream_Graph_pages_then_stop_at_bounded_window_retain_20000_item_guard
+genuine_blockers: v3241_superseded_after_failed_M365_acceptance_v3242_freeze_image_protected_deploy_live_m365_acceptance_then_named_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_v3242_CI_then_Marc_exact_source_review_freeze_image_and_protected_deployment
+deployed_demo_release: v3.223
+deployed_demo_state: v3223_app_worker_restored_after_v3241_M365_acceptance_failure_buyer_pilot_readback_pending_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
@@ -385,3 +385,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #880 exact head `539bcb24d676945465c09d524bc52b4d0f0cd445` conditional on all required checks; all three passed. Squash merge `82e03c79462c5a1d963bac71200a77f6ff09f4e0` triggered protected [deployment run 38146104129](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38146104129). The immutable v3.241 app image `sha256:03e56e1098afc3aa7d3b4a434ed32c684926e05997738408236be6e904985164` passed Azure deployment, live readiness, ingress and sign-in contract checks. The isolated Microsoft 365 intake acceptance execution failed in `salcapa_m365_intake.py` at `Governed Microsoft 365 intake exceeds the traversal limit`, before Protection Advisor and worker promotion.
 - The workflow removed its temporary acceptance job and successfully restored the accepted v3.223 app and scheduled worker image `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c`, verifying runtime readiness, worker schedule and hostname binding. The overall deployment run is failed. v3.241 is published in the registry but is not the accepted serving release. The single-inbox pilot settings and customer draft availability require fresh Azure readback before further testing; no v3.241 buyer acceptance occurred.
 - Draft PR #883 repairs bounded Graph listing by processing each page before fetching the next, allowing the 500-file acceptance window to stop inside a large folder while retaining the global traversal ceiling and next-link checks. Tests cover a folder larger than the ceiling, the unbounded ceiling, and an untrusted continuation. This candidate is not merged, frozen, imaged or deployed. Next: pass required checks, obtain Marc's exact-source review, govern a new frozen release and image, repeat protected deployment and live acceptance, then restore only the approved named-inbox draft pilot after action-time authorization. Checkout/payment, intake, uploads and scanning remain closed pending their separate acceptance gates.
+
+## 11 October 2026 Central — v3.242 bounded-list source candidate
+
+- Marc approved PR #883 at exact head `cc631905116d363936f78b3baf2dafae5818968e` after all three required checks passed. Squash merge `11ba5d8a9c5ce4f4e420b718e69ee22d857b66e5` repairs the Microsoft 365 acceptance failure by yielding validated Graph pages before the requested 500-file window ends. The 20,000-item traversal ceiling remains for unbounded listing, with next-link and cycle checks retained. No buyer identity, authorization, payment, intake enablement, upload, scanner, or Azure resource control changed.
+- This candidate labels that merged repair v3.242. The failed v3.241 protected deployment restored accepted v3.223 app and worker; the v3.241 immutable image remains published but is not accepted serving state. The buyer pilot setting state requires Azure readback. A frozen v3.242 source, protected immutable image, deployment, bounded Microsoft 365 acceptance, and fresh named-inbox buyer sign-in and draft review remain open.
+- Next: pass exact candidate checks, obtain Marc's exact-source approval, freeze one v3.242 commit, then separately publish/read back the image and stage protected deployment with verified rollback. Keep checkout/payment, intake, uploads, and scanning closed.
