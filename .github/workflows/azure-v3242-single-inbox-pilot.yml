@@ -5,7 +5,7 @@ on:
     branches:
       - development/salcapa-platform
     paths:
-      - '.github/workflows/azure-v3240-single-inbox-pilot.yml'
+      - '.github/workflows/azure-v3242-single-inbox-pilot.yml'
 
 permissions:
   contents: read
