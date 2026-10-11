@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 18:20 CDT
+last_verified_at: 11 October 2026 18:42 CDT
 current_frozen_release: v3.243
 current_frozen_commit: 3433f3559712608b4a1a6cc5c4605c4fc504b6ab
 active_development_branch: development/salcapa-platform
-current_development_head: 0d329b82a41a41ee2e906bfe168319f18332b85e
+current_development_head: f7c32cb249e9d6a7910f2187a74ae89dbfa1f91a
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3243_emailotp_application_promotion
-last_completed_increment: v3243_emailotp_immutable_image_published
+active_increment: salus_v3243_emailotp_live_evaluator_acceptance
+last_completed_increment: v3243_protected_application_and_worker_promotion
 candidate_release: v3.243
-validation_pr: 893
-validation_branch: codex/v3243-emailotp-deploy-20261011
+validation_pr: 894
+validation_branch: codex/v3243-single-inbox-pilot-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -20,11 +20,11 @@ failed_workflows: v3242_live_buyer_signin_failed_http_401
 first_root_failing_gate: customer_oidc_email_verification
 root_cause: signed_mail_otp_method_check_accepts_otp_but_not_documented_emailotp_candidate
 repair_head: 3433f3559712608b4a1a6cc5c4605c4fc504b6ab
-repair_summary: verified_v3243_image_pinned_for_protected_app_worker_promotion
-genuine_blockers: v3242_superseded_v3243_image_published_deploy_pilot_live_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_deployment_candidate_checks_then_Marc_exact_deployment_PR_review
-deployed_demo_release: v3.242
-deployed_demo_state: v3242_single_inbox_pilot_signin_draft_enabled_buyer_identity_failed_checkout_intake_upload_scanner_closed
+repair_summary: v3243_protected_app_worker_verified_single_inbox_pilot_pending
+genuine_blockers: named_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_pilot_candidate_checks_then_Marc_exact_PR_review_and_access_change_approval
+deployed_demo_release: v3.243
+deployed_demo_state: v3243_protected_app_worker_verified_M365_Advisor_buyer_signin_draft_closed_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
@@ -446,3 +446,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc approved PR #892 exact head `509bac53b438b2cc423a83f05b019e0322bc3117` after required checks passed. The Windows job timed out once in an existing quote workflow subprocess; rerun passed without source change. Squash merge `0d329b82a41a41ee2e906bfe168319f18332b85e` triggered protected [image run 38183660722](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38183660722), which passed and returned Azure registry digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:2fa71849fc915f6627210aa60330c7d735f3cda394dfe871034f714d2cbfc8a7`. No app deployment or buyer control changed.
 - Draft PR #893 pins that verified digest for protected app/worker deployment. It expects currently deployed v3.242 digest `sha256:4d7edd396ffdf38a1e4b59b659a703ab9f9de925ed8ea2fa0901f053749c0a5f` and retains accepted v3.223 digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` for rollback; live Azure preflight must verify both current images. Sign-in and draft default closed after deployment; checkout/payment, intake, uploads and scanning remain closed. Buyer sign-in and draft acceptance remain unproven.
 - Next: pass deployment CI, Marc exact-head review, protected deployment and readback; then separately review the single-inbox pilot activation and seek one fresh buyer-led sign-in/draft acceptance.
+
+## 11 October 2026 Central — verified v3.243 deployment and single-inbox pilot candidate
+
+- Marc approved PR #893 exact head `55156a5bb6da61e85d7c2eb0d49a5af669390d4a` after all three required checks passed. Squash merge `f7c32cb249e9d6a7910f2187a74ae89dbfa1f91a` triggered protected [deployment run 38184603891](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38184603891), which passed exact-source and Azure image preflight, v3.243 application readiness, isolated Microsoft 365 acceptance, fictional Protection Advisor acceptance, and scheduled worker promotion. The protected app and worker serve immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:2fa71849fc915f6627210aa60330c7d735f3cda394dfe871034f714d2cbfc8a7`; v3.223 remains the guarded rollback image.
+- The frozen v3.243 deployment template defaults sign-in, pilot inbox, draft ordering, checkout/payment, intake and uploads closed. Draft PR #894 stages a separately protected pilot, preflighting exact image and closed state before enabling sign-in and Level 1A draft only for `MDuncan@Salus.email`, then checking a new ready revision and reclosing on failure. No pilot access has been changed by this candidate; buyer sign-in and draft review remain unaccepted. Scanning stays closed.
+- Next: pass candidate CI, obtain Marc's exact-head review and action-time authorization for the single-inbox access change, run protected pilot, then one fresh buyer-led sign-in and draft review. Keep checkout/payment, intake, uploads and scanning closed.
