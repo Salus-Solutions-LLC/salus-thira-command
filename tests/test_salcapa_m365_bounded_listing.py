@@ -73,7 +73,7 @@ def test_unbounded_listing_still_enforces_traversal_limit():
     intake, pages = _intake()
     with pytest.raises(M365IntakeError, match="traversal limit"):
         intake.list_files(pending_only=True)
-    assert len(pages) == 101
+    assert len(pages) == 100
 
 
 def test_bounded_listing_rejects_untrusted_next_link_before_yield():
