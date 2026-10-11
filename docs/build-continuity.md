@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 16:16 CDT
+last_verified_at: 11 October 2026 17:48 CDT
 current_frozen_release: v3.242
 current_frozen_commit: d13729429172b3563b7084a0c332effcf3f87094
 active_development_branch: development/salcapa-platform
-current_development_head: 35017b6912f245bf8b24578d0285ea36542524d4
+current_development_head: 969b09a65702b32aa4cb418e6eb0b2f4f71b8c8c
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3242_single_inbox_live_evaluator_acceptance
-last_completed_increment: v3242_protected_application_and_worker_promotion
-candidate_release: v3.242
-validation_pr: 887
-validation_branch: codex/v3242-single-inbox-pilot-20261011
+active_increment: salus_v3243_emailotp_customer_oidc_source_candidate
+last_completed_increment: v3242_protected_diagnostic_and_emailotp_source_repair_merged
+candidate_release: v3.243
+validation_pr: 891
+validation_branch: codex/v3243-emailotp-source-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3241_protected_deployment_run_38146104129
-first_root_failing_gate: m365_bounded_list_acceptance
-root_cause: bounded_list_buffered_all_Graph_pages_before_applying_500_file_window
-repair_head: d13729429172b3563b7084a0c332effcf3f87094
-repair_summary: v3242_protected_app_worker_passed_M365_Advisor_single_inbox_pilot_candidate
-genuine_blockers: named_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_pilot_candidate_checks_then_Marc_exact_PR_review_and_access_change_approval
+failed_workflows: v3242_live_buyer_signin_failed_http_401
+first_root_failing_gate: customer_oidc_email_verification
+root_cause: signed_mail_otp_method_check_accepts_otp_but_not_documented_emailotp_candidate
+repair_head: 969b09a65702b32aa4cb418e6eb0b2f4f71b8c8c
+repair_summary: accept_signed_emailotp_and_otp_with_same_account_Graph_binding
+genuine_blockers: v3243_source_freeze_image_deploy_pilot_then_live_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_v3243_CI_then_Marc_exact_source_review_and_freeze
 deployed_demo_release: v3.242
-deployed_demo_state: v3242_protected_app_worker_verified_M365_Advisor_buyer_signin_draft_closed_checkout_intake_upload_scanner_closed
+deployed_demo_state: v3242_single_inbox_pilot_signin_draft_enabled_buyer_identity_failed_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
@@ -430,3 +430,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - PR #889 was exact-approved and merged as `956fa936bac131cc8df6db29fc3ac6081800993c`; protected [run 38181417519](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38181417519) authenticated and returned only `stage=email_verification;error=CustomerOtpMethodMissing` from the prior fresh buyer attempt.
 - The candidate broadens the existing signed mail-OTP method check to Microsoft's documented `emailotp` OIDC value, keeps legacy `otp` and all identity/Graph correspondence checks, and adds positive and negative protocol tests. The safe marker does not prove which value was in the prior token; live customer acceptance remains required after governed release. No Azure or commerce setting changes in this candidate.
+
+## 11 October 2026 Central — v3.243 signed email-code source candidate
+
+- Marc approved PR #890 exact head `7a55a22f99519fa87edc4f600a7f5bd37a8d1942` after all three required checks passed; merge `969b09a65702b32aa4cb418e6eb0b2f4f71b8c8c` adds Microsoft's documented signed `emailotp` method alongside `otp` in the existing mail-provider and Graph identity binding. Password, federation, missing method, account and address mismatches remain rejected. This is a source repair, not a live buyer acceptance.
+- v3.243 candidate labels that merged repair only. The verified v3.242 image remains serving with the named-inbox pilot enabled and buyer sign-in failing. Next: all candidate checks, Marc exact-source review, freeze one commit, immutable image/readback, separate protected deployment and named-inbox pilot, then one fresh buyer-led sign-in and draft review. Checkout/payment, intake, uploads, scanning, Wix and complimentary issuance remain separately closed or open gates as recorded.
