@@ -78,6 +78,17 @@ def test_changed_quote_cannot_render_old_scope():
                                    sha256(template).hexdigest())
 
 
+def test_superseded_quote_cannot_start_a_new_agreement():
+    unit=_unit()
+    facts=QuoteFacts(1,2,3,1,unit.digest(),'TX-PERFORMED-LEVEL1A-V1',
+        'SAL-D106','TX',150000,0,150000,'USD')
+    quote={'id':4,**facts.__dict__,'quote_sha256':facts.sha256()}
+    template=_synthetic_template()
+    with pytest.raises(AgreementRenderError,match='earlier quote needs a new remote-assessment order'):
+        render_candidate_agreement(unit,quote,'Alex Example',template,
+                                   sha256(template).hexdigest())
+
+
 def test_member_total_cannot_exceed_approved_fixed_price():
     unit=_unit(); quote=_quote(unit)
     facts=QuoteFacts(1,2,3,1,unit.digest(),'TX-STANDARD-CONSULTING-V1',
