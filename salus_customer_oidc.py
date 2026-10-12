@@ -166,16 +166,16 @@ def customer_email_otp_contact(claims):
     claim still fails closed.
     """
     try:
-        return verified_customer_email(claims)
+        email = verified_customer_email(claims)
     except CustomerEmailVerificationMissing:
-        pass
+        email = claims['email'].strip().lower()
     if claims.get('idp') != 'mail':
         raise CustomerOtpMethodMissing('Customer did not use the mail provider')
     amr = claims.get('amr')
     if not isinstance(amr, list) or not {'otp', 'emailotp'}.intersection(amr) or any(
             method in amr for method in ('pwd', 'fed', 'none')):
         raise CustomerOtpMethodMissing('Customer OTP authentication is not asserted')
-    return claims['email'].strip().lower()
+    return email
 
 
 def verified_customer_email_from_graph(claims, profile):
