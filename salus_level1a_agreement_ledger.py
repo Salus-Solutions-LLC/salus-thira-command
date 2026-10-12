@@ -113,7 +113,9 @@ def issue_generated_agreement(conn, *, tenant_id, buyer_user_id, order_id,
               f'Covered boundary  {order["covered_boundary"]}',
               f'Express exclusions  {order["exclusions"]}',
               f'Order and notices  L1A-{order_id} / Q{quote_id} / v{order["scope_version"]}; {order["notice_email"]}',
-              f'${facts.total_cents / 100:,.2f} total USD; {facts.tax_rule_id} ({facts.tax_decision_reference})')
+              f'${facts.total_cents / 100:,.2f} total USD; '
+              f'approved remote Level 1A assessment tax decision '
+              f'({facts.tax_decision_reference})')
     if ('Standard terms revision 11, 9 October 2026' not in text or
             any(item not in text for item in required) or
             any(marker in text+headers+footers for marker in
