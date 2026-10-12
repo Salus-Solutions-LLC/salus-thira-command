@@ -37,7 +37,7 @@ async function level1aView(){
 
 function level1aStart(){
   const host=document.querySelector('#level1a-step');
-  host.innerHTML=`<div class="card"><h2>Define the covered unit</h2><p>Choose one site or one function. Name its boundary and exclusions so the fixed price stays clear. Enter the U.S. state where you will use the assessment. Salus performs the Level 1A assessment in Texas, and the approved buyer total is $1,500.</p><form id="level1a-order-form">
+  host.innerHTML=`<div class="card"><h2>Define the covered unit</h2><p>Choose one site or one function. Name its boundary and exclusions so the fixed price stays clear. Enter the U.S. state where you will use the assessment. Salus conducts Level 1A assessments remotely for clients in every U.S. state, and the approved buyer total is $1,500.</p><form id="level1a-order-form">
     <label>Organization legal name<input name="buyer_legal_name" required maxlength="500"></label>
     <label>Covered unit type<select name="unit_kind" required><option value="">Select one</option><option value="Site">One site</option><option value="Function">One function</option></select></label>
     <label>Site or function name<input name="unit_name" required maxlength="500"></label>
