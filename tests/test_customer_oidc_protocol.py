@@ -148,7 +148,8 @@ class CustomerOidcProtocolTests(unittest.TestCase):
         claims['amr'] = ['otp']
         self.assertEqual(customer_email_otp_contact(claims), 'buyer@example.test')
         self.assertEqual(customer_email_otp_contact({
-            'email': 'buyer@example.test', 'email_verified': True}),
+            'email': 'buyer@example.test', 'email_verified': True,
+            'idp': 'mail', 'amr': ['otp']}),
             'buyer@example.test')
 
     def test_signed_mail_otp_contact_rejects_other_methods_and_bad_addresses(self):
