@@ -165,12 +165,17 @@ def verified_customer_email_from_graph(claims, profile):
     if not isinstance(identities, list):
         raise CustomerGraphIdentityMismatch('Graph sign-in identities are missing')
     email = claims['email'].strip().lower()
-    mail_identities = [identity for identity in identities
-                       if isinstance(identity, dict)
-                       and identity.get('signInType') == 'federated'
-                       and identity.get('issuer') == 'mail']
-    if (len(mail_identities) != 1
-            or not isinstance(mail_identities[0].get('issuerAssignedId'), str)
-            or mail_identities[0]['issuerAssignedId'].strip().lower() != email):
-        raise CustomerGraphIdentityMismatch('Graph mail sign-in identity differs')
+    # External-tenant local email accounts have an emailAddress identity issued
+    # by the tenant. Keep the legacy mail-federated form for existing OTP users.
+    email_identities = [identity for identity in identities
+                        if isinstance(identity, dict)
+                        and ((identity.get('signInType') == 'federated'
+                              and identity.get('issuer') == 'mail')
+                             or (identity.get('signInType') == 'emailAddress'
+                                 and identity.get('issuer')
+                                 == 'salusmemberaccess.onmicrosoft.com'))]
+    if (len(email_identities) != 1
+            or not isinstance(email_identities[0].get('issuerAssignedId'), str)
+            or email_identities[0]['issuerAssignedId'].strip().lower() != email):
+        raise CustomerGraphIdentityMismatch('Graph email sign-in identity differs')
     return email
