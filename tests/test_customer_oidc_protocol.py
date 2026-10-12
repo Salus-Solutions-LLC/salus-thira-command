@@ -146,6 +146,12 @@ class CustomerOidcProtocolTests(unittest.TestCase):
         # Entra's OIDC v2.0 email passcode method is `emailotp`.
         self.assertEqual(verified_customer_email_from_graph(
             dict(claims, amr=['emailotp']), profile), 'buyer@example.test')
+        local_identity = {'signInType': 'emailAddress',
+                          'issuer': 'salusmemberaccess.onmicrosoft.com',
+                          'issuerAssignedId': 'buyer@example.test'}
+        local_profile = dict(profile, identities=[local_identity])
+        self.assertEqual(verified_customer_email_from_graph(
+            dict(claims, amr=['emailotp']), local_profile), 'buyer@example.test')
         invalid = (
             (dict(claims, amr=[]), profile),
             (dict(claims, amr=['mfa']), profile),
@@ -163,6 +169,15 @@ class CustomerOidcProtocolTests(unittest.TestCase):
             (claims, dict(profile, identities=[
                 {'signInType': 'emailAddress', 'issuer': 'mail',
                  'issuerAssignedId': 'buyer@example.test'}])),
+            (claims, dict(local_profile, id='other-object-id')),
+            (claims, dict(local_profile, identities=[
+                dict(local_identity, issuer='unrelated.onmicrosoft.com')])),
+            (claims, dict(local_profile, identities=[
+                dict(local_identity, issuerAssignedId='other@example.test')])),
+            (claims, dict(local_profile, identities=[
+                local_identity, local_identity])),
+            (claims, dict(local_profile, identities=[
+                local_identity, profile['identities'][0]])),
         )
         for bad_claims, bad_profile in invalid:
             with self.subTest(claims=bad_claims, profile=bad_profile):
