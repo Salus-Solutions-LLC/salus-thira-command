@@ -65,6 +65,8 @@ def test_unknown_tax_cannot_become_implicit_zero():
                             'TX', 0, 'SAL-D099').total_cents(outside)
     assert ApprovedTaxDecision(outside.digest(), 'TX-PERFORMED-LEVEL1A-V1',
                                'TX', 0, 'SAL-D106').total_cents(outside) == 150_000
+    assert ApprovedTaxDecision(outside.digest(), 'REMOTE-LEVEL1A-US-V1',
+                               'US', 0, 'SAL-D107').total_cents(outside) == 150_000
     foreign = unit(use_country='CA', use_region='ON')
     with pytest.raises(TaxDecisionError):
         ApprovedTaxDecision(foreign.digest(), 'TX-PERFORMED-LEVEL1A-V1',
