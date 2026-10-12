@@ -157,6 +157,27 @@ def verified_customer_email(claims):
             'Customer email verification is missing')
     return email
 
+def customer_email_otp_contact(claims):
+    """Return a contact address after the signed local email-code sign-in.
+
+    The address is contact data, not an account key or authorization grant.
+    The caller must first validate the token signature, issuer, audience,
+    tenant, nonce and stable subject. A contradictory provider verification
+    claim still fails closed.
+    """
+    try:
+        return verified_customer_email(claims)
+    except CustomerEmailVerificationMissing:
+        pass
+    if claims.get('idp') != 'mail':
+        raise CustomerOtpMethodMissing('Customer did not use the mail provider')
+    amr = claims.get('amr')
+    if not isinstance(amr, list) or not {'otp', 'emailotp'}.intersection(amr) or any(
+            method in amr for method in ('pwd', 'fed', 'none')):
+        raise CustomerOtpMethodMissing('Customer OTP authentication is not asserted')
+    return claims['email'].strip().lower()
+
+
 def verified_customer_email_from_graph(claims, profile):
     """Verify an OTP-only customer's address against Graph's own sign-in identity.
 
