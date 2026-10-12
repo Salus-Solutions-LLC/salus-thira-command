@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 19:24 CDT
-current_frozen_release: v3.243
-current_frozen_commit: 3433f3559712608b4a1a6cc5c4605c4fc504b6ab
+last_verified_at: 11 October 2026 19:31 CDT
+current_frozen_release: v3.244
+current_frozen_commit: e697912c3d446deda750abf5005b71d28b20c68b
 active_development_branch: development/salcapa-platform
-current_development_head: f1a40d48987ac09a9b42c48e5ab009b832bb9ef9
+current_development_head: e697912c3d446deda750abf5005b71d28b20c68b
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3244_local_email_Graph_binding_source_candidate
-last_completed_increment: v3243_Graph_diagnostic_and_local_email_source_repair_merged
+active_increment: salus_v3244_local_email_immutable_image_publication
+last_completed_increment: v3244_local_email_source_frozen
 candidate_release: v3.244
-validation_pr: 898
-validation_branch: codex/v3244-local-email-source-20261011
+validation_pr: 899
+validation_branch: codex/v3244-local-email-image-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3243_live_buyer_signin_failed_http_401
 first_root_failing_gate: customer_oidc_Graph_identity_binding
 root_cause: Graph_binding_requires_federated_mail_but_external_local_emailAddress_is_documented_candidate
-repair_head: f1a40d48987ac09a9b42c48e5ab009b832bb9ef9
-repair_summary: accept_tenant_issued_local_email_identity_with_signed_OTP_same_account_and_exact_address
-genuine_blockers: v3243_superseded_by_v3244_only_after_source_freeze_then_image_deploy_pilot_live_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_v3244_CI_then_Marc_exact_source_review_and_freeze
+repair_head: e697912c3d446deda750abf5005b71d28b20c68b
+repair_summary: frozen_v3244_local_email_source_pinned_for_immutable_image
+genuine_blockers: v3244_immutable_image_deploy_pilot_live_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.243
 deployed_demo_state: v3243_named_inbox_pilot_signin_draft_enabled_buyer_identity_failed_checkout_intake_upload_scanner_closed
 ---
@@ -473,3 +473,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc approved PR #897 exact head `38cda8a1ea7817a45158f898ccc64ffa9d4a47c3` after package, PostgreSQL and Windows checks passed. Squash merge `f1a40d48987ac09a9b42c48e5ab009b832bb9ef9` adds the tenant-issued local `emailAddress` Graph sign-in identity to the prior OTP fallback, retaining the signed token, `mail` and `emailotp`/`otp` method, same Graph object ID, exactly one matching identity/address, and denial of conflicting or duplicate identities. No Azure setting changed and live buyer acceptance remains failed.
 - This v3.244 source candidate labels that merged repair. The deployed v3.243 immutable image remains in the named-inbox draft pilot, but Marc's fresh sign-in failed HTTP 401; protected stage-only run 38186968165 reported `CustomerGraphIdentityMismatch`. Next: all candidate checks, Marc exact-source review, source freeze, immutable image/readback, separately reviewed protected deployment and pilot reactivation, then one fresh buyer-led sign-in and draft review. Checkout/payment, intake, uploads and scanning remain closed.
+
+## 11 October 2026 Central — v3.244 frozen source and image candidate
+
+- Marc exact-approved PR #898 head `93226831195343e4f7c224240d887ceb35db4722` after all four checks passed. Squash merge `e697912c3d446deda750abf5005b71d28b20c68b` froze `release/v3.244` at that exact commit. The release branch guard passed; frozen-source checks are being verified separately.
+- Image activation candidate pins the same frozen source for one protected immutable image build and registry readback. It does not deploy or change the named-inbox pilot. The serving v3.243 buyer sign-in still fails; checkout/payment, intake, uploads and scanning remain closed. Next: finish frozen and image-candidate checks, obtain Marc exact image PR approval, then publish/read back before separate protected deployment.
