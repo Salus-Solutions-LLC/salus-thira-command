@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 09:10 CDT
+last_verified_at: 12 October 2026 09:32 CDT
 current_frozen_release: v3.246
 current_frozen_commit: f4b0539fc1a155cb1c99819ddbd7b6834ed89b50
 active_development_branch: development/salcapa-platform
 current_development_head: f4b0539fc1a155cb1c99819ddbd7b6834ed89b50
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3246_standard_buyer_signin_application_promotion
-last_completed_increment: v3246_immutable_image_published_and_read_back
+active_increment: salus_v3246_standard_buyer_signin_live_evaluator_acceptance
+last_completed_increment: v3246_protected_application_and_worker_deployed
 candidate_release: v3.246
-validation_pr: 911
-validation_branch: codex/v3246-standard-buyer-deployment-20261012
+validation_pr: 913
+validation_branch: codex/v3246-signed-buyer-pilot-final-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -21,13 +21,16 @@ first_root_failing_gate: v3246_fresh_buyer_signin_and_paid_journey
 root_cause: v3244_Graph_identity_shape_mismatch_repaired_in_frozen_source_live_validation_pending
 repair_head: f4b0539fc1a155cb1c99819ddbd7b6834ed89b50
 repair_summary: frozen_v3246_signed_hosted_email_otp_buyer_binding
-genuine_blockers: v3246_protected_deploy_pilot_buyer_signin_draft_paid_checkout_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_deployment_PR_checks_then_Marc_exact_deployment_review
-deployed_demo_release: v3.244
-deployed_demo_state: v3244_named_inbox_pilot_signin_draft_enabled_buyer_identity_failed_checkout_intake_upload_scanner_closed
+genuine_blockers: v3246_named_buyer_pilot_signin_draft_paid_checkout_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_pilot_PR_checks_then_Marc_exact_access_review
+deployed_demo_release: v3.246
+deployed_demo_state: v3246_protected_app_worker_ready_buyer_signin_draft_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3246_protected_deployment_passed: Marc approved PR #911 exact head `fec75de0f7df9eda083785bb4d4a218c9ff92de2` after all three required checks passed. Squash merge `0d9fcf7f12e6d3ea54f27d6e425262ddf2c856b4` triggered protected Azure run [38262075012](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38262075012). It completed successfully: target/image preflight, Azure what-if and apply, live readiness and identity contract, isolated Microsoft 365 job, fictional report exercise, scheduled worker promotion and verification. The v3.246 app and worker serve the immutable digest from run 38260585612; buyer sign-in, draft ordering, payment, intake, uploads and scanning remain closed. PR #912 was closed unmerged due its stale-base conflict. PR #913 stages the same separate named-account pilot with signed object ID and fail-closed reclosure. Fresh buyer sign-in and paid Level 1A remain unaccepted.
+
 
 v3246_image_published: Marc approved PR #910 exact head `0eb27f88c8303e5235096e3e6e66a70aad726f42` after frozen-source, candidate image, container, security, and PR checks passed. Squash merge `5573e22e42722321d2522934c4edd5780978e80a` triggered protected image run [38260585612](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38260585612). The run succeeded and Azure registry read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:9849060cd445afd875ccf0c031edbc1661d7cbd5bc89cc5b08c07f45dfb04b6c` from frozen source `f4b0539fc1a155cb1c99819ddbd7b6834ed89b50`. PR #911 stages that immutable digest for protected deployment with v3.244 prior and v3.223 rollback. Buyer sign-in, payment, intake and report acceptance remain open.
 
