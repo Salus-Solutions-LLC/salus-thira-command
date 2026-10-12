@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 19:31 CDT
+last_verified_at: 11 October 2026 19:38 CDT
 current_frozen_release: v3.244
 current_frozen_commit: e697912c3d446deda750abf5005b71d28b20c68b
 active_development_branch: development/salcapa-platform
-current_development_head: e697912c3d446deda750abf5005b71d28b20c68b
+current_development_head: e8d2946ef75c28fbb664fe6656089784fa72b98d
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3244_local_email_immutable_image_publication
-last_completed_increment: v3244_local_email_source_frozen
+active_increment: salus_v3244_local_email_protected_deployment
+last_completed_increment: v3244_immutable_image_published_and_registry_readback
 candidate_release: v3.244
-validation_pr: 899
-validation_branch: codex/v3244-local-email-image-20261011
+validation_pr: 900
+validation_branch: codex/v3244-local-email-deployment-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -20,9 +20,9 @@ failed_workflows: v3243_live_buyer_signin_failed_http_401
 first_root_failing_gate: customer_oidc_Graph_identity_binding
 root_cause: Graph_binding_requires_federated_mail_but_external_local_emailAddress_is_documented_candidate
 repair_head: e697912c3d446deda750abf5005b71d28b20c68b
-repair_summary: frozen_v3244_local_email_source_pinned_for_immutable_image
-genuine_blockers: v3244_immutable_image_deploy_pilot_live_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+repair_summary: verified_v3244_image_pinned_with_v3243_prior_and_v3223_rollback
+genuine_blockers: v3244_protected_deployment_pilot_live_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_deployment_candidate_checks_then_Marc_exact_deployment_PR_review
 deployed_demo_release: v3.243
 deployed_demo_state: v3243_named_inbox_pilot_signin_draft_enabled_buyer_identity_failed_checkout_intake_upload_scanner_closed
 ---
@@ -478,3 +478,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc exact-approved PR #898 head `93226831195343e4f7c224240d887ceb35db4722` after all four checks passed. Squash merge `e697912c3d446deda750abf5005b71d28b20c68b` froze `release/v3.244` at that exact commit. The release branch guard passed; frozen-source checks are being verified separately.
 - Image activation candidate pins the same frozen source for one protected immutable image build and registry readback. It does not deploy or change the named-inbox pilot. The serving v3.243 buyer sign-in still fails; checkout/payment, intake, uploads and scanning remain closed. Next: finish frozen and image-candidate checks, obtain Marc exact image PR approval, then publish/read back before separate protected deployment.
+
+## 11 October 2026 Central — v3.244 protected deployment candidate
+
+- Marc exact-approved image PR #899 head `8d8e8f3ed9011e1db1a5630c74e2cb2bca21752e` after all frozen-source and PR checks passed. Squash merge `e8d2946ef75c28fbb664fe6656089784fa72b98d` triggered protected [image run 38188570612](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38188570612), which built frozen source `e697912c3d446deda750abf5005b71d28b20c68b` and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:a4adcda5f8d0b151b92f8a4d5fd2b4218461c326ec9e637f0ea4559fceb33478` from the registry.
+- This separate deployment candidate pins that exact image, verifies the current v3.243 image as prior for both app and worker, and retains accepted v3.223 rollback. Protected deployment starts only after CI and Marc exact-head review. Its default settings close buyer sign-in and draft ordering; checkout/payment, intake, uploads and scanning remain closed. Live buyer acceptance remains unproven and requires separately reviewed single-inbox pilot activation and a fresh buyer-led test.
