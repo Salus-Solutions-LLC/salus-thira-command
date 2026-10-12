@@ -59,7 +59,7 @@ def level1a_checkout_form(binding, success_url, cancel_url):
           'success_url':success_url,'cancel_url':cancel_url,
           'line_items[0][price_data][currency]':binding.currency,
           'line_items[0][price_data][unit_amount]':str(binding.base_price_cents),
-          'line_items[0][price_data][product_data][name]':'Salus Level 1A Access assessment',
+          'line_items[0][price_data][product_data][name]':'Salus Level 1A Assessment',
           'line_items[0][quantity]':'1',
           'automatic_tax[enabled]':'false'}
     form.update({f'metadata[{key}]':value for key,value in binding.metadata().items()})
