@@ -19,6 +19,9 @@ _APPROVED_TAX_RULES = {
     # The currently scoped Texas-performed Level 1A assessment has a fixed
     # zero-tax determination for U.S. buyers under the recorded SAL-D106 rule.
     'TX-PERFORMED-LEVEL1A-V1': ('TX', 0, 'SAL-D106'),
+    # SAL-D107 records the defined remote Level 1A assessment for U.S. buyers.
+    # Retain the prior rule to validate existing immutable quotes and receipts.
+    'REMOTE-LEVEL1A-US-V1': ('US', 0, 'SAL-D107'),
 }
 
 
@@ -137,6 +140,6 @@ class ApprovedTaxDecision:
         if self.rule_id == 'TX-STANDARD-CONSULTING-V1' and (
                 unit.use_country != 'US' or unit.use_region != 'TX'):
             raise TaxDecisionError('The Texas consulting rule does not cover this service use location.')
-        if self.rule_id == 'TX-PERFORMED-LEVEL1A-V1' and unit.use_country != 'US':
+        if self.rule_id in ('TX-PERFORMED-LEVEL1A-V1', 'REMOTE-LEVEL1A-US-V1') and unit.use_country != 'US':
             raise TaxDecisionError('The Level 1A tax rule does not cover this service use country.')
         return BASE_PRICE_CENTS + self.tax_cents
