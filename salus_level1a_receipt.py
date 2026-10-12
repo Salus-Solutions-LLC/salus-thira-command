@@ -52,7 +52,7 @@ def render_level1a_receipt(order,quote,agreement,paid):
                  '</td></tr>' for label,value in fields)
     page='''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Salus Level 1A Access payment receipt</title>
+<title>Salus Level 1A Assessment payment receipt</title>
 <style>@page{size:letter;margin:.65in}body{font-family:"Times New Roman",serif;
 color:#17243a;max-width:760px;margin:28px auto;font-size:12pt;line-height:1.32}
 h1,th,.mark{font-family:Arial,sans-serif}h1{font-size:19pt;margin:.15em 0 .45em}
@@ -63,7 +63,7 @@ th{width:31%;font-size:9pt}td{font-size:10pt}.note{font-size:9pt;margin-top:14px
 footer{font-size:8pt;text-align:right;margin-top:16px}
 @media print{body{margin:0}}</style></head><body><main>
 <p class="mark">SALUS CONFIDENTIAL — PROTECTED MEMBER COPY</p>
-<h1>Level 1A Access payment receipt</h1>
+<h1>Level 1A Assessment payment receipt</h1>
 <p>Salus verified prepayment for the one covered assessment unit and the exact
 accepted agreement shown below. Keep this receipt with your agreement.</p>
 <table>'''+rows+'''</table>
