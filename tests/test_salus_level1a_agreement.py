@@ -23,8 +23,8 @@ def _unit():
 
 
 def _quote(unit):
-    facts=QuoteFacts(1,2,3,1,unit.digest(),'TX-STANDARD-CONSULTING-V1',
-        'SAL-D099','TX',150000,0,150000,'USD')
+    facts=QuoteFacts(1,2,3,1,unit.digest(),'REMOTE-LEVEL1A-US-V1',
+        'SAL-D107','US',150000,0,150000,'USD')
     return {'id':4,**facts.__dict__,'quote_sha256':facts.sha256()}
 
 
@@ -62,7 +62,8 @@ def test_controlled_candidate_fills_every_order_field():
     for value in ('Example Care LLC','Oak Street daycare','100 Oak Street',
                   'buyer@example.test','One building and playground',
                   'Other locations and operations','Alex Example',
-                  'L1A-3 / Q4 / v1','$1,500.00 total USD'):
+                  'L1A-3 / Q4 / v1','$1,500.00 total USD',
+                  'approved remote Level 1A assessment tax decision'):
         assert value in text
     assert '[Complete before issue]' not in text
     assert 'Review Draft' in text  # The template is still unissued.
