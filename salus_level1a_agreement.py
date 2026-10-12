@@ -54,6 +54,8 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
             facts.total_cents != 150_000 or
             facts.currency != 'USD'):
         raise AgreementRenderError('The itemized price is inconsistent.')
+    if facts.tax_rule_id != 'REMOTE-LEVEL1A-US-V1' or facts.tax_decision_reference != 'SAL-D107':
+        raise AgreementRenderError('This earlier quote needs a new remote-assessment order before agreement issue.')
     if (not isinstance(template, bytes) or
             not isinstance(template_sha256, str) or
             len(template_sha256) != 64 or
@@ -119,7 +121,8 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
         })
     tax_text = (f'Applicable tax and total  {_money(facts.tax_cents)} tax; '
                 f'{_money(facts.total_cents)} total USD; '
-                f'{facts.tax_rule_id} ({facts.tax_decision_reference})')
+                f'approved remote Level 1A assessment tax decision '
+                f'({facts.tax_decision_reference})')
     count = 0
     for paragraph in doc.paragraphs:
         original = paragraph.text.strip()

@@ -76,7 +76,8 @@ def _issued_word(order, quote, *, draft=False):
         f'Order and notices  L1A-{order["id"]} / Q{quote["id"]} / '
         f'v{order["scope_version"]}; {order["notice_email"]}',
         f'Applicable tax and total  $0.00 tax; $1,500.00 total USD; '
-        f'{quote["tax_rule_id"]} ({quote["tax_decision_reference"]})',
+        f'approved remote Level 1A assessment tax decision '
+        f'({quote["tax_decision_reference"]})',
         'Review Draft' if draft else 'Salus Confidential',
     ):
         doc.add_paragraph(line)
