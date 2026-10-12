@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 10:19 CDT
+last_verified_at: 12 October 2026 10:27 CDT
 current_frozen_release: v3.247
 current_frozen_commit: c669f700513fc69f617f33db8630905e20415e69
 active_development_branch: development/salcapa-platform
-current_development_head: c669f700513fc69f617f33db8630905e20415e69
+current_development_head: 74096d409821b74911b112a2088a3f026c4bc361
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3247_remote_level1a_immutable_image_publication
-last_completed_increment: v3247_remote_level1a_source_frozen
+active_increment: salus_v3247_remote_level1a_application_promotion
+last_completed_increment: v3247_remote_level1a_immutable_image_published_and_read_back
 candidate_release: v3.247
-validation_pr: 916
-validation_branch: codex/v3247-remote-level1a-image-20261012
+validation_pr: 917
+validation_branch: codex/v3247-remote-level1a-deployment-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3247_image_candidate
+failed_workflows: none_for_v3247_deployment_candidate
 first_root_failing_gate: corrected_remote_agreement_and_paid_level1a_journey
 root_cause: v3246_live_wording_incorrectly_said_performed_in_Texas
 repair_head: c669f700513fc69f617f33db8630905e20415e69
 repair_summary: frozen_v3247_remote_all_US_states_quote_agreement_guard
-genuine_blockers: v3247_image_deploy_named_pilot_new_offer_agreement_test_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+genuine_blockers: v3247_protected_deploy_named_pilot_new_offer_agreement_test_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_deployment_PR_checks_then_Marc_exact_deployment_review
 deployed_demo_release: v3.246
 deployed_demo_state: v3246_named_buyer_signin_draft_offer_passed_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3247_image_published: Marc approved PR #916 exact head `66b07ec99d2dcbff10cbf9c0021e1ce625b60b78` after 64 frozen-source checks and three PR checks passed. Squash merge `74096d409821b74911b112a2088a3f026c4bc361` triggered protected image run [38269945142](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38269945142). It succeeded and Azure registry read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:81b76a9d1a8dfe8ac1bd98256c4b4369ccb680a4f8101199e5db04c7c1b4bc2d` from frozen source `c669f700513fc69f617f33db8630905e20415e69`. PR #917 stages this immutable digest for protected deployment with v3.246 prior and v3.223 rollback. Buyer agreement, payment, intake and report acceptance remain open.
 
 v3246_protected_deployment_passed: Marc approved PR #911 exact head `fec75de0f7df9eda083785bb4d4a218c9ff92de2` after all three required checks passed. Squash merge `0d9fcf7f12e6d3ea54f27d6e425262ddf2c856b4` triggered protected Azure run [38262075012](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38262075012). It completed successfully: target/image preflight, Azure what-if and apply, live readiness and identity contract, isolated Microsoft 365 job, fictional report exercise, scheduled worker promotion and verification. The v3.246 app and worker serve the immutable digest from run 38260585612; buyer sign-in, draft ordering, payment, intake, uploads and scanning remain closed. PR #912 was closed unmerged due its stale-base conflict. PR #913 stages the same separate named-account pilot with signed object ID and fail-closed reclosure. Fresh buyer sign-in and paid Level 1A remain unaccepted.
 
@@ -539,3 +541,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc exact-approved PR #915 head `96783fdf8573faf87ff74c16acd4ab5c1ee67261` after all four required checks passed. Squash merge `c669f700513fc69f617f33db8630905e20415e69` froze `release/v3.247` at that exact source. The release branch is protected and points to the same commit. Frozen-source checks are separate from source PR CI.
 - PR #916 pins only that frozen source for one protected immutable image build and registry readback. It does not deploy. Protected v3.246 remains serving the named pilot, with customer sign-in and offer display observed; checkout/payment, intake, uploads and scanning remain closed. Next: all frozen/image checks, Marc's exact-head review, then protected image publication, separate deployment and buyer acceptance. Earlier v3.246 quotes cannot generate a new agreement under the corrected source.
+
+## 12 October 2026 Central — v3.247 immutable image published
+
+- Marc approved PR #916 exact head `66b07ec99d2dcbff10cbf9c0021e1ce625b60b78` after all 64 frozen-source checks and all three PR checks passed. Squash merge `74096d409821b74911b112a2088a3f026c4bc361` triggered protected run [38269945142](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38269945142), which succeeded and read back immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:81b76a9d1a8dfe8ac1bd98256c4b4369ccb680a4f8101199e5db04c7c1b4bc2d` from v3.247 source `c669f700513fc69f617f33db8630905e20415e69`.
+- PR #917 stages guarded deployment only. It expects the currently serving v3.246 app and worker digest, retains v3.223 rollback, and starts with buyer sign-in, draft ordering, checkout/payment, intake, uploads and scanning closed. Protected v3.246 still serves the named pilot until this deployment passes. Next: exact-head CI and Marc review, protected deployment/readback, then separate pilot reactivation and fresh buyer-led remote offer and agreement acceptance.
