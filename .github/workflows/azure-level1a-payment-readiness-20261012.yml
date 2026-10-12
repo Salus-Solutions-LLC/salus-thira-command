@@ -1,0 +1,108 @@
+name: SalCAPA protected Level 1A payment readiness
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-level1a-payment-readiness-20261012.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-application-deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only readiness gate passed.'
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify deployed buyer pilot and closed purchase controls
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = 'rg-salcapa-dev'
+          test "$EXPECTED_SUBSCRIPTION" = '076f90cd-cc6a-4547-a4ff-de3fc1825472'
+          test "$EXPECTED_TENANT" = 'e06fd260-a201-44da-b03b-9cde7e119d04'
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224 -o json > /tmp/salcapa-readiness.json
+          jq -e '
+            def env_value($name):
+              ([.properties.template.containers[0].env[] | select(.name == $name) | .value] | last) // "";
+            .properties.template.containers[0].image ==
+              "salcapadevb48224acr.azurecr.io/salcapa@sha256:748d744126b6001f86c497c75455a7f0251352635e5faff39240ebdd4e2cd427" and
+            env_value("SALUS_CUSTOMER_OIDC_ENABLED") == "1" and
+            (env_value("SALUS_LEVEL1A_PILOT_EMAIL") | ascii_downcase) == "mduncan@salus.email" and
+            (env_value("SALUS_LEVEL1A_PILOT_OBJECT_ID") | ascii_downcase) == "eb5ed5b1-4ba6-4b57-bae2-3a56e90cb2d6" and
+            env_value("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED") == "1" and
+            (env_value("SALUS_LEVEL1A_CHECKOUT_ENABLED") == "" or env_value("SALUS_LEVEL1A_CHECKOUT_ENABLED") == "0") and
+            (env_value("SALUS_LEVEL1A_INTAKE_ENABLED") == "" or env_value("SALUS_LEVEL1A_INTAKE_ENABLED") == "0") and
+            (env_value("SALUS_LEVEL1A_UPLOAD_ENABLED") == "" or env_value("SALUS_LEVEL1A_UPLOAD_ENABLED") == "0") and
+            (env_value("SALUS_PACKAGE_SCANNER_ACCEPTED") == "" or env_value("SALUS_PACKAGE_SCANNER_ACCEPTED") == "0")
+          ' /tmp/salcapa-readiness.json > /dev/null
+          echo 'Verified v3.248 named buyer pilot; checkout, intake, uploads, and scanner acceptance closed.'
+
+      - name: Classify Stripe configuration without revealing secret values
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          python - <<'PY' > /tmp/level1a-secret-probe.b64
+          import base64
+          script = '''from secret_provider import secret
+          try:
+              key = secret("SALUS_STRIPE_SECRET_KEY", "")
+              hook = secret("SALUS_STRIPE_WEBHOOK_SECRET", "")
+              mode = ("test" if key.startswith(("sk_test_", "rk_test_")) else
+                      "live" if key.startswith(("sk_live_", "rk_live_")) else
+                      "absent" if not key else "unrecognized")
+              print("LEVEL1A_STRIPE_KEY_MODE=" + mode)
+              print("LEVEL1A_STRIPE_WEBHOOK_VALID=" + str(hook.startswith("whsec_")).lower())
+          except Exception:
+              print("LEVEL1A_STRIPE_KEY_MODE=unavailable")
+              print("LEVEL1A_STRIPE_WEBHOOK_VALID=unavailable")
+          '''
+          print(base64.b64encode(script.encode()).decode())
+          PY
+          probe="$(cat /tmp/level1a-secret-probe.b64)"
+          command="python -c \"import base64;exec(base64.b64decode('$probe'))\""
+          if ! timeout 60s az containerapp exec -g "$RESOURCE_GROUP" -n salcapa-dev-b48224 \
+            --command "$command" > /tmp/level1a-secret-probe.out 2>/dev/null; then
+            echo 'Stripe mode inspection could not run in the protected app.' >&2
+            exit 1
+          fi
+          mode="$(grep -oE 'LEVEL1A_STRIPE_KEY_MODE=(test|live|absent|unrecognized|unavailable)' /tmp/level1a-secret-probe.out | tail -1 || true)"
+          hook="$(grep -oE 'LEVEL1A_STRIPE_WEBHOOK_VALID=(true|false|unavailable)' /tmp/level1a-secret-probe.out | tail -1 || true)"
+          test -n "$mode"
+          test -n "$hook"
+          echo "$mode"
+          echo "$hook"
+          test "$mode" = 'LEVEL1A_STRIPE_KEY_MODE=test'
+          test "$hook" = 'LEVEL1A_STRIPE_WEBHOOK_VALID=true'
+          echo 'Stripe test key and webhook secret are available to the deployed app. No value was logged.'
+

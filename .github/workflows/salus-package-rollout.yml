@@ -46,6 +46,7 @@ on:
       - tools/ci_demo_deployment_continuity_smoke.py
       - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
       - .github/workflows/salus-package-rollout.yml
+      - .github/workflows/azure-level1a-payment-readiness-20261012.yml
       - infra/azure/defender-storage-scanner.bicep
       - infra/azure/private-scanner-acceptance.bicep
       - infra/azure/main.bicep
@@ -96,6 +97,7 @@ on:
       - tools/ci_demo_deployment_continuity_smoke.py
       - SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md
       - .github/workflows/salus-package-rollout.yml
+      - .github/workflows/azure-level1a-payment-readiness-20261012.yml
       - infra/azure/defender-storage-scanner.bicep
       - infra/azure/private-scanner-acceptance.bicep
       - infra/azure/main.bicep
