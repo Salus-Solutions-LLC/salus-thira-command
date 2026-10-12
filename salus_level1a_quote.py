@@ -1,7 +1,7 @@
 """Immutable price facts for one standard Level 1A Access order version.
 
-The automatic tax decision covers the currently scoped Texas-performed Level 1A
-assessment for U.S. buyers under SAL-D106. Other countries remain fail-closed.
+The automatic tax decision covers the defined remote Level 1A assessment for
+U.S. buyers under SAL-D107. Other countries remain fail-closed.
 """
 
 from dataclasses import dataclass
@@ -90,8 +90,27 @@ def quote_for_order(conn, *, tenant_id, buyer_user_id, order_id, timestamp):
         raise QuoteUnavailable('The saved scope needs reconciliation before pricing.')
     if unit.use_country != 'US':
         raise QuoteUnavailable('A verified tax determination for this service-use country is pending.')
-    tax = ApprovedTaxDecision(unit.digest(), 'TX-PERFORMED-LEVEL1A-V1',
-                              'TX', 0, 'SAL-D106')
+    existing = conn.execute('''SELECT * FROM level1a_quote_versions
+        WHERE tenant_id=? AND buyer_user_id=? AND order_id=? AND scope_version=?''',
+        (tenant_id, buyer_user_id, order_id, unit.scope_version)).fetchone()
+    if existing:
+        old = dict(existing)
+        old_facts = QuoteFacts(**{key: old[key] for key in QuoteFacts.__dataclass_fields__})
+        old_tax = ApprovedTaxDecision(unit.digest(), old['tax_rule_id'],
+            old['tax_jurisdiction'], old['tax_cents'], old['tax_decision_reference'])
+        try:
+            old_total = old_tax.total_cents(unit)
+        except TaxDecisionError as exc:
+            raise QuoteUnavailable('The recorded tax determination needs reconciliation.') from exc
+        if (old['scope_sha256'] != unit.digest() or
+                old['base_price_cents'] != BASE_PRICE_CENTS or
+                old['tax_cents'] != 0 or old['total_cents'] != BASE_PRICE_CENTS or
+                old_total != old['total_cents'] or old['currency'] != 'USD' or
+                old_facts.sha256() != old['quote_sha256']):
+            raise QuoteUnavailable('The recorded quote needs reconciliation.')
+        return old
+    tax = ApprovedTaxDecision(unit.digest(), 'REMOTE-LEVEL1A-US-V1',
+                              'US', 0, 'SAL-D107')
     try:
         total = tax.total_cents(unit)
     except TaxDecisionError as exc:
