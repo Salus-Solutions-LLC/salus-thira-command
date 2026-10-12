@@ -99,7 +99,8 @@ def binding_for_accepted_order(conn, *, tenant_id, buyer_user_id, order_id):
             agreement['quote_id']!=quote['id'] or
             accepted['agreement_id']!=agreement['id'] or
             quote['tax_rule_id'] not in ('TX-STANDARD-CONSULTING-V1',
-                                         'TX-PERFORMED-LEVEL1A-V1') or
+                                         'TX-PERFORMED-LEVEL1A-V1',
+                                         'REMOTE-LEVEL1A-US-V1') or
             quote['total_cents']!=approved_total):
         raise CheckoutVerificationError('The accepted scope, quote or tax decision changed.')
     return Level1ACheckoutBinding(tenant_id,buyer_user_id,order_id,quote['id'],
