@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 10:54 CDT
+last_verified_at: 12 October 2026 12:02 CDT
 current_frozen_release: v3.247
 current_frozen_commit: c669f700513fc69f617f33db8630905e20415e69
 active_development_branch: development/salcapa-platform
-current_development_head: f116ffa57f1efea1ee7d3d610c198847aaa9dbe9
+current_development_head: 3da71ee81713a614600f9c14db3218de55325175
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
 active_increment: salus_v3247_remote_level1a_live_evaluator_acceptance
 last_completed_increment: v3247_remote_level1a_named_inbox_pilot_verified
 candidate_release: v3.247
-validation_pr: 919
-validation_branch: codex/v3247-pilot-handoff-20261012
+validation_pr: 920
+validation_branch: codex/level1a-agreement-qa-fix-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3247_pilot_candidate
-first_root_failing_gate: corrected_remote_agreement_and_paid_level1a_journey
-root_cause: v3246_live_wording_incorrectly_said_performed_in_Texas
+failed_workflows: none_for_v3247_agreement_qa_candidate
+first_root_failing_gate: generated_agreement_properties_and_buyer_agreement_acceptance
+root_cause: approved_rev11_template_retained_draft_rev9_core_title_in_generated_copy
 repair_head: c669f700513fc69f617f33db8630905e20415e69
-repair_summary: frozen_v3247_remote_all_US_states_quote_agreement_guard
-genuine_blockers: v3247_buyer_new_offer_agreement_test_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: Marc_fresh_buyer_offer_and_agreement_acceptance
+repair_summary: candidate_generated_rev11_metadata_and_buyer_UI_clarity_fix
+genuine_blockers: agreement_metadata_visual_QA_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_agreement_QA_PR_checks_and_Marc_exact_source_review
 deployed_demo_release: v3.247
 deployed_demo_state: v3247_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3247_agreement_live_QA: Marc signed into the named pilot and created a fresh remote-rule quote for one fictional site. The browser showed $1,500 total and the corrected quote guard allowed agreement preparation. The issued Word download (SHA-256 `5c2a1cefed787f44c715b01f0523aa965d9006d1cc0ead49801d327c43d1ed19`) visibly states remote, human-reviewed service, fixed $1,500 for one unit regardless of buyer state, approved revision 11 and the fictional covered scope. Read-only inspection found stale core title `Level 1A Access Automated Agreement Review Draft Revision 9`; buyer UI also retained completed-step status text and separated consent checkbox from its label. PR #920 stages generated-copy metadata correction and buyer UI clarity. The generated agreement has not been approved; Word COM/LibreOffice page rendering was unavailable in this executor, so page-level visual QA remains open. Payment, intake, uploads and scanning stay closed.
 
 v3247_named_buyer_pilot_passed: Marc approved PR #918 exact head `ccafe580ab3dfdc176f5dc89a0259103a80c1ba7` after all three checks passed. Squash merge `f116ffa57f1efea1ee7d3d610c198847aaa9dbe9` triggered protected run [38273508631](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38273508631). It passed exact v3.247 image and closed-start checks, enabled sign-in and draft ordering only for `MDuncan@Salus.email` and the verified Microsoft account, and read back a ready new revision with checkout/payment, intake, uploads and scanning closed. Marc's fresh buyer-led remote offer and agreement check is pending; payment and intake acceptance remain open.
 
