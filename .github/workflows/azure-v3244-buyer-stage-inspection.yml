@@ -1,0 +1,65 @@
+name: SalCAPA v3.244 one-time buyer sign-in stage inspection
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3244-buyer-stage-inspection.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - name: Record protected diagnostic approval gate passage
+        run: echo "Protected read-only diagnostic approval gate passed."
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Authenticate to the exact Azure target
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Inspect only the latest safe buyer failure marker
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          test "$EXPECTED_SUBSCRIPTION" = "076f90cd-cc6a-4547-a4ff-de3fc1825472"
+          test "$EXPECTED_TENANT" = "e06fd260-a201-44da-b03b-9cde7e119d04"
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          WORKSPACE_ID="$(az monitor log-analytics workspace show --resource-group "$RESOURCE_GROUP" --workspace-name salcapa-dev-b48224-logs --query customerId --output tsv)"
+          test -n "$WORKSPACE_ID"
+          QUERY='AppTraces | where TimeGenerated > datetime(2026-10-12T01:07:04Z) | where Message contains "CUSTOMER_OIDC_TOKEN_FAILURE" | project TimeGenerated, Message | order by TimeGenerated desc | take 20'
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "$QUERY" --output json > /tmp/buyer-events.json
+          MARKER="$(jq -r '[.[] | .Message | fromjson? | select(.event_type == "CUSTOMER_OIDC_TOKEN_FAILURE") | .detail | select(type == "string") | select(test("^stage=(certificate|token_exchange|token_signature|nonce|tenant|subject|email_verification|graph_self_profile);error=[A-Za-z][A-Za-z0-9_]*$"))] | if length > 0 then .[0] else "" end' /tmp/buyer-events.json)"
+          if test -z "$MARKER"; then
+            echo 'No safe buyer failure marker was found after the v3.244 pilot activation.'
+            exit 1
+          fi
+          echo "Latest safe buyer failure: $MARKER"
+          {
+            echo '### v3.244 buyer sign-in stage inspection'
+            echo ''
+            echo "- Latest safe failure: \`$MARKER\`"
+            echo '- Authorization code, token, email, subject, and request identifiers: not emitted'
+          } >> "$GITHUB_STEP_SUMMARY"
