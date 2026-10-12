@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 09:32 CDT
+last_verified_at: 12 October 2026 10:08 CDT
 current_frozen_release: v3.246
 current_frozen_commit: f4b0539fc1a155cb1c99819ddbd7b6834ed89b50
 active_development_branch: development/salcapa-platform
-current_development_head: f4b0539fc1a155cb1c99819ddbd7b6834ed89b50
+current_development_head: 4a82e816b1d91733f16f512d35779581350177cb
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3246_standard_buyer_signin_live_evaluator_acceptance
-last_completed_increment: v3246_protected_application_and_worker_deployed
-candidate_release: v3.246
-validation_pr: 913
-validation_branch: codex/v3246-signed-buyer-pilot-final-20261012
+active_increment: salus_v3247_remote_level1a_source_candidate
+last_completed_increment: v3246_buyer_signin_offer_display_and_remote_correction_merged
+candidate_release: v3.247
+validation_pr: 915
+validation_branch: codex/v3247-remote-level1a-source-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3244_live_buyer_signin_failed_http_401
-first_root_failing_gate: v3246_fresh_buyer_signin_and_paid_journey
-root_cause: v3244_Graph_identity_shape_mismatch_repaired_in_frozen_source_live_validation_pending
-repair_head: f4b0539fc1a155cb1c99819ddbd7b6834ed89b50
-repair_summary: frozen_v3246_signed_hosted_email_otp_buyer_binding
-genuine_blockers: v3246_named_buyer_pilot_signin_draft_paid_checkout_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_pilot_PR_checks_then_Marc_exact_access_review
+failed_workflows: none_for_v3247_source_candidate
+first_root_failing_gate: corrected_remote_agreement_and_paid_level1a_journey
+root_cause: v3246_live_wording_incorrectly_said_performed_in_Texas
+repair_head: 4a82e816b1d91733f16f512d35779581350177cb
+repair_summary: remote_all_US_states_quote_agreement_and_prior_quote_guard
+genuine_blockers: v3246_superseded_only_after_v3247_source_freeze_then_image_deploy_pilot_new_offer_agreement_test_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_source_candidate_CI_then_Marc_exact_source_review
 deployed_demo_release: v3.246
-deployed_demo_state: v3246_protected_app_worker_ready_buyer_signin_draft_checkout_intake_upload_scanner_closed
+deployed_demo_state: v3246_named_buyer_signin_draft_offer_passed_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
@@ -528,3 +528,9 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc exact-approved PR #909 head `ba8768eedb6953c365585be965905f118188876e` after all four required checks passed. Squash merge `f4b0539fc1a155cb1c99819ddbd7b6834ed89b50` froze `release/v3.246` at that exact source. The release branch guard passed; frozen-source checks are still running.
 - This activation candidate pins v3.246 for one protected immutable image build and registry readback. It makes no Azure deployment or buyer access change. The serving v3.244 named-inbox pilot still fails sign-in; checkout/payment, intake, uploads and scanning remain closed. Next: complete frozen/image checks, Marc exact-head image review, then separately govern deployment and a signed-object-ID pilot before one fresh buyer-led sign-in.
+
+## 12 October 2026 Central — v3.247 remote Level 1A source candidate
+
+- Marc corrected the v3.246 buyer page's Texas-performance sentence. SAL-D107 and the approved Level 1A revision 11 Word template already define the assessment as remote for clients in all U.S. states. The fixed Level 1A buyer total remains $1,500. The signed-in named buyer reached the v3.246 offer screen showing $1,500 and $0 tax, but was told to stop before agreement preparation.
+- Marc approved PR #914 exact head `9dbbe4bca10c487d1a7b6a941e1a8e2ebccc879c` after all three checks passed. Squash merge `4a82e816b1d91733f16f512d35779581350177cb` corrects the remote wording, applies SAL-D107 to new quotes, preserves immutable earlier quote records, and prevents superseded quotes from generating new agreements. The buyer interface presents a restart for an earlier quote. Checkout, payment, intake, upload and scanning controls remain closed.
+- PR #915 labels the merged correction v3.247 for source freeze. It does not publish an image or deploy. Next: candidate CI and Marc exact-source review; freeze, build/read back one immutable image, deploy with prior-image rollback, then re-enable the named-account pilot and accept a fresh buyer-led offer and agreement. Human review and issue of the four reports remains required.
