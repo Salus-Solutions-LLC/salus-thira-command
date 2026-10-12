@@ -1,7 +1,7 @@
 """Fail-closed, tenant-isolated binding for a verified external buyer identity.
 
-Token validation and email verification happen before this function is called.
-No email or organization name is used to find an existing Protected Member.
+Signed-token validation and customer authentication happen before this function is called.
+Email is contact data; only issuer and subject select an existing buyer account.
 """
 
 import hashlib
@@ -29,7 +29,7 @@ def bind_verified_buyer(conn, *, issuer: str, subject: str, email: str,
     subject_digest = identity_hash(issuer, subject)
     normalized_email = str(email or '').strip().lower()
     if not normalized_email or '@' not in normalized_email:
-        raise ValueError('A verified buyer email is required')
+        raise ValueError('A usable buyer contact email is required')
     if not timestamp:
         raise ValueError('A timestamp is required')
     existing = conn.execute(

@@ -23,7 +23,8 @@ from salus_customer_oidc import (CustomerEmailInvalid, CustomerEmailMissing,
                                  create_certificate_assertion,
                                  create_certificate_assertion_from_pfx,
                                  validate_discovery, verified_customer_email,
-                                 verified_customer_email_from_graph)
+                                 verified_customer_email_from_graph,
+                                 customer_email_otp_contact, CustomerOtpMethodMissing)
 
 
 HOST = 'salusmemberaccess.ciamlogin.com'
@@ -139,6 +140,30 @@ class CustomerOidcProtocolTests(unittest.TestCase):
         for claims, expected in cases:
             with self.subTest(expected=expected), self.assertRaises(expected):
                 verified_customer_email(claims)
+
+    def test_signed_mail_otp_contact_does_not_require_a_graph_profile(self):
+        claims = {'email': ' Buyer@Example.Test ', 'oid': 'fictional-object-id',
+                  'idp': 'mail', 'amr': ['emailotp']}
+        self.assertEqual(customer_email_otp_contact(claims), 'buyer@example.test')
+        claims['amr'] = ['otp']
+        self.assertEqual(customer_email_otp_contact(claims), 'buyer@example.test')
+        self.assertEqual(customer_email_otp_contact({
+            'email': 'buyer@example.test', 'email_verified': True,
+            'idp': 'mail', 'amr': ['otp']}),
+            'buyer@example.test')
+
+    def test_signed_mail_otp_contact_rejects_other_methods_and_bad_addresses(self):
+        base = {'email': 'buyer@example.test', 'idp': 'mail', 'amr': ['emailotp']}
+        for changes, expected in (
+            ({'idp': 'other'}, CustomerOtpMethodMissing),
+            ({'amr': ['pwd']}, CustomerOtpMethodMissing),
+            ({'amr': ['emailotp', 'fed']}, CustomerOtpMethodMissing),
+            ({'amr': []}, CustomerOtpMethodMissing),
+            ({'email_verified': False}, CustomerEmailVerificationContradicted),
+            ({'email': 'not an address'}, CustomerEmailInvalid),
+        ):
+            with self.subTest(changes=changes), self.assertRaises(expected):
+                customer_email_otp_contact({**base, **changes})
 
     def test_email_otp_graph_binding_requires_the_signed_account_and_one_mail_identity(self):
         claims = {'email': ' Buyer@Example.Test ', 'oid': 'fictional-object-id',
