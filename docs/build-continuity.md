@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 12:12 CDT
-current_frozen_release: v3.247
-current_frozen_commit: c669f700513fc69f617f33db8630905e20415e69
+last_verified_at: 12 October 2026 12:19 CDT
+current_frozen_release: v3.248
+current_frozen_commit: dec2c43c6cdc938468425fc565e6e5fbbdbd7ad1
 active_development_branch: development/salcapa-platform
-current_development_head: 28c946faf276b9976f2de2586a5aa7464301cc1a
+current_development_head: dec2c43c6cdc938468425fc565e6e5fbbdbd7ad1
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3248_agreement_qa_source_candidate
-last_completed_increment: v3247_buyer_offer_agreement_layout_and_metadata_repair_merged
+active_increment: salus_v3248_agreement_qa_immutable_image_publication
+last_completed_increment: v3248_agreement_qa_source_frozen
 candidate_release: v3.248
-validation_pr: 921
-validation_branch: codex/v3248-agreement-qa-source-20261012
+validation_pr: 922
+validation_branch: codex/v3248-agreement-qa-image-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3248_source_candidate
+failed_workflows: none_for_v3248_image_candidate
 first_root_failing_gate: newly_generated_agreement_metadata_and_paid_level1a_acceptance
 root_cause: issued_rev11_agreement_inherited_draft_rev9_core_title
-repair_head: 28c946faf276b9976f2de2586a5aa7464301cc1a
-repair_summary: merged_generated_rev11_metadata_and_buyer_UI_clarity
-genuine_blockers: v3247_superseded_only_after_v3248_source_freeze_then_image_deploy_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_source_candidate_CI_then_Marc_exact_source_review
+repair_head: dec2c43c6cdc938468425fc565e6e5fbbdbd7ad1
+repair_summary: frozen_v3248_generated_rev11_metadata_and_buyer_UI_clarity
+genuine_blockers: v3248_image_deploy_named_pilot_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.247
 deployed_demo_state: v3247_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3248_agreement_QA_image_candidate: Marc exact-approved PR #921 current head `00c899f227555ac2786541c21af34afc7297693a` after four required checks passed. Squash merge `dec2c43c6cdc938468425fc565e6e5fbbdbd7ad1` froze protected `release/v3.248` at that source. This PR #922 pins only that frozen source for one protected immutable image build and registry readback. It does not deploy or open buyer checkout/payment, intake, uploads or scanning. The serving v3.247 named buyer pilot remains unchanged. After image publication, separate protected deployment and named-pilot reactivation are required before a new agreement readback and buyer acceptance.
 
 v3248_agreement_QA_source_candidate: Marc exact-approved PR #920 head `b722025cb673f2f4d67c75de178563457b759a9f` after all three required checks passed. Squash merge `28c946faf276b9976f2de2586a5aa7464301cc1a` corrects generated revision 11 Word core properties and buyer agreement cues without changing the approved template, terms, Azure, payment or intake settings. The original five-page fictional download passed visible page inspection but failed hidden core-title review; no agreement approval occurred. This candidate labels the merged fix v3.248. Source freeze, immutable image, protected deployment, a newly generated Word readback/page check, signed test payment, receipt and scanner-backed intake remain separate gates. Buyer checkout/payment and intake remain closed.
 
