@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 18:42 CDT
+last_verified_at: 11 October 2026 19:24 CDT
 current_frozen_release: v3.243
 current_frozen_commit: 3433f3559712608b4a1a6cc5c4605c4fc504b6ab
 active_development_branch: development/salcapa-platform
-current_development_head: f7c32cb249e9d6a7910f2187a74ae89dbfa1f91a
+current_development_head: f1a40d48987ac09a9b42c48e5ab009b832bb9ef9
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3243_emailotp_live_evaluator_acceptance
-last_completed_increment: v3243_protected_application_and_worker_promotion
-candidate_release: v3.243
-validation_pr: 894
-validation_branch: codex/v3243-single-inbox-pilot-20261011
+active_increment: salus_v3244_local_email_Graph_binding_source_candidate
+last_completed_increment: v3243_Graph_diagnostic_and_local_email_source_repair_merged
+candidate_release: v3.244
+validation_pr: 898
+validation_branch: codex/v3244-local-email-source-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3242_live_buyer_signin_failed_http_401
-first_root_failing_gate: customer_oidc_email_verification
-root_cause: signed_mail_otp_method_check_accepts_otp_but_not_documented_emailotp_candidate
-repair_head: 3433f3559712608b4a1a6cc5c4605c4fc504b6ab
-repair_summary: v3243_protected_app_worker_verified_single_inbox_pilot_pending
-genuine_blockers: named_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
-next_authorized_step: complete_pilot_candidate_checks_then_Marc_exact_PR_review_and_access_change_approval
+failed_workflows: v3243_live_buyer_signin_failed_http_401
+first_root_failing_gate: customer_oidc_Graph_identity_binding
+root_cause: Graph_binding_requires_federated_mail_but_external_local_emailAddress_is_documented_candidate
+repair_head: f1a40d48987ac09a9b42c48e5ab009b832bb9ef9
+repair_summary: accept_tenant_issued_local_email_identity_with_signed_OTP_same_account_and_exact_address
+genuine_blockers: v3243_superseded_by_v3244_only_after_source_freeze_then_image_deploy_pilot_live_buyer_signin_draft_paid_checkout_intake_scanner_wix_complimentary_acceptance
+next_authorized_step: complete_v3244_CI_then_Marc_exact_source_review_and_freeze
 deployed_demo_release: v3.243
-deployed_demo_state: v3243_protected_app_worker_verified_M365_Advisor_buyer_signin_draft_closed_checkout_intake_upload_scanner_closed
+deployed_demo_state: v3243_named_inbox_pilot_signin_draft_enabled_buyer_identity_failed_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
@@ -468,3 +468,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc exact-approved PR #896 head `e51c1377495b1a7352cecdfdf1d0a3e319fb4ac3`; merge `b5e94e8bd18bb94a64b903b1e1fd5ae978b35153` triggered protected read-only [run 38186968165](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38186968165). It returned only `stage=email_verification;error=CustomerGraphIdentityMismatch` from the fresh v3.243 buyer attempt. Buyer session and Level 1A draft remain unaccepted.
 - The candidate extends same-account Graph binding from the existing `federated`/`mail` email identity to the documented local customer `emailAddress` identity issued by `salusmemberaccess.onmicrosoft.com`. Signed-token, mail/OTP, Graph object ID, one exact matching address, and mismatch denials remain. This is a documentation-supported inference, not yet a live Graph profile readback. No Azure setting or commercial/intake control changes. Next: exact-source checks/review, governed release and protected live buyer acceptance; keep checkout/payment, intake, uploads and scanning off.
+
+## 11 October 2026 Central — local customer email binding merged; v3.244 candidate
+
+- Marc approved PR #897 exact head `38cda8a1ea7817a45158f898ccc64ffa9d4a47c3` after package, PostgreSQL and Windows checks passed. Squash merge `f1a40d48987ac09a9b42c48e5ab009b832bb9ef9` adds the tenant-issued local `emailAddress` Graph sign-in identity to the prior OTP fallback, retaining the signed token, `mail` and `emailotp`/`otp` method, same Graph object ID, exactly one matching identity/address, and denial of conflicting or duplicate identities. No Azure setting changed and live buyer acceptance remains failed.
+- This v3.244 source candidate labels that merged repair. The deployed v3.243 immutable image remains in the named-inbox draft pilot, but Marc's fresh sign-in failed HTTP 401; protected stage-only run 38186968165 reported `CustomerGraphIdentityMismatch`. Next: all candidate checks, Marc exact-source review, source freeze, immutable image/readback, separately reviewed protected deployment and pilot reactivation, then one fresh buyer-led sign-in and draft review. Checkout/payment, intake, uploads and scanning remain closed.
