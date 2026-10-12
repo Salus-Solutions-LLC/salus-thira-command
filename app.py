@@ -51,7 +51,7 @@ from salus_scan_inventory import (compare_quarantine_versions,
                                   list_azure_quarantine_versions,
                                   record_inventory_exceptions)
 from salus_customer_identity import CUSTOMER_PROVIDER, bind_verified_buyer, identity_hash
-from salus_customer_oidc import (CLIENT_ASSERTION_TYPE, CustomerEmailVerificationMissing,
+from salus_customer_oidc import (CLIENT_ASSERTION_TYPE,
                                  create_certificate_assertion_from_pfx, pkce_challenge,
                                  validate_discovery, customer_email_otp_contact)
 
