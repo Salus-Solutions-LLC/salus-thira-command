@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 10:08 CDT
-current_frozen_release: v3.246
-current_frozen_commit: f4b0539fc1a155cb1c99819ddbd7b6834ed89b50
+last_verified_at: 12 October 2026 10:19 CDT
+current_frozen_release: v3.247
+current_frozen_commit: c669f700513fc69f617f33db8630905e20415e69
 active_development_branch: development/salcapa-platform
-current_development_head: 4a82e816b1d91733f16f512d35779581350177cb
+current_development_head: c669f700513fc69f617f33db8630905e20415e69
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3247_remote_level1a_source_candidate
-last_completed_increment: v3246_buyer_signin_offer_display_and_remote_correction_merged
+active_increment: salus_v3247_remote_level1a_immutable_image_publication
+last_completed_increment: v3247_remote_level1a_source_frozen
 candidate_release: v3.247
-validation_pr: 915
-validation_branch: codex/v3247-remote-level1a-source-20261012
+validation_pr: 916
+validation_branch: codex/v3247-remote-level1a-image-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3247_source_candidate
+failed_workflows: none_for_v3247_image_candidate
 first_root_failing_gate: corrected_remote_agreement_and_paid_level1a_journey
 root_cause: v3246_live_wording_incorrectly_said_performed_in_Texas
-repair_head: 4a82e816b1d91733f16f512d35779581350177cb
-repair_summary: remote_all_US_states_quote_agreement_and_prior_quote_guard
-genuine_blockers: v3246_superseded_only_after_v3247_source_freeze_then_image_deploy_pilot_new_offer_agreement_test_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_source_candidate_CI_then_Marc_exact_source_review
+repair_head: c669f700513fc69f617f33db8630905e20415e69
+repair_summary: frozen_v3247_remote_all_US_states_quote_agreement_guard
+genuine_blockers: v3247_image_deploy_named_pilot_new_offer_agreement_test_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.246
 deployed_demo_state: v3246_named_buyer_signin_draft_offer_passed_checkout_intake_upload_scanner_closed
 ---
@@ -534,3 +534,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 - Marc corrected the v3.246 buyer page's Texas-performance sentence. SAL-D107 and the approved Level 1A revision 11 Word template already define the assessment as remote for clients in all U.S. states. The fixed Level 1A buyer total remains $1,500. The signed-in named buyer reached the v3.246 offer screen showing $1,500 and $0 tax, but was told to stop before agreement preparation.
 - Marc approved PR #914 exact head `9dbbe4bca10c487d1a7b6a941e1a8e2ebccc879c` after all three checks passed. Squash merge `4a82e816b1d91733f16f512d35779581350177cb` corrects the remote wording, applies SAL-D107 to new quotes, preserves immutable earlier quote records, and prevents superseded quotes from generating new agreements. The buyer interface presents a restart for an earlier quote. Checkout, payment, intake, upload and scanning controls remain closed.
 - PR #915 labels the merged correction v3.247 for source freeze. It does not publish an image or deploy. Next: candidate CI and Marc exact-source review; freeze, build/read back one immutable image, deploy with prior-image rollback, then re-enable the named-account pilot and accept a fresh buyer-led offer and agreement. Human review and issue of the four reports remains required.
+
+## 12 October 2026 Central — v3.247 frozen source and image candidate
+
+- Marc exact-approved PR #915 head `96783fdf8573faf87ff74c16acd4ab5c1ee67261` after all four required checks passed. Squash merge `c669f700513fc69f617f33db8630905e20415e69` froze `release/v3.247` at that exact source. The release branch is protected and points to the same commit. Frozen-source checks are separate from source PR CI.
+- PR #916 pins only that frozen source for one protected immutable image build and registry readback. It does not deploy. Protected v3.246 remains serving the named pilot, with customer sign-in and offer display observed; checkout/payment, intake, uploads and scanning remain closed. Next: all frozen/image checks, Marc's exact-head review, then protected image publication, separate deployment and buyer acceptance. Earlier v3.246 quotes cannot generate a new agreement under the corrected source.
