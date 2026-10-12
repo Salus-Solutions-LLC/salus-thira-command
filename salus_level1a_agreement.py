@@ -141,6 +141,11 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
         if part_b is None:
             raise AgreementRenderError('The controlled Part B heading was not found.')
         part_b.paragraph_format.page_break_before = True
+    if template_version_line in (rev11_candidate, rev11_issued):
+        doc.core_properties.title = 'Level 1A Access Agreement'
+        doc.core_properties.subject = (
+            'One remote Level 1A Access assessment, standard terms revision 11')
+        doc.core_properties.comments = ''
     all_text = '\n'.join(p.text for p in doc.paragraphs)
     if '[Complete before issue]' in all_text or 'Applicable tax and total  [' in all_text:
         raise AgreementRenderError('A buyer-specific field remains incomplete.')

@@ -70,6 +70,7 @@ function level1aStart(){
 }
 
 function level1aQuote(state){
+  level1aStatus('');
   const quote=state.quote,host=document.querySelector('#level1a-step');
   if(!quote){level1aStart();return}
   if(quote.tax_rule_id!=='REMOTE-LEVEL1A-US-V1'||quote.tax_decision_reference!=='SAL-D107'){
@@ -93,8 +94,9 @@ function level1aQuote(state){
 }
 
 function level1aAgreement(state){
+  level1aStatus('');
   const host=document.querySelector('#level1a-step'),id=Number(state.order_id),agreement=state.agreement;
-  host.innerHTML=`<div class="card"><h2>Read and approve your agreement</h2><p>Download the exact Word agreement. It identifies the covered unit, included work, exclusions and total. Your approval is recorded electronically.</p><p><a class="btn secondary" href="/api/level1a/orders/${id}/agreements/${Number(agreement.agreement_id)}/download" target="_blank" rel="noopener">Download the Level 1A agreement</a></p><form id="level1a-accept-form"><label>Your full name<input name="typed_name" required minlength="2" maxlength="200"></label><label>How are you authorized to agree for this organization?<textarea name="authority_basis" required minlength="12" maxlength="1000"></textarea></label><label><input name="accept_quote_and_agreement" type="checkbox" required> I read the exact agreement and quote, approve them for the organization, and agree to use this electronic record.</label><div class="form-actions"><button class="btn">Approve agreement</button></div></form></div>`;
+  host.innerHTML=`<div class="card"><h2>Read and approve your agreement</h2><p>Download the exact Word agreement. It identifies the covered unit, included work, exclusions and total. Your approval is recorded electronically.</p><p><a class="btn secondary" href="/api/level1a/orders/${id}/agreements/${Number(agreement.agreement_id)}/download" target="_blank" rel="noopener">Download the Level 1A agreement</a></p><form id="level1a-accept-form"><label>Your full name<input name="typed_name" required minlength="2" maxlength="200"></label><label>How are you authorized to agree for this organization?<textarea name="authority_basis" required minlength="12" maxlength="1000"></textarea></label><label class="advisor-confirm"><input name="accept_quote_and_agreement" type="checkbox" required> I read the exact agreement and quote, approve them for the organization, and agree to use this electronic record.</label><div class="form-actions"><button class="btn">Approve agreement</button></div></form></div>`;
   const key=crypto.randomUUID().replace(/-/g,'');
   host.querySelector('form').onsubmit=async event=>{
     event.preventDefault();const form=event.currentTarget,button=form.querySelector('button');
@@ -142,7 +144,7 @@ async function level1aPayment(state){
 async function level1aIntake(state){
   const id=Number(state.order_id),host=document.querySelector('#level1a-step');
   let intake;try{intake=await api(`/api/level1a/orders/${id}/intake`)}catch{level1aError();return}
-  host.innerHTML=`<div class="card"><h2>Your Level 1 records request</h2><p>${esc(intake.notice)}</p><p>For each requested item, choose whether you can provide it, do not hold it, do not know, or prefer to discuss it. An existing equivalent is welcome. Each requested item accepts up to five files, 25 MB each. Files stay held until the security scan clears the exact version.</p>${intake.disclosure_authority_recorded?'':`<form id="level1a-disclosure"><label>How are you authorized to share these records?<textarea name="authority_basis" required minlength="12" maxlength="1000"></textarea></label><label><input type="checkbox" required> I am authorized to disclose records for this named unit.</label><button class="btn">Confirm records authority</button></form>`}</div><div id="level1a-items"></div>`;
+  host.innerHTML=`<div class="card"><h2>Your Level 1 records request</h2><p>${esc(intake.notice)}</p><p>For each requested item, choose whether you can provide it, do not hold it, do not know, or prefer to discuss it. An existing equivalent is welcome. Each requested item accepts up to five files, 25 MB each. Files stay held until the security scan clears the exact version.</p>${intake.disclosure_authority_recorded?'':`<form id="level1a-disclosure"><label>How are you authorized to share these records?<textarea name="authority_basis" required minlength="12" maxlength="1000"></textarea></label><label class="advisor-confirm"><input type="checkbox" required> I am authorized to disclose records for this named unit.</label><button class="btn">Confirm records authority</button></form>`}</div><div id="level1a-items"></div>`;
   const authorityForm=host.querySelector('#level1a-disclosure');
   if(authorityForm)authorityForm.onsubmit=async event=>{event.preventDefault();const button=authorityForm.querySelector('button');if(!authorityForm.reportValidity())return;button.disabled=true;try{await api(`/api/level1a/orders/${id}/intake/disclosure-authority`,{method:'POST',body:JSON.stringify({authority_basis:new FormData(authorityForm).get('authority_basis'),confirm_authorized_disclosure:true})});level1aIntake(state)}catch{level1aError();button.disabled=false}};
   const itemHost=host.querySelector('#level1a-items');
