@@ -244,6 +244,16 @@ else:
         assert "v3211_superseded_before_publication" in continuity
         assert "v3212_private_scanner_acceptance_failed" in continuity
         assert image_publication["source_commit"] == "7ec414abe94092e631f0a4b7222fd99ce34b7e26"
+    elif (accepted_version, published_version) == ((3, 244), (3, 246)):
+        # v3.245 image was published and verified, but its deployment PR
+        # remained unmerged. The accepted app still runs v3.244 while the
+        # reviewed buyer sign-in repair supersedes that diagnostic image.
+        continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
+        assert "current_frozen_release: v3.246" in continuity
+        assert "current_frozen_commit: f4b0539fc1a155cb1c99819ddbd7b6834ed89b50" in continuity
+        assert "candidate_release: v3.246" in continuity
+        assert "v3245_image_superseded_before_deployment" in continuity
+        assert image_publication["source_commit"] == "f4b0539fc1a155cb1c99819ddbd7b6834ed89b50"
     elif published_version == superseding_successor:
         continuity = (ROOT / "docs" / "build-continuity.md").read_text(encoding="utf-8")
         skipped = f"v{immediate_successor[0]}.{immediate_successor[1]}"
