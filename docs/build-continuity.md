@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 12:02 CDT
+last_verified_at: 12 October 2026 12:12 CDT
 current_frozen_release: v3.247
 current_frozen_commit: c669f700513fc69f617f33db8630905e20415e69
 active_development_branch: development/salcapa-platform
-current_development_head: 3da71ee81713a614600f9c14db3218de55325175
+current_development_head: 28c946faf276b9976f2de2586a5aa7464301cc1a
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3247_remote_level1a_live_evaluator_acceptance
-last_completed_increment: v3247_remote_level1a_named_inbox_pilot_verified
-candidate_release: v3.247
-validation_pr: 920
-validation_branch: codex/level1a-agreement-qa-fix-20261012
+active_increment: salus_v3248_agreement_qa_source_candidate
+last_completed_increment: v3247_buyer_offer_agreement_layout_and_metadata_repair_merged
+candidate_release: v3.248
+validation_pr: 921
+validation_branch: codex/v3248-agreement-qa-source-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3247_agreement_qa_candidate
-first_root_failing_gate: generated_agreement_properties_and_buyer_agreement_acceptance
-root_cause: approved_rev11_template_retained_draft_rev9_core_title_in_generated_copy
-repair_head: c669f700513fc69f617f33db8630905e20415e69
-repair_summary: candidate_generated_rev11_metadata_and_buyer_UI_clarity_fix
-genuine_blockers: agreement_metadata_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_agreement_QA_PR_checks_and_Marc_exact_source_review
+failed_workflows: none_for_v3248_source_candidate
+first_root_failing_gate: newly_generated_agreement_metadata_and_paid_level1a_acceptance
+root_cause: issued_rev11_agreement_inherited_draft_rev9_core_title
+repair_head: 28c946faf276b9976f2de2586a5aa7464301cc1a
+repair_summary: merged_generated_rev11_metadata_and_buyer_UI_clarity
+genuine_blockers: v3248_source_image_deploy_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_source_candidate_CI_then_Marc_exact_source_review
 deployed_demo_release: v3.247
 deployed_demo_state: v3247_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3248_agreement_QA_source_candidate: Marc exact-approved PR #920 head `b722025cb673f2f4d67c75de178563457b759a9f` after all three required checks passed. Squash merge `28c946faf276b9976f2de2586a5aa7464301cc1a` corrects generated revision 11 Word core properties and buyer agreement cues without changing the approved template, terms, Azure, payment or intake settings. The original five-page fictional download passed visible page inspection but failed hidden core-title review; no agreement approval occurred. This candidate labels the merged fix v3.248. Source freeze, immutable image, protected deployment, a newly generated Word readback/page check, signed test payment, receipt and scanner-backed intake remain separate gates. Buyer checkout/payment and intake remain closed.
 
 v3247_agreement_live_QA: Marc signed into the named pilot and created a fresh remote-rule quote for one fictional site. The browser showed $1,500 total and the corrected quote guard allowed agreement preparation. The issued Word download (SHA-256 `5c2a1cefed787f44c715b01f0523aa965d9006d1cc0ead49801d327c43d1ed19`) visibly states remote, human-reviewed service, fixed $1,500 for one unit regardless of buyer state, approved revision 11 and the fictional covered scope. Read-only inspection found stale core title `Level 1A Access Automated Agreement Review Draft Revision 9`; buyer UI also retained completed-step status text and separated consent checkbox from its label. PR #920 stages generated-copy metadata correction and buyer UI clarity. The generated agreement has not been approved. The downloaded five-page copy was rendered with LibreOffice and Poppler; every page was visually inspected with no clipping, overlap, blank page or visible content defect. Its hidden core title fails review. A newly generated copy after this repair still needs readback and page-level confirmation. Payment, intake, uploads and scanning stay closed.
 
