@@ -50,6 +50,8 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
     facts = QuoteFacts(**{key: quote[key] for key in QuoteFacts.__dataclass_fields__})
     if facts.sha256() != quote['quote_sha256']:
         raise AgreementRenderError('The quote content changed.')
+    if facts.tax_rule_id != 'REMOTE-LEVEL1A-US-V1' or facts.tax_decision_reference != 'SAL-D107':
+        raise AgreementRenderError('This earlier quote needs a new remote-assessment order before agreement issue.')
     if (facts.base_price_cents != 150_000 or facts.tax_cents != 0 or
             facts.total_cents != 150_000 or
             facts.currency != 'USD'):
