@@ -92,8 +92,21 @@ jobs:
           probe="$(cat /tmp/level1a-secret-probe.b64)"
           command="python -c \"import base64;exec(base64.b64decode('$probe'))\""
           if ! timeout 60s az containerapp exec -g "$RESOURCE_GROUP" -n salcapa-dev-b48224 \
-            --command "$command" > /tmp/level1a-secret-probe.out 2>/dev/null; then
-            echo 'Stripe mode inspection could not run in the protected app.' >&2
+            --yes --command "$command" > /tmp/level1a-secret-probe.out 2>/tmp/level1a-secret-probe.err; then
+            if grep -Eiq 'AuthorizationFailed|Forbidden|permission|unauthorized' /tmp/level1a-secret-probe.err; then
+              failure_class='authorization'
+            elif grep -Eiq 'websocket|connection|transport' /tmp/level1a-secret-probe.err; then
+              failure_class='console_transport'
+            elif grep -Eiq 'tty|stdin|terminal|interactive' /tmp/level1a-secret-probe.err; then
+              failure_class='noninteractive_runner'
+            elif grep -Eiq 'not found|no such file|invalid command' /tmp/level1a-secret-probe.err; then
+              failure_class='container_command'
+            elif grep -Eiq 'timed out|timeout' /tmp/level1a-secret-probe.err; then
+              failure_class='timeout'
+            else
+              failure_class='other'
+            fi
+            echo "READINESS_EXEC_FAILURE=$failure_class" >&2
             exit 1
           fi
           mode="$(grep -oE 'LEVEL1A_STRIPE_KEY_MODE=(test|live|absent|unrecognized|unavailable)' /tmp/level1a-secret-probe.out | tail -1 || true)"
