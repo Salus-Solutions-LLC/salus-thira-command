@@ -68,54 +68,62 @@ jobs:
           echo 'Verified v3.248 named buyer pilot; checkout, intake, uploads, and scanner acceptance closed.'
 
       - name: Classify Stripe configuration without revealing secret values
-        env:
-          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         run: |
           set -euo pipefail
-          python - <<'PY' > /tmp/level1a-secret-probe.b64
-          import base64
-          script = '''from secret_provider import secret
-          try:
-              key = secret("SALUS_STRIPE_SECRET_KEY", "")
-              hook = secret("SALUS_STRIPE_WEBHOOK_SECRET", "")
-              mode = ("test" if key.startswith(("sk_test_", "rk_test_")) else
-                      "live" if key.startswith(("sk_live_", "rk_live_")) else
-                      "absent" if not key else "unrecognized")
-              print("LEVEL1A_STRIPE_KEY_MODE=" + mode)
-              print("LEVEL1A_STRIPE_WEBHOOK_VALID=" + str(hook.startswith("whsec_")).lower())
-          except Exception:
-              print("LEVEL1A_STRIPE_KEY_MODE=unavailable")
-              print("LEVEL1A_STRIPE_WEBHOOK_VALID=unavailable")
-          '''
-          print(base64.b64encode(script.encode()).decode())
-          PY
-          probe="$(cat /tmp/level1a-secret-probe.b64)"
-          command="python -c \"import base64;exec(base64.b64decode('$probe'))\""
-          if ! timeout 60s az containerapp exec -g "$RESOURCE_GROUP" -n salcapa-dev-b48224 \
-            --yes --command "$command" > /tmp/level1a-secret-probe.out 2>/tmp/level1a-secret-probe.err; then
-            if grep -Eiq 'AuthorizationFailed|Forbidden|permission|unauthorized' /tmp/level1a-secret-probe.err; then
-              failure_class='authorization'
-            elif grep -Eiq 'websocket|connection|transport' /tmp/level1a-secret-probe.err; then
-              failure_class='console_transport'
-            elif grep -Eiq 'tty|stdin|terminal|interactive' /tmp/level1a-secret-probe.err; then
-              failure_class='noninteractive_runner'
-            elif grep -Eiq 'not found|no such file|invalid command' /tmp/level1a-secret-probe.err; then
-              failure_class='container_command'
-            elif grep -Eiq 'timed out|timeout' /tmp/level1a-secret-probe.err; then
-              failure_class='timeout'
-            else
-              failure_class='other'
-            fi
-            echo "READINESS_EXEC_FAILURE=$failure_class" >&2
-            exit 1
-          fi
-          mode="$(grep -oE 'LEVEL1A_STRIPE_KEY_MODE=(test|live|absent|unrecognized|unavailable)' /tmp/level1a-secret-probe.out | tail -1 || true)"
-          hook="$(grep -oE 'LEVEL1A_STRIPE_WEBHOOK_VALID=(true|false|unavailable)' /tmp/level1a-secret-probe.out | tail -1 || true)"
-          test -n "$mode"
-          test -n "$hook"
-          echo "$mode"
-          echo "$hook"
-          test "$mode" = 'LEVEL1A_STRIPE_KEY_MODE=test'
-          test "$hook" = 'LEVEL1A_STRIPE_WEBHOOK_VALID=true'
-          echo 'Stripe test key and webhook secret are available to the deployed app. No value was logged.'
+          python - <<'PY'
+          import json
+          import re
+          import subprocess
+          from urllib.parse import urlparse
 
+          with open('/tmp/salcapa-readiness.json', encoding='utf-8') as app_file:
+              app = json.load(app_file)
+          env = {
+              item['name']: item.get('value', '')
+              for item in app['properties']['template']['containers'][0].get('env', [])
+          }
+
+          class VaultAccessDenied(Exception):
+              pass
+
+          def value_for(name):
+              direct = env.get(name, '')
+              if direct:
+                  return direct
+              vault_url = env.get('SALUS_KEY_VAULT_URL', '')
+              if urlparse(vault_url).hostname != 'salcapa-dev-b48224-kv.vault.azure.net':
+                  raise ValueError('Unexpected vault')
+              secret_name = env.get(name + '_KEYVAULT_NAME') or name.lower().replace('_', '-')
+              if not re.fullmatch(r'[A-Za-z0-9-]{1,127}', secret_name):
+                  raise ValueError('Invalid secret name')
+              result = subprocess.run(
+                  ['az', 'keyvault', 'secret', 'show', '--vault-name',
+                   'salcapa-dev-b48224-kv', '--name', secret_name,
+                   '--query', 'value', '-o', 'tsv'],
+                  capture_output=True, text=True, check=False
+              )
+              if result.returncode:
+                  error = result.stderr.lower()
+                  if 'forbidden' in error or 'permission' in error or 'not authorized' in error:
+                      raise VaultAccessDenied()
+                  raise RuntimeError('Managed secret unavailable')
+              return result.stdout.strip()
+
+          try:
+              key = value_for('SALUS_STRIPE_SECRET_KEY')
+              hook = value_for('SALUS_STRIPE_WEBHOOK_SECRET')
+              mode = ('test' if key.startswith(('sk_test_', 'rk_test_')) else
+                      'live' if key.startswith(('sk_live_', 'rk_live_')) else
+                      'absent' if not key else 'unrecognized')
+              hook_valid = hook.startswith('whsec_')
+              print('LEVEL1A_STRIPE_KEY_MODE=' + mode)
+              print('LEVEL1A_STRIPE_WEBHOOK_VALID=' + str(hook_valid).lower())
+              if mode != 'test' or not hook_valid:
+                  raise SystemExit(1)
+          except VaultAccessDenied:
+              print('READINESS_VAULT_ACCESS=denied')
+              raise SystemExit(1)
+          except Exception:
+              print('READINESS_VAULT_ACCESS=unavailable')
+              raise SystemExit(1)
+          PY
