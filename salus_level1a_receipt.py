@@ -28,7 +28,8 @@ def render_level1a_receipt(order,quote,agreement,paid):
             paid['amount_cents']!=quote['total_cents'] or
             paid['amount_cents']!=approved_total or paid['currency']!='usd' or
             quote['tax_rule_id'] not in ('TX-STANDARD-CONSULTING-V1',
-                                         'TX-PERFORMED-LEVEL1A-V1')):
+                                         'TX-PERFORMED-LEVEL1A-V1',
+                                         'REMOTE-LEVEL1A-US-V1')):
         raise CheckoutVerificationError('The receipt does not match one paid Level 1A order.')
     try:
         paid_at=datetime.fromisoformat(paid['paid_at'].replace('Z','+00:00'))
