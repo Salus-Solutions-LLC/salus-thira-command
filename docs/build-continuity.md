@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 21:24 CDT
-current_frozen_release: v3.244
-current_frozen_commit: e697912c3d446deda750abf5005b71d28b20c68b
+last_verified_at: 11 October 2026 21:35 CDT
+current_frozen_release: v3.245
+current_frozen_commit: 5060e15cf4e3d125dda3ba13891d2ed56500a065
 active_development_branch: development/salcapa-platform
-current_development_head: ced3ab7f831cd819d3921fd8b9a293969cc1dcc2
+current_development_head: 5060e15cf4e3d125dda3ba13891d2ed56500a065
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3245_buyer_Graph_mismatch_reason_source_candidate
-last_completed_increment: v3244_buyer_Graph_mismatch_reason_merged
+active_increment: salus_v3245_buyer_Graph_reason_immutable_image_publication
+last_completed_increment: v3245_buyer_Graph_reason_source_frozen
 candidate_release: v3.245
-validation_pr: 905
-validation_branch: codex/v3245-buyer-graph-reason-source-20261011
+validation_pr: 906
+validation_branch: codex/v3245-buyer-graph-reason-image-20261011
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: v3244_live_buyer_signin_failed_http_401
 first_root_failing_gate: customer_oidc_Graph_identity_binding
 root_cause: exact_Graph_identity_mismatch_reason_unproven
-repair_head: ced3ab7f831cd819d3921fd8b9a293969cc1dcc2
-repair_summary: distinguish_fixed_nonpersonal_Graph_identity_mismatch_reasons_without_acceptance_change
-genuine_blockers: v3244_superseded_by_v3245_only_after_source_freeze_then_image_deploy_pilot_named_buyer_signin_draft_paid_checkout_intake_scanner_wix_acceptance
-next_authorized_step: complete_v3245_candidate_checks_then_Marc_exact_source_review_and_freeze
+repair_head: 5060e15cf4e3d125dda3ba13891d2ed56500a065
+repair_summary: frozen_v3245_Graph_reason_source_pinned_for_immutable_image
+genuine_blockers: v3245_immutable_image_deploy_pilot_named_buyer_signin_draft_paid_checkout_intake_scanner_wix_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.244
 deployed_demo_state: v3244_named_inbox_pilot_signin_draft_enabled_buyer_identity_failed_checkout_intake_upload_scanner_closed
 ---
@@ -503,3 +503,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc approved PR #904 exact head `9bbe77869c20069cecc2d2e69a1713255a7f3e09` after all three checks passed. Squash merge `ced3ab7f831cd819d3921fd8b9a293969cc1dcc2` distinguishes fixed non-personal Graph identity mismatch reasons with no change to acceptance conditions. Protected v3.244 remains deployed and the paid named-inbox buyer sign-in still fails. Checkout/payment, intake, uploads and scanning remain closed.
 - This candidate labels merged source v3.245. Next: candidate CI, Marc exact-source review, governed freeze, immutable image publication/readback, separately approved protected deployment and pilot reactivation, then one new buyer-led sign-in to identify the exact failed comparison. Complimentary assessments remain stopped by Marc.
+
+## 11 October 2026 Central — v3.245 frozen source and image candidate
+
+- Marc exact-approved PR #905 head `e8214ee0684352fcf5c8710c025ff00066f9748f` after all four checks passed. Squash merge `5060e15cf4e3d125dda3ba13891d2ed56500a065` froze `release/v3.245` at that exact source. The diagnostic changes no buyer acceptance condition; release-branch and frozen-source checks are being verified separately.
+- This image candidate pins v3.245 for one protected immutable build and registry readback. It makes no Azure deployment or buyer access change. The serving v3.244 single-inbox pilot still fails sign-in at the generic Graph identity-binding stage; checkout/payment, intake, uploads and scanning remain closed. Next: complete frozen/image checks, Marc exact image PR review, then separately govern deployment and pilot activation before a fresh buyer-led test.
