@@ -29,6 +29,9 @@ deployed_demo_state: v3244_named_inbox_pilot_signin_draft_enabled_buyer_identity
 
 # SalCAPA build continuity
 
+v3245_image_superseded_before_deployment: The v3.245 diagnostic image was published and read back in protected run [38202206035](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38202206035), but deployment PR #907 remained unmerged. The serving application is v3.244. Reviewed v3.246 buyer sign-in source supersedes the diagnostic image before deployment; image publication and buyer acceptance remain separate gates.
+
+
 v3227_worker_preflight_failure: PR #793 exact head `50db702932f74f1c60e4bb14fddae47db3ebefd5` passed 47 checks and merged as `5c331b11808adc0b64631b5031f26f0c91f78675` after Marc review. Protected run [37722059111](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37722059111) passed the app image check but stopped before Azure what-if because the worker was still compared to accepted v3.223 despite prior successful v3.225 worker promotion. Draft PR #794 pins the prior worker separately, preserving it through app acceptance and retaining accepted v3.223 for failed-promotion restoration. CI, exact-source review and actual deployment remain open.
 
 v3227_preflight_failure: PR #792 exact head `c4a4925eabb08eaefb0c81f800550d118a59e0a4` passed ten checks and merged as `14ea5011b37b44943dcebfcbd60b7be0dc99f182`. Protected run [37720031976](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37720031976) failed before Azure what-if because the guard expected the v3.223 accepted rollback image on the currently running v3.225 app. Draft PR #793 records the v3.225 prior-app digest separately and preserves v3.223 rollback; CI, exact-source review and live deployment are pending. Buyer controls remain closed.
