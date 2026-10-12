@@ -53,8 +53,7 @@ from salus_scan_inventory import (compare_quarantine_versions,
 from salus_customer_identity import CUSTOMER_PROVIDER, bind_verified_buyer, identity_hash
 from salus_customer_oidc import (CLIENT_ASSERTION_TYPE, CustomerEmailVerificationMissing,
                                  create_certificate_assertion_from_pfx, pkce_challenge,
-                                 validate_discovery, verified_customer_email,
-                                 verified_customer_email_from_graph)
+                                 validate_discovery, customer_email_otp_contact)
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.getenv('SALUS_DB_PATH', os.path.join(BASE_DIR, 'thira.db'))
@@ -76,6 +75,7 @@ PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFL
 LEVEL1A_ORDER_DRAFT_ENABLED = os.getenv('SALUS_LEVEL1A_ORDER_DRAFT_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_CHECKOUT_ENABLED = os.getenv('SALUS_LEVEL1A_CHECKOUT_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_PILOT_EMAIL = os.getenv('SALUS_LEVEL1A_PILOT_EMAIL','').strip().casefold()
+LEVEL1A_PILOT_OBJECT_ID = os.getenv('SALUS_LEVEL1A_PILOT_OBJECT_ID','').strip().lower()
 LEVEL1A_INTAKE_ENABLED = os.getenv('SALUS_LEVEL1A_INTAKE_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_UPLOAD_ENABLED = os.getenv('SALUS_LEVEL1A_UPLOAD_ENABLED','0').lower() in ('1','true','yes')
 PACKAGE_SCAN_MODE = os.getenv('SALUS_PACKAGE_SCAN_MODE','inline').strip().lower()
@@ -3976,7 +3976,7 @@ def customer_oidc_start(request:Request):
         conn.close()
     params = {'client_id': CUSTOMER_OIDC_CLIENT_ID, 'response_type': 'code',
               'redirect_uri': CUSTOMER_OIDC_REDIRECT_URI,
-              'scope': 'openid profile email https://graph.microsoft.com/User.Read',
+              'scope': 'openid profile email',
               'state': state, 'nonce': nonce,
               'code_challenge': pkce_challenge(verifier), 'code_challenge_method': 'S256'}
     response = RedirectResponse(config['authorization_endpoint'] + '?' +
@@ -4048,30 +4048,25 @@ def customer_oidc_callback(request:Request,code:str='',state:str='',error:str=''
         subject = str(claims.get('sub') or '').strip()
         if not subject:
             raise ValueError('Verified customer subject is required')
-        stage = 'email_verification'
-        try:
-            email = verified_customer_email(claims)
-        except CustomerEmailVerificationMissing:
-            stage = 'graph_self_profile'
-            graph_token = token_payload.get('access_token')
-            if not isinstance(graph_token, str) or not graph_token:
-                raise ValueError('Delegated customer profile token is missing')
-            graph_response = httpx.get(
-                'https://graph.microsoft.com/v1.0/me',
-                params={'$select': 'id,identities'},
-                headers={'Authorization': 'Bearer ' + graph_token},
-                timeout=10)
-            graph_response.raise_for_status()
-            stage = 'email_verification'
-            email = verified_customer_email_from_graph(
-                claims, graph_response.json())
+        stage = 'email_otp_contact'
+        email = customer_email_otp_contact(claims)
     except Exception as exc:
         security_event(request,'CUSTOMER_OIDC_TOKEN_FAILURE','High',
                        f'stage={stage};error={type(exc).__name__}')
         raise HTTPException(401, 'Customer identity could not be verified')
-    if LEVEL1A_PILOT_EMAIL and email.casefold() != LEVEL1A_PILOT_EMAIL:
-        security_event(request,'CUSTOMER_OIDC_PILOT_DENIED','Medium','verified_email_outside_pilot')
-        raise HTTPException(403, 'Customer sign-in is limited to the protected pilot.')
+    if LEVEL1A_PILOT_EMAIL:
+        # The signed object ID is the access boundary. Email is contact data
+        # and must not independently authorize the protected pilot.
+        signed_oid = str(claims.get('oid') or '').strip().lower()
+        if (not LEVEL1A_PILOT_OBJECT_ID or
+                not secrets.compare_digest(signed_oid, LEVEL1A_PILOT_OBJECT_ID)):
+            security_event(request,'CUSTOMER_OIDC_PILOT_DENIED','Medium',
+                           'signed_account_outside_pilot')
+            raise HTTPException(403, 'Customer sign-in is limited to the protected pilot.')
+        if email.casefold() != LEVEL1A_PILOT_EMAIL:
+            security_event(request,'CUSTOMER_OIDC_PILOT_DENIED','Medium',
+                           'contact_address_outside_pilot')
+            raise HTTPException(403, 'Customer sign-in is limited to the protected pilot.')
     session_token = secrets.token_urlsafe(32)
     session_expires = (_iso_now_dt()+timedelta(hours=SESSION_HOURS)).replace(
         microsecond=0).isoformat().replace('+00:00','Z')
