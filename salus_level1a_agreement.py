@@ -119,7 +119,8 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
         })
     tax_text = (f'Applicable tax and total  {_money(facts.tax_cents)} tax; '
                 f'{_money(facts.total_cents)} total USD; '
-                f'{facts.tax_rule_id} ({facts.tax_decision_reference})')
+                f'approved remote Level 1A assessment tax decision '
+                f'({facts.tax_decision_reference})')
     count = 0
     for paragraph in doc.paragraphs:
         original = paragraph.text.strip()
