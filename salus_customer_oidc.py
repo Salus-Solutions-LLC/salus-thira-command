@@ -45,6 +45,26 @@ class CustomerGraphIdentityMismatch(ValueError):
     """The signed subject and Graph email sign-in identity did not agree."""
 
 
+class CustomerGraphObjectIdMissing(CustomerGraphIdentityMismatch):
+    """The signed customer token omitted its object ID."""
+
+
+class CustomerGraphAccountMismatch(CustomerGraphIdentityMismatch):
+    """Graph returned an account other than the signed customer."""
+
+
+class CustomerGraphSignInIdentitiesMissing(CustomerGraphIdentityMismatch):
+    """Graph omitted the customer's sign-in identities."""
+
+
+class CustomerGraphSignInIdentityCountMismatch(CustomerGraphIdentityMismatch):
+    """Graph returned zero or multiple eligible email sign-in identities."""
+
+
+class CustomerGraphSignInEmailMismatch(CustomerGraphIdentityMismatch):
+    """The eligible Graph sign-in address differed from the signed email."""
+
+
 def validate_discovery(metadata, *, tenant_host, tenant_id):
     """Accept only the reviewed single External tenant and its HTTPS endpoints."""
     # The reviewed External ID discovery URL uses the tenant-name host for
@@ -158,12 +178,12 @@ def verified_customer_email_from_graph(claims, profile):
         raise CustomerOtpMethodMissing('Customer OTP authentication is not asserted')
     oid = claims.get('oid')
     if not isinstance(oid, str) or not oid.strip():
-        raise CustomerGraphIdentityMismatch('Customer object ID is missing')
+        raise CustomerGraphObjectIdMissing('Customer object ID is missing')
     if not isinstance(profile, dict) or profile.get('id') != oid:
-        raise CustomerGraphIdentityMismatch('Graph account differs from signed customer')
+        raise CustomerGraphAccountMismatch('Graph account differs from signed customer')
     identities = profile.get('identities')
     if not isinstance(identities, list):
-        raise CustomerGraphIdentityMismatch('Graph sign-in identities are missing')
+        raise CustomerGraphSignInIdentitiesMissing('Graph sign-in identities are missing')
     email = claims['email'].strip().lower()
     # External-tenant local email accounts have an emailAddress identity issued
     # by the tenant. Keep the legacy mail-federated form for existing OTP users.
@@ -174,8 +194,10 @@ def verified_customer_email_from_graph(claims, profile):
                              or (identity.get('signInType') == 'emailAddress'
                                  and identity.get('issuer')
                                  == 'salusmemberaccess.onmicrosoft.com'))]
-    if (len(email_identities) != 1
-            or not isinstance(email_identities[0].get('issuerAssignedId'), str)
-            or email_identities[0]['issuerAssignedId'].strip().lower() != email):
-        raise CustomerGraphIdentityMismatch('Graph email sign-in identity differs')
+    if len(email_identities) != 1:
+        raise CustomerGraphSignInIdentityCountMismatch(
+            'Graph email sign-in identity count differs')
+    assigned = email_identities[0].get('issuerAssignedId')
+    if not isinstance(assigned, str) or assigned.strip().lower() != email:
+        raise CustomerGraphSignInEmailMismatch('Graph email sign-in identity differs')
     return email

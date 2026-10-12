@@ -12,6 +12,11 @@ from cryptography.x509.oid import NameOID
 from datetime import datetime, timedelta, timezone
 
 from salus_customer_oidc import (CustomerEmailInvalid, CustomerEmailMissing,
+                                 CustomerGraphObjectIdMissing,
+                                 CustomerGraphAccountMismatch,
+                                 CustomerGraphSignInIdentitiesMissing,
+                                 CustomerGraphSignInIdentityCountMismatch,
+                                 CustomerGraphSignInEmailMismatch,
                                  CustomerEmailVerificationContradicted,
                                  CustomerEmailVerificationMissing,
                                  CustomerVerifiedEmailMismatch,
@@ -183,6 +188,34 @@ class CustomerOidcProtocolTests(unittest.TestCase):
             with self.subTest(claims=bad_claims, profile=bad_profile):
                 with self.assertRaises(ValueError):
                     verified_customer_email_from_graph(bad_claims, bad_profile)
+
+    def test_graph_failure_types_reveal_only_the_failed_check(self):
+        claims = {'email': 'buyer@example.test', 'oid': 'fictional-object-id',
+                  'idp': 'mail', 'amr': ['emailotp']}
+        identity = {'signInType': 'federated', 'issuer': 'mail',
+                    'issuerAssignedId': 'buyer@example.test'}
+        profile = {'id': 'fictional-object-id', 'identities': [identity]}
+        cases = (
+            (dict(claims, oid=''), profile, CustomerGraphObjectIdMissing),
+            (claims, dict(profile, id='other-object-id'),
+             CustomerGraphAccountMismatch),
+            (claims, dict(profile, identities=None),
+             CustomerGraphSignInIdentitiesMissing),
+            (claims, dict(profile, identities=[]),
+             CustomerGraphSignInIdentityCountMismatch),
+            (claims, dict(profile, identities=[identity, identity]),
+             CustomerGraphSignInIdentityCountMismatch),
+            (claims, dict(profile, identities=[
+                dict(identity, issuerAssignedId='other@example.test')]),
+             CustomerGraphSignInEmailMismatch),
+        )
+        for token, graph, expected in cases:
+            with self.subTest(expected=expected.__name__):
+                with self.assertRaises(expected) as caught:
+                    verified_customer_email_from_graph(token, graph)
+                self.assertEqual(type(caught.exception).__name__, expected.__name__)
+                self.assertNotIn('buyer@example.test',
+                                 type(caught.exception).__name__)
 
     def test_invalid_pfx_secret_fails_closed(self):
         for bad in ('not-base64!', base64.b64encode(b'not a certificate').decode('ascii')):
