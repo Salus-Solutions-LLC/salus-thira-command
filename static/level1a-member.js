@@ -72,6 +72,11 @@ function level1aStart(){
 function level1aQuote(state){
   const quote=state.quote,host=document.querySelector('#level1a-step');
   if(!quote){level1aStart();return}
+  if(quote.tax_rule_id!=='REMOTE-LEVEL1A-US-V1'||quote.tax_decision_reference!=='SAL-D107'){
+    host.innerHTML='<div class="notice"><h2>Start a current remote assessment offer</h2><p>This earlier quote predates the corrected remote-assessment terms. It will remain on record, but cannot be used for a new agreement. Start a new scope and price review; no payment has been taken.</p><button class="btn" id="level1a-start-current-offer">Start a new offer</button></div>';
+    host.querySelector('#level1a-start-current-offer').onclick=()=>{saveLevel1aState({});level1aView()};
+    return;
+  }
   const total=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(quote.total_cents)/100);
   const tax=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(quote.tax_cents)/100);
   host.innerHTML=`<div class="card"><h2>Review the exact offer</h2><p><strong>Level 1A Access:</strong> $1,500.00<br><strong>Tax:</strong> ${esc(tax)}<br><strong>Total before checkout:</strong> ${esc(total)}</p><p>The agreement will state your named unit, boundary, exclusions and what Salus delivers. Read the exact Word agreement before approving it.</p><form id="level1a-issue-form"><label>Your full name for the agreement<input name="signer_name" required minlength="2" maxlength="200"></label><div class="form-actions"><button class="btn">Prepare my agreement</button></div></form></div>`;
