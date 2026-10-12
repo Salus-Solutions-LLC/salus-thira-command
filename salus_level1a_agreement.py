@@ -103,17 +103,20 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
         'Express exclusions  [Complete before issue]':
             f'Express exclusions  {unit.exclusions}',
     }
+    assessment_name = ('Level 1A Assessment' if any(
+        p.text.strip() == 'Level 1A Assessment Agreement' for p in doc.paragraphs)
+        else 'Level 1A Access')
     if template_version_line == rev11_candidate:
         replacements.update({
             'Candidate revision for review 9 October 2026; based on standard terms approved 5 October 2026':
                 'Approved standard terms revision 11, 9 October 2026',
-            ('Part B contains the proposed revised standard terms for one Level 1A Access unit. '
+            (f'Part B contains the proposed revised standard terms for one {assessment_name} unit. '
              'The published Privacy Notice is at https://www.salus.solutions/privacy-notice. '
              'Member-specific scope, buyer identity, tax treatment and the $1,500 total are '
              'completed in the online order before the buyer accepts the exact agreement. '
              'A completed agreement is issued only through the governed automated order '
              'journey after its release checks pass.'):
-                ('Part B contains the approved standard terms for one Level 1A Access unit. '
+                (f'Part B contains the approved standard terms for one {assessment_name} unit. '
                  'The published Privacy Notice is at https://www.salus.solutions/privacy-notice. '
                  'Member-specific scope, buyer identity, tax treatment and the $1,500 total are '
                  'completed in the online order before the buyer accepts the exact agreement. '
@@ -142,8 +145,10 @@ def render_candidate_agreement(unit: Level1AUnit, quote: dict,
             raise AgreementRenderError('The controlled Part B heading was not found.')
         part_b.paragraph_format.page_break_before = True
     if template_version_line in (rev11_candidate, rev11_issued):
-        doc.core_properties.title = 'Level 1A Access Agreement'
+        doc.core_properties.title = f'{assessment_name} Agreement'
         doc.core_properties.subject = (
+            'One remote Level 1A Assessment, standard terms revision 11'
+            if assessment_name == 'Level 1A Assessment' else
             'One remote Level 1A Access assessment, standard terms revision 11')
         doc.core_properties.comments = ''
     all_text = '\n'.join(p.text for p in doc.paragraphs)
