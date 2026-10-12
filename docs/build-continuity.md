@@ -5,14 +5,14 @@ last_verified_at: 12 October 2026 10:54 CDT
 current_frozen_release: v3.247
 current_frozen_commit: c669f700513fc69f617f33db8630905e20415e69
 active_development_branch: development/salcapa-platform
-current_development_head: f4b4fedb9c9aeb762a1374c95e3672d61395c4e4
+current_development_head: f116ffa57f1efea1ee7d3d610c198847aaa9dbe9
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
 active_increment: salus_v3247_remote_level1a_live_evaluator_acceptance
-last_completed_increment: v3247_remote_level1a_protected_app_and_worker_deployed
+last_completed_increment: v3247_remote_level1a_named_inbox_pilot_verified
 candidate_release: v3.247
-validation_pr: 918
-validation_branch: codex/v3247-remote-level1a-buyer-pilot-20261012
+validation_pr: 919
+validation_branch: codex/v3247-pilot-handoff-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -21,13 +21,15 @@ first_root_failing_gate: corrected_remote_agreement_and_paid_level1a_journey
 root_cause: v3246_live_wording_incorrectly_said_performed_in_Texas
 repair_head: c669f700513fc69f617f33db8630905e20415e69
 repair_summary: frozen_v3247_remote_all_US_states_quote_agreement_guard
-genuine_blockers: v3247_named_pilot_new_offer_agreement_test_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_pilot_PR_checks_then_Marc_exact_access_review
+genuine_blockers: v3247_buyer_new_offer_agreement_test_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: Marc_fresh_buyer_offer_and_agreement_acceptance
 deployed_demo_release: v3.247
-deployed_demo_state: v3247_protected_app_worker_ready_buyer_signin_draft_checkout_intake_upload_scanner_closed
+deployed_demo_state: v3247_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3247_named_buyer_pilot_passed: Marc approved PR #918 exact head `ccafe580ab3dfdc176f5dc89a0259103a80c1ba7` after all three checks passed. Squash merge `f116ffa57f1efea1ee7d3d610c198847aaa9dbe9` triggered protected run [38273508631](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38273508631). It passed exact v3.247 image and closed-start checks, enabled sign-in and draft ordering only for `MDuncan@Salus.email` and the verified Microsoft account, and read back a ready new revision with checkout/payment, intake, uploads and scanning closed. Marc's fresh buyer-led remote offer and agreement check is pending; payment and intake acceptance remain open.
 
 v3247_protected_deployment_passed: Marc approved PR #917 exact head `276b4ae439472e83e8f7ba430955a17de56434b0` after all three checks passed. Squash merge `f4b4fedb9c9aeb762a1374c95e3672d61395c4e4` triggered protected Azure run [38271247076](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38271247076). It completed successfully through target/image checks, Azure apply, live readiness and identity contract, isolated Microsoft 365 acceptance, fictional Advisor exercise, and scheduled worker promotion/readback. App and worker serve the registry-verified v3.247 digest; sign-in, draft ordering, checkout/payment, intake, uploads and scanning are closed. PR #918 stages only the signed-account named-inbox pilot with exact-image preflight and reclosure on failed verification. Buyer-led remote offer, agreement and paid flow remain unaccepted.
 
