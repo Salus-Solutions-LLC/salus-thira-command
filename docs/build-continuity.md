@@ -1,18 +1,18 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 October 2026 21:35 CDT
+last_verified_at: 12 October 2026 06:41 CDT
 current_frozen_release: v3.245
 current_frozen_commit: 5060e15cf4e3d125dda3ba13891d2ed56500a065
 active_development_branch: development/salcapa-platform
-current_development_head: 5060e15cf4e3d125dda3ba13891d2ed56500a065
+current_development_head: ea21dd400b63846948f5e514df28af5689586b7f
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3245_buyer_Graph_reason_immutable_image_publication
-last_completed_increment: v3245_buyer_Graph_reason_source_frozen
+active_increment: salus_v3245_buyer_Graph_reason_application_promotion
+last_completed_increment: v3245_immutable_image_published_and_registry_readback
 candidate_release: v3.245
-validation_pr: 906
-validation_branch: codex/v3245-buyer-graph-reason-image-20261011
+validation_pr: 907
+validation_branch: codex/v3245-buyer-reason-deployment-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
@@ -20,9 +20,9 @@ failed_workflows: v3244_live_buyer_signin_failed_http_401
 first_root_failing_gate: customer_oidc_Graph_identity_binding
 root_cause: exact_Graph_identity_mismatch_reason_unproven
 repair_head: 5060e15cf4e3d125dda3ba13891d2ed56500a065
-repair_summary: frozen_v3245_Graph_reason_source_pinned_for_immutable_image
-genuine_blockers: v3245_immutable_image_deploy_pilot_named_buyer_signin_draft_paid_checkout_intake_scanner_wix_acceptance
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+repair_summary: verified_v3245_image_pinned_with_v3244_prior_and_v3223_rollback
+genuine_blockers: v3245_protected_deployment_pilot_named_buyer_signin_draft_paid_checkout_intake_scanner_wix_acceptance
+next_authorized_step: complete_deployment_candidate_checks_then_Marc_exact_deployment_PR_review
 deployed_demo_release: v3.244
 deployed_demo_state: v3244_named_inbox_pilot_signin_draft_enabled_buyer_identity_failed_checkout_intake_upload_scanner_closed
 ---
@@ -508,3 +508,8 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc exact-approved PR #905 head `e8214ee0684352fcf5c8710c025ff00066f9748f` after all four checks passed. Squash merge `5060e15cf4e3d125dda3ba13891d2ed56500a065` froze `release/v3.245` at that exact source. The diagnostic changes no buyer acceptance condition; release-branch and frozen-source checks are being verified separately.
 - This image candidate pins v3.245 for one protected immutable build and registry readback. It makes no Azure deployment or buyer access change. The serving v3.244 single-inbox pilot still fails sign-in at the generic Graph identity-binding stage; checkout/payment, intake, uploads and scanning remain closed. Next: complete frozen/image checks, Marc exact image PR review, then separately govern deployment and pilot activation before a fresh buyer-led test.
+
+## 12 October 2026 Central — v3.245 protected deployment candidate
+
+- Marc exact-approved image PR #906 head `5d218034e58a2b43f035ece43917e63287d5bb38` after frozen-source and image-candidate checks passed. Squash merge `ea21dd400b63846948f5e514df28af5689586b7f` triggered protected [image run 38202206035](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38202206035), which built frozen source `5060e15cf4e3d125dda3ba13891d2ed56500a065` and read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:b3cbb209eeaeb08dad685e06577d00d299e81aaf3e07f479a820540908f2e138` from the registry.
+- This separate candidate pins that exact image, verifies v3.244 as the prior app and worker image, and retains v3.223 for rollback. Deployment requires candidate checks and Marc exact-head review. It closes buyer sign-in and draft ordering by default; checkout/payment, intake, uploads and scanning remain closed. The v3.245 diagnostic does not change identity acceptance rules. One separately reviewed named-inbox pilot and a fresh buyer-led test are required to learn the remaining Graph comparison; paid Level 1A release is not accepted.
