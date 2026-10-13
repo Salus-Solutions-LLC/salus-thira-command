@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 20:25 CDT
+last_verified_at: 12 October 2026 21:01 CDT
 current_frozen_release: v3.249
 current_frozen_commit: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
 active_development_branch: development/salcapa-platform
-current_development_head: 9ab18a32898b4b1b02bf00500c25c295577d9f25
+current_development_head: bb21c0afa9a450077ca84873fcdc3881eeea5f4c
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3249_level1_assessment_application_promotion
-last_completed_increment: v3249_level1_assessment_immutable_image_published_and_read_back
+active_increment: salus_v3249_level1_assessment_live_evaluator_acceptance
+last_completed_increment: v3249_level1_assessment_protected_app_and_worker_deployed
 candidate_release: v3.249
-validation_pr: 932
-validation_branch: codex/v3249-level1a-assessment-deployment-20261012
+validation_pr: 933
+validation_branch: codex/v3249-level1a-assessment-buyer-pilot-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: public_ecr_429_on_unrelated_development_push_jobs
-first_root_failing_gate: paid_level1a_checkout_intake_and_report_acceptance
-root_cause: live_signed_payment_intake_and_report_flow_not_yet_accepted
+failed_workflows: none_for_v3249_pilot_candidate
+first_root_failing_gate: fresh_rev13_agreement_and_paid_level1a_acceptance
+root_cause: fresh_buyer_agreement_signed_payment_intake_and_report_flow_not_yet_accepted
 repair_head: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
 repair_summary: frozen_v3249_customer_assessment_naming_and_approved_rev13_template_pin
-genuine_blockers: v3249_protected_deploy_named_pilot_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_deployment_PR_checks_then_Marc_exact_deployment_review
-deployed_demo_release: v3.248
-deployed_demo_state: v3248_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
+genuine_blockers: v3249_named_pilot_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_pilot_PR_checks_then_Marc_exact_access_review
+deployed_demo_release: v3.249
+deployed_demo_state: v3249_protected_app_worker_ready_buyer_signin_draft_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3249_level1_assessment_deployment_passed: Marc exact-approved PR #932 head `9565b7a26e00d961cbb74c9a1a9651020745bf81` after all three checks passed. Squash merge `bb21c0afa9a450077ca84873fcdc3881eeea5f4c` triggered protected Azure [run 38333895998](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38333895998). It passed exact-image preflight, Azure apply, live readiness and identity, isolated Microsoft 365 intake job, fictional report exercise, and worker promotion/readback. App and worker serve v3.249 digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:bbb3e254b6177c25b6b3b60ff643c2b1b78a032dc52d83a79138981dc58f312d`; sign-in, draft, checkout/payment, intake, uploads and scanning are closed. PR #933 stages only a guarded named-inbox pilot for fresh revision 13 agreement QA. Payment and intake remain closed.
 
 v3249_level1_assessment_image_published: Marc approved PR #931 exact head `1d07220af6f2f6b67b614b4cd6aca00913af2718` after all 64 frozen-source and three image-PR checks passed. Squash merge `9ab18a32898b4b1b02bf00500c25c295577d9f25` triggered protected image run [38331728711](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38331728711). It succeeded and registry readback confirmed `salcapadevb48224acr.azurecr.io/salcapa@sha256:bbb3e254b6177c25b6b3b60ff643c2b1b78a032dc52d83a79138981dc58f312d` from frozen v3.249 source `81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6`. PR #932 stages only that digest for guarded deployment, with v3.248 as prior and v3.223 rollback. Buyer sign-in and ordering reset closed; checkout/payment, intake, uploads and scanning remain closed. A separate named pilot and fresh revision 13 generated-agreement review are required before paid buyer acceptance.
 
