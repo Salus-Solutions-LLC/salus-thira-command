@@ -59,6 +59,50 @@ def test_azure_listing_includes_versions_and_hold_state():
         {'name': 'tenant-1/a', 'version_id': 'v1', 'size_bytes': 10, 'legal_hold': True}]
 
 
+@pytest.mark.parametrize('exact_hold', [None, False, True])
+def test_ambiguous_listing_checks_the_exact_version(exact_hold):
+    class Container:
+        def list_blobs(self, *, include):
+            assert include == ['versions', 'legalhold']
+            return [SimpleNamespace(name='tenant-1/a', version_id='v1',
+                                    size=10, has_legal_hold=None)]
+
+        def get_blob_client(self, name, *, version_id):
+            assert (name, version_id) == ('tenant-1/a', 'v1')
+            return SimpleNamespace(get_blob_properties=lambda:
+                                   SimpleNamespace(has_legal_hold=exact_hold))
+
+    listed = list(list_azure_quarantine_versions(Container()))
+    assert listed[0]['legal_hold'] is (exact_hold is True)
+    ledger = [{'blob_name': 'tenant-1/a', 'blob_version_id': 'v1',
+               'size_bytes': 10, 'legal_hold': 0}]
+    comparison = compare_quarantine_versions(ledger, listed)
+    assert comparison['hold_mismatches'] == (
+        [('tenant-1/a', 'v1')] if exact_hold is True else [])
+
+
+def test_listing_without_hold_field_stays_closed():
+    class Container:
+        def list_blobs(self, *, include):
+            return [SimpleNamespace(name='tenant-1/a', version_id='v1', size=10)]
+
+    with pytest.raises(InventoryError, match='no legal-hold field'):
+        list(list_azure_quarantine_versions(Container()))
+
+
+def test_failed_exact_version_read_stays_closed():
+    class Container:
+        def list_blobs(self, *, include):
+            return [SimpleNamespace(name='tenant-1/a', version_id='v1',
+                                    size=10, has_legal_hold=None)]
+
+        def get_blob_client(self, name, *, version_id):
+            raise RuntimeError('exact version unavailable')
+
+    with pytest.raises(RuntimeError, match='exact version unavailable'):
+        list(list_azure_quarantine_versions(Container()))
+
+
 def test_restricted_exceptions_are_idempotent_and_orphans_unassigned():
     conn = sqlite3.connect(':memory:')
     conn.execute('''CREATE TABLE package_quarantine_inventory_exceptions (
