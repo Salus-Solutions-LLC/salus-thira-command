@@ -126,6 +126,8 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         app.LEVEL1A_CHECKOUT_ENABLED=True
         started=buyer.post(f'/api/level1a/orders/{oid}/checkout')
         assert started.status_code==200 and started.json()['status']=='Pending',started.text
+        pending=buyer.get(f'/api/level1a/orders/{oid}/checkout').json()
+        assert pending['status']=='Pending' and pending['test_mode'] is True
         assert b'href="/?view=level1a"' in buyer.get(
             '/package-checkout-return?flow=level1a').content
         assert b'href="/?view=level1a"' in buyer.get(
@@ -158,8 +160,12 @@ def test_signed_in_issue_retry_and_download(tmp_path):
             'type':'checkout.session.completed',
             'data':{'object':{'id':'cs_test_example12345678'}}})
         assert repeated_payment.status_code==200 and repeated_payment.json()['outcome']=='Paid'
+        verified=buyer.get(f'/api/level1a/orders/{oid}/checkout').json()
+        assert verified['status']=='Paid' and verified['test_mode'] is True
+        assert verified['receipt_available'] and not verified['upload_available']
         receipt=buyer.get(f'/api/level1a/orders/{oid}/receipt')
         assert receipt.status_code==200 and b'Page 1 of 1' in receipt.content,receipt.text
+        assert b'STRIPE SANDBOX' in receipt.content and b'NO LIVE CHARGE' in receipt.content
         assert outsider.get(f'/api/level1a/orders/{oid}/receipt').status_code in (401,403,503)
         assert buyer.post(f'/api/level1a/orders/{oid}/intake/open').status_code==503
         app.LEVEL1A_INTAKE_ENABLED=True
