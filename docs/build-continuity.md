@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 23:20 CDT
+last_verified_at: 12 October 2026 23:27 CDT
 current_frozen_release: v3.251
 current_frozen_commit: f727919626b3f0ff705424c8e65c6f262aa73d99
 active_development_branch: development/salcapa-platform
-current_development_head: f727919626b3f0ff705424c8e65c6f262aa73d99
+current_development_head: dad91054d549f63187e6c15f0cc497f270259b16
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3251_sandbox_receipt_immutable_image_publication
-last_completed_increment: v3251_sandbox_receipt_source_merged_and_release_branch_created
+active_increment: salus_v3251_sandbox_receipt_application_promotion
+last_completed_increment: v3251_sandbox_receipt_immutable_image_published_and_read_back
 candidate_release: v3.251
-validation_pr: 943
-validation_branch: codex/v3251-sandbox-receipt-image-20261012
+validation_pr: 944
+validation_branch: codex/v3251-sandbox-receipt-deploy-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: frozen_source_checks_running_for_v3251
+failed_workflows: none_for_v3251_deployment_candidate
 first_root_failing_gate: quarantine_inventory_exceptions_and_paid_intake_acceptance
 root_cause: two_quarantine_inventory_exceptions_observed_on_latest_scheduled_run
 repair_head: f727919626b3f0ff705424c8e65c6f262aa73d99
 repair_summary: frozen_v3251_sandbox_receipt_and_closed_intake_copy_repair
-genuine_blockers: v3250_superseded_after_v3251_source_freeze_then_image_deploy_two_quarantine_inventory_exceptions_paid_intake_reports_wix_public_acceptance
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+genuine_blockers: v3251_protected_deploy_two_quarantine_inventory_exceptions_paid_intake_reports_wix_public_acceptance
+next_authorized_step: complete_deployment_PR_checks_then_Marc_exact_deployment_review
 deployed_demo_release: v3.250
 deployed_demo_state: v3250_named_buyer_signin_draft_test_checkout_enabled_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3251_sandbox_receipt_image_published: Marc exact-approved PR #943 head `ecf040d682f8a0a6c37b2a588bec542387b0983f` after all three PR checks and all frozen-source jobs passed. Squash merge `dad91054d549f63187e6c15f0cc497f270259b16` triggered protected image run [38346249453](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38346249453). Its first attempt hit a public ECR 429 before building; a retry succeeded and Azure registry readback confirmed immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:b07b6f1c2cf32ac1aeea38dc1c6144b28ad034efc36df21a532fdcdbdc0433a7` from frozen source `f727919626b3f0ff705424c8e65c6f262aa73d99`. PR #944 stages only that digest for guarded Azure app and worker deployment with v3.250 as prior and v3.223 rollback. Deployment starts all buyer controls closed. The existing fictional Stripe sandbox receipt is accepted only as test evidence. Two restricted quarantine inventory exceptions still hold intake closed; exception custody, scanner acceptance, qualified human reports, and public live-payment acceptance remain.
 
 v3251_sandbox_receipt_image_candidate: Marc approved PR #942 current exact head `2b5bb82cf4ec9cece2c59bcd08601b825d75d49d` after four checks passed. Squash merge `f727919626b3f0ff705424c8e65c6f262aa73d99` froze `release/v3.251`. PR #943 pins only that source for one protected immutable image build and registry readback. It does not deploy or open public checkout, intake, uploads or scanning. In Azure, the 13 October 02:00 UTC scheduled quarantine inventory completed reconciliation of two ledger rows and two Blob versions, recorded two restricted exceptions and exited nonzero by design. Exact exception types and custody require restricted review; the intake gate remains closed. The five-minute scan result worker has recent successful executions. Separate deployment, test-only pilot reactivation, scanner disposition, paid intake and qualified human report issue remain.
 
