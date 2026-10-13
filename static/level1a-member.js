@@ -7,14 +7,14 @@ function level1aError(){level1aStatus('This step could not be completed. No new 
 
 async function level1aView(){
   const host=$('#content');
-  $('#page-title').textContent='Level 1A Access';
+  $('#page-title').textContent='Level 1A Assessment';
   $('#page-subtitle').textContent=systemMode.level1a_checkout_available?'One defined site or function · fixed $1,500 assessment · secure online purchase':'Protected review of one defined site or function · no payment today';
   if(!isProtectedMember()||!(systemMode.level1a_draft_available||systemMode.level1a_purchase_available)){
     host.innerHTML='<div class="notice">Level 1A online purchase is not available yet.</div>';
     return;
   }
   const saved=level1aState();
-  host.innerHTML='<div class="card"><h2>Level 1A Access</h2><p>For one defined site or function. The $1,500 assessment includes a baseline review, benchmark, priorities and decision support. Additional sites, investigations and SalOPS services have separate scope and prices.</p><p id="level1a-status" role="status" aria-live="polite"></p></div><div id="level1a-step"></div>';
+  host.innerHTML='<div class="card"><h2>Level 1A Assessment</h2><p>For one defined site or function. The $1,500 assessment includes a baseline review, benchmark, priorities and decision support. Additional sites, investigations and SalOPS services have separate scope and prices.</p><p id="level1a-status" role="status" aria-live="polite"></p></div><div id="level1a-step"></div>';
   if(saved.order_id){
     try{
       const order=await api(`/api/level1a/orders/${Number(saved.order_id)}`);
@@ -80,7 +80,7 @@ function level1aQuote(state){
   }
   const total=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(quote.total_cents)/100);
   const tax=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(quote.tax_cents)/100);
-  host.innerHTML=`<div class="card"><h2>Review the exact offer</h2><p><strong>Level 1A Access:</strong> $1,500.00<br><strong>Tax:</strong> ${esc(tax)}<br><strong>Total before checkout:</strong> ${esc(total)}</p><p>The agreement will state your named unit, boundary, exclusions and what Salus delivers. Read the exact Word agreement before approving it.</p><form id="level1a-issue-form"><label>Your full name for the agreement<input name="signer_name" required minlength="2" maxlength="200"></label><div class="form-actions"><button class="btn">Prepare my agreement</button></div></form></div>`;
+  host.innerHTML=`<div class="card"><h2>Review the exact offer</h2><p><strong>Level 1A Assessment:</strong> $1,500.00<br><strong>Tax:</strong> ${esc(tax)}<br><strong>Total before checkout:</strong> ${esc(total)}</p><p>The agreement will state your named unit, boundary, exclusions and what Salus delivers. Read the exact Word agreement before approving it.</p><form id="level1a-issue-form"><label>Your full name for the agreement<input name="signer_name" required minlength="2" maxlength="200"></label><div class="form-actions"><button class="btn">Prepare my agreement</button></div></form></div>`;
   host.querySelector('form').onsubmit=async event=>{
     event.preventDefault();const form=event.currentTarget,button=form.querySelector('button');
     if(!form.reportValidity())return;
@@ -115,7 +115,7 @@ async function level1aPayment(state){
   let payment;
   try{payment=await api(`/api/level1a/orders/${id}/checkout`)}catch{level1aError();return}
   if(payment.status==='Paid'){
-    host.innerHTML=`<div class="card"><h2>Payment verified</h2><p>Your Level 1A Access payment is recorded for this exact order. Your receipt is available below.</p><p><a href="/api/level1a/orders/${id}/receipt" target="_blank" rel="noopener">View or print your confidential receipt</a></p><button class="btn" type="button" id="level1a-open-intake">Open my records request</button></div>`;
+    host.innerHTML=`<div class="card"><h2>Payment verified</h2><p>Your Level 1A Assessment payment is recorded for this exact order. Your receipt is available below.</p><p><a href="/api/level1a/orders/${id}/receipt" target="_blank" rel="noopener">View or print your confidential receipt</a></p><button class="btn" type="button" id="level1a-open-intake">Open my records request</button></div>`;
     host.querySelector('button').onclick=async event=>{event.currentTarget.disabled=true;try{await api(`/api/level1a/orders/${id}/intake/open`,{method:'POST'});level1aIntake(state)}catch{level1aError();event.currentTarget.disabled=false}};
     return;
   }
@@ -127,7 +127,7 @@ async function level1aPayment(state){
     host.innerHTML='<div class="notice"><h2>Agreement recorded</h2><p>This protected review has stopped before payment. Salus will contact you when checkout is ready. No payment or records request has been opened.</p></div>';
     return;
   }
-  host.innerHTML='<div class="card"><h2>Secure payment</h2><p>Stripe handles the $1,500 Level 1A Access payment for your accepted agreement. The records request opens only after Salus verifies the exact payment.</p><button class="btn" id="level1a-checkout">Continue to secure checkout</button> <button class="btn secondary" id="level1a-refresh">Check payment status</button></div>';
+  host.innerHTML='<div class="card"><h2>Secure payment</h2><p>Stripe handles the $1,500 Level 1A Assessment payment for your accepted agreement. The records request opens only after Salus verifies the exact payment.</p><button class="btn" id="level1a-checkout">Continue to secure checkout</button> <button class="btn secondary" id="level1a-refresh">Check payment status</button></div>';
   host.querySelector('#level1a-refresh').onclick=()=>level1aPayment(state);
   host.querySelector('#level1a-checkout').onclick=async event=>{
     event.currentTarget.disabled=true;level1aStatus('Preparing secure checkout…');

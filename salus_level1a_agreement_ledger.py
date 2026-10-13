@@ -56,10 +56,10 @@ class AgreementConflict(ValueError):
     pass
 
 
-# Exact five-page Word issue template approved by Marc on 9 October 2026.
+# Exact five-page Word issue template approved by Marc on 12 October 2026.
 # A separately governed release must place these bytes in controlled storage.
-APPROVED_TEMPLATE_SHA256 = '3466397ba28e74bf21e0dc36e26a526ccd5d0984dff2ef196b2605b171a9c29e'
-APPROVED_TEMPLATE_VERSION = 'Level1A-Rev11-20261009'
+APPROVED_TEMPLATE_SHA256 = 'f68c06b2e352aed494c52db1e38f38d536624591e0cd08cb7dacb05af87f7d91'
+APPROVED_TEMPLATE_VERSION = 'Level1A-Rev13-20261012'
 APPROVED_TEMPLATE_KEY = f'level1a/templates/{APPROVED_TEMPLATE_SHA256}.docx'
 
 
