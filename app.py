@@ -30,7 +30,7 @@ from salus_level1a_agreement_ledger import (AGREEMENT_TABLE_SQL,
 from salus_level1a_acceptance import (ACCEPTANCE_TABLE_SQL,
     AcceptanceConflict, CONSENT_TEXT_V1, accept_issued_agreement)
 from salus_level1a_checkout import (create_level1a_checkout_session,
-    Level1ACheckoutBinding)
+    validate_level1a_checkout_key,Level1ACheckoutBinding)
 from salus_level1a_payment_ledger import (LEVEL1A_PAYMENT_SQL,
     binding_for_accepted_order,record_level1a_session,record_level1a_paid,
     hold_level1a_payment,verified_level1a_receipt,
@@ -74,6 +74,7 @@ ENVIRONMENT = os.getenv('SALUS_ENV','development').strip().lower()
 PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_ORDER_DRAFT_ENABLED = os.getenv('SALUS_LEVEL1A_ORDER_DRAFT_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_CHECKOUT_ENABLED = os.getenv('SALUS_LEVEL1A_CHECKOUT_ENABLED','0').lower() in ('1','true','yes')
+LEVEL1A_TEST_CHECKOUT_ONLY = os.getenv('SALUS_LEVEL1A_TEST_CHECKOUT_ONLY','0').lower() in ('1','true','yes')
 LEVEL1A_PILOT_EMAIL = os.getenv('SALUS_LEVEL1A_PILOT_EMAIL','').strip().casefold()
 LEVEL1A_PILOT_OBJECT_ID = os.getenv('SALUS_LEVEL1A_PILOT_OBJECT_ID','').strip().lower()
 LEVEL1A_INTAKE_ENABLED = os.getenv('SALUS_LEVEL1A_INTAKE_ENABLED','0').lower() in ('1','true','yes')
@@ -6261,6 +6262,11 @@ def start_level1a_checkout(order_id:int,request:Request):
             raise HTTPException(503,'Secure checkout is not configured.') from exc
         if not stripe_key:
             raise HTTPException(503,'Secure checkout is not configured.')
+        try:
+            validate_level1a_checkout_key(stripe_key,
+                test_only=LEVEL1A_TEST_CHECKOUT_ONLY)
+        except CheckoutVerificationError as exc:
+            raise HTTPException(503,'Secure checkout needs configuration review.') from exc
         if previous:
             if previous['status']!='Pending':
                 raise HTTPException(409,'The prior payment needs reconciliation.')
@@ -6281,7 +6287,8 @@ def start_level1a_checkout(order_id:int,request:Request):
         try:
             session=create_level1a_checkout_session(binding,stripe_key,
                 origin+'/package-checkout-return?flow=level1a&session_id={CHECKOUT_SESSION_ID}',
-                origin+'/package-checkout-cancel?flow=level1a',attempt_no=attempt)
+                origin+'/package-checkout-cancel?flow=level1a',attempt_no=attempt,
+                test_only=LEVEL1A_TEST_CHECKOUT_ONLY)
             recorded=record_level1a_session(conn,binding,attempt,session['id'],
                                             session['url'],now())
         except CheckoutVerificationError as exc:
