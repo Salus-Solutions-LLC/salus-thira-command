@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 19:49 CDT
-current_frozen_release: v3.248
-current_frozen_commit: dec2c43c6cdc938468425fc565e6e5fbbdbd7ad1
+last_verified_at: 12 October 2026 20:00 CDT
+current_frozen_release: v3.249
+current_frozen_commit: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
 active_development_branch: development/salcapa-platform
-current_development_head: 3965a81168c1cbe4ae59d7edf13a6fe2071aa781
+current_development_head: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3249_level1_assessment_naming_source_candidate
-last_completed_increment: v3248_level1_assessment_naming_and_rev13_evidence_merged
+active_increment: salus_v3249_level1_assessment_immutable_image_publication
+last_completed_increment: v3249_level1_assessment_source_merged_and_release_branch_created
 candidate_release: v3.249
-validation_pr: 930
-validation_branch: codex/v3249-level1a-assessment-source-20261012
+validation_pr: 931
+validation_branch: codex/v3249-level1a-assessment-image-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3249_source_candidate
+failed_workflows: public_ecr_429_retries_pending_for_v3249_source
 first_root_failing_gate: paid_level1a_checkout_intake_and_report_acceptance
 root_cause: live_signed_payment_intake_and_report_flow_not_yet_accepted
-repair_head: 3965a81168c1cbe4ae59d7edf13a6fe2071aa781
-repair_summary: merged_customer_assessment_naming_and_approved_rev13_template_pin
-genuine_blockers: v3248_superseded_only_after_v3249_source_freeze_then_image_deploy_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_source_candidate_CI_then_Marc_exact_source_review
+repair_head: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
+repair_summary: frozen_v3249_customer_assessment_naming_and_approved_rev13_template_pin
+genuine_blockers: v3249_image_deploy_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.248
 deployed_demo_state: v3248_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3249_level1_assessment_image_candidate: Marc approved PR #930 exact head `0334292561204a411ac0ae2e784cc410d05bf415` after four required checks passed. Squash merge `81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6` is the frozen `release/v3.249` source. The development and frozen-source suites are running; two jobs hit a public ECR 429 rate limit before testing and need successful retries. PR #931 pins only this source for one protected immutable image build and registry readback. It does not deploy or open checkout/payment, intake, uploads or scanning. Serving v3.248 remains the named-inbox pilot; a fresh generated agreement, signed Stripe test payment/receipt, scanner-backed intake, and qualified human review and issue of four reports remain open.
 
 v3249_level1_assessment_naming_source_candidate: Marc exact-approved PR #929 head `d2961be6df990964c5b6866e916823ca74669b25` after all three required checks passed. Merge `3965a81168c1cbe4ae59d7edf13a6fe2071aa781` changes customer-facing Level 1A/B/C names to Assessment and pins the exact approved revision 13 Level 1A Word template; it does not deploy or open payment or intake. The private Azure copy at `evidence/level1a/templates/f68c06b2e352aed494c52db1e38f38d536624591e0cd08cb7dacb05af87f7d91.docx` downloaded with matching SHA-256, and the temporary container role was removed. This candidate labels that source v3.249. Source freeze, immutable image, protected Azure deployment, fresh generated-copy review, signed Stripe test payment and receipt, scanner-backed intake, and qualified human review and issue of four reports remain separate gates. Serving v3.248 keeps checkout/payment and intake closed.
 
