@@ -1,0 +1,107 @@
+name: SalCAPA quarantine exception type diagnostic
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/salcapa-quarantine-exception-types.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-quarantine-exception-types-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only quarantine type diagnostic gate passed.'
+
+  diagnose:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Run one bounded read-only query through the existing private inventory job
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-job.json"
+          python - "$RUNNER_TEMP/inventory-job.json" "$RUNNER_TEMP/read-only-template.yaml" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          job=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          props=job.get('properties') or {}
+          config=props.get('configuration') or {}
+          template=props.get('template') or {}
+          containers=template.get('containers') or []
+          expected='salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966'
+          if (job.get('name')!='salcapa-dev-b48224-scan-inv'
+              or config.get('triggerType')!='Schedule'
+              or (config.get('scheduleTriggerConfig') or {}).get('cronExpression')!='0 2 * * *'
+              or len(containers)!=1 or containers[0].get('image')!=expected):
+              raise SystemExit('Inventory job differs from reviewed diagnostic bounds')
+          code = """
+          import json
+          try:
+              from app import db
+              conn=db()
+              try:
+                  rows=conn.execute(
+                      "SELECT exception_type, status, COUNT(*) AS n "
+                      "FROM package_quarantine_inventory_exceptions "
+                      "WHERE status='Open' GROUP BY exception_type, status"
+                  ).fetchall()
+                  allowed={'Unlinked','Missing','SizeMismatch','HoldMismatch'}
+                  counts={kind:0 for kind in sorted(allowed)}
+                  for row in rows:
+                      kind=row['exception_type']
+                      status=row['status']
+                      n=int(row['n'])
+                      if kind not in allowed or status not in {'Open','Resolved','Closed'} or n < 0 or n > 100:
+                          raise ValueError('Unexpected restricted exception category')
+                      if status=='Open':
+                          counts[kind]+=n
+                  if sum(counts.values())>100:
+                      raise ValueError('Diagnostic count exceeds bounded limit')
+                  print(json.dumps({'inventory_exception_types':counts},sort_keys=True))
+              finally:
+                  conn.close()
+          except Exception as exc:
+              print(json.dumps({'inventory_diagnostic':'failed','error_type':type(exc).__name__},sort_keys=True))
+              raise SystemExit(1)
+          """
+          containers[0]['command']=['python']
+          containers[0]['args']=['-c',code]
+          Path(sys.argv[2]).write_text(json.dumps(template),encoding='utf-8')
+          print('exact_inventory_job_preflight=passed')
+          PY
+          az containerapp job start -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv --yaml "$RUNNER_TEMP/read-only-template.yaml" -o json > "$RUNNER_TEMP/diagnostic-execution.json"
+          python - "$RUNNER_TEMP/diagnostic-execution.json" <<'PY'
+          import json,re,sys
+          value=json.load(open(sys.argv[1],encoding='utf-8'))
+          name=value.get('name') or ''
+          if not re.fullmatch(r'salcapa-dev-b48224-scan-inv-[a-z0-9]+',name):
+              raise SystemExit('Diagnostic execution name unavailable')
+          print('read_only_execution='+name)
+          PY
