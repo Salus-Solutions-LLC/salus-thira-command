@@ -76,11 +76,26 @@ def compare_quarantine_versions(ledger_rows: Iterable[dict], azure_rows: Iterabl
 def list_azure_quarantine_versions(container):
     """Read version and hold metadata through a separately authorized reader."""
     for blob in container.list_blobs(include=['versions', 'legalhold']):
+        if not hasattr(blob, 'has_legal_hold'):
+            raise InventoryError('The Azure listing has no legal-hold field.')
+        hold = blob.has_legal_hold
+        if hold is None:
+            # Azure can omit the no-hold value. Confirm the exact version before
+            # interpreting an omitted property header as false.
+            properties = container.get_blob_client(
+                blob.name, version_id=blob.version_id).get_blob_properties()
+            if not hasattr(properties, 'has_legal_hold'):
+                raise InventoryError('The Azure version has no legal-hold field.')
+            hold = properties.has_legal_hold
+            if hold is None:
+                hold = False
+        if type(hold) is not bool:
+            raise InventoryError('The Azure legal-hold state is invalid.')
         yield {
             'name': blob.name,
             'version_id': blob.version_id,
             'size_bytes': blob.size,
-            'legal_hold': getattr(blob, 'has_legal_hold', None),
+            'legal_hold': hold,
         }
 
 
