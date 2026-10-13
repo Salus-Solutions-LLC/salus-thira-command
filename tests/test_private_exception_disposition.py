@@ -6,13 +6,17 @@ import types
 import unittest
 
 
-sys.modules["salus_scan_inventory"] = types.SimpleNamespace(
-    compare_quarantine_versions=lambda ledger, azure, max_versions: {
-        "unlinked_versions": [], "missing_versions": [],
-        "size_mismatches": [], "hold_mismatches": [],
-    },
-    list_azure_quarantine_versions=lambda container: [],
-)
+try:
+    import salus_scan_inventory  # noqa: F401
+except ModuleNotFoundError:
+    # The standalone candidate uses a stub; repository CI imports the real module.
+    sys.modules["salus_scan_inventory"] = types.SimpleNamespace(
+        compare_quarantine_versions=lambda ledger, azure, max_versions: {
+            "unlinked_versions": [], "missing_versions": [],
+            "size_mismatches": [], "hold_mismatches": [],
+        },
+        list_azure_quarantine_versions=lambda container: [],
+    )
 path = pathlib.Path(__file__).resolve().parents[1] / "tools" / "private_exception_disposition.py"
 spec = importlib.util.spec_from_file_location("candidate", path)
 candidate = importlib.util.module_from_spec(spec)
