@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 12:59 CDT
+last_verified_at: 12 October 2026 19:49 CDT
 current_frozen_release: v3.248
 current_frozen_commit: dec2c43c6cdc938468425fc565e6e5fbbdbd7ad1
 active_development_branch: development/salcapa-platform
-current_development_head: d79cbe45e5198a9dee72e400c83a0a0ed47832d5
+current_development_head: 3965a81168c1cbe4ae59d7edf13a6fe2071aa781
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3248_agreement_qa_live_evaluator_acceptance
-last_completed_increment: v3248_agreement_qa_protected_app_and_worker_deployed
-candidate_release: v3.248
-validation_pr: 924
-validation_branch: codex/v3248-agreement-qa-buyer-pilot-20261012
+active_increment: salus_v3249_level1_assessment_naming_source_candidate
+last_completed_increment: v3248_level1_assessment_naming_and_rev13_evidence_merged
+candidate_release: v3.249
+validation_pr: 930
+validation_branch: codex/v3249-level1a-assessment-source-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3248_pilot_candidate
-first_root_failing_gate: newly_generated_agreement_metadata_and_paid_level1a_acceptance
-root_cause: issued_rev11_agreement_inherited_draft_rev9_core_title
-repair_head: dec2c43c6cdc938468425fc565e6e5fbbdbd7ad1
-repair_summary: frozen_v3248_generated_rev11_metadata_and_buyer_UI_clarity
-genuine_blockers: v3248_named_pilot_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_pilot_PR_checks_then_Marc_exact_access_review
+failed_workflows: none_for_v3249_source_candidate
+first_root_failing_gate: paid_level1a_checkout_intake_and_report_acceptance
+root_cause: live_signed_payment_intake_and_report_flow_not_yet_accepted
+repair_head: 3965a81168c1cbe4ae59d7edf13a6fe2071aa781
+repair_summary: merged_customer_assessment_naming_and_approved_rev13_template_pin
+genuine_blockers: v3248_superseded_only_after_v3249_source_freeze_then_image_deploy_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_source_candidate_CI_then_Marc_exact_source_review
 deployed_demo_release: v3.248
-deployed_demo_state: v3248_protected_app_worker_ready_buyer_signin_draft_checkout_intake_upload_scanner_closed
+deployed_demo_state: v3248_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3249_level1_assessment_naming_source_candidate: Marc exact-approved PR #929 head `d2961be6df990964c5b6866e916823ca74669b25` after all three required checks passed. Merge `3965a81168c1cbe4ae59d7edf13a6fe2071aa781` changes customer-facing Level 1A/B/C names to Assessment and pins the exact approved revision 13 Level 1A Word template; it does not deploy or open payment or intake. The private Azure copy at `evidence/level1a/templates/f68c06b2e352aed494c52db1e38f38d536624591e0cd08cb7dacb05af87f7d91.docx` downloaded with matching SHA-256, and the temporary container role was removed. This candidate labels that source v3.249. Source freeze, immutable image, protected Azure deployment, fresh generated-copy review, signed Stripe test payment and receipt, scanner-backed intake, and qualified human review and issue of four reports remain separate gates. Serving v3.248 keeps checkout/payment and intake closed.
 
 v3248_agreement_QA_deployment_passed: Marc exact-approved PR #923 head `87f11b02916556e338ef3daeba5eba9a5d833ebb` after all three checks passed. Squash merge `d79cbe45e5198a9dee72e400c83a0a0ed47832d5` triggered protected Azure [run 38286716593](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38286716593). It passed exact-image preflight, Azure apply, live readiness and identity, isolated Microsoft 365 intake job, fictional report exercise, and worker promotion/readback. App and worker serve v3.248 digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:748d744126b6001f86c497c75455a7f0251352635e5faff39240ebdd4e2cd427`; sign-in, draft, checkout/payment, intake, uploads and scanning are closed. PR #924 stages only a guarded named-inbox pilot to inspect a new generated Word copy. Payment and intake remain closed.
 
