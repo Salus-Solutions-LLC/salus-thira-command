@@ -36,13 +36,29 @@ def render_level1a_receipt(order,quote,agreement,paid):
         date_text=paid_at.strftime('%d %B %Y at %H:%M UTC')
     except (ValueError,AttributeError) as exc:
         raise CheckoutVerificationError('The payment time is incomplete.') from exc
+    session_id=paid['stripe_session_id']
+    if session_id.startswith('cs_test_'):
+        receipt_mark='SALUS CONFIDENTIAL — STRIPE SANDBOX — TEST RECEIPT — NO LIVE CHARGE'
+        receipt_intro=('This is a test transaction. No live funds were collected. '
+                       'Keep this test receipt with its fictional agreement.')
+        amount_label='Test amount'
+        verified_label='Sandbox payment verified'
+    elif session_id.startswith('cs_live_'):
+        receipt_mark='SALUS CONFIDENTIAL — PROTECTED MEMBER COPY'
+        receipt_intro=('Salus verified prepayment for the one covered assessment '
+                       'unit and the exact accepted agreement shown below. '
+                       'Keep this receipt with your agreement.')
+        amount_label='Total paid'
+        verified_label='Payment verified'
+    else:
+        raise CheckoutVerificationError('The Stripe Session mode is invalid.')
     fields=(('Protected Member',order['buyer_legal_name']),
             ('Covered unit',order['unit_name']),
             ('Scope boundary',order['covered_boundary']),
             ('Base price','$1,500.00 USD'),
             ('Sales tax','$0.00 USD — approved assessment tax decision'),
-            ('Total paid','$1,500.00 USD'),
-            ('Payment verified',date_text),
+            (amount_label,'$1,500.00 USD'),
+            (verified_label,date_text),
             ('Order reference',f'L1A-{order["id"]}'),
             ('Quote reference',f'Q{quote["id"]}'),
             ('Stripe payment reference',paid['stripe_session_id']),
@@ -62,10 +78,9 @@ vertical-align:top;border-bottom:1px solid #cbd2db;padding:5px;overflow-wrap:any
 th{width:31%;font-size:9pt}td{font-size:10pt}.note{font-size:9pt;margin-top:14px}
 footer{font-size:8pt;text-align:right;margin-top:16px}
 @media print{body{margin:0}}</style></head><body><main>
-<p class="mark">SALUS CONFIDENTIAL — PROTECTED MEMBER COPY</p>
+<p class="mark">'''+escape(receipt_mark)+'''</p>
 <h1>Level 1A Assessment payment receipt</h1>
-<p>Salus verified prepayment for the one covered assessment unit and the exact
-accepted agreement shown below. Keep this receipt with your agreement.</p>
+<p>'''+escape(receipt_intro)+'''</p>
 <table>'''+rows+'''</table>
 <p class="note">The written agreement controls the included assessment and
 exclusions. Payment alone does not authorize disclosure of another person's
