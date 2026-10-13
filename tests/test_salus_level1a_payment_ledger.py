@@ -113,6 +113,9 @@ def test_exact_one_page_receipt_bytes_are_immutable_and_member_bound():
     agreement=conn.execute('SELECT * FROM level1a_agreement_versions WHERE id=1').fetchone()
     content=render_level1a_receipt(order,quote,agreement,paid)
     assert b'Page 1 of 1' in content and b'05 October 2026 at 13:00 UTC' in content
+    assert b'STRIPE SANDBOX' in content and b'NO LIVE CHARGE' in content
+    assert b'Test amount' in content and b'Sandbox payment verified' in content
+    assert b'Total paid' not in content
     assert b'Fictional Daycare LLC' not in content
     assert b'Example Care LLC' in content
     digest=sha256(content).hexdigest()

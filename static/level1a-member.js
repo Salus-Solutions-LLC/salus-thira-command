@@ -115,8 +115,10 @@ async function level1aPayment(state){
   let payment;
   try{payment=await api(`/api/level1a/orders/${id}/checkout`)}catch{level1aError();return}
   if(payment.status==='Paid'){
-    host.innerHTML=`<div class="card"><h2>Payment verified</h2><p>Your Level 1A Assessment payment is recorded for this exact order. Your receipt is available below.</p><p><a href="/api/level1a/orders/${id}/receipt" target="_blank" rel="noopener">View or print your confidential receipt</a></p><button class="btn" type="button" id="level1a-open-intake">Open my records request</button></div>`;
-    host.querySelector('button').onclick=async event=>{event.currentTarget.disabled=true;try{await api(`/api/level1a/orders/${id}/intake/open`,{method:'POST'});level1aIntake(state)}catch{level1aError();event.currentTarget.disabled=false}};
+    const intakeReady=Boolean(systemMode.level1a_purchase_available);
+    const testMode=payment.test_mode===true;
+    host.innerHTML=`<div class="card"><h2>${testMode?'Sandbox test payment verified':'Payment verified'}</h2><p>${testMode?'This was a Stripe sandbox transaction; no live funds were collected.':'Your Level 1A Assessment payment is recorded for this exact order.'} Your receipt is available below.</p><p><a href="/api/level1a/orders/${id}/receipt" target="_blank" rel="noopener">View or print your confidential receipt</a></p>${intakeReady?'<button class="btn" type="button" id="level1a-open-intake">Open my records request</button>':'<p class="notice">The records request is not open yet. Your receipt remains available while Salus completes acceptance.</p>'}</div>`;
+    if(intakeReady)host.querySelector('#level1a-open-intake').onclick=async event=>{event.currentTarget.disabled=true;try{await api(`/api/level1a/orders/${id}/intake/open`,{method:'POST'});level1aIntake(state)}catch{level1aError();event.currentTarget.disabled=false}};
     return;
   }
   if(!['Not started','Pending','Expired'].includes(payment.status)){
