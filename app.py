@@ -6317,7 +6317,7 @@ def level1a_checkout_status(order_id:int,request:Request):
             paid=verified_level1a_receipt(conn,binding)
         except CheckoutVerificationError as exc:
             raise HTTPException(409,str(exc)) from exc
-        row=conn.execute('''SELECT status FROM level1a_checkout_sessions WHERE
+        row=conn.execute('''SELECT status,stripe_session_id FROM level1a_checkout_sessions WHERE
             tenant_id=? AND buyer_user_id=? AND order_id=? AND acceptance_id=?
             ORDER BY attempt_no DESC LIMIT 1''',
             (binding.tenant_id,binding.buyer_user_id,order_id,
@@ -6326,6 +6326,7 @@ def level1a_checkout_status(order_id:int,request:Request):
                 'order_id':order_id,'amount_cents':binding.amount_cents,
                 'currency':binding.currency,
                 'receipt_available':bool(paid and paid['receipt_document_sha256']),
+                'test_mode':bool(row and row['stripe_session_id'].startswith('cs_test_')),
                 'upload_available':False}
     finally:
         conn.close()
