@@ -1,0 +1,138 @@
+name: SalCAPA protected v3.252 inventory image promotion
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - deploy/azure/activations/inventory-v3252-dev.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-inventory-job-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected inventory image gate passed.'
+
+  promote:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v3.252
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Validate exact reviewed activation and frozen source
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=deploy/azure/activations/inventory-v3252-dev.json
+          jq -e '
+            .schema_version == 1 and
+            .operation == "update_private_inventory_job_image" and
+            .target_environment == "dev" and
+            .resource_group == "rg-salcapa-dev" and
+            .job_name == "salcapa-dev-b48224-scan-inv" and
+            .source_release == "release/v3.252" and
+            .source_commit == "b481a1e593256899ff9ffa709cce469124dfcbfc" and
+            .image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44" and
+            .rollback_image_digest == "salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966" and
+            .approval_record == "MD-V3252-PRIVATE-INVENTORY-20261013" and
+            .activation_key == "salcapa-v3.252-private-inventory-b481a1e5" and
+            ((keys - ["schema_version","operation","target_environment","resource_group","job_name","source_release","source_commit","image_digest","rollback_image_digest","approval_record","activation_key"]) | length == 0)
+          ' "$file" >/dev/null
+          test "$(git -C frozen-release rev-parse HEAD)" = "b481a1e593256899ff9ffa709cce469124dfcbfc"
+          git merge-base --is-ancestor b481a1e593256899ff9ffa709cce469124dfcbfc "$GITHUB_SHA"
+          grep -Fq 'SALCAPA_RELEASE_VERSION = "3.252"' frozen-release/salcapa_runtime.py
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify registry digests and existing private job
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n rg-salcapa-dev --query location -o tsv)" = "southcentralus"
+          registry=salcapadevb48224acr
+          new=715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44
+          old=0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966
+          for digest in "$new" "$old"; do
+            test "$(az acr manifest show-metadata --registry "$registry" --name "salcapa@sha256:$digest" --query digest -o tsv)" = "sha256:$digest"
+          done
+          test "$(az acr manifest show-metadata --registry "$registry" --name salcapa:source-b481a1e593256899ff9ffa709cce469124dfcbfc --query digest -o tsv)" = "sha256:$new"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-before.json"
+          python - "$RUNNER_TEMP/inventory-before.json" <<'PY'
+          import json, sys
+          job=json.load(open(sys.argv[1],encoding='utf-8'))
+          p=job['properties']; c=p['configuration']; t=p['template']; xs=t['containers']
+          expected='salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966'
+          assert len(xs)==1 and xs[0]['name']=='scan-inventory' and xs[0]['image']==expected
+          assert xs[0]['command']==['python','-m','salus_scan_inventory_worker']
+          assert float(xs[0]['resources']['cpu'])==0.25 and xs[0]['resources']['memory']=='0.5Gi'
+          assert c['triggerType']=='Schedule' and c['scheduleTriggerConfig']['cronExpression']=='0 2 * * *'
+          assert c['replicaTimeout']==300 and c['replicaRetryLimit']==0
+          assert len(job['identity']['userAssignedIdentities'])==2 and len(c['registries'])==1
+          print('PREVIEW: only the existing private daily inventory job image will change; all buyer, payment, intake, upload, and scanning controls remain closed.')
+          PY
+      - name: Update only inventory image, verify, and roll back on failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          group=rg-salcapa-dev
+          job=salcapa-dev-b48224-scan-inv
+          new=salcapadevb48224acr.azurecr.io/salcapa@sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44
+          old=salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966
+          rollback() {
+            echo 'Inventory image verification failed; restoring recorded prior image.' >&2
+            az containerapp job update -g "$group" -n "$job" --image "$old" --output none || echo 'ROLLBACK UPDATE FAILED' >&2
+            current="$(az containerapp job show -g "$group" -n "$job" --query 'properties.template.containers[0].image' -o tsv 2>/dev/null || true)"
+            test "$current" = "$old" || echo 'ROLLBACK READBACK FAILED; INVENTORY JOB REQUIRES OPERATOR REVIEW' >&2
+          }
+          trap rollback ERR
+          az containerapp job update -g "$group" -n "$job" --image "$new" --output none
+          az containerapp job show -g "$group" -n "$job" -o json > "$RUNNER_TEMP/inventory-after.json"
+          python - "$RUNNER_TEMP/inventory-before.json" "$RUNNER_TEMP/inventory-after.json" "$new" <<'PY'
+          import copy, json, sys
+          before=json.load(open(sys.argv[1],encoding='utf-8'))
+          after=json.load(open(sys.argv[2],encoding='utf-8'))
+          b=before['properties']; a=after['properties']
+          assert a['template']['containers'][0]['image']==sys.argv[3]
+          assert a['configuration']==b['configuration'], 'schedule/registry/timeout drift'
+          assert a['environmentId']==b['environmentId'], 'environment drift'
+          assert a.get('workloadProfileName')==b.get('workloadProfileName'), 'profile drift'
+          assert after['identity']==before['identity'], 'identity drift'
+          assert after.get('tags')==before.get('tags'), 'tags drift'
+          old_template=copy.deepcopy(b['template']); new_template=copy.deepcopy(a['template'])
+          old_template['containers'][0].pop('image'); new_template['containers'][0].pop('image')
+          assert new_template==old_template, 'template or container drift'
+          print('Verified exact inventory image; identity, schedule, registry, command, resources, environment and tags unchanged.')
+          PY
+          trap - ERR
+          echo 'Inventory job image promoted; current reconciliation and exact-object scanner acceptance remain open.'
+
