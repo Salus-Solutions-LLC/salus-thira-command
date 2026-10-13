@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 20:00 CDT
+last_verified_at: 12 October 2026 20:25 CDT
 current_frozen_release: v3.249
 current_frozen_commit: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
 active_development_branch: development/salcapa-platform
-current_development_head: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
+current_development_head: 9ab18a32898b4b1b02bf00500c25c295577d9f25
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3249_level1_assessment_immutable_image_publication
-last_completed_increment: v3249_level1_assessment_source_merged_and_release_branch_created
+active_increment: salus_v3249_level1_assessment_application_promotion
+last_completed_increment: v3249_level1_assessment_immutable_image_published_and_read_back
 candidate_release: v3.249
-validation_pr: 931
-validation_branch: codex/v3249-level1a-assessment-image-20261012
+validation_pr: 932
+validation_branch: codex/v3249-level1a-assessment-deployment-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: public_ecr_429_retries_pending_for_v3249_source
+failed_workflows: public_ecr_429_on_unrelated_development_push_jobs
 first_root_failing_gate: paid_level1a_checkout_intake_and_report_acceptance
 root_cause: live_signed_payment_intake_and_report_flow_not_yet_accepted
 repair_head: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
 repair_summary: frozen_v3249_customer_assessment_naming_and_approved_rev13_template_pin
-genuine_blockers: v3249_image_deploy_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+genuine_blockers: v3249_protected_deploy_named_pilot_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_deployment_PR_checks_then_Marc_exact_deployment_review
 deployed_demo_release: v3.248
 deployed_demo_state: v3248_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3249_level1_assessment_image_published: Marc approved PR #931 exact head `1d07220af6f2f6b67b614b4cd6aca00913af2718` after all 64 frozen-source and three image-PR checks passed. Squash merge `9ab18a32898b4b1b02bf00500c25c295577d9f25` triggered protected image run [38331728711](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38331728711). It succeeded and registry readback confirmed `salcapadevb48224acr.azurecr.io/salcapa@sha256:bbb3e254b6177c25b6b3b60ff643c2b1b78a032dc52d83a79138981dc58f312d` from frozen v3.249 source `81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6`. PR #932 stages only that digest for guarded deployment, with v3.248 as prior and v3.223 rollback. Buyer sign-in and ordering reset closed; checkout/payment, intake, uploads and scanning remain closed. A separate named pilot and fresh revision 13 generated-agreement review are required before paid buyer acceptance.
 
 v3249_level1_assessment_image_candidate: Marc approved PR #930 exact head `0334292561204a411ac0ae2e784cc410d05bf415` after four required checks passed. Squash merge `81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6` is the frozen `release/v3.249` source. The development and frozen-source suites are running; two jobs hit a public ECR 429 rate limit before testing and need successful retries. PR #931 pins only this source for one protected immutable image build and registry readback. It does not deploy or open checkout/payment, intake, uploads or scanning. Serving v3.248 remains the named-inbox pilot; a fresh generated agreement, signed Stripe test payment/receipt, scanner-backed intake, and qualified human review and issue of four reports remain open.
 
