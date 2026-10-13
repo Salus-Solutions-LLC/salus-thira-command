@@ -1,0 +1,85 @@
+name: SalCAPA v3.252 private inventory reconciliation
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/salcapa-v3252-inventory-reconcile.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-v3252-inventory-reconcile-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected inventory reconciliation gate passed.'
+
+  reconcile:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify exact private job and run one normal inventory
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          group=rg-salcapa-dev
+          job=salcapa-dev-b48224-scan-inv
+          az containerapp job show -g "$group" -n "$job" -o json > "$RUNNER_TEMP/inventory-before.json"
+          python - "$RUNNER_TEMP/inventory-before.json" <<'PY'
+          import json,sys
+          job=json.load(open(sys.argv[1],encoding='utf-8'))
+          p=job['properties'];c=p['configuration'];t=p['template'];xs=t['containers']
+          expected='salcapadevb48224acr.azurecr.io/salcapa@sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44'
+          assert job['name']=='salcapa-dev-b48224-scan-inv'
+          assert len(xs)==1 and xs[0]['name']=='scan-inventory' and xs[0]['image']==expected
+          assert xs[0]['command']==['python','-m','salus_scan_inventory_worker']
+          assert c['triggerType']=='Schedule' and c['scheduleTriggerConfig']['cronExpression']=='0 2 * * *'
+          assert c['replicaTimeout']==300 and c['replicaRetryLimit']==0
+          assert len(job['identity']['userAssignedIdentities'])==2 and len(c['registries'])==1
+          print('exact_private_inventory_preflight=passed')
+          PY
+          execution="$(az containerapp job start -g "$group" -n "$job" --query name -o tsv --only-show-errors)"
+          [[ "$execution" =~ ^salcapa-dev-b48224-scan-inv-[a-z0-9]+$ ]]
+          echo "inventory_execution=$execution"
+          status=''
+          for attempt in $(seq 1 40); do
+            status="$(az containerapp job execution show -g "$group" -n "$job" --job-execution-name "$execution" --query properties.status -o tsv --only-show-errors 2>/dev/null || true)"
+            if [ "$status" = Succeeded ] || [ "$status" = Failed ]; then break; fi
+            sleep 10
+          done
+          echo "inventory_execution_status=$status"
+          test "$status" = Succeeded
+          az containerapp job show -g "$group" -n "$job" -o json > "$RUNNER_TEMP/inventory-after.json"
+          python - "$RUNNER_TEMP/inventory-before.json" "$RUNNER_TEMP/inventory-after.json" <<'PY'
+          import json,sys
+          before=json.load(open(sys.argv[1],encoding='utf-8'))
+          after=json.load(open(sys.argv[2],encoding='utf-8'))
+          assert before['properties']['configuration']==after['properties']['configuration']
+          assert before['properties']['template']==after['properties']['template']
+          assert before['identity']==after['identity']
+          assert before.get('tags')==after.get('tags')
+          print('private_inventory_definition_unchanged=true')
+          PY
+          echo 'Normal inventory succeeded; historical exception records remain held for separate disposition.'
