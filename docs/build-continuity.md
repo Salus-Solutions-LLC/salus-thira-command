@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 21:01 CDT
+last_verified_at: 12 October 2026 21:48 CDT
 current_frozen_release: v3.249
 current_frozen_commit: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
 active_development_branch: development/salcapa-platform
-current_development_head: bb21c0afa9a450077ca84873fcdc3881eeea5f4c
+current_development_head: 73c0fecc98b30d4f68a9f20c06fe216c22322065
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3249_level1_assessment_live_evaluator_acceptance
-last_completed_increment: v3249_level1_assessment_protected_app_and_worker_deployed
-candidate_release: v3.249
-validation_pr: 933
-validation_branch: codex/v3249-level1a-assessment-buyer-pilot-20261012
+active_increment: salus_v3250_level1a_test_checkout_source_candidate
+last_completed_increment: v3249_generated_agreement_qa_and_test_checkout_guard_merged
+candidate_release: v3.250
+validation_pr: 937
+validation_branch: codex/v3250-test-checkout-source-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3249_pilot_candidate
-first_root_failing_gate: fresh_rev13_agreement_and_paid_level1a_acceptance
-root_cause: fresh_buyer_agreement_signed_payment_intake_and_report_flow_not_yet_accepted
-repair_head: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
-repair_summary: frozen_v3249_customer_assessment_naming_and_approved_rev13_template_pin
-genuine_blockers: v3249_named_pilot_new_copy_QA_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_pilot_PR_checks_then_Marc_exact_access_review
+failed_workflows: none_for_v3250_source_candidate
+first_root_failing_gate: signed_test_payment_receipt_and_intake_acceptance
+root_cause: signed_test_payment_intake_and_report_flow_not_yet_accepted
+repair_head: 73c0fecc98b30d4f68a9f20c06fe216c22322065
+repair_summary: merged_fail_closed_test_only_stripe_checkout_guard
+genuine_blockers: v3250_source_image_deploy_test_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_source_candidate_CI_then_Marc_exact_source_review
 deployed_demo_release: v3.249
-deployed_demo_state: v3249_protected_app_worker_ready_buyer_signin_draft_checkout_intake_upload_scanner_closed
+deployed_demo_state: v3249_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3250_test_checkout_source_candidate: Marc approved PR #936 exact head `fb4831bf68cab5f458108a674e8ef5f04c9fa2b7` after all four required checks passed, including a successful Windows retry of an unrelated timeout. Squash merge `73c0fecc98b30d4f68a9f20c06fe216c22322065` adds a fail-closed Stripe test-key-only guard for the protected Level 1A Assessment checkout pilot. PR #937 labels that merged source v3.250. It does not deploy or open checkout/payment, intake, uploads or scanning. The v3.249 named-inbox pilot and five-page revision 13 generated agreement QA passed; no agreement acceptance or payment occurred. Source freeze, immutable image readback, guarded deployment, separate test-checkout activation, signed fictional Stripe payment/webhook/receipt, scanner-backed intake, and qualified human review and issue of four reports remain.
 
 v3249_level1_assessment_deployment_passed: Marc exact-approved PR #932 head `9565b7a26e00d961cbb74c9a1a9651020745bf81` after all three checks passed. Squash merge `bb21c0afa9a450077ca84873fcdc3881eeea5f4c` triggered protected Azure [run 38333895998](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38333895998). It passed exact-image preflight, Azure apply, live readiness and identity, isolated Microsoft 365 intake job, fictional report exercise, and worker promotion/readback. App and worker serve v3.249 digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:bbb3e254b6177c25b6b3b60ff643c2b1b78a032dc52d83a79138981dc58f312d`; sign-in, draft, checkout/payment, intake, uploads and scanning are closed. PR #933 stages only a guarded named-inbox pilot for fresh revision 13 agreement QA. Payment and intake remain closed.
 
