@@ -1,3 +1,8 @@
+## 13 October 2026 — historical soft-deleted version check candidate; public launch remains closed
+
+- Draft PR #957 proposes one protected, read-only comparison of the two older Open Unlinked scanner exception keys with Azure's soft-deleted exact-version listing. It verifies the installed v3.252 private inventory image and schedule, requires zero current inventory mismatches, and logs counts or an error class only. The check has not run; it does not dispose any exception. Qualified exact-record review of all four older Open rows remains required.
+- Public Stripe payment, intake, uploads, and scanning remain closed. The first scheduled run on the repaired v3.252 private inventory image remains due 14 October 2026 at 02:00 UTC; scheduled-success and buyer rollout acceptance are still open.
+
 ## 13 October 2026 — scheduled inventory failure and mailbox alert evidence; public launch remains closed
 
 - Read-only Azure execution history for `salcapa-dev-b48224-scan-inv` shows the 02:00 UTC scheduled run on 13 October (`salcapa-dev-b48224-scan-inv-29864280`) started on the prior `sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966` image. Azure system logs show the container started and exited code 2; its count-only console record at 02:00:25 UTC reports two observed exceptions across two ledger and two Azure versions. The prior image produced legal-hold mismatches already diagnosed and repaired in v3.252. Scheduled runs from 5 through 13 October are marked Failed. The 13 October run proves fail-closed discrepancy detection and a working schedule trigger; the older failures have not been individually classified here. Do not label the 13 October failure an unexplained scheduling outage.
