@@ -55,7 +55,7 @@ jobs:
           config=props.get('configuration') or {}
           template=props.get('template') or {}
           containers=template.get('containers') or []
-          expected='salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966'
+          expected='salcapadevb48224acr.azurecr.io/salcapa@sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44'
           if (job.get('name')!='salcapa-dev-b48224-scan-inv'
               or config.get('triggerType')!='Schedule'
               or (config.get('scheduleTriggerConfig') or {}).get('cronExpression')!='0 2 * * *'
