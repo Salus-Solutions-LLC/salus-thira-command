@@ -1,3 +1,9 @@
+## 13 October 2026 Central — v3.252 frozen source; protected image candidate
+
+- Marc approved PR #948 current exact head `79730179cf079d318d5d372c37054d62e439a163` after all four required checks passed. Squash merge `b481a1e593256899ff9ffa709cce469124dfcbfc` froze `release/v3.252`; branch readback matched that commit and runtime version 3.252.
+- Draft PR #949 pins only this frozen source for one protected immutable image build and Azure registry readback. Required PR, frozen-source and image-candidate checks plus Marc exact-head review remain. This candidate does not deploy or change the existing daily inventory job, Blob custody, payment, intake, uploads, or scanning.
+- v3.251 remains the protected deployed app and worker, all buyer controls closed. The private daily inventory job still runs its earlier image and current hold comparison has not been rerun with this fix. Two historical Open Unlinked records remain restricted for review. After image publication, stage separately reviewed image-only inventory-job promotion with rollback; then rerun current reconciliation and exact-object scanner/alert acceptance. Do not repeat the completed fictional Stripe sandbox payment. Public payment and qualified human issue of four reports remain unaccepted.
+
 ## 13 October 2026 Central — v3.252 exact-version inventory repair source candidate
 
 - Marc approved PR #947 exact head `116467988f135b0e32beb09e92ff26161955fd66` after all three checks passed. It merged as `4ab7d2a6d1da0503e844c71a60cc19d573107493`. The repair reads the exact Azure Blob version when listing legal-hold metadata is absent, then interprets an omitted exact-version no-hold value as false. Missing SDK fields, failed reads, actual holds, and ledger disagreement remain closed.

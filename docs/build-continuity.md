@@ -1,33 +1,36 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 13 October 2026 05:52 CDT
-current_frozen_release: v3.251
-current_frozen_commit: f727919626b3f0ff705424c8e65c6f262aa73d99
+last_verified_at: 13 October 2026 05:59 CDT
+current_frozen_release: v3.252
+current_frozen_commit: b481a1e593256899ff9ffa709cce469124dfcbfc
 active_development_branch: development/salcapa-platform
-current_development_head: 4ab7d2a6d1da0503e844c71a60cc19d573107493
+current_development_head: b481a1e593256899ff9ffa709cce469124dfcbfc
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3252_exact_version_inventory_hold_source_candidate
-last_completed_increment: v3251_protected_app_worker_deployed_and_v3252_inventory_repair_merged
+active_increment: salus_v3252_exact_version_inventory_immutable_image_publication
+last_completed_increment: v3252_inventory_hold_source_merged_and_release_branch_created
 candidate_release: v3.252
-validation_pr: 948
-validation_branch: codex/v3252-inventory-hold-source-20261013
+validation_pr: 949
+validation_branch: codex/v3252-inventory-image-20261013
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3252_source_candidate
-first_root_failing_gate: current_quarantine_hold_comparison_and_paid_intake_acceptance
-root_cause: azure_omits_no_hold_property_for_exact_blob_version
-repair_head: 4ab7d2a6d1da0503e844c71a60cc19d573107493
-repair_summary: merged_exact_version_hold_readback_normalization_with_closed_failures
-genuine_blockers: v3251_superseded_only_after_v3252_source_freeze_then_image_inventory_job_promotion_current_reconciliation_exact_scanner_paid_intake_reports_wix_public_acceptance
-next_authorized_step: complete_v3252_source_checks_then_Marc_exact_source_review
+failed_workflows: frozen_source_and_image_checks_running_for_v3252
+first_root_failing_gate: current_quarantine_inventory_and_paid_intake_acceptance
+root_cause: private_inventory_job_still_runs_pre_repair_image
+repair_head: b481a1e593256899ff9ffa709cce469124dfcbfc
+repair_summary: frozen_v3252_exact_version_hold_readback_repair
+genuine_blockers: v3252_immutable_image_then_private_inventory_job_promotion_current_reconciliation_exact_scanner_paid_intake_reports_wix_public_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.251
 deployed_demo_state: v3251_protected_app_worker_buyer_signin_ordering_checkout_payment_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3252_inventory_hold_image_candidate: Marc approved PR #948 current exact head `79730179cf079d318d5d372c37054d62e439a163` after all four required checks passed. Squash merge `b481a1e593256899ff9ffa709cce469124dfcbfc` froze `release/v3.252` at the previously approved exact-version inventory hold repair. PR #949 pins only this frozen source for one protected immutable image build and registry readback. It does not deploy or open payment, intake, uploads, or scanning. The private inventory job still runs its prior image; a separately reviewed image-only promotion, current restricted reconciliation, scanner acceptance, paid intake, human report issue, and public acceptance remain.
+
 
 v3252_inventory_hold_source_candidate: Marc approved PR #947 exact head `116467988f135b0e32beb09e92ff26161955fd66` after all three checks passed. Squash merge `4ab7d2a6d1da0503e844c71a60cc19d573107493` verifies the exact Azure Blob version when listing legal-hold metadata is absent, interprets an omitted exact-version no-hold header as false, and keeps missing fields, failed reads, actual holds, and ledger disagreement closed. Protected read-only PR #946 diagnostic run 38350986998 found two current HoldMismatch results across two matched versions, with no current Missing, SizeMismatch, or Unlinked results. Two historical Open Unlinked records remain restricted for governed review. v3.251 app and worker are deployed with all buyer controls closed. v3.252 is a source candidate only; freeze, immutable image publication, narrow private inventory job promotion, current reconciliation, scanner acceptance, paid intake, four human-reviewed reports, and public acceptance remain.
 
