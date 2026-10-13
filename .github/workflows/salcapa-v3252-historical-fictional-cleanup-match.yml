@@ -1,0 +1,151 @@
+name: SalCAPA v3.252 historical fictional cleanup match
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/salcapa-v3252-historical-fictional-cleanup-match.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-v3252-historical-fictional-cleanup-match-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected historical fictional cleanup match gate passed.'
+
+  diagnose:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Check historical open exceptions against soft-deleted versions without changing records
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-job.json"
+          python - "$RUNNER_TEMP/inventory-job.json" "$RUNNER_TEMP/read-only-template.yaml" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          job=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          props=job.get('properties') or {}
+          config=props.get('configuration') or {}
+          template=props.get('template') or {}
+          containers=template.get('containers') or []
+          expected='salcapadevb48224acr.azurecr.io/salcapa@sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44'
+          if (job.get('name')!='salcapa-dev-b48224-scan-inv'
+              or config.get('triggerType')!='Schedule'
+              or (config.get('scheduleTriggerConfig') or {}).get('cronExpression')!='0 2 * * *'
+              or len(containers)!=1 or containers[0].get('image')!=expected):
+              raise SystemExit('Inventory job differs from reviewed diagnostic bounds')
+          code = """
+          import json
+          try:
+              from app import db, package_quarantine
+              from salus_scan_inventory import compare_quarantine_versions, list_azure_quarantine_versions
+              reader=package_quarantine(for_worker=True)
+              conn=db()
+              try:
+                  ledger=[dict(row) for row in conn.execute(
+                      "SELECT tenant_id,blob_name,blob_version_id,size_bytes,legal_hold "
+                      "FROM package_intake_pending_scans")]
+                  ledger.extend(dict(row) for row in conn.execute(
+                      "SELECT tenant_id,blob_name,blob_version_id,size_bytes,0 AS legal_hold "
+                      "FROM level1a_pending_scans"))
+                  open_rows=[dict(row) for row in conn.execute(
+                      "SELECT exception_type,blob_name,blob_version_id,first_seen,last_seen "
+                      "FROM package_quarantine_inventory_exceptions WHERE status='Open'")]
+              finally:
+                  conn.close()
+              azure=list(list_azure_quarantine_versions(reader.container))
+              if max(len(ledger),len(azure),len(open_rows))>100:
+                  raise ValueError('Review capacity exceeded')
+              comparison=compare_quarantine_versions(ledger,azure,max_versions=100)
+              if any(comparison[field] for field in (
+                      'unlinked_versions','missing_versions','size_mismatches','hold_mismatches')):
+                  raise ValueError('Current inventory is not clear')
+              if len(open_rows)!=4:
+                  raise ValueError('Historical exception count differs from reviewed bounds')
+              expected_names={
+                  'scanner-acceptance/clean-20261002-01.txt',
+                  'scanner-acceptance/eicar-20261002-01.txt'}
+              current_ledger={(row['blob_name'],row['blob_version_id']):row for row in ledger}
+              current_azure={(row['name'],row['version_id']):row for row in azure}
+              deleted=set()
+              listed=0
+              for blob in reader.container.list_blobs(include=['deleted','versions','deletedwithversions']):
+                  listed+=1
+                  if listed>100:
+                      raise ValueError('Azure listing exceeds review capacity')
+                  if (getattr(blob,'deleted',False) is True
+                      and isinstance(blob.name,str) and blob.name
+                      and isinstance(blob.version_id,str) and blob.version_id):
+                      deleted.add((blob.name,blob.version_id))
+              unlinked=[row for row in open_rows if row['exception_type']=='Unlinked']
+              holds=[row for row in open_rows if row['exception_type']=='HoldMismatch']
+              if len(unlinked)!=2 or len(holds)!=2:
+                  raise ValueError('Historical exception types differ from reviewed bounds')
+              if {row['blob_name'] for row in unlinked}!=expected_names:
+                  raise ValueError('Historical unlinked paths differ from fictional cleanup')
+              cleanup_matches=0
+              for row in unlinked:
+                  key=(row['blob_name'],row['blob_version_id'])
+                  if row['blob_name'] in expected_names and key in deleted and key not in current_azure:
+                      cleanup_matches+=1
+              reconciled_holds=0
+              for row in holds:
+                  key=(row['blob_name'],row['blob_version_id'])
+                  recorded=current_ledger.get(key)
+                  stored=current_azure.get(key)
+                  if recorded is not None and stored is not None and bool(recorded['legal_hold'])==stored['legal_hold']:
+                      reconciled_holds+=1
+              print(json.dumps({
+                  'current_exceptions':0,
+                  'historical_open_count':len(open_rows),
+                  'fictional_cleanup_path_and_soft_deleted_version_matches':cleanup_matches,
+                  'historical_hold_rows_now_matching_ledger_and_azure':reconciled_holds
+              },sort_keys=True))
+              if cleanup_matches!=2 or reconciled_holds!=2:
+                  raise ValueError('Historical identities require further review')
+          except Exception as exc:
+              print(json.dumps({'historical_cleanup_match':'failed',
+                                'error_type':type(exc).__name__},sort_keys=True))
+              raise SystemExit(1)
+          """
+          containers[0]['command']=['python']
+          containers[0]['args']=['-c',code]
+          Path(sys.argv[2]).write_text(json.dumps(template),encoding='utf-8')
+          print('exact_inventory_job_preflight=passed')
+          PY
+          az containerapp job start -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv --yaml "$RUNNER_TEMP/read-only-template.yaml" -o json > "$RUNNER_TEMP/diagnostic-execution.json"
+          python - "$RUNNER_TEMP/diagnostic-execution.json" <<'PY'
+          import json,re,sys
+          value=json.load(open(sys.argv[1],encoding='utf-8'))
+          name=value.get('name') or ''
+          if not re.fullmatch(r'salcapa-dev-b48224-scan-inv-[a-z0-9]+',name):
+              raise SystemExit('Diagnostic execution name unavailable')
+          print('historical_cleanup_match_execution='+name)
+          PY
