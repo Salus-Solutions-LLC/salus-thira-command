@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "operation": "update_private_inventory_job_image",
+  "target_environment": "dev",
+  "resource_group": "rg-salcapa-dev",
+  "job_name": "salcapa-dev-b48224-scan-inv",
+  "source_release": "release/v3.252",
+  "source_commit": "b481a1e593256899ff9ffa709cce469124dfcbfc",
+  "image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44",
+  "rollback_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966",
+  "approval_record": "MD-V3252-PRIVATE-INVENTORY-20261013",
+  "activation_key": "salcapa-v3.252-private-inventory-b481a1e5"
+}
+
