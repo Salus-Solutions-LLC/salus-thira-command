@@ -100,9 +100,9 @@ jobs:
                   listed+=1
                   if listed>100:
                       raise ValueError('Azure listing exceeds review capacity')
-                  if getattr(blob,'deleted',False) is True:
-                      if not isinstance(blob.name,str) or not isinstance(blob.version_id,str):
-                          raise ValueError('Soft-deleted version lacks exact key')
+                  if (getattr(blob,'deleted',False) is True
+                      and isinstance(blob.name,str) and blob.name
+                      and isinstance(blob.version_id,str) and blob.version_id):
                       deleted.add((blob.name,blob.version_id))
               unlinked=[row for row in open_rows if row['exception_type']=='Unlinked']
               holds=[row for row in open_rows if row['exception_type']=='HoldMismatch']
