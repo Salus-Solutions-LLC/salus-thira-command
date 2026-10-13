@@ -4,7 +4,7 @@ import pytest
 
 from salus_level1a_checkout import (
     Level1ACheckoutBinding, create_level1a_checkout_session,
-    verify_level1a_paid_session,
+    validate_level1a_checkout_key, verify_level1a_paid_session,
 )
 from salus_stripe_checkout import CheckoutVerificationError
 
@@ -57,3 +57,21 @@ def test_checkout_rejects_other_tax_and_price():
     with pytest.raises(CheckoutVerificationError):
         Level1ACheckoutBinding(1,2,3,4,5,'a'*64,'b'*64,'c'*64,
                                150_000,1,150_001)
+
+
+def test_protected_pilot_rejects_live_key_before_reusing_or_creating_checkout():
+    binding=_binding()
+    calls=[]
+    def fake_post(*args):
+        calls.append(args)
+        raise AssertionError('Live Stripe must never receive a pilot request.')
+    with pytest.raises(CheckoutVerificationError,match='test keys only'):
+        validate_level1a_checkout_key('sk_live_fictional',test_only=True)
+    with pytest.raises(CheckoutVerificationError,match='test keys only'):
+        create_level1a_checkout_session(
+            binding,'sk_live_fictional',
+            'https://salcapa.salus.solutions/success',
+            'https://salcapa.salus.solutions/cancel',
+            transport=fake_post,test_only=True)
+    assert calls==[]
+    validate_level1a_checkout_key('rk_test_fictional',test_only=True)
