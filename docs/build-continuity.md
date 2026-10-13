@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 21:48 CDT
+last_verified_at: 12 October 2026 21:51 CDT
 current_frozen_release: v3.249
 current_frozen_commit: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
 active_development_branch: development/salcapa-platform
@@ -21,7 +21,7 @@ first_root_failing_gate: signed_test_payment_receipt_and_intake_acceptance
 root_cause: signed_test_payment_intake_and_report_flow_not_yet_accepted
 repair_head: 73c0fecc98b30d4f68a9f20c06fe216c22322065
 repair_summary: merged_fail_closed_test_only_stripe_checkout_guard
-genuine_blockers: v3250_source_image_deploy_test_payment_receipt_intake_scanner_wix_acceptance
+genuine_blockers: v3249_superseded_only_after_v3250_source_freeze_then_image_deploy_test_payment_receipt_intake_scanner_wix_acceptance
 next_authorized_step: complete_source_candidate_CI_then_Marc_exact_source_review
 deployed_demo_release: v3.249
 deployed_demo_state: v3249_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
