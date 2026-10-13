@@ -66,13 +66,19 @@ def level1a_checkout_form(binding, success_url, cancel_url):
     return form
 
 
-def create_level1a_checkout_session(binding, secret_key, success_url, cancel_url,
-                                    *, attempt_no=1, transport=None):
-    if type(attempt_no) is not int or not 1<=attempt_no<=20:
-        raise CheckoutVerificationError('The checkout retry count requires review.')
+def validate_level1a_checkout_key(secret_key, *, test_only=False):
     if not isinstance(secret_key,str) or not secret_key.startswith(
             ('sk_test_','sk_live_','rk_test_','rk_live_')):
         raise CheckoutVerificationError('A Stripe secret key is required.')
+    if test_only and not secret_key.startswith(('sk_test_','rk_test_')):
+        raise CheckoutVerificationError('This pilot accepts Stripe test keys only.')
+
+
+def create_level1a_checkout_session(binding, secret_key, success_url, cancel_url,
+                                    *, attempt_no=1, transport=None, test_only=False):
+    if type(attempt_no) is not int or not 1<=attempt_no<=20:
+        raise CheckoutVerificationError('The checkout retry count requires review.')
+    validate_level1a_checkout_key(secret_key, test_only=test_only)
     form=level1a_checkout_form(binding,success_url,cancel_url)
     retry_key=sha256(f'level1a:{binding.acceptance_id}:{binding.quote_sha256}:'
                      f'{attempt_no}'.encode('ascii')).hexdigest()
