@@ -1,4 +1,4 @@
-name: SalCAPA quarantine exception type diagnostic
+name: SalCAPA quarantine hold and exception diagnostic
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: salcapa-quarantine-exception-types-dev
+  group: salcapa-quarantine-hold-diagnostic-dev
   cancel-in-progress: false
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
     environment: salcapa-dev-approval
     permissions: {}
     steps:
-      - run: echo 'Protected read-only quarantine type diagnostic gate passed.'
+      - run: echo 'Protected read-only quarantine hold diagnostic gate passed.'
 
   diagnose:
     needs: authorize
@@ -63,32 +63,62 @@ jobs:
               raise SystemExit('Inventory job differs from reviewed diagnostic bounds')
           code = """
           import json
+          from collections import Counter
+          from datetime import datetime, timezone
           try:
-              from app import db
+              from app import db, package_quarantine
+              from salus_scan_inventory import compare_quarantine_versions, list_azure_quarantine_versions
+              reader=package_quarantine(for_worker=True)
               conn=db()
               try:
-                  rows=conn.execute(
-                      "SELECT exception_type, status, COUNT(*) AS n "
-                      "FROM package_quarantine_inventory_exceptions "
-                      "WHERE status='Open' GROUP BY exception_type, status"
-                  ).fetchall()
-                  allowed={'Unlinked','Missing','SizeMismatch','HoldMismatch'}
-                  counts={kind:0 for kind in sorted(allowed)}
-                  for row in rows:
-                      kind=row['exception_type']
-                      status=row['status']
-                      n=int(row['n'])
-                      if kind not in allowed or status not in {'Open','Resolved','Closed'} or n < 0 or n > 100:
-                          raise ValueError('Unexpected restricted exception category')
-                      if status=='Open':
-                          counts[kind]+=n
-                  if sum(counts.values())>100:
-                      raise ValueError('Diagnostic count exceeds bounded limit')
-                  print(json.dumps({'inventory_exception_types':counts},sort_keys=True))
+                  ledger=[dict(row) for row in conn.execute(
+                      "SELECT tenant_id,blob_name,blob_version_id,size_bytes,legal_hold "
+                      "FROM package_intake_pending_scans"
+                  )]
+                  open_rows=[dict(row) for row in conn.execute(
+                      "SELECT exception_type,last_seen FROM package_quarantine_inventory_exceptions "
+                      "WHERE status='Open'"
+                  )]
               finally:
                   conn.close()
+              azure=list(list_azure_quarantine_versions(reader.container))
+              if len(ledger)>100 or len(azure)>100 or len(open_rows)>100:
+                  raise ValueError('Diagnostic capacity exceeded')
+              comparison=compare_quarantine_versions(ledger,azure,max_versions=100)
+              names={'unlinked_versions':'Unlinked','missing_versions':'Missing',
+                     'size_mismatches':'SizeMismatch','hold_mismatches':'HoldMismatch'}
+              current={label:len(comparison[field]) for field,label in names.items()}
+              today=datetime.now(timezone.utc).date().isoformat()
+              age={'today':{label:0 for label in names.values()},
+                   'earlier':{label:0 for label in names.values()}}
+              for row in open_rows:
+                  kind=row['exception_type']
+                  if kind not in names.values():
+                      raise ValueError('Unexpected exception type')
+                  bucket='today' if str(row['last_seen'])[:10]==today else 'earlier'
+                  age[bucket][kind]+=1
+              def flag(value):
+                  return 'unknown' if value is None else ('true' if bool(value) else 'false')
+              azmap={(row['name'],row['version_id']):row for row in azure}
+              holds=Counter()
+              for row in ledger:
+                  key=(row['blob_name'],row['blob_version_id'])
+                  listed=azmap.get(key)
+                  if listed is None:
+                      continue
+                  props=reader.container.get_blob_client(
+                      row['blob_name'],version_id=row['blob_version_id']
+                  ).get_blob_properties()
+                  holds[(flag(row['legal_hold']),flag(listed['legal_hold']),
+                         flag(getattr(props,'has_legal_hold',None)))]+=1
+              hold_states=[{'ledger':a,'listing':b,'exact_properties':c,'count':n}
+                           for (a,b,c),n in sorted(holds.items())]
+              print(json.dumps({'current_comparison':current,
+                                'open_rows_by_last_seen_utc':age,
+                                'matched_hold_states':hold_states},sort_keys=True))
           except Exception as exc:
-              print(json.dumps({'inventory_diagnostic':'failed','error_type':type(exc).__name__},sort_keys=True))
+              print(json.dumps({'inventory_diagnostic':'failed','error_type':type(exc).__name__},
+                               sort_keys=True))
               raise SystemExit(1)
           """
           containers[0]['command']=['python']
