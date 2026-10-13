@@ -1,33 +1,36 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 23:27 CDT
+last_verified_at: 13 October 2026 05:52 CDT
 current_frozen_release: v3.251
 current_frozen_commit: f727919626b3f0ff705424c8e65c6f262aa73d99
 active_development_branch: development/salcapa-platform
-current_development_head: dad91054d549f63187e6c15f0cc497f270259b16
+current_development_head: 4ab7d2a6d1da0503e844c71a60cc19d573107493
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3251_sandbox_receipt_application_promotion
-last_completed_increment: v3251_sandbox_receipt_immutable_image_published_and_read_back
-candidate_release: v3.251
-validation_pr: 944
-validation_branch: codex/v3251-sandbox-receipt-deploy-20261012
+active_increment: salus_v3252_exact_version_inventory_hold_source_candidate
+last_completed_increment: v3251_protected_app_worker_deployed_and_v3252_inventory_repair_merged
+candidate_release: v3.252
+validation_pr: 948
+validation_branch: codex/v3252-inventory-hold-source-20261013
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3251_deployment_candidate
-first_root_failing_gate: quarantine_inventory_exceptions_and_paid_intake_acceptance
-root_cause: two_quarantine_inventory_exceptions_observed_on_latest_scheduled_run
-repair_head: f727919626b3f0ff705424c8e65c6f262aa73d99
-repair_summary: frozen_v3251_sandbox_receipt_and_closed_intake_copy_repair
-genuine_blockers: v3251_protected_deploy_two_quarantine_inventory_exceptions_paid_intake_reports_wix_public_acceptance
-next_authorized_step: complete_deployment_PR_checks_then_Marc_exact_deployment_review
-deployed_demo_release: v3.250
-deployed_demo_state: v3250_named_buyer_signin_draft_test_checkout_enabled_intake_upload_scanner_closed
+failed_workflows: none_for_v3252_source_candidate
+first_root_failing_gate: current_quarantine_hold_comparison_and_paid_intake_acceptance
+root_cause: azure_omits_no_hold_property_for_exact_blob_version
+repair_head: 4ab7d2a6d1da0503e844c71a60cc19d573107493
+repair_summary: merged_exact_version_hold_readback_normalization_with_closed_failures
+genuine_blockers: v3251_superseded_only_after_v3252_source_freeze_then_image_inventory_job_promotion_current_reconciliation_exact_scanner_paid_intake_reports_wix_public_acceptance
+next_authorized_step: complete_v3252_source_checks_then_Marc_exact_source_review
+deployed_demo_release: v3.251
+deployed_demo_state: v3251_protected_app_worker_buyer_signin_ordering_checkout_payment_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3252_inventory_hold_source_candidate: Marc approved PR #947 exact head `116467988f135b0e32beb09e92ff26161955fd66` after all three checks passed. Squash merge `4ab7d2a6d1da0503e844c71a60cc19d573107493` verifies the exact Azure Blob version when listing legal-hold metadata is absent, interprets an omitted exact-version no-hold header as false, and keeps missing fields, failed reads, actual holds, and ledger disagreement closed. Protected read-only PR #946 diagnostic run 38350986998 found two current HoldMismatch results across two matched versions, with no current Missing, SizeMismatch, or Unlinked results. Two historical Open Unlinked records remain restricted for governed review. v3.251 app and worker are deployed with all buyer controls closed. v3.252 is a source candidate only; freeze, immutable image publication, narrow private inventory job promotion, current reconciliation, scanner acceptance, paid intake, four human-reviewed reports, and public acceptance remain.
+
 
 v3251_sandbox_receipt_image_published: Marc exact-approved PR #943 head `ecf040d682f8a0a6c37b2a588bec542387b0983f` after all three PR checks and all frozen-source jobs passed. Squash merge `dad91054d549f63187e6c15f0cc497f270259b16` triggered protected image run [38346249453](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38346249453). Its first attempt hit a public ECR 429 before building; a retry succeeded and Azure registry readback confirmed immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:b07b6f1c2cf32ac1aeea38dc1c6144b28ad034efc36df21a532fdcdbdc0433a7` from frozen source `f727919626b3f0ff705424c8e65c6f262aa73d99`. PR #944 stages only that digest for guarded Azure app and worker deployment with v3.250 as prior and v3.223 rollback. Deployment starts all buyer controls closed. The existing fictional Stripe sandbox receipt is accepted only as test evidence. Two restricted quarantine inventory exceptions still hold intake closed; exception custody, scanner acceptance, qualified human reports, and public live-payment acceptance remain.
 

@@ -1,3 +1,9 @@
+## 13 October 2026 Central — v3.252 exact-version inventory repair source candidate
+
+- Marc approved PR #947 exact head `116467988f135b0e32beb09e92ff26161955fd66` after all three checks passed. It merged as `4ab7d2a6d1da0503e844c71a60cc19d573107493`. The repair reads the exact Azure Blob version when listing legal-hold metadata is absent, then interprets an omitted exact-version no-hold value as false. Missing SDK fields, failed reads, actual holds, and ledger disagreement remain closed.
+- Draft v3.252 source PR #948 labels this approved repair for governed freeze. It does not deploy or change Azure, blobs, ledger, payment, or intake. Required checks and Marc's exact-head review remain. v3.251 is the deployed app and worker; buyer sign-in, ordering, checkout/payment, intake, uploads and scanning remain closed.
+- After source freeze, build and verify one immutable image, then prepare a guarded image-only update of the private daily inventory job with recorded previous-image rollback. Rerun current restricted reconciliation without logging names or versions. Historical Open `Unlinked` records need separate governed review. Intake remains closed through exact-object Clean/EICAR, legal-hold, mismatch, timeout, alert/recovery and paid-intake acceptance. The fictional L1A-9/Q9 Stripe sandbox payment passed once and must not be repeated; four reports require qualified human review before issue.
+
 ## 13 October 2026 Central — exact-version legal-hold inventory repair candidate
 
 - Marc approved PR #946 at exact head `a93696d9d0d0790c84f49a6e4cf920cbd02c94e0` after three required checks passed. It merged as `d6716c5c4ee32e82d3e29208722a9f1c7716c207`. Protected read-only diagnostic run [38350986998](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38350986998) succeeded. Azure execution `salcapa-dev-b48224-scan-inv-qg01lsw` completed 13 October 2026 05:22:34 UTC.
