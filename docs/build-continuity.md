@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 21:51 CDT
-current_frozen_release: v3.249
-current_frozen_commit: 81f0d49f9a1bc95b000bd076cca00c9a60a1d1b6
+last_verified_at: 12 October 2026 22:03 CDT
+current_frozen_release: v3.250
+current_frozen_commit: d9935dcc023f7e4aecc5e9f8855073e8fdb08c06
 active_development_branch: development/salcapa-platform
-current_development_head: 73c0fecc98b30d4f68a9f20c06fe216c22322065
+current_development_head: d9935dcc023f7e4aecc5e9f8855073e8fdb08c06
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3250_level1a_test_checkout_source_candidate
-last_completed_increment: v3249_generated_agreement_qa_and_test_checkout_guard_merged
+active_increment: salus_v3250_test_checkout_immutable_image_publication
+last_completed_increment: v3250_test_checkout_source_merged_and_release_branch_created
 candidate_release: v3.250
-validation_pr: 937
-validation_branch: codex/v3250-test-checkout-source-20261012
+validation_pr: 938
+validation_branch: codex/v3250-test-checkout-image-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3250_source_candidate
+failed_workflows: frozen_source_checks_running_for_v3250
 first_root_failing_gate: signed_test_payment_receipt_and_intake_acceptance
 root_cause: signed_test_payment_intake_and_report_flow_not_yet_accepted
-repair_head: 73c0fecc98b30d4f68a9f20c06fe216c22322065
-repair_summary: merged_fail_closed_test_only_stripe_checkout_guard
-genuine_blockers: v3249_superseded_only_after_v3250_source_freeze_then_image_deploy_test_payment_receipt_intake_scanner_wix_acceptance
-next_authorized_step: complete_source_candidate_CI_then_Marc_exact_source_review
+repair_head: d9935dcc023f7e4aecc5e9f8855073e8fdb08c06
+repair_summary: frozen_v3250_fail_closed_test_only_checkout_guard
+genuine_blockers: v3250_image_deploy_test_payment_receipt_intake_scanner_wix_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.249
 deployed_demo_state: v3249_named_buyer_signin_draft_enabled_checkout_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3250_test_checkout_image_candidate: Marc approved PR #937 exact head `03041c3c2dd4c05f4ac3ae2eb3fb739aa077d2d8` after four required checks passed. Squash merge `d9935dcc023f7e4aecc5e9f8855073e8fdb08c06` freezes `release/v3.250` at the fail-closed test-only Stripe checkout source. PR #938 pins only that source for one protected immutable image build and registry readback. It does not deploy or open checkout/payment, intake, uploads or scanning. Serving v3.249 remains the named-inbox sign-in/draft pilot. After image publication, guarded deployment and a separately reviewed test-only pilot require live signed payment/webhook/receipt acceptance, then scanner-backed intake and qualified human issue of four reports.
 
 v3250_test_checkout_source_candidate: Marc approved PR #936 exact head `fb4831bf68cab5f458108a674e8ef5f04c9fa2b7` after all four required checks passed, including a successful Windows retry of an unrelated timeout. Squash merge `73c0fecc98b30d4f68a9f20c06fe216c22322065` adds a fail-closed Stripe test-key-only guard for the protected Level 1A Assessment checkout pilot. PR #937 labels that merged source v3.250. It does not deploy or open checkout/payment, intake, uploads or scanning. The v3.249 named-inbox pilot and five-page revision 13 generated agreement QA passed; no agreement acceptance or payment occurred. Source freeze, immutable image readback, guarded deployment, separate test-checkout activation, signed fictional Stripe payment/webhook/receipt, scanner-backed intake, and qualified human review and issue of four reports remain.
 
