@@ -1,33 +1,36 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 23:10 CDT
-current_frozen_release: v3.250
-current_frozen_commit: d9935dcc023f7e4aecc5e9f8855073e8fdb08c06
+last_verified_at: 12 October 2026 23:20 CDT
+current_frozen_release: v3.251
+current_frozen_commit: f727919626b3f0ff705424c8e65c6f262aa73d99
 active_development_branch: development/salcapa-platform
-current_development_head: 445766256ae7b9207e7076812864f0834631000d
+current_development_head: f727919626b3f0ff705424c8e65c6f262aa73d99
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3251_sandbox_receipt_source_candidate
-last_completed_increment: v3250_named_sandbox_payment_receipt_and_copy_repair_merged
+active_increment: salus_v3251_sandbox_receipt_immutable_image_publication
+last_completed_increment: v3251_sandbox_receipt_source_merged_and_release_branch_created
 candidate_release: v3.251
-validation_pr: 942
-validation_branch: codex/v3251-sandbox-receipt-source-20261012
+validation_pr: 943
+validation_branch: codex/v3251-sandbox-receipt-image-20261012
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_for_v3251_source_candidate
-first_root_failing_gate: exact_version_scanner_and_paid_intake_acceptance
-root_cause: scanner_backed_intake_and_four_report_issue_not_yet_accepted
-repair_head: 445766256ae7b9207e7076812864f0834631000d
-repair_summary: merged_sandbox_receipt_and_closed_intake_copy_repair
-genuine_blockers: v3250_superseded_only_after_v3251_source_freeze_then_image_deploy_exact_scanner_paid_intake_reports_wix_public_acceptance
-next_authorized_step: complete_v3251_source_CI_then_Marc_exact_source_review
+failed_workflows: frozen_source_checks_running_for_v3251
+first_root_failing_gate: quarantine_inventory_exceptions_and_paid_intake_acceptance
+root_cause: two_quarantine_inventory_exceptions_observed_on_latest_scheduled_run
+repair_head: f727919626b3f0ff705424c8e65c6f262aa73d99
+repair_summary: frozen_v3251_sandbox_receipt_and_closed_intake_copy_repair
+genuine_blockers: v3250_superseded_after_v3251_source_freeze_then_image_deploy_two_quarantine_inventory_exceptions_paid_intake_reports_wix_public_acceptance
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.250
 deployed_demo_state: v3250_named_buyer_signin_draft_test_checkout_enabled_intake_upload_scanner_closed
 ---
 
 # SalCAPA build continuity
+
+v3251_sandbox_receipt_image_candidate: Marc approved PR #942 current exact head `2b5bb82cf4ec9cece2c59bcd08601b825d75d49d` after four checks passed. Squash merge `f727919626b3f0ff705424c8e65c6f262aa73d99` froze `release/v3.251`. PR #943 pins only that source for one protected immutable image build and registry readback. It does not deploy or open public checkout, intake, uploads or scanning. In Azure, the 13 October 02:00 UTC scheduled quarantine inventory completed reconciliation of two ledger rows and two Blob versions, recorded two restricted exceptions and exited nonzero by design. Exact exception types and custody require restricted review; the intake gate remains closed. The five-minute scan result worker has recent successful executions. Separate deployment, test-only pilot reactivation, scanner disposition, paid intake and qualified human report issue remain.
+
 
 v3251_sandbox_receipt_source_candidate: Marc exact-approved PR #941 head `08aa36eae61f1a7ea640dc381b2663adb6567b03` after four required checks passed. Squash merge `445766256ae7b9207e7076812864f0834631000d` labels future sandbox receipts and the paid-order screen as test/no-live-charge and hides records-request access while intake is closed. The already issued immutable fictional receipt remains unchanged. PR #942 labels this merged source v3.251; CI and Marc exact-head source review remain. Running v3.250 retains named-buyer sign-in, draft and Stripe test-only checkout; scanner-backed intake, uploads, public payment and four-report issue remain closed or unaccepted.
 
