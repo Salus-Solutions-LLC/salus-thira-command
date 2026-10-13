@@ -1,14 +1,14 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 October 2026 22:32 CDT
+last_verified_at: 12 October 2026 22:35 CDT
 current_frozen_release: v3.250
 current_frozen_commit: d9935dcc023f7e4aecc5e9f8855073e8fdb08c06
 active_development_branch: development/salcapa-platform
 current_development_head: e49a612464d01ac57e7f74bf9b9982400e04d526
 active_product_milestone: issue_520_dependable_governed_intake
 active_build_system_issue: 520
-active_increment: salus_v3250_named_buyer_test_checkout_acceptance
+active_increment: salus_v3250_test_checkout_live_evaluator_acceptance
 last_completed_increment: v3250_protected_app_and_worker_deployed
 candidate_release: v3.250
 validation_pr: 940
