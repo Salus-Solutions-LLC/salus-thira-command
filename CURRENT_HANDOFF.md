@@ -1,3 +1,9 @@
+## 13 October 2026 Central — v3.252 immutable image published; private inventory promotion candidate
+
+- Approved PR #949 exact head `4d4ec127158b9fc3aed3437e4bff834ff95ded8c` merged as `114386a65e36a4ccead6865970b14652a1ebda0c` after all three PR checks and all 26 frozen-source workflow runs passed. Protected [image run 38388542631](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38388542631) passed exact frozen-source, registry-authority, image runtime and readback checks. Registry digest: `salcapadevb48224acr.azurecr.io/salcapa@sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44`; source `release/v3.252` at `b481a1e593256899ff9ffa709cce469124dfcbfc`.
+- A separately reviewed protected activation candidate pins only that digest for the existing private daily job `salcapa-dev-b48224-scan-inv`. It requires the previously read-back image `sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966`, exact source and registry readback, and unchanged identities, schedule, registry, command, resources, environment and tags; it restores the prior image if update verification fails. This candidate has not merged or changed Azure.
+- The v3.251 app/worker remain deployed with sign-in, ordering, checkout/payment, intake, uploads and scanning closed. Current quarantine reconciliation after this repair, the two historical restricted Open Unlinked records, exact-object scanner and alert/recovery acceptance, paid intake, qualified human report release and public launch remain open. Do not repeat the completed fictional Stripe sandbox payment.
+
 ## 13 October 2026 Central — v3.252 frozen source; protected image candidate
 
 - Marc approved PR #948 current exact head `79730179cf079d318d5d372c37054d62e439a163` after all four required checks passed. Squash merge `b481a1e593256899ff9ffa709cce469124dfcbfc` froze `release/v3.252`; branch readback matched that commit and runtime version 3.252.
