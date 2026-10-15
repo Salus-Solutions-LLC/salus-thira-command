@@ -106,12 +106,14 @@ def main() -> None:
                 deleted.add((blob.name, blob.version_id))
         reasons = qualify(rows, ledger, azure, deleted, reader.account_url)
         stamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        expected_dispositions = {}
         for row in rows:
             disposition = (
                 f"{stamp}; {reasons[row['exception_key']]}; "
                 f"evidence run {PRIOR_EVIDENCE_RUN}; reviewed source {sys.argv[1]}; "
                 "qualified protected approval"
             )
+            expected_dispositions[row["exception_key"]] = disposition
             cursor = conn.execute(
                 "UPDATE package_quarantine_inventory_exceptions "
                 "SET status='Resolved',assigned_to='Salus qualified review',disposition=? "
@@ -132,6 +134,24 @@ def main() -> None:
         raise
     finally:
         conn.close()
+    verify = db()
+    try:
+        for key, expected in expected_dispositions.items():
+            saved = verify.execute(
+                "SELECT status,assigned_to,disposition "
+                "FROM package_quarantine_inventory_exceptions WHERE exception_key=?",
+                (key,),
+            ).fetchone()
+            if (saved is None or saved["status"] != "Resolved"
+                    or saved["assigned_to"] != "Salus qualified review"
+                    or saved["disposition"] != expected):
+                raise ValueError("Committed historical disposition differs")
+        if verify.execute(
+                "SELECT COUNT(*) AS n FROM package_quarantine_inventory_exceptions "
+                "WHERE status='Open'").fetchone()["n"]:
+            raise ValueError("Historical records reopened after commit")
+    finally:
+        verify.close()
     print(json.dumps({"current_exceptions": 0, "historical_resolved": 4,
                       "historical_open": 0, "blob_changes": 0}, sort_keys=True))
 
