@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "operation": "resolve_four_historical_scanner_exceptions",
+  "environment": "dev",
+  "source_commit": "3033d35c860091142d6124f2caceaa72ea21ab04",
+  "script_sha256": "d444c8b028e0297c4f8eea58afae27cda3196ea6bb8ea802f1c24198eb60c483",
+  "image_digest": "sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44",
+  "evidence_run": "38425632390",
+  "maximum_executions": 1
+}
