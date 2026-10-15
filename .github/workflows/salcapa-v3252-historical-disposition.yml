@@ -1,0 +1,137 @@
+name: SalCAPA v3.252 one-time historical exception disposition
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - 'deploy/azure/activations/v3252-historical-exceptions-dev.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-v3252-historical-disposition-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected historical disposition gate passed.'
+
+  dispose:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify separately reviewed one-time activation
+        shell: bash
+        run: |
+          set -euo pipefail
+          activation=deploy/azure/activations/v3252-historical-exceptions-dev.json
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$(git rev-list --count HEAD -- "$activation")" = 1
+          python - "$activation" "$GITHUB_ENV" <<'PY'
+          import hashlib,json,re,subprocess,sys
+          from pathlib import Path
+          record=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          keys={'schema_version','operation','environment','source_commit',
+                'script_sha256','image_digest','evidence_run','maximum_executions'}
+          if (set(record)!=keys or record['schema_version']!=1
+              or record['operation']!='resolve_four_historical_scanner_exceptions'
+              or record['environment']!='dev'
+              or record['image_digest']!='sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44'
+              or record['evidence_run']!='38425632390'
+              or record['maximum_executions']!=1):
+              raise SystemExit('Activation differs from reviewed boundary')
+          source=record['source_commit']
+          if not isinstance(source,str) or not re.fullmatch(r'[0-9a-f]{40}',source):
+              raise SystemExit('Reviewed source commit is invalid')
+          paths=['tools/private_exception_disposition.py',
+                 '.github/workflows/salcapa-v3252-historical-disposition.yml']
+          subprocess.run(['git','merge-base','--is-ancestor',source,'HEAD'],check=True)
+          subprocess.run(['git','diff','--quiet',source,'HEAD','--',*paths],check=True)
+          actual=hashlib.sha256(Path(paths[0]).read_bytes()).hexdigest()
+          if record['script_sha256']!=actual:
+              raise SystemExit('Reviewed script bytes differ')
+          with open(sys.argv[2],'a',encoding='utf-8') as output:
+              output.write('REVIEWED_SOURCE_COMMIT='+source+'\n')
+          print('exact_activation_source_and_script=passed')
+          PY
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Recheck private job and start one bounded execution
+        env:
+          EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          group=rg-salcapa-dev
+          job=salcapa-dev-b48224-scan-inv
+          az containerapp job show -g "$group" -n "$job" -o json > "$RUNNER_TEMP/before.json"
+          python - "$RUNNER_TEMP/before.json" "$RUNNER_TEMP/disposition-template.yaml" "tools/private_exception_disposition.py" "$REVIEWED_SOURCE_COMMIT" <<'PY'
+          import json,sys
+          from pathlib import Path
+          job=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          p=job['properties']; config=p['configuration']; template=p['template']
+          containers=template['containers']
+          expected='salcapadevb48224acr.azurecr.io/salcapa@sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44'
+          if (job['name']!='salcapa-dev-b48224-scan-inv'
+              or p['provisioningState']!='Succeeded'
+              or len(containers)!=1 or containers[0]['name']!='scan-inventory'
+              or containers[0]['image']!=expected
+              or containers[0]['command']!=['python','-m','salus_scan_inventory_worker']
+              or config['triggerType']!='Schedule'
+              or config['scheduleTriggerConfig']['cronExpression']!='0 2 * * *'
+              or config['replicaTimeout']!=300 or config['replicaRetryLimit']!=0
+              or len(job['identity']['userAssignedIdentities'])!=2
+              or len(config['registries'])!=1):
+              raise SystemExit('Private inventory job differs from reviewed bounds')
+          code=Path(sys.argv[3]).read_text(encoding='utf-8')
+          compile(code,sys.argv[3],'exec')
+          containers[0]['command']=['python']
+          containers[0]['args']=['-c',code,sys.argv[4]]
+          Path(sys.argv[2]).write_text(json.dumps(template),encoding='utf-8')
+          print('exact_private_job_preflight=passed')
+          PY
+          execution="$(az containerapp job start -g "$group" -n "$job" --yaml "$RUNNER_TEMP/disposition-template.yaml" --query name -o tsv --only-show-errors)"
+          [[ "$execution" =~ ^salcapa-dev-b48224-scan-inv-[a-z0-9]+$ ]]
+          echo "disposition_execution=$execution"
+          status=''
+          for attempt in $(seq 1 45); do
+            status="$(az containerapp job execution show -g "$group" -n "$job" --job-execution-name "$execution" --query properties.status -o tsv --only-show-errors 2>/dev/null || true)"
+            if [ "$status" = Succeeded ] || [ "$status" = Failed ]; then break; fi
+            sleep 10
+          done
+          echo "disposition_execution_status=$status"
+          test "$status" = Succeeded
+          az containerapp job show -g "$group" -n "$job" -o json > "$RUNNER_TEMP/after.json"
+          python - "$RUNNER_TEMP/before.json" "$RUNNER_TEMP/after.json" <<'PY'
+          import json,sys
+          before=json.load(open(sys.argv[1],encoding='utf-8'))
+          after=json.load(open(sys.argv[2],encoding='utf-8'))
+          for field in ('configuration','template'):
+              if before['properties'][field]!=after['properties'][field]:
+                  raise SystemExit('Private inventory job definition changed')
+          if before['identity']!=after['identity'] or before.get('tags')!=after.get('tags'):
+              raise SystemExit('Private inventory job access or tags changed')
+          print('private_inventory_job_definition_unchanged=true')
+          PY
+
