@@ -1,3 +1,9 @@
+## 16 October 2026 Central — guarded named-buyer paid-intake pilot staged; no intake opened
+
+- Read-only Azure app JSON showed v3.251 image `sha256:b07b6f1c2cf32ac1aeea38dc1c6144b28ad034efc36df21a532fdcdbdc0433a7`, revision `salcapa-dev-b48224--0000200`, the existing `MDuncan@Salus.Solutions` signed-account test-only checkout pilot, and `SALUS_LEVEL1A_INTAKE_ENABLED=0`, upload `0`, scanner accepted `0`, scan mode `off`, and an empty quarantine URL. The private result worker retained its v3.214 image, Defender mode, quarantine and result-queue settings, five-minute schedule, and recent successful executions. No Azure setting was changed by this inspection.
+- Draft PR #967 stages a separate protected workflow to enable intake and scanner-backed small-file upload for only that signed buyer after checking the exact app and worker images, closed starting state, versioned quarantine, and Defender on-upload scanning. Failed activation recloses buyer access, intake, and scanning. This is source staging, not deployment or live intake proof. Required CI, Marc's exact-head review, protected execution and readback remain. Do not repeat sandbox orders L1A-9 or L1A-10.
+- Public live payment, intake, uploads, scanning and the four qualified human-reviewed report issue paths remain closed. Large-batch issue #520 and Tierra Linda remain paused. Next: qualify and activate the bounded pilot, then verify the existing paid buyer's records request, disclosure attestation, clean and adverse exact-version file behavior, and governed report review before any public launch.
+
 ## 15 October 2026 Central — missed-run operator acknowledgment recorded; intake still closed
 
 - Marc approved this exact operator response for the real `salcapa-dev-b48224-scan-inventory-missed` alert: “I reviewed the missed run and recovery, will continue daily monitoring, and will keep intake closed if a run is missed again.”
