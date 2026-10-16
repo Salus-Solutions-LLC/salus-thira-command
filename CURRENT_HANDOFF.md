@@ -1,3 +1,9 @@
+## 15 October 2026 — actual missed-run alert delivery and recovery verified; operator response still open
+
+- Read-only Azure Monitor history for log search alert rule `salcapa-dev-b48224-scan-inventory-missed` showed an actual Severity 2 missed-inventory alert Fired at 11 October 2026 05:27:44 UTC and Resolved at 12 October 2026 03:28:50 UTC. The alert history shows both configured scanner action groups triggered on the fired and resolved transitions; the alert's Azure user-response field remained New.
+- Read-only search of the monitored Salus Outlook mailbox found the matching Microsoft Azure Fired notice received at 11 October 2026 05:27:55 UTC and Resolved notice received at 12 October 2026 03:29:00 UTC. The Fired message was unread and the Resolved message read at this check. This establishes actual missed-run alert delivery and recovery notification. It does not establish Marc's acknowledgment or documented response.
+- No scheduler, alert, application, Blob, payment, or intake setting changed. Public payment and Member intake remain closed. Before Member intake, record the responsible operator's acknowledgment and response under SAL-D094, then complete the bounded new-buyer payment, intake, scanner, and qualified human report-issue acceptance gates. Do not repeat the prior fictional Stripe sandbox charge or four-record disposition.
+
 ## 15 October 2026 — scheduled scanner inventory count-only readback; public launch remains closed
 
 - Marc approved [PR #962](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/962) at exact head `15fc045049872ee1e129a5795337a62bc7ceabaa` after all three required checks passed. Squash merge `2b2e0c85fd9642ed76f347de8d8854213619432e` made the protected four-record disposition handoff authoritative; it changed no app or Azure setting.
