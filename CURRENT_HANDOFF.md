@@ -1,3 +1,9 @@
+## 15 October 2026 Central — missed-run operator acknowledgment recorded; intake still closed
+
+- Marc approved this exact operator response for the real `salcapa-dev-b48224-scan-inventory-missed` alert: “I reviewed the missed run and recovery, will continue daily monitoring, and will keep intake closed if a run is missed again.”
+- Azure Portal readback verified the alert fired 11 October 2026 05:27 UTC, resolved 12 October 2026 03:28 UTC, and its `User response` changed from `New` to `Acknowledged` at 15 October 2026 22:24 Central by `MDuncan@SALUSSolutions.onmicrosoft.com`. The alert History shows the approved comment verbatim. The alert condition remains `Resolved`; the alert rule and action groups were not changed.
+- This closes only the historical missed-run operator-response evidence under SAL-D094. The buyer intake, upload, live-payment, scanner-backed intake, and four qualified human-reviewed Level 1A report acceptance gates remain open. Public payment, intake, uploads, and scanning remain closed. Do not repeat the fictional `L1A-9` or `L1A-10` Stripe sandbox payments.
+
 ## 15 October 2026 Central — distinct-buyer Stripe sandbox receipt verified; intake still closed
 
 - In the protected v3.251 named-buyer pilot, Marc's screenshots show the signed-in Level 1A Assessment form, the $1,500 Stripe Sandbox checkout, the return page, and SalCAPA's buyer-visible receipt marked `STRIPE SANDBOX — TEST RECEIPT — NO LIVE CHARGE`. The receipt states `Sandbox payment verified` at 16 October 2026 03:16 UTC for order `L1A-10` and quote `Q10`, distinct from the earlier fictional `L1A-9` pilot. The receipt names fictional Cedar Works LLC / Cedar Site and shows $1,500 base, $0 tax, $1,500 test amount, agreement SHA-256 and receipt fingerprint. Screenshot SHA-256: `1B41FCECA873C5A03F636CF9B42E8BD2FF984FF08356946298A470B2ECFFFB32`. No live funds were collected.
