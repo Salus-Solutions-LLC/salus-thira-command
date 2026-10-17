@@ -32,6 +32,30 @@ async function level1aView(){
       }
     }catch{saveLevel1aState({});return level1aView()}
   }
+  try{
+    const recovered=await api('/api/level1a/orders/recoverable');
+    const orders=recovered.orders||[];
+    if(orders.length===1){
+      const state={order_id:orders[0].order_id,scope_sha256:orders[0].scope_sha256,accepted:true};
+      saveLevel1aState(state);return level1aPayment(state);
+    }
+    if(orders.length>1){
+      const step=document.querySelector('#level1a-step');
+      step.innerHTML='<div class="card"><h2>Continue a paid assessment</h2><p>Choose the assessment you already paid for. No new payment is needed.</p><div id="level1a-recovered-orders"></div></div>';
+      const choices=step.querySelector('#level1a-recovered-orders');
+      orders.forEach(order=>{
+        const button=document.createElement('button');button.type='button';button.className='btn secondary';
+        button.textContent=`L1A-${Number(order.order_id)} · ${order.unit_name}`;
+        button.onclick=()=>{const state={order_id:order.order_id,scope_sha256:order.scope_sha256,accepted:true};saveLevel1aState(state);level1aPayment(state)};
+        choices.appendChild(button);
+      });
+      return;
+    }
+  }catch{
+    document.querySelector('#level1a-step').innerHTML='<div class="notice"><h2>We could not check your existing orders</h2><p>Please try again before starting a new order or payment.</p><button class="btn secondary" id="level1a-recover-retry">Try again</button></div>';
+    document.querySelector('#level1a-recover-retry').onclick=()=>level1aView();
+    return;
+  }
   level1aStart();
 }
 

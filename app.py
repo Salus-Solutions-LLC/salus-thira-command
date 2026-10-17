@@ -6018,6 +6018,35 @@ def create_level1a_order_draft(p:Level1AOrderDraftIn,request:Request):
     finally:
         conn.rollback(); conn.close()
 
+@app.get('/api/level1a/orders/recoverable')
+def recoverable_level1a_orders(request:Request):
+    """Find this signed buyer's verified paid orders after browser state is lost."""
+    ctx=_level1a_draft_authority(request)
+    tid=tenant_id(request);uid=ctx['user_id'];conn=db()
+    try:
+        rows=conn.execute('''SELECT DISTINCT o.id,o.scope_sha256,o.unit_name
+            FROM level1a_checkout_sessions s JOIN level1a_orders o
+            ON o.id=s.order_id AND o.tenant_id=s.tenant_id
+            AND o.buyer_user_id=s.buyer_user_id
+            WHERE o.tenant_id=? AND o.buyer_user_id=? AND s.status='Paid'
+            ORDER BY o.id DESC LIMIT 20''',
+            (tid,uid)).fetchall()
+        orders=[]
+        for row in rows:
+            try:
+                binding=binding_for_accepted_order(conn,tenant_id=tid,
+                    buyer_user_id=uid,order_id=row['id'])
+                paid=verified_level1a_receipt(conn,binding)
+            except CheckoutVerificationError as exc:
+                raise HTTPException(409,'An existing payment needs review before another order.') from exc
+            if not paid:
+                raise HTTPException(409,'An existing payment needs review before another order.')
+            orders.append({'order_id':row['id'],
+                'scope_sha256':row['scope_sha256'],'unit_name':row['unit_name']})
+        return {'orders':orders}
+    finally:
+        conn.close()
+
 @app.get('/api/level1a/orders/{order_id}')
 def get_level1a_order_draft(order_id:int,request:Request):
     ctx=_level1a_draft_authority(request)
