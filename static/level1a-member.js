@@ -15,28 +15,13 @@ async function level1aView(){
   }
   const saved=level1aState();
   host.innerHTML='<div class="card"><h2>Level 1A Assessment</h2><p>For one defined site or function. The $1,500 assessment includes a baseline review, benchmark, priorities and decision support. Additional sites, investigations and SalOPS services have separate scope and prices.</p><p id="level1a-status" role="status" aria-live="polite"></p></div><div id="level1a-step"></div>';
-  if(saved.order_id){
-    try{
-      const order=await api(`/api/level1a/orders/${Number(saved.order_id)}`);
-      if(order.scope_sha256!==saved.scope_sha256){saveLevel1aState({});return level1aView()}
-      if(saved.accepted)return level1aPayment(saved);
-      if(saved.agreement)return level1aAgreement(saved);
-      if(saved.quote)return level1aQuote(saved);
-      try{
-        const quote=await api(`/api/level1a/orders/${Number(saved.order_id)}/quote`,{method:'POST'});
-        saved.quote=quote;saveLevel1aState(saved);return level1aQuote(saved);
-      }catch{
-        document.querySelector('#level1a-step').innerHTML=`<div class="notice"><h2>Your order is saved</h2><p>Order L1A-${Number(saved.order_id)} could not be priced yet. No payment was taken. A verified tax decision for the service-use location is required. <button class="btn secondary" id="level1a-quote-retry">Check again</button></p></div>`;
-        document.querySelector('#level1a-quote-retry').onclick=()=>level1aView();
-        return;
-      }
-    }catch{saveLevel1aState({});return level1aView()}
-  }
   try{
     const recovered=await api('/api/level1a/orders/recoverable');
     const orders=recovered.orders||[];
-    if(orders.length===1){
-      const state={order_id:orders[0].order_id,scope_sha256:orders[0].scope_sha256,accepted:true};
+    const current=orders.find(order=>Number(order.order_id)===Number(saved.order_id));
+    if(orders.length===1||current){
+      const order=current||orders[0];
+      const state={order_id:order.order_id,scope_sha256:order.scope_sha256,accepted:true};
       saveLevel1aState(state);return level1aPayment(state);
     }
     if(orders.length>1){
@@ -55,6 +40,23 @@ async function level1aView(){
     document.querySelector('#level1a-step').innerHTML='<div class="notice"><h2>We could not check your existing orders</h2><p>Please try again before starting a new order or payment.</p><button class="btn secondary" id="level1a-recover-retry">Try again</button></div>';
     document.querySelector('#level1a-recover-retry').onclick=()=>level1aView();
     return;
+  }
+  if(saved.order_id){
+    try{
+      const order=await api(`/api/level1a/orders/${Number(saved.order_id)}`);
+      if(order.scope_sha256!==saved.scope_sha256){saveLevel1aState({});return level1aView()}
+      if(saved.accepted)return level1aPayment(saved);
+      if(saved.agreement)return level1aAgreement(saved);
+      if(saved.quote)return level1aQuote(saved);
+      try{
+        const quote=await api(`/api/level1a/orders/${Number(saved.order_id)}/quote`,{method:'POST'});
+        saved.quote=quote;saveLevel1aState(saved);return level1aQuote(saved);
+      }catch{
+        document.querySelector('#level1a-step').innerHTML=`<div class="notice"><h2>Your order is saved</h2><p>Order L1A-${Number(saved.order_id)} could not be priced yet. No payment was taken. A verified tax decision for the service-use location is required. <button class="btn secondary" id="level1a-quote-retry">Check again</button></p></div>`;
+        document.querySelector('#level1a-quote-retry').onclick=()=>level1aView();
+        return;
+      }
+    }catch{saveLevel1aState({});return level1aView()}
   }
   level1aStart();
 }
