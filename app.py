@@ -2344,7 +2344,7 @@ def package_workflow_ready():
     if not PACKAGE_COMMERCIAL_WORKFLOW_ENABLED or ENVIRONMENT=='production':
         return False
     if AUTH_MODE=='oidc':
-        quarantine_url=os.getenv('SALUS_SCAN_QUARANTINE_URL','').strip()
+        quarantine_url=os.getenv('SALUS_SCAN_QUARANTINE_URL','').strip().rstrip('/')
         return (PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and
                 re.fullmatch(r'https://[a-z0-9]{3,24}\.blob\.core\.windows\.net',quarantine_url) is not None)
     return True

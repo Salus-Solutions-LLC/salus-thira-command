@@ -173,6 +173,12 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         opened=buyer.post(f'/api/level1a/orders/{oid}/intake/open')
         assert opened.status_code==200,opened.text
         assessment_id=opened.json()['assessment_id']
+        conn=app.db()
+        try:
+            assessment=conn.execute('SELECT purpose FROM assessments WHERE id=?',(assessment_id,)).fetchone()
+            assert assessment['purpose']=='Level 1A Assessment'
+        finally:
+            conn.close()
         again=buyer.post(f'/api/level1a/orders/{oid}/intake/open')
         assert again.status_code==200 and again.json()['idempotent']
         assert again.json()['assessment_id']==assessment_id

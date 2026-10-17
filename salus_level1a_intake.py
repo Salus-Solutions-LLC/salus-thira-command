@@ -145,7 +145,7 @@ def ensure_paid_assessment(conn, *, binding, paid, order, timestamp):
          exclusions,status,executive_sponsor,scope_locked,version,created_at,updated_at)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
         (binding.tenant_id, order['unit_name'], order['buyer_legal_name'],
-         order['unit_kind'], 'Level 1A Access assessment', scope,
+         order['unit_kind'], 'Level 1A Assessment', scope,
          order['operating_activity'], 1, 'A', 'Access', order['exclusions'],
          'Draft', order['decision_owner_role'], 1, 1, timestamp, timestamp))
     assessment_id = result.lastrowid
