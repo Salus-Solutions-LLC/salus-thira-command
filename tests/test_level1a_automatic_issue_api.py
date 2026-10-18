@@ -348,6 +348,14 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         assert acknowledged.status_code==200 and not acknowledged.json()['idempotent'],acknowledged.text
         assert buyer.post(ack_url,json=ack).json()['idempotent']
         conn=app.db()
+        original_source_sha=conn.execute('SELECT record_sha256 FROM level1a_report_sources WHERE order_id=?',
+            (oid,)).fetchone()['record_sha256']
+        conn.execute('UPDATE level1a_report_sources SET record_sha256=? WHERE order_id=?',
+            ('0'*64,oid));conn.commit();conn.close()
+        assert buyer.get(f'/api/level1a-report-issues/{issue_id}').status_code==409
+        conn=app.db();conn.execute('UPDATE level1a_report_sources SET record_sha256=? WHERE order_id=?',
+            (original_source_sha,oid));conn.commit();conn.close()
+        conn=app.db()
         try:
             assert conn.execute('SELECT COUNT(*) n FROM level1a_report_sources WHERE order_id=?',
                 (oid,)).fetchone()['n']==1
