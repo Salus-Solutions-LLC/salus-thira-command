@@ -15,6 +15,32 @@ async function level1aView(){
   }
   const saved=level1aState();
   host.innerHTML='<div class="card"><h2>Level 1A Assessment</h2><p>For one defined site or function. The $1,500 assessment includes a baseline review, benchmark, priorities and decision support. Additional sites, investigations and SalOPS services have separate scope and prices.</p><p id="level1a-status" role="status" aria-live="polite"></p></div><div id="level1a-step"></div>';
+  try{
+    const recovered=await api('/api/level1a/orders/recoverable');
+    const orders=recovered.orders||[];
+    const current=orders.find(order=>Number(order.order_id)===Number(saved.order_id));
+    if(orders.length===1||current){
+      const order=current||orders[0];
+      const state={order_id:order.order_id,scope_sha256:order.scope_sha256,accepted:true};
+      saveLevel1aState(state);return level1aPayment(state);
+    }
+    if(orders.length>1){
+      const step=document.querySelector('#level1a-step');
+      step.innerHTML='<div class="card"><h2>Continue a paid assessment</h2><p>Choose the assessment you already paid for. No new payment is needed.</p><div id="level1a-recovered-orders"></div></div>';
+      const choices=step.querySelector('#level1a-recovered-orders');
+      orders.forEach(order=>{
+        const button=document.createElement('button');button.type='button';button.className='btn secondary';
+        button.textContent=`L1A-${Number(order.order_id)} · ${order.unit_name}`;
+        button.onclick=()=>{const state={order_id:order.order_id,scope_sha256:order.scope_sha256,accepted:true};saveLevel1aState(state);level1aPayment(state)};
+        choices.appendChild(button);
+      });
+      return;
+    }
+  }catch{
+    document.querySelector('#level1a-step').innerHTML='<div class="notice"><h2>We could not check your existing orders</h2><p>Please try again before starting a new order or payment.</p><button class="btn secondary" id="level1a-recover-retry">Try again</button></div>';
+    document.querySelector('#level1a-recover-retry').onclick=()=>level1aView();
+    return;
+  }
   if(saved.order_id){
     try{
       const order=await api(`/api/level1a/orders/${Number(saved.order_id)}`);

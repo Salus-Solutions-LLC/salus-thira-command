@@ -128,6 +128,7 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         assert started.status_code==200 and started.json()['status']=='Pending',started.text
         pending=buyer.get(f'/api/level1a/orders/{oid}/checkout').json()
         assert pending['status']=='Pending' and pending['test_mode'] is True
+        assert buyer.get('/api/level1a/orders/recoverable').json()['orders']==[]
         assert b'href="/?view=level1a"' in buyer.get(
             '/package-checkout-return?flow=level1a').content
         assert b'href="/?view=level1a"' in buyer.get(
@@ -163,6 +164,12 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         verified=buyer.get(f'/api/level1a/orders/{oid}/checkout').json()
         assert verified['status']=='Paid' and verified['test_mode'] is True
         assert verified['receipt_available'] and not verified['upload_available']
+        recovered=buyer.get('/api/level1a/orders/recoverable')
+        assert recovered.status_code==200,recovered.text
+        assert recovered.json()['orders']==[{'order_id':oid,
+            'scope_sha256':binding.scope_sha256,'unit_name':'Oak Street site'}]
+        outsider_orders=outsider.get('/api/level1a/orders/recoverable')
+        assert outsider_orders.status_code in (401,403) or outsider_orders.json()['orders']==[]
         receipt=buyer.get(f'/api/level1a/orders/{oid}/receipt')
         assert receipt.status_code==200 and b'Page 1 of 1' in receipt.content,receipt.text
         assert b'STRIPE SANDBOX' in receipt.content and b'NO LIVE CHARGE' in receipt.content
@@ -173,6 +180,12 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         opened=buyer.post(f'/api/level1a/orders/{oid}/intake/open')
         assert opened.status_code==200,opened.text
         assessment_id=opened.json()['assessment_id']
+        conn=app.db()
+        try:
+            assessment=conn.execute('SELECT purpose FROM assessments WHERE id=?',(assessment_id,)).fetchone()
+            assert assessment['purpose']=='Level 1A Assessment'
+        finally:
+            conn.close()
         again=buyer.post(f'/api/level1a/orders/{oid}/intake/open')
         assert again.status_code==200 and again.json()['idempotent']
         assert again.json()['assessment_id']==assessment_id
@@ -278,6 +291,7 @@ def test_signed_in_issue_retry_and_download(tmp_path):
             'type':'charge.refunded',
             'data':{'object':{'payment_intent':'pi_fictional'}}})
         assert refund.status_code==200 and refund.json()['outcome']=='Held',refund.text
+        assert buyer.get('/api/level1a/orders/recoverable').json()['orders']==[]
         assert buyer.get(f'/api/level1a/orders/{oid}/receipt').status_code==404
         assert buyer.get(f'/api/level1a/orders/{oid}/intake').status_code==409
         assert buyer.patch(response_url,json={'status':'Prefer to discuss'}).status_code==409

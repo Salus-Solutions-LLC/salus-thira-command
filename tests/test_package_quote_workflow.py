@@ -74,6 +74,10 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         app.PACKAGE_SCAN_MODE='defender'
         os.environ['SALUS_SCAN_QUARANTINE_URL']='https://salcapadevb48224scan.blob.core.windows.net'
         assert app.package_workflow_ready()
+        os.environ['SALUS_SCAN_QUARANTINE_URL']='https://salcapadevb48224scan.blob.core.windows.net/'
+        assert app.package_workflow_ready()
+        os.environ['SALUS_SCAN_QUARANTINE_URL']='https://salcapadevb48224scan.blob.core.windows.net/quarantine'
+        assert not app.package_workflow_ready()
         os.environ['SALUS_SCAN_QUARANTINE_URL']='https://other.example.invalid'
         assert not app.package_workflow_ready()
         os.environ.pop('SALUS_SCAN_QUARANTINE_URL',None)
