@@ -1,16 +1,16 @@
-fastapi==0.141.1
-uvicorn==0.52.4
-pydantic==2.13.5
+fastapi==0.143.1
+uvicorn==0.54.0
+pydantic==2.14.1
 python-multipart==0.0.32
-PyJWT[crypto]==2.13.0
+PyJWT[crypto]==2.15.1
 httpx==0.28.1
 # Azure managed identity, Key Vault secrets, and Blob Storage
-azure-identity==1.25.3
-azure-keyvault-secrets==4.11.2
-azure-storage-blob==12.30.1
+azure-identity==1.26.0
+azure-keyvault-secrets==4.11.3
+azure-storage-blob==12.31.0
 # Managed PostgreSQL preflight / migration target validation
-psycopg[binary]==3.3.4
+psycopg[binary]==3.3.6
 # Distributed rate limiting (recommended for multiple production instances)
 redis==8.1.0
 # Optional centralized telemetry when SALUS_TELEMETRY_BACKEND=azure_monitor
-azure-monitor-opentelemetry==1.8.9
+azure-monitor-opentelemetry==1.8.11
