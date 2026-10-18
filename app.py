@@ -39,6 +39,8 @@ from salus_level1a_receipt import render_level1a_receipt
 from salus_level1a_intake import (INTAKE_SQL, IntakeConflict,
     DISCLOSURE_STATEMENT_VERSION, ensure_paid_assessment,
     record_disclosure_authority)
+from salus_level1a_report_source import (REPORT_SOURCE_SQL,
+    ReportSourceConflict, ensure_report_source, verified_report_source)
 from salus_package_intake import CATALOG_VERSION as PACKAGE_INTAKE_VERSION, ITEMS as PACKAGE_INTAKE_ITEMS, catalog_rows as package_intake_catalog
 from rate_limit import RateLimiter
 from telemetry import emit as telemetry_emit, readiness as telemetry_readiness
@@ -1870,6 +1872,7 @@ def init_db():
     conn.executescript(ACCEPTANCE_TABLE_SQL)
     conn.executescript(LEVEL1A_PAYMENT_SQL)
     conn.executescript(INTAKE_SQL)
+    conn.executescript(REPORT_SOURCE_SQL)
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
     ensure_column('evidence_attachments','scanned_at','TEXT NOT NULL DEFAULT ""')
@@ -6420,7 +6423,14 @@ def open_level1a_intake(order_id:int,request:Request):
         try:
             link,reused=ensure_paid_assessment(conn,binding=binding,paid=paid,
                 order=order,timestamp=now())
+            assessment=conn.execute('SELECT * FROM assessments WHERE id=? AND tenant_id=?',
+                (link['assessment_id'],tid)).fetchone()
+            source,_=ensure_report_source(conn,binding=binding,paid=paid,link=link,
+                assessment_scope_sha256=assessment_scope_digest(assessment),
+                timestamp=now())
         except IntakeConflict as exc:
+            raise HTTPException(409,str(exc)) from exc
+        except ReportSourceConflict as exc:
             raise HTTPException(409,str(exc)) from exc
         if not reused:
             audit(conn,'LEVEL1A_INTAKE_OPEN','assessment',link['assessment_id'],
@@ -8259,6 +8269,754 @@ def require_package_report_assignment(request:Request,assessment_id:int):
         allowed=conn.execute('SELECT 1 FROM assessment_access WHERE user_id=? AND assessment_id=?',(ctx.get('user_id'),assessment_id)).fetchone()
     finally: conn.close()
     if not allowed: raise HTTPException(403,'An explicit assessment assignment is required for working reports.')
+
+
+def _verified_level1a_report_source(conn,assessment_id:int,assessment,request:Request):
+    """Recheck real payment and receipt in the caller's transaction."""
+    link=conn.execute('''SELECT * FROM level1a_assessment_links WHERE
+        tenant_id=? AND assessment_id=?''',(tenant_id(request),assessment_id)).fetchone()
+    if not link: raise HTTPException(404,'Paid Level 1A report source not found.')
+    try:
+        binding=binding_for_accepted_order(conn,tenant_id=link['tenant_id'],
+            buyer_user_id=link['buyer_user_id'],order_id=link['order_id'])
+        paid=verified_level1a_receipt(conn,binding)
+        if not paid or not paid['receipt_stored_name']:
+            raise HTTPException(409,'The paid report receipt is unavailable.')
+        issued_level1a_receipt(conn,binding,
+            storage.get_bytes(paid['receipt_stored_name']))
+        return verified_report_source(conn,binding=binding,paid=paid,link=link,
+            assessment_scope_sha256=assessment_scope_digest(assessment))
+    except (CheckoutVerificationError,ReportSourceConflict) as exc:
+        raise HTTPException(409,'The paid report source requires reconciliation.') from exc
+    except (StorageError,FileNotFoundError) as exc:
+        raise HTTPException(503,'The paid report receipt is unavailable.') from exc
+
+
+def _paid_report_for_staff(conn,report_id:int,request:Request,*,decision:bool=False):
+    """Require assigned staff and current, intact paid report draft."""
+    require(request,'decide' if decision else 'write')
+    ctx=auth_context(request)
+    allowed={'System Administrator','Assessment Director'} if decision else PACKAGE_REPORT_DRAFT_ROLES
+    if (role(request) not in allowed or ctx['auth_mode'] not in ('session','oidc')
+            or not ctx.get('user_id')):
+        raise HTTPException(403,'An assigned Salus report owner is required.')
+    report=conn.execute('''SELECT * FROM level1a_product_report_versions WHERE
+        id=? AND tenant_id=?''',(report_id,tenant_id(request))).fetchone()
+    if not report: raise HTTPException(404,'Working report not found.')
+    assessment=assessment_row_for_request(request,report['assessment_id'])
+    require_package_report_assignment(request,report['assessment_id'])
+    source=_verified_level1a_report_source(conn,report['assessment_id'],assessment,request)
+    latest=conn.execute('''SELECT id FROM level1a_product_report_versions WHERE
+        tenant_id=? AND order_id=? AND product=? ORDER BY version_no DESC LIMIT 1''',
+        (tenant_id(request),report['order_id'],report['product'])).fetchone()
+    if (report['status']!='Draft' or not latest or latest['id']!=report_id
+            or report['order_id']!=source['order_id']
+            or report['buyer_user_id']!=source['buyer_user_id']
+            or report['source_record_sha256']!=source['record_sha256']):
+        raise HTTPException(409,'The working report or paid source changed.')
+    try: content=storage.get_bytes(report['stored_name'])
+    except (StorageError,FileNotFoundError) as exc:
+        raise HTTPException(503,'Working report storage is unavailable.') from exc
+    if hashlib.sha256(content).hexdigest()!=report['content_sha256']:
+        security_event(request,'LEVEL1A_REPORT_DRAFT_HASH_MISMATCH','High',f'report_id={report_id}')
+        raise HTTPException(409,'Working report integrity verification failed.')
+    return report,source,content,ctx
+
+
+@app.get('/api/assessments/{assessment_id}/level1a-report-source')
+def get_level1a_report_source(assessment_id:int,request:Request):
+    """Read-only Salus review of the exact paid assessment source."""
+    require(request,'read')
+    ctx=auth_context(request)
+    if (role(request) not in PACKAGE_REPORT_DRAFT_ROLES
+            or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'An assigned Salus report owner is required.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    conn=db()
+    try:
+        source=_verified_level1a_report_source(conn,assessment_id,assessment,request)
+        return {'status':'Verified','assessment_id':assessment_id,
+            'order_id':source['order_id'],'buyer_user_id':source['buyer_user_id'],
+            'scope_sha256':source['scope_sha256'],
+            'assessment_scope_sha256':source['assessment_scope_sha256'],
+            'agreement_sha256':source['agreement_sha256'],
+            'receipt_document_sha256':source['receipt_document_sha256'],
+            'record_sha256':source['record_sha256'],
+            'notice':'Source verification does not approve or issue a report.'}
+    finally: conn.close()
+
+
+@app.post('/api/assessments/{assessment_id}/level1a-reports/{product}/draft')
+async def register_level1a_product_draft(assessment_id:int,product:str,
+        request:Request,file:UploadFile=File(...),method_version:str=Form(...),
+        template_version:str=Form(...)):
+    """Save a staff-only Word draft; never issue or expose it to the buyer."""
+    require(request,'write');require_salus_component_authority(request,'Level 1A report')
+    ctx=auth_context(request)
+    if (role(request) not in PACKAGE_REPORT_DRAFT_ROLES
+            or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'An assigned Salus report owner is required.')
+    if product not in PACKAGE_REPORT_PRODUCTS:
+        raise HTTPException(404,'Unknown Level 1A report product.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    method_version=method_version.strip();template_version=template_version.strip()
+    if (not method_version or not template_version or len(method_version)>120
+            or len(template_version)>120):
+        raise HTTPException(422,'Name the exact method and template versions.')
+    original=safe_filename(file.filename or '')
+    if not original.lower().endswith('.docx'):
+        raise HTTPException(422,'A working report must be a Word .docx file.')
+    content=await file.read(10*1024*1024+1)
+    check_package_docx(content)
+    scan=scan_bytes(content,original)
+    if not scan['ok'] or scan['status']!='Clean':
+        raise HTTPException(422 if scan['status']=='Infected' else 503,
+            'The working report did not pass file security screening.')
+    digest=hashlib.sha256(content).hexdigest();tid=tenant_id(request)
+    conn=db();stored=''
+    try:
+        lock_package_assessment(conn,assessment_id)
+        source=_verified_level1a_report_source(conn,assessment_id,assessment,request)
+        existing=conn.execute('''SELECT * FROM level1a_product_report_versions WHERE
+            tenant_id=? AND order_id=? AND product=? AND content_sha256=?
+            AND method_version=? AND template_version=? AND source_record_sha256=?''',
+            (tid,source['order_id'],product,digest,method_version,
+             template_version,source['record_sha256'])).fetchone()
+        if existing:
+            return {key:existing[key] for key in
+                ('id','product','version_no','content_sha256','status')}
+        prior=conn.execute('''SELECT id,version_no FROM level1a_product_report_versions
+            WHERE tenant_id=? AND order_id=? AND product=? ORDER BY version_no DESC LIMIT 1''',
+            (tid,source['order_id'],product)).fetchone()
+        version=prior['version_no']+1 if prior else 1
+        stored=(f'tenant-{tid}/assessment-{assessment_id}/level1a-reports/'
+                f'{product}/{uuid.uuid4().hex}_{digest[:16]}.docx')
+        storage.put_bytes(stored,content)
+        if hashlib.sha256(storage.get_bytes(stored)).hexdigest()!=digest:
+            raise StorageError('Working report failed storage readback.')
+        retention=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS)))
+        retention_until=retention.replace(microsecond=0).isoformat().replace('+00:00','Z')
+        cur=conn.execute('''INSERT INTO level1a_product_report_versions
+            (tenant_id,buyer_user_id,order_id,assessment_id,product,version_no,
+             source_record_sha256,original_name,stored_name,content_sha256,
+             size_bytes,method_version,template_version,status,retention_until,
+             legal_hold,disposition_status,created_by_user_id,created_at,supersedes_id)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'Draft',?,0,'Active',?,?,?)''',
+            (tid,source['buyer_user_id'],source['order_id'],assessment_id,
+             product,version,source['record_sha256'],original,stored,digest,
+             len(content),method_version,template_version,retention_until,
+             ctx['user_id'],now(),prior['id'] if prior else None))
+        audit(conn,'LEVEL1A_REPORT_DRAFT','assessment',assessment_id,
+            f'report_id={cur.lastrowid}; product={product}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'product':product,'version_no':version,
+            'content_sha256':digest,'status':'Draft',
+            'notice':'A saved draft is not reviewed, issued or buyer-visible.'}
+    except Exception:
+        conn.rollback()
+        if stored:
+            try: storage.delete(stored)
+            except Exception: pass
+        raise
+    finally: conn.close()
+
+@app.post('/api/level1a-reports/{report_id}/qa-evidence')
+async def submit_level1a_report_qa_evidence(report_id:int,request:Request,
+        file:UploadFile=File(...)):
+    """Store exact rendered-page evidence for independent staff review."""
+    require_salus_component_authority(request,'Level 1A report QA')
+    original=safe_filename(file.filename or '')
+    if not original.lower().endswith('.zip'):
+        raise HTTPException(422,'Report QA evidence must be a ZIP archive.')
+    content=await file.read(50*1024*1024+1)
+    if len(content)>50*1024*1024:
+        raise HTTPException(413,'Report QA archive exceeds 50 MB.')
+    conn=db();stored=''
+    try:
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request)
+        lock_package_assessment(conn,report['assessment_id'])
+        # The lock may wait while payment or scope changes: check again under it.
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request)
+        manifest_json,pdf=inspect_package_qa_archive(content,report['content_sha256'])
+        for name,data in ((original,content),('rendered.pdf',pdf)):
+            scan=scan_bytes(data,name)
+            if not scan['ok'] or scan['status']!='Clean':
+                raise HTTPException(422 if scan['status']=='Infected' else 503,
+                    'Report QA evidence could not pass file security screening.')
+        digest=hashlib.sha256(content).hexdigest();tid=tenant_id(request)
+        prior=conn.execute('''SELECT id FROM level1a_report_qa_evidence WHERE
+            tenant_id=? AND report_id=? AND archive_sha256=?''',
+            (tid,report_id,digest)).fetchone()
+        if prior:
+            return {'id':prior['id'],'archive_sha256':digest,'idempotent':True}
+        stored=(f'tenant-{tid}/assessment-{report["assessment_id"]}/'
+                f'level1a-report-qa/{report_id}/{uuid.uuid4().hex}_{digest[:16]}.zip')
+        storage.put_bytes(stored,content)
+        if hashlib.sha256(storage.get_bytes(stored)).hexdigest()!=digest:
+            raise StorageError('Report QA archive failed storage readback.')
+        retention=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS)))
+        retention_until=retention.replace(microsecond=0).isoformat().replace('+00:00','Z')
+        cur=conn.execute('''INSERT INTO level1a_report_qa_evidence
+            (tenant_id,order_id,assessment_id,report_id,content_sha256,
+             archive_sha256,stored_name,manifest_json,manifest_sha256,
+             submitted_by_user_id,submitted_at,retention_until)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (tid,source['order_id'],report['assessment_id'],report_id,
+             report['content_sha256'],digest,stored,manifest_json,
+             hashlib.sha256(manifest_json.encode()).hexdigest(),
+             ctx['user_id'],now(),retention_until))
+        audit(conn,'LEVEL1A_REPORT_QA_SUBMISSION','assessment',report['assessment_id'],
+            f'report_id={report_id}; archive_sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'archive_sha256':digest,'idempotent':False,
+            'notice':'Submitted evidence does not approve or issue a report.'}
+    except Exception:
+        conn.rollback()
+        if stored:
+            try: storage.delete(stored)
+            except Exception: pass
+        raise
+    finally: conn.close()
+
+@app.post('/api/level1a-reports/{report_id}/conformance')
+def record_level1a_report_conformance(report_id:int,p:PackageReportConformanceIn,
+        request:Request):
+    """Record all Charter checks against one exact paid report version."""
+    if set(p.checks)!=set(PACKAGE_REPORT_QA_KEYS):
+        raise HTTPException(422,'The report conformance matrix requires every Charter check.')
+    for key,item in p.checks.items():
+        if (set(item)!={'status','reason'} or item['status'] not in
+                ('Met','Pending','Not applicable') or
+                not 8<=len(item['reason'].strip())<=2000):
+            raise HTTPException(422,f'{key} requires a specific check and reason.')
+    conn=db()
+    try:
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request,decision=True)
+        lock_package_assessment(conn,report['assessment_id'])
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request,decision=True)
+        if p.content_sha256!=report['content_sha256']:
+            raise HTTPException(409,'The conformance matrix names a different Word file.')
+        checks={key:p.checks[key] for key in PACKAGE_REPORT_QA_KEYS}
+        checks_json=json.dumps(checks,sort_keys=True,separators=(',',':'))
+        summary=p.summary.strip()
+        record={'report_id':report_id,'source_record_sha256':source['record_sha256'],
+            'content_sha256':report['content_sha256'],'checks':checks,'summary':summary}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        tid=tenant_id(request)
+        prior=conn.execute('''SELECT id,status FROM level1a_report_conformance WHERE
+            tenant_id=? AND report_id=? AND record_sha256=?''',(tid,report_id,digest)).fetchone()
+        if prior:
+            return {'id':prior['id'],'status':prior['status'],'record_sha256':digest,'idempotent':True}
+        status='Open' if any(item['status']=='Pending' for item in checks.values()) else 'Marked'
+        cur=conn.execute('''INSERT INTO level1a_report_conformance
+            (tenant_id,order_id,assessment_id,report_id,content_sha256,
+             checks_json,summary,status,record_sha256,recorded_by_user_id,recorded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?)''',
+            (tid,source['order_id'],report['assessment_id'],report_id,
+             report['content_sha256'],checks_json,summary,status,digest,
+             ctx['user_id'],now()))
+        audit(conn,'LEVEL1A_REPORT_CONFORMANCE','assessment',report['assessment_id'],
+            f'report_id={report_id}; status={status}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':status,'record_sha256':digest,
+            'notice':'A matrix does not approve or issue a report.'}
+    finally:
+        conn.rollback();conn.close()
+
+@app.post('/api/level1a-reports/{report_id}/qa-reviews')
+def review_level1a_report_qa(report_id:int,p:PackageReportQaReviewIn,request:Request):
+    """Require an independent named reviewer and the exact rendered pages."""
+    if (set(p.checks)!=set(PACKAGE_REPORT_REVIEW_KEYS) or
+            any(type(value) is not bool for value in p.checks.values())):
+        raise HTTPException(422,'Record each required report review check.')
+    if p.decision=='Reviewed' and not all(p.checks.values()):
+        raise HTTPException(422,'Return a report with incomplete review checks.')
+    conn=db()
+    try:
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request,decision=True)
+        lock_package_assessment(conn,report['assessment_id'])
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request,decision=True)
+        tid=tenant_id(request)
+        evidence=conn.execute('''SELECT * FROM level1a_report_qa_evidence WHERE
+            id=? AND tenant_id=? AND report_id=?''',
+            (p.evidence_id,tid,report_id)).fetchone()
+        latest=conn.execute('''SELECT id FROM level1a_report_qa_evidence WHERE
+            tenant_id=? AND report_id=? ORDER BY id DESC LIMIT 1''',
+            (tid,report_id)).fetchone()
+        if (not evidence or not latest or latest['id']!=p.evidence_id or
+                evidence['content_sha256']!=report['content_sha256'] or
+                evidence['order_id']!=source['order_id']):
+            raise HTTPException(409,'Review requires the latest exact QA archive.')
+        if evidence['submitted_by_user_id']==ctx['user_id']:
+            raise HTTPException(409,'Independent review requires a different reviewer.')
+        try: archive=storage.get_bytes(evidence['stored_name'])
+        except (StorageError,FileNotFoundError) as exc:
+            raise HTTPException(503,'Exact report QA evidence is unavailable.') from exc
+        if hashlib.sha256(archive).hexdigest()!=evidence['archive_sha256']:
+            raise HTTPException(409,'Report QA archive integrity verification failed.')
+        manifest_json,_=inspect_package_qa_archive(archive,report['content_sha256'])
+        if hashlib.sha256(manifest_json.encode()).hexdigest()!=evidence['manifest_sha256']:
+            raise HTTPException(409,'Report QA manifest integrity verification failed.')
+        manifest=json.loads(manifest_json)
+        if p.decision=='Reviewed' and (not all(page['checked_full_size'] for page in manifest['pages'])
+                or any(manifest[key]!='Checked' for key in ('native_word','accessibility','parity'))):
+            raise HTTPException(409,'The rendered page or format checks remain open.')
+        checks={key:p.checks[key] for key in PACKAGE_REPORT_REVIEW_KEYS}
+        record={'report_id':report_id,'evidence_id':p.evidence_id,
+            'source_record_sha256':source['record_sha256'],
+            'content_sha256':report['content_sha256'],
+            'archive_sha256':evidence['archive_sha256'],'decision':p.decision,
+            'checks':checks,'qualification_basis':p.qualification_basis.strip(),
+            'review_note':p.review_note.strip(),'reviewer_user_id':ctx['user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('''SELECT id FROM level1a_report_qa_reviews WHERE
+            tenant_id=? AND evidence_id=? AND record_sha256=?''',
+            (tid,p.evidence_id,digest)).fetchone()
+        if prior:
+            return {'id':prior['id'],'decision':p.decision,'record_sha256':digest,'idempotent':True}
+        cur=conn.execute('''INSERT INTO level1a_report_qa_reviews
+            (tenant_id,order_id,assessment_id,report_id,evidence_id,
+             content_sha256,archive_sha256,decision,checks_json,
+             qualification_basis,review_note,record_sha256,reviewer_user_id,reviewer_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (tid,source['order_id'],report['assessment_id'],report_id,p.evidence_id,
+             report['content_sha256'],evidence['archive_sha256'],p.decision,
+             json.dumps(checks,sort_keys=True,separators=(',',':')),
+             p.qualification_basis.strip(),p.review_note.strip(),digest,
+             ctx['user_id'],now()))
+        audit(conn,'LEVEL1A_REPORT_QA_REVIEW','assessment',report['assessment_id'],
+            f'report_id={report_id}; decision={p.decision}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'decision':p.decision,'record_sha256':digest,
+            'notice':'A review does not issue or deliver a report.'}
+    finally:
+        conn.rollback();conn.close()
+
+@app.post('/api/level1a-reports/{report_id}/source-reconciliation')
+def reconcile_level1a_report_sources(report_id:int,p:PackageReportReconciliationIn,
+        request:Request):
+    """Compare the exact SalCAPA draft to its three current paid-order inputs."""
+    if set(p.sources)!={'SalINTEL','SalTHIRA','SalOPS'}:
+        raise HTTPException(422,'Compare SalCAPA with all three source reports.')
+    conn=db()
+    try:
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request,decision=True)
+        if report['product']!='SalCAPA':
+            raise HTTPException(404,'Current SalCAPA draft not found.')
+        lock_package_assessment(conn,report['assessment_id'])
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request,decision=True)
+        if p.salcapa_sha256!=report['content_sha256']:
+            raise HTTPException(409,'The SalCAPA Word file changed.')
+        selected={};tid=tenant_id(request)
+        for product in ('SalINTEL','SalTHIRA','SalOPS'):
+            item=conn.execute('''SELECT * FROM level1a_product_report_versions WHERE
+                tenant_id=? AND order_id=? AND product=?
+                ORDER BY version_no DESC LIMIT 1''',
+                (tid,source['order_id'],product)).fetchone()
+            supplied=p.sources[product]
+            if (not item or item['id']!=supplied.report_id or
+                    item['content_sha256']!=supplied.content_sha256 or
+                    item['source_record_sha256']!=source['record_sha256'] or
+                    item['status']!='Draft'):
+                raise HTTPException(409,f'The {product} source version changed.')
+            try: content=storage.get_bytes(item['stored_name'])
+            except (StorageError,FileNotFoundError) as exc:
+                raise HTTPException(503,f'{product} source is unavailable.') from exc
+            if hashlib.sha256(content).hexdigest()!=item['content_sha256']:
+                raise HTTPException(409,f'{product} source integrity check failed.')
+            selected[product]=supplied.model_dump()
+        status='Open' if any(item['alignment']=='Unresolved' for item in selected.values()) else 'Compared'
+        summary=p.summary.strip()
+        record={'salcapa_report_id':report_id,'salcapa_sha256':report['content_sha256'],
+            'source_record_sha256':source['record_sha256'],'sources':selected,'summary':summary}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        prior=conn.execute('''SELECT id,status FROM level1a_report_reconciliations WHERE
+            tenant_id=? AND order_id=? AND record_sha256=?''',
+            (tid,source['order_id'],digest)).fetchone()
+        if prior:
+            return {'id':prior['id'],'status':prior['status'],'record_sha256':digest,'idempotent':True}
+        cur=conn.execute('''INSERT INTO level1a_report_reconciliations
+            (tenant_id,order_id,assessment_id,salcapa_report_id,salcapa_sha256,
+             sources_json,summary,status,record_sha256,recorded_by_user_id,recorded_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?)''',
+            (tid,source['order_id'],report['assessment_id'],report_id,
+             report['content_sha256'],json.dumps(selected,sort_keys=True,separators=(',',':')),
+             summary,status,digest,ctx['user_id'],now()))
+        audit(conn,'LEVEL1A_REPORT_SOURCE_RECONCILIATION','assessment',report['assessment_id'],
+            f'salcapa_report_id={report_id}; status={status}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':status,'record_sha256':digest,
+            'notice':'A comparison does not approve or issue any report.'}
+    finally:
+        conn.rollback();conn.close()
+
+def _level1a_report_release_checks(conn,assessment_id:int,source,request:Request):
+    """Return current exact versions and actionable blockers, never an approval."""
+    tid=tenant_id(request);reports={};snapshots={};blockers=[]
+    for product in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+        row=conn.execute('''SELECT * FROM level1a_product_report_versions WHERE
+            tenant_id=? AND order_id=? AND product=? ORDER BY version_no DESC LIMIT 1''',
+            (tid,source['order_id'],product)).fetchone()
+        if not row:
+            blockers.append(f'{product}: no current Word draft');continue
+        if (row['assessment_id']!=assessment_id or
+                row['buyer_user_id']!=source['buyer_user_id'] or
+                row['source_record_sha256']!=source['record_sha256'] or
+                row['status']!='Draft'):
+            blockers.append(f'{product}: version or paid source changed');continue
+        try: word=storage.get_bytes(row['stored_name'])
+        except (StorageError,FileNotFoundError):
+            blockers.append(f'{product}: Word file unavailable');continue
+        if hashlib.sha256(word).hexdigest()!=row['content_sha256']:
+            blockers.append(f'{product}: Word integrity failed');continue
+        matrix=conn.execute('''SELECT * FROM level1a_report_conformance WHERE
+            tenant_id=? AND report_id=? ORDER BY id DESC LIMIT 1''',
+            (tid,row['id'])).fetchone()
+        qa=conn.execute('''SELECT * FROM level1a_report_qa_evidence WHERE
+            tenant_id=? AND report_id=? ORDER BY id DESC LIMIT 1''',
+            (tid,row['id'])).fetchone()
+        review=conn.execute('''SELECT * FROM level1a_report_qa_reviews WHERE
+            tenant_id=? AND report_id=? AND evidence_id=? ORDER BY id DESC LIMIT 1''',
+            (tid,row['id'],qa['id'] if qa else 0)).fetchone()
+        if not matrix or matrix['status']!='Marked':
+            blockers.append(f'{product}: Charter conformance incomplete')
+        else:
+            checks=json.loads(matrix['checks_json'])
+            matrix_record={'report_id':row['id'],
+                'source_record_sha256':source['record_sha256'],
+                'content_sha256':row['content_sha256'],'checks':checks,
+                'summary':matrix['summary']}
+            matrix_digest=hashlib.sha256(json.dumps(matrix_record,
+                sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if (set(checks)!=set(PACKAGE_REPORT_QA_KEYS) or
+                    any(item['status']!='Met' for item in checks.values()) or
+                    matrix['content_sha256']!=row['content_sha256'] or
+                    matrix['record_sha256']!=matrix_digest):
+                blockers.append(f'{product}: Charter checks remain open')
+        if not qa:
+            blockers.append(f'{product}: rendered QA evidence missing')
+        else:
+            try:
+                archive=storage.get_bytes(qa['stored_name'])
+                if hashlib.sha256(archive).hexdigest()!=qa['archive_sha256']:
+                    raise ValueError('archive digest')
+                manifest_json,_=inspect_package_qa_archive(archive,row['content_sha256'])
+                if hashlib.sha256(manifest_json.encode()).hexdigest()!=qa['manifest_sha256']:
+                    raise ValueError('manifest digest')
+                manifest=json.loads(manifest_json)
+                if (not all(page['checked_full_size'] for page in manifest['pages']) or
+                        any(manifest[key]!='Checked' for key in ('native_word','accessibility','parity'))):
+                    blockers.append(f'{product}: rendered page review incomplete')
+            except (StorageError,FileNotFoundError,HTTPException,ValueError):
+                blockers.append(f'{product}: rendered QA integrity failed')
+        review_checks=json.loads(review['checks_json']) if review else {}
+        review_record=({'report_id':row['id'],'evidence_id':review['evidence_id'],
+            'source_record_sha256':source['record_sha256'],
+            'content_sha256':row['content_sha256'],
+            'archive_sha256':qa['archive_sha256'],'decision':review['decision'],
+            'checks':review_checks,'qualification_basis':review['qualification_basis'],
+            'review_note':review['review_note'],
+            'reviewer_user_id':review['reviewer_user_id']} if review and qa else None)
+        review_digest=(hashlib.sha256(json.dumps(review_record,
+            sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if review_record else '')
+        if (not review or review['decision']!='Reviewed' or not qa or
+                review['content_sha256']!=row['content_sha256'] or
+                review['archive_sha256']!=qa['archive_sha256'] or
+                review['reviewer_user_id']==qa['submitted_by_user_id'] or
+                set(review_checks)!=set(PACKAGE_REPORT_REVIEW_KEYS) or
+                not all(review_checks.values()) or
+                review['record_sha256']!=review_digest):
+            blockers.append(f'{product}: independent qualified review missing')
+        reports[product]=row
+        if matrix and qa and review:
+            snapshots[product]={'report_id':row['id'],'version_no':row['version_no'],
+                'content_sha256':row['content_sha256'],
+                'pdf_sha256':json.loads(qa['manifest_json'])['pdf_sha256'],
+                'conformance_id':matrix['id'],'qa_evidence_id':qa['id'],
+                'qa_review_id':review['id']}
+    comparison=conn.execute('''SELECT * FROM level1a_report_reconciliations WHERE
+        tenant_id=? AND order_id=? ORDER BY id DESC LIMIT 1''',
+        (tid,source['order_id'])).fetchone()
+    if not comparison or comparison['status']!='Compared':
+        blockers.append('SalCAPA: four-report source reconciliation incomplete')
+    elif set(reports)==PACKAGE_REPORT_PRODUCTS:
+        selected=json.loads(comparison['sources_json'])
+        comparison_record={'salcapa_report_id':comparison['salcapa_report_id'],
+            'salcapa_sha256':comparison['salcapa_sha256'],
+            'source_record_sha256':source['record_sha256'],
+            'sources':selected,'summary':comparison['summary']}
+        comparison_digest=hashlib.sha256(json.dumps(comparison_record,
+            sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        if (comparison['salcapa_report_id']!=reports['SalCAPA']['id'] or
+                comparison['salcapa_sha256']!=reports['SalCAPA']['content_sha256'] or
+                comparison['record_sha256']!=comparison_digest or
+                set(selected)!={'SalINTEL','SalTHIRA','SalOPS'} or
+                any(selected[product]['report_id']!=reports[product]['id'] or
+                    selected[product]['content_sha256']!=reports[product]['content_sha256'] or
+                    selected[product]['alignment']=='Unresolved'
+                    for product in selected)):
+            blockers.append('SalCAPA: reconciliation names changed or unresolved sources')
+    return reports,snapshots,comparison,blockers
+
+@app.get('/api/assessments/{assessment_id}/level1a-report-readiness')
+def level1a_report_readiness(assessment_id:int,request:Request):
+    require(request,'read')
+    ctx=auth_context(request)
+    if (role(request) not in PACKAGE_REPORT_DRAFT_ROLES or
+            ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'An assigned Salus report owner is required.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    conn=db()
+    try:
+        source=_verified_level1a_report_source(conn,assessment_id,assessment,request)
+        reports,_,_,blockers=_level1a_report_release_checks(conn,assessment_id,source,request)
+        return {'status':'Blocked' if blockers else 'Technically ready for named human issue',
+            'reports':{key:{'id':row['id'],'version_no':row['version_no']}
+                       for key,row in reports.items()},'blockers':blockers,
+            'notice':'Readiness is not issue authority or buyer delivery.'}
+    finally: conn.close()
+
+@app.post('/api/assessments/{assessment_id}/level1a-report-issues')
+def issue_level1a_reports(assessment_id:int,p:PackageReportIssueIn,request:Request):
+    """One named decision issues four qualified versions to the paid buyer."""
+    if (set(p.report_ids)!=PACKAGE_REPORT_PRODUCTS or any(
+            type(value) is not int or value<1 for value in p.report_ids.values())):
+        raise HTTPException(422,'Name all four exact product report IDs.')
+    require(request,'decide')
+    ctx=auth_context(request)
+    if (role(request) not in ('System Administrator','Assessment Director') or
+            ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'A named Salus report issuing authority is required.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    tid=tenant_id(request);conn=db()
+    try:
+        lock_package_assessment(conn,assessment_id)
+        source=_verified_level1a_report_source(conn,assessment_id,assessment,request)
+        if p.recipient_user_id!=source['buyer_user_id']:
+            raise HTTPException(409,'The issue recipient must be the exact paid buyer.')
+        recipient=conn.execute('''SELECT status,role FROM users WHERE id=? AND tenant_id=?''',
+            (p.recipient_user_id,tid)).fetchone()
+        if (not recipient or recipient['status']!='Active' or
+                recipient['role']!='Client Executive'):
+            raise HTTPException(409,'The paid Protected Member recipient is not active.')
+        reports,snapshots,comparison,blockers=_level1a_report_release_checks(
+            conn,assessment_id,source,request)
+        if blockers:
+            raise HTTPException(409,'Exact report release checks remain open: '+'; '.join(blockers))
+        if {product:reports[product]['id'] for product in PACKAGE_REPORT_PRODUCTS}!=p.report_ids:
+            raise HTTPException(409,'The exact four report versions changed.')
+        record={'order_id':source['order_id'],'assessment_id':assessment_id,
+            'source_record_sha256':source['record_sha256'],
+            'recipient_user_id':p.recipient_user_id,'reports':snapshots,
+            'reconciliation_id':comparison['id'],
+            'issue_basis':p.issue_basis.strip(),'issued_by_user_id':ctx['user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        previous=conn.execute('''SELECT id FROM level1a_report_issue_packets WHERE
+            tenant_id=? AND order_id=? ORDER BY id DESC LIMIT 1''',
+            (tid,source['order_id'])).fetchone()
+        cur=conn.execute('''INSERT INTO level1a_report_issue_packets
+            (tenant_id,order_id,assessment_id,source_record_sha256,recipient_user_id,
+             reports_json,reconciliation_id,issue_basis,record_sha256,
+             issued_by_user_id,issued_at,supersedes_id)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (tid,source['order_id'],assessment_id,source['record_sha256'],
+             p.recipient_user_id,json.dumps(snapshots,sort_keys=True,separators=(',',':')),
+             comparison['id'],record['issue_basis'],digest,ctx['user_id'],now(),
+             previous['id'] if previous else None))
+        for row in reports.values():
+            updated=conn.execute('''UPDATE level1a_product_report_versions
+                SET status='Issued' WHERE id=? AND status='Draft' ''',(row['id'],))
+            if updated.rowcount!=1:
+                raise HTTPException(409,'A report changed during issue.')
+        audit(conn,'LEVEL1A_REPORT_ISSUE','assessment',assessment_id,
+            f'issue_id={cur.lastrowid}; order_id={source["order_id"]}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'status':'Issued','record_sha256':digest,
+            'notice':'The exact four reports are issued only to the named paid buyer.'}
+    finally:
+        conn.rollback();conn.close()
+
+def _verified_level1a_issue(conn,issue_id:int,request:Request):
+    """Require exact signed recipient, current payment, and issue digest."""
+    require(request,'read')
+    issue=conn.execute('''SELECT * FROM level1a_report_issue_packets WHERE
+        id=? AND tenant_id=?''',(issue_id,tenant_id(request))).fetchone()
+    if not issue: raise HTTPException(404,'Issued Level 1A reports not found.')
+    ctx=auth_context(request)
+    if (role(request)!='Client Executive' or ctx['auth_mode'] not in ('session','oidc')
+            or ctx.get('user_id')!=issue['recipient_user_id']):
+        raise HTTPException(403,'Only the named Protected Member may receive these reports.')
+    assessment=assessment_row_for_request(request,issue['assessment_id'])
+    source=_verified_level1a_report_source(conn,issue['assessment_id'],assessment,request)
+    if (source['order_id']!=issue['order_id'] or
+            source['record_sha256']!=issue['source_record_sha256'] or
+            source['buyer_user_id']!=issue['recipient_user_id']):
+        raise HTTPException(409,'The paid source for these reports changed.')
+    try:
+        reports=json.loads(issue['reports_json'])
+        record={'order_id':issue['order_id'],'assessment_id':issue['assessment_id'],
+            'source_record_sha256':issue['source_record_sha256'],
+            'recipient_user_id':issue['recipient_user_id'],'reports':reports,
+            'reconciliation_id':issue['reconciliation_id'],
+            'issue_basis':issue['issue_basis'],'issued_by_user_id':issue['issued_by_user_id']}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        if digest!=issue['record_sha256'] or set(reports)!=PACKAGE_REPORT_PRODUCTS:
+            raise ValueError('report issue digest')
+    except (ValueError,TypeError,KeyError,AttributeError) as exc:
+        raise HTTPException(409,'Issued report integrity verification failed.') from exc
+    return issue,reports
+
+@app.get('/api/level1a-report-issues/{issue_id}')
+def get_level1a_report_issue(issue_id:int,request:Request):
+    conn=db()
+    try:
+        issue,reports=_verified_level1a_issue(conn,issue_id,request)
+        return {'id':issue_id,'issued_at':issue['issued_at'],
+            'reports':{product:{'report_id':item['report_id'],'version_no':item['version_no']}
+                       for product,item in reports.items()},
+            'record_sha256':issue['record_sha256']}
+    finally: conn.close()
+
+@app.get('/api/level1a/orders/{order_id}/reports')
+def list_buyer_level1a_reports(order_id:int,request:Request):
+    """Let the exact signed paid buyer find issued reports in a fresh session."""
+    require(request,'read')
+    ctx=auth_context(request)
+    if (role(request)!='Client Executive' or ctx['auth_mode'] not in ('session','oidc')
+            or not ctx.get('user_id')):
+        raise HTTPException(403,'A signed-in Protected Member is required.')
+    tid=tenant_id(request);conn=db()
+    try:
+        try:
+            binding=binding_for_accepted_order(conn,tenant_id=tid,
+                buyer_user_id=ctx['user_id'],order_id=order_id)
+            paid=verified_level1a_receipt(conn,binding)
+        except CheckoutVerificationError as exc:
+            raise HTTPException(409,'The accepted paid order requires review.') from exc
+        if not paid: raise HTTPException(409,'Verified payment is required.')
+        rows=conn.execute('''SELECT id FROM level1a_report_issue_packets WHERE
+            tenant_id=? AND order_id=? AND recipient_user_id=? ORDER BY id''',
+            (tid,order_id,ctx['user_id'])).fetchall()
+        issues=[]
+        for row in rows:
+            issue,reports=_verified_level1a_issue(conn,row['id'],request)
+            acknowledged=conn.execute('''SELECT acknowledged_at FROM
+                level1a_report_issue_acknowledgments WHERE tenant_id=? AND issue_id=?''',
+                (tid,issue['id'])).fetchone()
+            issues.append({'id':issue['id'],'issued_at':issue['issued_at'],
+                'record_sha256':issue['record_sha256'],
+                'acknowledged_at':acknowledged['acknowledged_at'] if acknowledged else None,
+                'products':list(reports)})
+        return {'order_id':order_id,'issues':issues,
+            'notice':'Reports appear only after named qualified Salus issue review.'}
+    finally: conn.close()
+
+@app.get('/api/level1a-report-issues/{issue_id}/reports/{product}.{format}')
+def download_level1a_report_issue(issue_id:int,product:str,format:str,request:Request):
+    if product not in PACKAGE_REPORT_PRODUCTS or format not in ('docx','pdf'):
+        raise HTTPException(404,'Unknown Level 1A report product.')
+    conn=db()
+    try:
+        issue,reports=_verified_level1a_issue(conn,issue_id,request)
+        item=reports[product]
+        row=conn.execute('''SELECT * FROM level1a_product_report_versions WHERE
+            tenant_id=? AND id=? AND order_id=? AND assessment_id=?''',
+            (tenant_id(request),item['report_id'],issue['order_id'],
+             issue['assessment_id'])).fetchone()
+        if (not row or row['product']!=product or row['status']!='Issued' or
+                row['content_sha256']!=item['content_sha256'] or
+                row['source_record_sha256']!=issue['source_record_sha256']):
+            raise HTTPException(409,'The exact issued report is unavailable.')
+        try: word=storage.get_bytes(row['stored_name'])
+        except (StorageError,FileNotFoundError) as exc:
+            raise HTTPException(503,'The issued report is unavailable.') from exc
+        if hashlib.sha256(word).hexdigest()!=item['content_sha256']:
+            security_event(request,'LEVEL1A_ISSUED_REPORT_HASH_MISMATCH','High',
+                f'issue_id={issue_id}; report_id={row["id"]}')
+            raise HTTPException(409,'The issued report failed integrity verification.')
+        content=word
+        if format=='pdf':
+            qa=conn.execute('''SELECT * FROM level1a_report_qa_evidence WHERE
+                id=? AND tenant_id=? AND report_id=?''',
+                (item['qa_evidence_id'],tenant_id(request),row['id'])).fetchone()
+            if not qa or qa['content_sha256']!=row['content_sha256']:
+                raise HTTPException(409,'The exact issued PDF is unavailable.')
+            try: archive=storage.get_bytes(qa['stored_name'])
+            except (StorageError,FileNotFoundError) as exc:
+                raise HTTPException(503,'The issued PDF is unavailable.') from exc
+            if hashlib.sha256(archive).hexdigest()!=qa['archive_sha256']:
+                raise HTTPException(409,'The issued PDF archive failed integrity verification.')
+            _,content=inspect_package_qa_archive(archive,row['content_sha256'])
+            if hashlib.sha256(content).hexdigest()!=item['pdf_sha256']:
+                raise HTTPException(409,'The issued PDF failed integrity verification.')
+        conn.execute('''INSERT INTO level1a_report_downloads
+            (tenant_id,issue_id,report_id,product,recipient_user_id,
+             content_sha256,downloaded_at) VALUES(?,?,?,?,?,?,?)''',
+            (tenant_id(request),issue_id,row['id'],product,
+             issue['recipient_user_id'],row['content_sha256'],now()))
+        audit(conn,'LEVEL1A_REPORT_DOWNLOAD','assessment',issue['assessment_id'],
+            f'issue_id={issue_id}; report_id={row["id"]}; product={product}; format={format}',actor(request))
+        conn.commit()
+        name=safe_filename(row['original_name'])
+        if format=='pdf': name=name[:-5]+'.pdf'
+        return Response(content=content,media_type=('application/pdf' if format=='pdf' else
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+            headers={'Content-Disposition':f'attachment; filename="{name}"',
+                     'X-Content-SHA256':hashlib.sha256(content).hexdigest(),
+                     'Cache-Control':'no-store'})
+    finally:
+        conn.rollback();conn.close()
+
+@app.post('/api/level1a-report-issues/{issue_id}/acknowledgment')
+def acknowledge_level1a_report_issue(issue_id:int,p:PackageReportAcknowledgmentIn,
+        request:Request):
+    """Record named buyer receipt only after four exact product downloads."""
+    conn=db()
+    try:
+        issue,reports=_verified_level1a_issue(conn,issue_id,request)
+        if p.issue_sha256!=issue['record_sha256']:
+            raise HTTPException(409,'The issued packet changed.')
+        note=p.acknowledgment_note.strip()
+        if len(note)<20:
+            raise HTTPException(422,'Describe your report receipt and limitations review.')
+        record={'issue_id':issue_id,'issue_sha256':issue['record_sha256'],
+            'recipient_user_id':issue['recipient_user_id'],
+            'acknowledgment_note':note,'idempotency_key':p.idempotency_key}
+        digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        tid=tenant_id(request)
+        prior=conn.execute('''SELECT * FROM level1a_report_issue_acknowledgments WHERE
+            tenant_id=? AND (issue_id=? OR idempotency_key=?)''',
+            (tid,issue_id,p.idempotency_key)).fetchone()
+        if prior:
+            if prior['record_sha256']!=digest:
+                raise HTTPException(409,'The issue or acknowledgment key already has another decision.')
+            return {'id':prior['id'],'record_sha256':digest,'idempotent':True}
+        downloaded={row['product'] for row in conn.execute('''SELECT product,report_id,content_sha256
+            FROM level1a_report_downloads WHERE tenant_id=? AND issue_id=?
+            AND recipient_user_id=?''',(tid,issue_id,issue['recipient_user_id']))
+            if row['product'] in reports and row['report_id']==reports[row['product']]['report_id']
+            and row['content_sha256']==reports[row['product']]['content_sha256']}
+        missing=PACKAGE_REPORT_PRODUCTS-downloaded
+        if missing:
+            raise HTTPException(409,'Download each of the four exact issued reports before acknowledgment: '
+                +', '.join(sorted(missing)))
+        cur=conn.execute('''INSERT INTO level1a_report_issue_acknowledgments
+            (tenant_id,issue_id,issue_sha256,recipient_user_id,
+             acknowledgment_note,idempotency_key,record_sha256,acknowledged_at)
+            VALUES(?,?,?,?,?,?,?,?)''',
+            (tid,issue_id,issue['record_sha256'],issue['recipient_user_id'],
+             note,p.idempotency_key,digest,now()))
+        audit(conn,'LEVEL1A_REPORT_ACKNOWLEDGMENT','assessment',issue['assessment_id'],
+            f'issue_id={issue_id}; acknowledgment_id={cur.lastrowid}; sha256={digest}',actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'record_sha256':digest,'idempotent':False}
+    finally:
+        conn.rollback();conn.close()
 
 def check_package_docx(content:bytes):
     if len(content)>10*1024*1024: raise HTTPException(413,'Draft Word report exceeds 10 MB.')

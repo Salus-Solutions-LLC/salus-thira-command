@@ -145,6 +145,18 @@ async function level1aPayment(state){
     const testMode=payment.test_mode===true;
     host.innerHTML=`<div class="card"><h2>${testMode?'Sandbox test payment verified':'Payment verified'}</h2><p>${testMode?'This was a Stripe sandbox transaction; no live funds were collected.':'Your Level 1A Assessment payment is recorded for this exact order.'} Your receipt is available below.</p><p><a href="/api/level1a/orders/${id}/receipt" target="_blank" rel="noopener">View or print your confidential receipt</a></p>${intakeReady?'<button class="btn" type="button" id="level1a-open-intake">Open my records request</button>':'<p class="notice">The records request is not open yet. Your receipt remains available while Salus completes acceptance.</p>'}</div>`;
     if(intakeReady)host.querySelector('#level1a-open-intake').onclick=async event=>{event.currentTarget.disabled=true;try{await api(`/api/level1a/orders/${id}/intake/open`,{method:'POST'});level1aIntake(state)}catch{level1aError();event.currentTarget.disabled=false}};
+    try{
+      const issued=await api(`/api/level1a/orders/${id}/reports`);
+      const latest=(issued.issues||[]).at(-1);
+      if(latest){
+        const section=document.createElement('section');section.className='card';
+        const products=['SalINTEL','SalTHIRA','SalOPS','SalCAPA'];
+        section.innerHTML=`<h2>Your reviewed Level 1A reports</h2><p>Salus has issued four reviewed reports for this paid assessment. Download each report and review its scope and limitations.</p><ul>${products.map(product=>`<li>${product}: <a href="/api/level1a-report-issues/${Number(latest.id)}/reports/${product}.pdf" target="_blank" rel="noopener">Read PDF</a> · <a href="/api/level1a-report-issues/${Number(latest.id)}/reports/${product}.docx" target="_blank" rel="noopener">Download Word</a></li>`).join('')}</ul>${latest.acknowledged_at?'<p>Receipt acknowledged.</p>':'<form id="level1a-report-ack"><label><input type="checkbox" required> I received all four reports.</label><label><input type="checkbox" required> I reviewed the reports’ scope and limitations.</label><label>Receipt note<textarea name="acknowledgment_note" required minlength="20" maxlength="1000"></textarea></label><button class="btn" type="submit">Acknowledge report receipt</button></form>'}`;
+        host.appendChild(section);
+        const form=section.querySelector('#level1a-report-ack');
+        if(form)form.onsubmit=async event=>{event.preventDefault();if(!form.reportValidity())return;const button=form.querySelector('button');button.disabled=true;try{await api(`/api/level1a-report-issues/${Number(latest.id)}/acknowledgment`,{method:'POST',body:JSON.stringify({issue_sha256:latest.record_sha256,confirm_received:true,confirm_reviewed_limitations:true,acknowledgment_note:new FormData(form).get('acknowledgment_note'),idempotency_key:crypto.randomUUID().replace(/-/g,'')})});await level1aPayment(state)}catch{level1aStatus('Download all four exact reports before acknowledging receipt.');button.disabled=false}};
+      }
+    }catch{level1aStatus('Your payment is verified. Report status is temporarily unavailable; please try again later.');}
     return;
   }
   if(!['Not started','Pending','Expired'].includes(payment.status)){
