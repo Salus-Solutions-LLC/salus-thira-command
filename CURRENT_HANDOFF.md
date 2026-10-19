@@ -1,3 +1,8 @@
+## 18 October 2026 Central — red-team rollout sequence approved
+
+- Marc answered yes to question 4: apply the red-team requirement immediately to active drafts and review previously issued reports according to continuing relevance and potential consequences. SAL-D114 records this approval on draft PR #974, incorporated into the Charter by its decision-register authority rule. Preserve report identities, lineage and controlled revision/supplement and release processes. No named report's review or remediation is established by this decision.
+- Next: identify exact active drafts and prioritize issued-report impact review, preserving current pauses and access/release boundaries. The unresolved-disagreement release-authority question remains unanswered. Draft PR #974 remains unmerged; no software, Azure setting, template binary or issued report changed. Existing deployment and open acceptance gates remain as below. No uninterrupted background execution is implemented or observed for this discussion.
+
 ## 18 October 2026 Central — red-team reviewer and topic-section requirements clarified
 
 - Marc resolved the reviewer question: two people are not currently required; this may change later. SAL-D112 records the current rule without waiving established specialist or qualified report-release requirements.
