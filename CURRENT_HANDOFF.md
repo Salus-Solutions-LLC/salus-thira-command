@@ -1,3 +1,9 @@
+## 18 October 2026 Central — red-team reviewer and topic-section requirements clarified
+
+- Marc resolved the reviewer question: two people are not currently required; this may change later. SAL-D112 records the current rule without waiving established specialist or qualified report-release requirements.
+- Marc requires an internal-style red-team conversation within each topic section of all Salus reports and documents to add depth, context and Protected Member education. SAL-D113 records flexible headings such as “What the Red-Team Found” and topic-level application to the assessment and proposed improvements. Do not substitute only a report-wide summary or imply an independent team participated when it did not.
+- Decision Register and Charter updated on draft PR #974 branch `governance/red-team-foundation-20261018`; changes remain staged, not merged or deployed. No existing report/template binary was changed or accepted. Next: incorporate remaining Marc method decisions and qualify topic-level report/template impact through governed review. Production and paused-work status remain as recorded below; no Azure inspection or configuration change in this clarification. No uninterrupted background worker is implemented or observed for this discussion.
+
 ## 18 October 2026 Central — foundational red-team requirement staged; detailed approach under discussion
 
 - Marc directed that red-teaming be foundational to all Salus work, including every report, analysis and assessment, first when assessing a topic, client or facility, and second when challenging recommendations for improvement. SAL-D111 and the Charter record only this explicit core direction on governance branch `governance/red-team-foundation-20261018`; integration into the governed development branch remains pending.
