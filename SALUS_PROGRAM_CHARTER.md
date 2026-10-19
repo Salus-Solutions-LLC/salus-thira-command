@@ -656,3 +656,8 @@ Marc reports that Salus and its personnel hold relevant licenses and that person
 ## SAL-D110 Level 1 customer names
 
 The customer-facing band names are **Level 1A Assessment**, **Level 1B Assessment**, and **Level 1C Assessment**. Earlier “Level 1A Access” references identify the historical first-package design and may remain in stored keys or old records for compatibility. They are not the current buyer-facing name. The eligible first Level 1A Assessment remains one defined site or function for a fixed $1,500 buyer total, conducted remotely under SAL-D107, with four reports subject to qualified human review and governed issue. Level 1B and 1C remain separately scoped and priced after qualified Level 1A. Align all new buyer-facing offers, agreements, payment descriptions, receipts and reports with these names; do not rewrite immutable historical buyer evidence. The revised Word issue template requires exact-file owner approval and all-page QA before use. This naming decision does not open checkout, intake, uploads or scanning.
+
+
+## SAL-D111 foundational red-team perspective
+
+Red-teaming is foundational to all Salus work, including every report, analysis and assessment. Apply it first to the assessment of the topic, Protected Member, client or facility, and second to Salus recommendations for improvement. Challenge both the assessment and the proposed improvements to help validate recommendations. The exact requirement and approval provenance are in SAL-D111 in the Decision Register. Detailed procedures remain under discussion; this method requirement alone is not proof of implementation in existing reports, templates or live software. Preserve existing evidence, qualified human review, confidentiality, lineage and release controls.
