@@ -50,8 +50,26 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         conn.execute('INSERT INTO auth_sessions (user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',
             (uid,app._hash_token('fictional-buyer-cookie'),
              '2099-01-01T00:00:00Z',app.now(),app.now()))
+        staff_uid=conn.execute('INSERT INTO users (tenant_id,username,display_name,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
+            (1,'fictional-report-owner','Fictional Report Owner','System Administrator','Active',app.now(),app.now())).lastrowid
+        conn.execute('INSERT INTO auth_sessions (user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',
+            (staff_uid,app._hash_token('fictional-staff-cookie'),
+             '2099-01-01T00:00:00Z',app.now(),app.now()))
+        reviewer_uid=conn.execute('INSERT INTO users (tenant_id,username,display_name,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
+            (1,'fictional-report-reviewer','Fictional Report Reviewer','System Administrator','Active',app.now(),app.now())).lastrowid
+        conn.execute('INSERT INTO auth_sessions (user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',
+            (reviewer_uid,app._hash_token('fictional-reviewer-cookie'),
+             '2099-01-01T00:00:00Z',app.now(),app.now()))
+        other_uid=conn.execute('INSERT INTO users (tenant_id,username,display_name,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
+            (1,'other-buyer','Other Buyer','Client Executive','Active',app.now(),app.now())).lastrowid
+        conn.execute('INSERT INTO auth_sessions (user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)',
+            (other_uid,app._hash_token('other-buyer-cookie'),
+             '2099-01-01T00:00:00Z',app.now(),app.now()))
         conn.commit();conn.close()
         buyer=TestClient(app.app,cookies={'salus_session':'fictional-buyer-cookie'})
+        staff=TestClient(app.app,cookies={'salus_session':'fictional-staff-cookie'})
+        reviewer=TestClient(app.app,cookies={'salus_session':'fictional-reviewer-cookie'})
+        other_buyer=TestClient(app.app,cookies={'salus_session':'other-buyer-cookie'})
         outsider=TestClient(app.app)
         fields=dict(idempotency_key='fictional-route-00001',
             buyer_legal_name='Fictional Daycare LLC',unit_kind='Site',
@@ -184,11 +202,165 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         try:
             assessment=conn.execute('SELECT purpose FROM assessments WHERE id=?',(assessment_id,)).fetchone()
             assert assessment['purpose']=='Level 1A Assessment'
+            source=conn.execute('SELECT * FROM level1a_report_sources WHERE order_id=? AND assessment_id=?',
+                (oid,assessment_id)).fetchone()
+            assert source and source['buyer_user_id']==uid
+            assert source['scope_sha256']==binding.scope_sha256
+            checkout=conn.execute('SELECT receipt_document_sha256 FROM level1a_checkout_sessions WHERE id=?',
+                (source['checkout_id'],)).fetchone()
+            assert source['receipt_document_sha256']==checkout['receipt_document_sha256']
+            from salus_level1a_report_source import _digest
+            assert source['record_sha256']==_digest(source)
+            assert conn.execute('SELECT COUNT(*) n FROM package_quote_versions').fetchone()['n']==0
+            assert conn.execute('SELECT COUNT(*) n FROM package_acceptances').fetchone()['n']==0
         finally:
             conn.close()
         again=buyer.post(f'/api/level1a/orders/{oid}/intake/open')
         assert again.status_code==200 and again.json()['idempotent']
         assert again.json()['assessment_id']==assessment_id
+        source_url=f'/api/assessments/{assessment_id}/level1a-report-source'
+        assert buyer.get(source_url).status_code==403
+        source_read=staff.get(source_url)
+        assert source_read.status_code==200 and source_read.json()['status']=='Verified',source_read.text
+        assert source_read.json()['order_id']==oid
+        draft_url=f'/api/assessments/{assessment_id}/level1a-reports/SalINTEL/draft'
+        draft_form={'method_version':'fictional-method-1','template_version':'fictional-template-1'}
+        app.scan_bytes=lambda content,name: {'ok':False,'status':'Infected'}
+        held_draft=staff.post(draft_url,data=draft_form,
+            files={'file':('fictional.docx',template,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')})
+        assert held_draft.status_code==422
+        app.scan_bytes=lambda content,name: {'ok':True,'status':'Clean'}
+        assert buyer.post(draft_url,data=draft_form,
+            files={'file':('fictional.docx',template,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')}).status_code==403
+        draft=staff.post(draft_url,data=draft_form,
+            files={'file':('fictional.docx',template,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')})
+        assert draft.status_code==200 and draft.json()['status']=='Draft',draft.text
+        duplicate=staff.post(draft_url,data=draft_form,
+            files={'file':('fictional.docx',template,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')})
+        assert duplicate.status_code==200 and duplicate.json()['id']==draft.json()['id']
+        report_id=draft.json()['id']
+        from reportlab.pdfgen.canvas import Canvas
+        import zipfile
+        pdf_buffer=BytesIO();canvas=Canvas(pdf_buffer)
+        canvas.drawString(40,40,'Page 1 of 3');canvas.showPage()
+        canvas.showPage()
+        canvas.drawString(40,40,'Page 3 of 3');canvas.save()
+        pdf=pdf_buffer.getvalue()
+        manifest=dict(report_sha256=sha256(template).hexdigest(),
+            pdf_sha256=sha256(pdf).hexdigest(),renderer='Fictional Word renderer',
+            pages=[{'page':number,'checked_full_size':True,'note':'Full page checked.'}
+                   for number in (1,2,3)],native_word='Checked',
+            accessibility='Checked',parity='Checked',notes='Fictional full page inspection')
+        archive_buffer=BytesIO()
+        with zipfile.ZipFile(archive_buffer,'w') as archive_file:
+            archive_file.writestr('manifest.json',json.dumps(manifest))
+            archive_file.writestr('rendered.pdf',pdf)
+        archive_bytes=archive_buffer.getvalue()
+        qa_url=f'/api/level1a-reports/{report_id}/qa-evidence'
+        assert buyer.post(qa_url,files={'file':('qa.zip',archive_bytes,'application/zip')}).status_code==403
+        qa=staff.post(qa_url,files={'file':('qa.zip',archive_bytes,'application/zip')})
+        assert qa.status_code==200,qa.text
+        evidence_id=qa.json()['id']
+        assert staff.post(qa_url,files={'file':('qa.zip',archive_bytes,'application/zip')}).json()['idempotent']
+        checks={key:{'status':'Met','reason':'The fictional exact page evidence was reviewed.'}
+                for key in app.PACKAGE_REPORT_QA_KEYS}
+        conformance_url=f'/api/level1a-reports/{report_id}/conformance'
+        assert buyer.post(conformance_url,json={'content_sha256':sha256(template).hexdigest(),
+            'checks':checks,'summary':'Fictional reviewer checked all Charter items.'}).status_code==403
+        matrix=reviewer.post(conformance_url,json={'content_sha256':sha256(template).hexdigest(),
+            'checks':checks,'summary':'Fictional reviewer checked all Charter items.'})
+        assert matrix.status_code==200 and matrix.json()['status']=='Marked',matrix.text
+        review_url=f'/api/level1a-reports/{report_id}/qa-reviews'
+        review=dict(evidence_id=evidence_id,decision='Reviewed',
+            checks={key:True for key in app.PACKAGE_REPORT_REVIEW_KEYS},
+            qualification_basis='Fictional assessment director trained for the exact method.',
+            review_note='All fictional pages and source details were reviewed in this isolated test.')
+        assert staff.post(review_url,json=review).status_code==409
+        checked=reviewer.post(review_url,json=review)
+        assert checked.status_code==200 and checked.json()['decision']=='Reviewed',checked.text
+        assert reviewer.post(review_url,json=review).json()['idempotent']
+        assert buyer.get(f'/api/level1a-reports/{report_id}/draft.docx').status_code in (404,405)
+        readiness=reviewer.get(f'/api/assessments/{assessment_id}/level1a-report-readiness')
+        assert readiness.status_code==200 and readiness.json()['status']=='Blocked',readiness.text
+        assert any('SalTHIRA' in item for item in readiness.json()['blockers'])
+        assert any('reconciliation' in item for item in readiness.json()['blockers'])
+        report_ids={'SalINTEL':report_id}
+        for product in ('SalTHIRA','SalOPS','SalCAPA'):
+            draft_result=staff.post(
+                f'/api/assessments/{assessment_id}/level1a-reports/{product}/draft',
+                data=draft_form,files={'file':('fictional.docx',template,
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document')})
+            assert draft_result.status_code==200,draft_result.text
+            current_id=draft_result.json()['id'];report_ids[product]=current_id
+            qa_result=staff.post(f'/api/level1a-reports/{current_id}/qa-evidence',
+                files={'file':('qa.zip',archive_bytes,'application/zip')})
+            assert qa_result.status_code==200,qa_result.text
+            matrix_result=reviewer.post(f'/api/level1a-reports/{current_id}/conformance',
+                json={'content_sha256':sha256(template).hexdigest(),
+                      'checks':checks,'summary':'Fictional reviewer checked all Charter items.'})
+            assert matrix_result.status_code==200,matrix_result.text
+            review_result=reviewer.post(f'/api/level1a-reports/{current_id}/qa-reviews',
+                json={**review,'evidence_id':qa_result.json()['id']})
+            assert review_result.status_code==200,review_result.text
+        issue_url=f'/api/assessments/{assessment_id}/level1a-report-issues'
+        issue_body=dict(report_ids=report_ids,recipient_user_id=uid,
+            issue_basis='Fictional qualified human review of every page and exact paid source.',
+            confirm_qualified_release=True)
+        blocked_issue=reviewer.post(issue_url,json=issue_body)
+        assert blocked_issue.status_code==409 and 'reconciliation' in blocked_issue.text
+        sources={product:{'report_id':report_ids[product],
+            'content_sha256':sha256(template).hexdigest(),
+            'alignment':'Aligned',
+            'explanation':'The fictional source is aligned with the exact SalCAPA draft.'}
+            for product in ('SalINTEL','SalTHIRA','SalOPS')}
+        reconciled=reviewer.post(
+            f'/api/level1a-reports/{report_ids["SalCAPA"]}/source-reconciliation',
+            json={'salcapa_sha256':sha256(template).hexdigest(),
+                  'sources':sources,
+                  'summary':'All three fictional source reports align with SalCAPA.'})
+        assert reconciled.status_code==200 and reconciled.json()['status']=='Compared',reconciled.text
+        readiness=reviewer.get(f'/api/assessments/{assessment_id}/level1a-report-readiness')
+        assert readiness.status_code==200 and not readiness.json()['blockers'],readiness.text
+        issued=reviewer.post(issue_url,json=issue_body)
+        assert issued.status_code==200 and issued.json()['status']=='Issued',issued.text
+        issue_id=issued.json()['id']
+        issued_list=buyer.get(f'/api/level1a/orders/{oid}/reports')
+        assert issued_list.status_code==200 and issued_list.json()['issues'][0]['id']==issue_id,issued_list.text
+        assert other_buyer.get(f'/api/level1a/orders/{oid}/reports').status_code==409
+        assert outsider.get(f'/api/level1a-report-issues/{issue_id}').status_code in (401,403)
+        assert other_buyer.get(f'/api/level1a-report-issues/{issue_id}').status_code==403
+        assert other_buyer.get(f'/api/level1a-report-issues/{issue_id}/reports/SalINTEL.pdf').status_code==403
+        assert reviewer.get(f'/api/level1a-report-issues/{issue_id}').status_code==403
+        assert buyer.get(f'/api/level1a-report-issues/{issue_id}').status_code==200
+        ack_url=f'/api/level1a-report-issues/{issue_id}/acknowledgment'
+        ack=dict(issue_sha256=issued.json()['record_sha256'],confirm_received=True,
+            confirm_reviewed_limitations=True,
+            acknowledgment_note='I received and reviewed the fictional four-report packet.',
+            idempotency_key='fictional-report-ack-0001')
+        assert buyer.post(ack_url,json=ack).status_code==409
+        for product in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+            downloaded=buyer.get(f'/api/level1a-report-issues/{issue_id}/reports/{product}.docx')
+            assert downloaded.status_code==200 and downloaded.content==template,downloaded.text
+            if product=='SalINTEL':
+                pdf_download=buyer.get(f'/api/level1a-report-issues/{issue_id}/reports/{product}.pdf')
+                assert pdf_download.status_code==200 and pdf_download.content==pdf,pdf_download.text
+        acknowledged=buyer.post(ack_url,json=ack)
+        assert acknowledged.status_code==200 and not acknowledged.json()['idempotent'],acknowledged.text
+        assert buyer.post(ack_url,json=ack).json()['idempotent']
+        conn=app.db()
+        original_source_sha=conn.execute('SELECT record_sha256 FROM level1a_report_sources WHERE order_id=?',
+            (oid,)).fetchone()['record_sha256']
+        conn.execute('UPDATE level1a_report_sources SET record_sha256=? WHERE order_id=?',
+            ('0'*64,oid));conn.commit();conn.close()
+        assert buyer.get(f'/api/level1a-report-issues/{issue_id}').status_code==409
+        conn=app.db();conn.execute('UPDATE level1a_report_sources SET record_sha256=? WHERE order_id=?',
+            (original_source_sha,oid));conn.commit();conn.close()
+        conn=app.db()
+        try:
+            assert conn.execute('SELECT COUNT(*) n FROM level1a_report_sources WHERE order_id=?',
+                (oid,)).fetchone()['n']==1
+        finally:
+            conn.close()
         intake=buyer.get(f'/api/level1a/orders/{oid}/intake')
         assert intake.status_code==200 and len(intake.json()['items'])==7,intake.text
         assert not intake.json()['disclosure_authority_recorded']
@@ -294,6 +466,12 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         assert buyer.get('/api/level1a/orders/recoverable').json()['orders']==[]
         assert buyer.get(f'/api/level1a/orders/{oid}/receipt').status_code==404
         assert buyer.get(f'/api/level1a/orders/{oid}/intake').status_code==409
+        assert staff.get(source_url).status_code==409
+        assert buyer.get(f'/api/level1a-report-issues/{issue_id}').status_code==409
+        assert buyer.get(f'/api/level1a/orders/{oid}/reports').status_code==409
+        assert buyer.get(f'/api/level1a-report-issues/{issue_id}/reports/SalINTEL.docx').status_code==409
+        assert staff.post(draft_url,data=draft_form,
+            files={'file':('fictional.docx',template,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')}).status_code==409
         assert buyer.patch(response_url,json={'status':'Prefer to discuss'}).status_code==409
         assert buyer.patch(f'{intake_base}/1/response',json={'status':'Not held'}).status_code==409
         assert buyer.get(f'/api/level1a/orders/{oid}/intake/files/1/download').status_code==409
