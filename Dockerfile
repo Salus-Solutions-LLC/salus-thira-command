@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/debian:bookworm-slim AS whisper-assets
+FROM docker.io/library/debian:bookworm-slim AS whisper-assets
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /opt/whisper/bin /opt/whisper/lib /opt/whisper/models /tmp/whisper && \
     curl --fail --location --retry 3 --output /tmp/whisper.tar.gz https://github.com/ggml-org/whisper.cpp/releases/download/b4938/whisper-bin-ubuntu-x64.tar.gz && \
@@ -13,7 +13,7 @@ RUN mkdir -p /opt/whisper/bin /opt/whisper/lib /opt/whisper/models /tmp/whisper 
     printf '{"release":"b4938","archive_sha256":"f4cfc1f969a13805908fb72043ce7cc896eb42e0b8afbe841dc8e7298923b061","binary_sha256":"%s","model":"tiny.en","model_sha256":"921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f"}\n' "$BINARY_SHA" > /opt/whisper/manifest.json && \
     chmod -R a-w /opt/whisper
 
-FROM public.ecr.aws/docker/library/python:3.12-slim-bookworm
+FROM docker.io/library/python:3.12-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 ENV LD_LIBRARY_PATH=/opt/whisper/bin
 WORKDIR /app
