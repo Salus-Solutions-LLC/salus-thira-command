@@ -73,7 +73,7 @@ jobs:
     timeout-minutes: 25
     services:
       postgres:
-        image: public.ecr.aws/docker/library/postgres:16-alpine
+        image: docker.io/library/postgres:16-alpine
         env:
           POSTGRES_DB: salintel_research_ci
           POSTGRES_USER: salus
