@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 22 October 2026 16:18 CDT
-current_frozen_release: v3.252
-current_frozen_commit: b481a1e593256899ff9ffa709cce469124dfcbfc
+last_verified_at: 22 October 2026 16:48 CDT
+current_frozen_release: v3.253
+current_frozen_commit: a29b064f8643fd25ed7580f355d4ec21325a3000
 active_development_branch: development/salcapa-platform
-current_development_head: 25f3ffebdc029664210266e18eb14ff6a42c34c0
+current_development_head: 24eeeccc0c16d9db1bc007c141fac521ed226697
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3253_paid_order_recovery_report_lifecycle_source_candidate
-last_completed_increment: v3252_private_inventory_published_and_paid_report_bridge_merged_source_only
-candidate_release: v3.253
-validation_pr: 975
-validation_branch: codex/v3253-paid-report-source-20261022
+active_increment: salus_v3254_dependency_audit_and_registry_repair_source_candidate
+last_completed_increment: v3253_source_frozen_without_image_and_dependency_repair_merged
+candidate_release: v3.254
+validation_pr: 978
+validation_branch: codex/v3254-dependency-repair-source-20261022
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: local_verified_github_pending
-failed_workflows: none_currently_observed
+failed_workflows: v3253_frozen_dependency_audit_and_public_ecr_rate_limit
 first_root_failing_gate: paid_buyer_intake_scanner_and_four_report_acceptance
-root_cause: approved_source_not_frozen_or_deployed_and_real_reports_unissued
-repair_head: 25f3ffebdc029664210266e18eb14ff6a42c34c0
-repair_summary: merged_paid_order_recovery_and_four_report_bridge
-genuine_blockers: v3252_app_release_superseded_only_after_v3253_source_freeze_private_inventory_retained_source_freeze_immutable_image_protected_deploy_fresh_session_paid_intake_exact_scanner_controlled_templates_human_four_report_issue_and_separate_public_release
-next_authorized_step: complete_v3253_candidate_CI_then_Marc_exact_source_review
+root_cause: v3253_dependency_audit_failed_before_image_publication_and_real_reports_unissued
+repair_head: 24eeeccc0c16d9db1bc007c141fac521ed226697
+repair_summary: merged_audited_dependency_and_release_image_source_repair
+genuine_blockers: v3253_app_release_superseded_only_after_v3254_source_freeze_private_inventory_retained_frozen_audit_immutable_image_protected_deploy_fresh_session_paid_intake_exact_scanner_controlled_templates_human_four_report_issue_and_separate_public_release
+next_authorized_step: complete_v3254_candidate_CI_then_Marc_exact_source_review
 deployed_demo_release: v3.251
 deployed_demo_state: v3251_named_buyer_sandbox_checkout_paid_intake_scanner_pilot_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3254_dependency_repair_source_candidate: Marc approved PR #977 current exact head `db2b14f0d1509f243c7a59b50a0aecb43bec07b5` after all three required jobs passed; squash merge `24eeeccc0c16d9db1bc007c141fac521ed226697` repairs the failed v3.253 dependency audit, switches release-critical CI and production base images away from rate-limited public ECR, and aligns the protected deployment PDF dependency. Four other development push jobs then stopped at container initialization because their PostgreSQL service images still used public ECR; this candidate moves the remaining GitHub Actions PostgreSQL service references to Docker Official Images at Docker Hub without bypassing tests. The immutable v3.253 branch remains as failed evidence; approved image PR #976 was closed unmerged. This candidate labels the merged repair v3.254, superseding v3.253 only after a new exact source freeze. Public payment and intake remain closed. Required PR and frozen-source checks, Marc's review of the new exact head, immutable image build/readback, guarded deployment, fresh-session paid-order recovery, same-buyer intake/scanner proof, controlled report content and qualified four-report issue remain.
 
 v3253_paid_report_source_candidate: Marc approved PR #973 current exact head `7707062d780d68f183de1d62da5fe788f9d41eb3` after all four required checks passed. Squash merge `25f3ffebdc029664210266e18eb14ff6a42c34c0` adds fresh-session paid-order recovery, scanner-root validation, and an exact paid-order four-report lifecycle with staff drafts, rendered QA, independent review, named issue, and buyer delivery. It does not create substantive findings or approve SalOPS/SalCAPA Word templates. This candidate labels that merged source v3.253. The protected app remains the v3.251 named-buyer Stripe sandbox and intake/scanner pilot; public live payment and intake are closed. Source freeze, immutable image, protected deployment, buyer intake and exact-version scanner proof, controlled report content, qualified human issue, and separate public release remain.
 
