@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3253_paid_report_immutable_image_publication
 last_completed_increment: v3253_paid_order_recovery_and_four_report_source_frozen
 candidate_release: v3.253
-validation_pr: pending
+validation_pr: 976
 validation_branch: codex/v3253-paid-report-image-20261022
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
