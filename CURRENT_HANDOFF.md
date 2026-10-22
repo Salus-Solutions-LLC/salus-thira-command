@@ -16,3 +16,7 @@ No Virtual Red Team implementation, prototype, acceptance tests, protected relea
 
 ## Exact next action
 Inspect exact approved Salus system presentation, service framework, applicable templates and reporting artifacts; reconcile SAL-D111 with existing method standards; prepare versioned implementation specification, test fixtures and cost/permission gates. Build only on a controlled development branch. Human qualification and explicit protected-release authorization remain required under established governance.
+
+
+## 22 October 2026 — SAL-D112 Level 1 questionnaire decision
+Marc approved preserving the existing customer-facing Level 1A/B/C questionnaire fields initially and applying SAL-D111 red-team analysis behind the scenes. SAL-D112 registered in Decision Register commit 4991c1454870d748dc277608e24c40e459419898 and Program Charter commit ac81701b9c96e3252cf2a053ad5e1f9f878fe4d4. No live questionnaire, code, offer, pricing, Member data or production deployment changed. Exact current questionnaire branches, approved binary artifacts and report outputs have not been field-by-field verified in this governance-only change. Next: inspect exact current questionnaire versions and approved artifacts, specify red-team baseline using existing answers, test decision-changing gaps and obtain qualified approval and governed release for any future questionnaire edit. SAL-D079 persistent execution not verified for this workflow.
