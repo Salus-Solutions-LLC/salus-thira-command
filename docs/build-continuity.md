@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3254_dependency_audit_and_registry_repair_source_candidate
 last_completed_increment: v3253_source_frozen_without_image_and_dependency_repair_merged
 candidate_release: v3.254
-validation_pr: pending
+validation_pr: 978
 validation_branch: codex/v3254-dependency-repair-source-20261022
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
