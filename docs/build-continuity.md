@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 22 October 2026 17:08 CDT
+last_verified_at: 22 October 2026 17:16 CDT
 current_frozen_release: v3.254
 current_frozen_commit: 1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096
 active_development_branch: development/salcapa-platform
-current_development_head: 1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096
+current_development_head: 692c113e6d05d835cf6528b5edc8c2c30ead4651
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3254_paid_assessment_immutable_image_publication
-last_completed_increment: v3254_source_frozen_after_dependency_and_registry_repair
+active_increment: salus_v3254_paid_assessment_application_promotion
+last_completed_increment: v3254_immutable_image_published_and_registry_verified
 candidate_release: v3.254
 validation_pr: 979
-validation_branch: codex/v3254-image-publication-20261022
+validation_branch: codex/v3254-application-deploy-20261022
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3254
 first_root_failing_gate: paid_buyer_intake_scanner_and_four_report_acceptance
-root_cause: frozen_image_not_yet_published_and_real_reports_unissued
+root_cause: protected_app_not_yet_promoted_and_real_reports_unissued
 repair_head: 1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096
 repair_summary: frozen_v3254_dependency_audit_and_registry_repair
-genuine_blockers: v3254_frozen_checks_image_readback_protected_deploy_fresh_session_paid_intake_exact_scanner_controlled_templates_human_four_report_issue_and_separate_public_release
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+genuine_blockers: protected_deploy_fresh_session_paid_intake_exact_scanner_controlled_templates_human_four_report_issue_and_separate_public_release
+next_authorized_step: validate_guarded_deployment_candidate_then_Marc_exact_deployment_PR_review
 deployed_demo_release: v3.251
 deployed_demo_state: v3251_named_buyer_sandbox_checkout_paid_intake_scanner_pilot_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3254_paid_assessment_image_published: Marc approved PR #979 exact head `7bf9e1c0918c99c59e6beb885406ba2d65cb8941` after the frozen release guard, audit, runtime checks and all three PR jobs passed. Squash merge `692c113e6d05d835cf6528b5edc8c2c30ead4651` triggered protected image publication [run 39863394199](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/39863394199). The run passed Azure authorization and published/read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:ca052f443956c9a422e8c81487db9b8f57e0d3e66027882cc43749e12647d054` from exact frozen source `1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096`. A separate legacy v3.109 candidate preflight failed its release-lineage assertion on the same development push; it did not gate or run this protected v3.254 publication. This branch stages only a guarded app/worker deployment that checks the current v3.251 image, keeps v3.223 rollback and starts buyer controls closed. Deployment CI, Marc exact-head review, Azure verification, the existing paid buyer's fresh-session intake/scanner proof, controlled report templates and qualified four-report issue remain. Public live payment and intake remain closed; the private v3.252 inventory image remains separate.
 
 v3254_paid_assessment_image_candidate: Marc approved PR #978 current exact head `08a1b9cf02de2a31113a580104d52b9138b10319` after all four PR checks passed. Squash merge `1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096` was followed by 23 successful development push workflows, including the four PostgreSQL jobs previously blocked by public ECR. Immutable `release/v3.254` readback matched that commit; its release guard passed and frozen CI remains running. Draft PR #979 pins exactly this source for one protected immutable image build and registry readback. It does not deploy or open public payment, intake, uploads or scanning. The v3.252 private inventory image remains in use. Guarded app/worker promotion, existing paid-order fresh-session recovery, bounded scanner and intake proof, controlled report templates, substantive findings, qualified four-report issue and separate public activation remain.
 
