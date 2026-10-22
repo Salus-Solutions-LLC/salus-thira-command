@@ -68,7 +68,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install pinned PDF structure reader
-        run: python -m pip install --disable-pip-version-check pypdf==6.19.0
+        run: python -m pip install --disable-pip-version-check pypdf==6.21.1
 
       - name: Exercise public consent, account, resume, package, and review handoff
         env:
