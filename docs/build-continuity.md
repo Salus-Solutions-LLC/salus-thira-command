@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 22 October 2026 17:16 CDT
+last_verified_at: 22 October 2026 17:54 CDT
 current_frozen_release: v3.254
 current_frozen_commit: 1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096
 active_development_branch: development/salcapa-platform
-current_development_head: 692c113e6d05d835cf6528b5edc8c2c30ead4651
+current_development_head: b0b2be91ec9a1892bf1b32fde60e434fd441cada
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3254_paid_assessment_application_promotion
-last_completed_increment: v3254_immutable_image_published_and_registry_verified
+active_increment: salus_v3254_paid_assessment_live_evaluator_acceptance
+last_completed_increment: v3254_protected_application_and_worker_deployed
 candidate_release: v3.254
-validation_pr: 980
-validation_branch: codex/v3254-application-deploy-20261022
+validation_pr: 981
+validation_branch: codex/v3254-paid-buyer-pilot-20261022
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3254
 first_root_failing_gate: paid_buyer_intake_scanner_and_four_report_acceptance
-root_cause: protected_app_not_yet_promoted_and_real_reports_unissued
+root_cause: paid_buyer_intake_scanner_and_real_reports_unaccepted
 repair_head: 1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096
 repair_summary: frozen_v3254_dependency_audit_and_registry_repair
-genuine_blockers: protected_deploy_fresh_session_paid_intake_exact_scanner_controlled_templates_human_four_report_issue_and_separate_public_release
-next_authorized_step: validate_guarded_deployment_candidate_then_Marc_exact_deployment_PR_review
-deployed_demo_release: v3.251
-deployed_demo_state: v3251_named_buyer_sandbox_checkout_paid_intake_scanner_pilot_public_closed
+genuine_blockers: named_buyer_pilot_fresh_session_paid_intake_exact_scanner_controlled_templates_human_four_report_issue_and_separate_public_release
+next_authorized_step: Marc_exact_pilot_PR_review_after_all_checks_then_protected_activation
+deployed_demo_release: v3.254
+deployed_demo_state: v3254_app_and_worker_ready_buyer_controls_closed_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3254_paid_assessment_application_deployed: Marc approved PR #980 exact head `4b248b50a32fcaa3c17ae777eff60830a77c1d95` after all three required checks passed. Squash merge `b0b2be91ec9a1892bf1b32fde60e434fd441cada` triggered protected [deployment run 39867134829](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/39867134829), which succeeded. Frozen/rollback source, prior image, Azure target, app apply, readiness/identity/ingress, isolated Microsoft 365 intake, fictional Advisor exercise, and scheduled knowledge-worker promotion/readback passed; rollback was skipped. The deployment template starts buyer controls closed. Draft PR #981 stages a separately approved exact-image named-buyer Stripe sandbox paid-intake scanner pilot. Its three required PR checks passed but it has not been merged or run. Its Azure preflight must verify the actual closed state and private scanner safeguards before access changes. Fictional order `L1A-10` is already paid; do not charge it again. Public live payment and intake remain closed. Controlled SalOPS/SalCAPA templates, real evidence-based reports, qualified independent four-report issue, and separate public authorization remain.
 
 v3254_paid_assessment_image_published: Marc approved PR #979 exact head `7bf9e1c0918c99c59e6beb885406ba2d65cb8941` after the frozen release guard, audit, runtime checks and all three PR jobs passed. Squash merge `692c113e6d05d835cf6528b5edc8c2c30ead4651` triggered protected image publication [run 39863394199](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/39863394199). The run passed Azure authorization and published/read back `salcapadevb48224acr.azurecr.io/salcapa@sha256:ca052f443956c9a422e8c81487db9b8f57e0d3e66027882cc43749e12647d054` from exact frozen source `1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096`. A separate legacy v3.109 candidate preflight failed its release-lineage assertion on the same development push; it did not gate or run this protected v3.254 publication. This branch stages only a guarded app/worker deployment that checks the current v3.251 image, keeps v3.223 rollback and starts buyer controls closed. Deployment CI, Marc exact-head review, Azure verification, the existing paid buyer's fresh-session intake/scanner proof, controlled report templates and qualified four-report issue remain. Public live payment and intake remain closed; the private v3.252 inventory image remains separate.
 
