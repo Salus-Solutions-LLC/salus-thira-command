@@ -1,0 +1,116 @@
+name: SalCAPA v3.254 pending scan read-only diagnostic
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3254-pending-scan-readonly.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only pending scan diagnostic gate passed.'
+
+  diagnose:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Report only scheduled worker status and safe outcome counts
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SUBSCRIPTION" = '076f90cd-cc6a-4547-a4ff-de3fc1825472'
+          test "$EXPECTED_TENANT" = 'e06fd260-a201-44da-b03b-9cde7e119d04'
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/job.json"
+          jq -e '
+            .name=="salcapa-dev-b48224-scan-worker" and
+            .properties.configuration.triggerType=="Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression=="*/5 * * * *" and
+            .properties.template.containers[0].image=="salcapadevb48224acr.azurecr.io/salcapa@sha256:c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0"
+          ' "$RUNNER_TEMP/job.json" > /dev/null
+          if ! az containerapp job execution list -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/executions.json" 2> "$RUNNER_TEMP/execution-error.txt"; then
+            echo 'worker_execution_listing=unavailable'
+            exit 1
+          fi
+          WORKSPACE_ID="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$WORKSPACE_ID"
+          if ! az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated > ago(90m) | where JobName == 'salcapa-dev-b48224-scan-worker' | project TimeGenerated, Log | sort by TimeGenerated desc | take 500" -o json > "$RUNNER_TEMP/console.json" 2> "$RUNNER_TEMP/log-error.txt"; then
+            echo 'worker_log_query=unavailable'
+            exit 1
+          fi
+          python - "$RUNNER_TEMP" <<'PY'
+          import collections
+          import json
+          import sys
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+
+          base = Path(sys.argv[1])
+          now = datetime.now(timezone.utc)
+          executions = json.loads((base / 'executions.json').read_text(encoding='utf-8'))
+          executions = executions.get('value', []) if isinstance(executions, dict) else executions
+          states = collections.Counter()
+          for item in executions:
+              props = item.get('properties') or {}
+              raw = props.get('startTime') or ''
+              try:
+                  stamp = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+              except ValueError:
+                  continue
+              if stamp >= now - timedelta(minutes=90):
+                  status = str(props.get('status') or 'Unknown')
+                  states[status if status in {'Succeeded', 'Failed', 'Running', 'Pending'} else 'Other'] += 1
+
+          value = json.loads((base / 'console.json').read_text(encoding='utf-8'))
+          if isinstance(value, dict) and 'tables' in value:
+              table = (value.get('tables') or [{}])[0]
+              columns = [column.get('name') for column in table.get('columns', [])]
+              rows = [dict(zip(columns, row)) for row in table.get('rows', [])]
+          elif isinstance(value, list):
+              rows = value
+          else:
+              rows = value.get('value', []) if isinstance(value, dict) else []
+          outcomes = collections.Counter()
+          failures = collections.Counter()
+          for row in rows:
+              try:
+                  message = json.loads(row.get('Log') or '')
+              except (TypeError, ValueError):
+                  continue
+              if not isinstance(message, dict):
+                  continue
+              if message.get('scan_result_job') == 'completed':
+                  outcome = message.get('outcome')
+                  outcomes[outcome if outcome in {'Empty', 'Acknowledged', 'Held'} else 'Other'] += 1
+              elif message.get('scan_result_job') == 'failed':
+                  phase = message.get('failure_phase')
+                  failures[phase if phase in {'poll', 'reconcile'} else 'Other'] += 1
+          print('worker_exact_image_and_schedule=verified')
+          print('worker_executions_90m=' + json.dumps(dict(sorted(states.items())), sort_keys=True))
+          print('worker_outcomes_90m=' + json.dumps(dict(sorted(outcomes.items())), sort_keys=True))
+          print('worker_failures_by_phase_90m=' + json.dumps(dict(sorted(failures.items())), sort_keys=True))
+          if not states:
+              raise SystemExit('No recent scheduled worker execution; leave upload held')
+          PY
