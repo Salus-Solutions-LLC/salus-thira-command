@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3254_paid_assessment_application_promotion
 last_completed_increment: v3254_immutable_image_published_and_registry_verified
 candidate_release: v3.254
-validation_pr: 979
+validation_pr: 980
 validation_branch: codex/v3254-application-deploy-20261022
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
