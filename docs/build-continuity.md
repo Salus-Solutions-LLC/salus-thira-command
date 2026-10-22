@@ -1,20 +1,20 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 22 October 2026 17:54 CDT
+last_verified_at: 22 October 2026 18:33 CDT
 current_frozen_release: v3.254
 current_frozen_commit: 1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096
 active_development_branch: development/salcapa-platform
-current_development_head: b0b2be91ec9a1892bf1b32fde60e434fd441cada
+current_development_head: 5a18df61d4f7ae6973c5241fde490e3620b8babd
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
 active_increment: salus_v3254_paid_assessment_live_evaluator_acceptance
-last_completed_increment: v3254_protected_application_and_worker_deployed
+last_completed_increment: v3254_named_buyer_sandbox_intake_scanner_pilot_activated
 candidate_release: v3.254
 validation_pr: 981
 validation_branch: codex/v3254-paid-buyer-pilot-20261022
 validation_base: development/salcapa-platform
-validation_head: pending_exact_candidate_commit
+validation_head: 54bcaeaa9b6f13823210a10af4ea848474c61aab
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3254
 first_root_failing_gate: paid_buyer_intake_scanner_and_four_report_acceptance
@@ -22,12 +22,14 @@ root_cause: paid_buyer_intake_scanner_and_real_reports_unaccepted
 repair_head: 1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096
 repair_summary: frozen_v3254_dependency_audit_and_registry_repair
 genuine_blockers: named_buyer_pilot_fresh_session_paid_intake_exact_scanner_controlled_templates_human_four_report_issue_and_separate_public_release
-next_authorized_step: Marc_exact_pilot_PR_review_after_all_checks_then_protected_activation
+next_authorized_step: Marc_fresh_private_session_existing_paid_order_intake_check
 deployed_demo_release: v3.254
-deployed_demo_state: v3254_app_and_worker_ready_buyer_controls_closed_public_closed
+deployed_demo_state: v3254_named_buyer_sandbox_intake_scanner_pilot_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3254_named_buyer_paid_intake_scanner_pilot: Marc approved PR #981 exact head `54bcaeaa9b6f13823210a10af4ea848474c61aab` after all three checks passed. Squash merge `5a18df61d4f7ae6973c5241fde490e3620b8babd` triggered protected [pilot run 39872236281](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/39872236281). Its Azure exact-image, closed-start, scan-worker, versioned-quarantine and Defender preflight, named-buyer sandbox intake/scan activation, and ready new-revision single-buyer readback passed. Failure reclosure was skipped. Only `MDuncan@Salus.Solutions` and the previously verified Microsoft account may use this bounded test pilot. Public live payment and intake stay closed. Existing fictional paid order `L1A-10` must not be charged again. Marc's fresh private-browser screenshot showed v3.254, its existing sandbox-paid state, receipt link and records-request button; the former blank purchase-form defect is resolved for this buyer. Buyer-led request submission, exact-version scanner proof, controlled four-report content and qualified issue remain open.
 
 v3254_paid_assessment_application_deployed: Marc approved PR #980 exact head `4b248b50a32fcaa3c17ae777eff60830a77c1d95` after all three required checks passed. Squash merge `b0b2be91ec9a1892bf1b32fde60e434fd441cada` triggered protected [deployment run 39867134829](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/39867134829), which succeeded. Frozen/rollback source, prior image, Azure target, app apply, readiness/identity/ingress, isolated Microsoft 365 intake, fictional Advisor exercise, and scheduled knowledge-worker promotion/readback passed; rollback was skipped. The deployment template starts buyer controls closed. Draft PR #981 stages a separately approved exact-image named-buyer Stripe sandbox paid-intake scanner pilot. Its three required PR checks passed but it has not been merged or run. Its Azure preflight must verify the actual closed state and private scanner safeguards before access changes. Fictional order `L1A-10` is already paid; do not charge it again. Public live payment and intake remain closed. Controlled SalOPS/SalCAPA templates, real evidence-based reports, qualified independent four-report issue, and separate public authorization remain.
 
