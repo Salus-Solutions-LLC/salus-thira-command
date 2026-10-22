@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 13 October 2026 05:59 CDT
+last_verified_at: 22 October 2026 16:18 CDT
 current_frozen_release: v3.252
 current_frozen_commit: b481a1e593256899ff9ffa709cce469124dfcbfc
 active_development_branch: development/salcapa-platform
-current_development_head: b481a1e593256899ff9ffa709cce469124dfcbfc
-active_product_milestone: issue_520_dependable_governed_intake
-active_build_system_issue: 520
-active_increment: salus_v3252_exact_version_inventory_immutable_image_publication
-last_completed_increment: v3252_inventory_hold_source_merged_and_release_branch_created
-candidate_release: v3.252
-validation_pr: 949
-validation_branch: codex/v3252-inventory-image-20261013
+current_development_head: 25f3ffebdc029664210266e18eb14ff6a42c34c0
+active_product_milestone: issue_970_level1a_paid_report_acceptance
+active_build_system_issue: 970
+active_increment: salus_v3253_paid_order_recovery_report_lifecycle_source_candidate
+last_completed_increment: v3252_private_inventory_published_and_paid_report_bridge_merged_source_only
+candidate_release: v3.253
+validation_pr: 975
+validation_branch: codex/v3253-paid-report-source-20261022
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: controlled_validation_in_progress
-failed_workflows: frozen_source_and_image_checks_running_for_v3252
-first_root_failing_gate: current_quarantine_inventory_and_paid_intake_acceptance
-root_cause: private_inventory_job_still_runs_pre_repair_image
-repair_head: b481a1e593256899ff9ffa709cce469124dfcbfc
-repair_summary: frozen_v3252_exact_version_hold_readback_repair
-genuine_blockers: v3252_immutable_image_then_private_inventory_job_promotion_current_reconciliation_exact_scanner_paid_intake_reports_wix_public_acceptance
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+validation_gate_state: local_verified_github_pending
+failed_workflows: none_currently_observed
+first_root_failing_gate: paid_buyer_intake_scanner_and_four_report_acceptance
+root_cause: approved_source_not_frozen_or_deployed_and_real_reports_unissued
+repair_head: 25f3ffebdc029664210266e18eb14ff6a42c34c0
+repair_summary: merged_paid_order_recovery_and_four_report_bridge
+genuine_blockers: v3252_app_release_superseded_only_after_v3253_source_freeze_private_inventory_retained_source_freeze_immutable_image_protected_deploy_fresh_session_paid_intake_exact_scanner_controlled_templates_human_four_report_issue_and_separate_public_release
+next_authorized_step: complete_v3253_candidate_CI_then_Marc_exact_source_review
 deployed_demo_release: v3.251
-deployed_demo_state: v3251_protected_app_worker_buyer_signin_ordering_checkout_payment_intake_upload_scanner_closed
+deployed_demo_state: v3251_named_buyer_sandbox_checkout_paid_intake_scanner_pilot_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3253_paid_report_source_candidate: Marc approved PR #973 current exact head `7707062d780d68f183de1d62da5fe788f9d41eb3` after all four required checks passed. Squash merge `25f3ffebdc029664210266e18eb14ff6a42c34c0` adds fresh-session paid-order recovery, scanner-root validation, and an exact paid-order four-report lifecycle with staff drafts, rendered QA, independent review, named issue, and buyer delivery. It does not create substantive findings or approve SalOPS/SalCAPA Word templates. This candidate labels that merged source v3.253. The protected app remains the v3.251 named-buyer Stripe sandbox and intake/scanner pilot; public live payment and intake are closed. Source freeze, immutable image, protected deployment, buyer intake and exact-version scanner proof, controlled report content, qualified human issue, and separate public release remain.
 
 v3252_inventory_hold_image_candidate: Marc approved PR #948 current exact head `79730179cf079d318d5d372c37054d62e439a163` after all four required checks passed. Squash merge `b481a1e593256899ff9ffa709cce469124dfcbfc` froze `release/v3.252` at the previously approved exact-version inventory hold repair. PR #949 pins only this frozen source for one protected immutable image build and registry readback. It does not deploy or open payment, intake, uploads, or scanning. The private inventory job still runs its prior image; a separately reviewed image-only promotion, current restricted reconciliation, scanner acceptance, paid intake, human report issue, and public acceptance remain.
 
