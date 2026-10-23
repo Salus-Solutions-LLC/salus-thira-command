@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 23 October 2026 16:03 CDT
+last_verified_at: 23 October 2026 16:18 CDT
 current_frozen_release: v3.255
 current_frozen_commit: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 active_development_branch: development/salcapa-platform
-current_development_head: 8c5bec4e6737138242f9d20fca848e180d4c75eb
+current_development_head: 545f0430c17d60b601b86f5eaddadde672502b4a
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3255_paid_assessment_application_promotion
-last_completed_increment: v3255_immutable_image_published_and_registry_readback
-candidate_release: v3.255
-validation_pr: 1001
-validation_branch: codex/v3255-protected-deployment-20261023
+active_increment: salus_v3255_scan_result_worker_promotion
+last_completed_increment: v3255_application_and_knowledge_worker_deployed_protected
+candidate_release: none
+validation_pr: 1002
+validation_branch: codex/v3255-scan-worker-promotion-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3255
-first_root_failing_gate: v3255_image_not_yet_deployed_worker_deadlocks_and_paid_buyer_intake_scanner_four_report_acceptance
-root_cause: v3255_retry_not_deployed_duplicate_alert_routing_and_adverse_scanner_real_reports_unaccepted
+first_root_failing_gate: v3255_scan_result_worker_still_v3254_and_paid_buyer_intake_scanner_four_report_acceptance
+root_cause: v3255_retry_not_live_in_five_minute_worker_duplicate_alert_routing_and_adverse_scanner_real_reports_unaccepted
 repair_head: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 repair_summary: frozen_v3255_paid_scan_status_and_same_event_deadlock_retry
-genuine_blockers: v3255_protected_app_and_scan_worker_deploy_duplicate_alert_route_verification_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
-next_authorized_step: validate_guarded_application_deployment_candidate_then_Marc_exact_head_review
-deployed_demo_release: v3.254
-deployed_demo_state: v3254_single_buyer_sandbox_paid_intake_and_scanner_pilot_public_closed
+genuine_blockers: v3255_protected_scan_worker_promotion_and_observed_recovery_duplicate_alert_route_verification_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
+next_authorized_step: validate_scan_result_worker_image_promotion_candidate_then_Marc_exact_head_review
+deployed_demo_release: v3.255
+deployed_demo_state: v3255_app_and_knowledge_worker_protected_deployed_buyer_closed_scan_result_worker_v3254
 ---
 
 # SalCAPA build continuity
+
+v3255_app_deployed_scan_result_worker_candidate: Marc approved PR #1001 exact head `a71e52889d390ef8361037192ddf06ea33815ce8` after all required checks passed. Merge `545f0430c17d60b601b86f5eaddadde672502b4a` triggered protected deployment run `40024382099`, which succeeded. The v3.255 app and two-minute knowledge worker passed registry, readiness, Microsoft 365, fictional Advisor and worker checks with buyer controls closed. The independent five-minute scan-result worker remains v3.254. This candidate promotes only its image to the already verified v3.255 digest after exact closed-state and job-configuration checks, with v3.254 rollback. Required CI, Marc's exact-head review, protected run and observed scheduled outcomes remain. Both alert action groups still deliver; remove duplicate routing only after the surviving route is confirmed. Public live payment/intake stay closed; do not repeat `L1A-10` payment/upload.
 
 v3255_image_published_deployment_candidate: Marc approved PR #1000 exact head `eac01033a13a2bf1073ea3df62dfa711ea417050` after all required checks passed. Merge `8c5bec4e6737138242f9d20fca848e180d4c75eb` triggered protected image run `40023320033`, which succeeded and read back frozen source `d19d7a8cc0a233c8982761a121083cf29e1f22d7` as immutable registry digest `sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241`. This candidate pins that image for guarded application and scheduled knowledge-worker deployment from v3.254, with v3.223 rollback. It does not promote the separate five-minute scan-result worker, reopen the named-buyer sandbox pilot, change both alert groups, or open public payment/intake. Required PR checks, exact-head approval, protected Azure run and readback remain. Do not repeat `L1A-10` payment or upload.
 
