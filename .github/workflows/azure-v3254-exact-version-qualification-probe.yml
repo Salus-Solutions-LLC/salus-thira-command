@@ -1,0 +1,172 @@
+name: SalCAPA v3.254 exact-version qualification probe
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3254-exact-version-qualification-probe.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-v3254-exact-version-qualification-probe
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only named-version qualification approved.'
+
+  peek:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify exact worker and launch one bounded read-only version check
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SUBSCRIPTION" = '076f90cd-cc6a-4547-a4ff-de3fc1825472'
+          test "$EXPECTED_TENANT" = 'e06fd260-a201-44da-b03b-9cde7e119d04'
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/worker-before.json"
+          python - "$RUNNER_TEMP/worker-before.json" tools/level1a_exact_version_qualification_probe.py "$RUNNER_TEMP/peek-body.json" <<'PY'
+          import base64,json,sys
+          job=json.load(open(sys.argv[1],encoding='utf-8'))
+          p=job.get('properties') or {}
+          c=p.get('configuration') or {}
+          t=p.get('template') or {}
+          containers=t.get('containers') or []
+          identities=(job.get('identity') or {}).get('userAssignedIdentities') or {}
+          expected='salcapadevb48224acr.azurecr.io/salcapa@sha256:c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0'
+          if not (p.get('provisioningState')=='Succeeded'
+                  and c.get('triggerType')=='Schedule'
+                  and (c.get('scheduleTriggerConfig') or {}).get('cronExpression')=='*/5 * * * *'
+                  and len(containers)==1 and containers[0].get('image')==expected
+                  and containers[0].get('command')==['python','-m','salus_scan_worker']
+                  and len(identities)==2):
+              raise SystemExit('Exact worker preflight failed')
+          env={x.get('name'):x.get('value') for x in containers[0].get('env',[])}
+          if not (env.get('SALUS_ENV')=='dev'
+                  and env.get('SALUS_DB_BACKEND')=='postgres'
+                  and env.get('SALUS_PACKAGE_SCAN_MODE')=='defender'
+                  and env.get('SALUS_SCAN_RESULTS_QUEUE_URL','').endswith('/scan-results')
+                  and env.get('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID')):
+              raise SystemExit('Worker environment preflight failed')
+          source=open(sys.argv[2],'rb').read()
+          if not source or len(source)>12000:
+              raise SystemExit('Reviewed probe source outside bound')
+          encoded=base64.b64encode(source).decode('ascii')
+          expr="exec(__import__('base64').b64decode('"+encoded+"'))"
+          allowed=('name','image','resources','env','command','args')
+          body={'containers':[{key:item[key] for key in allowed if key in item}
+                              for item in containers]}
+          if t.get('initContainers'):
+              body['initContainers']=[{key:item[key] for key in allowed if key in item}
+                                      for item in t['initContainers']]
+          body['containers'][0]['command']=['python','-c',expr]
+          body['containers'][0]['args']=[]
+          with open(sys.argv[3],'w',encoding='utf-8') as out:
+              json.dump(body,out,separators=(',',':'))
+          print('exact_worker_preflight=passed')
+          PY
+          python - <<'PY'
+          from datetime import datetime,timedelta,timezone
+          import time
+          now=datetime.now(timezone.utc)
+          base=now.replace(second=0,microsecond=0)-timedelta(minutes=now.minute%5)
+          target=base+timedelta(minutes=2,seconds=30)
+          if target<=now: target+=timedelta(minutes=5)
+          delay=(target-now).total_seconds()
+          if not 0<delay<=300: raise SystemExit('Visibility wait outside bound')
+          print('visibility_wait_seconds='+str(round(delay)))
+          time.sleep(delay)
+          PY
+          JOB_ID="$(az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker --query id -o tsv)"
+          test -n "$JOB_ID"
+          az rest --method post --url "https://management.azure.com${JOB_ID}/start?api-version=2025-01-01" --headers Content-Type=application/json --body "@$RUNNER_TEMP/peek-body.json" -o json > "$RUNNER_TEMP/peek-start.json"
+          python - "$RUNNER_TEMP/peek-start.json" <<'PY'
+          import json,sys
+          record=json.load(open(sys.argv[1],encoding='utf-8'))
+          name=record.get('name')
+          if not isinstance(name,str) or not name.startswith('salcapa-dev-b48224-scan-worker-'):
+              raise SystemExit('Peek execution name unavailable')
+          with open('/tmp/peek-execution-name','w',encoding='utf-8') as out: out.write(name)
+          print('read_only_peek_started=true')
+          PY
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/worker-after.json"
+          python - "$RUNNER_TEMP/worker-before.json" "$RUNNER_TEMP/worker-after.json" <<'PY'
+          import json,sys
+          a=json.load(open(sys.argv[1],encoding='utf-8'))
+          b=json.load(open(sys.argv[2],encoding='utf-8'))
+          for field in ('identity','configuration','template'):
+              left=(a.get('properties') or {}).get(field) if field!='identity' else a.get(field)
+              right=(b.get('properties') or {}).get(field) if field!='identity' else b.get(field)
+              if left!=right: raise SystemExit('Worker definition changed')
+          print('worker_definition_unchanged=true')
+          PY
+      - name: Read only the sanitized marker for this execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKSPACE_ID="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$WORKSPACE_ID"
+          EXECUTION="$(cat /tmp/peek-execution-name)"
+          for attempt in $(seq 1 12); do
+            az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated > ago(22m) | where JobName == 'salcapa-dev-b48224-scan-worker' and ContainerGroupName contains '$EXECUTION' | where Log has 'exact_version_probe' | project Log | take 4" -o json > "$RUNNER_TEMP/peek-markers.json"
+            if python - "$RUNNER_TEMP/peek-markers.json" <<'PY'
+          import json,sys
+          value=json.load(open(sys.argv[1],encoding='utf-8'))
+          if isinstance(value,list): rows=value
+          elif isinstance(value,dict) and 'tables' in value:
+              table=(value.get('tables') or [{}])[0]
+              cols=[c.get('name') for c in table.get('columns',[])]
+              rows=[dict(zip(cols,row)) for row in table.get('rows',[])]
+          else: rows=[]
+          for row in rows:
+              raw=row.get('Log') if isinstance(row,dict) else None
+              if not isinstance(raw,str) or len(raw)>4096: continue
+              try: marker=json.loads(raw[raw.index('{'):raw.rindex('}')+1])
+              except (ValueError,TypeError): continue
+              if marker.get('exact_version_probe')=='read_only':
+                  if set(marker)!={'exact_version_probe','named_version_read','qualified_clean'}: continue
+                  if marker['named_version_read'] is not True or type(marker['qualified_clean']) is not bool: continue
+                  print('exact_version_probe=read_only')
+                  print('named_version_read=True')
+                  print('qualified_clean='+str(marker['qualified_clean']))
+                  raise SystemExit(0)
+              if marker.get('exact_version_probe') in ('failed','inconclusive','event_mismatch','non_clean','version_read_failed'):
+                  kind=marker['exact_version_probe']
+                  print('exact_version_probe='+kind)
+                  if kind in ('failed','version_read_failed'):
+                      import re
+                      failure=marker.get('failure_class')
+                      if isinstance(failure,str) and re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,63}',failure):
+                          print('failure_class='+failure)
+                  raise SystemExit(2)
+          raise SystemExit(1)
+          PY
+            then exit 0; fi
+            sleep 60
+          done
+          echo 'Sanitized marker unavailable within bounded readback' >&2
+          exit 1
