@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 23 October 2026 14:47 CDT
+last_verified_at: 23 October 2026 16:03 CDT
 current_frozen_release: v3.255
 current_frozen_commit: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 active_development_branch: development/salcapa-platform
-current_development_head: d19d7a8cc0a233c8982761a121083cf29e1f22d7
+current_development_head: 8c5bec4e6737138242f9d20fca848e180d4c75eb
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3255_paid_assessment_immutable_image_publication
-last_completed_increment: v3255_source_frozen_after_scan_status_and_deadlock_retry
+active_increment: salus_v3255_paid_assessment_application_promotion
+last_completed_increment: v3255_immutable_image_published_and_registry_readback
 candidate_release: v3.255
-validation_pr: 1000
-validation_branch: codex/v3255-image-publication-20261023
+validation_pr: 1001
+validation_branch: codex/v3255-protected-deployment-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3255
-first_root_failing_gate: frozen_image_not_yet_published_worker_deadlocks_and_paid_buyer_intake_scanner_four_report_acceptance
+first_root_failing_gate: v3255_image_not_yet_deployed_worker_deadlocks_and_paid_buyer_intake_scanner_four_report_acceptance
 root_cause: v3255_retry_not_deployed_duplicate_alert_routing_and_adverse_scanner_real_reports_unaccepted
 repair_head: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 repair_summary: frozen_v3255_paid_scan_status_and_same_event_deadlock_retry
-genuine_blockers: v3255_frozen_checks_image_readback_protected_deploy_duplicate_alert_route_verification_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
-next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
+genuine_blockers: v3255_protected_app_and_scan_worker_deploy_duplicate_alert_route_verification_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
+next_authorized_step: validate_guarded_application_deployment_candidate_then_Marc_exact_head_review
 deployed_demo_release: v3.254
 deployed_demo_state: v3254_single_buyer_sandbox_paid_intake_and_scanner_pilot_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3255_image_published_deployment_candidate: Marc approved PR #1000 exact head `eac01033a13a2bf1073ea3df62dfa711ea417050` after all required checks passed. Merge `8c5bec4e6737138242f9d20fca848e180d4c75eb` triggered protected image run `40023320033`, which succeeded and read back frozen source `d19d7a8cc0a233c8982761a121083cf29e1f22d7` as immutable registry digest `sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241`. This candidate pins that image for guarded application and scheduled knowledge-worker deployment from v3.254, with v3.223 rollback. It does not promote the separate five-minute scan-result worker, reopen the named-buyer sandbox pilot, change both alert groups, or open public payment/intake. Required PR checks, exact-head approval, protected Azure run and readback remain. Do not repeat `L1A-10` payment or upload.
 
 v3255_paid_assessment_image_candidate: Marc approved PR #999 exact head `5311d9b6f877eec6dfad9268c5a68571af433a4d` after required checks passed. Squash merge `d19d7a8cc0a233c8982761a121083cf29e1f22d7` and new immutable `release/v3.255` branch contain the paid buyer file-status refresh and bounded scan-result same-event deadlock retry. This candidate pins that exact frozen source for one protected image publication and registry readback; it does not deploy the image or alter either alert action group. Frozen and candidate checks plus Marc's exact-head image activation review are required before publication. The protected app and scanner worker still run v3.254, so recurring worker failure emails and duplicate delivery remain live blockers. Public payment and intake stay closed; do not repeat `L1A-10` payment or upload.
 
