@@ -106,7 +106,11 @@ jobs:
                   outcomes[outcome if outcome in {'Empty', 'Acknowledged', 'Held'} else 'Other'] += 1
               elif message.get('scan_result_job') == 'failed':
                   phase = message.get('failure_phase')
-                  failures[phase if phase in {'poll', 'reconcile'} else 'Other'] += 1
+                  kind = message.get('error_type')
+                  kind = kind if kind in {'OperationalError', 'InterfaceError', 'TimeoutError',
+                      'ServiceRequestError', 'HttpResponseError', 'QuarantineError',
+                      'ValueError', 'RuntimeError'} else 'Other'
+                  failures[(phase if phase in {'poll', 'reconcile'} else 'Other') + ':' + kind] += 1
           print('worker_exact_image_and_schedule=verified')
           print('worker_executions_90m=' + json.dumps(dict(sorted(states.items())), sort_keys=True))
           print('worker_outcomes_90m=' + json.dumps(dict(sorted(outcomes.items())), sort_keys=True))
@@ -114,3 +118,134 @@ jobs:
           if not states:
               raise SystemExit('No recent scheduled worker execution; leave upload held')
           PY
+      - name: Read only the existing test order's scan-state counts
+        id: snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-before.json"
+          python - "$RUNNER_TEMP/inventory-before.json" "$RUNNER_TEMP/read-only-template.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          job = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          props = job.get('properties') or {}
+          config = props.get('configuration') or {}
+          template = props.get('template') or {}
+          containers = template.get('containers') or []
+          expected = 'salcapadevb48224acr.azurecr.io/salcapa@sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44'
+          if (job.get('name') != 'salcapa-dev-b48224-scan-inv'
+              or config.get('triggerType') != 'Schedule'
+              or (config.get('scheduleTriggerConfig') or {}).get('cronExpression') != '0 2 * * *'
+              or len(containers) != 1 or containers[0].get('image') != expected):
+              raise SystemExit('Private inventory job differs from reviewed bounds')
+          code = """
+          import json
+          from collections import Counter
+          try:
+              from app import db
+              conn = db()
+              try:
+                  pending = [dict(row) for row in conn.execute(
+                      'SELECT status, scan_event_id FROM level1a_pending_scans WHERE order_id=?', (10,))]
+                  clean = conn.execute(
+                      'SELECT COUNT(*) AS n FROM level1a_intake_uploads WHERE order_id=? AND scan_status=?',
+                      (10, 'Clean')).fetchone()['n']
+              finally:
+                  conn.close()
+              if len(pending) > 5 or clean > 5:
+                  raise ValueError('Test order exceeds bounded diagnostic capacity')
+              allowed = {'Pending', 'Promoted', 'Malicious', 'Unscanned', 'Reconcile'}
+              statuses = Counter(row['status'] if row['status'] in allowed else 'Other' for row in pending)
+              output = {'pending_rows': len(pending), 'statuses': dict(sorted(statuses.items())),
+                        'event_recorded_count': sum(bool(row['scan_event_id']) for row in pending),
+                        'clean_upload_count': clean}
+              print('level1a_pending_snapshot=' + json.dumps(output, sort_keys=True))
+          except Exception as exc:
+              print('level1a_pending_snapshot_error=' + type(exc).__name__)
+              raise SystemExit(1)
+          """
+          containers[0]['command'] = ['python']
+          containers[0]['args'] = ['-c', code]
+          Path(sys.argv[2]).write_text(json.dumps(template), encoding='utf-8')
+          print('private_job_exact_image_and_schedule=verified')
+          PY
+          az containerapp job start -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv --yaml "$RUNNER_TEMP/read-only-template.json" -o json > "$RUNNER_TEMP/snapshot-execution.json"
+          python - "$RUNNER_TEMP/snapshot-execution.json" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import re
+          import sys
+          value = json.load(open(sys.argv[1], encoding='utf-8'))
+          name = value.get('name') or ''
+          if not re.fullmatch(r'salcapa-dev-b48224-scan-inv-[a-z0-9]+', name):
+              raise SystemExit('Bounded snapshot execution unavailable')
+          with open(sys.argv[2], 'a', encoding='utf-8') as output:
+              output.write('snapshot_execution=' + name + '\n')
+          print('private_snapshot_started=true')
+          PY
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/inventory-after.json"
+          jq -cS '{configuration:.properties.configuration,template:.properties.template,identity:.identity}' "$RUNNER_TEMP/inventory-before.json" > "$RUNNER_TEMP/before-shape.json"
+          jq -cS '{configuration:.properties.configuration,template:.properties.template,identity:.identity}' "$RUNNER_TEMP/inventory-after.json" > "$RUNNER_TEMP/after-shape.json"
+          cmp "$RUNNER_TEMP/before-shape.json" "$RUNNER_TEMP/after-shape.json"
+          echo 'private_job_definition_unchanged=true'
+      - name: Read back only whitelisted private snapshot counts
+        env:
+          SNAPSHOT_EXECUTION: ${{ steps.snapshot.outputs.snapshot_execution }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SNAPSHOT_EXECUTION"
+          WORKSPACE_ID="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$WORKSPACE_ID"
+          found=0
+          for attempt in $(seq 1 30); do
+            if az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated > ago(15m) | where JobName == 'salcapa-dev-b48224-scan-inv' | where Log contains 'level1a_pending_snapshot=' | project Log | take 20" -o json > "$RUNNER_TEMP/snapshot-console.json" 2> "$RUNNER_TEMP/snapshot-log-error.txt"; then
+              if python - "$RUNNER_TEMP/snapshot-console.json" <<'PY'
+          import json
+          import sys
+          value = json.load(open(sys.argv[1], encoding='utf-8'))
+          if isinstance(value, dict) and 'tables' in value:
+              table = (value.get('tables') or [{}])[0]
+              columns = [column.get('name') for column in table.get('columns', [])]
+              rows = [dict(zip(columns, row)) for row in table.get('rows', [])]
+          elif isinstance(value, list):
+              rows = value
+          else:
+              rows = value.get('value', []) if isinstance(value, dict) else []
+          candidates = []
+          for row in rows:
+              log = row.get('Log') or ''
+              marker = 'level1a_pending_snapshot='
+              if marker not in log:
+                  continue
+              try:
+                  record = json.loads(log.split(marker, 1)[1])
+              except (TypeError, ValueError):
+                  continue
+              if set(record) != {'pending_rows', 'statuses', 'event_recorded_count', 'clean_upload_count'}:
+                  continue
+              if not all(type(record[key]) is int and 0 <= record[key] <= 5 for key in
+                  ('pending_rows', 'event_recorded_count', 'clean_upload_count')):
+                  continue
+              if not isinstance(record['statuses'], dict) or any(
+                  key not in {'Pending', 'Promoted', 'Malicious', 'Unscanned', 'Reconcile', 'Other'}
+                  or type(count) is not int or not 0 <= count <= 5
+                  for key, count in record['statuses'].items()):
+                  continue
+              candidates.append(record)
+          if len(candidates) != 1:
+              raise SystemExit(1)
+          print('level1a_pending_snapshot=' + json.dumps(candidates[0], sort_keys=True))
+          PY
+              then
+                found=1
+                break
+              fi
+            fi
+            sleep 10
+          done
+          if [ "$found" -ne 1 ]; then
+            echo 'private_snapshot_log_not_available_within_bound=true'
+            exit 1
+          fi
