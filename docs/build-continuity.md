@@ -8,9 +8,9 @@ active_development_branch: development/salcapa-platform
 current_development_head: 545f0430c17d60b601b86f5eaddadde672502b4a
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3255_scan_result_worker_promotion
+active_increment: salus_v3255_scanner_worker_application_promotion
 last_completed_increment: v3255_application_and_knowledge_worker_deployed_protected
-candidate_release: none
+candidate_release: v3.255
 validation_pr: 1002
 validation_branch: codex/v3255-scan-worker-promotion-20261023
 validation_base: development/salcapa-platform
