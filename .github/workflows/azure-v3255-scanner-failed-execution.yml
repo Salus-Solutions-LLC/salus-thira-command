@@ -1,0 +1,119 @@
+name: SalCAPA v3.255 scanner failed execution review
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3255-scanner-failed-execution.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only failed-execution review approved.'
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Classify one failed scheduled execution without exposing logs
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$EXPECTED_SUBSCRIPTION" = 076f90cd-cc6a-4547-a4ff-de3fc1825472
+          test "$EXPECTED_TENANT" = e06fd260-a201-44da-b03b-9cde7e119d04
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          job=salcapa-dev-b48224-scan-worker
+          execution=salcapa-dev-b48224-scan-worker-29879865
+          az containerapp job show -g rg-salcapa-dev -n "$job" -o json > "$RUNNER_TEMP/job.json"
+          jq -e '
+            .properties.provisioningState == "Succeeded" and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/5 * * * *" and
+            .properties.template.containers[0].image == "salcapadevb48224acr.azurecr.io/salcapa@sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241"
+          ' "$RUNNER_TEMP/job.json" > /dev/null
+          az containerapp job execution show -g rg-salcapa-dev -n "$job" --job-execution-name "$execution" -o json > "$RUNNER_TEMP/failed.json"
+          az containerapp job execution list -g rg-salcapa-dev -n "$job" -o json > "$RUNNER_TEMP/executions.json"
+          if az containerapp job replica list -g rg-salcapa-dev -n "$job" --execution "$execution" --only-show-errors -o json > "$RUNNER_TEMP/replicas.json" 2> "$RUNNER_TEMP/replica-error.txt"; then
+            replica_read=available
+          else
+            replica_read=unavailable
+            printf '[]' > "$RUNNER_TEMP/replicas.json"
+          fi
+          python - "$RUNNER_TEMP/failed.json" "$RUNNER_TEMP/executions.json" "$RUNNER_TEMP/replicas.json" "$replica_read" <<'PY'
+          import datetime, json, sys
+          failed=json.load(open(sys.argv[1], encoding='utf-8'))
+          executions=json.load(open(sys.argv[2], encoding='utf-8'))
+          replicas=json.load(open(sys.argv[3], encoding='utf-8'))
+          if isinstance(executions, dict): executions=executions.get('value', [])
+          if isinstance(replicas, dict): replicas=replicas.get('value', [])
+          if not isinstance(executions, list) or not isinstance(replicas, list):
+              raise SystemExit('Unexpected Azure readback shape')
+          p=failed.get('properties') or {}
+          if failed.get('name') != 'salcapa-dev-b48224-scan-worker-29879865' or p.get('status') != 'Failed':
+              raise SystemExit('Exact failed execution no longer matches')
+          def category(value):
+              value=str(value or '').lower()
+              for word,label in (
+                  ('oom','out_of_memory'), ('imagepull','image_pull'),
+                  ('unauthorized','authorization'), ('timeout','timeout'),
+                  ('deadline','deadline'), ('backoff','backoff'),
+                  ('evict','eviction'), ('network','network'),
+                  ('schedule','scheduling'), ('failed','generic_failure')):
+                  if word in value: return label
+              return 'none' if not value else 'other'
+          print('failed_execution_status=Failed')
+          print('failed_execution_start='+str(p.get('startTime') or 'none'))
+          print('failed_execution_end_present='+str(bool(p.get('endTime'))).lower())
+          print('failed_execution_reason_class='+category(p.get('reason')))
+          print('replica_read='+sys.argv[4])
+          print('replica_count='+str(len(replicas)))
+          container_statuses=[]
+          for replica in replicas:
+              statuses=replica.get('containers') or (replica.get('properties') or {}).get('containers') or []
+              for status in statuses:
+                  if isinstance(status,dict): container_statuses.append(status)
+          print('replica_container_count='+str(len(container_statuses)))
+          print('replica_reason_classes='+','.join(sorted({category(s.get('reason')) for s in container_statuses})) or 'none')
+          codes=[]
+          for status in container_statuses:
+              code=status.get('code',status.get('exitCode'))
+              if isinstance(code,int) and -1 <= code <= 255: codes.append(code)
+          print('replica_exit_codes='+(','.join(map(str,sorted(set(codes)))) if codes else 'none'))
+          later=[]
+          for item in executions:
+              q=item.get('properties') or {}
+              start=q.get('startTime')
+              if not isinstance(start,str): continue
+              try: when=datetime.datetime.fromisoformat(start.replace('Z','+00:00'))
+              except ValueError: continue
+              if when >= datetime.datetime(2026,10,23,21,50,tzinfo=datetime.timezone.utc):
+                  later.append((when,q.get('status')))
+          later.sort()
+          print('later_succeeded='+str(sum(s == 'Succeeded' for _,s in later)))
+          print('later_failed='+str(sum(s == 'Failed' for _,s in later)))
+          print('later_running='+str(sum(s == 'Running' for _,s in later)))
+          print('later_latest='+str(later[-1][0].isoformat() if later else 'none'))
+          PY
+          echo 'No document, queue payload, Blob, database row, job, alert, or buyer control was changed.'
