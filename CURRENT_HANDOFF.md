@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 23 October 2026 Central — controlled v2 template identities registered
+
+- Marc approved [PR #998](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/998) exact head `eb31d9c61412b1b26463e031d1557a62a0bd805e` after all three required checks passed. Squash merge `b08ae130685942103bd3f6a219a1f2a02d5af38e` registered the exact five-page SalOPS™ and SalCAPA™ v2 local Word binaries and hashes in the Decision Register and Approved Artifacts. The approved copies still match SHA-256 `404988E03E916D063EA4DF7B685C7504621CD4DF497215B89C70ACE50BC98834` and `DA4E666FCB3B663B3B6B084E70903391CEB1059D1EB581B0F5E5CB5925B1649B`. This was a records-only merge: no Azure setting, deployed app or report issue changed. Cloud-controlled distribution, exact populated report review, paid-buyer adverse scan proof, full intake, and public payment/intake remain open. Do not repeat the fictional L1A-10 payment or its existing test upload.
+
 ## 23 October 2026 Central — SalOPS and SalCAPA local template successors under review
 
 - Marc approved exact five-page SAL-D055-compatible local Word successors: SalOPS™ v2 SHA-256 `404988E03E916D063EA4DF7B685C7504621CD4DF497215B89C70ACE50BC98834` and SalCAPA™ v2 SHA-256 `DA4E666FCB3B663B3B6B084E70903391CEB1059D1EB581B0F5E5CB5925B1649B`. Every final rendered page was inspected in Word export. Exact local copies in `work/approved_templates/` match the approved hashes. The initial layout-only October 23 candidates omitted SAL-D055 and were not registered. Proposed artifact and SAL-D113 records are in this source branch; GitHub checks and exact-head review remain before the repository records are authoritative. Cloud storage/access review and each populated report's evidence, accessibility, independent qualified human review, rendered-page QA and issue remain open. No Protected Member report is issued by these template approvals.
