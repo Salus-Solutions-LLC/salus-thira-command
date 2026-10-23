@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 23 October 2026 Central — SalOPS and SalCAPA local template successors under review
+
+- Marc approved exact five-page SAL-D055-compatible local Word successors: SalOPS™ v2 SHA-256 `404988E03E916D063EA4DF7B685C7504621CD4DF497215B89C70ACE50BC98834` and SalCAPA™ v2 SHA-256 `DA4E666FCB3B663B3B6B084E70903391CEB1059D1EB581B0F5E5CB5925B1649B`. Every final rendered page was inspected in Word export. Exact local copies in `work/approved_templates/` match the approved hashes. The initial layout-only October 23 candidates omitted SAL-D055 and were not registered. Proposed artifact and SAL-D113 records are in this source branch; GitHub checks and exact-head review remain before the repository records are authoritative. Cloud storage/access review and each populated report's evidence, accessibility, independent qualified human review, rendered-page QA and issue remain open. No Protected Member report is issued by these template approvals.
+- Marc approved PR #997 exact head `e1936c7a1726bd2737bbe652fcf10f8a4ef5a1e9` after all three required checks passed; squash merge `9e51f38b80106d87bf39db245838e5e9463990c3` adds a source-only **Check file scan status** control while a paid Level 1A file is Pending. Source freeze, immutable image publication, protected deployment and buyer readback remain before it is live. The existing fictional order `L1A-10` is already paid and its one test upload is Promoted with private hash readback; do not repeat either. Adverse scan, the full paid-buyer intake response set, substantive four-report qualification and public live payment remain open. The bounded single-buyer sandbox pilot continues; public access remains closed.
+
 **Updated:** 22 October 2026. **Branch:** development/salcapa-platform. **Status:** Governance method registered; Virtual Red Team software not built or deployed.
 
 ## Current objective
