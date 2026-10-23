@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3255_paid_file_status_refresh_source_candidate
 last_completed_increment: v3254_single_buyer_clean_scan_verified_and_controlled_v2_templates_registered
 candidate_release: v3.255
-validation_pr: pending
+validation_pr: 999
 validation_branch: codex/v3255-paid-status-source-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
