@@ -1,0 +1,119 @@
+name: SalCAPA v3.254 scan delivery classification
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3254-scan-delivery-classification.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only scan-delivery classification gate passed.'
+
+  classify:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Read bounded worker classes and Event Grid delivery counts
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SUBSCRIPTION" = '076f90cd-cc6a-4547-a4ff-de3fc1825472'
+          test "$EXPECTED_TENANT" = 'e06fd260-a201-44da-b03b-9cde7e119d04'
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/worker.json"
+          jq -e '
+            .name=="salcapa-dev-b48224-scan-worker" and
+            .properties.configuration.triggerType=="Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression=="*/5 * * * *" and
+            .properties.template.containers[0].image=="salcapadevb48224acr.azurecr.io/salcapa@sha256:c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0"
+          ' "$RUNNER_TEMP/worker.json" > /dev/null
+          WORKSPACE_ID="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$WORKSPACE_ID"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-22T23:30:00Z) .. datetime(2026-10-23T00:30:00Z)) | where JobName == 'salcapa-dev-b48224-scan-worker' | where Log contains 'scan_result_job' | project Log | take 500" -o json > "$RUNNER_TEMP/worker-markers.json"
+          TOPIC_ID="$(az eventgrid topic show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-results --query id -o tsv)"
+          test -n "$TOPIC_ID"
+          az monitor metrics list --resource "$TOPIC_ID" --metrics PublishSuccessCount MatchedEventCount DeliverySuccessCount DeliveryAttemptFailCount DroppedEventCount --aggregation Total --start-time 2026-10-22T23:30:00Z --end-time 2026-10-23T00:30:00Z -o json > "$RUNNER_TEMP/eventgrid-metrics.json"
+          python - "$RUNNER_TEMP/worker-markers.json" "$RUNNER_TEMP/eventgrid-metrics.json" <<'PY'
+          import collections
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          if isinstance(value, dict) and 'tables' in value:
+              table = (value.get('tables') or [{}])[0]
+              columns = [column.get('name') for column in table.get('columns', [])]
+              rows = [dict(zip(columns, row)) for row in table.get('rows', [])]
+          elif isinstance(value, list):
+              rows = value
+          else:
+              rows = value.get('value', []) if isinstance(value, dict) else []
+          if len(rows) >= 500:
+              raise SystemExit('Worker marker query exceeded bounded review capacity')
+          classes = collections.Counter()
+          outcomes = collections.Counter()
+          for row in rows:
+              try:
+                  marker = json.loads(row.get('Log') or '')
+              except (TypeError, ValueError):
+                  continue
+              if not isinstance(marker, dict):
+                  continue
+              if marker.get('scan_result_job') == 'failed':
+                  phase = marker.get('failure_phase')
+                  phase = phase if phase in {'poll', 'reconcile'} else 'Other'
+                  kind = marker.get('error_type')
+                  kind = kind if isinstance(kind, str) and re.fullmatch(
+                      r'[A-Za-z][A-Za-z0-9_]{0,63}', kind) else 'Other'
+                  classes[phase + ':' + kind] += 1
+              elif marker.get('scan_result_job') == 'completed':
+                  outcome = marker.get('outcome')
+                  outcomes[outcome if outcome in {'Empty', 'Acknowledged', 'Held'} else 'Other'] += 1
+          print('worker_failure_classes=' + json.dumps(dict(sorted(classes.items())), sort_keys=True))
+          print('worker_safe_outcomes=' + json.dumps(dict(sorted(outcomes.items())), sort_keys=True))
+          if not classes and not outcomes:
+              raise SystemExit('No bounded worker markers available')
+
+          metrics = json.loads(Path(sys.argv[2]).read_text(encoding='utf-8'))
+          allowed = ('PublishSuccessCount', 'MatchedEventCount', 'DeliverySuccessCount',
+                     'DeliveryAttemptFailCount', 'DroppedEventCount')
+          counts = {}
+          for metric in metrics.get('value', []):
+              name = (metric.get('name') or {}).get('value')
+              if name not in allowed:
+                  continue
+              total = 0
+              for series in metric.get('timeseries', []):
+                  for point in series.get('data', []):
+                      number = point.get('total')
+                      if isinstance(number, (int, float)) and 0 <= number <= 100000:
+                          total += number
+              counts[name] = total
+          for name in allowed:
+              print('scan_result_topic_' + name + '=' + str(counts.get(name, 'unavailable')))
+          print('exact_worker_image_and_schedule=verified')
+          PY
