@@ -1,0 +1,105 @@
+name: SalCAPA v3.255 scanner telemetry gap review
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3255-scanner-telemetry-gap.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected count-only scanner telemetry review approved.'
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Compare scheduled executions with ingested console and system counts
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$EXPECTED_SUBSCRIPTION" = 076f90cd-cc6a-4547-a4ff-de3fc1825472
+          test "$EXPECTED_TENANT" = e06fd260-a201-44da-b03b-9cde7e119d04
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/worker.json"
+          jq -e '
+            .properties.provisioningState == "Succeeded" and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/5 * * * *" and
+            .properties.template.containers[0].image == "salcapadevb48224acr.azurecr.io/salcapa@sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241"
+          ' "$RUNNER_TEMP/worker.json" > /dev/null
+          az containerapp job execution list -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/executions.json"
+          workspace="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$workspace"
+          query="ContainerAppConsoleLogs | where TimeGenerated >= datetime(2026-10-23T21:26:00Z) | where JobName in ('salcapa-dev-b48224-scan-worker','salcapa-dev-b48224-kb-scan') | summarize Rows=count(), Latest=max(TimeGenerated), Completed=countif(Log contains '\"scan_result_job\": \"completed\"'), Failed=countif(Log contains '\"scan_result_job\": \"failed\"') by JobName"
+          az monitor log-analytics query --workspace "$workspace" --analytics-query "$query" -o json > "$RUNNER_TEMP/console.json"
+          system_query="ContainerAppSystemLogs | where TimeGenerated >= datetime(2026-10-23T21:26:00Z) | extend Group=tostring(column_ifexists('ContainerGroupName','')), SafeLog=tostring(column_ifexists('Log','')) | where Group startswith 'salcapa-dev-b48224-scan-worker-' | summarize Rows=count(), Latest=max(TimeGenerated), Errors=countif(SafeLog has 'Error' or SafeLog has 'Failed')"
+          az monitor log-analytics query --workspace "$workspace" --analytics-query "$system_query" -o json > "$RUNNER_TEMP/system.json"
+          python - "$RUNNER_TEMP/executions.json" "$RUNNER_TEMP/console.json" "$RUNNER_TEMP/system.json" <<'PY'
+          import collections, datetime, json, sys
+          cutoff=datetime.datetime.fromisoformat('2026-10-23T21:26:00+00:00')
+          def rows(path):
+              data=json.load(open(path,encoding='utf-8'))
+              if isinstance(data,list): return data
+              if isinstance(data,dict) and 'tables' in data:
+                  table=(data.get('tables') or [{}])[0]
+                  columns=[c.get('name') for c in table.get('columns',[])]
+                  return [dict(zip(columns,row)) for row in table.get('rows',[])]
+              if isinstance(data,dict): return data.get('value') or []
+              raise SystemExit('Unexpected read-only result shape')
+          states=collections.Counter()
+          for item in rows(sys.argv[1]):
+              p=item.get('properties') or {}
+              start=p.get('startTime')
+              if not isinstance(start,str): continue
+              try: when=datetime.datetime.fromisoformat(start.replace('Z','+00:00'))
+              except ValueError: continue
+              if when >= cutoff:
+                  state=p.get('status')
+                  states[state if state in ('Succeeded','Failed','Running','Pending') else 'Other']+=1
+          console={r.get('JobName'):r for r in rows(sys.argv[2])}
+          worker=console.get('salcapa-dev-b48224-scan-worker') or {}
+          control=console.get('salcapa-dev-b48224-kb-scan') or {}
+          system=(rows(sys.argv[3]) or [{}])[0]
+          def count(row,key):
+              value=row.get(key,0)
+              if value is None: return 0
+              value=int(value)
+              if value < 0: raise SystemExit('Invalid count')
+              return value
+          for state in ('Succeeded','Failed','Running','Pending','Other'):
+              print('scheduled_'+state.lower()+'='+str(states[state]))
+          print('scanner_console_rows='+str(count(worker,'Rows')))
+          print('scanner_completed_markers='+str(count(worker,'Completed')))
+          print('scanner_failed_markers='+str(count(worker,'Failed')))
+          print('knowledge_console_rows='+str(count(control,'Rows')))
+          print('scanner_system_rows='+str(count(system,'Rows')))
+          print('scanner_system_error_rows='+str(count(system,'Errors')))
+          print('scanner_console_latest='+str(worker.get('Latest') or 'none'))
+          print('knowledge_console_latest='+str(control.get('Latest') or 'none'))
+          print('scanner_system_latest='+str(system.get('Latest') or 'none'))
+          PY
+          echo 'No queue, document, database, Blob, alert, job execution, or Azure setting was changed.'

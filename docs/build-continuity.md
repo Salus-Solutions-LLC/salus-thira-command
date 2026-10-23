@@ -5,29 +5,31 @@ last_verified_at: 23 October 2026 16:27 CDT
 current_frozen_release: v3.255
 current_frozen_commit: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 active_development_branch: development/salcapa-platform
-current_development_head: f8d4cded683b14ed8046a7bd38091c8f7a5bd149
+current_development_head: 7152e8da0b80b6c0a92eea836c28049ff0a1d5b1
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3255_scanner_worker_post_application_promotion
+active_increment: salus_v3255_scanner_telemetry_live_evaluator_acceptance
 last_completed_increment: v3255_scanner_result_worker_deployed_protected
 candidate_release: v3.255
-validation_pr: 1003
-validation_branch: codex/v3255-scan-worker-outcomes-20261023
+validation_pr: pending
+validation_branch: codex/v3255-scanner-telemetry-diagnostic-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3255
-first_root_failing_gate: v3255_worker_scheduled_recovery_unmeasured_and_paid_buyer_intake_scanner_four_report_acceptance
-root_cause: v3255_worker_deployed_outcomes_unmeasured_duplicate_alert_routing_and_adverse_scanner_real_reports_unaccepted
+first_root_failing_gate: v3255_scanner_completion_telemetry_absent_after_worker_image_update
+root_cause: v3255_post_promotion_console_gap_under_investigation_duplicate_alert_routing_and_public_acceptance_open
 repair_head: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 repair_summary: frozen_v3255_paid_scan_status_and_same_event_deadlock_retry
-genuine_blockers: v3255_observed_worker_recovery_duplicate_alert_route_verification_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
-next_authorized_step: validate_count_only_worker_outcome_candidate_then_Marc_exact_head_review
+genuine_blockers: v3255_scanner_telemetry_and_observed_recovery_duplicate_alert_route_verification_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
+next_authorized_step: validate_count_only_telemetry_candidate_then_Marc_exact_head_review
 deployed_demo_release: v3.255
 deployed_demo_state: v3255_app_knowledge_and_scan_result_workers_protected_deployed_buyer_closed
 ---
 
 # SalCAPA build continuity
+
+v3255_scanner_telemetry_gap_candidate: Marc approved PR #1003 corrected exact head `f02340c35c3fba49bbc20ad92b8b160218953cc3`; merge `7152e8da0b80b6c0a92eea836c28049ff0a1d5b1` triggered protected run `40028006300`. The first attempt verified the image but found zero post-promotion scanner completion markers and failed closed. The rerun attempt stopped at the one-attempt guard and was not a new observation. Azure shows three post-update scheduled successes, but the independent console query had no scanner row after 21:25 UTC while knowledge-worker rows continued. This candidate compares execution, console and system counts without changing Azure. Both alert routes and all public buyer gates remain closed/active as before; no payment or upload is repeated. CI and Marc's exact-head review are required before the protected diagnostic.
 
 v3255_scanner_worker_deployed_outcome_candidate: Marc approved PR #1002 at corrected exact head `aa02fb90a06e07acd39a536a9563d521f37c8bc4` after all three required checks passed. Merge `f8d4cded683b14ed8046a7bd38091c8f7a5bd149` triggered protected run `40026625955`, which succeeded and read back the five-minute scanner-result worker on v3.255 digest `sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241` with non-image configuration unchanged. Scheduled outcome and alert recovery remain unmeasured. This candidate performs one protected count-only read of post-promotion scheduled worker markers. Both alert groups remain active; later removal of the duplicate route requires surviving-recipient and real-delivery verification plus separate exact-head review. Buyer controls remain closed; do not repeat `L1A-10` payment/upload.
 
