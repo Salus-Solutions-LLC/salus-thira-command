@@ -1,0 +1,164 @@
+name: SalCAPA v3.254 scanner-result worker promotion
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3254-scan-worker-promotion.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-scanner-worker-deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected scanner-result worker image promotion approved.'
+
+  deploy:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          ref: release/v3.254
+          path: frozen-release
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify frozen source and trusted Level 1A dispatch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C frozen-release rev-parse HEAD)" = '1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096'
+          git merge-base --is-ancestor 1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096 "$GITHUB_SHA"
+          grep -Fq 'SALCAPA_RELEASE_VERSION = "3.254"' frozen-release/salcapa_runtime.py
+          grep -Fq 'from app import process_trusted_scan_result' frozen-release/salus_scan_worker.py
+          grep -Fq 'def process_level1a_scan_result(' frozen-release/app.py
+          grep -Fq 'def process_trusted_scan_result(' frozen-release/app.py
+          echo 'frozen_level1a_worker_source=verified'
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify exact registry images and existing scheduled job
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SUBSCRIPTION" = '076f90cd-cc6a-4547-a4ff-de3fc1825472'
+          test "$EXPECTED_TENANT" = 'e06fd260-a201-44da-b03b-9cde7e119d04'
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          test "$(az group show -n rg-salcapa-dev --query location -o tsv)" = 'southcentralus'
+          for digest in ca052f443956c9a422e8c81487db9b8f57e0d3e66027882cc43749e12647d054 c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0; do
+            test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa@sha256:$digest" --query digest -o tsv)" = "sha256:$digest"
+          done
+          test "$(az acr manifest show-metadata --registry salcapadevb48224acr --name salcapa:source-1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096 --query digest -o tsv)" = 'sha256:ca052f443956c9a422e8c81487db9b8f57e0d3e66027882cc43749e12647d054'
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/worker-before.json"
+          python - "$RUNNER_TEMP/worker-before.json" <<'PY'
+          import json,sys
+          job=json.load(open(sys.argv[1],encoding='utf-8'))
+          p=job.get('properties') or {}; c=p.get('configuration') or {}; t=p.get('template') or {}
+          xs=t.get('containers') or []
+          old='salcapadevb48224acr.azurecr.io/salcapa@sha256:c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0'
+          if not (p.get('provisioningState')=='Succeeded'
+                  and len(xs)==1 and xs[0].get('name')=='scan-results'
+                  and xs[0].get('image')==old
+                  and xs[0].get('command')==['python','-m','salus_scan_worker']
+                  and float((xs[0].get('resources') or {}).get('cpu',0))==0.25
+                  and (xs[0].get('resources') or {}).get('memory')=='0.5Gi'
+                  and c.get('triggerType')=='Schedule'
+                  and (c.get('scheduleTriggerConfig') or {}).get('cronExpression')=='*/5 * * * *'
+                  and c.get('replicaTimeout')==60 and c.get('replicaRetryLimit')==0
+                  and len((job.get('identity') or {}).get('userAssignedIdentities') or {})==2
+                  and len(c.get('registries') or [])==1):
+              raise SystemExit('Exact scanner worker preflight failed')
+          env={x.get('name'):x.get('value') for x in xs[0].get('env',[])}
+          if not (env.get('SALUS_ENV')=='dev'
+                  and env.get('SALUS_DB_BACKEND')=='postgres'
+                  and env.get('SALUS_PACKAGE_SCAN_MODE')=='defender'
+                  and env.get('SALUS_SCAN_RESULTS_QUEUE_URL','').endswith('/scan-results')
+                  and env.get('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID')
+                  and env.get('SALUS_SCAN_QUARANTINE_URL')=='https://salcapadevb48224scan.blob.core.windows.net/'):
+              raise SystemExit('Scanner worker environment preflight failed')
+          print('existing_v3214_worker=verified')
+          PY
+          az containerapp show -g rg-salcapa-dev -n salcapa-dev-b48224 -o json > "$RUNNER_TEMP/app-before.json"
+          python - "$RUNNER_TEMP/app-before.json" <<'PY'
+          import json,sys
+          app=json.load(open(sys.argv[1],encoding='utf-8'))
+          containers=((app.get('properties') or {}).get('template') or {}).get('containers') or []
+          image='salcapadevb48224acr.azurecr.io/salcapa@sha256:ca052f443956c9a422e8c81487db9b8f57e0d3e66027882cc43749e12647d054'
+          if len(containers)!=1 or containers[0].get('image')!=image:
+              raise SystemExit('Buyer app image changed')
+          env={x.get('name'):x.get('value') for x in containers[0].get('env',[])}
+          required={'SALUS_CUSTOMER_OIDC_ENABLED':'1',
+                    'SALUS_LEVEL1A_ORDER_DRAFT_ENABLED':'1',
+                    'SALUS_LEVEL1A_CHECKOUT_ENABLED':'1',
+                    'SALUS_LEVEL1A_TEST_CHECKOUT_ONLY':'1',
+                    'SALUS_LEVEL1A_INTAKE_ENABLED':'1',
+                    'SALUS_LEVEL1A_UPLOAD_ENABLED':'1',
+                    'SALUS_PACKAGE_SCAN_MODE':'defender',
+                    'SALUS_PACKAGE_SCANNER_ACCEPTED':'1'}
+          if (any(env.get(k)!=v for k,v in required.items())
+                  or env.get('SALUS_LEVEL1A_PILOT_EMAIL','').casefold()!='mduncan@salus.solutions'
+                  or env.get('SALUS_LEVEL1A_PILOT_OBJECT_ID','').lower()!='69ef2327-049a-4886-b18f-cada64b0d120'):
+              raise SystemExit('Single-buyer sandbox boundary changed')
+          print('single_buyer_sandbox_boundary=verified')
+          PY
+      - name: Change only the worker image and verify rollback conditions
+        shell: bash
+        run: |
+          set -euo pipefail
+          group=rg-salcapa-dev
+          job=salcapa-dev-b48224-scan-worker
+          old=salcapadevb48224acr.azurecr.io/salcapa@sha256:c517f3bffd9faa1cd03385667d2b9dc4e11a8dfa5b44379089534f518d3368a0
+          new=salcapadevb48224acr.azurecr.io/salcapa@sha256:ca052f443956c9a422e8c81487db9b8f57e0d3e66027882cc43749e12647d054
+          rollback() {
+            echo 'Scanner-result worker verification failed; restoring the recorded prior image.' >&2
+            az containerapp job update -g "$group" -n "$job" --image "$old" --output none || echo 'rollback_update_failed=true' >&2
+          }
+          trap rollback ERR
+          az containerapp job update -g "$group" -n "$job" --image "$new" --output none
+          az containerapp job show -g "$group" -n "$job" -o json > "$RUNNER_TEMP/worker-after.json"
+          python - "$RUNNER_TEMP/worker-before.json" "$RUNNER_TEMP/worker-after.json" "$new" <<'PY'
+          import json,sys
+          before=json.load(open(sys.argv[1],encoding='utf-8'))
+          after=json.load(open(sys.argv[2],encoding='utf-8'))
+          expected=sys.argv[3]
+          b=before['properties']; a=after['properties']
+          bc=b['template']['containers']; ac=a['template']['containers']
+          if not (a.get('provisioningState')=='Succeeded'
+                  and len(ac)==1 and ac[0].get('image')==expected
+                  and a.get('configuration')==b.get('configuration')
+                  and a.get('environmentId')==b.get('environmentId')
+                  and after.get('identity')==before.get('identity')):
+              raise SystemExit('Scanner worker image or protection readback failed')
+          left=dict(bc[0]); right=dict(ac[0])
+          left.pop('image',None); right.pop('image',None)
+          if left!=right or b['template'].get('initContainers')!=a['template'].get('initContainers'):
+              raise SystemExit('Scanner worker command, resources or environment changed')
+          print('scanner_worker_v3254_image=verified')
+          print('scanner_worker_protected_definition=unchanged')
+          PY
+          trap - ERR
+          echo 'Scheduled worker image updated. The held item still requires exact status readback; no public gate changed.'
