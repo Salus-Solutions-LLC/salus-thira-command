@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3255_scanner_telemetry_live_evaluator_acceptance
 last_completed_increment: v3255_scanner_result_worker_deployed_protected
 candidate_release: v3.255
-validation_pr: pending
+validation_pr: 1004
 validation_branch: codex/v3255-scanner-telemetry-diagnostic-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
