@@ -8,26 +8,28 @@ active_development_branch: development/salcapa-platform
 current_development_head: b08ae130685942103bd3f6a219a1f2a02d5af38e
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3255_paid_file_status_refresh_source_candidate
+active_increment: salus_v3255_paid_file_status_refresh_and_scanner_deadlock_retry_source_candidate
 last_completed_increment: v3254_single_buyer_clean_scan_verified_and_controlled_v2_templates_registered
 candidate_release: v3.255
 validation_pr: 999
 validation_branch: codex/v3255-paid-status-source-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: local_verified_github_pending
+validation_gate_state: repair_validation_pending
 failed_workflows: none_currently_observed_for_v3255
-first_root_failing_gate: paid_buyer_intake_scanner_and_four_report_acceptance
-root_cause: live_paid_file_status_refresh_not_deployed_and_adverse_scanner_and_real_reports_unaccepted
+first_root_failing_gate: recurring_scan_worker_deadlocks_and_paid_buyer_intake_scanner_four_report_acceptance
+root_cause: poll_phase_deadlocks_unretried_in_deployed_worker_duplicate_alert_routing_and_adverse_scanner_real_reports_unaccepted
 repair_head: b08ae130685942103bd3f6a219a1f2a02d5af38e
 repair_summary: merged_paid_file_status_refresh_and_approved_v2_template_registration
-genuine_blockers: v3.254_app_release_superseded_only_after_v3.255_source_freeze_private_inventory_retained_immutable_image_protected_deploy_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
-next_authorized_step: complete_v3255_candidate_CI_then_Marc_exact_source_review
+genuine_blockers: scanner_poll_deadlock_repair_and_duplicate_alert_route_verification_v3.254_app_release_superseded_only_after_v3.255_source_freeze_private_inventory_retained_immutable_image_protected_deploy_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
+next_authorized_step: run_fresh_v3255_scanner_retry_CI_then_Marc_exact_source_review
 deployed_demo_release: v3.254
 deployed_demo_state: v3254_single_buyer_sandbox_paid_intake_and_scanner_pilot_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3255_scan_result_alert_repair_candidate: Marc reported repeated Sev2 worker failure emails on 23 October. Azure showed five `DeadlockDetected` poll failures in the last 24 hours, including a failed 19:20 UTC execution followed by successful 19:25 and 19:30 UTC executions. The same 19:24 UTC alert reached Outlook twice through both scan-alert action groups. A source-only retry of the same received event on SQLSTATE `40P01` is staged; persistent failures still leave the queue message unacknowledged and alertable. Fresh CI, exact-head review, immutable publication, protected worker deployment, and measured failure and notification recovery remain. Do not mute the remaining real alert route. Public payment and intake remain closed.
 
 v3255_paid_file_status_refresh_source_candidate: Marc approved PR #997 exact head `e1936c7a1726bd2737bbe652fcf10f8a4ef5a1e9` after all three required checks passed; squash merge `9e51f38b80106d87bf39db245838e5e9463990c3` adds a buyer-visible **Check file scan status** control while a paid Level 1A upload is Pending. It reads the existing order and changes no payment, upload, scan result or report. PR #998 exact head `eb31d9c61412b1b26463e031d1557a62a0bd805e` passed all three checks and merged as `b08ae130685942103bd3f6a219a1f2a02d5af38e`, registering Marc-approved SAL-D055-compatible SalOPS and SalCAPA v2 local Word template hashes; cloud distribution and populated issue remain separate. The existing fictional sandbox order `L1A-10` is already paid and its one uploaded test file is Promoted with verified private size and SHA-256; do not repeat either. This candidate labels the source v3.255 only. Public live payment and intake remain closed. Required PR and frozen-source checks, Marc's exact-head source review, immutable image publication/readback, guarded deployment, named-buyer reactivation, adverse scanner acceptance, full intake, and qualified four-report issue remain before separate public release.
 
