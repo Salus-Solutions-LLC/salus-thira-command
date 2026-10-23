@@ -2,32 +2,34 @@
 schema_version: 1
 record_kind: salcapa_build_continuity
 last_verified_at: 23 October 2026 14:24 CDT
-current_frozen_release: v3.254
-current_frozen_commit: 1ca9dbaacddfb23dcbf4bcc89dc06c2987e25096
+current_frozen_release: v3.255
+current_frozen_commit: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 active_development_branch: development/salcapa-platform
-current_development_head: b08ae130685942103bd3f6a219a1f2a02d5af38e
+current_development_head: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3255_paid_file_status_refresh_and_scanner_deadlock_retry_source_candidate
-last_completed_increment: v3254_single_buyer_clean_scan_verified_and_controlled_v2_templates_registered
+active_increment: salus_v3255_paid_assessment_immutable_image_publication
+last_completed_increment: v3255_source_frozen_after_scan_status_and_deadlock_retry
 candidate_release: v3.255
-validation_pr: 999
-validation_branch: codex/v3255-paid-status-source-20261023
+validation_pr: pending
+validation_branch: codex/v3255-image-publication-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: repair_validation_pending
+validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3255
-first_root_failing_gate: recurring_scan_worker_deadlocks_and_paid_buyer_intake_scanner_four_report_acceptance
-root_cause: poll_phase_deadlocks_unretried_in_deployed_worker_duplicate_alert_routing_and_adverse_scanner_real_reports_unaccepted
-repair_head: b08ae130685942103bd3f6a219a1f2a02d5af38e
-repair_summary: merged_paid_file_status_refresh_and_approved_v2_template_registration
-genuine_blockers: scanner_poll_deadlock_repair_and_duplicate_alert_route_verification_v3.254_app_release_superseded_only_after_v3.255_source_freeze_private_inventory_retained_immutable_image_protected_deploy_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
-next_authorized_step: run_fresh_v3255_scanner_retry_CI_then_Marc_exact_source_review
+first_root_failing_gate: frozen_image_not_yet_published_worker_deadlocks_and_paid_buyer_intake_scanner_four_report_acceptance
+root_cause: v3255_retry_not_deployed_duplicate_alert_routing_and_adverse_scanner_real_reports_unaccepted
+repair_head: d19d7a8cc0a233c8982761a121083cf29e1f22d7
+repair_summary: frozen_v3255_paid_scan_status_and_same_event_deadlock_retry
+genuine_blockers: v3255_frozen_checks_image_readback_protected_deploy_duplicate_alert_route_verification_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
+next_authorized_step: complete_frozen_source_and_image_candidate_checks_then_Marc_exact_image_PR_review
 deployed_demo_release: v3.254
 deployed_demo_state: v3254_single_buyer_sandbox_paid_intake_and_scanner_pilot_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3255_paid_assessment_image_candidate: Marc approved PR #999 exact head `5311d9b6f877eec6dfad9268c5a68571af433a4d` after required checks passed. Squash merge `d19d7a8cc0a233c8982761a121083cf29e1f22d7` and new immutable `release/v3.255` branch contain the paid buyer file-status refresh and bounded scan-result same-event deadlock retry. This candidate pins that exact frozen source for one protected image publication and registry readback; it does not deploy the image or alter either alert action group. Frozen and candidate checks plus Marc's exact-head image activation review are required before publication. The protected app and scanner worker still run v3.254, so recurring worker failure emails and duplicate delivery remain live blockers. Public payment and intake stay closed; do not repeat `L1A-10` payment or upload.
 
 v3255_scan_result_alert_repair_candidate: Marc reported repeated Sev2 worker failure emails on 23 October. Azure showed five `DeadlockDetected` poll failures in the last 24 hours, including a failed 19:20 UTC execution followed by successful 19:25 and 19:30 UTC executions. The same 19:24 UTC alert reached Outlook twice through both scan-alert action groups. A source-only retry of the same received event on SQLSTATE `40P01` is staged; persistent failures still leave the queue message unacknowledged and alertable. Fresh CI, exact-head review, immutable publication, protected worker deployment, and measured failure and notification recovery remain. Do not mute the remaining real alert route. Public payment and intake remain closed.
 
