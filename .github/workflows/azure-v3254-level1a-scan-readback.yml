@@ -1,0 +1,194 @@
+name: SalCAPA v3.254 Level 1A scan readback
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3254-level1a-scan-readback.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-v3254-level1a-scan-readback-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected Level 1A scan readback approved.'
+
+  readback:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify exact scanner job and prepare one read-only execution
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$EXPECTED_SUBSCRIPTION" = 076f90cd-cc6a-4547-a4ff-de3fc1825472
+          test "$EXPECTED_TENANT" = e06fd260-a201-44da-b03b-9cde7e119d04
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/worker-before.json"
+          python - "$RUNNER_TEMP/worker-before.json" "$RUNNER_TEMP/override.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          job=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          props=job.get('properties') or {}
+          config=props.get('configuration') or {}
+          containers=(props.get('template') or {}).get('containers') or []
+          image='salcapadevb48224acr.azurecr.io/salcapa@sha256:ca052f443956c9a422e8c81487db9b8f57e0d3e66027882cc43749e12647d054'
+          if not (job.get('name')=='salcapa-dev-b48224-scan-worker'
+                  and props.get('provisioningState')=='Succeeded'
+                  and config.get('triggerType')=='Schedule'
+                  and (config.get('scheduleTriggerConfig') or {}).get('cronExpression')=='*/5 * * * *'
+                  and len(containers)==1 and containers[0].get('name')=='scan-results'
+                  and containers[0].get('image')==image
+                  and containers[0].get('command')==['python','-m','salus_scan_worker']):
+              raise SystemExit('Exact v3.254 scanner worker preflight failed')
+          code='''
+          import hashlib, json
+          from app import db, storage
+          conn=db()
+          try:
+              pending=[dict(r) for r in conn.execute(
+                  "SELECT status,scan_result,scan_event_id,promoted_upload_id,content_sha256,size_bytes FROM level1a_pending_scans WHERE order_id=?",(10,))]
+              uploads=[dict(r) for r in conn.execute(
+                  "SELECT id,scan_status,stored_name,content_sha256,size_bytes FROM level1a_intake_uploads WHERE order_id=?",(10,))]
+          finally:
+              conn.close()
+          if len(pending)!=1 or len(uploads)>1:
+              raise SystemExit('Bounded order scan record count changed')
+          row=pending[0]
+          allowed={'Pending','Promoted','Malicious','Unscanned','Reconcile'}
+          status=row['status'] if row['status'] in allowed else 'Other'
+          linked=False
+          verified=False
+          if status=='Promoted':
+              if (len(uploads)!=1 or uploads[0]['id']!=row['promoted_upload_id']
+                      or row['scan_result']!='Clean' or not row['scan_event_id']
+                      or uploads[0]['scan_status']!='Clean'
+                      or uploads[0]['content_sha256']!=row['content_sha256']
+                      or uploads[0]['size_bytes']!=row['size_bytes']):
+                  raise SystemExit('Promoted record linkage or metadata failed')
+              linked=True
+              try:
+                  contents=storage.get_bytes(uploads[0]['stored_name'])
+              except Exception as exc:
+                  kind=type(exc).__name__
+                  kind=kind if kind in {'FileNotFoundError','OSError','PermissionError','KeyError'} else 'Other'
+                  raise SystemExit('Private copy readback failed: '+kind) from None
+              verified=(len(contents)==row['size_bytes'] and
+                        hashlib.sha256(contents).hexdigest()==row['content_sha256'])
+              if not verified:
+                  raise SystemExit('Promoted private copy failed byte readback')
+          print('level1a_scan_readback='+json.dumps({
+              'pending_row_count':len(pending),'promoted_copy_count':len(uploads),
+              'status':status,'event_recorded':bool(row['scan_event_id']),
+              'promoted_linked':linked,'promoted_private_hash_verified':verified},
+              sort_keys=True))
+          '''
+          source=containers[0]
+          body={'containers':[{'name':source['name'],'image':image,
+              'command':['python'],'args':['-c',code],
+              'env':source['env'],'resources':source['resources']}]}
+          Path(sys.argv[2]).write_text(json.dumps(body,separators=(',',':')),encoding='utf-8')
+          print('exact_worker_and_read_only_override=verified')
+          PY
+      - name: Run one private readback without changing the scheduled job
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "READBACK_START=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          uri="https://management.azure.com/subscriptions/$EXPECTED_SUBSCRIPTION/resourceGroups/rg-salcapa-dev/providers/Microsoft.App/jobs/salcapa-dev-b48224-scan-worker/start?api-version=2025-07-01"
+          az rest --method post --uri "$uri" --headers Content-Type=application/json --body @"$RUNNER_TEMP/override.json" --output json > "$RUNNER_TEMP/readback-execution.json"
+          python - "$RUNNER_TEMP/readback-execution.json" "$GITHUB_ENV" <<'PY'
+          import json,re,sys
+          result=json.load(open(sys.argv[1],encoding='utf-8'))
+          name=result.get('name') or ''
+          if not re.fullmatch(r'salcapa-dev-b48224-scan-worker-[a-z0-9-]{1,40}',name):
+              raise SystemExit('Unexpected readback execution; do not retry')
+          with open(sys.argv[2],'a',encoding='utf-8') as out:
+              out.write('READBACK_EXECUTION='+name+'\n')
+          print('one_private_readback_execution_started=true')
+          PY
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/worker-after.json"
+          python - "$RUNNER_TEMP/worker-before.json" "$RUNNER_TEMP/worker-after.json" <<'PY'
+          import json,sys
+          before=json.load(open(sys.argv[1],encoding='utf-8'))
+          after=json.load(open(sys.argv[2],encoding='utf-8'))
+          for key in ('configuration','template'):
+              if before['properties'].get(key)!=after['properties'].get(key):
+                  raise SystemExit('Scheduled scanner job definition changed')
+          if before.get('identity')!=after.get('identity'):
+              raise SystemExit('Scheduled scanner worker identity changed')
+          print('scheduled_worker_definition_unchanged=true')
+          PY
+      - name: Verify execution and print only safe readback fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          state=Unknown
+          for attempt in $(seq 1 30); do
+            az containerapp job execution show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker --job-execution-name "$READBACK_EXECUTION" -o json > "$RUNNER_TEMP/readback-state.json"
+            state="$(jq -r '.properties.status // "Unknown"' "$RUNNER_TEMP/readback-state.json")"
+            case "$state" in Succeeded|Failed|Canceled|Cancelled) break;; esac
+            sleep 10
+          done
+          echo "private_readback_execution_state=$state"
+          test "$state" = Succeeded
+          workspace="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$workspace"
+          found=0
+          for attempt in $(seq 1 24); do
+            query="ContainerAppConsoleLogs | where TimeGenerated >= datetime($READBACK_START) | where JobName == 'salcapa-dev-b48224-scan-worker' | where Log has 'level1a_scan_readback=' | project Log | take 20"
+            az monitor log-analytics query --workspace "$workspace" --analytics-query "$query" -o json > "$RUNNER_TEMP/readback-logs.json"
+            if python - "$RUNNER_TEMP/readback-logs.json" <<'PY'
+          import json,sys
+          data=json.load(open(sys.argv[1],encoding='utf-8'))
+          table=(data.get('tables') or [{}])[0] if isinstance(data,dict) else {}
+          columns=[c.get('name') for c in table.get('columns',[])]
+          rows=[dict(zip(columns,row)) for row in table.get('rows',[])]
+          for row in rows:
+              raw=row.get('Log')
+              if not isinstance(raw,str) or len(raw)>4096: continue
+              marker='level1a_scan_readback='
+              if marker not in raw: continue
+              try: value=json.loads(raw.split(marker,1)[1])
+              except (ValueError,json.JSONDecodeError): continue
+              if (value.get('pending_row_count')!=1 or
+                      value.get('promoted_copy_count') not in (0,1) or
+                      value.get('status') not in ('Pending','Promoted','Malicious','Unscanned','Reconcile','Other')):
+                  continue
+              safe=('status','pending_row_count','promoted_copy_count','event_recorded',
+                    'promoted_linked','promoted_private_hash_verified')
+              for key in safe: print(key+'='+str(value.get(key)))
+              raise SystemExit(0)
+          raise SystemExit(1)
+          PY
+            then found=1; break; fi
+            sleep 20
+          done
+          test "$found" = 1
+          echo 'Readback only: public release and four-report acceptance remain separate.'
