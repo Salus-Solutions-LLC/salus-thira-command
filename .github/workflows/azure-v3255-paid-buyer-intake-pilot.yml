@@ -1,0 +1,205 @@
+name: SalCAPA v3.255 protected paid-buyer intake and scanner pilot
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3255-paid-buyer-intake-pilot.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-application-deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected single-buyer intake approval gate passed.'
+
+  pilot:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RESOURCE_GROUP: rg-salcapa-dev
+      APP_NAME: salcapa-dev-b48224
+      WORKER_NAME: salcapa-dev-b48224-scan-worker
+      QUARANTINE_URL: https://salcapadevb48224scan.blob.core.windows.net/
+      APP_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241
+      WORKER_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241
+      EXPECTED_SUBSCRIPTION: 076f90cd-cc6a-4547-a4ff-de3fc1825472
+      EXPECTED_TENANT: e06fd260-a201-44da-b03b-9cde7e119d04
+    steps:
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify exact image, scanner and closed buyer controls
+        id: preflight
+        env:
+          DEPLOY_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$DEPLOY_RESOURCE_GROUP" = "$RESOURCE_GROUP"
+          test "${{ vars.AZURE_SUBSCRIPTION_ID }}" = "$EXPECTED_SUBSCRIPTION"
+          test "${{ vars.AZURE_TENANT_ID }}" = "$EXPECTED_TENANT"
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" -o json > "$RUNNER_TEMP/app-before.json"
+          jq -e --arg image "$APP_IMAGE" '
+            def val($n): ([.properties.template.containers[0].env[] | select(.name==$n) | .value] | last) // "";
+            .properties.template.containers[0].image==$image and
+            .properties.latestRevisionName!="" and
+            val("SALUS_CUSTOMER_OIDC_ENABLED")=="0" and
+            val("SALUS_LEVEL1A_PILOT_EMAIL")=="" and
+            val("SALUS_LEVEL1A_PILOT_OBJECT_ID")=="" and
+            val("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED")=="0" and
+            val("SALUS_LEVEL1A_CHECKOUT_ENABLED")=="0" and
+            (val("SALUS_LEVEL1A_TEST_CHECKOUT_ONLY")=="" or val("SALUS_LEVEL1A_TEST_CHECKOUT_ONLY")=="0") and
+            val("SALUS_LEVEL1A_INTAKE_ENABLED")=="0" and
+            val("SALUS_LEVEL1A_UPLOAD_ENABLED")=="0" and
+            val("SALUS_PACKAGE_SCAN_MODE")=="off" and
+            val("SALUS_PACKAGE_SCANNER_ACCEPTED")=="0" and
+            val("SALUS_SCAN_QUARANTINE_URL")=="" and
+            val("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED")=="0"
+          ' "$RUNNER_TEMP/app-before.json" > /dev/null
+          echo "before_revision=$(jq -r '.properties.latestRevisionName' "$RUNNER_TEMP/app-before.json")" >> "$GITHUB_OUTPUT"
+
+          az containerapp job show -g "$RESOURCE_GROUP" -n "$WORKER_NAME" -o json > "$RUNNER_TEMP/worker-before.json"
+          jq -e --arg image "$WORKER_IMAGE" --arg quarantine "$QUARANTINE_URL" '
+            def val($n): ([.properties.template.containers[0].env[] | select(.name==$n) | .value] | last) // "";
+            .properties.template.containers[0].image==$image and
+            .properties.configuration.triggerType=="Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression=="*/5 * * * *" and
+            .properties.configuration.replicaRetryLimit==0 and
+            .identity.type=="UserAssigned" and
+            val("SALUS_PACKAGE_SCAN_MODE")=="defender" and
+            val("SALUS_SCAN_QUARANTINE_URL")==$quarantine and
+            val("SALUS_SCAN_RESULTS_QUEUE_URL")!="" and
+            val("SALUS_SCAN_RESULT_TOPIC_ID")!="" and
+            val("SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID")!=""
+          ' "$RUNNER_TEMP/worker-before.json" > /dev/null
+
+          ACCOUNT_ID="/subscriptions/$EXPECTED_SUBSCRIPTION/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Storage/storageAccounts/salcapadevb48224scan"
+          az rest --method GET --url "https://management.azure.com$ACCOUNT_ID/blobServices/default?api-version=2023-05-01" -o json > "$RUNNER_TEMP/blob-service.json"
+          jq -e '.properties.isVersioningEnabled==true and .properties.deleteRetentionPolicy.enabled==true' "$RUNNER_TEMP/blob-service.json" > /dev/null
+          az rest --method GET --url "https://management.azure.com$ACCOUNT_ID/providers/Microsoft.Security/defenderForStorageSettings/current?api-version=2025-06-01" -o json > "$RUNNER_TEMP/defender.json"
+          jq -e '.properties.isEnabled==true and .properties.malwareScanning.onUpload.isEnabled==true and .properties.malwareScanning.scanResultsEventGridTopicResourceId!=""' "$RUNNER_TEMP/defender.json" > /dev/null
+          ALERT_ROOT="/subscriptions/$EXPECTED_SUBSCRIPTION/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Insights"
+          ACTION_ID="$ALERT_ROOT/actionGroups/salcapa-dev-b48224-scan-alerts-v2"
+          az rest --method GET --url "https://management.azure.com$ACTION_ID?api-version=2023-01-01" -o json > "$RUNNER_TEMP/scan-alert-group.json"
+          jq -e '.properties.enabled==true and (.properties.emailReceivers|length)==1 and ((.properties.emailReceivers[0].emailAddress|ascii_downcase)=="mduncan@salus.solutions")' "$RUNNER_TEMP/scan-alert-group.json" > /dev/null
+          for NAME in salcapa-dev-b48224-scan-result-worker-failed salcapa-dev-b48224-scan-inventory-failed; do
+            az rest --method GET --url "https://management.azure.com$ALERT_ROOT/metricAlerts/$NAME?api-version=2018-03-01" -o json > "$RUNNER_TEMP/$NAME.json"
+            jq -e --arg action "$ACTION_ID" '.properties.enabled==true and .properties.severity==2 and (.properties.actions|length)==1 and ((.properties.actions[0].actionGroupId|ascii_downcase)==($action|ascii_downcase))' "$RUNNER_TEMP/$NAME.json" > /dev/null
+          done
+          for NAME in salcapa-dev-b48224-scan-result-worker-missed salcapa-dev-b48224-scan-inventory-missed; do
+            az rest --method GET --url "https://management.azure.com$ALERT_ROOT/scheduledQueryRules/$NAME?api-version=2023-12-01" -o json > "$RUNNER_TEMP/$NAME.json"
+            jq -e --arg action "$ACTION_ID" '.properties.enabled==true and .properties.severity==2 and (.properties.actions.actionGroups|length)==1 and ((.properties.actions.actionGroups[0]|ascii_downcase)==($action|ascii_downcase))' "$RUNNER_TEMP/$NAME.json" > /dev/null
+          done
+          echo 'Exact image, closed buyer controls, scheduled worker, versioned quarantine, Defender scanning, and single monitored alert route verified.'
+
+      - name: Enable only the named buyer sandbox paid-intake scan pilot
+        id: change
+        run: |
+          set -euo pipefail
+          az containerapp update -g "$RESOURCE_GROUP" -n "$APP_NAME" \
+            --set-env-vars \
+              SALUS_CUSTOMER_OIDC_ENABLED=1 \
+              SALUS_LEVEL1A_PILOT_EMAIL=MDuncan@Salus.Solutions \
+              SALUS_LEVEL1A_PILOT_OBJECT_ID=69ef2327-049a-4886-b18f-cada64b0d120 \
+              SALUS_LEVEL1A_ORDER_DRAFT_ENABLED=1 \
+              SALUS_LEVEL1A_CHECKOUT_ENABLED=1 \
+              SALUS_LEVEL1A_TEST_CHECKOUT_ONLY=1 \
+              SALUS_LEVEL1A_INTAKE_ENABLED=1 \
+              SALUS_LEVEL1A_UPLOAD_ENABLED=1 \
+              SALUS_PACKAGE_SCAN_MODE=defender \
+              SALUS_PACKAGE_SCANNER_ACCEPTED=1 \
+              SALUS_SCAN_QUARANTINE_URL="$QUARANTINE_URL" \
+            --only-show-errors -o none
+
+      - name: Verify new revision, ready app and retained single-buyer boundary
+        env:
+          BEFORE_REVISION: ${{ steps.preflight.outputs.before_revision }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" -o json > "$RUNNER_TEMP/app-after.json"
+            if jq -e --arg image "$APP_IMAGE" --arg quarantine "$QUARANTINE_URL" --arg before "$BEFORE_REVISION" '
+              def val($n): ([.properties.template.containers[0].env[] | select(.name==$n) | .value] | last) // "";
+              .properties.template.containers[0].image==$image and
+              .properties.latestRevisionName!=$before and
+              val("SALUS_CUSTOMER_OIDC_ENABLED")=="1" and
+              (val("SALUS_LEVEL1A_PILOT_EMAIL")|ascii_downcase)=="mduncan@salus.solutions" and
+              (val("SALUS_LEVEL1A_PILOT_OBJECT_ID")|ascii_downcase)=="69ef2327-049a-4886-b18f-cada64b0d120" and
+              val("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED")=="1" and
+              val("SALUS_LEVEL1A_CHECKOUT_ENABLED")=="1" and
+              val("SALUS_LEVEL1A_TEST_CHECKOUT_ONLY")=="1" and
+              val("SALUS_LEVEL1A_INTAKE_ENABLED")=="1" and
+              val("SALUS_LEVEL1A_UPLOAD_ENABLED")=="1" and
+              val("SALUS_PACKAGE_SCAN_MODE")=="defender" and
+              val("SALUS_PACKAGE_SCANNER_ACCEPTED")=="1" and
+              val("SALUS_SCAN_QUARANTINE_URL")==$quarantine and
+              val("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED")=="0"
+            ' "$RUNNER_TEMP/app-after.json" > /dev/null; then
+              fqdn="$(jq -r '.properties.configuration.ingress.fqdn' "$RUNNER_TEMP/app-after.json")"
+              status="$(curl --connect-timeout 5 --max-time 15 -sS -o "$RUNNER_TEMP/ready.json" -w '%{http_code}' "https://$fqdn/health/ready" || true)"
+              if test "$status" = 200; then
+                echo 'Protected single-buyer paid intake and scanner staging ready; test-only checkout preserved.'
+                exit 0
+              fi
+            fi
+            sleep 10
+          done
+          echo 'Pilot revision did not reach verified ready state.' >&2
+          exit 1
+
+      - name: Reclose buyer access and intake if activation or verification fails
+        if: failure() && steps.preflight.outcome == 'success'
+        run: |
+          set -euo pipefail
+          az containerapp update -g "$RESOURCE_GROUP" -n "$APP_NAME" \
+            --set-env-vars \
+              SALUS_CUSTOMER_OIDC_ENABLED=0 \
+              SALUS_LEVEL1A_PILOT_EMAIL= \
+              SALUS_LEVEL1A_PILOT_OBJECT_ID= \
+              SALUS_LEVEL1A_ORDER_DRAFT_ENABLED=0 \
+              SALUS_LEVEL1A_CHECKOUT_ENABLED=0 \
+              SALUS_LEVEL1A_TEST_CHECKOUT_ONLY=0 \
+              SALUS_LEVEL1A_INTAKE_ENABLED=0 \
+              SALUS_LEVEL1A_UPLOAD_ENABLED=0 \
+              SALUS_PACKAGE_SCAN_MODE=off \
+              SALUS_PACKAGE_SCANNER_ACCEPTED=0 \
+              SALUS_SCAN_QUARANTINE_URL= \
+            --only-show-errors -o none
+          az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" -o json > "$RUNNER_TEMP/app-reclosed.json"
+          jq -e --arg image "$APP_IMAGE" '
+            def val($n): ([.properties.template.containers[0].env[] | select(.name==$n) | .value] | last) // "";
+            .properties.template.containers[0].image==$image and
+            val("SALUS_CUSTOMER_OIDC_ENABLED")=="0" and
+            val("SALUS_LEVEL1A_PILOT_EMAIL")=="" and
+            val("SALUS_LEVEL1A_PILOT_OBJECT_ID")=="" and
+            val("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED")=="0" and
+            val("SALUS_LEVEL1A_CHECKOUT_ENABLED")=="0" and
+            val("SALUS_LEVEL1A_TEST_CHECKOUT_ONLY")=="0" and
+            val("SALUS_LEVEL1A_INTAKE_ENABLED")=="0" and
+            val("SALUS_LEVEL1A_UPLOAD_ENABLED")=="0" and
+            val("SALUS_PACKAGE_SCAN_MODE")=="off" and
+            val("SALUS_PACKAGE_SCANNER_ACCEPTED")=="0" and
+            val("SALUS_SCAN_QUARANTINE_URL")=="" and
+            val("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED")=="0"
+          ' "$RUNNER_TEMP/app-reclosed.json" > /dev/null
+          echo 'Buyer pilot and intake reclosed after failed activation.'
