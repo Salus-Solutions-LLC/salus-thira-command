@@ -466,9 +466,10 @@ resource scanAlertGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
   }
 }
 
-// The first group returned GroupEmpty for a real controlled failure even after
-// its email receiver was verified. Keep it attached while a separate group is
-// verified and tested; remove the old route only after real email delivery passes.
+// The first group returned GroupEmpty for a real controlled failure. Both groups
+// later delivered duplicate Fired and Resolved emails to the same operations
+// inbox. Retain this verified v2 route as the sole action on all four scanner
+// alerts; the legacy group remains provisioned but unbound for rollback.
 resource scanAlertGroupDeliveryRetry 'Microsoft.Insights/actionGroups@2023-01-01' = {
   name: '${stem}-scan-alerts-v2'
   location: 'global'
@@ -536,9 +537,6 @@ resource scanInventoryFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' 
     }
     actions: [
       {
-        actionGroupId: scanAlertGroup.id
-      }
-      {
         actionGroupId: scanAlertGroupDeliveryRetry.id
       }
     ]
@@ -589,9 +587,6 @@ resource scanWorkerFailureAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
     }
     actions: [
       {
-        actionGroupId: scanAlertGroup.id
-      }
-      {
         actionGroupId: scanAlertGroupDeliveryRetry.id
       }
     ]
@@ -639,7 +634,7 @@ resource scanWorkerMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@2023-1
       ]
     }
     actions: {
-      actionGroups: [scanAlertGroup.id, scanAlertGroupDeliveryRetry.id]
+      actionGroups: [scanAlertGroupDeliveryRetry.id]
     }
   }
 }
@@ -679,7 +674,7 @@ resource scanInventoryMissedRunAlert 'Microsoft.Insights/scheduledQueryRules@202
       ]
     }
     actions: {
-      actionGroups: [scanAlertGroup.id, scanAlertGroupDeliveryRetry.id]
+      actionGroups: [scanAlertGroupDeliveryRetry.id]
     }
   }
 }

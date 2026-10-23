@@ -1,0 +1,131 @@
+name: SalCAPA v3.255 scanner single alert route
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3255-scanner-single-alert-route.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-dev-scanner-alert-route
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected single-route scanner alert change approved.'
+
+  route:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Retain the verified v2 receiver on all four scanner alerts
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$EXPECTED_SUBSCRIPTION" = 076f90cd-cc6a-4547-a4ff-de3fc1825472
+          test "$EXPECTED_TENANT" = e06fd260-a201-44da-b03b-9cde7e119d04
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          python <<'PY'
+          import json, os, subprocess, sys
+
+          subscription=os.environ['EXPECTED_SUBSCRIPTION']
+          root=f'https://management.azure.com/subscriptions/{subscription}/resourceGroups/rg-salcapa-dev/providers/Microsoft.Insights'
+          legacy=f'/subscriptions/{subscription}/resourceGroups/rg-salcapa-dev/providers/Microsoft.Insights/actionGroups/salcapa-dev-b48224-scan-alerts'.lower()
+          retained=legacy+'-v2'
+          rules=(
+              ('metricAlerts','salcapa-dev-b48224-scan-result-worker-failed','2018-03-01'),
+              ('metricAlerts','salcapa-dev-b48224-scan-inventory-failed','2018-03-01'),
+              ('scheduledQueryRules','salcapa-dev-b48224-scan-result-worker-missed','2023-12-01'),
+              ('scheduledQueryRules','salcapa-dev-b48224-scan-inventory-missed','2023-12-01'),
+          )
+          def azure(method,url,body=None):
+              command=['az','rest','--method',method,'--url',url,'--output','json','--only-show-errors']
+              if body is not None:
+                  command+=['--headers','Content-Type=application/json','--body',json.dumps(body,separators=(',',':'))]
+              result=subprocess.run(command,capture_output=True,text=True,timeout=45)
+              if result.returncode: raise RuntimeError('Azure '+method+' failed')
+              return json.loads(result.stdout)
+          def group(name):
+              return azure('GET',f'{root}/actionGroups/{name}?api-version=2023-01-01')
+          groups=[group('salcapa-dev-b48224-scan-alerts'),group('salcapa-dev-b48224-scan-alerts-v2')]
+          addresses=[]
+          for item in groups:
+              props=item.get('properties') or {}
+              receivers=props.get('emailReceivers') or []
+              if props.get('enabled') is not True or len(receivers)!=1:
+                  raise SystemExit('Alert group preflight failed')
+              address=receivers[0].get('emailAddress')
+              if not isinstance(address,str) or not address:
+                  raise SystemExit('Alert receiver preflight failed')
+              addresses.append(address.casefold())
+          if addresses[0]!=addresses[1]:
+              raise SystemExit('Routes do not target the same inbox')
+          print('verified_receiver_groups=2; same_inbox=true; retained_v2_enabled=true')
+          baseline=[]
+          keys=('enabled','severity','criteria','evaluationFrequency','windowSize','scopes','autoMitigate','description','targetResourceType','targetResourceRegion')
+          for kind,name,api in rules:
+              url=f'{root}/{kind}/{name}?api-version={api}'
+              item=azure('GET',url)
+              props=item.get('properties') or {}
+              if props.get('enabled') is not True or props.get('severity')!=2:
+                  raise SystemExit('Alert rule not enabled at Sev2')
+              actions=props.get('actions')
+              if kind=='metricAlerts':
+                  if not isinstance(actions,list): raise SystemExit('Metric actions shape changed')
+                  ids=[str(x.get('actionGroupId') or '').lower() for x in actions]
+                  kept=[x for x in actions if str(x.get('actionGroupId') or '').lower()==retained]
+                  new_actions=kept
+              else:
+                  if not isinstance(actions,dict): raise SystemExit('Query actions shape changed')
+                  ids=[str(x).lower() for x in actions.get('actionGroups') or []]
+                  new_actions={**actions,'actionGroups':[x for x in actions.get('actionGroups') or [] if str(x).lower()==retained]}
+              if sorted(ids)!=sorted((legacy,retained)) or len(new_actions if kind=='metricAlerts' else new_actions['actionGroups'])!=1:
+                  raise SystemExit('Alert routing differs from the reviewed two-route starting state')
+              baseline.append((url,props,{'properties':{'actions':new_actions}}))
+          attempted=[]
+          try:
+              for url,before,payload in baseline:
+                  attempted.append((url,before['actions']))
+                  after=azure('PATCH',url,payload).get('properties') or {}
+                  readback=azure('GET',url).get('properties') or {}
+                  if after.get('actions')!=payload['properties']['actions'] or readback.get('actions')!=payload['properties']['actions']:
+                      raise RuntimeError('Single-route readback failed')
+                  if any(readback.get(key)!=before.get(key) for key in keys):
+                      raise RuntimeError('Non-routing alert property changed')
+          except Exception:
+              restored=0
+              for url,old_actions in reversed(attempted):
+                  try:
+                      azure('PATCH',url,{'properties':{'actions':old_actions}})
+                      if (azure('GET',url).get('properties') or {}).get('actions')==old_actions:
+                          restored+=1
+                  except Exception:
+                      pass
+              print(f'rollback_verified={restored}/{len(attempted)}')
+              raise SystemExit('Single-route change failed; review rollback count')
+          print('enabled_sev2_scanner_rules_with_one_verified_v2_route=4')
+          print('Legacy action group remains available but unbound; no alert was disabled.')
+          PY

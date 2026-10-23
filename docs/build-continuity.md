@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 23 October 2026 16:27 CDT
+last_verified_at: 23 October 2026 17:25 CDT
 current_frozen_release: v3.255
 current_frozen_commit: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 active_development_branch: development/salcapa-platform
-current_development_head: 46b95f818dc715ab662a0bb86ba9734fa61c0db8
+current_development_head: 7e011fc8343b1422993da68cccb6c92e8a1f52fe
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3255_scanner_failed_execution_live_evaluator_acceptance
+active_increment: salus_v3255_single_scanner_alert_route_live_evaluator_acceptance
 last_completed_increment: v3255_scanner_result_worker_deployed_protected
 candidate_release: v3.255
-validation_pr: 1005
-validation_branch: codex/v3255-scanner-failed-run-diagnostic-20261023
+validation_pr: 1006
+validation_branch: codex/v3255-single-scanner-alert-route-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3255
-first_root_failing_gate: v3255_scheduled_scanner_execution_failed_at_2026_10_23_2145_utc
-root_cause: exact_failed_execution_reason_under_investigation_and_duplicate_alert_routing_open
+first_root_failing_gate: duplicate_scanner_alert_notifications_from_two_groups_to_same_inbox
+root_cause: both_legacy_and_v2_action_groups_attached_to_all_four_scanner_alerts
 repair_head: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 repair_summary: frozen_v3255_paid_scan_status_and_same_event_deadlock_retry
-genuine_blockers: v3255_failed_execution_cause_and_observed_recovery_duplicate_alert_route_verification_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
-next_authorized_step: validate_exact_failed_execution_diagnostic_then_Marc_exact_head_review
+genuine_blockers: duplicate_alert_route_repair_and_readback_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
+next_authorized_step: validate_single_route_candidate_then_Marc_exact_head_review
 deployed_demo_release: v3.255
 deployed_demo_state: v3255_app_knowledge_and_scan_result_workers_protected_deployed_buyer_closed
 ---
 
 # SalCAPA build continuity
+
+v3255_single_scanner_alert_route_candidate: Marc approved PR #1005 exact head `7b33a7a19633f00bdc0aaaaee2d39a18f5eb110c` after all three checks. Merge `7e011fc8343b1422993da68cccb6c92e8a1f52fe` triggered protected run `40032817803`; the 21:45 UTC scanner execution was Failed but had no readable replica, exit code or reason, followed by six successful scheduled runs through 22:15 UTC and a resolved alert. No definitive failure cause is established. Both real Fired and Resolved notices were duplicated because legacy and v2 action groups target the same inbox; v2 real delivery is verified. This candidate keeps the alert rules enabled at Sev2, retains v2 as sole route on four scanner alerts and keeps the legacy group provisioned for rollback. Its protected change requires exact Azure preflight, action-only patch, readback and rollback on failure, plus CI and Marc exact-head review before merge. Public payment/intake remain closed; do not repeat `L1A-10` payment/upload.
 
 v3255_scanner_failed_execution_candidate: Marc exact-approved PR #1004 head `8e76d4743ba7933e98e32ca43340d2495f569b89` after all checks. Merge `46b95f818dc715ab662a0bb86ba9734fa61c0db8` triggered protected run `40030711239`, which counted five completed scanner console markers and five succeeded scheduled runs after 21:26 UTC, plus one failed scheduled execution. Azure history identifies the 21:45 UTC execution `salcapa-dev-b48224-scan-worker-29879865` as Failed, with nearby runs succeeding. The 21:51 UTC failure-metric alert is therefore real. Log ingestion lag explains earlier missing console rows but does not explain the failed execution; the system-log query used a nonexistent execution field and yielded no diagnostic. This candidate reads that exact execution and replica status through Azure without logging raw reason text, document or queue data. Both alert groups remain active pending cause/recovery and separately reviewed duplicate-route correction. Buyer controls remain closed; do not repeat `L1A-10` payment/upload.
 
