@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 23 October 2026 16:18 CDT
+last_verified_at: 23 October 2026 16:27 CDT
 current_frozen_release: v3.255
 current_frozen_commit: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 active_development_branch: development/salcapa-platform
-current_development_head: 545f0430c17d60b601b86f5eaddadde672502b4a
+current_development_head: f8d4cded683b14ed8046a7bd38091c8f7a5bd149
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3255_scanner_worker_application_promotion
-last_completed_increment: v3255_application_and_knowledge_worker_deployed_protected
+active_increment: salus_v3255_scanner_worker_outcome_observation
+last_completed_increment: v3255_scanner_result_worker_deployed_protected
 candidate_release: v3.255
-validation_pr: 1002
-validation_branch: codex/v3255-scan-worker-promotion-20261023
+validation_pr: 1003
+validation_branch: codex/v3255-scan-worker-outcomes-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3255
-first_root_failing_gate: v3255_scan_result_worker_still_v3254_and_paid_buyer_intake_scanner_four_report_acceptance
-root_cause: v3255_retry_not_live_in_five_minute_worker_duplicate_alert_routing_and_adverse_scanner_real_reports_unaccepted
+first_root_failing_gate: v3255_worker_scheduled_recovery_unmeasured_and_paid_buyer_intake_scanner_four_report_acceptance
+root_cause: v3255_worker_deployed_outcomes_unmeasured_duplicate_alert_routing_and_adverse_scanner_real_reports_unaccepted
 repair_head: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 repair_summary: frozen_v3255_paid_scan_status_and_same_event_deadlock_retry
-genuine_blockers: v3255_protected_scan_worker_promotion_and_observed_recovery_duplicate_alert_route_verification_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
-next_authorized_step: validate_scan_result_worker_image_promotion_candidate_then_Marc_exact_head_review
+genuine_blockers: v3255_observed_worker_recovery_duplicate_alert_route_verification_named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
+next_authorized_step: validate_count_only_worker_outcome_candidate_then_Marc_exact_head_review
 deployed_demo_release: v3.255
-deployed_demo_state: v3255_app_and_knowledge_worker_protected_deployed_buyer_closed_scan_result_worker_v3254
+deployed_demo_state: v3255_app_knowledge_and_scan_result_workers_protected_deployed_buyer_closed
 ---
 
 # SalCAPA build continuity
+
+v3255_scanner_worker_deployed_outcome_candidate: Marc approved PR #1002 at corrected exact head `aa02fb90a06e07acd39a536a9563d521f37c8bc4` after all three required checks passed. Merge `f8d4cded683b14ed8046a7bd38091c8f7a5bd149` triggered protected run `40026625955`, which succeeded and read back the five-minute scanner-result worker on v3.255 digest `sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241` with non-image configuration unchanged. Scheduled outcome and alert recovery remain unmeasured. This candidate performs one protected count-only read of post-promotion scheduled worker markers. Both alert groups remain active; later removal of the duplicate route requires surviving-recipient and real-delivery verification plus separate exact-head review. Buyer controls remain closed; do not repeat `L1A-10` payment/upload.
 
 v3255_app_deployed_scan_result_worker_candidate: Marc approved PR #1001 exact head `a71e52889d390ef8361037192ddf06ea33815ce8` after all required checks passed. Merge `545f0430c17d60b601b86f5eaddadde672502b4a` triggered protected deployment run `40024382099`, which succeeded. The v3.255 app and two-minute knowledge worker passed registry, readiness, Microsoft 365, fictional Advisor and worker checks with buyer controls closed. The independent five-minute scan-result worker remains v3.254. This candidate promotes only its image to the already verified v3.255 digest after exact closed-state and job-configuration checks, with v3.254 rollback. Required CI, Marc's exact-head review, protected run and observed scheduled outcomes remain. Both alert action groups still deliver; remove duplicate routing only after the surviving route is confirmed. Public live payment/intake stay closed; do not repeat `L1A-10` payment/upload.
 

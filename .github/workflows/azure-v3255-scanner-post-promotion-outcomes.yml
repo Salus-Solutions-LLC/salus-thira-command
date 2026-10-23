@@ -1,0 +1,98 @@
+name: SalCAPA v3.255 scanner post-promotion outcomes
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3255-scanner-post-promotion-outcomes.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected count-only scanner outcome review approved.'
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify exact image and read only safe scheduled outcomes
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$EXPECTED_SUBSCRIPTION" = 076f90cd-cc6a-4547-a4ff-de3fc1825472
+          test "$EXPECTED_TENANT" = e06fd260-a201-44da-b03b-9cde7e119d04
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/worker.json"
+          jq -e '
+            .properties.provisioningState == "Succeeded" and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/5 * * * *" and
+            .properties.template.containers[0].image == "salcapadevb48224acr.azurecr.io/salcapa@sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241"
+          ' "$RUNNER_TEMP/worker.json" > /dev/null
+          workspace="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$workspace"
+          query="ContainerAppConsoleLogs | where TimeGenerated >= datetime(2026-10-23T21:26:00Z) | where JobName == 'salcapa-dev-b48224-scan-worker' | where Log contains 'scan_result_job' | project Log | take 500"
+          az monitor log-analytics query --workspace "$workspace" --analytics-query "$query" -o json > "$RUNNER_TEMP/outcomes.json"
+          python - "$RUNNER_TEMP/outcomes.json" <<'PY'
+          import collections,json,sys
+          data=json.load(open(sys.argv[1],encoding='utf-8'))
+          if isinstance(data,list):
+              rows=data
+          elif isinstance(data,dict) and 'tables' in data:
+              table=(data.get('tables') or [{}])[0]
+              columns=[c.get('name') for c in table.get('columns',[])]
+              rows=[dict(zip(columns,row)) for row in table.get('rows',[])]
+          elif isinstance(data,dict):
+              rows=data.get('value') or []
+          else:
+              rows=[]
+          if len(rows)>500:
+              raise SystemExit('Bounded worker outcome result exceeded limit')
+          counts=collections.Counter()
+          for row in rows:
+              raw=row.get('Log') if isinstance(row,dict) else None
+              if not isinstance(raw,str) or len(raw)>4096 or 'scan_result_job' not in raw: continue
+              try: value=json.loads(raw[raw.index('{'):raw.rindex('}')+1])
+              except (ValueError,json.JSONDecodeError): continue
+              state=value.get('scan_result_job')
+              if state=='completed':
+                  outcome=value.get('outcome')
+                  counts['completed_'+(outcome if outcome in ('Empty','Held','Acknowledged') else 'Other')]+=1
+              elif state=='failed':
+                  phase=value.get('failure_phase')
+                  kind=value.get('error_type')
+                  phase=phase if phase in ('poll','reconcile') else 'Other'
+                  kind=kind if kind in ('ImportError','DeadlockDetected','OperationalError','InterfaceError',
+                      'TimeoutError','ServiceRequestError','HttpResponseError',
+                      'QuarantineError','ValueError','RuntimeError','PermissionError') else 'Other'
+                  counts['failed_'+phase+'_'+kind]+=1
+          print('v3255_scheduled_worker_image=verified')
+          print('bounded_console_row_count='+str(len(rows)))
+          print('safe_outcome_marker_count='+str(sum(counts.values())))
+          for key in sorted(counts): print(key+'='+str(counts[key]))
+          if not counts:
+              raise SystemExit('No post-promotion scanner outcome marker; leave intake unaccepted')
+          PY
+          echo 'No queue, document, database, Blob, job execution or Azure setting was changed.'
