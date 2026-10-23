@@ -86,6 +86,51 @@ def test_queue_never_acks_malformed_or_partial_message():
         process_event=lambda event: 'Promoted' if event['id'] == 1 else 'Reconcile')
 
 
+def test_queue_event_retries_only_transaction_deadlock_before_ack(monkeypatch):
+    class DeadlockDetected(Exception):
+        sqlstate = '40P01'
+
+    monkeypatch.setenv('SALUS_SCAN_RESULTS_QUEUE_URL',
+                       'https://salusquarantine.queue.core.windows.net/scan-results')
+    monkeypatch.setenv('SALUS_SCAN_RESULT_TOPIC_ID', '/subscriptions/test/topic')
+    queue = Queue(json.dumps({'id': 'event-1'}))
+    calls = []
+    def process_event(event):
+        calls.append(event['id'])
+        if len(calls) < 3:
+            raise DeadlockDetected('private/member/path')
+        return 'Promoted'
+
+    monkeypatch.setattr('salus_scan_worker.time.sleep', lambda _: None)
+    assert poll_once(queue_client=queue, process_event=process_event) == 'Acknowledged'
+    assert calls == ['event-1'] * 3
+    assert queue.deleted == [('message-1', 'receipt-1')]
+
+
+def test_exhausted_queue_event_deadlock_keeps_message_unacknowledged(monkeypatch):
+    class DeadlockDetected(Exception):
+        sqlstate = '40P01'
+
+    monkeypatch.setenv('SALUS_SCAN_RESULTS_QUEUE_URL',
+                       'https://salusquarantine.queue.core.windows.net/scan-results')
+    monkeypatch.setenv('SALUS_SCAN_RESULT_TOPIC_ID', '/subscriptions/test/topic')
+    queue = Queue(json.dumps({'id': 'event-1'}))
+    calls = []
+    def process_event(event):
+        calls.append(event['id'])
+        raise DeadlockDetected('private/member/path')
+
+    monkeypatch.setattr('salus_scan_worker.time.sleep', lambda _: None)
+    try:
+        poll_once(queue_client=queue, process_event=process_event)
+    except DeadlockDetected:
+        pass
+    else:
+        assert False, 'Exhausted deadlocks must surface as a failed run'
+    assert calls == ['event-1'] * 3
+    assert queue.deleted == []
+
+
 def test_scheduled_result_worker_failure_redacts_sensitive_exception(capsys):
     def fail():
         raise RuntimeError('private/member/path?sig=secret')

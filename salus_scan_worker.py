@@ -16,7 +16,7 @@ from itertools import islice
 _QUEUE_URL = re.compile(r'https://[a-z0-9]{3,24}\.queue\.core\.windows\.net/scan-results\Z')
 
 
-def process_queue_message(content, *, process_event):
+def process_queue_message(content, *, process_event, sleep=None):
     """Return True only when every trusted-queue event was durably handled."""
     if not isinstance(content, str) or len(content) > 65536:
         return False
@@ -40,7 +40,17 @@ def process_queue_message(content, *, process_event):
     for event in events:
         if not isinstance(event, dict):
             return False
-        outcome = process_event(event)
+        for attempt in range(3):
+            try:
+                outcome = process_event(event)
+                break
+            except Exception as exc:
+                # A deadlocked database transaction rolls back. Retry the same
+                # event, never the queue receive; acknowledgement still waits
+                # until every event in the message has been handled durably.
+                if getattr(exc, 'sqlstate', None) != '40P01' or attempt == 2:
+                    raise
+                (sleep or time.sleep)(0.25 * (attempt + 1))
         if outcome not in ('Promoted', 'Malicious', 'Unscanned'):
             return False
     return True
