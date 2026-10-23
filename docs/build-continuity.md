@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 23 October 2026 14:24 CDT
+last_verified_at: 23 October 2026 14:47 CDT
 current_frozen_release: v3.255
 current_frozen_commit: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 active_development_branch: development/salcapa-platform
@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3255_paid_assessment_immutable_image_publication
 last_completed_increment: v3255_source_frozen_after_scan_status_and_deadlock_retry
 candidate_release: v3.255
-validation_pr: pending
+validation_pr: 1000
 validation_branch: codex/v3255-image-publication-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
