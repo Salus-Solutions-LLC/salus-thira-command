@@ -1,0 +1,131 @@
+name: SalCAPA v3.254 pending snapshot readback
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3254-pending-snapshot-readback.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only snapshot readback gate passed.'
+
+  readback:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Read existing exact-window execution status and safe log markers
+        env:
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SUBSCRIPTION" = '076f90cd-cc6a-4547-a4ff-de3fc1825472'
+          test "$EXPECTED_TENANT" = 'e06fd260-a201-44da-b03b-9cde7e119d04'
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp job show -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/job.json"
+          jq -e '
+            .name=="salcapa-dev-b48224-scan-inv" and
+            .properties.configuration.triggerType=="Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression=="0 2 * * *" and
+            .properties.template.containers[0].image=="salcapadevb48224acr.azurecr.io/salcapa@sha256:715a9e3b74d981226749af04589e2730f3c44359066392cc8fcf16f78e477b44"
+          ' "$RUNNER_TEMP/job.json" > /dev/null
+          az containerapp job execution list -g rg-salcapa-dev -n salcapa-dev-b48224-scan-inv -o json > "$RUNNER_TEMP/executions.json"
+          WORKSPACE_ID="$(az monitor log-analytics workspace show -g rg-salcapa-dev -n salcapa-dev-b48224-logs --query customerId -o tsv)"
+          test -n "$WORKSPACE_ID"
+          az monitor log-analytics query --workspace "$WORKSPACE_ID" --analytics-query "ContainerAppConsoleLogs | where TimeGenerated between (datetime(2026-10-23T00:13:00Z) .. datetime(2026-10-23T00:22:00Z)) | where JobName == 'salcapa-dev-b48224-scan-inv' or ContainerName contains 'scan-inv' | where Log contains 'level1a_pending_snapshot' | project Log | take 20" -o json > "$RUNNER_TEMP/snapshot-logs.json"
+          python - "$RUNNER_TEMP/executions.json" "$RUNNER_TEMP/snapshot-logs.json" <<'PY'
+          import json
+          import re
+          import sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          executions = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          if isinstance(executions, dict):
+              executions = executions.get('value', [])
+          start = datetime(2026, 10, 23, 0, 13, tzinfo=timezone.utc)
+          end = datetime(2026, 10, 23, 0, 14, tzinfo=timezone.utc)
+          matches = []
+          for item in executions:
+              props = item.get('properties') or {}
+              raw = props.get('startTime') or ''
+              try:
+                  stamp = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+              except ValueError:
+                  continue
+              if start <= stamp < end and re.fullmatch(
+                  r'salcapa-dev-b48224-scan-inv-[a-z0-9]+', item.get('name') or ''):
+                  matches.append(props)
+          if len(matches) != 1:
+              raise SystemExit('Exact-window private execution count differs from one')
+          status = matches[0].get('status') or 'Unknown'
+          print('snapshot_execution_status=' + (
+              status if status in {'Succeeded', 'Failed', 'Running', 'Pending'} else 'Other'))
+
+          value = json.loads(Path(sys.argv[2]).read_text(encoding='utf-8'))
+          if isinstance(value, dict) and 'tables' in value:
+              table = (value.get('tables') or [{}])[0]
+              columns = [column.get('name') for column in table.get('columns', [])]
+              rows = [dict(zip(columns, row)) for row in table.get('rows', [])]
+          elif isinstance(value, list):
+              rows = value
+          else:
+              rows = value.get('value', []) if isinstance(value, dict) else []
+          snapshots = []
+          failures = []
+          for row in rows:
+              line = row.get('Log') or ''
+              marker = 'level1a_pending_snapshot='
+              error_marker = 'level1a_pending_snapshot_error='
+              if marker in line:
+                  try:
+                      record = json.loads(line.split(marker, 1)[1])
+                  except (TypeError, ValueError):
+                      continue
+                  if set(record) != {'pending_rows', 'statuses', 'event_recorded_count',
+                                     'clean_upload_count'}:
+                      continue
+                  if not all(type(record[key]) is int and 0 <= record[key] <= 5 for key in
+                             ('pending_rows', 'event_recorded_count', 'clean_upload_count')):
+                      continue
+                  if not isinstance(record['statuses'], dict) or any(
+                      key not in {'Pending', 'Promoted', 'Malicious', 'Unscanned',
+                                  'Reconcile', 'Other'} or type(count) is not int
+                      or not 0 <= count <= 5 for key, count in record['statuses'].items()):
+                      continue
+                  snapshots.append(record)
+              elif error_marker in line:
+                  kind = line.split(error_marker, 1)[1].strip()
+                  if re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,63}', kind):
+                      failures.append(kind)
+          if len(snapshots) == 1 and not failures:
+              print('level1a_pending_snapshot=' + json.dumps(snapshots[0], sort_keys=True))
+          elif len(failures) == 1 and not snapshots:
+              print('snapshot_failure_class=' + failures[0])
+          elif not failures and not snapshots:
+              print('snapshot_marker_available=false')
+          else:
+              raise SystemExit('Snapshot markers are ambiguous')
+          print('private_job_exact_image_and_schedule=verified')
+          PY
