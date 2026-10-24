@@ -174,7 +174,8 @@ jobs:
           import yaml
 
           for name in ('azure-application-deploy.yml', 'protection-advisor-live-acceptance.yml',
-                       'azure-level1a-private-adverse-once.yml'):
+                       'azure-level1a-private-adverse-once.yml',
+                       'azure-level1a-private-adverse-preflight.yml'):
               document = yaml.safe_load(Path('.github/workflows', name).read_text(encoding='utf-8'))
               for job in document['jobs'].values():
                   for step in job['steps']:
