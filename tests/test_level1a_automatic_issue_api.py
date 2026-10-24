@@ -4,14 +4,17 @@ import os
 import subprocess
 import sys
 import textwrap
+import pytest
 
 
-def test_signed_in_issue_retry_and_download(tmp_path):
+@pytest.mark.parametrize('review_mode',['Independent','Single-operator'])
+def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
     env=os.environ.copy()
     env.update(SALUS_DB_PATH=str(tmp_path/'orders.db'),
                SALUS_LOCAL_STORAGE_DIR=str(tmp_path/'files'),
                SALUS_BACKUP_DIR=str(tmp_path/'backups'),
                SALUS_SEED_DEMO='0',SALUS_AUTH_MODE='session',
+               SALUS_TEST_SOLO_REVIEW=str(review_mode=='Single-operator'),
                SALUS_LEVEL1A_ORDER_DRAFT_ENABLED='1',
                PYTHONPATH=os.pathsep.join(filter(None,(os.getcwd(),env.get('PYTHONPATH','')))))
     program=textwrap.dedent('''
@@ -19,8 +22,10 @@ def test_signed_in_issue_retry_and_download(tmp_path):
         from fastapi.testclient import TestClient
         from hashlib import sha256
         from io import BytesIO
+        import os
         import app
         import salus_level1a_agreement_ledger as ledger
+        solo_mode=os.environ['SALUS_TEST_SOLO_REVIEW']=='True'
 
         doc=Document()
         for line in (
@@ -276,6 +281,37 @@ def test_signed_in_issue_retry_and_download(tmp_path):
             qualification_basis='Fictional assessment director trained for the exact method.',
             review_note='All fictional pages and source details were reviewed in this isolated test.')
         assert staff.post(review_url,json=review).status_code==409
+        solo={**review,'review_mode':'Single-operator',
+            'review_note':'Single-operator human review: every fictional page and source checked.'}
+        assert staff.post(review_url,json=solo).status_code==403
+        app.LEVEL1A_SOLO_REVIEWER_EMAIL='fictional-report-owner@example.test'
+        app.LEVEL1A_SOLO_REVIEWER_OBJECT_ID='fictional-entra-object-id'
+        app.LEVEL1A_SOLO_REVIEW_ORDER_ID=str(oid)
+        conn=app.db()
+        conn.execute('UPDATE users SET email=?,external_subject=?,identity_provider=? WHERE id=?',
+            ('fictional-report-owner@example.test',
+            'fictional-entra-object-id','entra',staff_uid))
+        conn.commit();conn.close()
+        # A session-mode login cannot activate the protected exception.
+        assert staff.post(review_url,json=solo).status_code==403
+        app.AUTH_MODE='oidc'
+        approved_solo=staff.post(review_url,json=solo)
+        assert approved_solo.status_code==200,approved_solo.text
+        assert staff.post(review_url,json=solo).json()['idempotent']
+        conn=app.db()
+        stored=conn.execute('SELECT review_mode FROM level1a_report_qa_reviews WHERE id=?',
+            (approved_solo.json()['id'],)).fetchone()
+        assert stored['review_mode']=='Single-operator'
+        conn.close()
+        app.LEVEL1A_SOLO_REVIEWER_OBJECT_ID=''
+        blocked_solo=staff.get(f'/api/assessments/{assessment_id}/level1a-report-readiness')
+        assert 'SalINTEL: qualified human review missing' in blocked_solo.json()['blockers']
+        app.LEVEL1A_SOLO_REVIEWER_OBJECT_ID='fictional-entra-object-id'
+        if solo_mode:
+            reviewer=staff
+            review=solo
+        else:
+            app.AUTH_MODE='session'
         checked=reviewer.post(review_url,json=review)
         assert checked.status_code==200 and checked.json()['decision']=='Reviewed',checked.text
         assert reviewer.post(review_url,json=review).json()['idempotent']

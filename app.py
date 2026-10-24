@@ -81,6 +81,9 @@ LEVEL1A_PILOT_EMAIL = os.getenv('SALUS_LEVEL1A_PILOT_EMAIL','').strip().casefold
 LEVEL1A_PILOT_OBJECT_ID = os.getenv('SALUS_LEVEL1A_PILOT_OBJECT_ID','').strip().lower()
 LEVEL1A_INTAKE_ENABLED = os.getenv('SALUS_LEVEL1A_INTAKE_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_UPLOAD_ENABLED = os.getenv('SALUS_LEVEL1A_UPLOAD_ENABLED','0').lower() in ('1','true','yes')
+LEVEL1A_SOLO_REVIEWER_EMAIL = os.getenv('SALUS_LEVEL1A_SOLO_REVIEWER_EMAIL','').strip().casefold()
+LEVEL1A_SOLO_REVIEWER_OBJECT_ID = os.getenv('SALUS_LEVEL1A_SOLO_REVIEWER_OBJECT_ID','').strip().lower()
+LEVEL1A_SOLO_REVIEW_ORDER_ID = os.getenv('SALUS_LEVEL1A_SOLO_REVIEW_ORDER_ID','').strip()
 PACKAGE_SCAN_MODE = os.getenv('SALUS_PACKAGE_SCAN_MODE','inline').strip().lower()
 PACKAGE_SCANNER_ACCEPTED = os.getenv('SALUS_PACKAGE_SCANNER_ACCEPTED','0').lower() in ('1','true','yes')
 
@@ -1873,6 +1876,7 @@ def init_db():
     conn.executescript(LEVEL1A_PAYMENT_SQL)
     conn.executescript(INTAKE_SQL)
     conn.executescript(REPORT_SOURCE_SQL)
+    ensure_column('level1a_report_qa_reviews','review_mode',"TEXT NOT NULL DEFAULT 'Independent'")
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
     ensure_column('evidence_attachments','scanned_at','TEXT NOT NULL DEFAULT ""')
@@ -3149,6 +3153,7 @@ class PackageReportQaReviewIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     evidence_id: int = Field(gt=0)
     decision: Literal['Reviewed','Returned']
+    review_mode: Literal['Independent','Single-operator'] = 'Independent'
     checks: dict[str,bool]
     qualification_basis: str = Field(min_length=20,max_length=2000)
     review_note: str = Field(min_length=20,max_length=4000)
@@ -8525,9 +8530,23 @@ def record_level1a_report_conformance(report_id:int,p:PackageReportConformanceIn
     finally:
         conn.rollback();conn.close()
 
+def _level1a_solo_reviewer_allowed(conn,user_id:int,order_id:int) -> bool:
+    """Require one explicitly pinned Entra identity and paid order."""
+    if not (LEVEL1A_SOLO_REVIEWER_EMAIL and LEVEL1A_SOLO_REVIEWER_OBJECT_ID
+            and LEVEL1A_SOLO_REVIEW_ORDER_ID==str(order_id)):
+        return False
+    reviewer=conn.execute('''SELECT username,email,external_subject,identity_provider,role,status
+        FROM users WHERE id=?''',(user_id,)).fetchone()
+    return bool(reviewer and reviewer['status']=='Active'
+        and reviewer['role'] in ('System Administrator','Assessment Director')
+        and (reviewer['email'] or reviewer['username'] or '').casefold()==LEVEL1A_SOLO_REVIEWER_EMAIL
+        and (reviewer['external_subject'] or '').lower()==LEVEL1A_SOLO_REVIEWER_OBJECT_ID
+        and reviewer['identity_provider']=='entra')
+
+
 @app.post('/api/level1a-reports/{report_id}/qa-reviews')
 def review_level1a_report_qa(report_id:int,p:PackageReportQaReviewIn,request:Request):
-    """Require an independent named reviewer and the exact rendered pages."""
+    """Require exact pages and a named human reviewer with an honest review mode."""
     if (set(p.checks)!=set(PACKAGE_REPORT_REVIEW_KEYS) or
             any(type(value) is not bool for value in p.checks.values())):
         raise HTTPException(422,'Record each required report review check.')
@@ -8549,8 +8568,15 @@ def review_level1a_report_qa(report_id:int,p:PackageReportQaReviewIn,request:Req
                 evidence['content_sha256']!=report['content_sha256'] or
                 evidence['order_id']!=source['order_id']):
             raise HTTPException(409,'Review requires the latest exact QA archive.')
-        if evidence['submitted_by_user_id']==ctx['user_id']:
+        same_operator=evidence['submitted_by_user_id']==ctx['user_id']
+        if p.review_mode=='Independent' and same_operator:
             raise HTTPException(409,'Independent review requires a different reviewer.')
+        if p.review_mode=='Single-operator' and (not same_operator or
+                ctx['auth_mode']!='oidc' or
+                not _level1a_solo_reviewer_allowed(conn,ctx['user_id'],source['order_id'])):
+            raise HTTPException(403,'Single-operator review requires the protected named Salus reviewer.')
+        if p.review_mode=='Single-operator' and 'single-operator' not in p.review_note.casefold():
+            raise HTTPException(422,'Disclose the single-operator human review in the review note.')
         try: archive=storage.get_bytes(evidence['stored_name'])
         except (StorageError,FileNotFoundError) as exc:
             raise HTTPException(503,'Exact report QA evidence is unavailable.') from exc
@@ -8570,6 +8596,8 @@ def review_level1a_report_qa(report_id:int,p:PackageReportQaReviewIn,request:Req
             'archive_sha256':evidence['archive_sha256'],'decision':p.decision,
             'checks':checks,'qualification_basis':p.qualification_basis.strip(),
             'review_note':p.review_note.strip(),'reviewer_user_id':ctx['user_id']}
+        if p.review_mode=='Single-operator':
+            record['review_mode']=p.review_mode
         digest=hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
         prior=conn.execute('''SELECT id FROM level1a_report_qa_reviews WHERE
             tenant_id=? AND evidence_id=? AND record_sha256=?''',
@@ -8579,15 +8607,15 @@ def review_level1a_report_qa(report_id:int,p:PackageReportQaReviewIn,request:Req
         cur=conn.execute('''INSERT INTO level1a_report_qa_reviews
             (tenant_id,order_id,assessment_id,report_id,evidence_id,
              content_sha256,archive_sha256,decision,checks_json,
-             qualification_basis,review_note,record_sha256,reviewer_user_id,reviewer_at)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+             qualification_basis,review_note,review_mode,record_sha256,reviewer_user_id,reviewer_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
             (tid,source['order_id'],report['assessment_id'],report_id,p.evidence_id,
              report['content_sha256'],evidence['archive_sha256'],p.decision,
              json.dumps(checks,sort_keys=True,separators=(',',':')),
-             p.qualification_basis.strip(),p.review_note.strip(),digest,
+             p.qualification_basis.strip(),p.review_note.strip(),p.review_mode,digest,
              ctx['user_id'],now()))
         audit(conn,'LEVEL1A_REPORT_QA_REVIEW','assessment',report['assessment_id'],
-            f'report_id={report_id}; decision={p.decision}; sha256={digest}',actor(request))
+            f'report_id={report_id}; decision={p.decision}; review_mode={p.review_mode}; sha256={digest}',actor(request))
         conn.commit()
         return {'id':cur.lastrowid,'decision':p.decision,'record_sha256':digest,
             'notice':'A review does not issue or deliver a report.'}
@@ -8719,17 +8747,27 @@ def _level1a_report_release_checks(conn,assessment_id:int,source,request:Request
             'checks':review_checks,'qualification_basis':review['qualification_basis'],
             'review_note':review['review_note'],
             'reviewer_user_id':review['reviewer_user_id']} if review and qa else None)
+        review_mode=(review['review_mode'] if review else 'Independent')
+        if review_record and review_mode=='Single-operator':
+            review_record['review_mode']=review_mode
         review_digest=(hashlib.sha256(json.dumps(review_record,
             sort_keys=True,separators=(',',':')).encode()).hexdigest()
             if review_record else '')
+        review_identity_valid=bool(review and qa and (
+            (review_mode=='Independent' and
+                review['reviewer_user_id']!=qa['submitted_by_user_id']) or
+            (review_mode=='Single-operator' and
+                review['reviewer_user_id']==qa['submitted_by_user_id'] and
+                _level1a_solo_reviewer_allowed(conn,review['reviewer_user_id'],source['order_id']) and
+                'single-operator' in review['review_note'].casefold())))
         if (not review or review['decision']!='Reviewed' or not qa or
                 review['content_sha256']!=row['content_sha256'] or
                 review['archive_sha256']!=qa['archive_sha256'] or
-                review['reviewer_user_id']==qa['submitted_by_user_id'] or
+                not review_identity_valid or
                 set(review_checks)!=set(PACKAGE_REPORT_REVIEW_KEYS) or
                 not all(review_checks.values()) or
                 review['record_sha256']!=review_digest):
-            blockers.append(f'{product}: independent qualified review missing')
+            blockers.append(f'{product}: qualified human review missing')
         reports[product]=row
         if matrix and qa and review:
             snapshots[product]={'report_id':row['id'],'version_no':row['version_no'],
@@ -8737,6 +8775,8 @@ def _level1a_report_release_checks(conn,assessment_id:int,source,request:Request
                 'pdf_sha256':json.loads(qa['manifest_json'])['pdf_sha256'],
                 'conformance_id':matrix['id'],'qa_evidence_id':qa['id'],
                 'qa_review_id':review['id']}
+            if review_mode=='Single-operator':
+                snapshots[product]['review_mode']=review_mode
     comparison=conn.execute('''SELECT * FROM level1a_report_reconciliations WHERE
         tenant_id=? AND order_id=? ORDER BY id DESC LIMIT 1''',
         (tid,source['order_id'])).fetchone()
@@ -9755,6 +9795,8 @@ def list_package_report_qa_reviews(report_id:int,request:Request):
 @app.post('/api/package-reports/{report_id}/qa-reviews')
 def record_package_report_qa_review(report_id:int,p:PackageReportQaReviewIn,request:Request):
     require_package_commercial_candidate();require(request,'decide')
+    if p.review_mode!='Independent':
+        raise HTTPException(422,'The legacy package path requires independent review.')
     ctx=auth_context(request)
     if (role(request) not in ('System Administrator','Assessment Director')
             or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):

@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS level1a_report_qa_reviews (
   checks_json TEXT NOT NULL,
   qualification_basis TEXT NOT NULL,
   review_note TEXT NOT NULL,
+  review_mode TEXT NOT NULL DEFAULT 'Independent',
   record_sha256 TEXT NOT NULL,
   reviewer_user_id INTEGER NOT NULL,
   reviewer_at TEXT NOT NULL,
