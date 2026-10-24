@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "operation": "run_level1a_private_adverse_once",
+  "target_environment": "dev",
+  "resource_group": "rg-salcapa-dev",
+  "job_name": "salcapa-dev-b48224-scan-test",
+  "source_commit": "d19d7a8cc0a233c8982761a121083cf29e1f22d7",
+  "image_digest": "sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241",
+  "script_sha256": "a149258b9c268c8b1f21ed55851214adc036428a78b7e606d8d0405ffdca06eb",
+  "order_reference": "L1A-10",
+  "buyer_email": "MDuncan@Salus.Solutions",
+  "intake_item": "Leadership priorities and constraints",
+  "prior_runs_of_this_activation": 0,
+  "maximum_runs": 1,
+  "approval_record": "MD-LEVEL1A-EICAR-20261024-V3"
+}
