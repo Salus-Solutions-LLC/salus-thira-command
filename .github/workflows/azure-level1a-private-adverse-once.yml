@@ -143,23 +143,63 @@ jobs:
           Path(sys.argv[3]).write_text(json.dumps(override,separators=(',',':')),encoding='utf-8')
           print('One execution-only reviewed command prepared; job definition remains unchanged.')
           PY
+          az containerapp job execution list -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/prior-executions.json"
+          python - "$RUNNER_TEMP/prior-executions.json" <<'PY'
+          import json,sys
+          rows=json.load(open(sys.argv[1],encoding='utf-8'))
+          if not isinstance(rows,list) or any(not isinstance(row.get('name'),str) for row in rows):
+              raise SystemExit('Prior private executions could not be enumerated')
+          print('Prior private executions enumerated without changing the job.')
+          PY
       - name: Start exactly one private adverse execution
         shell: bash
         run: |
           set -euo pipefail
           az rest --method POST --url "https://management.azure.com$JOB_ID/start?api-version=2025-07-01" \
             --body "@$RUNNER_TEMP/start-body.json" -o json > "$RUNNER_TEMP/started.json"
-          python - "$RUNNER_TEMP/started.json" "$GITHUB_ENV" <<'PY'
+          python - "$RUNNER_TEMP/started.json" "$RUNNER_TEMP/prior-executions.json" "$GITHUB_ENV" <<'PY'
           import json,re,sys
           from pathlib import Path
-          result=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          raw=Path(sys.argv[1]).read_text(encoding='utf-8').strip()
+          result=json.loads(raw) if raw else {}
           name=str(result.get('name',''))
-          if not re.fullmatch(r'salcapa-dev-b48224-scan-test-[a-z0-9-]{1,40}',name):
-              raise SystemExit('Start response lacked an exact execution name; inspect Azure and do not retry')
-          with open(sys.argv[2],'a',encoding='utf-8') as out:
-              out.write('PRIVATE_EXECUTION_NAME='+name+'\n')
-          print('One bounded private Level 1A adverse execution started.')
+          if name and not re.fullmatch(r'salcapa-dev-b48224-scan-test-[a-z0-9-]{1,40}',name):
+              raise SystemExit('Start returned an unexpected execution; inspect Azure and do not retry')
+          prior=json.loads(Path(sys.argv[2]).read_text(encoding='utf-8'))
+          if name and name in {row['name'] for row in prior}:
+              raise SystemExit('Start returned a prior execution; inspect Azure and do not retry')
+          if name:
+              with open(sys.argv[3],'a',encoding='utf-8') as out:
+                  out.write('PRIVATE_EXECUTION_NAME='+name+'\n')
+          print('Private start request accepted; execution lookup follows if Azure returned no name.')
           PY
+          if ! grep -q '^PRIVATE_EXECUTION_NAME=' "$GITHUB_ENV"; then
+            for attempt in $(seq 1 12); do
+              az containerapp job execution list -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/current-executions.json"
+              name="$(python - "$RUNNER_TEMP/prior-executions.json" "$RUNNER_TEMP/current-executions.json" <<'PY'
+          import json,re,sys
+          prior=json.load(open(sys.argv[1],encoding='utf-8'))
+          current=json.load(open(sys.argv[2],encoding='utf-8'))
+          if not isinstance(current,list):
+              raise SystemExit('Execution list unavailable; inspect Azure and do not retry')
+          old={row['name'] for row in prior}
+          new={str(row.get('name','')) for row in current}-old
+          if len(new)>1:
+              raise SystemExit('Multiple new executions; inspect Azure and do not retry')
+          name=next(iter(new),'')
+          if name and not re.fullmatch(r'salcapa-dev-b48224-scan-test-[a-z0-9-]{1,40}',name):
+              raise SystemExit('Unexpected new execution; inspect Azure and do not retry')
+          print(name)
+          PY
+          )"
+              if [ -n "$name" ]; then
+                echo "PRIVATE_EXECUTION_NAME=$name" >> "$GITHUB_ENV"
+                break
+              fi
+              sleep 10
+            done
+            test -n "${name:-}" || { echo 'Started execution not identifiable; inspect Azure and do not retry'; exit 1; }
+          fi
       - name: Observe terminal outcome without printing private logs
         shell: bash
         run: |
