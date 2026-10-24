@@ -9,10 +9,18 @@ permissions:
   contents: read
 
 jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only Level 1A adverse preflight gate passed.'
+
   inspect:
+    needs: authorize
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: salcapa-dev-approval
     permissions:
       contents: read
       id-token: write
