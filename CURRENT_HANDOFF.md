@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 24 October 2026 Central — second adverse activation stopped at preflight
+
+- Marc exact-approved [PR #1014](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1014) head `468a5da65bf0f4e24971aaac1b5cc8a5d79d78af` after all three checks passed; squash merge `31d981a373412f5de96d8b0ea84a802043cda684` triggered [protected run 40114772192](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40114772192). Authorization, activation marker, Azure login, target and immutable image checks passed. The private manual job check still exited `Private manual job differs from reviewed preflight` before the Start step. The job definition was not changed, no EICAR bytes or upload were created, and payment was not repeated. Do not rerun this spent v2 activation.
+- Comparison of the diagnostic and activation source found a remaining expression difference: diagnostic `props.get('ingress') is None` can be true even if Azure returns an explicit null `ingress` key; activation requires the key to be absent. A new read-only candidate reports whether that exact key is absent and whether the v2 resource guard matches. It reveals only booleans and starts no job. Require its protected result before any separately reviewed v3 activation. Public Wix purchase, live payment, intake, uploads and report issue remain closed.
+
 ## 24 October 2026 Central — optional storage field confirmed; new activation candidate
 
 - Marc exact-approved [PR #1012](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1012) head `932aaa3c5076f08e42ac1525eff20401bc316281` after all three checks passed; squash merge `444bc4574b76f8603a171d11cdb0d183404641fb` triggered [protected read-only run 40113933896](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40113933896). It confirmed the job resources contain exactly CPU, memory and Azure's optional `ephemeralStorage`, with matching CPU/memory, a string storage value and no other field. The other previously checked job clauses were true. No job started or Azure setting changed.
