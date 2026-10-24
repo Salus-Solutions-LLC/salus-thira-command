@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 24 October 2026 Central — private job differs only in resource field set
+
+- Marc exact-approved [PR #1011](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1011) head `42d14efbd9c8bf1ebca7d76359aeee49ea5dc494` after all three required checks passed; squash merge `89a17a6b6daa2410cb9fcc49f7bdca7d8fdb6153` triggered [protected run 40113634968](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40113634968). Its approval and Azure login passed. The read-only job inspection found 23 of 24 clauses true: exact identity, tags, trigger, image, command, CPU, memory, required environment, PostgreSQL target and quarantine target matched. Only equality of the complete container resource object was false. No job start, file, data, or Azure setting changed.
+- A follow-on read-only candidate checks only whether the remaining field is Azure's optional `ephemeralStorage`, whether it is a string and whether any other resource field exists. Its output is boolean only. The one-time PR #1009 activation remains spent; a corrected activation requires separate reviewed source and a new one-run marker. Public Wix purchase, live payment, public intake, and report issue remain closed.
+
 ## 24 October 2026 Central — adverse preflight login stopped before Azure read
 
 - Marc exact-approved PR #1010 head `f6c3d7353dc5b2ac1f1d5b741717d108b2a31d74` after the three required checks passed. Squash merge `dbac14084ba3ad40ce415625720b3bd1aa4b0acf` triggered [protected run 40057134088](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40057134088). Its Azure login failed with `AADSTS700213`: the inspection job used the protected environment's OIDC subject, which has no matching federated credential. The job never queried Azure or classified the private test-job clauses. No EICAR file, upload, payment, or Azure setting changed.
