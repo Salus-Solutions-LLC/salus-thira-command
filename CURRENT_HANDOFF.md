@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 24 October 2026 Central — single-operator source merged; governance and upload gate remain
+
+- Marc approved [PR #1020](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1020) at exact head `2b35c3e22af06bfff83e92eec1baf5196230d2b3` after all four required checks passed. It merged as `42cdc50f73b5941d8a10334b34de2fd706d7c1ad`. The bounded Level 1A single-operator review mode is disabled by default and is not deployed or configured in Azure. Marc remains the sole Salus human; ChatGPT is neither an independent reviewer nor an issue authority.
+- SAL-D114 is proposed in this source change for exact review. It records the one-human operating reality without waiving source reconciliation, malware screening, rendered-page QA, explicit human issue, buyer segregation or public release controls. Do not treat the candidate as an operative Charter exception before its own governed merge.
+- The paid staff Word-draft and page-evidence upload routes still require inline Clean scanner results. The protected application image has no ClamAV executable or signatures; the existing integration test mocks a Clean result. This leaves the four-report pilot blocked at actual staff upload. Prepare a separately reviewed fail-closed scanner repair using the existing Azure quarantine, authenticated Defender result, and exact-version worker path. Do not bypass screening or describe the four reports as accepted.
+- Fictional order L1A-10, its single sandbox payment, the cleared Cedar statement, and the held EICAR test are unchanged. Public Wix purchase, live payment, public intake and report issue remain closed. Next action: validate and merge this source-only governance record after Marc's exact-head review, then implement and prove staff-file screening before report registration.
+
 ## 24 October 2026 Central — fictional source cleared; single-operator review proposed
 
 - Marc approved exact fictional Cedar Site statement DOCX SHA-256 `97A4F3BF4C60DFD5162C4ECF34EFC345F747DD71127284C105FF121BA681C752`. It was uploaded once to the existing sandbox-paid L1A-10 order under Essential work and locations; fresh buyer-page readbacks showed Pending and then cleared. This proves the visible scanner status, not an independent server-side hash or the truth of the six fictional statements. Exclude the earlier real Salus document and held EICAR sample from Cedar Site report evidence. No payment or prior upload was repeated.
