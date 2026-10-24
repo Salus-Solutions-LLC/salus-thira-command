@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 24 October 2026 Central — adverse preflight login stopped before Azure read
+
+- Marc exact-approved PR #1010 head `f6c3d7353dc5b2ac1f1d5b741717d108b2a31d74` after the three required checks passed. Squash merge `dbac14084ba3ad40ce415625720b3bd1aa4b0acf` triggered [protected run 40057134088](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40057134088). Its Azure login failed with `AADSTS700213`: the inspection job used the protected environment's OIDC subject, which has no matching federated credential. The job never queried Azure or classified the private test-job clauses. No EICAR file, upload, payment, or Azure setting changed.
+- A source candidate now places the environment approval in a separate authorization job and runs the subsequent read-only Azure inspection without that environment, matching the previously working protected workflow pattern. This remains a candidate until required CI and Marc's exact-head review pass. The one-time adverse activation from PR #1009 must not be rerun. Public Wix purchase, live payment, intake, uploads, and report issue remain closed. After the diagnostic succeeds, correct only the mismatched preflight clause and seek separate exact-source review for one new bounded adverse test.
+
 ## 23 October 2026 Central — protected adverse test stopped before upload
 
 - Marc approved [PR #1009](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1009) exact head `afd66d6297e3b87df92eaa0f2c1e7b5065b49dca` after all three checks passed; squash merge `a1d7f1f24dce44de8b686b59af18b6f66a29a50a` triggered protected [run 40047290405](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40047290405). The approval gate and exact subscription, tenant and immutable image checks succeeded. The existing private manual test job differed from the candidate's pinned preflight, so the run failed **before** its Start step. No EICAR bytes were created in Azure, no new upload or payment occurred, and the job definition was not changed. Do not rerun this one-time activation or infer an adverse result.
