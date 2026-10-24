@@ -5,29 +5,31 @@ last_verified_at: 23 October 2026 19:25 CDT
 current_frozen_release: v3.255
 current_frozen_commit: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 active_development_branch: development/salcapa-platform
-current_development_head: 926d75f2ee8216f447b950e34575445fc9184139
+current_development_head: 8d8b51b33399b42b59547e494289abf46501c94b
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3255_paid_buyer_intake_acceptance_live_evaluator_acceptance
+active_increment: salus_v3255_adverse_scanner_acceptance_live_evaluator_acceptance
 last_completed_increment: v3255_named_buyer_paid_intake_pilot_protected
 candidate_release: v3.255
-validation_pr: 1008
-validation_branch: codex/v3255-paid-intake-pilot-readback-20261023
+validation_pr: 1009
+validation_branch: codex/v3255-adverse-test-local-av-handoff-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3255
 first_root_failing_gate: v3255_adverse_scanner_and_full_paid_intake_acceptance_pending
-root_cause: clean_paid_order_upload_verified_but_adverse_file_and_complete_intake_not_yet_exercised
+root_cause: local_defender_blocked_eicar_before_upload_and_complete_intake_not_yet_exercised
 repair_head: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 repair_summary: frozen_v3255_paid_scan_status_and_same_event_deadlock_retry
 genuine_blockers: adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
-next_authorized_step: record_protected_pilot_readback_then_complete_bounded_adverse_and_intake_acceptance
+next_authorized_step: review_protected_in_cloud_adverse_test_candidate_then_complete_intake_acceptance
 deployed_demo_release: v3.255
 deployed_demo_state: v3255_app_knowledge_and_scan_result_workers_protected_deployed_named_buyer_test_only_pilot
 ---
 
 # SalCAPA build continuity
+
+v3255_local_eicar_boundary: Marc approved PR #1008 exact head `551639527e486c27ee6a85c56f779b9cba7b1f6b` after three passing checks; merge `8d8b51b33399b42b59547e494289abf46501c94b` recorded the protected named-buyer pilot. Fresh Microsoft sign-in showed fictional paid order `L1A-10` and its earlier test document as cleared. Marc authorized one new standard EICAR upload to its Leadership priorities request, but local Defender blocked reading the 68-byte file before browser selection. The temporary local file was removed. No new SalCAPA upload or Azure change occurred; no malicious outcome may be claimed. Do not weaken endpoint protection. This unmerged candidate creates the standard sample only inside an exact-source reviewed private Azure job execution, calls the real Level 1A upload handler for the same fictional order after payment/scope/authority/empty-item checks, and requires a real Defender Malicious/held result with zero promoted copies. It preserves the manual job definition and does not retry a failed or timed-out upload. Required CI, Marc exact-head approval, protected result and retained-version disposition remain. Public live payment/intake and four-report issue remain closed; do not repeat the payment, existing upload or four historical scanner dispositions.
 
 v3255_named_buyer_paid_intake_pilot_verified: Marc approved PR #1007 exact head `74917ef9166c14f346498f4d4c1403407c01ab43` after all checks. Merge `926d75f2ee8216f447b950e34575445fc9184139` triggered protected run `40044597140`; Azure verified exact v3.255 app and scanner images, closed starting state, scheduled worker, versioned quarantine, Defender and one enabled Sev2 v2 email route per alert. It then enabled only `MDuncan@Salus.Solutions` for Stripe sandbox paid intake and scanner uploads and read back a ready new app revision. No payment/upload was repeated and no public access opened. The existing fictional `L1A-10` clean file is Promoted, but adverse scan, complete intake, substantive four-report qualification/OPM QA, and separate live public release remain. Next natural alert must confirm one-copy delivery; do not induce a failure.
 
