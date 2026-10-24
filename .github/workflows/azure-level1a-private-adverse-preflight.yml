@@ -78,6 +78,7 @@ jobs:
               'completion_count':(cfg.get('manualTriggerConfig') or {}).get('replicaCompletionCount')==1,
               'no_schedule':cfg.get('scheduleTriggerConfig') is None,
               'no_ingress':props.get('ingress') is None,
+              'ingress_key_absent':'ingress' not in props,
               'one_container':len(containers)==1 and not template.get('initContainers'),
               'container_name':container.get('name')=='fictional-scan-acceptance',
               'prior_image':container.get('image')==('salcapadevb48224acr.azurecr.io/salcapa@'+os.environ['PRIOR_IMAGE_DIGEST']),
@@ -88,6 +89,12 @@ jobs:
               'ephemeral_storage_present':'ephemeralStorage' in (container.get('resources') or {}),
               'ephemeral_storage_string':isinstance((container.get('resources') or {}).get('ephemeralStorage'),str),
               'no_other_resource_fields':set((container.get('resources') or {})) <= {'cpu','memory','ephemeralStorage'},
+              'v2_resource_guard':(
+                  set(container.get('resources') or {})=={'cpu','memory','ephemeralStorage'}
+                  and (container.get('resources') or {}).get('cpu')==0.25
+                  and (container.get('resources') or {}).get('memory')=='0.5Gi'
+                  and isinstance((container.get('resources') or {}).get('ephemeralStorage'),str)
+                  and bool((container.get('resources') or {}).get('ephemeralStorage'))),
               'required_env':all(env.get(key)==value for key,value in expected_env.items()),
               'client_identity_present':bool(env.get('AZURE_CLIENT_ID')),
               'postgres_target':str(env.get('SALUS_POSTGRES_HOST') or '').startswith('salcapa-dev-b48224-pg.'),
