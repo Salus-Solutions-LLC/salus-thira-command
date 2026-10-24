@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 23 October 2026 17:57 CDT
+last_verified_at: 23 October 2026 19:25 CDT
 current_frozen_release: v3.255
 current_frozen_commit: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 active_development_branch: development/salcapa-platform
-current_development_head: 718c26f1ca073d04829657c4b1590f3346596651
+current_development_head: 926d75f2ee8216f447b950e34575445fc9184139
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3255_paid_buyer_intake_pilot_live_evaluator_acceptance
-last_completed_increment: v3255_scanner_result_worker_deployed_protected
+active_increment: salus_v3255_paid_buyer_intake_acceptance_live_evaluator_acceptance
+last_completed_increment: v3255_named_buyer_paid_intake_pilot_protected
 candidate_release: v3.255
-validation_pr: 1007
-validation_branch: codex/v3255-paid-buyer-intake-pilot-20261023
+validation_pr: 1008
+validation_branch: codex/v3255-paid-intake-pilot-readback-20261023
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_currently_observed_for_v3255
-first_root_failing_gate: v3255_named_buyer_paid_intake_and_adverse_scanner_acceptance_pending
-root_cause: buyer_controls_closed_after_v3255_deployment_and_no_adverse_file_acceptance_yet
+first_root_failing_gate: v3255_adverse_scanner_and_full_paid_intake_acceptance_pending
+root_cause: clean_paid_order_upload_verified_but_adverse_file_and_complete_intake_not_yet_exercised
 repair_head: d19d7a8cc0a233c8982761a121083cf29e1f22d7
 repair_summary: frozen_v3255_paid_scan_status_and_same_event_deadlock_retry
-genuine_blockers: named_buyer_reactivation_adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
-next_authorized_step: validate_guarded_v3255_named_buyer_pilot_then_Marc_exact_head_review
+genuine_blockers: adverse_scanner_full_intake_human_four_report_issue_and_separate_public_release
+next_authorized_step: record_protected_pilot_readback_then_complete_bounded_adverse_and_intake_acceptance
 deployed_demo_release: v3.255
-deployed_demo_state: v3255_app_knowledge_and_scan_result_workers_protected_deployed_buyer_closed
+deployed_demo_state: v3255_app_knowledge_and_scan_result_workers_protected_deployed_named_buyer_test_only_pilot
 ---
 
 # SalCAPA build continuity
+
+v3255_named_buyer_paid_intake_pilot_verified: Marc approved PR #1007 exact head `74917ef9166c14f346498f4d4c1403407c01ab43` after all checks. Merge `926d75f2ee8216f447b950e34575445fc9184139` triggered protected run `40044597140`; Azure verified exact v3.255 app and scanner images, closed starting state, scheduled worker, versioned quarantine, Defender and one enabled Sev2 v2 email route per alert. It then enabled only `MDuncan@Salus.Solutions` for Stripe sandbox paid intake and scanner uploads and read back a ready new app revision. No payment/upload was repeated and no public access opened. The existing fictional `L1A-10` clean file is Promoted, but adverse scan, complete intake, substantive four-report qualification/OPM QA, and separate live public release remain. Next natural alert must confirm one-copy delivery; do not induce a failure.
 
 v3255_named_buyer_paid_intake_pilot_candidate: Marc approved PR #1006 exact head `4f931de679dc6804e5ba850f61f25d708ddfe83c` after all three checks. Merge `718c26f1ca073d04829657c4b1590f3346596651` triggered protected run `40036733717`, which verified both groups address the same inbox and read back all four scanner alerts enabled at Sev2 with only the v2 group attached. The duplicate configuration is removed; the next natural real alert has not yet established single-copy delivery. This candidate guards reactivation of only `MDuncan@Salus.Solutions` for the already paid fictional order's Stripe sandbox intake and scanner pilot on exact v3.255 app and worker images, closed-state and scanner/alert checks, and failure reclosure. It does not repeat payment/upload or open public access. Required CI and Marc exact-head approval precede protected activation. Adverse-file, full intake and qualified four-report issue remain open.
 
