@@ -3,13 +3,13 @@ name: SalCAPA one-time Level 1A adverse scanner acceptance
 on:
   push:
     branches: [development/salcapa-platform]
-    paths: ['deploy/azure/activations/level1a-private-adverse-once-dev.json']
+    paths: ['deploy/azure/activations/level1a-private-adverse-once-v2-dev.json']
 
 permissions:
   contents: read
 
 concurrency:
-  group: salcapa-level1a-private-adverse-once-dev
+  group: salcapa-level1a-private-adverse-once-v2-dev
   cancel-in-progress: false
 
 jobs:
@@ -46,7 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$(git rev-list --count HEAD -- deploy/azure/activations/level1a-private-adverse-once-dev.json)" = 1
+          test "$(git rev-list --count HEAD -- deploy/azure/activations/level1a-private-adverse-once-v2-dev.json)" = 1
           git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
           SCRIPT_SHA="$(sha256sum tools/level1a_private_adverse_once.py | cut -d ' ' -f 1)"
           jq -e --arg source "$SOURCE_COMMIT" --arg digest "$IMAGE_DIGEST" --arg script "$SCRIPT_SHA" '
@@ -61,12 +61,12 @@ jobs:
             .buyer_email == "MDuncan@Salus.Solutions" and
             .intake_item == "Leadership priorities and constraints" and
             .prior_runs_of_this_activation == 0 and .maximum_runs == 1 and
-            .approval_record == "MD-LEVEL1A-EICAR-20261023" and
+            .approval_record == "MD-LEVEL1A-EICAR-20261024-V2" and
             ((keys - ["schema_version","operation","target_environment","resource_group",
               "job_name","source_commit","image_digest","script_sha256","order_reference",
               "buyer_email","intake_item","prior_runs_of_this_activation","maximum_runs",
               "approval_record"]) | length == 0)
-          ' deploy/azure/activations/level1a-private-adverse-once-dev.json >/dev/null
+          ' deploy/azure/activations/level1a-private-adverse-once-v2-dev.json >/dev/null
       - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
@@ -104,6 +104,7 @@ jobs:
           identities=(job.get('identity') or {}).get('userAssignedIdentities') or {}
           template=props.get('template') or {}
           containers=template.get('containers') or []
+          resources=(containers[0].get('resources') or {}) if len(containers)==1 else {}
           if (str(job.get('id','')).casefold()!=expected_id.casefold() or
               job.get('tags',{}).get('sourceCommit')!='7867fa72ae404aa5ed37abd104ecc1c69b9ea190' or
               job.get('tags',{}).get('approvalRecord')!='MD-PRIVATE-SCANNER-JOB-20261003' or
@@ -119,7 +120,10 @@ jobs:
               containers[0].get('name')!='fictional-scan-acceptance' or
               containers[0].get('image')!=('salcapadevb48224acr.azurecr.io/salcapa@'+os.environ['PRIOR_IMAGE_DIGEST']) or
               containers[0].get('command')!=['python','-m','tools.private_scanner_acceptance','--execute'] or
-              containers[0].get('resources')!={'cpu':0.25,'memory':'0.5Gi'}):
+              set(resources)!={'cpu','memory','ephemeralStorage'} or
+              resources.get('cpu')!=0.25 or resources.get('memory')!='0.5Gi' or
+              not isinstance(resources.get('ephemeralStorage'),str) or
+              not resources.get('ephemeralStorage')):
               raise SystemExit('Private manual job differs from reviewed preflight')
           env={item.get('name'):item.get('value') for item in containers[0].get('env',[])}
           required={
