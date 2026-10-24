@@ -1,0 +1,257 @@
+name: SalCAPA one-time Level 1A adverse scanner acceptance v4
+
+on:
+  push:
+    branches: [development/salcapa-platform]
+    paths: ['deploy/azure/activations/level1a-private-adverse-once-v4-dev.json']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-level1a-private-adverse-once-v4-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected exact-source Level 1A adverse test gate passed.'
+
+  run:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SOURCE_COMMIT: d19d7a8cc0a233c8982761a121083cf29e1f22d7
+      IMAGE_DIGEST: sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241
+      PRIOR_IMAGE_DIGEST: sha256:36b48158a6cb13bc8f408af0f9b6cefcf49014907ce117e14898a08f892498bc
+      RESOURCE_GROUP: rg-salcapa-dev
+      JOB_NAME: salcapa-dev-b48224-scan-test
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      EXPECTED_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify reviewed one-run activation and script
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$(git rev-list --count HEAD -- deploy/azure/activations/level1a-private-adverse-once-v4-dev.json)" = 1
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$GITHUB_SHA"
+          SCRIPT_SHA="$(sha256sum tools/level1a_private_adverse_once.py | cut -d ' ' -f 1)"
+          jq -e --arg source "$SOURCE_COMMIT" --arg digest "$IMAGE_DIGEST" --arg script "$SCRIPT_SHA" '
+            type == "object" and .schema_version == 1 and
+            .operation == "run_level1a_private_adverse_once" and
+            .target_environment == "dev" and
+            .resource_group == "rg-salcapa-dev" and
+            .job_name == "salcapa-dev-b48224-scan-test" and
+            .source_commit == $source and .image_digest == $digest and
+            .script_sha256 == $script and
+            .order_reference == "L1A-10" and
+            .buyer_email == "MDuncan@Salus.Solutions" and
+            .intake_item == "Leadership priorities and constraints" and
+            .prior_runs_of_this_activation == 0 and .maximum_runs == 1 and
+            .approval_record == "MD-LEVEL1A-EICAR-20261024-V4" and
+            ((keys - ["schema_version","operation","target_environment","resource_group",
+              "job_name","source_commit","image_digest","script_sha256","order_reference",
+              "buyer_email","intake_item","prior_runs_of_this_activation","maximum_runs",
+              "approval_record"]) | length == 0)
+          ' deploy/azure/activations/level1a-private-adverse-once-v4-dev.json >/dev/null
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify exact Azure target and immutable image
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION_ID"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT_ID"
+          test "$(az group show -n "$RESOURCE_GROUP" --query location -o tsv)" = southcentralus
+          actual="$(az acr manifest show-metadata --registry salcapadevb48224acr --name "salcapa:source-$SOURCE_COMMIT" --query digest -o tsv)"
+          test "$actual" = "$IMAGE_DIGEST"
+          echo 'Exact target and v3.255 registry digest verified.'
+      - name: Verify private manual job and prepare execution-only override
+        shell: bash
+        run: |
+          set -euo pipefail
+          JOB_ID="/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/jobs/$JOB_NAME"
+          echo "JOB_ID=$JOB_ID" >> "$GITHUB_ENV"
+          az rest --method GET --url "https://management.azure.com$JOB_ID?api-version=2025-01-01" -o json > "$RUNNER_TEMP/job-before.json"
+          python - "$RUNNER_TEMP/job-before.json" tools/level1a_private_adverse_once.py "$RUNNER_TEMP/start-body.json" <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          job=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          expected_id=(f"/subscriptions/{os.environ['EXPECTED_SUBSCRIPTION_ID']}"
+              f"/resourceGroups/{os.environ['RESOURCE_GROUP']}/providers/Microsoft.App/jobs/"
+              f"{os.environ['JOB_NAME']}")
+          identity_id=(f"/subscriptions/{os.environ['EXPECTED_SUBSCRIPTION_ID']}"
+              f"/resourceGroups/{os.environ['RESOURCE_GROUP']}/providers/"
+              "Microsoft.ManagedIdentity/userAssignedIdentities/salcapa-dev-b48224-identity")
+          props=job.get('properties') or {}
+          config=props.get('configuration') or {}
+          identities=(job.get('identity') or {}).get('userAssignedIdentities') or {}
+          template=props.get('template') or {}
+          containers=template.get('containers') or []
+          resources=(containers[0].get('resources') or {}) if len(containers)==1 else {}
+          if (str(job.get('id','')).casefold()!=expected_id.casefold() or
+              job.get('tags',{}).get('sourceCommit')!='7867fa72ae404aa5ed37abd104ecc1c69b9ea190' or
+              job.get('tags',{}).get('approvalRecord')!='MD-PRIVATE-SCANNER-JOB-20261003' or
+              props.get('provisioningState')!='Succeeded' or
+              (job.get('identity') or {}).get('type')!='UserAssigned' or
+              {key.casefold() for key in identities}!={identity_id.casefold()} or
+              config.get('triggerType')!='Manual' or config.get('replicaTimeout')!=1200 or
+              config.get('replicaRetryLimit')!=0 or
+              (config.get('manualTriggerConfig') or {}).get('parallelism')!=1 or
+              (config.get('manualTriggerConfig') or {}).get('replicaCompletionCount')!=1 or
+              config.get('scheduleTriggerConfig') is not None or 'ingress' in props or
+              len(containers)!=1 or template.get('initContainers') or
+              containers[0].get('name')!='fictional-scan-acceptance' or
+              containers[0].get('image')!=('salcapadevb48224acr.azurecr.io/salcapa@'+os.environ['PRIOR_IMAGE_DIGEST']) or
+              containers[0].get('command')!=['python','-m','tools.private_scanner_acceptance','--execute'] or
+              set(resources)!={'cpu','memory','ephemeralStorage'} or
+              resources.get('cpu')!=0.25 or resources.get('memory')!='0.5Gi' or
+              not isinstance(resources.get('ephemeralStorage'),str)):
+              raise SystemExit('Private manual job differs from reviewed preflight')
+          env={item.get('name'):item.get('value') for item in containers[0].get('env',[])}
+          required={
+              'SALUS_ACCEPTANCE_PRIVATE_JOB':'1',
+              'SALUS_ACCEPTANCE_JOB_NAME':'salcapa-dev-b48224-scan-test',
+              'SALUS_ENV':'dev','SALUS_AUTH_MODE':'session',
+              'SALUS_DB_BACKEND':'postgres','SALUS_STORAGE_BACKEND':'azure',
+              'SALUS_PACKAGE_SCAN_MODE':'defender',
+              'SALUS_AZURE_STORAGE_CONTAINER':'evidence',
+          }
+          if any(env.get(key)!=value for key,value in required.items()):
+              raise SystemExit('Private job environment differs from reviewed bounds')
+          if (not env.get('AZURE_CLIENT_ID') or
+              env.get('SALUS_ACCEPTANCE_EXPECTED_QUARANTINE_URL')!=env.get('SALUS_SCAN_QUARANTINE_URL')):
+              raise SystemExit('Private job identity or quarantine target differs')
+          if template.get('volumes') or containers[0].get('volumeMounts') or containers[0].get('args'):
+              raise SystemExit('Private job requires mounts or arguments; Start override is not safe')
+          allowed_container={'name','image','command','args','env','resources','volumeMounts'}
+          if any(key not in allowed_container and value not in (None,[],{},'')
+                 for key,value in containers[0].items()):
+              raise SystemExit('Private job has an unreviewed container field')
+          env_entries=containers[0].get('env') or []
+          if (not isinstance(env_entries,list) or
+              any(not isinstance(item,dict) or
+                  set(item)-{'name','value','secretRef'} or
+                  not isinstance(item.get('name'),str)
+                  for item in env_entries)):
+              raise SystemExit('Private job environment has an unreviewed shape')
+          source=Path(sys.argv[2]).read_text(encoding='utf-8')
+          # Azure Jobs Start accepts a JobExecutionTemplate, not the full job template.
+          # Keep the existing reviewed environment while omitting job-only volumes.
+          override={'containers':[{
+              'name':'fictional-scan-acceptance',
+              'image':'salcapadevb48224acr.azurecr.io/salcapa@'+os.environ['IMAGE_DIGEST'],
+              'command':['python','-c',source],
+              'env':env_entries,
+              'resources':{'cpu':0.25,'memory':'0.5Gi'},
+          }]}
+          if set(override)!={'containers'} or set(override['containers'][0])!={'name','image','command','env','resources'}:
+              raise SystemExit('Start override has an unexpected field')
+          Path(sys.argv[3]).write_text(json.dumps(override,separators=(',',':')),encoding='utf-8')
+          print('One execution-only reviewed command prepared; job definition remains unchanged.')
+          PY
+          az containerapp job execution list -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/prior-executions.json"
+          python - "$RUNNER_TEMP/prior-executions.json" <<'PY'
+          import json,sys
+          rows=json.load(open(sys.argv[1],encoding='utf-8'))
+          if not isinstance(rows,list) or len(rows)!=1 or any(not isinstance(row.get('name'),str) for row in rows):
+              raise SystemExit('Prior private executions could not be enumerated')
+          print('Prior private executions enumerated without changing the job.')
+          PY
+      - name: Start exactly one private adverse execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          az rest --method POST --url "https://management.azure.com$JOB_ID/start?api-version=2025-07-01" \
+            --body "@$RUNNER_TEMP/start-body.json" -o json > "$RUNNER_TEMP/started.json"
+          python - "$RUNNER_TEMP/started.json" "$RUNNER_TEMP/prior-executions.json" "$GITHUB_ENV" <<'PY'
+          import json,re,sys
+          from pathlib import Path
+          raw=Path(sys.argv[1]).read_text(encoding='utf-8').strip()
+          result=json.loads(raw) if raw else {}
+          name=str(result.get('name',''))
+          if name and not re.fullmatch(r'salcapa-dev-b48224-scan-test-[a-z0-9-]{1,40}',name):
+              raise SystemExit('Start returned an unexpected execution; inspect Azure and do not retry')
+          prior=json.loads(Path(sys.argv[2]).read_text(encoding='utf-8'))
+          if name and name in {row['name'] for row in prior}:
+              raise SystemExit('Start returned a prior execution; inspect Azure and do not retry')
+          if name:
+              with open(sys.argv[3],'a',encoding='utf-8') as out:
+                  out.write('PRIVATE_EXECUTION_NAME='+name+'\n')
+          print('Private start request accepted; execution lookup follows if Azure returned no name.')
+          PY
+          if ! grep -q '^PRIVATE_EXECUTION_NAME=' "$GITHUB_ENV"; then
+            for attempt in $(seq 1 12); do
+              az containerapp job execution list -g "$RESOURCE_GROUP" -n "$JOB_NAME" -o json > "$RUNNER_TEMP/current-executions.json"
+              name="$(python - "$RUNNER_TEMP/prior-executions.json" "$RUNNER_TEMP/current-executions.json" <<'PY'
+          import json,re,sys
+          prior=json.load(open(sys.argv[1],encoding='utf-8'))
+          current=json.load(open(sys.argv[2],encoding='utf-8'))
+          if not isinstance(current,list):
+              raise SystemExit('Execution list unavailable; inspect Azure and do not retry')
+          old={row['name'] for row in prior}
+          new={str(row.get('name','')) for row in current}-old
+          if len(new)>1:
+              raise SystemExit('Multiple new executions; inspect Azure and do not retry')
+          name=next(iter(new),'')
+          if name and not re.fullmatch(r'salcapa-dev-b48224-scan-test-[a-z0-9-]{1,40}',name):
+              raise SystemExit('Unexpected new execution; inspect Azure and do not retry')
+          print(name)
+          PY
+          )"
+              if [ -n "$name" ]; then
+                echo "PRIVATE_EXECUTION_NAME=$name" >> "$GITHUB_ENV"
+                break
+              fi
+              sleep 10
+            done
+            test -n "${name:-}" || { echo 'Started execution not identifiable; inspect Azure and do not retry'; exit 1; }
+          fi
+      - name: Observe terminal outcome without printing private logs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 70); do
+            az containerapp job execution show -g "$RESOURCE_GROUP" -n "$JOB_NAME" \
+              --job-execution-name "$PRIVATE_EXECUTION_NAME" -o json > "$RUNNER_TEMP/execution.json"
+            state="$(python - "$RUNNER_TEMP/execution.json" <<'PY'
+          import json,sys
+          print((json.load(open(sys.argv[1],encoding='utf-8')).get('properties') or {}).get('status','Unknown'))
+          PY
+          )"
+            case "$state" in
+              Succeeded) echo 'Private Level 1A adverse test succeeded; exact Malicious/held assertions passed.'; break ;;
+              Failed|Canceled|Cancelled) echo "Private Level 1A adverse test status: $state"; exit 1 ;;
+              *) sleep 20 ;;
+            esac
+          done
+          test "$state" = Succeeded
+          az rest --method GET --url "https://management.azure.com$JOB_ID?api-version=2025-01-01" -o json > "$RUNNER_TEMP/job-after.json"
+          python - "$RUNNER_TEMP/job-before.json" "$RUNNER_TEMP/job-after.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          before=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          after=json.loads(Path(sys.argv[2]).read_text(encoding='utf-8'))
+          for key in ('identity','tags'):
+              if before.get(key)!=after.get(key):
+                  raise SystemExit('Private job identity or tags changed')
+          if before['properties']['template']!=after['properties']['template'] or before['properties']['configuration']!=after['properties']['configuration']:
+              raise SystemExit('Private job definition changed')
+          print('Private job definition and identity unchanged after execution.')
+          PY
