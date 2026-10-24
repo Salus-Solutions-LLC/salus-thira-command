@@ -1,0 +1,138 @@
+name: SalCAPA Level 1A rejected adverse start readback
+
+on:
+  push:
+    branches: [development/salcapa-platform]
+    paths: ['.github/workflows/azure-level1a-adverse-start-readback.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only rejected Start readback approved.'
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RESOURCE_GROUP: rg-salcapa-dev
+      JOB_NAME: salcapa-dev-b48224-scan-test
+      EXPECTED_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:36b48158a6cb13bc8f408af0f9b6cefcf49014907ce117e14898a08f892498bc
+    steps:
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Read execution counts and unchanged manual job
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(az account show --query id -o tsv)" = "${{ vars.AZURE_SUBSCRIPTION_ID }}"
+          test "$(az account show --query tenantId -o tsv)" = "${{ vars.AZURE_TENANT_ID }}"
+          python - <<'PY'
+          import datetime as dt
+          import json
+          import os
+          import subprocess
+          from urllib.parse import urlparse
+
+          job_id=(f"/subscriptions/${{ vars.AZURE_SUBSCRIPTION_ID }}"
+                  f"/resourceGroups/{os.environ['RESOURCE_GROUP']}"
+                  f"/providers/Microsoft.App/jobs/{os.environ['JOB_NAME']}")
+          root="https://management.azure.com"+job_id
+          def read(url):
+              parsed=urlparse(url)
+              if parsed.scheme!="https" or parsed.netloc!="management.azure.com":
+                  raise SystemExit("Unexpected Azure pagination target")
+              result=subprocess.run(["az","rest","--method","GET","--url",url,"-o","json"],
+                                    capture_output=True,text=True,check=False)
+              if result.returncode:
+                  raise SystemExit("Azure readback unavailable")
+              return json.loads(result.stdout)
+          job=read(root+"?api-version=2025-01-01")
+          props=job.get("properties") or {}
+          config=props.get("configuration") or {}
+          template=props.get("template") or {}
+          containers=template.get("containers") or []
+          identity=job.get("identity") or {}
+          expected_identity=(f"/subscriptions/${{ vars.AZURE_SUBSCRIPTION_ID }}"
+                             f"/resourceGroups/{os.environ['RESOURCE_GROUP']}"
+                             "/providers/Microsoft.ManagedIdentity/userAssignedIdentities/"
+                             "salcapa-dev-b48224-identity")
+          actual_identities=identity.get("userAssignedIdentities") or {}
+          unchanged=(
+              str(job.get("id","")).casefold()==job_id.casefold()
+              and (job.get("tags") or {}).get("sourceCommit")=="7867fa72ae404aa5ed37abd104ecc1c69b9ea190"
+              and (job.get("tags") or {}).get("approvalRecord")=="MD-PRIVATE-SCANNER-JOB-20261003"
+              and props.get("provisioningState")=="Succeeded"
+              and identity.get("type")=="UserAssigned"
+              and {x.casefold() for x in actual_identities}=={expected_identity.casefold()}
+              and config.get("triggerType")=="Manual"
+              and config.get("replicaTimeout")==1200
+              and config.get("replicaRetryLimit")==0
+              and (config.get("manualTriggerConfig") or {}).get("parallelism")==1
+              and (config.get("manualTriggerConfig") or {}).get("replicaCompletionCount")==1
+              and config.get("scheduleTriggerConfig") is None
+              and len(containers)==1
+              and not template.get("initContainers")
+              and containers[0].get("name")=="fictional-scan-acceptance"
+              and containers[0].get("image")==os.environ["EXPECTED_IMAGE"]
+              and containers[0].get("command")==["python","-m","tools.private_scanner_acceptance","--execute"]
+          )
+          print("manual_job_definition_matches="+str(unchanged).lower())
+          if not unchanged:
+              raise SystemExit("Private manual job no longer matches the reviewed definition")
+
+          cutoff=dt.datetime.fromisoformat("2026-10-24T17:17:40+00:00")
+          url=root+"/executions?api-version=2025-07-01"
+          rows=[]
+          for _ in range(50):
+              page=read(url)
+              values=page.get("value")
+              if not isinstance(values,list):
+                  raise SystemExit("Azure execution listing has an unexpected shape")
+              rows.extend(values)
+              url=page.get("nextLink")
+              if not url:
+                  break
+          else:
+              raise SystemExit("Azure execution listing exceeded bounded pagination")
+          recent=0
+          unknown_time=0
+          v3_template=0
+          for row in rows:
+              entry=row.get("properties") or {}
+              raw=entry.get("startTime")
+              if not raw:
+                  unknown_time+=1
+                  continue
+              try:
+                  stamp=dt.datetime.fromisoformat(raw.replace("Z","+00:00"))
+              except ValueError:
+                  unknown_time+=1
+                  continue
+              if stamp>=cutoff:
+                  recent+=1
+                  execution_containers=(entry.get("template") or {}).get("containers") or []
+                  if len(execution_containers)==1:
+                      image=str(execution_containers[0].get("image") or "")
+                      command=execution_containers[0].get("command") or []
+                      if (image.endswith("sha256:7127c45b2d6eef55bda04f3dbacf25436debd4de65373c7a86dcd167e66b1241")
+                          and len(command)==3 and command[:2]==["python","-c"]):
+                          v3_template+=1
+          print("execution_rows_read="+str(len(rows)))
+          print("executions_at_or_after_rejected_start="+str(recent))
+          print("v3_adverse_execution_templates="+str(v3_template))
+          print("executions_without_valid_start_time="+str(unknown_time))
+          PY
