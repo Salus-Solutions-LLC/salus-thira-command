@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 26 October 2026 Central — v3.256 frozen audit failed before image publication
+
+- Marc approved [PR #1024](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1024) at exact head `86dbef92f1a6daf1c145592372c8680a6d6115c4` after all four required checks passed. Squash merge `c790621496ad87c5e3e6d1ee369b7fb70db9cfba` was frozen as immutable `release/v3.256`; remote branch readback matched that commit, and the Release Branch Guard passed. No image was published or deployed.
+- Frozen [contextual-intake run 40418743239](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40418743239) failed its dependency audit: `pypdf==6.21.1` has three reported advisories and the audit lists `6.21.2` as the fix. Its PostgreSQL and production-container jobs passed. This failed release remains preserved as evidence and must not be used for image publication. A successor source candidate updates the exact pypdf pin and matching CI/deployment readers to 6.21.2; require fresh CI, exact-head review, successor source freeze, frozen audit, immutable image/readback and guarded deployment. The protected app and scanner worker remain v3.255; named-buyer sandbox evidence persists, while public Wix purchase, live payment/intake and report issue remain closed. Do not repeat prior payment, uploads, adverse sample or exception dispositions.
+
 ## 26 October 2026 Central — approved staff screening merged; v3.256 source candidate
 
 - Marc approved [PR #1023](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1023) at exact head `36a43e60c97fb3d43d8618f9c65954aac2d4f389` after its Windows, PostgreSQL, package/handoff and security checks passed. Squash merge `a4b8271a6c296cb5ca988ed92148dfb28f49222d` adds version-bound private Defender screening for staff Word drafts, QA archives and rendered PDFs. The protected v3.255 app and worker have **not** received this source. No staff draft or QA evidence has been registered or issued; public Wix purchase and live payment/intake remain closed.
