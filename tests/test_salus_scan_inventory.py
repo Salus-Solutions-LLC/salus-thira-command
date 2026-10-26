@@ -143,6 +143,8 @@ def test_internal_inventory_records_orphan_without_member_attribution(tmp_path, 
         size_bytes INTEGER,legal_hold INTEGER)''')
     conn.execute('''CREATE TABLE level1a_pending_scans (
         tenant_id INTEGER,blob_name TEXT,blob_version_id TEXT,size_bytes INTEGER)''')
+    conn.execute('''CREATE TABLE level1a_staff_pending_scans (
+        tenant_id INTEGER,blob_name TEXT,blob_version_id TEXT,size_bytes INTEGER)''')
     conn.execute('''CREATE TABLE package_quarantine_inventory_exceptions (
         id INTEGER PRIMARY KEY, exception_key TEXT UNIQUE, account_url TEXT,
         exception_type TEXT, blob_name TEXT, blob_version_id TEXT,
@@ -150,6 +152,7 @@ def test_internal_inventory_records_orphan_without_member_attribution(tmp_path, 
         last_seen TEXT, assigned_to TEXT DEFAULT '', disposition TEXT DEFAULT '')''')
     conn.execute('''INSERT INTO package_intake_pending_scans VALUES(7,'tenant-7/a','v1',10,0)''')
     conn.execute('''INSERT INTO level1a_pending_scans VALUES(7,'tenant-7/level1a','v3',6)''')
+    conn.execute('''INSERT INTO level1a_staff_pending_scans VALUES(7,'tenant-7/staff','v4',8)''')
     conn.commit()
     conn.close()
 
@@ -166,6 +169,8 @@ def test_internal_inventory_records_orphan_without_member_attribution(tmp_path, 
                                     size=10, has_legal_hold=False),
                     SimpleNamespace(name='tenant-7/level1a', version_id='v3',
                                     size=6, has_legal_hold=False),
+                    SimpleNamespace(name='tenant-7/staff', version_id='v4',
+                                    size=8, has_legal_hold=False),
                     SimpleNamespace(name='unknown/orphan', version_id='v2',
                                     size=4, has_legal_hold=False)]
 
@@ -174,8 +179,8 @@ def test_internal_inventory_records_orphan_without_member_attribution(tmp_path, 
     monkeypatch.setattr(app, 'PACKAGE_SCAN_MODE', 'defender')
     monkeypatch.setattr(app, 'db', connection)
     result = app.inspect_package_quarantine_inventory(quarantine=reader)
-    assert result == {'ledger_count': 2, 'azure_version_count': 3,
-                      'azure_bytes': 20, 'exceptions_observed': 1}
+    assert result == {'ledger_count': 3, 'azure_version_count': 4,
+                      'azure_bytes': 28, 'exceptions_observed': 1}
     conn = connection()
     row = conn.execute('''SELECT exception_type,candidate_tenant_id,status
         FROM package_quarantine_inventory_exceptions''').fetchone()

@@ -228,6 +228,78 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         source_read=staff.get(source_url)
         assert source_read.status_code==200 and source_read.json()['status']=='Verified',source_read.text
         assert source_read.json()['order_id']==oid
+        # Production Defender mode cannot use the legacy inline staff route.
+        # The versioned worker must clear the exact original first.
+        class FakeStaffQuarantine:
+            def __init__(self): self.originals={}
+            def stage_bytes(self, **values):
+                data=values.pop('data');digest=sha256(data).hexdigest()
+                index=len(self.originals)+1
+                uri=f'https://fictional.blob.core.windows.net/quarantine/staff-{index}'
+                manifest=dict(values,status='Pending',blob_name=f'staff-{index}',
+                    blob_uri=uri,blob_version_id=f'v{index}',etag=f'0xA{index}',
+                    sha256=digest,size_bytes=len(data))
+                self.originals[uri]=(manifest,data)
+                return manifest
+            def read_version(self,manifest):
+                saved,data=self.originals[manifest['blob_uri']]
+                assert saved['blob_version_id']==manifest['blob_version_id']
+                return dict(blob_uri=manifest['blob_uri'],
+                    blob_version_id=manifest['blob_version_id'],etag=manifest['etag'],
+                    bytes=data)
+        fake_staff=FakeStaffQuarantine()
+        app.staff_report_quarantine=lambda **kwargs: fake_staff
+        app.PACKAGE_SCAN_MODE='defender'
+        app.PACKAGE_SCANNER_ACCEPTED=True
+        draft_scan_url=f'/api/assessments/{assessment_id}/level1a-reports/SalINTEL/draft-scans'
+        draft_form={'method_version':'fictional-method-1','template_version':'fictional-template-1'}
+        assert staff.post(f'/api/assessments/{assessment_id}/level1a-reports/SalINTEL/draft',
+            data=draft_form,files={'file':('fictional.docx',template)}).status_code==409
+        staged=staff.post(draft_scan_url,data=draft_form,
+            files={'file':('fictional.docx',template)})
+        assert staged.status_code==200 and staged.json()['scan_status']=='Pending',staged.text
+        pending_id=staged.json()['id']
+        assert staff.post(f'/api/level1a-report-scans/{pending_id}/finalize-draft').status_code==409
+        scan_conn=app.db()
+        pending_row=scan_conn.execute('SELECT * FROM level1a_staff_pending_scans WHERE id=?',
+            (pending_id,)).fetchone()
+        scan_conn.close()
+        event={'id':'fictional-staff-clean-1',
+            'eventType':'Microsoft.Security.MalwareScanningResult',
+            'topic':'/subscriptions/fictional',
+            'data':{'blobUri':pending_row['blob_uri'],'eTag':pending_row['etag'],
+                    'scanResultType':'No threats found'}}
+        wrong_topic={**event,'topic':'/subscriptions/other'}
+        assert app.process_staff_report_scan_result(wrong_topic,quarantine=fake_staff,
+            expected_topic='/subscriptions/fictional')=='Unmatched'
+        assert staff.post(f'/api/level1a-report-scans/{pending_id}/finalize-draft').status_code==409
+        assert app.process_staff_report_scan_result(event,quarantine=fake_staff,
+            expected_topic='/subscriptions/fictional')=='Promoted'
+        assert app.process_staff_report_scan_result(event,quarantine=fake_staff,
+            expected_topic='/subscriptions/fictional')=='Promoted'
+        finalized=staff.post(f'/api/level1a-report-scans/{pending_id}/finalize-draft')
+        assert finalized.status_code==200 and finalized.json()['status']=='Draft',finalized.text
+        assert staff.post(f'/api/level1a-report-scans/{pending_id}/finalize-draft').json()['idempotent']
+        held_doc=Document();held_doc.add_paragraph('Separate fictional held working draft')
+        held_stream=BytesIO();held_doc.save(held_stream)
+        held_stage=staff.post(draft_scan_url,data=draft_form,
+            files={'file':('held.docx',held_stream.getvalue())})
+        assert held_stage.status_code==200,held_stage.text
+        held_id=held_stage.json()['id']
+        scan_conn=app.db()
+        held_row=scan_conn.execute('SELECT * FROM level1a_staff_pending_scans WHERE id=?',
+            (held_id,)).fetchone()
+        scan_conn.close()
+        malicious={'id':'fictional-staff-malicious-1',
+            'eventType':'Microsoft.Security.MalwareScanningResult',
+            'topic':'/subscriptions/fictional',
+            'data':{'blobUri':held_row['blob_uri'],'eTag':held_row['etag'],
+                    'scanResultType':'Malicious'}}
+        assert app.process_staff_report_scan_result(malicious,quarantine=fake_staff,
+            expected_topic='/subscriptions/fictional')=='Malicious'
+        assert staff.post(f'/api/level1a-report-scans/{held_id}/finalize-draft').status_code==409
+        app.PACKAGE_SCAN_MODE=''
+        app.PACKAGE_SCANNER_ACCEPTED=False
         draft_url=f'/api/assessments/{assessment_id}/level1a-reports/SalINTEL/draft'
         draft_form={'method_version':'fictional-method-1','template_version':'fictional-template-1'}
         app.scan_bytes=lambda content,name: {'ok':False,'status':'Infected'}
@@ -261,6 +333,34 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
             archive_file.writestr('manifest.json',json.dumps(manifest))
             archive_file.writestr('rendered.pdf',pdf)
         archive_bytes=archive_buffer.getvalue()
+        app.PACKAGE_SCAN_MODE='defender'
+        app.PACKAGE_SCANNER_ACCEPTED=True
+        assert staff.post(f'/api/level1a-reports/{report_id}/qa-evidence',
+            files={'file':('qa.zip',archive_bytes,'application/zip')}).status_code==409
+        qa_stage=staff.post(f'/api/level1a-reports/{report_id}/qa-scans',
+            files={'file':('qa.zip',archive_bytes,'application/zip')})
+        assert qa_stage.status_code==200 and len(qa_stage.json()['scans'])==2,qa_stage.text
+        archive_scan_id=next(row['id'] for row in qa_stage.json()['scans']
+            if row['purpose']=='qa-archive')
+        qa_finish_url=f'/api/level1a-reports/{report_id}/qa-scans/{archive_scan_id}/finalize'
+        assert staff.post(qa_finish_url).status_code==409
+        for index,item in enumerate(qa_stage.json()['scans']):
+            scan_conn=app.db()
+            pending_row=scan_conn.execute('SELECT * FROM level1a_staff_pending_scans WHERE id=?',
+                (item['id'],)).fetchone()
+            scan_conn.close()
+            event={'id':f'fictional-staff-qa-clean-{index}',
+                'eventType':'Microsoft.Security.MalwareScanningResult',
+                'topic':'/subscriptions/fictional',
+                'data':{'blobUri':pending_row['blob_uri'],'eTag':pending_row['etag'],
+                        'scanResultType':'No threats found'}}
+            assert app.process_staff_report_scan_result(event,quarantine=fake_staff,
+                expected_topic='/subscriptions/fictional')=='Promoted'
+        qa_cleared=staff.post(qa_finish_url)
+        assert qa_cleared.status_code==200,qa_cleared.text
+        assert staff.post(qa_finish_url).json()['idempotent']
+        app.PACKAGE_SCAN_MODE=''
+        app.PACKAGE_SCANNER_ACCEPTED=False
         qa_url=f'/api/level1a-reports/{report_id}/qa-evidence'
         assert buyer.post(qa_url,files={'file':('qa.zip',archive_bytes,'application/zip')}).status_code==403
         qa=staff.post(qa_url,files={'file':('qa.zip',archive_bytes,'application/zip')})
@@ -512,6 +612,8 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         assert buyer.patch(f'{intake_base}/1/response',json={'status':'Not held'}).status_code==409
         assert buyer.get(f'/api/level1a/orders/{oid}/intake/files/1/download').status_code==409
     ''')
-    completed=subprocess.run([sys.executable,'-c',program],cwd=os.getcwd(),
+    script=tmp_path/'report_issue_scenario.py'
+    script.write_text(program,encoding='utf-8')
+    completed=subprocess.run([sys.executable,str(script)],cwd=os.getcwd(),
                              env=env,capture_output=True,text=True,timeout=45)
     assert completed.returncode==0,completed.stdout+completed.stderr
