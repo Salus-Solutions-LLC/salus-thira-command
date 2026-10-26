@@ -612,6 +612,8 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         assert buyer.patch(f'{intake_base}/1/response',json={'status':'Not held'}).status_code==409
         assert buyer.get(f'/api/level1a/orders/{oid}/intake/files/1/download').status_code==409
     ''')
-    completed=subprocess.run([sys.executable,'-c',program],cwd=os.getcwd(),
+    script=tmp_path/'report_issue_scenario.py'
+    script.write_text(program,encoding='utf-8')
+    completed=subprocess.run([sys.executable,str(script)],cwd=os.getcwd(),
                              env=env,capture_output=True,text=True,timeout=45)
     assert completed.returncode==0,completed.stdout+completed.stderr
