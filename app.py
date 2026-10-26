@@ -48,6 +48,8 @@ from managed_database import runtime_database_status, managed_target_status
 from database import connect_database, backend_name, is_sqlite, is_postgres
 from portable_backup import collect_tenant_records, validate_records, replace_tenant_records
 from salus_scan_quarantine import AzureScanQuarantine, QuarantineError
+from salus_staff_report_scan import (STAFF_SCAN_SQL, AzureStaffReportQuarantine,
+    qualified_staff_scan_result)
 from salus_scan_results import defender_event_matches_pending, defender_result_for_pending, qualified_clean_quarantine_object, same_blob_etag
 from salus_scan_inventory import (compare_quarantine_versions,
                                   list_azure_quarantine_versions,
@@ -96,6 +98,17 @@ def package_quarantine(*, for_worker=False):
     if not client_id:
         raise QuarantineError('The governed quarantine identity is not configured.')
     return AzureScanQuarantine(
+        os.getenv('SALUS_SCAN_QUARANTINE_URL','').strip(),
+        managed_identity_client_id=client_id)
+
+
+def staff_report_quarantine(*, for_worker=False):
+    """Use the same private scanner account with a separate staff namespace."""
+    client_id = os.getenv('SALUS_SCAN_MANAGED_IDENTITY_CLIENT_ID' if for_worker
+                        else 'AZURE_CLIENT_ID','').strip()
+    if not client_id:
+        raise QuarantineError('The governed staff quarantine identity is not configured.')
+    return AzureStaffReportQuarantine(
         os.getenv('SALUS_SCAN_QUARANTINE_URL','').strip(),
         managed_identity_client_id=client_id)
 RETENTION_DEFAULT_DAYS = int(os.getenv('SALUS_RETENTION_DEFAULT_DAYS','2555'))
@@ -1876,6 +1889,7 @@ def init_db():
     conn.executescript(LEVEL1A_PAYMENT_SQL)
     conn.executescript(INTAKE_SQL)
     conn.executescript(REPORT_SOURCE_SQL)
+    conn.executescript(STAFF_SCAN_SQL)
     ensure_column('level1a_report_qa_reviews','review_mode',"TEXT NOT NULL DEFAULT 'Independent'")
     ensure_column('evidence_attachments','scan_status','TEXT NOT NULL DEFAULT "Legacy/Unscanned"')
     ensure_column('evidence_attachments','scan_detail','TEXT NOT NULL DEFAULT ""')
@@ -7728,7 +7742,41 @@ def reconcile_stale_package_scans(*, max_age_hours:int=24, limit:int=100):
                 conn.commit(); held+=1
         finally:
             conn.rollback();conn.close()
-    return held + reconcile_stale_level1a_scans(cutoff=cutoff,limit=limit)
+    return (held + reconcile_stale_level1a_scans(cutoff=cutoff,limit=limit)
+            + reconcile_stale_staff_report_scans(cutoff=cutoff,limit=limit))
+
+
+def reconcile_stale_staff_report_scans(*, cutoff:str, limit:int):
+    """A missing staff result remains held for explicit reconciliation."""
+    lookup=db()
+    try:
+        candidates=[dict(row) for row in lookup.execute('''SELECT id,assessment_id
+            FROM level1a_staff_pending_scans WHERE status='Pending'
+            AND received_at<=? ORDER BY received_at,id LIMIT ?''',
+            (cutoff,limit))]
+    finally:
+        lookup.close()
+    held=0
+    for candidate in candidates:
+        conn=db()
+        try:
+            lock_package_assessment(conn,candidate['assessment_id'])
+            row=conn.execute('''SELECT * FROM level1a_staff_pending_scans
+                WHERE id=?''',(candidate['id'],)).fetchone()
+            if row and row['status']=='Pending' and row['received_at']<=cutoff:
+                conn.execute('''UPDATE level1a_staff_pending_scans
+                    SET status='Reconcile',scan_result='Missing result',
+                    updated_at=? WHERE id=? AND status='Pending' ''',
+                    (now(),row['id']))
+                audit(conn,'LEVEL1A_STAFF_SCAN_MISSING','assessment',
+                    row['assessment_id'],f'pending_id={row["id"]}',
+                    'scan-worker',tenant_override=row['tenant_id'])
+                conn.commit()
+                held+=1
+        finally:
+            conn.rollback()
+            conn.close()
+    return held
 
 
 def reconcile_stale_level1a_scans(*, cutoff:str, limit:int):
@@ -7774,6 +7822,9 @@ def inspect_package_quarantine_inventory(*, quarantine=None, max_versions:int=10
             blob_version_id,size_bytes,legal_hold FROM package_intake_pending_scans''')]
         ledger.extend(dict(row) for row in conn.execute('''SELECT tenant_id,blob_name,
             blob_version_id,size_bytes,0 AS legal_hold FROM level1a_pending_scans'''))
+        ledger.extend(dict(row) for row in conn.execute('''SELECT tenant_id,blob_name,
+            blob_version_id,size_bytes,0 AS legal_hold
+            FROM level1a_staff_pending_scans'''))
     finally:
         conn.close()
     result=compare_quarantine_versions(
@@ -8008,11 +8059,103 @@ def process_level1a_scan_result(event:dict, *, quarantine=None, expected_topic:s
     finally: conn.close()
 
 
+def process_staff_report_scan_result(event:dict, *, quarantine=None,
+                                     expected_topic:str=''):
+    """Qualify only one exact staff original from the trusted result queue."""
+    if PACKAGE_SCAN_MODE!='defender' or not expected_topic:
+        raise QuarantineError('The governed staff result worker is not configured.')
+    if not isinstance(event,dict) or not isinstance(event.get('data'),dict):
+        return 'Unmatched'
+    event_id=event.get('id')
+    uri=event['data'].get('blobUri')
+    etag=event['data'].get('eTag')
+    if not all(isinstance(value,str) and value for value in
+               (event_id,uri,etag)):
+        return 'Unmatched'
+    conn=db()
+    try:
+        matches=[row for row in conn.execute('''SELECT id,assessment_id,etag
+            FROM level1a_staff_pending_scans WHERE blob_uri=?''',(uri,)).fetchall()
+            if same_blob_etag(row['etag'],etag)]
+        if len(matches)!=1: return 'Unmatched'
+        lock_package_assessment(conn,matches[0]['assessment_id'])
+        row=conn.execute('SELECT * FROM level1a_staff_pending_scans WHERE id=?',
+                         (matches[0]['id'],)).fetchone()
+        if not row or row['blob_uri']!=uri or not same_blob_etag(row['etag'],etag):
+            return 'Unmatched'
+        pending=dict(row,sha256=row['content_sha256'])
+        preliminary=defender_result_for_pending(event,topic=expected_topic,
+            blob_uri=uri,etag=row['etag'],sha256=row['content_sha256'])
+        if preliminary=='Unscanned' and not defender_event_matches_pending(
+                event,topic=expected_topic,blob_uri=uri,etag=row['etag'],
+                sha256=row['content_sha256']):
+            return 'Unmatched'
+        if row['scan_event_id']==event_id and row['scan_result']==preliminary:
+            if row['status'] in ('Cleared','Finalized'): return 'Promoted'
+            if row['status'] in ('Malicious','Unscanned'): return row['status']
+        if row['status']!='Pending':
+            if row['status'] in ('Cleared','Finalized') and preliminary=='Clean':
+                return 'Promoted'
+            if row['status'] in ('Cleared','Finalized') and preliminary!='Clean':
+                conn.execute('''UPDATE level1a_staff_pending_scans
+                    SET status='Reconcile',scan_result=?,scan_event_id=?,
+                    scanned_at=?,updated_at=? WHERE id=?''',
+                    (preliminary,event_id,now(),now(),row['id']))
+                audit(conn,'LEVEL1A_STAFF_SCAN_CONTRARY','assessment',
+                    row['assessment_id'],f'pending_id={row["id"]}',
+                    'scan-worker',tenant_override=row['tenant_id'])
+                conn.commit()
+            return 'Reconcile'
+        if preliminary!='Clean':
+            status='Malicious' if preliminary=='Malicious' else 'Unscanned'
+            conn.execute('''UPDATE level1a_staff_pending_scans
+                SET status=?,scan_result=?,scan_event_id=?,scanned_at=?,
+                updated_at=? WHERE id=? AND status='Pending' ''',
+                (status,preliminary,event_id,now(),now(),row['id']))
+            audit(conn,'LEVEL1A_STAFF_SCAN_HELD','assessment',
+                row['assessment_id'],f'pending_id={row["id"]}; result={status}',
+                'scan-worker',tenant_override=row['tenant_id'])
+            conn.commit()
+            return status
+        snapshot=(quarantine or staff_report_quarantine(for_worker=True)).read_version(pending)
+        if qualified_staff_scan_result(event,pending,snapshot,
+                                       topic=expected_topic)!='Clean':
+            return 'Unmatched'
+        data=snapshot['bytes']
+        key=(f'tenant-{row["tenant_id"]}/assessment-{row["assessment_id"]}/'
+             f'level1a-staff-cleared/order-{row["order_id"]}/'
+             f'scan-{row["id"]}_{row["content_sha256"][:16]}')
+        if storage.exists(key):
+            if hashlib.sha256(storage.get_bytes(key)).hexdigest()!=row['content_sha256']:
+                raise QuarantineError('Existing staff cleared copy differs.')
+        else:
+            storage.put_bytes(key,data)
+        if hashlib.sha256(storage.get_bytes(key)).hexdigest()!=row['content_sha256']:
+            raise QuarantineError('Staff cleared copy failed readback.')
+        ts=now()
+        conn.execute('''UPDATE level1a_staff_pending_scans SET status='Cleared',
+            scan_result='Clean',scan_event_id=?,scanned_at=?,safe_stored_name=?,
+            updated_at=? WHERE id=? AND status='Pending' ''',
+            (event_id,ts,key,ts,row['id']))
+        audit(conn,'LEVEL1A_STAFF_SCAN_CLEARED','assessment',
+            row['assessment_id'],f'pending_id={row["id"]}; sha256={row["content_sha256"]}',
+            'scan-worker',tenant_override=row['tenant_id'])
+        conn.commit()
+        return 'Promoted'
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def process_trusted_scan_result(event:dict, *, expected_topic:str):
     """Share one governed queue without treating either product as the other."""
     legacy=process_package_scan_result(event,expected_topic=expected_topic)
     if legacy!='Unmatched': return legacy
-    return process_level1a_scan_result(event,expected_topic=expected_topic)
+    buyer=process_level1a_scan_result(event,expected_topic=expected_topic)
+    if buyer!='Unmatched': return buyer
+    return process_staff_report_scan_result(event,expected_topic=expected_topic)
 
 
 def stage_package_intake_file(assessment_id:int,item_id:int,request:Request,ctx:dict,
@@ -8352,11 +8495,100 @@ def get_level1a_report_source(assessment_id:int,request:Request):
     finally: conn.close()
 
 
+@app.post('/api/assessments/{assessment_id}/level1a-reports/{product}/draft-scans')
+async def stage_level1a_product_draft(assessment_id:int,product:str,
+        request:Request,file:UploadFile=File(...),method_version:str=Form(...),
+        template_version:str=Form(...)):
+    """Stage a staff Word draft; only a later exact Clean result can clear it."""
+    if PACKAGE_SCAN_MODE!='defender' or not PACKAGE_SCANNER_ACCEPTED:
+        raise HTTPException(503,'The governed staff scanner is not available.')
+    require(request,'write')
+    require_salus_component_authority(request,'Level 1A report')
+    ctx=auth_context(request)
+    if (role(request) not in PACKAGE_REPORT_DRAFT_ROLES
+            or ctx['auth_mode'] not in ('session','oidc')
+            or not ctx.get('user_id')):
+        raise HTTPException(403,'An assigned Salus report owner is required.')
+    if product not in PACKAGE_REPORT_PRODUCTS:
+        raise HTTPException(404,'Unknown Level 1A report product.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    method_version=method_version.strip()
+    template_version=template_version.strip()
+    if (not method_version or not template_version or len(method_version)>120
+            or len(template_version)>120):
+        raise HTTPException(422,'Name the exact method and template versions.')
+    original=safe_filename(file.filename or '')
+    if not original.lower().endswith('.docx'):
+        raise HTTPException(422,'A working report must be a Word .docx file.')
+    content=await file.read(10*1024*1024+1)
+    check_package_docx(content)
+    digest=hashlib.sha256(content).hexdigest()
+    tid=tenant_id(request)
+    conn=db()
+    manifest=None
+    try:
+        lock_package_assessment(conn,assessment_id)
+        source=_verified_level1a_report_source(conn,assessment_id,assessment,request)
+        existing=conn.execute('''SELECT id,status FROM level1a_staff_pending_scans
+            WHERE tenant_id=? AND order_id=? AND assessment_id=? AND product=?
+            AND purpose='draft' AND content_sha256=? AND source_record_sha256=?
+            AND method_version=? AND template_version=?
+            ORDER BY id DESC LIMIT 1''',
+            (tid,source['order_id'],assessment_id,product,digest,
+             source['record_sha256'],method_version,template_version)).fetchone()
+        if existing:
+            return {'id':existing['id'],'scan_status':existing['status'],
+                    'content_sha256':digest,'idempotent':True}
+        manifest=staff_report_quarantine().stage_bytes(
+            tenant_id=tid,order_id=source['order_id'],
+            assessment_id=assessment_id,product=product,purpose='draft',
+            data=content)
+        if any(manifest.get(key)!=value for key,value in (
+                ('tenant_id',tid),('order_id',source['order_id']),
+                ('assessment_id',assessment_id),('product',product),
+                ('purpose','draft'),('sha256',digest),
+                ('size_bytes',len(content)),('status','Pending'))):
+            raise QuarantineError('The staff original differs from the received file.')
+        ts=now()
+        cur=conn.execute('''INSERT INTO level1a_staff_pending_scans
+            (tenant_id,order_id,assessment_id,report_id,product,purpose,
+             source_record_sha256,method_version,template_version,
+             submitted_by_user_id,original_name,blob_name,blob_uri,
+             blob_version_id,etag,content_sha256,size_bytes,received_at,
+             updated_at)
+            VALUES(?,?,?,NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (tid,source['order_id'],assessment_id,product,'draft',
+             source['record_sha256'],method_version,template_version,
+             ctx['user_id'],original,manifest['blob_name'],manifest['blob_uri'],
+             manifest['blob_version_id'],manifest['etag'],digest,len(content),
+             ts,ts))
+        audit(conn,'LEVEL1A_STAFF_DRAFT_QUARANTINED','assessment',assessment_id,
+              f'pending_id={cur.lastrowid}; product={product}; sha256={digest}',
+              actor(request))
+        conn.commit()
+        return {'id':cur.lastrowid,'scan_status':'Pending',
+                'content_sha256':digest,'idempotent':False}
+    except Exception as exc:
+        conn.rollback()
+        if manifest:
+            security_event(request,'LEVEL1A_STAFF_QUARANTINE_RECONCILE','High',
+                f'uri={manifest["blob_uri"]}; version={manifest["blob_version_id"]}')
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8)
+        record_internal_failure('staff draft quarantine',error_id,exc)
+        raise HTTPException(503,f'Staff report quarantine is unavailable. Reference: {error_id}') from exc
+    finally:
+        conn.close()
+
+
 @app.post('/api/assessments/{assessment_id}/level1a-reports/{product}/draft')
 async def register_level1a_product_draft(assessment_id:int,product:str,
         request:Request,file:UploadFile=File(...),method_version:str=Form(...),
         template_version:str=Form(...)):
     """Save a staff-only Word draft; never issue or expose it to the buyer."""
+    if PACKAGE_SCAN_MODE=='defender':
+        raise HTTPException(409,'Use the versioned staff report scan path.')
     require(request,'write');require_salus_component_authority(request,'Level 1A report')
     ctx=auth_context(request)
     if (role(request) not in PACKAGE_REPORT_DRAFT_ROLES
@@ -8427,10 +8659,197 @@ async def register_level1a_product_draft(assessment_id:int,product:str,
         raise
     finally: conn.close()
 
+
+@app.get('/api/level1a-report-scans/{pending_id}')
+def level1a_staff_scan_status(pending_id:int,request:Request):
+    require(request,'read')
+    if role(request) not in PACKAGE_REPORT_DRAFT_ROLES:
+        raise HTTPException(403,'Staff report scan status is restricted.')
+    conn=db()
+    try:
+        row=conn.execute('''SELECT tenant_id,assessment_id,order_id,product,
+            purpose,content_sha256,status,finalized_record_id
+            FROM level1a_staff_pending_scans WHERE id=? AND tenant_id=?''',
+            (pending_id,tenant_id(request))).fetchone()
+        if not row: raise HTTPException(404,'Staff scan not found.')
+        assessment_row_for_request(request,row['assessment_id'])
+        require_package_report_assignment(request,row['assessment_id'])
+        return {'id':pending_id,'product':row['product'],
+                'purpose':row['purpose'],'content_sha256':row['content_sha256'],
+                'scan_status':row['status'],
+                'finalized_record_id':row['finalized_record_id']}
+    finally: conn.close()
+
+
+@app.post('/api/level1a-report-scans/{pending_id}/finalize-draft')
+def finalize_level1a_product_draft(pending_id:int,request:Request):
+    """Register a draft only from the worker's exact cleared original."""
+    require(request,'write')
+    require_salus_component_authority(request,'Level 1A report')
+    ctx=auth_context(request)
+    if (role(request) not in PACKAGE_REPORT_DRAFT_ROLES
+            or ctx['auth_mode'] not in ('session','oidc')
+            or not ctx.get('user_id')):
+        raise HTTPException(403,'An assigned Salus report owner is required.')
+    tid=tenant_id(request)
+    conn=db()
+    try:
+        row=conn.execute('''SELECT * FROM level1a_staff_pending_scans
+            WHERE id=? AND tenant_id=?''',(pending_id,tid)).fetchone()
+        if not row or row['purpose']!='draft':
+            raise HTTPException(404,'Staff draft scan not found.')
+        assessment=assessment_row_for_request(request,row['assessment_id'])
+        require_package_report_assignment(request,row['assessment_id'])
+        lock_package_assessment(conn,row['assessment_id'])
+        row=conn.execute('SELECT * FROM level1a_staff_pending_scans WHERE id=?',
+                         (pending_id,)).fetchone()
+        if row['status']=='Finalized' and row['finalized_record_id']:
+            return {'id':row['finalized_record_id'],'status':'Draft',
+                    'content_sha256':row['content_sha256'],'idempotent':True}
+        if (row['status']!='Cleared' or row['scan_result']!='Clean'
+                or not row['scan_event_id'] or not row['safe_stored_name']):
+            raise HTTPException(409,'The working draft has not cleared screening.')
+        source=_verified_level1a_report_source(conn,row['assessment_id'],
+                                               assessment,request)
+        if (row['order_id']!=source['order_id']
+                or row['source_record_sha256']!=source['record_sha256']):
+            raise HTTPException(409,'The paid report source changed.')
+        try: content=storage.get_bytes(row['safe_stored_name'])
+        except (StorageError,FileNotFoundError) as exc:
+            raise HTTPException(503,'The cleared original is unavailable.') from exc
+        if (len(content)!=row['size_bytes']
+                or hashlib.sha256(content).hexdigest()!=row['content_sha256']):
+            raise HTTPException(409,'The cleared original failed readback.')
+        check_package_docx(content)
+        existing=conn.execute('''SELECT id,status FROM level1a_product_report_versions
+            WHERE tenant_id=? AND order_id=? AND product=? AND content_sha256=?
+            AND method_version=? AND template_version=? AND source_record_sha256=?''',
+            (tid,row['order_id'],row['product'],row['content_sha256'],
+             row['method_version'],row['template_version'],
+             row['source_record_sha256'])).fetchone()
+        if existing:
+            if existing['status']!='Draft':
+                raise HTTPException(409,'An issued report cannot be registered as a draft.')
+            report_id=existing['id']
+        else:
+            prior=conn.execute('''SELECT id,version_no FROM
+                level1a_product_report_versions WHERE tenant_id=? AND order_id=?
+                AND product=? ORDER BY version_no DESC LIMIT 1''',
+                (tid,row['order_id'],row['product'])).fetchone()
+            version=prior['version_no']+1 if prior else 1
+            retention=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS)))
+            retention_until=retention.replace(microsecond=0).isoformat().replace('+00:00','Z')
+            cur=conn.execute('''INSERT INTO level1a_product_report_versions
+                (tenant_id,buyer_user_id,order_id,assessment_id,product,version_no,
+                 source_record_sha256,original_name,stored_name,content_sha256,
+                 size_bytes,method_version,template_version,status,retention_until,
+                 legal_hold,disposition_status,created_by_user_id,created_at,supersedes_id)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'Draft',?,0,'Active',?,?,?)''',
+                (tid,source['buyer_user_id'],row['order_id'],row['assessment_id'],
+                 row['product'],version,row['source_record_sha256'],
+                 row['original_name'],row['safe_stored_name'],
+                 row['content_sha256'],row['size_bytes'],row['method_version'],
+                 row['template_version'],retention_until,
+                 row['submitted_by_user_id'],now(),prior['id'] if prior else None))
+            report_id=cur.lastrowid
+        conn.execute('''UPDATE level1a_staff_pending_scans
+            SET status='Finalized',finalized_record_id=?,updated_at=?
+            WHERE id=? AND status='Cleared' ''',(report_id,now(),pending_id))
+        audit(conn,'LEVEL1A_REPORT_DRAFT_FROM_CLEARED','assessment',
+            row['assessment_id'],f'pending_id={pending_id}; report_id={report_id}',
+            actor(request))
+        conn.commit()
+        return {'id':report_id,'status':'Draft',
+                'content_sha256':row['content_sha256'],'idempotent':bool(existing),
+                'notice':'A saved draft is not reviewed, issued or buyer-visible.'}
+    finally:
+        conn.rollback()
+        conn.close()
+
+
+@app.post('/api/level1a-reports/{report_id}/qa-scans')
+async def stage_level1a_report_qa_evidence(report_id:int,request:Request,
+        file:UploadFile=File(...)):
+    """Stage archive and extracted PDF as separate scanner originals."""
+    if PACKAGE_SCAN_MODE!='defender' or not PACKAGE_SCANNER_ACCEPTED:
+        raise HTTPException(503,'The governed staff scanner is not available.')
+    require_salus_component_authority(request,'Level 1A report QA')
+    original=safe_filename(file.filename or '')
+    if not original.lower().endswith('.zip'):
+        raise HTTPException(422,'Report QA evidence must be a ZIP archive.')
+    content=await file.read(50*1024*1024+1)
+    if not content or len(content)>50*1024*1024:
+        raise HTTPException(413,'Report QA archive exceeds 50 MB.')
+    conn=db()
+    manifests=[]
+    try:
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request)
+        lock_package_assessment(conn,report['assessment_id'])
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request)
+        _,pdf=inspect_package_qa_archive(content,report['content_sha256'])
+        digest=hashlib.sha256(content).hexdigest()
+        tid=tenant_id(request)
+        existing=[dict(row) for row in conn.execute('''SELECT id,purpose,status
+            FROM level1a_staff_pending_scans WHERE tenant_id=? AND report_id=?
+            AND group_sha256=? AND source_record_sha256=?
+            AND purpose IN ('qa-archive','qa-pdf') ORDER BY id''',
+            (tid,report_id,digest,source['record_sha256']))]
+        if existing:
+            if len(existing)!=2 or {row['purpose'] for row in existing}!={'qa-archive','qa-pdf'}:
+                raise HTTPException(409,'The QA scan group needs security reconciliation.')
+            return {'scan_status':'Pending','scans':existing,
+                    'archive_sha256':digest,'idempotent':True}
+        scanner=staff_report_quarantine()
+        for purpose,name,data in (('qa-archive',original,content),
+                                  ('qa-pdf','rendered.pdf',pdf)):
+            manifest=scanner.stage_bytes(tenant_id=tid,order_id=source['order_id'],
+                assessment_id=report['assessment_id'],product=report['product'],
+                purpose=purpose,report_id=report_id,data=data)
+            manifests.append(manifest)
+            actual_hash=hashlib.sha256(data).hexdigest()
+            if (manifest.get('sha256')!=actual_hash
+                    or manifest.get('size_bytes')!=len(data)
+                    or manifest.get('status')!='Pending'):
+                raise QuarantineError('QA quarantined original differs from submission.')
+            ts=now()
+            cur=conn.execute('''INSERT INTO level1a_staff_pending_scans
+                (tenant_id,order_id,assessment_id,report_id,product,purpose,
+                 group_sha256,source_record_sha256,submitted_by_user_id,
+                 original_name,blob_name,blob_uri,blob_version_id,etag,
+                 content_sha256,size_bytes,received_at,updated_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                (tid,source['order_id'],report['assessment_id'],report_id,
+                 report['product'],purpose,digest,source['record_sha256'],
+                 ctx['user_id'],name,manifest['blob_name'],manifest['blob_uri'],
+                 manifest['blob_version_id'],manifest['etag'],actual_hash,
+                 len(data),ts,ts))
+            manifest['pending_id']=cur.lastrowid
+        audit(conn,'LEVEL1A_REPORT_QA_QUARANTINED','assessment',
+            report['assessment_id'],f'report_id={report_id}; archive_sha256={digest}',
+            actor(request))
+        conn.commit()
+        return {'scan_status':'Pending','scans':[
+            {'id':item['pending_id'],'purpose':item['purpose'],'status':'Pending'}
+            for item in manifests], 'archive_sha256':digest,'idempotent':False}
+    except Exception as exc:
+        conn.rollback()
+        if manifests:
+            security_event(request,'LEVEL1A_STAFF_QA_QUARANTINE_RECONCILE','High',
+                f'report_id={report_id}; staged_count={len(manifests)}')
+        if isinstance(exc,HTTPException): raise
+        error_id=secrets.token_hex(8)
+        record_internal_failure('staff QA quarantine',error_id,exc)
+        raise HTTPException(503,f'Report QA quarantine is unavailable. Reference: {error_id}') from exc
+    finally:
+        conn.close()
+
+
 @app.post('/api/level1a-reports/{report_id}/qa-evidence')
 async def submit_level1a_report_qa_evidence(report_id:int,request:Request,
         file:UploadFile=File(...)):
     """Store exact rendered-page evidence for independent staff review."""
+    if PACKAGE_SCAN_MODE=='defender':
+        raise HTTPException(409,'Use the versioned report QA scan path.')
     require_salus_component_authority(request,'Level 1A report QA')
     original=safe_filename(file.filename or '')
     if not original.lower().endswith('.zip'):
@@ -8484,6 +8903,90 @@ async def submit_level1a_report_qa_evidence(report_id:int,request:Request,
             except Exception: pass
         raise
     finally: conn.close()
+
+
+@app.post('/api/level1a-reports/{report_id}/qa-scans/{archive_scan_id}/finalize')
+def finalize_level1a_report_qa_evidence(report_id:int,archive_scan_id:int,
+                                         request:Request):
+    """Register QA only after both archive and rendered PDF clear scanning."""
+    require_salus_component_authority(request,'Level 1A report QA')
+    conn=db()
+    try:
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request)
+        lock_package_assessment(conn,report['assessment_id'])
+        report,source,_,ctx=_paid_report_for_staff(conn,report_id,request)
+        tid=tenant_id(request)
+        archive=conn.execute('''SELECT * FROM level1a_staff_pending_scans
+            WHERE id=? AND tenant_id=? AND report_id=? AND purpose='qa-archive' ''',
+            (archive_scan_id,tid,report_id)).fetchone()
+        if not archive: raise HTTPException(404,'QA archive scan not found.')
+        if archive['status']=='Finalized' and archive['finalized_record_id']:
+            return {'id':archive['finalized_record_id'],
+                    'archive_sha256':archive['content_sha256'],'idempotent':True}
+        pdfs=conn.execute('''SELECT * FROM level1a_staff_pending_scans
+            WHERE tenant_id=? AND report_id=? AND group_sha256=?
+            AND purpose='qa-pdf' ORDER BY id''',
+            (tid,report_id,archive['group_sha256'])).fetchall()
+        if len(pdfs)!=1:
+            raise HTTPException(409,'The QA archive and PDF scan pair is incomplete.')
+        pdf_row=pdfs[0]
+        for row in (archive,pdf_row):
+            if (row['status']!='Cleared' or row['scan_result']!='Clean'
+                    or not row['scan_event_id'] or not row['safe_stored_name']
+                    or row['order_id']!=source['order_id']
+                    or row['assessment_id']!=report['assessment_id']
+                    or row['product']!=report['product']
+                    or row['source_record_sha256']!=source['record_sha256']):
+                raise HTTPException(409,'Both exact QA originals must clear screening.')
+        try:
+            content=storage.get_bytes(archive['safe_stored_name'])
+            cleared_pdf=storage.get_bytes(pdf_row['safe_stored_name'])
+        except (StorageError,FileNotFoundError) as exc:
+            raise HTTPException(503,'Cleared QA originals are unavailable.') from exc
+        if (len(content)!=archive['size_bytes']
+                or hashlib.sha256(content).hexdigest()!=archive['content_sha256']
+                or len(cleared_pdf)!=pdf_row['size_bytes']
+                or hashlib.sha256(cleared_pdf).hexdigest()!=pdf_row['content_sha256']
+                or archive['group_sha256']!=archive['content_sha256']):
+            raise HTTPException(409,'The cleared QA originals failed integrity checks.')
+        manifest_json,pdf=inspect_package_qa_archive(content,report['content_sha256'])
+        if pdf!=cleared_pdf:
+            raise HTTPException(409,'The rendered PDF differs from its cleared original.')
+        prior=conn.execute('''SELECT id FROM level1a_report_qa_evidence WHERE
+            tenant_id=? AND report_id=? AND archive_sha256=?''',
+            (tid,report_id,archive['content_sha256'])).fetchone()
+        if prior:
+            evidence_id=prior['id']
+        else:
+            retention=(_iso_now_dt()+timedelta(days=max(1,RETENTION_DEFAULT_DAYS)))
+            retention_until=retention.replace(microsecond=0).isoformat().replace('+00:00','Z')
+            cur=conn.execute('''INSERT INTO level1a_report_qa_evidence
+                (tenant_id,order_id,assessment_id,report_id,content_sha256,
+                 archive_sha256,stored_name,manifest_json,manifest_sha256,
+                 submitted_by_user_id,submitted_at,retention_until)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?)''',
+                (tid,source['order_id'],report['assessment_id'],report_id,
+                 report['content_sha256'],archive['content_sha256'],
+                 archive['safe_stored_name'],manifest_json,
+                 hashlib.sha256(manifest_json.encode()).hexdigest(),
+                 archive['submitted_by_user_id'],now(),retention_until))
+            evidence_id=cur.lastrowid
+        conn.execute('''UPDATE level1a_staff_pending_scans
+            SET status='Finalized',finalized_record_id=?,updated_at=?
+            WHERE id IN (?,?) AND status='Cleared' ''',
+            (evidence_id,now(),archive['id'],pdf_row['id']))
+        audit(conn,'LEVEL1A_REPORT_QA_FROM_CLEARED','assessment',
+            report['assessment_id'],
+            f'report_id={report_id}; evidence_id={evidence_id}; archive_sha256={archive["content_sha256"]}',
+            actor(request))
+        conn.commit()
+        return {'id':evidence_id,'archive_sha256':archive['content_sha256'],
+                'idempotent':bool(prior),
+                'notice':'Submitted evidence does not approve or issue a report.'}
+    finally:
+        conn.rollback()
+        conn.close()
+
 
 @app.post('/api/level1a-reports/{report_id}/conformance')
 def record_level1a_report_conformance(report_id:int,p:PackageReportConformanceIn,
