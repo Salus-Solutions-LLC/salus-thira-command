@@ -11,11 +11,11 @@ active_build_system_issue: 970
 active_increment: salus_v3257_pypdf_audit_repair_source_candidate
 last_completed_increment: v3256_staff_report_screening_source_frozen_audit_failed
 candidate_release: v3.257
-validation_pr: pending
+validation_pr: 1025
 validation_branch: codex/v3257-pypdf-audit-repair-20261026
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: repair_validation_pending
+validation_gate_state: github_validation_running
 failed_workflows: v3256_frozen_contextual_intake_dependency_audit_failed
 first_root_failing_gate: pypdf_6_21_1_three_advisories_in_frozen_audit
 root_cause: v3256_frozen_source_pinned_vulnerable_pypdf_6_21_1
