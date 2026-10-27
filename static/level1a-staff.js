@@ -56,7 +56,8 @@ async function level1aStaffView(){
         ? `<button class="btn" type="button" data-finalize-scan="${Number(scan.id)}">Register cleared Word draft</button>`:'';
       const held=scan&&['Malicious','Held','Error','Mismatch'].includes(scan.status)
         ? '<p class="notice">This file remains held. Investigate its exact scan result before submitting a corrected version.</p>':'';
-      const canStage=!report||report.status==='Draft';
+      const draftAwaiting=scan&&['Pending','Cleared'].includes(scan.status);
+      const canStage=(!report||report.status==='Draft')&&!draftAwaiting;
       const upload=!canStage?'':`<form class="level1a-staff-draft" data-product="${key}">
         <label>Exact controlled method version<input name="method_version" required maxlength="120" autocomplete="off"></label>
         <label>Exact approved template version<input name="template_version" required maxlength="120" autocomplete="off" placeholder="${esc(template)}"></label>
@@ -66,7 +67,8 @@ async function level1aStaffView(){
       const qaText=report ? `<p><strong>Page-review evidence:</strong> ${current.qa_evidence
         ? `registered · archive SHA-256 <code>${esc(current.qa_evidence.archive_sha256)}</code>`
         : `not registered${archiveScan?` · archive ${esc(archiveScan.status)}`:''}${pdfScan?` · rendered PDF ${esc(pdfScan.status)}`:''}`}</p>`:'';
-      const qaForm=report?.status==='Draft'&&!current.qa_evidence
+      const qaAwaiting=archiveScan&&['Pending','Cleared'].includes(archiveScan.status);
+      const qaForm=report?.status==='Draft'&&!current.qa_evidence&&!qaAwaiting
         ? `<form class="level1a-staff-qa" data-report-id="${Number(report.id)}">
           <label>Exact page-review archive (.zip) with manifest and rendered PDF
           <input name="file" type="file" accept=".zip,application/zip" required></label>
