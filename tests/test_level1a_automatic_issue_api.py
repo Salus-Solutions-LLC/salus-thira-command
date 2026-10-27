@@ -235,7 +235,10 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         assert workspace.json()['order_id']==oid
         assert workspace.json()['products']['SalINTEL']=={
             'report':None,'draft_scan':None,'qa_archive_scan':None,
-            'qa_pdf_scan':None,'qa_evidence':None}
+            'qa_pdf_scan':None,'qa_evidence':None,'conformance':None,
+            'review':None}
+        assert workspace.json()['reconciliation'] is None
+        assert workspace.json()['issue'] is None
         # Production Defender mode cannot use the legacy inline staff route.
         # The versioned worker must clear the exact original first.
         class FakeStaffQuarantine:
@@ -399,6 +402,9 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         matrix=reviewer.post(conformance_url,json={'content_sha256':sha256(template).hexdigest(),
             'checks':checks,'summary':'Fictional reviewer checked all Charter items.'})
         assert matrix.status_code==200 and matrix.json()['status']=='Marked',matrix.text
+        matrix_workspace=staff.get(workspace_url)
+        assert matrix_workspace.status_code==200,matrix_workspace.text
+        assert matrix_workspace.json()['products']['SalINTEL']['conformance']['id']==matrix.json()['id']
         review_url=f'/api/level1a-reports/{report_id}/qa-reviews'
         review=dict(evidence_id=evidence_id,decision='Reviewed',
             checks={key:True for key in app.PACKAGE_REPORT_REVIEW_KEYS},
@@ -421,6 +427,9 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         app.AUTH_MODE='oidc'
         approved_solo=staff.post(review_url,json=solo)
         assert approved_solo.status_code==200,approved_solo.text
+        reviewed_workspace=staff.get(workspace_url)
+        assert reviewed_workspace.status_code==200,reviewed_workspace.text
+        assert reviewed_workspace.json()['products']['SalINTEL']['review']['id']==approved_solo.json()['id']
         assert staff.post(review_url,json=solo).json()['idempotent']
         conn=app.db()
         stored=conn.execute('SELECT review_mode FROM level1a_report_qa_reviews WHERE id=?',
@@ -479,11 +488,17 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
                   'sources':sources,
                   'summary':'All three fictional source reports align with SalCAPA.'})
         assert reconciled.status_code==200 and reconciled.json()['status']=='Compared',reconciled.text
+        compared_workspace=reviewer.get(workspace_url)
+        assert compared_workspace.status_code==200,compared_workspace.text
+        assert compared_workspace.json()['reconciliation']['id']==reconciled.json()['id']
         readiness=reviewer.get(f'/api/assessments/{assessment_id}/level1a-report-readiness')
         assert readiness.status_code==200 and not readiness.json()['blockers'],readiness.text
         issued=reviewer.post(issue_url,json=issue_body)
         assert issued.status_code==200 and issued.json()['status']=='Issued',issued.text
         issue_id=issued.json()['id']
+        issued_workspace=reviewer.get(workspace_url)
+        assert issued_workspace.status_code==200,issued_workspace.text
+        assert issued_workspace.json()['issue']['id']==issue_id
         issued_list=buyer.get(f'/api/level1a/orders/{oid}/reports')
         assert issued_list.status_code==200 and issued_list.json()['issues'][0]['id']==issue_id,issued_list.text
         assert other_buyer.get(f'/api/level1a/orders/{oid}/reports').status_code==409
