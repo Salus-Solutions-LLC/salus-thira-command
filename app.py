@@ -8494,6 +8494,78 @@ def get_level1a_report_source(assessment_id:int,request:Request):
             'notice':'Source verification does not approve or issue a report.'}
     finally: conn.close()
 
+@app.get('/api/assessments/{assessment_id}/level1a-report-workspace')
+def get_level1a_report_workspace(assessment_id:int,request:Request):
+    """Resume the assigned staff's exact paid draft and scanner work."""
+    require(request,'read')
+    ctx=auth_context(request)
+    if (role(request) not in PACKAGE_REPORT_DRAFT_ROLES
+            or ctx['auth_mode'] not in ('session','oidc') or not ctx.get('user_id')):
+        raise HTTPException(403,'An assigned Salus report owner is required.')
+    assessment=assessment_row_for_request(request,assessment_id)
+    require_package_report_assignment(request,assessment_id)
+    conn=db()
+    try:
+        source=_verified_level1a_report_source(conn,assessment_id,assessment,request)
+        tid=tenant_id(request)
+        products={}
+        for product in ('SalINTEL','SalTHIRA','SalOPS','SalCAPA'):
+            report=conn.execute('''SELECT id,version_no,status,content_sha256,
+                source_record_sha256,method_version,template_version
+                FROM level1a_product_report_versions WHERE tenant_id=?
+                AND order_id=? AND assessment_id=? AND product=?
+                ORDER BY version_no DESC LIMIT 1''',
+                (tid,source['order_id'],assessment_id,product)).fetchone()
+            current_report=(report if report and
+                report['source_record_sha256']==source['record_sha256'] else None)
+            pending=conn.execute('''SELECT id,status,content_sha256,
+                source_record_sha256,finalized_record_id FROM level1a_staff_pending_scans
+                WHERE tenant_id=? AND order_id=? AND assessment_id=?
+                AND product=? AND purpose='draft' ORDER BY id DESC LIMIT 1''',
+                (tid,source['order_id'],assessment_id,product)).fetchone()
+            qa_archive=(conn.execute('''SELECT id,status,group_sha256,
+                source_record_sha256,finalized_record_id
+                FROM level1a_staff_pending_scans WHERE tenant_id=? AND order_id=?
+                AND assessment_id=? AND report_id=? AND purpose='qa-archive'
+                ORDER BY id DESC LIMIT 1''',
+                (tid,source['order_id'],assessment_id,current_report['id'])).fetchone()
+                if current_report else None)
+            qa_pdf=(conn.execute('''SELECT id,status,group_sha256,
+                source_record_sha256 FROM level1a_staff_pending_scans
+                WHERE tenant_id=? AND order_id=? AND assessment_id=?
+                AND report_id=? AND purpose='qa-pdf' AND group_sha256=?
+                ORDER BY id DESC LIMIT 1''',
+                (tid,source['order_id'],assessment_id,current_report['id'],
+                 qa_archive['group_sha256'])).fetchone()
+                if qa_archive else None)
+            qa_evidence=(conn.execute('''SELECT id,archive_sha256 FROM
+                level1a_report_qa_evidence WHERE tenant_id=? AND order_id=?
+                AND assessment_id=? AND report_id=? ORDER BY id DESC LIMIT 1''',
+                (tid,source['order_id'],assessment_id,current_report['id'])).fetchone()
+                if current_report else None)
+            products[product]={
+                'report':({key:current_report[key] for key in current_report.keys()}
+                    if current_report else None),
+                'draft_scan':({key:pending[key] for key in pending.keys()}
+                    if pending and pending['source_record_sha256']==source['record_sha256']
+                    else None),
+                'qa_archive_scan':({key:qa_archive[key] for key in qa_archive.keys()}
+                    if qa_archive and qa_archive['source_record_sha256']==source['record_sha256']
+                    else None),
+                'qa_pdf_scan':({key:qa_pdf[key] for key in qa_pdf.keys()}
+                    if qa_pdf and qa_pdf['source_record_sha256']==source['record_sha256']
+                    else None),
+                'qa_evidence':({key:qa_evidence[key] for key in qa_evidence.keys()}
+                    if qa_evidence else None),
+            }
+        return {'status':'Verified','assessment_id':assessment_id,
+            'order_id':source['order_id'],'buyer_user_id':source['buyer_user_id'],
+            'source_record_sha256':source['record_sha256'],
+            'products':products,
+            'notice':'A draft and scan status are not report review or issue.'}
+    finally:
+        conn.close()
+
 
 @app.post('/api/assessments/{assessment_id}/level1a-reports/{product}/draft-scans')
 async def stage_level1a_product_draft(assessment_id:int,product:str,
