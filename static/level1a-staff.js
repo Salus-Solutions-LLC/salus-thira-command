@@ -80,7 +80,7 @@ async function level1aStaffView(){
       const held=scan&&['Malicious','Held','Error','Mismatch'].includes(scan.status)
         ? '<p class="notice">This file remains held. Investigate its exact scan result before submitting a corrected version.</p>':'';
       const draftAwaiting=scan&&['Pending','Cleared'].includes(scan.status);
-      const canStage=(!report||report.status==='Draft')&&!draftAwaiting;
+      const canStage=!draftAwaiting;
       const upload=!canStage?'':`<form class="level1a-staff-draft" data-product="${key}">
         <label>Exact controlled method version<input name="method_version" required maxlength="120" autocomplete="off"></label>
         <label>Exact approved template version<input name="template_version" required maxlength="120" autocomplete="off" placeholder="${esc(template)}"></label>

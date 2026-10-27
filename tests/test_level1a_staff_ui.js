@@ -11,11 +11,12 @@ const products=Object.fromEntries(['SalINTEL','SalTHIRA','SalOPS','SalCAPA'].map
 const workspace={order_id:10,assessment_id:7,buyer_user_id:44,
   source_record_sha256:'b'.repeat(64),products,reconciliation:null,issue:null};
 
-async function render({member=false,blockers=[],withQa=false,priorIssue=false}={}){
+async function render({member=false,blockers=[],withQa=false,priorIssue=false,issuedReports=false}={}){
   const content={innerHTML:''},picker={value:'7',onchange:null};
   const selectedWorkspace=structuredClone(workspace);
   if(withQa) selectedWorkspace.products.SalINTEL.qa_evidence={id:19,archive_sha256:'c'.repeat(64)};
   if(priorIssue) selectedWorkspace.issue={id:3,record_sha256:'d'.repeat(64)};
+  if(issuedReports) Object.values(selectedWorkspace.products).forEach(item=>item.report.status='Issued');
   const context={
     currentRole:member?'Client Executive':'System Administrator',
     activeAssessmentId:7,
@@ -46,6 +47,9 @@ async function main(){
   const successor=await render({priorIssue:true});
   assert.match(successor,/Latest issued packet/);
   assert.match(successor,/id="level1a-staff-issue"/);
+  const priorVersions=await render({issuedReports:true,blockers:['Current report versions are issued']});
+  assert.match(priorVersions,/Stage revised Word draft for screening/);
+  assert.doesNotMatch(priorVersions,/id="level1a-staff-issue"/);
   const buyer=await render({member:true});
   assert.match(buyer,/limited to assigned Salus staff/);
   assert.doesNotMatch(buyer,/id="level1a-staff-issue"/);
