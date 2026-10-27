@@ -8,10 +8,10 @@ active_development_branch: development/salcapa-platform
 current_development_head: bb8dc8f6388322bc23f5efff0fd48df7a9b055e9
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3258_named_buyer_paid_intake_pilot
+active_increment: salus_v3258_named_buyer_application_promotion
 last_completed_increment: v3258_app_knowledge_and_scan_worker_deployed_verified
 candidate_release: v3.258
-validation_pr: pending
+validation_pr: 1036
 validation_branch: codex/v3258-paid-buyer-pilot-20261027
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
