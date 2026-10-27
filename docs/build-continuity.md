@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3258_immutable_image_publication
 last_completed_increment: v3258_staff_report_review_source_frozen
 candidate_release: v3.258
-validation_pr: pending
+validation_pr: 1033
 validation_branch: codex/v3258-image-20261026
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit

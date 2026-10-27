@@ -3,7 +3,7 @@
 ## 26 October 2026 Central — v3.258 source frozen; image candidate awaits all gates
 
 - Marc exact-approved [PR #1032](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1032) head `7c589d00bc56b3e9b9317adb31baffafda4fd237` after all four required checks passed. Squash merge `12e6dd70b0668d8c1926d2a948d627f149111428` was frozen as `release/v3.258`; GitHub ref readback matched that commit. Release Branch Guard passed. Frozen CI and contextual-intake audit are still running. No v3.258 image has been published or deployed.
-- A separate image candidate pins only that frozen source for one protected immutable build and registry digest readback. Require every frozen-source and image PR check plus Marc's exact-head review before merging. v3.257 remains the deployed single-buyer Stripe test and screened-intake pilot; public Wix purchase, live payment, public intake and report issue remain closed. The fictional L1A-10 payment and prior uploads/scanner tests are not repeated.
+- [Draft PR #1033](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1033) pins only that frozen source for one protected immutable build and registry digest readback. Require every frozen-source and image PR check plus Marc's exact-head review before merging. v3.257 remains the deployed single-buyer Stripe test and screened-intake pilot; public Wix purchase, live payment, public intake and report issue remain closed. The fictional L1A-10 payment and prior uploads/scanner tests are not repeated.
 
 ## 26 October 2026 Central — staff report review source merged; v3.258 source candidate
 
