@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3258_staff_report_review_source_freeze
 last_completed_increment: v3257_staff_report_review_and_issue_source_merged_not_deployed
 candidate_release: v3.258
-validation_pr: pending
+validation_pr: 1032
 validation_branch: codex/level1a-v3258-source-freeze-20261026
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
