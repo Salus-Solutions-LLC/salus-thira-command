@@ -142,7 +142,7 @@ async function level1aStaffView(){
     const comparisonText=workspace.reconciliation
       ? `Latest four-report comparison: ${esc(workspace.reconciliation.status)} · record SHA-256 <code>${esc(workspace.reconciliation.record_sha256)}</code>`
       : 'No four-report source comparison has been recorded.';
-    const issueForm=canDecide&&!workspace.issue&&readiness.blockers?.length===0
+    const issueForm=canDecide&&readiness.blockers?.length===0
       ? `<details><summary>Marc's separate report issue decision</summary>
         <form id="level1a-staff-issue">
           <p>The exact four Word versions below passed the automated checks. Marc must still confirm substantive qualification and personally authorize release to the named paid buyer. This action issues all four reports.</p>
@@ -156,7 +156,7 @@ async function level1aStaffView(){
           <button class="btn" type="submit">Issue these four exact reports</button>
         </form></details>`:'';
     const issuedText=workspace.issue
-      ? `<p><strong>Issued packet:</strong> ${Number(workspace.issue.id)} · SHA-256 <code>${esc(workspace.issue.record_sha256)}</code>. Named buyer delivery and acknowledgment still require verification.</p>`:'';
+      ? `<p><strong>Latest issued packet:</strong> ${Number(workspace.issue.id)} · SHA-256 <code>${esc(workspace.issue.record_sha256)}</code>. A qualified successor requires four new exact draft versions and a separate issue decision. Named buyer delivery and acknowledgment still require verification.</p>`:'';
     $('#content').innerHTML=`
       <div class="card cop-hero"><span>Salus staff · Level 1A Assessment</span><h2>Prepare the four controlled reports</h2>
         <p>Use the existing paid order. Stage each exact Word file for private screening, then register only a cleared version. Drafts remain staff-only; a separate human issue decision is required.</p></div>
