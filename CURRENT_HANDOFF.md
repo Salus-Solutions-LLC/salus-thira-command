@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 27 October 2026 Central — v3.258 immutable image verified; guarded deployment candidate
+
+- Marc exact-approved [PR #1033](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1033) head `5a47a0d2c287f526b582f5afec1e11203ea05108` after all three candidate checks and the frozen release guard, CI and contextual-intake checks passed. Squash merge `d69d783b28d6d38ce5beb1acdb8de02870f47c1d` triggered [protected image run 40529445340](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40529445340), which succeeded. Azure registry manifest readback logged immutable image `salcapadevb48224acr.azurecr.io/salcapa@sha256:8115e5592d3332073f5183d224963db7d679fb427e5d1aeff1ef72d7b82bca96` from frozen source `12e6dd70b0668d8c1926d2a948d627f149111428`. It is published but not deployed.
+- [Draft PR #1034](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1034) pins that exact digest, requires the v3.257 app and scheduled knowledge worker as current, retains v3.223 for rollback, and starts buyer sign-in, ordering, checkout/payment, intake, uploads and scanning controls closed. It needs all PR checks, Marc's exact-head approval and protected Azure readback before deployment is claimed. The five-minute scanner-result worker requires a separate image-only update. No payment or upload is repeated; public Wix purchase and live payment remain closed. Four fictional Cedar reports remain local unissued drafts requiring exact source, full intake, OPM and Marc human review.
+
 ## 26 October 2026 Central — v3.258 source frozen; image candidate awaits all gates
 
 - Marc exact-approved [PR #1032](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1032) head `7c589d00bc56b3e9b9317adb31baffafda4fd237` after all four required checks passed. Squash merge `12e6dd70b0668d8c1926d2a948d627f149111428` was frozen as `release/v3.258`; GitHub ref readback matched that commit. Release Branch Guard passed. Frozen CI and contextual-intake audit are still running. No v3.258 image has been published or deployed.
