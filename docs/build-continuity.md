@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3258_scanner_application_promotion
 last_completed_increment: v3258_app_and_knowledge_worker_deployed_verified
 candidate_release: v3.258
-validation_pr: pending
+validation_pr: 1035
 validation_branch: codex/v3258-scan-worker-20261027
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
