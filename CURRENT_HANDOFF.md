@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 26 October 2026 Central — v3.257 immutable image published; guarded deployment candidate
+
+- Marc exact-approved [PR #1026](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1026) head `f9111aa5fb06c55f50351f02cf71f55e0f3ce2fd` after all three PR checks and all frozen v3.257 checks passed. Squash merge `f61d65e09da58abf5c80bca4d7ae57abd6de4f57` triggered [protected image run 40426854105](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40426854105). Authorization, exact frozen-source reconstruction, image build, Azure push and registry manifest readback succeeded. Immutable digest: `salcapadevb48224acr.azurecr.io/salcapa@sha256:bc139155867639d0310cf2d0652758b514c05836536abb3afba5106a246b6ffc` from source `2da20aadf7f88a9b1fcddaf33d9a2ee3177f685b`.
+- A separate guarded app and scheduled knowledge-worker deployment candidate pins that digest, checks v3.255 as current and retains v3.223 for rollback. Deployment starts buyer controls closed. It requires all PR checks and Marc's exact-head review before merge and protected Azure execution. The five-minute scan-result worker requires its own reviewed image promotion afterward. Do not repeat fictional payment, prior uploads, adverse sample or historical dispositions. Public Wix purchase, live payment/intake and report issue remain closed.
+
 ## 26 October 2026 Central — v3.257 source frozen; image candidate awaits frozen checks
 
 - Marc approved [PR #1025](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1025) at exact head `808f0ccda5d097c66e8f0737b075e4e76f4b9447` after all four required checks passed. Squash merge `2da20aadf7f88a9b1fcddaf33d9a2ee3177f685b` was frozen as `release/v3.257`; remote readback matched that commit and the Release Branch Guard passed. Frozen CI and contextual-intake checks, including the dependency audit, are running. No v3.257 image has been published or deployed.
