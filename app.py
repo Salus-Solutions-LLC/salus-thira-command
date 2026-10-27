@@ -8543,6 +8543,18 @@ def get_level1a_report_workspace(assessment_id:int,request:Request):
                 AND assessment_id=? AND report_id=? ORDER BY id DESC LIMIT 1''',
                 (tid,source['order_id'],assessment_id,current_report['id'])).fetchone()
                 if current_report else None)
+            conformance=(conn.execute('''SELECT id,status,record_sha256 FROM
+                level1a_report_conformance WHERE tenant_id=? AND order_id=?
+                AND assessment_id=? AND report_id=? ORDER BY id DESC LIMIT 1''',
+                (tid,source['order_id'],assessment_id,current_report['id'])).fetchone()
+                if current_report else None)
+            review=(conn.execute('''SELECT id,decision,review_mode,record_sha256
+                FROM level1a_report_qa_reviews WHERE tenant_id=? AND order_id=?
+                AND assessment_id=? AND report_id=? AND evidence_id=?
+                ORDER BY id DESC LIMIT 1''',
+                (tid,source['order_id'],assessment_id,current_report['id'],
+                 qa_evidence['id'])).fetchone()
+                if current_report and qa_evidence else None)
             products[product]={
                 'report':({key:current_report[key] for key in current_report.keys()}
                     if current_report else None),
@@ -8557,11 +8569,26 @@ def get_level1a_report_workspace(assessment_id:int,request:Request):
                     else None),
                 'qa_evidence':({key:qa_evidence[key] for key in qa_evidence.keys()}
                     if qa_evidence else None),
+                'conformance':({key:conformance[key] for key in conformance.keys()}
+                    if conformance else None),
+                'review':({key:review[key] for key in review.keys()}
+                    if review else None),
             }
+        reconciliation=conn.execute('''SELECT id,status,record_sha256 FROM
+            level1a_report_reconciliations WHERE tenant_id=? AND order_id=?
+            AND assessment_id=? ORDER BY id DESC LIMIT 1''',
+            (tid,source['order_id'],assessment_id)).fetchone()
+        issue=conn.execute('''SELECT id,record_sha256,issued_at FROM
+            level1a_report_issue_packets WHERE tenant_id=? AND order_id=?
+            AND assessment_id=? ORDER BY id DESC LIMIT 1''',
+            (tid,source['order_id'],assessment_id)).fetchone()
         return {'status':'Verified','assessment_id':assessment_id,
             'order_id':source['order_id'],'buyer_user_id':source['buyer_user_id'],
             'source_record_sha256':source['record_sha256'],
             'products':products,
+            'reconciliation':({key:reconciliation[key] for key in reconciliation.keys()}
+                if reconciliation else None),
+            'issue':({key:issue[key] for key in issue.keys()} if issue else None),
             'notice':'A draft and scan status are not report review or issue.'}
     finally:
         conn.close()
