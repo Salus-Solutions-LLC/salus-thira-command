@@ -228,6 +228,14 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         source_read=staff.get(source_url)
         assert source_read.status_code==200 and source_read.json()['status']=='Verified',source_read.text
         assert source_read.json()['order_id']==oid
+        workspace_url=f'/api/assessments/{assessment_id}/level1a-report-workspace'
+        assert buyer.get(workspace_url).status_code==403
+        workspace=staff.get(workspace_url)
+        assert workspace.status_code==200,workspace.text
+        assert workspace.json()['order_id']==oid
+        assert workspace.json()['products']['SalINTEL']=={
+            'report':None,'draft_scan':None,'qa_archive_scan':None,
+            'qa_pdf_scan':None,'qa_evidence':None}
         # Production Defender mode cannot use the legacy inline staff route.
         # The versioned worker must clear the exact original first.
         class FakeStaffQuarantine:
@@ -259,6 +267,10 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
             files={'file':('fictional.docx',template)})
         assert staged.status_code==200 and staged.json()['scan_status']=='Pending',staged.text
         pending_id=staged.json()['id']
+        pending_workspace=staff.get(workspace_url)
+        assert pending_workspace.status_code==200,pending_workspace.text
+        assert pending_workspace.json()['products']['SalINTEL']['draft_scan']['id']==pending_id
+        assert pending_workspace.json()['products']['SalINTEL']['draft_scan']['status']=='Pending'
         assert staff.post(f'/api/level1a-report-scans/{pending_id}/finalize-draft').status_code==409
         scan_conn=app.db()
         pending_row=scan_conn.execute('SELECT * FROM level1a_staff_pending_scans WHERE id=?',
@@ -278,6 +290,11 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         assert app.process_staff_report_scan_result(event,quarantine=fake_staff,
             expected_topic='/subscriptions/fictional')=='Promoted'
         finalized=staff.post(f'/api/level1a-report-scans/{pending_id}/finalize-draft')
+        assert finalized.status_code==200,finalized.text
+        saved_workspace=staff.get(workspace_url)
+        assert saved_workspace.status_code==200,saved_workspace.text
+        assert saved_workspace.json()['products']['SalINTEL']['report']['id']==finalized.json()['id']
+        assert saved_workspace.json()['products']['SalINTEL']['report']['status']=='Draft'
         assert finalized.status_code==200 and finalized.json()['status']=='Draft',finalized.text
         assert staff.post(f'/api/level1a-report-scans/{pending_id}/finalize-draft').json()['idempotent']
         held_doc=Document();held_doc.add_paragraph('Separate fictional held working draft')
@@ -340,6 +357,10 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         qa_stage=staff.post(f'/api/level1a-reports/{report_id}/qa-scans',
             files={'file':('qa.zip',archive_bytes,'application/zip')})
         assert qa_stage.status_code==200 and len(qa_stage.json()['scans'])==2,qa_stage.text
+        staged_workspace=staff.get(workspace_url)
+        assert staged_workspace.status_code==200,staged_workspace.text
+        assert staged_workspace.json()['products']['SalINTEL']['qa_archive_scan']['status']=='Pending'
+        assert staged_workspace.json()['products']['SalINTEL']['qa_pdf_scan']['status']=='Pending'
         archive_scan_id=next(row['id'] for row in qa_stage.json()['scans']
             if row['purpose']=='qa-archive')
         qa_finish_url=f'/api/level1a-reports/{report_id}/qa-scans/{archive_scan_id}/finalize'
@@ -358,6 +379,9 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
                 expected_topic='/subscriptions/fictional')=='Promoted'
         qa_cleared=staff.post(qa_finish_url)
         assert qa_cleared.status_code==200,qa_cleared.text
+        qa_workspace=staff.get(workspace_url)
+        assert qa_workspace.status_code==200,qa_workspace.text
+        assert qa_workspace.json()['products']['SalINTEL']['qa_evidence']['id']==qa_cleared.json()['id']
         assert staff.post(qa_finish_url).json()['idempotent']
         app.PACKAGE_SCAN_MODE=''
         app.PACKAGE_SCANNER_ACCEPTED=False
