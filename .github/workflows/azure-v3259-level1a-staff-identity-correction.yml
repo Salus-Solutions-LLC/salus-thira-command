@@ -1,0 +1,154 @@
+name: SalCAPA v3.259 single-operator staff identity correction
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-v3259-level1a-staff-identity-correction.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-application-deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected named-staff identity correction approval gate passed.'
+
+  activate:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RESOURCE_GROUP: rg-salcapa-dev
+      APP_NAME: salcapa-dev-b48224
+      APP_IMAGE: salcapadevb48224acr.azurecr.io/salcapa@sha256:8ca732d9cdc7050797153157b14d58f0f795b1b36293b1029a1fcb419028d289
+      STAFF_EMAIL: MDuncan@Salus.Solutions
+      BUYER_OBJECT_ID: 69ef2327-049a-4886-b18f-cada64b0d120
+      CURRENT_STAFF_OBJECT_ID: 69ef2327-049a-4886-b18f-cada64b0d120
+      STAFF_OBJECT_ID: 4ece14da-ada7-401d-91d0-36d27f77aaf5
+      EXISTING_ORDER_ID: '10'
+      EXPECTED_SUBSCRIPTION: 076f90cd-cc6a-4547-a4ff-de3fc1825472
+      EXPECTED_TENANT: e06fd260-a201-44da-b03b-9cde7e119d04
+    steps:
+      - name: Azure login through workload identity federation
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify exact app, buyer boundary and previously mispinned staff identity
+        id: preflight
+        env:
+          DEPLOY_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$DEPLOY_RESOURCE_GROUP" = "$RESOURCE_GROUP"
+          test "${{ vars.AZURE_SUBSCRIPTION_ID }}" = "$EXPECTED_SUBSCRIPTION"
+          test "${{ vars.AZURE_TENANT_ID }}" = "$EXPECTED_TENANT"
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+          az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" -o json > "$RUNNER_TEMP/app-before.json"
+          jq -e --arg image "$APP_IMAGE" --arg buyer_oid "$BUYER_OBJECT_ID" --arg staff_oid "$CURRENT_STAFF_OBJECT_ID" --arg email "$STAFF_EMAIL" --arg order "$EXISTING_ORDER_ID" '
+            def val($n): ([.properties.template.containers[0].env[] | select(.name==$n) | .value] | last) // "";
+            .properties.template.containers[0].image==$image and
+            .properties.latestRevisionName!="" and
+            val("SALUS_CUSTOMER_OIDC_ENABLED")=="1" and
+            (val("SALUS_LEVEL1A_PILOT_EMAIL")|ascii_downcase)=="mduncan@salus.solutions" and
+            (val("SALUS_LEVEL1A_PILOT_OBJECT_ID")|ascii_downcase)==($buyer_oid|ascii_downcase) and
+            val("SALUS_LEVEL1A_ORDER_DRAFT_ENABLED")=="1" and
+            val("SALUS_LEVEL1A_CHECKOUT_ENABLED")=="1" and
+            val("SALUS_LEVEL1A_TEST_CHECKOUT_ONLY")=="1" and
+            val("SALUS_LEVEL1A_INTAKE_ENABLED")=="1" and
+            val("SALUS_LEVEL1A_UPLOAD_ENABLED")=="1" and
+            val("SALUS_PACKAGE_SCAN_MODE")=="defender" and
+            val("SALUS_PACKAGE_SCANNER_ACCEPTED")=="1" and
+            val("SALUS_SCAN_QUARANTINE_URL")=="https://salcapadevb48224scan.blob.core.windows.net/" and
+            val("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED")=="0" and
+            (val("SALUS_LEVEL1A_SOLO_REVIEWER_EMAIL")|ascii_downcase)==($email|ascii_downcase) and
+            (val("SALUS_LEVEL1A_SOLO_REVIEWER_OBJECT_ID")|ascii_downcase)==($staff_oid|ascii_downcase) and
+            val("SALUS_LEVEL1A_SOLO_REVIEW_ORDER_ID")==$order
+          ' "$RUNNER_TEMP/app-before.json" > /dev/null
+          echo "before_revision=$(jq -r '.properties.latestRevisionName' "$RUNNER_TEMP/app-before.json")" >> "$GITHUB_OUTPUT"
+          test "$(az containerapp job show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-scan-worker --query 'properties.template.containers[0].image' -o tsv)" = "$APP_IMAGE"
+          echo 'Exact app, named-buyer test pilot, scanner worker and mispinned staff identity verified.'
+
+      - name: Correct only the Salus staff Entra object ID
+        id: change
+        run: |
+          set -euo pipefail
+          az containerapp update -g "$RESOURCE_GROUP" -n "$APP_NAME" \
+            --set-env-vars \
+              SALUS_LEVEL1A_SOLO_REVIEWER_OBJECT_ID="$STAFF_OBJECT_ID" \
+            --only-show-errors -o none
+
+      - name: Verify ready revision and unchanged buyer boundary
+        env:
+          BEFORE_REVISION: ${{ steps.preflight.outputs.before_revision }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" -o json > "$RUNNER_TEMP/app-after.json"
+            if jq -e --arg image "$APP_IMAGE" --arg email "$STAFF_EMAIL" --arg oid "$STAFF_OBJECT_ID" --arg buyer_oid "$BUYER_OBJECT_ID" --arg order "$EXISTING_ORDER_ID" --arg before "$BEFORE_REVISION" '
+              def val($n): ([.properties.template.containers[0].env[] | select(.name==$n) | .value] | last) // "";
+              .properties.template.containers[0].image==$image and
+              .properties.latestRevisionName!=$before and
+              (val("SALUS_LEVEL1A_SOLO_REVIEWER_EMAIL")|ascii_downcase)==($email|ascii_downcase) and
+              (val("SALUS_LEVEL1A_SOLO_REVIEWER_OBJECT_ID")|ascii_downcase)==($oid|ascii_downcase) and
+              val("SALUS_LEVEL1A_SOLO_REVIEW_ORDER_ID")==$order and
+              val("SALUS_CUSTOMER_OIDC_ENABLED")=="1" and
+              (val("SALUS_LEVEL1A_PILOT_EMAIL")|ascii_downcase)==($email|ascii_downcase) and
+              (val("SALUS_LEVEL1A_PILOT_OBJECT_ID")|ascii_downcase)==($buyer_oid|ascii_downcase) and
+              val("SALUS_LEVEL1A_TEST_CHECKOUT_ONLY")=="1" and
+              val("SALUS_LEVEL1A_INTAKE_ENABLED")=="1" and
+              val("SALUS_LEVEL1A_UPLOAD_ENABLED")=="1" and
+              val("SALUS_PACKAGE_SCAN_MODE")=="defender" and
+              val("SALUS_PACKAGE_SCANNER_ACCEPTED")=="1" and
+              val("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED")=="0"
+            ' "$RUNNER_TEMP/app-after.json" > /dev/null; then
+              fqdn="$(jq -r '.properties.configuration.ingress.fqdn' "$RUNNER_TEMP/app-after.json")"
+              status="$(curl --connect-timeout 5 --max-time 15 -sS -o "$RUNNER_TEMP/ready.json" -w '%{http_code}' "https://$fqdn/health/ready" || true)"
+              if test "$status" = 200; then
+                echo 'Staff identity corrected, existing order and test-only buyer boundary retained; report content and issue remain unapproved.'
+                exit 0
+              fi
+            fi
+            sleep 10
+          done
+          echo 'Staff identity correction did not reach verified ready state.' >&2
+          exit 1
+
+      - name: Reclose staff review if correction or verification fails
+        if: failure() && steps.preflight.outcome == 'success'
+        run: |
+          set -euo pipefail
+          az containerapp update -g "$RESOURCE_GROUP" -n "$APP_NAME" \
+            --set-env-vars \
+              SALUS_LEVEL1A_SOLO_REVIEWER_EMAIL= \
+              SALUS_LEVEL1A_SOLO_REVIEWER_OBJECT_ID= \
+              SALUS_LEVEL1A_SOLO_REVIEW_ORDER_ID= \
+            --only-show-errors -o none
+          az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" -o json > "$RUNNER_TEMP/app-reclosed.json"
+          jq -e --arg image "$APP_IMAGE" '
+            def val($n): ([.properties.template.containers[0].env[] | select(.name==$n) | .value] | last) // "";
+            .properties.template.containers[0].image==$image and
+            val("SALUS_LEVEL1A_SOLO_REVIEWER_EMAIL")=="" and
+            val("SALUS_LEVEL1A_SOLO_REVIEWER_OBJECT_ID")=="" and
+            val("SALUS_LEVEL1A_SOLO_REVIEW_ORDER_ID")=="" and
+            val("SALUS_LEVEL1A_TEST_CHECKOUT_ONLY")=="1" and
+            val("SALUS_PACKAGE_COMMERCIAL_WORKFLOW_ENABLED")=="0"
+          ' "$RUNNER_TEMP/app-reclosed.json" > /dev/null
+          echo 'Named staff report pilot reclosed after failed identity correction.'
