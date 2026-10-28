@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 28 October 2026 Central — fictional report page-flow review remains open
+
+- The four unissued Cedar Site working DOCX reports still cite the approved fictional source hash, existing order L1A-10 and unknown status for all remaining requested records. No buyer intake response has been read back from the protected app; Marc was asked to save the existing order's remaining responses as `Not known` without creating an order, repeating payment or uploading another file.
+- LibreOffice page-image review found a source-note paragraph split across SalINTEL pages 8–9. A separate local layout candidate `cedar_reports/SalINTEL_Cedar_Level1A_RECORDS_UNKNOWN_LAYOUT_CANDIDATE_20261028.docx` SHA-256 `863AE988596DFA33838282EC482D7367CF64F2536C7B04158C5BFDEB89C0BA02` keeps that paragraph together, changes no paragraph text, passes ZIP integrity, and renders to nine pages. Pages 8–9 were inspected. It is a working candidate only; the predecessor remains unchanged. SalTHIRA's final page is sparse; SalOPS's long capability table repeats its header; SalCAPA's final page is also sparse. Details are in local `cedar_reports/LAYOUT_QA_20261028.md`.
+- Native Word automation failed in this execution session (`80070520`, no logon session). LibreOffice output does not establish native Word/PDF parity, every-page OPM or accessibility acceptance. The authenticated browser-control tool also failed to initialize, so no protected buyer response or staff file registration is claimed. Four exact report files and their page evidence still require private screening, full page review, Marc's source and finding qualification, a separate human issue decision, and buyer delivery/acknowledgment. Public Wix purchase, live payment, public intake/uploads and report issue remain closed.
+
 ## 28 October 2026 Central — remaining fictional intake records are unknown
 
 - Marc selected **Not known whether records exist** for the remaining requested records on fictional Cedar Site order L1A-10. This is an evidence limit, not a claim that the records or capabilities do not exist. The approved Cedar statement is still the only verified assessment document. The protected buyer intake has not been updated with this choice; no server-side response is claimed.
