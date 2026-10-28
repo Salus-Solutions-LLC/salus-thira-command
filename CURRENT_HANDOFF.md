@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 27 October 2026 Central — scoped paid-assessment staff visibility source candidate
+
+- Source inspection confirmed why Marc's authenticated System Administrator page returned no Level 1A assessment: `/api/assessments` lists only the staff account's tenant, while `bind_verified_buyer` creates a separate buyer tenant and `ensure_paid_assessment` creates the existing fictional paid assessment there. No duplicate assessment, order, payment or upload is needed.
+- This **unmerged, undeployed** candidate changes the Level 1A staff page to list only the one order named by the separately activated SAL-D114 pilot configuration. It confines each paid-report request to the linked buyer tenant only after the signed-in Entra staff role, object ID, email and exact order all match that configuration. The generic `/api/assessments` route remains tenant-isolated. SalOPS™ and SalCAPA™ upload placeholders now name Marc's approved v3 templates. A two-buyer-tenant isolation test was added; local Python syntax, JavaScript syntax and whitespace checks passed, while application integration awaits CI because this local Python bundle lacks FastAPI and pytest.
+- This candidate does not activate SAL-D114. The three protected identity/order values still require separate exact-source review, protected Azure activation and live readback before the staff page can show L1A-10. Report registration, page review, source reconciliation, Marc's human issue decision and public Wix/live payment release remain open. Never repeat the existing fictional payment, prior uploads, adverse sample or historical scanner dispositions.
+
 ## 27 October 2026 Central — approved SalOPS/SalCAPA v3 blank-page repair; staff sign-in mismatch
 
 - Read-only rendering of the registered SalOPS™ and SalCAPA™ v2 Word binaries found report body, header and footer on page 2. This conflicts with the Program Charter's entirely blank page 2 rule and the protected Level 1A report-QA archive validator. The original v2 hashes were reverified. No v2 file was changed or report issued.
