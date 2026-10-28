@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 27 October 2026 Central - v3.259 immutable image verified; guarded deployment candidate
+
+- Marc approved [PR #1041](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1041) exact head `c90e8cb98b34a4bce4f5add491867980bdceeae5` after the frozen release guard, CI and contextual-intake security audit plus all three PR checks passed. Squash merge `6cc4bb7f2a27d81eaa719cf04b10947c93de2520` triggered [protected image run 40621575771](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40621575771), which succeeded. Azure registry manifest readback logged immutable image `salcapadevb48224acr.azurecr.io/salcapa@sha256:8ca732d9cdc7050797153157b14d58f0f795b1b36293b1029a1fcb419028d289` from frozen source `6e3900844c6a5cf7fbcfbed1a93375f7585fe74a`. The image is published but not deployed.
+- [Draft PR #1042](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1042) pins that exact digest for protected app and scheduled knowledge-worker deployment, checks v3.258 as current, and retains v3.223 for rollback. Deployment starts buyer controls closed. Require PR checks, Marc's exact-head review and protected Azure readback. The five-minute scanner-result worker needs a separate image-only update. No payment or upload is repeated; public Wix purchase, live payment, public intake/uploads and four-report issue remain closed. The four fictional Cedar reports remain unissued local working drafts.
+
 ## 27 October 2026 Central — v3.259 source frozen; immutable image candidate
 
 - Marc exact-approved [PR #1040](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1040) head `ff03927c99a49131136146e3b4dda4eb0456a32c` after all four required checks passed. Squash merge `6e3900844c6a5cf7fbcfbed1a93375f7585fe74a` was frozen as `release/v3.259`; remote ref readback matched that commit. No v3.259 image has yet been published or deployed.
