@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 28 October 2026 12:36 CDT
+last_verified_at: 28 October 2026 13:24 CDT
 current_frozen_release: v3.259
 current_frozen_commit: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
 active_development_branch: development/salcapa-platform
-current_development_head: 6e2b72cf3cef36f6e4bcb6f5342791d85a695f53
+current_development_head: 10e9b518f7d06d96a74b91930b0d632facdeed8e
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3259_staff_identity_correction_azure_demo_promotion
-last_completed_increment: v3259_named_staff_report_azure_pilot_verified
+active_increment: salus_v3259_staff_report_live_evaluator_acceptance
+last_completed_increment: v3259_staff_browser_paid_source_readback_verified
 candidate_release: v3.259
-validation_pr: 1046
-validation_branch: codex/level1a-v3259-staff-handoff-20261028
+validation_pr: 1047
+validation_branch: codex/level1a-v3259-staff-correction-handoff-20261028
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_current_v3259_named_staff_pilot_verified
-first_root_failing_gate: authenticated_staff_report_page_lists_no_paid_assignment
-root_cause: staff_env_reused_buyer_external_id_object_instead_of_staff_tenant_object_id
+failed_workflows: none_current_v3259_staff_identity_correction_verified
+first_root_failing_gate: four_staff_report_drafts_not_registered_or_qualified
+root_cause: original_staff_pin_used_buyer_external_id_and_was_corrected_in_protected_Azure
 repair_head: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
-repair_summary: correct_only_staff_object_id_after_exact_current_pin_and_buyer_boundary_preflight
-genuine_blockers: staff_correction_CI_Marc_exact_approval_protected_Azure_and_browser_readback_full_fictional_intake_source_reconciliation_screened_report_files_OPM_QA_human_issue_buyer_acknowledgment_and_public_release
-next_authorized_step: validate_current_staff_identity_correction_candidate_then_Marc_exact_head_review
+repair_summary: record_successful_staff_identity_correction_and_authenticated_paid_source_browser_readback
+genuine_blockers: full_fictional_intake_source_reconciliation_screened_report_files_OPM_QA_human_issue_buyer_acknowledgment_and_public_release
+next_authorized_step: reconcile_existing_paid_source_and_screen_four_working_reports_without_new_order_or_payment
 deployed_demo_release: v3.259
 deployed_demo_state: v3259_app_and_workers_named_buyer_test_paid_intake_pilot_active_staff_pinned_to_existing_order_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3259_staff_browser_paid_source_readback_verified: Marc approved PR #1046 exact head `796e7a9a75d1e805da0e77b26c21071cad905037` after three passing checks. Merge `10e9b518f7d06d96a74b91930b0d632facdeed8e` triggered protected run `40739276565`; Azure verified the v3.259 app, scanner worker, buyer test-only pin, existing staff email/order and mistaken staff ID before the change. It changed only the staff object ID to the Salus work-account ID and read back a ready revision with the original buyer ID and public-closed controls. Marc's authenticated screenshot then showed Fictional Cedar Site assessment 5, verified paid source order L1A-10 and four empty report draft cards. No new order, payment, upload or report issue occurred. Four fictional Cedar drafts remain unissued pending source, intake, screened files, Word/PDF/OPM/accessibility, Marc human issue and buyer acknowledgment. Public Wix purchase and live payment remain closed. Microsoft's Azure notice warns that future job starts with container overrides require `Microsoft.App/jobs/write` as well as start permission. The governed deployment workflow uses one YAML override and also updates the same job with the same workload identity; exact current RBAC needs readback before the next override execution, with no broad role grant inferred from the notice.
 
 v3259_named_staff_report_azure_pilot_verified: Marc approved PR #1045 exact head `965167df630d193f7dedf6643c2837cf76e17a67` after three passing checks. Merge `6e2b72cf3cef36f6e4bcb6f5342791d85a695f53` triggered protected run `40737122992`, which verified the v3.259 image, existing named-buyer test-only pilot, five-minute scanner worker and closed staff settings, then pinned Marc's verified work identity and fictional paid order L1A-10 to a ready revision. The Azure configuration passed readback; authenticated staff-page visibility and exact paid-source reconciliation remain unobserved. This handoff candidate records only that outcome. Four working reports remain unissued; full fictional intake, screened draft and QA files, every-page native Word/PDF/OPM/accessibility review, Marc's human issue decision, buyer acknowledgment and separate public release remain. No payment, upload or scanner disposition was repeated. Public Wix purchase and live payment remain closed.
 
