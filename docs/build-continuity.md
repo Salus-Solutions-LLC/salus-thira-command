@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3259_staff_report_scope_source_freeze
 last_completed_increment: v3258_named_buyer_test_paid_intake_pilot_verified
 candidate_release: v3.259
-validation_pr: pending
+validation_pr: 1040
 validation_branch: codex/level1a-v3259-source-freeze-20261027
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
