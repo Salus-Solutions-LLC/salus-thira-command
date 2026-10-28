@@ -1,35 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 28 October 2026 13:24 CDT
+last_verified_at: 28 October 2026 14:39 CDT
 current_frozen_release: v3.259
 current_frozen_commit: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
 active_development_branch: development/salcapa-platform
-current_development_head: d944c72797c8415282ac181a43c63fa2f47284d7
+current_development_head: 166b685ad7bcc57d5fb740e19b2bc3df143c519d
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3259_cedar_source_live_evaluator_acceptance
-last_completed_increment: v3259_staff_browser_paid_source_readback_verified
+active_increment: salus_v3259_four_report_live_evaluator_acceptance
+last_completed_increment: v3259_cedar_exact_private_source_readback_verified
 candidate_release: v3.259
-validation_pr: 1048
-validation_branch: codex/level1a-v3259-cedar-source-reconcile-20261028
+validation_pr: 1049
+validation_branch: codex/level1a-v3259-cedar-readback-handoff-20261028
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_current_v3259_staff_identity_correction_verified
-first_root_failing_gate: cedar_private_upload_hash_and_status_not_independently_read_back
-root_cause: staff_page_verifies_paid_order_but_not_exact_private_uploaded_document_bytes
-repair_head: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
-repair_summary: prepare_one_protected_content_free_cedar_source_and_permission_readback
+first_root_failing_gate: full_fictional_intake_and_four_screened_reports_not_accepted
+root_cause: four_working_reports_not_registered_or_human_issued
+repair_head: 166b685ad7bcc57d5fb740e19b2bc3df143c519d
+repair_summary: exact_cedar_private_source_and_override_permissions_verified
 genuine_blockers: full_fictional_intake_source_reconciliation_screened_report_files_OPM_QA_human_issue_buyer_acknowledgment_and_public_release
-next_authorized_step: review_exact_candidate_then_run_one_protected_read_only_source_check_without_new_order_or_payment
+next_authorized_step: merge_verified_readback_handoff_after_exact_review_then_reconcile_and_screen_four_reports
 deployed_demo_release: v3.259
 deployed_demo_state: v3259_app_and_workers_named_buyer_test_paid_intake_pilot_active_staff_pinned_to_existing_order_public_closed
 ---
 
 # SalCAPA build continuity
 
-v3259_cedar_source_readback_candidate: PR #1047 exact head `aa712f05406851fed88cecc7c8f507bdadb7a257` merged as `d944c72797c8415282ac181a43c63fa2f47284d7` after three passing checks, including the Windows retry. Marc's authenticated browser showed paid Cedar assessment 5 and four empty report cards. This candidate would verify the deployment identity's effective job read/start/write permissions and the exact v3.252 private inventory job, then run one temporary read-only command to compare the existing Clean Cedar statement record and promoted private bytes with Marc-approved SHA-256 and size. It logs only booleans or a failure class, checks the job definition is unchanged, and does not repeat an order, payment or upload. The workflow has not merged or run. Four reports remain unissued; public Wix purchase/live payment remain closed.
+v3259_cedar_source_readback_verified: PR #1047 exact head `aa712f05406851fed88cecc7c8f507bdadb7a257` merged as `d944c72797c8415282ac181a43c63fa2f47284d7` after three passing checks, including the Windows retry. Marc's authenticated browser showed paid Cedar assessment 5 and four empty report cards. Marc then approved PR #1048 exact head `5a98acdd3d3dc62ac02522eaf89348a73bd6243f` after all three checks; merge `166b685ad7bcc57d5fb740e19b2bc3df143c519d` triggered protected run `40755273680`, which succeeded. Azure verified the deployment identity's effective private job read/start/write actions, exact v3.252 inventory image and schedule, and unchanged job definition. The completed execution logged only a successful allowlisted comparison: one Clean 39,214-byte Essential work and locations file under existing fictional L1A-10 assessment 5 matched approved Cedar SHA-256 `97A4F3BF4C60DFD5162C4ECF34EFC345F747DD71127284C105FF121BA681C752`, including the private promoted copy's size and hash. No order, payment, upload, database, Blob or public control changed. Four reports remain unregistered and unissued; full fictional intake, each source citation, screened staff files, Word/PDF/OPM/accessibility QA, Marc human issue, buyer acknowledgment and public release remain. Public Wix purchase/live payment remain closed.
 
 v3259_staff_browser_paid_source_readback_verified: Marc approved PR #1046 exact head `796e7a9a75d1e805da0e77b26c21071cad905037` after three passing checks. Merge `10e9b518f7d06d96a74b91930b0d632facdeed8e` triggered protected run `40739276565`; Azure verified the v3.259 app, scanner worker, buyer test-only pin, existing staff email/order and mistaken staff ID before the change. It changed only the staff object ID to the Salus work-account ID and read back a ready revision with the original buyer ID and public-closed controls. Marc's authenticated screenshot then showed Fictional Cedar Site assessment 5, verified paid source order L1A-10 and four empty report draft cards. No new order, payment, upload or report issue occurred. Four fictional Cedar drafts remain unissued pending source, intake, screened files, Word/PDF/OPM/accessibility, Marc human issue and buyer acknowledgment. Public Wix purchase and live payment remain closed. Microsoft's Azure notice warns that future job starts with container overrides require `Microsoft.App/jobs/write` as well as start permission. The governed deployment workflow uses one YAML override and also updates the same job with the same workload identity; exact current RBAC needs readback before the next override execution, with no broad role grant inferred from the notice.
 
