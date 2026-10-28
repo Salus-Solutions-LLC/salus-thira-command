@@ -3,8 +3,8 @@
 const LEVEL1A_STAFF_PRODUCTS=[
   ['SalINTEL','SalINTEL™','SalINTEL Report Template v1.0'],
   ['SalTHIRA','SalTHIRA™','SalTHIRA Report Template v1.0'],
-  ['SalOPS','SalOPS™','SalOPS Report Template v2'],
-  ['SalCAPA','SalCAPA™','SalCAPA Integrated Report Template v2']
+  ['SalOPS','SalOPS™','SalOPS Report Template v3'],
+  ['SalCAPA','SalCAPA™','SalCAPA Integrated Report Template v3']
 ];
 const LEVEL1A_CONFORMANCE_CHECKS=[
   ['level_status_and_handoffs','Assessment level and product handoffs'],
@@ -40,9 +40,9 @@ async function level1aStaffView(){
     $('#content').innerHTML='<div class="notice">This report workspace is limited to assigned Salus staff.</div>';
     return;
   }
-  const assessments=await api('/api/assessments');
+  const assessments=await api('/api/level1a/staff/assessments');
   if(!assessments.length){
-    $('#content').innerHTML='<div class="notice">No assessment is available to this staff account.</div>';
+    $('#content').innerHTML='<div class="notice">No paid Level 1A report assignment is active for this staff account.</div>';
     return;
   }
   let selected=assessments.find(item=>item.id===activeAssessmentId);

@@ -3250,6 +3250,7 @@ async def request_context_middleware(request:Request,call_next):
     if not allowed and request.url.path not in ('/health/live','/health/ready'):
         security_event(request,'RATE_LIMIT_EXCEEDED','Medium',f'path={request.url.path}')
         return JSONResponse({'detail':'Rate limit exceeded','request_id':request.state.request_id},status_code=429,headers={'Retry-After':str(retry_after),'X-RateLimit-Remaining':'0','X-Request-ID':request.state.request_id})
+    _set_pinned_level1a_staff_report_scope(request)
     try:
         response=await call_next(request)
     except Exception as exc:
@@ -3415,7 +3416,10 @@ def auth_context(request:Request):
 
 def actor(request:Request): return auth_context(request)['user']
 def role(request:Request): return auth_context(request)['role']
-def tenant_id(request:Request): return int(auth_context(request)['tenant_id'])
+def tenant_id(request:Request):
+    # Only the exact paid-report routes may use a verified staff pilot scope.
+    scoped=getattr(request.state,'level1a_report_tenant_id',None)
+    return int(scoped if scoped is not None else auth_context(request)['tenant_id'])
 def clearance_level(request:Request): return SENSITIVITY_LEVELS.get(auth_context(request).get('clearance','Standard'),1)
 def require(request: Request, permission: str):
     r=role(request)
@@ -3448,6 +3452,58 @@ def assessment_row_for_request(request:Request, assessment_id:int):
             if not m:
                 conn.close(); security_event(request,'ASSESSMENT_ACCESS_DENIED','Medium',f'assessment_id={assessment_id}'); raise HTTPException(403,'No access to this assessment')
     conn.close(); return dict(a)
+
+
+def _level1a_staff_report_target(conn,path:str):
+    """Resolve only report-work routes to an existing paid assessment link."""
+    match=re.fullmatch(r'/api/assessments/(\d+)/level1a-report(?:[-/].*)?',path)
+    if match:
+        assessment_id=int(match.group(1))
+    else:
+        match=re.fullmatch(r'/api/level1a-reports/(\d+)(?:/.*)?',path)
+        if match:
+            row=conn.execute('SELECT assessment_id FROM level1a_product_report_versions WHERE id=?',
+                             (int(match.group(1)),)).fetchone()
+        else:
+            match=re.fullmatch(r'/api/level1a-report-scans/(\d+)(?:/.*)?',path)
+            if match:
+                row=conn.execute('SELECT assessment_id FROM level1a_staff_pending_scans WHERE id=?',
+                                 (int(match.group(1)),)).fetchone()
+            else:
+                match=re.fullmatch(r'/api/level1a-report-issues/(\d+)(?:/.*)?',path)
+                if not match: return None
+                row=conn.execute('SELECT assessment_id FROM level1a_report_issue_packets WHERE id=?',
+                                 (int(match.group(1)),)).fetchone()
+        if not row: return None
+        assessment_id=int(row['assessment_id'])
+    return conn.execute('''SELECT l.tenant_id,l.order_id,l.assessment_id
+        FROM level1a_assessment_links l JOIN level1a_orders o ON o.id=l.order_id
+        WHERE l.assessment_id=? AND o.tenant_id=l.tenant_id
+        AND o.buyer_user_id=l.buyer_user_id''',(assessment_id,)).fetchone()
+
+
+def _set_pinned_level1a_staff_report_scope(request:Request):
+    """Do not extend generic assessment access across Protected Member tenants."""
+    path=request.url.path
+    if (path.startswith('/api/assessments/') and '/level1a-report' in path
+            or path.startswith(('/api/level1a-reports/',
+                                '/api/level1a-report-scans/',
+                                '/api/level1a-report-issues/'))):
+        try:
+            ctx=auth_context(request)
+        except HTTPException:
+            ctx=None
+        if (ctx and ctx['auth_mode']=='oidc' and ctx['role']=='System Administrator'
+                and ctx.get('user_id')):
+            conn=db()
+            try:
+                target=_level1a_staff_report_target(conn,path)
+                if (target and _level1a_solo_reviewer_allowed(
+                        conn,ctx['user_id'],int(target['order_id']))):
+                    request.state.level1a_report_tenant_id=int(target['tenant_id'])
+                    request.state.level1a_report_assessment_id=int(target['assessment_id'])
+            finally:
+                conn.close()
 
 def require_sensitivity(request:Request, sensitivity:str):
     if SENSITIVITY_LEVELS.get(sensitivity or 'Standard',1)>clearance_level(request): raise HTTPException(403,'Record sensitivity exceeds user clearance')
@@ -8408,6 +8464,29 @@ PACKAGE_REPORT_QA_KEYS=(
     'all_rendered_pages','docx_pdf_print_parity','method_and_template_version',
     'qualified_review_and_release_authority')
 PACKAGE_REPORT_REVIEW_KEYS=('all_pages','native_word','accessibility','format_parity','member_isolation')
+
+@app.get('/api/level1a/staff/assessments')
+def list_pinned_level1a_staff_assessments(request:Request):
+    """List only the separately activated paid-order pilot for its named staff owner."""
+    require(request,'read')
+    ctx=auth_context(request)
+    if (ctx['auth_mode']!='oidc' or ctx['role']!='System Administrator'
+            or not ctx.get('user_id')):
+        raise HTTPException(403,'A named Salus staff identity is required.')
+    conn=db()
+    try:
+        if not LEVEL1A_SOLO_REVIEW_ORDER_ID.isdecimal(): return []
+        order_id=int(LEVEL1A_SOLO_REVIEW_ORDER_ID)
+        if not _level1a_solo_reviewer_allowed(conn,ctx['user_id'],order_id):
+            return []
+        row=conn.execute('''SELECT a.id,a.name,a.organization,l.order_id
+            FROM level1a_assessment_links l
+            JOIN assessments a ON a.id=l.assessment_id AND a.tenant_id=l.tenant_id
+            JOIN level1a_orders o ON o.id=l.order_id AND o.tenant_id=l.tenant_id
+                AND o.buyer_user_id=l.buyer_user_id
+            WHERE l.order_id=?''',(order_id,)).fetchone()
+        return [dict(row)] if row else []
+    finally: conn.close()
 
 def require_package_report_assignment(request:Request,assessment_id:int):
     ctx=auth_context(request)
