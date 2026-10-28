@@ -1,33 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 28 October 2026 10:03 CDT
+last_verified_at: 28 October 2026 12:36 CDT
 current_frozen_release: v3.259
 current_frozen_commit: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
 active_development_branch: development/salcapa-platform
-current_development_head: 2398a869cd541bfc0c7d4eb7581068731ac0ac0c
+current_development_head: 6e2b72cf3cef36f6e4bcb6f5342791d85a695f53
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
-active_increment: salus_v3259_staff_report_azure_demo_promotion
-last_completed_increment: v3259_named_buyer_test_paid_intake_pilot_verified
+active_increment: salus_v3259_staff_report_live_evaluator_acceptance
+last_completed_increment: v3259_named_staff_report_azure_pilot_verified
 candidate_release: v3.259
-validation_pr: 1045
-validation_branch: codex/level1a-v3259-staff-pilot-20261028
+validation_pr: 1046
+validation_branch: codex/level1a-v3259-staff-handoff-20261028
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_current_v3259_named_buyer_pilot_verified
-first_root_failing_gate: v3259_named_staff_report_access_not_activated
-root_cause: SAL_D114_staff_env_pins_absent_after_v3259_deployment
+failed_workflows: none_current_v3259_named_staff_pilot_verified
+first_root_failing_gate: v3259_staff_page_and_protected_paid_source_not_yet_read_back
+root_cause: protected_Azure_staff_configuration_verified_but_authenticated_staff_page_unobserved
 repair_head: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
-repair_summary: pin_one_existing_staff_identity_and_paid_order_for_governed_single_operator_report_pilot
-genuine_blockers: staff_candidate_CI_Marc_exact_approval_protected_Azure_and_browser_readback_full_fictional_intake_OPM_QA_human_four_report_issue_buyer_acknowledgment_and_separate_public_release
-next_authorized_step: validate_v3259_staff_report_pilot_then_Marc_exact_head_review
+repair_summary: record_protected_named_staff_pilot_result_and_verify_existing_order_in_authenticated_staff_page
+genuine_blockers: staff_browser_readback_full_fictional_intake_protected_source_reconciliation_screened_report_files_OPM_QA_human_four_report_issue_buyer_acknowledgment_and_separate_public_release
+next_authorized_step: verify_work_account_staff_report_page_without_creating_a_new_order
 deployed_demo_release: v3.259
-deployed_demo_state: v3259_app_and_workers_named_buyer_test_paid_intake_pilot_active_staff_closed_public_closed
+deployed_demo_state: v3259_app_and_workers_named_buyer_test_paid_intake_pilot_active_staff_pinned_to_existing_order_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3259_named_staff_report_azure_pilot_verified: Marc approved PR #1045 exact head `965167df630d193f7dedf6643c2837cf76e17a67` after three passing checks. Merge `6e2b72cf3cef36f6e4bcb6f5342791d85a695f53` triggered protected run `40737122992`, which verified the v3.259 image, existing named-buyer test-only pilot, five-minute scanner worker and closed staff settings, then pinned Marc's verified work identity and fictional paid order L1A-10 to a ready revision. The Azure configuration passed readback; authenticated staff-page visibility and exact paid-source reconciliation remain unobserved. This handoff candidate records only that outcome. Four working reports remain unissued; full fictional intake, screened draft and QA files, every-page native Word/PDF/OPM/accessibility review, Marc's human issue decision, buyer acknowledgment and separate public release remain. No payment, upload or scanner disposition was repeated. Public Wix purchase and live payment remain closed.
 
 v3255_private_adverse_preflight_stop: Marc approved PR #1009 exact head `afd66d6297e3b87df92eaa0f2c1e7b5065b49dca` after three passing checks; merge `a1d7f1f24dce44de8b686b59af18b6f66a29a50a` triggered protected run `40047290405`. Authorization and exact Azure target/image checks passed; the manual test-job preflight reported a mismatch and failed before Start. No EICAR Azure sample, buyer upload, payment, or job-definition change occurred. Never rerun the used activation. This new read-only candidate reports only match booleans for the preflight clauses so the mismatch can be corrected without guessing. A new one-time activation and exact-source approval are needed for a later test. Public access remains closed.
 
