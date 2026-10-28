@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 27 October 2026 Central — v3.259 source frozen; immutable image candidate
+
+- Marc exact-approved [PR #1040](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1040) head `ff03927c99a49131136146e3b4dda4eb0456a32c` after all four required checks passed. Squash merge `6e3900844c6a5cf7fbcfbed1a93375f7585fe74a` was frozen as `release/v3.259`; remote ref readback matched that commit. No v3.259 image has yet been published or deployed.
+- [Draft PR #1041](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1041) pins that frozen source for one protected immutable build and Azure registry digest readback. Require every frozen-source and candidate check plus Marc's exact-head review before merge. The protected v3.258 app and workers remain in the named-buyer Stripe test-only paid-intake pilot. A guarded app deployment, separate scanner-worker update and separately reviewed staff identity/order activation are still required. Do not repeat the existing fictional payment, uploads, EICAR test or scanner dispositions. Public Wix purchase, live payment, public intake/uploads and four-report issue remain closed; full fictional intake, source reconciliation, OPM QA, Marc's human issue decision, buyer acknowledgment and public release remain open.
+
 ## 27 October 2026 Central — v3.259 staff report scope source candidate
 
 - Marc approved [PR #1039](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1039) at exact head `b283c9e8b738f03e3e74da60323d2f14b2378bdf` after all four required checks passed. Squash merge `c9e29169bef6da33f9cee5d422914679d1f68f1a` fixes the empty staff report page in source. It lists only the existing paid order separately pinned to the named Salus staff identity and confines its report requests to that linked buyer tenant. General assessment listing stays isolated. This merge did not deploy, activate staff access, or issue a report.
