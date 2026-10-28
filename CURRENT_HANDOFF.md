@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 28 October 2026 Central — remaining fictional intake records are unknown
+
+- Marc selected **Not known whether records exist** for the remaining requested records on fictional Cedar Site order L1A-10. This is an evidence limit, not a claim that the records or capabilities do not exist. The approved Cedar statement is still the only verified assessment document. The protected buyer intake has not been updated with this choice; no server-side response is claimed.
+- Four new local, unissued working DOCX successors explicitly say `Unknown, not Not held` and retain the verified source hash and six unverified fictional claims. The files and SHA-256 values are recorded in `cedar_reports/SOURCE_RECONCILED_WORKING_QA_20261028.md` in this chat's local visualizations workspace. LibreOffice page counts remain 9 SalINTEL, 9 SalTHIRA, 8 SalOPS and 7 SalCAPA; changed page examples were inspected. Complete native Word/PDF all-page OPM/accessibility review, private staff screening and registration, Marc's human qualification and separate issue decision remain open. No report was issued, and no order, payment or upload was repeated.
+- Next: record the unknown responses through the existing protected buyer intake when authenticated UI access is available, then reconcile and screen the exact four draft files and page evidence. Public Wix purchase, live payment, public intake/uploads and report issue remain closed.
+
 ## 28 October 2026 Central — exact fictional Cedar source readback verified
 
 - Marc approved [PR #1047](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1047) at exact head `aa712f05406851fed88cecc7c8f507bdadb7a257` after the retried Windows check and both other required checks passed. Squash merge `d944c72797c8415282ac181a43c63fa2f47284d7` records the successful staff-page readback and Microsoft's Azure job-override permission notice. No app code, Azure setting, payment, upload or report issue changed.

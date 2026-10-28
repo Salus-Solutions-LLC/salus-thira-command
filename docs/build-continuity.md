@@ -5,29 +5,31 @@ last_verified_at: 28 October 2026 14:39 CDT
 current_frozen_release: v3.259
 current_frozen_commit: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
 active_development_branch: development/salcapa-platform
-current_development_head: 166b685ad7bcc57d5fb740e19b2bc3df143c519d
+current_development_head: d789cd570180a7807a76c834b43a311c799260b7
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
 active_increment: salus_v3259_four_report_live_evaluator_acceptance
-last_completed_increment: v3259_cedar_exact_private_source_readback_verified
+last_completed_increment: v3259_cedar_exact_private_source_and_unknown_record_decision
 candidate_release: v3.259
-validation_pr: 1049
-validation_branch: codex/level1a-v3259-cedar-readback-handoff-20261028
+validation_pr: 1050
+validation_branch: codex/level1a-records-unknown-handoff-20261028
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_current_v3259_staff_identity_correction_verified
 first_root_failing_gate: full_fictional_intake_and_four_screened_reports_not_accepted
 root_cause: four_working_reports_not_registered_or_human_issued
-repair_head: 166b685ad7bcc57d5fb740e19b2bc3df143c519d
-repair_summary: exact_cedar_private_source_and_override_permissions_verified
+repair_head: d789cd570180a7807a76c834b43a311c799260b7
+repair_summary: exact_cedar_private_source_verified_other_requested_records_unknown
 genuine_blockers: full_fictional_intake_source_reconciliation_screened_report_files_OPM_QA_human_issue_buyer_acknowledgment_and_public_release
-next_authorized_step: merge_verified_readback_handoff_after_exact_review_then_reconcile_and_screen_four_reports
+next_authorized_step: merge_unknown_record_handoff_after_exact_review_then_enter_protected_intake_and_screen_four_reports
 deployed_demo_release: v3.259
 deployed_demo_state: v3259_app_and_workers_named_buyer_test_paid_intake_pilot_active_staff_pinned_to_existing_order_public_closed
 ---
 
 # SalCAPA build continuity
+
+v3259_cedar_remaining_records_unknown_candidate: PR #1049 exact head `ba3bf19443125c0243f8c38f9e8dde2c20f5bda2` merged as `d789cd570180a7807a76c834b43a311c799260b7` after Marc approval and all three passing checks. Marc selected Not known whether records exist for all other requested fictional intake records; this has not yet been entered into the protected buyer intake. The four local Word successors say Unknown, not Not held, retain the exact verified Cedar statement and unverified fictional facts, and remain unregistered/unissued. Complete private screening, native Word/PDF all-page OPM/accessibility review, Marc's separate issue decision, buyer acknowledgment and governed public release remain. No payment/upload was repeated; public Wix purchase, live payment and intake remain closed.
 
 v3259_cedar_source_readback_verified: PR #1047 exact head `aa712f05406851fed88cecc7c8f507bdadb7a257` merged as `d944c72797c8415282ac181a43c63fa2f47284d7` after three passing checks, including the Windows retry. Marc's authenticated browser showed paid Cedar assessment 5 and four empty report cards. Marc then approved PR #1048 exact head `5a98acdd3d3dc62ac02522eaf89348a73bd6243f` after all three checks; merge `166b685ad7bcc57d5fb740e19b2bc3df143c519d` triggered protected run `40755273680`, which succeeded. Azure verified the deployment identity's effective private job read/start/write actions, exact v3.252 inventory image and schedule, and unchanged job definition. The completed execution logged only a successful allowlisted comparison: one Clean 39,214-byte Essential work and locations file under existing fictional L1A-10 assessment 5 matched approved Cedar SHA-256 `97A4F3BF4C60DFD5162C4ECF34EFC345F747DD71127284C105FF121BA681C752`, including the private promoted copy's size and hash. No order, payment, upload, database, Blob or public control changed. Four reports remain unregistered and unissued; full fictional intake, each source citation, screened staff files, Word/PDF/OPM/accessibility QA, Marc human issue, buyer acknowledgment and public release remain. Public Wix purchase/live payment remain closed.
 
