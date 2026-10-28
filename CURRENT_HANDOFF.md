@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 27 October 2026 Central — v3.259 staff report scope source candidate
+
+- Marc approved [PR #1039](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1039) at exact head `b283c9e8b738f03e3e74da60323d2f14b2378bdf` after all four required checks passed. Squash merge `c9e29169bef6da33f9cee5d422914679d1f68f1a` fixes the empty staff report page in source. It lists only the existing paid order separately pinned to the named Salus staff identity and confines its report requests to that linked buyer tenant. General assessment listing stays isolated. This merge did not deploy, activate staff access, or issue a report.
+- [Draft PR #1040](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1040) labels that merged repair v3.259. Require candidate CI and Marc's exact-head review before freeze, then frozen checks, immutable image publication, guarded deployment and separate named-staff activation/readback. Serving v3.258 remains the named-buyer Stripe test-only paid-intake/scanner pilot. Do not repeat fictional L1A-10 payment, prior uploads, EICAR test or scanner dispositions. Public Wix purchase, live payment/intake/uploads and four-report issue remain closed. Full fictional intake, source reconciliation, all-page OPM/Word/PDF/accessibility checks and Marc's human issue decision remain.
+
 ## 27 October 2026 Central — scoped paid-assessment staff visibility source candidate
 
 - Source inspection confirmed why Marc's authenticated System Administrator page returned no Level 1A assessment: `/api/assessments` lists only the staff account's tenant, while `bind_verified_buyer` creates a separate buyer tenant and `ensure_paid_assessment` creates the existing fictional paid assessment there. No duplicate assessment, order, payment or upload is needed.
