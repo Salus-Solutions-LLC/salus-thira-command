@@ -119,6 +119,7 @@ def check() -> None:
         result = probe.collect(conn)
         conn.close()
         assert result["represented_distinct_files"] == 5, result
+        assert result["represented_net_gap"] == 22_372, result
         assert result["unrepresented_files"] == 22_372, result
         assert result["bulk_rows"] == 5 and result["bulk_active_file_rows"] == 3, result
         assert result["bulk_open"] == 1 and result["bulk_oversize"] == 1, result
