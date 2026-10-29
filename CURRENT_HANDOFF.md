@@ -3,7 +3,7 @@
 ## 29 October 2026 Central — v3.260 source frozen; image candidate
 
 - Marc approved [PR #1060](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1060) exact head `f71e2dd8a730c72126d56e0dc2e988b7d1a097c5` after all four required checks passed. Squash merge `4ddbafacb68e2d80a5ce19ec61fe20512522c748` was frozen as `release/v3.260`; remote release ref readback matched that commit. This is not an image publication or deployment.
-- An image candidate pins that exact frozen source for one protected immutable build and registry digest readback. Require every frozen-source and candidate check plus Marc's review of the final head before merge. The protected v3.259 app and workers retain only the named-buyer Stripe test-only paid-intake/scanner pilot and pinned staff order; public Wix purchase, live payment/intake/uploads and report issue remain closed. No file, payment or upload was repeated. After deployment, restore narrow buyer/staff pilots separately and test the exact SalINTEL draft upload once.
+- [Draft PR #1062](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1062) pins that exact frozen source for one protected immutable build and registry digest readback. Require every frozen-source and candidate check plus Marc's review of the final head before merge. The protected v3.259 app and workers retain only the named-buyer Stripe test-only paid-intake/scanner pilot and pinned staff order; public Wix purchase, live payment/intake/uploads and report issue remain closed. No file, payment or upload was repeated. After deployment, restore narrow buyer/staff pilots separately and test the exact SalINTEL draft upload once.
 
 ## 29 October 2026 Central — v3.260 Level 1A staff upload repair source candidate
 

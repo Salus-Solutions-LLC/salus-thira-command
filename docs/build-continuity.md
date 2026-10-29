@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3260_immutable_image_publication
 last_completed_increment: v3259_named_staff_paid_source_and_intake_readback_verified
 candidate_release: v3.260
-validation_pr: pending
+validation_pr: 1062
 validation_branch: codex/level1a-v3260-image-20261029
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
