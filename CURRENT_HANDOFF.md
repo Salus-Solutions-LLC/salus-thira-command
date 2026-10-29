@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 28 October 2026 Central — saved fictional intake readback candidate
+
+- Marc reported that the four remaining file-free requested intake items on existing fictional paid order L1A-10 show **Not known** and were saved. A source-only candidate adds one protected, read-only comparison through the existing private inventory job. It checks only the seven initial item keys, four Not known responses and three Requested file items for assessment 5; its logs contain booleans only. It does not read a document, change a row or job definition, or repeat payment or upload. Require all PR checks, Marc's exact-head review, protected execution and result readback before treating the buyer-reported state as independently verified.
+- The four local Cedar reports remain unissued working files; no private staff screening or registration, native Word/PDF all-page review, Marc qualification or issue decision has occurred. Public Wix purchase, live payment, public intake/uploads and report issue remain closed.
+
 ## 28 October 2026 Central — buyer saved the remaining fictional intake responses
 
 - Marc reported that every remaining requested record on existing fictional Cedar Site order L1A-10 now shows **Not known** and was saved. The buyer screenshots show the approved Cedar statement cleared, the earlier real Salus test document cleared, and the EICAR test file held as Malicious. The latter two are excluded from fictional report evidence. The saved response rows have not yet been independently read back from the protected staff source, so do not claim server acceptance beyond Marc's report. No new order, payment, upload, scanner disposition or report issue occurred.
