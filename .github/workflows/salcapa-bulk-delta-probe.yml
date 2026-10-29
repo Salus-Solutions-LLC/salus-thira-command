@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           test "$RESOURCE_GROUP" = "rg-salcapa-dev"
           az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-diagnostic-app.json
-          EXPECTED_IMAGE=salcapadevb48224acr.azurecr.io/salcapa@sha256:3600b915aa95d5390b54a6554d7f4b247b8a196bbb2377ba3db4c0d3943357f8
+          EXPECTED_IMAGE=salcapadevb48224acr.azurecr.io/salcapa@sha256:8ca732d9cdc7050797153157b14d58f0f795b1b36293b1029a1fcb419028d289
           echo "ACTUAL_APP_IMAGE=$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-diagnostic-app.json)"
           test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-diagnostic-app.json)" = "$EXPECTED_IMAGE"
           env_value() {
@@ -93,7 +93,7 @@ jobs:
             --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
             --execution "$EXECUTION_NAME" --container salcapa-m365-acceptance \
             --tail 100 --format text --only-show-errors 2>&1 \
-            | grep -E 'BULK_DELTA_HTTP|BULK_DELTA_LINK_KIND|BULK_DELTA_SCOPED_LINK|BULK_DELTA_SAFE_ERROR_TYPE' \
+            | grep -E 'BULK_DELTA_HTTP|BULK_DELTA_LINK_KIND|BULK_DELTA_SCOPED_LINK|BOUNDARY_FILES|BOUNDARY_FOLDERS|BOUNDARY_BYTES|BOUNDARY_OVERSIZE|BOUNDARY_PAGES|BOUNDARY_COMPLETE|BULK_DELTA_SAFE_ERROR_TYPE' \
             || true
           test "$SUCCEEDED" = "true"
       - name: Remove isolated diagnostic job
