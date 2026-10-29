@@ -1,17 +1,17 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 29 October 2026 Central
+last_verified_at: 29 October 2026 13:52 CDT
 current_frozen_release: v3.259
 current_frozen_commit: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
 active_development_branch: development/salcapa-platform
 current_development_head: 3ac1a674aff0a026a18af4fba0f535366cbf67f1
 active_product_milestone: issue_520_sald116_complete_library_acceptance
 active_build_system_issue: 520
-active_increment: sald116_content_free_recursive_boundary_census
+active_increment: sald116_v3259_live_evaluator_acceptance
 last_completed_increment: sald116_governance_and_22377_file_boundary_count
 candidate_release: v3.259
-validation_pr: pending
+validation_pr: 1056
 validation_branch: codex/salcapa-library-deploy-20261029
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
