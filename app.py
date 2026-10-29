@@ -3456,7 +3456,7 @@ def assessment_row_for_request(request:Request, assessment_id:int):
 
 def _level1a_staff_report_target(conn,path:str):
     """Resolve only report-work routes to an existing paid assessment link."""
-    match=re.fullmatch(r'/api/assessments/(\d+)/level1a-report(?:[-/].*)?',path)
+    match=re.fullmatch(r'/api/assessments/(\d+)/level1a-reports?(?:[-/].*)?',path)
     if match:
         assessment_id=int(match.group(1))
     else:

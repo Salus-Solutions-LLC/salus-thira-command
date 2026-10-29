@@ -85,9 +85,24 @@ def test_exact_pinned_staff_scope_and_other_tenant_denial(tmp_path):
         assert observed==[(one[1],one[0])]
         assert staff.get(f'/api/assessments/{two[1]}/level1a-report-source').status_code==403
         assert observed==[(one[1],one[0])]
+        # The plural draft-scan route must receive the same narrow tenant scope
+        # as the source route. A damaged DOCX reaches file validation only for
+        # the pinned assessment; the other buyer tenant is denied first.
+        app.PACKAGE_SCAN_MODE='defender'
+        app.PACKAGE_SCANNER_ACCEPTED=True
+        draft_fields={'method_version':'fictional method','template_version':'fictional template'}
+        draft_file={'file':('test.docx',b'not-a-docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document')}
+        draft_path=lambda aid: f'/api/assessments/{aid}/level1a-reports/SalINTEL/draft-scans'
+        pinned_draft=staff.post(draft_path(one[1]),data=draft_fields,files=draft_file)
+        assert pinned_draft.status_code==422,pinned_draft.text
+        assert 'valid Word .docx' in pinned_draft.text
+        assert staff.post(draft_path(two[1]),data=draft_fields,files=draft_file).status_code==403
+        assert staff.get('/api/assessments').json()==[]
         app.LEVEL1A_SOLO_REVIEWER_OBJECT_ID='wrong-object'
         assert staff.get('/api/level1a/staff/assessments').json()==[]
         assert staff.get(f'/api/assessments/{one[1]}/level1a-report-source').status_code==403
+        assert staff.post(draft_path(one[1]),data=draft_fields,files=draft_file).status_code==403
     ''')
     result=subprocess.run([sys.executable,'-c',code],env=env,capture_output=True,
                           text=True,timeout=120)
