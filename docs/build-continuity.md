@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: sald116_v3259_live_evaluator_acceptance
 last_completed_increment: sald116_v3259_aggregate_ledger_reconciliation
 candidate_release: v3.259
-validation_pr: pending
+validation_pr: 1061
 validation_branch: codex/salcapa-gap-characterization-20261029
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
