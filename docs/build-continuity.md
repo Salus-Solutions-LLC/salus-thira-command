@@ -1,11 +1,11 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 29 October 2026 17:09 CDT
+last_verified_at: 29 October 2026 17:24 CDT
 current_frozen_release: v3.259
 current_frozen_commit: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
 active_development_branch: development/salcapa-platform
-current_development_head: 4ddbafacb68e2d80a5ce19ec61fe20512522c748
+current_development_head: c7a2ebe8f506eac3a9cbd81102b90cb1dafae0a6
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
 active_increment: salus_v3260_staff_draft_upload_scope_source_freeze
@@ -30,6 +30,8 @@ deployed_demo_state: v3259_app_and_workers_named_buyer_test_paid_intake_pilot_ac
 # SalCAPA build continuity
 
 sald116_gap_characterization_candidate: PR #1059 exact head `28e11cd63be8b10abdea402b8458d08aae01dc9f` merged as `8fb21f9491348f7113993ceb70ba6d6e3b16140b`; protected run `40962325479` succeeded and removed its isolated job. Aggregate evidence found 22,294 represented of 22,377 source IDs, 17 open candidates, 14,511 complete extractions and 7,849 automatic retry obligations, with no cursor error or unexpected/missing state. PR #1061 extends that same content-free probe to count gaps by the seven approved source areas, fixed candidate states, non-content failure-code families and retry attempt/backoff buckets. It emits no file ID, name, path, content, attribution, identity, URL or event detail and changes no row or access. This issue #520 evidence path remains separate from the active v3.260 Level 1A release line. Required reconciled-head CI, Marc exact-head review and protected execution remain before using the result to design processing or terminal governed-hold changes.
+
+sald116_gap_characterization_verified: Marc approved PR #1061 exact reconciled head `2f7e374052612eb90f60a231ec57462d9b0b82ac`; squash merge `c7a2ebe8f506eac3a9cbd81102b90cb1dafae0a6` triggered protected run `40964918238`, which succeeded on governed v3.259 and verified deletion of its isolated job. The content-free area comparison rechecked 22,377 files over 119 Graph pages and established 93 current-boundary gaps, all in Does Not Upload; 3 Pending Classification and 22,281 Processed Intake files have zero gaps. Ten represented historical IDs sit outside the boundary, so 83 is only the net difference between total boundary files and all distinct represented IDs. Seventeen candidates remain open and 7,849 extractions remain in automatic retry; `RECONCILIATION_COMPLETE=0`. The workflow output allowlist omitted calculated retry-attempt keys containing digits. A narrow candidate must expose those aggregate keys and make the area gap authoritative for the unrepresented count before retry or Does Not Upload disposition policy changes. Full Knowledge Library acceptance remains open.
 
 sald116_issue520_census_verified: Marc approved PR #1056 exact head `988e98c7d4d074bef975505146d57f2f921dd279` after all three required checks passed. Merge `893ce9b0966c45d3dc6ed2a41426feaefe52460d` triggered protected run `40958858148`, which succeeded on exact deployed v3.259 digest `sha256:8ca732d9cdc7050797153157b14d58f0f795b1b36293b1029a1fcb419028d289`. The content-free recursive readback reported 22,377 files, 7 folders, 129,520,243,753 bytes, 96 oversize files and 119 Graph pages with boundary completion and scoped continuation verified. The isolated diagnostic job was removed. This closes only the source-boundary census gate; ledger, extraction, indexing, citation/teaching readiness, unresolved-item reconciliation and Salus-controlled ChatGPT workspace verification remain open under issue #520. No corpus item, database row, permission, app, scheduled worker or Protected Member access changed.
 
