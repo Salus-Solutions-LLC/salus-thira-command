@@ -262,6 +262,7 @@ def collect(conn, intake: Any | None = None) -> dict[str, int]:
         "required_tables_missing": 0,
         "boundary_files": EXPECTED_BOUNDARY_FILES,
         "represented_distinct_files": represented,
+        "represented_net_gap": max(0, EXPECTED_BOUNDARY_FILES - represented),
         "unrepresented_files": max(0, EXPECTED_BOUNDARY_FILES - represented),
         "represented_above_boundary": int(represented > EXPECTED_BOUNDARY_FILES),
         "bulk_rows": sum(bulk.values()),
@@ -324,7 +325,15 @@ def collect(conn, intake: Any | None = None) -> dict[str, int]:
             "retry_code_other": _scalar(conn, "SELECT COUNT(*) FROM m365_bulk_extraction_checks WHERE last_code NOT IN ('','extraction_retry_required','archived_source_read_unavailable','archived_source_outside_verified_folder')"),
         })
     if intake is not None:
-        result.update(_source_area_reconciliation(intake, _represented_source_ids(conn)))
+        source_result = _source_area_reconciliation(
+            intake, _represented_source_ids(conn)
+        )
+        result.update(source_result)
+        # Distinct represented IDs can include historical records outside the
+        # current Graph boundary.  The area comparison is the authoritative
+        # current-boundary gap; keep the arithmetic difference separately as
+        # represented_net_gap so it cannot understate missing source items.
+        result["unrepresented_files"] = source_result["area_gap_total"]
     return result
 
 

@@ -102,7 +102,7 @@ jobs:
             --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
             --execution "$EXECUTION_NAME" --container salcapa-ledger-acceptance \
             --tail 100 --format text --only-show-errors 2>&1 \
-            | grep -E 'LEDGER_[A-Z_]+=|RECONCILIATION_COMPLETE=' \
+            | grep -E 'LEDGER_[A-Z0-9_]+=|RECONCILIATION_COMPLETE=' \
             || true
           test "$SUCCEEDED" = "true"
       - name: Remove isolated ledger diagnostic job
