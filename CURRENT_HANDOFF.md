@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 29 October 2026 Central — v3.260 immutable image verified; guarded deployment candidate
+
+- Marc approved [PR #1062](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1062) at reconciled exact head `c26cdbda0964e181c89f407b03b35c09e9ad173d` after all three PR and three frozen-source checks passed. Squash merge `2dafecde7769c7ee8f8400bb204e2f421b6a1cce` triggered [protected image run 40968101398](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/40968101398). Its authorize and publish jobs succeeded, and Azure registry readback yielded `salcapadevb48224acr.azurecr.io/salcapa@sha256:30e8b0af913a74e57b17f239b7091778e40d8d38a88aba92c9cd9607658cccc8` for frozen source `4ddbafacb68e2d80a5ce19ec61fe20512522c748` / `release/v3.260`. This is image publication, not deployment or report acceptance.
+- The guarded v3.260 application candidate pins that digest for the protected app and scheduled knowledge worker, expects the currently verified v3.259 digest for both, and retains v3.223 rollback. The deployment workflow must verify the exact starting state and start all buyer controls closed. It does not update the separate five-minute scanner-result worker, repeat payment/upload, issue reports, or open public Wix purchase or live payment. Require current PR checks, Marc's exact-head review, protected Azure deployment and readback before calling v3.260 deployed. Afterward, separately review the scanner worker update and narrow buyer/staff pilot restoration, then retry the exact SalINTEL draft staging once.
+
 ## 29 October 2026 Central — v3.260 source frozen; image candidate
 
 - Marc approved [PR #1060](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1060) exact head `f71e2dd8a730c72126d56e0dc2e988b7d1a097c5` after all four required checks passed. Squash merge `4ddbafacb68e2d80a5ce19ec61fe20512522c748` was frozen as `release/v3.260`; remote release ref readback matched that commit. This is not an image publication or deployment.
