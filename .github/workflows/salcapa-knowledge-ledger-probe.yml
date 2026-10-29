@@ -73,6 +73,10 @@ jobs:
               registryServer="$REGISTRY_SERVER" \
               imageDigest="$EXPECTED_IMAGE" \
               managedIdentityClientId="$IDENTITY_CLIENT_ID" \
+              tenantId="$(env_value SALUS_OIDC_TENANT_ID)" \
+              applicationClientId="$(env_value SALUS_OIDC_CLIENT_ID)" \
+              driveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" \
+              folderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" \
               postgresHost="$(env_value SALUS_POSTGRES_HOST)" \
               postgresDatabase="$(env_value SALUS_POSTGRES_DATABASE)" \
               postgresUser="$(env_value SALUS_POSTGRES_USER)" \

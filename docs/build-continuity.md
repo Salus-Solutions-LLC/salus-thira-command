@@ -1,11 +1,11 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 29 October 2026 17:01 CDT
+last_verified_at: 29 October 2026 17:09 CDT
 current_frozen_release: v3.259
 current_frozen_commit: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
 active_development_branch: development/salcapa-platform
-current_development_head: 8fb21f9491348f7113993ceb70ba6d6e3b16140b
+current_development_head: 4ddbafacb68e2d80a5ce19ec61fe20512522c748
 active_product_milestone: issue_970_level1a_paid_report_acceptance
 active_build_system_issue: 970
 active_increment: salus_v3260_staff_draft_upload_scope_source_freeze
@@ -14,20 +14,22 @@ candidate_release: v3.260
 validation_pr: 1060
 validation_branch: codex/level1a-v3260-source-freeze-20261029
 validation_base: development/salcapa-platform
-validation_head: pending_exact_candidate_commit
-validation_gate_state: controlled_validation_in_progress
+validation_head: f71e2dd8a730c72126d56e0dc2e988b7d1a097c5
+validation_gate_state: all_required_gates_green
 failed_workflows: none_current_v3260_source_candidate
-first_root_failing_gate: merged_staff_draft_upload_scope_fix_not_frozen_or_deployed
+first_root_failing_gate: v3260_source_not_frozen_published_or_deployed
 root_cause: v3259_staff_upload_route_plural_path_missing_from_pinned_scope_match
-repair_head: 5eb44a760b0ce69fc43a990ebcd7012264fd36b8
-repair_summary: freeze_merged_pinned_staff_draft_upload_scope_fix
+repair_head: f71e2dd8a730c72126d56e0dc2e988b7d1a097c5
+repair_summary: merged_v3260_source_marker_with_pinned_staff_upload_scope_fix
 genuine_blockers: v3259_superseded_only_after_v3260_source_freeze_candidate_CI_Marc_exact_review_frozen_checks_immutable_image_guarded_deployment_named_staff_restoration_screened_draft_QA_human_four_report_issue_buyer_acknowledgment_separate_public_release
-next_authorized_step: validate_v3260_source_candidate_then_obtain_Marc_exact_head_review
+next_authorized_step: freeze_exact_v3260_source_then_publish_and_guardedly_deploy_immutable_image
 deployed_demo_release: v3.259
 deployed_demo_state: v3259_app_and_workers_named_buyer_test_paid_intake_pilot_active_staff_pinned_to_existing_order_public_closed
 ---
 
 # SalCAPA build continuity
+
+sald116_gap_characterization_candidate: PR #1059 exact head `28e11cd63be8b10abdea402b8458d08aae01dc9f` merged as `8fb21f9491348f7113993ceb70ba6d6e3b16140b`; protected run `40962325479` succeeded and removed its isolated job. Aggregate evidence found 22,294 represented of 22,377 source IDs, 17 open candidates, 14,511 complete extractions and 7,849 automatic retry obligations, with no cursor error or unexpected/missing state. PR #1061 extends that same content-free probe to count gaps by the seven approved source areas, fixed candidate states, non-content failure-code families and retry attempt/backoff buckets. It emits no file ID, name, path, content, attribution, identity, URL or event detail and changes no row or access. This issue #520 evidence path remains separate from the active v3.260 Level 1A release line. Required reconciled-head CI, Marc exact-head review and protected execution remain before using the result to design processing or terminal governed-hold changes.
 
 sald116_issue520_census_verified: Marc approved PR #1056 exact head `988e98c7d4d074bef975505146d57f2f921dd279` after all three required checks passed. Merge `893ce9b0966c45d3dc6ed2a41426feaefe52460d` triggered protected run `40958858148`, which succeeded on exact deployed v3.259 digest `sha256:8ca732d9cdc7050797153157b14d58f0f795b1b36293b1029a1fcb419028d289`. The content-free recursive readback reported 22,377 files, 7 folders, 129,520,243,753 bytes, 96 oversize files and 119 Graph pages with boundary completion and scoped continuation verified. The isolated diagnostic job was removed. This closes only the source-boundary census gate; ledger, extraction, indexing, citation/teaching readiness, unresolved-item reconciliation and Salus-controlled ChatGPT workspace verification remain open under issue #520. No corpus item, database row, permission, app, scheduled worker or Protected Member access changed.
 
