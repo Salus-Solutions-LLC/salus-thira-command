@@ -1,35 +1,35 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 29 October 2026 13:52 CDT
+last_verified_at: 29 October 2026 16:37 CDT
 current_frozen_release: v3.259
 current_frozen_commit: 6e3900844c6a5cf7fbcfbed1a93375f7585fe74a
 active_development_branch: development/salcapa-platform
-current_development_head: 3ac1a674aff0a026a18af4fba0f535366cbf67f1
+current_development_head: 893ce9b0966c45d3dc6ed2a41426feaefe52460d
 active_product_milestone: issue_520_sald116_complete_library_acceptance
 active_build_system_issue: 520
 active_increment: sald116_v3259_live_evaluator_acceptance
-last_completed_increment: sald116_governance_and_22377_file_boundary_count
+last_completed_increment: sald116_v3259_content_free_boundary_census
 candidate_release: v3.259
 validation_pr: 1056
 validation_branch: codex/salcapa-library-deploy-20261029
 validation_base: development/salcapa-platform
-validation_head: pending_exact_candidate_commit
-validation_gate_state: controlled_validation_in_progress
+validation_head: 988e98c7d4d074bef975505146d57f2f921dd279
+validation_gate_state: all_required_gates_green
 failed_workflows: none_current_v3259_staff_identity_correction_verified
-first_root_failing_gate: complete_recursive_census_and_ledger_reconciliation_not_accepted
-root_cause: issue_520_live_load_recovery_oversize_and_isolation_proof_remains_open
-repair_head: pending_exact_candidate_commit
-repair_summary: content_free_recursive_boundary_census_on_exact_v3259_image
-genuine_blockers: protected_census_ledger_status_reconciliation_10000_item_restart_throttle_oversize_idempotency_isolation_and_workspace_control_proof
-next_authorized_step: pass_candidate_ci_and_exact_head_review_then_run_one_protected_content_free_census
+first_root_failing_gate: ledger_extraction_indexing_and_unresolved_item_reconciliation_not_accepted
+root_cause: source_boundary_is_verified_but_item_processing_and_research_readiness_are_not_reconciled
+repair_head: 988e98c7d4d074bef975505146d57f2f921dd279
+repair_summary: protected_content_free_census_completed_22377_files_7_folders_119_pages
+genuine_blockers: content_free_ledger_status_reconciliation_pending_failed_held_oversize_extraction_indexing_and_workspace_control_proof
+next_authorized_step: prepare_separately_reviewed_content_free_ledger_reconciliation_candidate
 deployed_demo_release: v3.259
 deployed_demo_state: v3259_app_and_workers_named_buyer_test_paid_intake_pilot_active_staff_pinned_to_existing_order_public_closed
 ---
 
 # SalCAPA build continuity
 
-sald116_issue520_resume_candidate: Marc directed “finish and deploy” and confirmed the governed interpretation on 29 October 2026. SAL-D117 resumes issue #520 but preserves every acceptance and release gate. This candidate updates only the protected read-only delta-probe workflow, its injected script and governance/continuity records. The script runs on exact deployed v3.259 digest `sha256:8ca732d9cdc7050797153157b14d58f0f795b1b36293b1029a1fcb419028d289`, downloads no file bytes, recursively counts the configured boundary, validates scope and provenance, and emits aggregate counts only. Local content-free smoke and Python compilation pass; required repository CI, Marc exact-head review and protected execution remain. No production setting or corpus item changed.
+sald116_issue520_census_verified: Marc approved PR #1056 exact head `988e98c7d4d074bef975505146d57f2f921dd279` after all three required checks passed. Merge `893ce9b0966c45d3dc6ed2a41426feaefe52460d` triggered protected run `40958858148`, which succeeded on exact deployed v3.259 digest `sha256:8ca732d9cdc7050797153157b14d58f0f795b1b36293b1029a1fcb419028d289`. The content-free recursive readback reported 22,377 files, 7 folders, 129,520,243,753 bytes, 96 oversize files and 119 Graph pages with boundary completion and scoped continuation verified. The isolated diagnostic job was removed. This closes only the source-boundary census gate; ledger, extraction, indexing, citation/teaching readiness, unresolved-item reconciliation and Salus-controlled ChatGPT workspace verification remain open under issue #520. No corpus item, database row, permission, app, scheduled worker or Protected Member access changed.
 
 v3259_cedar_remaining_records_unknown_candidate: PR #1049 exact head `ba3bf19443125c0243f8c38f9e8dde2c20f5bda2` merged as `d789cd570180a7807a76c834b43a311c799260b7` after Marc approval and all three passing checks. Marc selected Not known whether records exist for all other requested fictional intake records; this has not yet been entered into the protected buyer intake. The four local Word successors say Unknown, not Not held, retain the exact verified Cedar statement and unverified fictional facts, and remain unregistered/unissued. Complete private screening, native Word/PDF all-page OPM/accessibility review, Marc's separate issue decision, buyer acknowledgment and governed public release remain. No payment/upload was repeated; public Wix purchase, live payment and intake remain closed.
 
