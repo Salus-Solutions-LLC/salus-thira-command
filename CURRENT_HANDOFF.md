@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 28 October 2026 Central — buyer saved the remaining fictional intake responses
+
+- Marc reported that every remaining requested record on existing fictional Cedar Site order L1A-10 now shows **Not known** and was saved. The buyer screenshots show the approved Cedar statement cleared, the earlier real Salus test document cleared, and the EICAR test file held as Malicious. The latter two are excluded from fictional report evidence. The saved response rows have not yet been independently read back from the protected staff source, so do not claim server acceptance beyond Marc's report. No new order, payment, upload, scanner disposition or report issue occurred.
+- Four local, unissued Cedar working DOCX successors correct a stale sentence that said the buyer had not stated whether the other records exist. They now reflect the buyer's selected **Not known** response without equating unavailable records with failed capabilities. SalCAPA also removes a repeated uncertainty sentence. Exact filenames, SHA-256 values, ZIP/text readback, LibreOffice page counts and changed-page inspection are in `cedar_reports/SAVED_NOT_KNOWN_WORKING_QA_20261028.md` in this chat's local visualizations workspace. These files are not registered, screened, approved or issued.
+- Next: verify the saved intake rows through the existing protected staff view or governed readback; reconcile the exact four files to the protected paid source, screen and register them once, complete every-page native Word/PDF/OPM/accessibility QA, then obtain Marc's explicit finding qualification and separate human issue decision. Public Wix purchase, live payment, public intake/uploads and report issue remain closed.
+
 ## 28 October 2026 Central — fictional report page-flow review remains open
 
 - The four unissued Cedar Site working DOCX reports still cite the approved fictional source hash, existing order L1A-10 and unknown status for all remaining requested records. No buyer intake response has been read back from the protected app; Marc was asked to save the existing order's remaining responses as `Not known` without creating an order, repeating payment or uploading another file.
