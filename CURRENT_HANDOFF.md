@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 30 October 2026 Central — staff report card progress display candidate
+
+- The Level 1A staff report cards now show five numbered steps: stage a Word draft, register the cleared draft, add page-review evidence, record Charter and human review, and make the separate issue decision. Each step reports its current state, including a newer file still awaiting screening. Exact version, scan, and hash details remain available in an expandable section. The server's screening, staff access, and report issue gates are unchanged.
+- The focused staff UI test passed, including pending and cleared newer-file states; `git diff --check` passed. This is source only until exact-head review, merge, release freeze, immutable image publication, protected deployment, and browser readback. Public Wix purchase, live payment, public intake, and report issue remain closed. Existing fictional L1A-10 payment and uploads must not be repeated.
+
 ## 30 October 2026 Central — open-candidate reconciliation failed closed; unchanged-state readback; telemetry candidate
 
 - Marc approved [PR #1083](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1083) at exact head `4f36ea9f02ccf17a00af8392130cc38d969a7310` after all three required checks passed. Squash merge `7d99e816f24b0961fdaa45ff1394b28b2aba857b` triggered [protected run 41093312291](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/41093312291). Authorization passed, but Azure rejected the isolated Container Apps Job during template preflight because `salcapa-candidate-reconcile-b48224` exceeded the 32-character resource-name limit. The job was never created, the reconciliation script never reached PostgreSQL, no governed candidate or audit row changed, and the always-run cleanup confirmed that no isolated job remained. Do not claim reconciliation or readback completion from this run.
