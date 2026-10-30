@@ -122,7 +122,32 @@ async function level1aStaffView(){
           <label>Qualification basis<textarea name="qualification_basis" required minlength="20" maxlength="2000"></textarea></label>
           <label>Review note<textarea name="review_note" required minlength="20" maxlength="4000" placeholder="For single-operator review, explicitly state single-operator and the source limits."></textarea></label>
           <button class="btn" type="submit">Record human review decision</button></form></details>`:'';
-      return `<section class="card"><h3>${label}</h3><p class="subtle">Controlled template: ${esc(template)}</p>${reportText}${scanText}${held}${qaText}${qaHeld}${conformanceText}${reviewText}<div class="row-actions">${finalButton}${qaFinalize}<button class="btn secondary" type="button" data-refresh-staff>Check file status</button></div>${upload}${qaForm}${matrixForm}${humanReview}</section>`;
+      const newerScan=!!(scan&&report&&scan.content_sha256!==report.content_sha256);
+      const stageStatus=scan?.status==='Pending'?'In progress':
+        held?'Needs attention':scan?'Done':'Waiting';
+      const registerStatus=scan?.status==='Cleared'?'Ready':
+        newerScan?'Waiting for newer file':report?'Done':'Waiting';
+      const evidenceStatus=current.qa_evidence?'Done':qaHeld?'Needs attention':
+        qaAwaiting?'In progress':qaFinalize?'Ready':'Waiting';
+      const charterDone=!!current.conformance;
+      const reviewDone=current.review?.decision==='Reviewed';
+      const reviewStatus=charterDone&&reviewDone?'Recorded':
+        current.conformance||current.review?'In progress':'Waiting';
+      const issueStatus=workspace.issue&&report?.status==='Issued'?'Done':'Waiting for four reports';
+      const step=(number,title,status,body)=>`<li class="level1a-report-step">
+        <div class="level1a-report-step-heading"><strong>${number}. ${title}</strong><span class="level1a-step-status">${status}</span></div>${body}</li>`;
+      return `<section class="card"><h3>${label}</h3><p class="subtle">Controlled template: ${esc(template)}</p>
+        <ol class="level1a-report-steps" aria-label="${label} report progress">
+          ${step(1,'Stage Word draft for screening',stageStatus,
+            `${held}${upload}<button class="btn secondary" type="button" data-refresh-staff>Check file status</button>`)}
+          ${step(2,'Register cleared Word draft',registerStatus,finalButton)}
+          ${step(3,'Add page-review evidence',evidenceStatus,`${qaHeld}${qaFinalize}${qaForm}`)}
+          ${step(4,'Record Charter and human review',reviewStatus,`${matrixForm}${humanReview}`)}
+          ${step(5,'Separate issue decision',issueStatus,'<p class="subtle">The four-report release checks and Marc’s issue decision appear below all four cards.</p>')}
+        </ol>
+        <details class="level1a-report-details"><summary>Version, screening, and review details</summary>
+          ${reportText}${scanText}${qaText}${conformanceText}${reviewText}</details>
+      </section>`;
     }).join('');
     const blockers=(readiness.blockers||[]).map(item=>`<li>${esc(item)}</li>`).join('');
     const canReconcile=canDecide&&LEVEL1A_STAFF_PRODUCTS.every(([key])=>

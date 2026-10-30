@@ -320,6 +320,13 @@ textarea { min-height: 84px; resize: vertical; }
 .identity-box input { max-width: 150px; }
 .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .row-actions .btn { padding: 6px 9px; font-size: 10px; }
+.level1a-report-steps { list-style: none; padding: 0; margin: 16px 0; }
+.level1a-report-step { border-top: 1px solid var(--line); padding: 12px 0; }
+.level1a-report-step-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
+.level1a-step-status { color: var(--muted); font-weight: 650; text-align: right; }
+.level1a-report-step .btn { margin: 4px 6px 4px 0; }
+.level1a-report-details { border-top: 1px solid var(--line); padding-top: 12px; }
+.level1a-report-details code { overflow-wrap: anywhere; }
 
 .cop-hero {
   background: #fff;

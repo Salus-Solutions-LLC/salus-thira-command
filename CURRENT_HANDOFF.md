@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 30 October 2026 Central — staff report card progress display candidate
+
+- The Level 1A staff report cards now show five numbered steps: stage a Word draft, register the cleared draft, add page-review evidence, record Charter and human review, and make the separate issue decision. Each step reports its current state, including a newer file still awaiting screening. Exact version, scan, and hash details remain available in an expandable section. The server's screening, staff access, and report issue gates are unchanged.
+- The focused staff UI test passed, including pending and cleared newer-file states; `git diff --check` passed. This is source only until exact-head review, merge, release freeze, immutable image publication, protected deployment, and browser readback. Public Wix purchase, live payment, public intake, and report issue remain closed. Existing fictional L1A-10 payment and uploads must not be repeated.
+
 ## 29 October 2026 Central — four Cedar working Word drafts registered, none issued
 
 - On the authenticated v3.260 staff page for **Fictional Cedar Site · 5**, Marc observed paid source order L1A-10 and staged each existing, previously reviewed Word draft once. Each file reached **Cleared** private screening, then Marc used the cleared-file registration control once. His screenshots and replies confirm **Draft, version 1** for SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™. This is browser-level evidence, not an independent Azure database readback. The exact local SHA-256 values were rechecked: SalINTEL `7DA1B2744F95084D6ED32C83C979D87FB0603DE18C761C9F9A354EC9183F1FF8`; SalTHIRA `F43A10D09F18E12535535F6DE6E84A9EC9274B19790EA297253EC44146F4E568`; SalOPS `07F59C7A6C5EB105CA1A6D6E225BD89F1A3B6D215510FF3685652D1446A309ED`; corrected SalCAPA `033BEC700927CBE2730654BC1D7AB296AC3AC3B41DA0D77A1308A1BAF72C7D75`.

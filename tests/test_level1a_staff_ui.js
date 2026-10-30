@@ -11,10 +11,12 @@ const products=Object.fromEntries(['SalINTEL','SalTHIRA','SalOPS','SalCAPA'].map
 const workspace={order_id:10,assessment_id:7,buyer_user_id:44,
   source_record_sha256:'b'.repeat(64),products,reconciliation:null,issue:null};
 
-async function render({member=false,blockers=[],withQa=false,priorIssue=false,issuedReports=false}={}){
+async function render({member=false,blockers=[],withQa=false,priorIssue=false,issuedReports=false,scanStatus=null,newerScan=false}={}){
   const content={innerHTML:''},picker={value:'7',onchange:null};
   const selectedWorkspace=structuredClone(workspace);
   if(withQa) selectedWorkspace.products.SalINTEL.qa_evidence={id:19,archive_sha256:'c'.repeat(64)};
+  if(scanStatus) selectedWorkspace.products.SalOPS.draft_scan={id:31,status:scanStatus,
+    content_sha256:newerScan?'e'.repeat(64):'a'.repeat(64)};
   if(priorIssue) selectedWorkspace.issue={id:3,record_sha256:'d'.repeat(64)};
   if(issuedReports) Object.values(selectedWorkspace.products).forEach(item=>item.report.status='Issued');
   const context={
@@ -25,7 +27,7 @@ async function render({member=false,blockers=[],withQa=false,priorIssue=false,is
     document:{querySelectorAll:()=>[]},
     localStorage:{setItem:()=>{}},
     esc:value=>String(value??''),
-    api:async url=>url==='/api/assessments'?[{id:7,name:'Fictional Cedar Site'}]:
+    api:async url=>url==='/api/level1a/staff/assessments'?[{id:7,name:'Fictional Cedar Site'}]:
       url.endsWith('/level1a-report-workspace')?selectedWorkspace:
       {status:blockers.length?'Blocked':'Technically ready for named human issue',blockers}
   };
@@ -37,6 +39,9 @@ async function render({member=false,blockers=[],withQa=false,priorIssue=false,is
 async function main(){
   const blocked=await render({blockers:['SalOPS: qualified human review missing']});
   assert.match(blocked,/qualified human review missing/);
+  assert.match(blocked,/1\. Stage Word draft for screening/);
+  assert.match(blocked,/5\. Separate issue decision/);
+  assert.match(blocked,/Version, screening, and review details/);
   assert.doesNotMatch(blocked,/id="level1a-staff-issue"/);
   const ready=await render();
   assert.match(ready,/id="level1a-staff-issue"/);
@@ -44,6 +49,13 @@ async function main(){
   assert.doesNotMatch(ready,/class="level1a-staff-review"/);
   const withQa=await render({withQa:true});
   assert.match(withQa,/Single-operator review requires the protected staff identity/);
+  const pending=await render({scanStatus:'Pending',newerScan:true});
+  assert.match(pending,/Waiting for newer file/);
+  assert.match(pending,/In progress/);
+  assert.doesNotMatch(pending,/data-finalize-scan="31"/);
+  const cleared=await render({scanStatus:'Cleared',newerScan:true});
+  assert.match(cleared,/data-finalize-scan="31"/);
+  assert.match(cleared,/Register cleared Word draft/);
   const successor=await render({priorIssue:true});
   assert.match(successor,/Latest issued packet/);
   assert.match(successor,/id="level1a-staff-issue"/);
