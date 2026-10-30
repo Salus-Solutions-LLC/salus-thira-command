@@ -1,7 +1,8 @@
-"""Reconcile bounded stale and review-blocked Knowledge Library candidates.
+"""Reconcile bounded review-blocked Knowledge Library candidates.
 
-The one-time transition changes ledger metadata only. It never downloads or
-moves source content, changes access, or assigns a Protected Member.
+The one-time transition changes ledger queue metadata only. It verifies that
+no candidate meets the earlier aggregate-only stale-promotion inference, and
+never downloads or moves content, changes access, or assigns a Protected Member.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from typing import Any, Callable
 from database import connect_database
 
 
-EXPECTED_STALE_PROMOTED = 1
+EXPECTED_STALE_PROMOTED = 0
 EXPECTED_REVIEW_BLOCKED = 8
 OPEN_STATUSES = ("Pending Review", "Approved for Promotion", "Automatic Retry Required", "Destination Verified")
 ACTOR = "SalCAPA Governed Candidate Reconciliation Worker"
@@ -22,7 +23,6 @@ FAILURE_CODES = {
     "Stale promoted-candidate pre-state changed": "stale_prestate_changed",
     "Review-blocked candidate pre-state changed": "review_prestate_changed",
     "Candidate reconciliation sets overlap": "candidate_sets_overlap",
-    "Stale promoted-candidate concurrency guard failed": "stale_concurrency_guard",
     "Review-blocked candidate classification changed": "review_classification_changed",
     "Review-blocked candidate concurrency guard failed": "review_concurrency_guard",
     "Candidate reconciliation transition is incomplete": "transition_incomplete",
@@ -78,27 +78,10 @@ def reconcile(
         raise RuntimeError("Candidate reconciliation sets overlap")
 
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-    stale_changed = review_changed = events = 0
+    stale_changed = 0
+    review_changed = events = 0
     try:
         emit("stage", "metadata_transition")
-        for row in stale:
-            updated = conn.execute(
-                "UPDATE m365_knowledge_candidates SET status='Ingested and Verified' "
-                "WHERE id=? AND status=? AND classification_json=?",
-                (row["id"], row["status"], row["classification_json"]),
-            )
-            if updated.rowcount != 1:
-                raise RuntimeError("Stale promoted-candidate concurrency guard failed")
-            conn.execute(
-                "INSERT INTO m365_knowledge_events"
-                "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
-                (row["id"], "CandidateStatusReconciledFromVerifiedPromotion", ACTOR,
-                 json.dumps({"prior_status": row["status"], "status": "Ingested and Verified",
-                             "basis": "complete_destination_archive_and_promotion_event"}, sort_keys=True),
-                 timestamp),
-            )
-            stale_changed += 1
-            events += 1
         for row in review:
             classification = json.loads(row["classification_json"] or "{}")
             extraction = classification.get("extraction") or {}
@@ -132,9 +115,9 @@ def reconcile(
             f"AND {extraction_status}='Review Required' "
             f"AND {extraction_disposition}='Governed Extraction Review Required'"
         ).fetchone()[0] or 0)
-        if stale_changed != 1 or review_changed != 8 or events != 9:
+        if stale_changed != EXPECTED_STALE_PROMOTED or review_changed != 8 or events != 8:
             raise RuntimeError("Candidate reconciliation transition is incomplete")
-        if open_remaining != 16 or pending_review != 8:
+        if open_remaining != 17 or pending_review != 8:
             raise RuntimeError("Candidate reconciliation readback is incomplete")
         conn.commit()
         emit("stage", "committed")

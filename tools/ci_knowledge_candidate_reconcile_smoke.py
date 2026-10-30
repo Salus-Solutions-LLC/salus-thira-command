@@ -52,23 +52,23 @@ def check() -> None:
             "disposition": "Governed Extraction Review Required"}})
         conn.execute("INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                      (1, "Automatic Retry Required", complete, "d", "i", "u", "e", "a", "w", "t", "now"))
-        conn.execute("INSERT INTO m365_knowledge_events(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
-                     (1, "AutomaticallyPromotedVerifiedAndArchived", "test", "{}", "now"))
         for candidate_id in range(2, 10):
             conn.execute("INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                          (candidate_id, "Automatic Retry Required", review, "", "", "", "", "", "", "", ""))
         for candidate_id in range(10, 18):
             conn.execute("INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                          (candidate_id, "Approved for Promotion", complete, "", "", "", "", "", "", "", ""))
+        conn.execute("INSERT INTO m365_knowledge_events(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+                     (10, "AutomaticallyPromotedVerifiedAndArchived", "test", "{}", "now"))
         telemetry: list[tuple[str, str | int]] = []
         result = reconcile.reconcile(conn, lambda key, value: telemetry.append((key, value)))
-        assert result["stale_promoted_reconciled"] == 1, result
+        assert result["stale_promoted_reconciled"] == 0, result
         assert result["review_blocked_routed"] == 8, result
-        assert result["audit_events"] == 9 and result["open_remaining"] == 16, result
-        assert conn.execute("SELECT status FROM m365_knowledge_candidates WHERE id=1").fetchone()[0] == "Ingested and Verified"
+        assert result["audit_events"] == 8 and result["open_remaining"] == 17, result
+        assert conn.execute("SELECT status FROM m365_knowledge_candidates WHERE id=1").fetchone()[0] == "Automatic Retry Required"
         assert conn.execute("SELECT COUNT(*) FROM m365_knowledge_candidates WHERE status='Pending Review'").fetchone()[0] == 8
-        assert conn.execute("SELECT COUNT(*) FROM m365_knowledge_events").fetchone()[0] == 10
-        assert ("pre_stale_count", 1) in telemetry, telemetry
+        assert conn.execute("SELECT COUNT(*) FROM m365_knowledge_events").fetchone()[0] == 9
+        assert ("pre_stale_count", 0) in telemetry, telemetry
         assert ("pre_review_count", 8) in telemetry, telemetry
         assert telemetry[-1] == ("stage", "committed"), telemetry
         conn.close()
