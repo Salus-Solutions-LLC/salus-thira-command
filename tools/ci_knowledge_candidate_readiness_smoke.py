@@ -13,6 +13,12 @@ from tools import live_knowledge_candidate_readiness as readiness
 
 
 def check() -> None:
+    assert readiness.EXPECTED_INITIAL_STATUS_COUNTS == {
+        "Pending Review": 8,
+        "Approved for Promotion": 3,
+        "Automatic Retry Required": 6,
+        "Destination Verified": 0,
+    }
     with tempfile.TemporaryDirectory() as directory:
         conn = sqlite3.connect(os.path.join(directory, "candidate-readiness.sqlite"))
         conn.row_factory = sqlite3.Row
@@ -48,6 +54,10 @@ def check() -> None:
                 "INSERT INTO m365_knowledge_events VALUES(?,?,?)",
                 (candidate_id, candidate_id, "AutomaticallyClassified"),
             )
+        conn.execute(
+            "INSERT INTO m365_knowledge_events VALUES(?,?,?)",
+            (4, 2, "CandidateRoutedToGovernedExtractionReview"),
+        )
         result = readiness.collect(conn, {
             "Pending Review": 0,
             "Approved for Promotion": 1,
@@ -66,6 +76,7 @@ def check() -> None:
         assert result["rationale_destination"] == 1, result
         assert result["rationale_upload"] == 1, result
         assert result["event_automaticallyclassified"] == 3, result
+        assert result["event_candidateroutedtogovernedextractionreview"] == 1, result
         assert result["content_downloads"] == 0 and result["rows_changed"] == 0, result
         conn.execute(
             "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
