@@ -86,6 +86,12 @@ def check() -> None:
           source_item_id TEXT NOT NULL,status TEXT NOT NULL,
           classification_json TEXT NOT NULL
         );
+        CREATE TABLE m365_knowledge_holds(
+          source_item_id TEXT NOT NULL,status TEXT NOT NULL,
+          research_disposition TEXT NOT NULL,
+          teaching_disposition TEXT NOT NULL,
+          citation_disposition TEXT NOT NULL
+        );
         CREATE TABLE m365_bulk_extraction_checks(
           candidate_id INTEGER,attempts INTEGER,next_attempt INTEGER,last_code TEXT
         );
@@ -111,6 +117,10 @@ def check() -> None:
             ],
         )
         conn.execute("INSERT INTO m365_bulk_cursors VALUES('delta','')")
+        conn.execute(
+            "INSERT INTO m365_knowledge_holds VALUES(?,?,?,?,?)",
+            ("held", "Governed Hold", "Review Required", "Review Required", "Review Required"),
+        )
         conn.execute("INSERT INTO m365_bulk_extraction_checks VALUES(1,1,0,'extraction_retry_required')")
         conn.execute("INSERT INTO m365_bulk_extraction_checks VALUES(2,6,9999999999,'archived_source_read_unavailable')")
         conn.execute("INSERT INTO m365_zip_jobs VALUES(1)")
@@ -118,9 +128,9 @@ def check() -> None:
         conn.execute("INSERT INTO m365_zip_member_index VALUES(2)")
         result = probe.collect(conn)
         conn.close()
-        assert result["represented_distinct_files"] == 5, result
-        assert result["represented_net_gap"] == 22_372, result
-        assert result["unrepresented_files"] == 22_372, result
+        assert result["represented_distinct_files"] == 6, result
+        assert result["represented_net_gap"] == 22_371, result
+        assert result["unrepresented_files"] == 22_371, result
         assert result["bulk_rows"] == 5 and result["bulk_active_file_rows"] == 3, result
         assert result["bulk_open"] == 1 and result["bulk_oversize"] == 1, result
         assert result["candidate_rows"] == 3 and result["candidate_open"] == 2, result
@@ -132,6 +142,8 @@ def check() -> None:
         assert result["retry_due"] == 1 and result["retry_backoff"] == 1, result
         assert result["retry_code_extraction"] == 1 and result["retry_code_archive_read"] == 1, result
         assert result["cursor_delta"] == 1 and result["cursor_errors"] == 0, result
+        assert result["hold_rows"] == 1 and result["hold_active"] == 1, result
+        assert result["hold_review_required"] == 1, result
         assert result["zip_jobs"] == 1 and result["zip_members"] == 2, result
     print("KNOWLEDGE_LEDGER_PROBE_PASS")
 
