@@ -138,6 +138,9 @@ def check() -> None:
         assert result["extraction_complete"] == 1, result
         assert result["extraction_retry"] == 1 and result["extraction_missing"] == 1, result
         assert result["failure_document"] == 1 and result["failure_other"] == 0, result
+        assert result["failure_code_document_package_invalid"] == 1, result
+        assert result["failure_code_distinct_recognized"] == 1, result
+        assert result["failure_code_unrecognized"] == 0, result
         assert result["retry_attempts_1"] == 1 and result["retry_attempts_6_plus"] == 1, result
         assert result["retry_due"] == 1 and result["retry_backoff"] == 1, result
         assert result["retry_code_extraction"] == 1 and result["retry_code_archive_read"] == 1, result
