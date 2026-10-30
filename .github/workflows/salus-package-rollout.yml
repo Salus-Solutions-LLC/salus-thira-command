@@ -21,6 +21,8 @@ on:
       - salcapa_knowledge_promotion.py
       - tools/ci_salcapa_office_processing_smoke.py
       - tools/ci_m365_knowledge_promotion_smoke.py
+      - tools/ci_knowledge_hold_reconcile_smoke.py
+      - tools/live_knowledge_hold_reconcile.py
       - tools/live_m365_intake_acceptance.py
       - portable_backup.py
       - database.py
@@ -58,6 +60,7 @@ on:
       - public_protection_advisor.py
       - salcapa_runtime.py
       - .github/workflows/azure-application-deploy.yml
+      - .github/workflows/salcapa-knowledge-hold-reconcile.yml
       - .github/workflows/protection-advisor-live-acceptance.yml
       - protection_advisor_member_reports.py
       - advisor_report_config.py
@@ -101,6 +104,7 @@ on:
       - infra/azure/defender-storage-scanner.bicep
       - infra/azure/private-scanner-acceptance.bicep
       - infra/azure/main.bicep
+      - infra/azure/knowledge-hold-reconciliation-job.bicep
 
 permissions:
   contents: read
@@ -130,6 +134,8 @@ jobs:
         run: python tools/ci_salcapa_office_processing_smoke.py
       - name: Verify resumable knowledge promotion after Graph timeout
         run: python tools/ci_m365_knowledge_promotion_smoke.py
+      - name: Verify metadata-only governed-hold reconciliation
+        run: python tools/ci_knowledge_hold_reconcile_smoke.py
       - name: Verify release continuity before source freeze
         run: |
           python tools/ci_build_continuity_smoke.py
@@ -165,6 +171,8 @@ jobs:
         run: az bicep build --file infra/azure/private-scanner-acceptance.bicep --stdout > /tmp/salus-private-scanner-acceptance-arm.json
       - name: Compile application and worker promotion template without Azure credentials
         run: az bicep build --file infra/azure/main.bicep --stdout > /tmp/salus-application-arm.json
+      - name: Compile governed-hold reconciliation template without Azure credentials
+        run: az bicep build --file infra/azure/knowledge-hold-reconciliation-job.bicep --stdout > /tmp/salus-knowledge-hold-arm.json
       - name: Validate protected release workflow syntax
         run: |
           python - <<'PY'
@@ -175,7 +183,8 @@ jobs:
 
           for name in ('azure-application-deploy.yml', 'protection-advisor-live-acceptance.yml',
                        'azure-level1a-private-adverse-once.yml',
-                       'azure-level1a-private-adverse-preflight.yml'):
+                       'azure-level1a-private-adverse-preflight.yml',
+                       'salcapa-knowledge-hold-reconcile.yml'):
               document = yaml.safe_load(Path('.github/workflows', name).read_text(encoding='utf-8'))
               for job in document['jobs'].values():
                   for step in job['steps']:
