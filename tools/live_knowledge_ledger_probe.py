@@ -22,6 +22,7 @@ REQUIRED_TABLES = (
     "m365_bulk_cursors",
     "m365_bulk_items",
     "m365_knowledge_candidates",
+    "m365_knowledge_holds",
 )
 BULK_OPEN = ("Pending", "Retry", "Working", "Assignment Required")
 CANDIDATE_OPEN = (
@@ -134,6 +135,9 @@ def _represented_source_ids(conn) -> set[str]:
             WHERE kind='file' AND status<>'Removed'
             UNION
             SELECT source_item_id FROM m365_knowledge_candidates
+            UNION
+            SELECT source_item_id FROM m365_knowledge_holds
+            WHERE status='Governed Hold'
         """).fetchall()
     }
 
@@ -242,6 +246,9 @@ def collect(conn, intake: Any | None = None) -> dict[str, int]:
           WHERE kind='file' AND status<>'Removed'
           UNION
           SELECT source_item_id FROM m365_knowledge_candidates
+          UNION
+          SELECT source_item_id FROM m365_knowledge_holds
+          WHERE status='Governed Hold'
         ) represented
     """)
     bulk_files = _scalar(
@@ -258,6 +265,18 @@ def collect(conn, intake: Any | None = None) -> dict[str, int]:
     cursor_errors = _scalar(
         conn, "SELECT COUNT(*) FROM m365_bulk_cursors WHERE last_error<>''"
     )
+    hold_rows = _scalar(conn, "SELECT COUNT(*) FROM m365_knowledge_holds")
+    hold_active = _scalar(
+        conn, "SELECT COUNT(*) FROM m365_knowledge_holds WHERE status='Governed Hold'"
+    )
+    hold_review_required = _scalar(conn, """
+        SELECT COUNT(*) FROM m365_knowledge_holds
+        WHERE status='Governed Hold' AND (
+          research_disposition='Review Required'
+          OR teaching_disposition='Review Required'
+          OR citation_disposition='Review Required'
+        )
+    """)
     result = {
         "required_tables_missing": 0,
         "boundary_files": EXPECTED_BOUNDARY_FILES,
@@ -301,6 +320,9 @@ def collect(conn, intake: Any | None = None) -> dict[str, int]:
         "cursor_total": cursor_total,
         "cursor_delta": cursor_delta,
         "cursor_errors": cursor_errors,
+        "hold_rows": hold_rows,
+        "hold_active": hold_active,
+        "hold_review_required": hold_review_required,
     }
     result.update({f"failure_{key}": value for key, value in failure_categories.items()})
     optional = {
@@ -361,6 +383,7 @@ def main() -> None:
         and result.get("extraction_missing") == 0
         and result.get("extraction_other") == 0
         and result.get("cursor_errors") == 0
+        and result.get("hold_review_required") == 0
     )
     print(f"RECONCILIATION_COMPLETE={complete}", flush=True)
 
