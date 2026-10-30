@@ -128,8 +128,8 @@ async function level1aStaffView(){
       const registerStatus=scan?.status==='Cleared'?'Ready':
         newerScan?'Waiting for newer file':report?'Done':'Waiting';
       const evidenceStatus=current.qa_evidence?'Done':qaHeld?'Needs attention':
-        qaAwaiting?'In progress':qaFinalize?'Ready':'Waiting';
-      const charterDone=!!current.conformance;
+        qaFinalize?'Ready':qaAwaiting?'In progress':'Waiting';
+      const charterDone=current.conformance?.status==='Marked';
       const reviewDone=current.review?.decision==='Reviewed';
       const reviewStatus=charterDone&&reviewDone?'Recorded':
         current.conformance||current.review?'In progress':'Waiting';

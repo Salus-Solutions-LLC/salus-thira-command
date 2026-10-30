@@ -11,10 +11,15 @@ const products=Object.fromEntries(['SalINTEL','SalTHIRA','SalOPS','SalCAPA'].map
 const workspace={order_id:10,assessment_id:7,buyer_user_id:44,
   source_record_sha256:'b'.repeat(64),products,reconciliation:null,issue:null};
 
-async function render({member=false,blockers=[],withQa=false,priorIssue=false,issuedReports=false,scanStatus=null,newerScan=false}={}){
+async function render({member=false,blockers=[],withQa=false,qaCleared=false,conformanceStatus=null,priorIssue=false,issuedReports=false,scanStatus=null,newerScan=false}={}){
   const content={innerHTML:''},picker={value:'7',onchange:null};
   const selectedWorkspace=structuredClone(workspace);
   if(withQa) selectedWorkspace.products.SalINTEL.qa_evidence={id:19,archive_sha256:'c'.repeat(64)};
+  if(qaCleared){
+    selectedWorkspace.products.SalINTEL.qa_archive_scan={id:41,status:'Cleared'};
+    selectedWorkspace.products.SalINTEL.qa_pdf_scan={id:42,status:'Cleared'};
+  }
+  if(conformanceStatus) selectedWorkspace.products.SalINTEL.conformance={status:conformanceStatus};
   if(scanStatus) selectedWorkspace.products.SalOPS.draft_scan={id:31,status:scanStatus,
     content_sha256:newerScan?'e'.repeat(64):'a'.repeat(64)};
   if(priorIssue) selectedWorkspace.issue={id:3,record_sha256:'d'.repeat(64)};
@@ -49,6 +54,10 @@ async function main(){
   assert.doesNotMatch(ready,/class="level1a-staff-review"/);
   const withQa=await render({withQa:true});
   assert.match(withQa,/Single-operator review requires the protected staff identity/);
+  const qaReady=await render({qaCleared:true});
+  assert.match(qaReady,/Add page-review evidence<\/strong><span class="level1a-step-status">Ready/);
+  const charterOpen=await render({withQa:true,conformanceStatus:'Open'});
+  assert.doesNotMatch(charterOpen,/Record Charter and human review<\/strong><span class="level1a-step-status">Recorded/);
   const pending=await render({scanStatus:'Pending',newerScan:true});
   assert.match(pending,/Waiting for newer file/);
   assert.match(pending,/In progress/);
