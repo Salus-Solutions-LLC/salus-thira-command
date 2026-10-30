@@ -22,6 +22,7 @@ REQUIRED_TABLES = (
     "m365_bulk_cursors",
     "m365_bulk_items",
     "m365_knowledge_candidates",
+    "m365_knowledge_holds",
 )
 BULK_OPEN = ("Pending", "Retry", "Working", "Assignment Required")
 CANDIDATE_OPEN = (
@@ -42,6 +43,11 @@ SOURCE_AREAS = {
     "90 Processed Intake": "PROCESSED",
     "Does Not Upload": "DOES_NOT_UPLOAD",
 }
+FAILURE_CODE_PREFIXES = (
+    "AUDIO_", "BINARY_", "DOCUMENT_", "FORMAT_", "IMAGE_", "MEDIA_",
+    "OCR_", "PDF_", "SOURCE_", "TEXT_", "TRANSCRIPT_", "TRANSCRIPTION_",
+    "VIDEO_", "ZIP_",
+)
 
 
 def _scalar(conn, sql: str, params=()) -> int:
@@ -126,6 +132,35 @@ def _extraction_failure_categories(conn) -> dict[str, int]:
     return categories
 
 
+def _extraction_failure_code_counts(conn) -> dict[str, int]:
+    """Return aggregate system-code counts without emitting document data."""
+    expression = _json_field_expression(conn, "extraction,failure_code")
+    counts: dict[str, int] = {}
+    unrecognized = 0
+    rows = conn.execute(
+        f"SELECT {expression} AS failure_code,COUNT(*) AS count "
+        "FROM m365_knowledge_candidates "
+        "WHERE classification_json LIKE '%Automatic Retry Required%' "
+        "GROUP BY failure_code"
+    ).fetchall()
+    if len(rows) > 100:
+        raise RuntimeError("Extraction failure-code boundary exceeded")
+    for row in rows:
+        code = str(row["failure_code"] or "").upper()
+        count = int(row["count"])
+        if (
+            re.fullmatch(r"[A-Z][A-Z0-9_]{1,119}", code)
+            and code.startswith(FAILURE_CODE_PREFIXES)
+        ):
+            key = f"failure_code_{code.lower()}"
+            counts[key] = counts.get(key, 0) + count
+        else:
+            unrecognized += count
+    counts["failure_code_distinct_recognized"] = len(counts)
+    counts["failure_code_unrecognized"] = unrecognized
+    return counts
+
+
 def _represented_source_ids(conn) -> set[str]:
     return {
         str(row["source_item_id"])
@@ -134,6 +169,9 @@ def _represented_source_ids(conn) -> set[str]:
             WHERE kind='file' AND status<>'Removed'
             UNION
             SELECT source_item_id FROM m365_knowledge_candidates
+            UNION
+            SELECT source_item_id FROM m365_knowledge_holds
+            WHERE status='Governed Hold'
         """).fetchall()
     }
 
@@ -236,12 +274,16 @@ def collect(conn, intake: Any | None = None) -> dict[str, int]:
     candidates = _count_statuses(conn, "m365_knowledge_candidates")
     extraction = _extraction_counts(conn)
     failure_categories = _extraction_failure_categories(conn)
+    failure_codes = _extraction_failure_code_counts(conn)
     represented = _scalar(conn, """
         SELECT COUNT(*) FROM (
           SELECT item_id AS source_item_id FROM m365_bulk_items
           WHERE kind='file' AND status<>'Removed'
           UNION
           SELECT source_item_id FROM m365_knowledge_candidates
+          UNION
+          SELECT source_item_id FROM m365_knowledge_holds
+          WHERE status='Governed Hold'
         ) represented
     """)
     bulk_files = _scalar(
@@ -258,6 +300,18 @@ def collect(conn, intake: Any | None = None) -> dict[str, int]:
     cursor_errors = _scalar(
         conn, "SELECT COUNT(*) FROM m365_bulk_cursors WHERE last_error<>''"
     )
+    hold_rows = _scalar(conn, "SELECT COUNT(*) FROM m365_knowledge_holds")
+    hold_active = _scalar(
+        conn, "SELECT COUNT(*) FROM m365_knowledge_holds WHERE status='Governed Hold'"
+    )
+    hold_review_required = _scalar(conn, """
+        SELECT COUNT(*) FROM m365_knowledge_holds
+        WHERE status='Governed Hold' AND (
+          research_disposition='Review Required'
+          OR teaching_disposition='Review Required'
+          OR citation_disposition='Review Required'
+        )
+    """)
     result = {
         "required_tables_missing": 0,
         "boundary_files": EXPECTED_BOUNDARY_FILES,
@@ -301,8 +355,12 @@ def collect(conn, intake: Any | None = None) -> dict[str, int]:
         "cursor_total": cursor_total,
         "cursor_delta": cursor_delta,
         "cursor_errors": cursor_errors,
+        "hold_rows": hold_rows,
+        "hold_active": hold_active,
+        "hold_review_required": hold_review_required,
     }
     result.update({f"failure_{key}": value for key, value in failure_categories.items()})
+    result.update(failure_codes)
     optional = {
         "bulk_extraction_checks": "m365_bulk_extraction_checks",
         "zip_jobs": "m365_zip_jobs",
@@ -361,6 +419,7 @@ def main() -> None:
         and result.get("extraction_missing") == 0
         and result.get("extraction_other") == 0
         and result.get("cursor_errors") == 0
+        and result.get("hold_review_required") == 0
     )
     print(f"RECONCILIATION_COMPLETE={complete}", flush=True)
 
