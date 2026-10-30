@@ -88,10 +88,20 @@ jobs:
             if [ "$STATUS" = "Failed" ]; then break; fi
             sleep 10
           done
-          az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
-            --execution "$EXECUTION_NAME" --container salcapa-candidate-reconcile \
-            --tail 100 --format text --only-show-errors 2>&1 \
-            | grep -E 'CANDIDATE_RECONCILE_[A-Z0-9_]+=' || true
+          LOG_FOUND=false
+          for attempt in $(seq 1 6); do
+            LOG_OUTPUT="$(az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
+              --execution "$EXECUTION_NAME" --container salcapa-candidate-reconcile \
+              --tail 100 --format text --only-show-errors 2>&1 || true)"
+            FILTERED_LOG="$(printf '%s\n' "$LOG_OUTPUT" | grep -E 'CANDIDATE_RECONCILE_[A-Z0-9_]+=' || true)"
+            if [ -n "$FILTERED_LOG" ]; then
+              printf '%s\n' "$FILTERED_LOG"
+              LOG_FOUND=true
+              break
+            fi
+            sleep 5
+          done
+          test "$LOG_FOUND" = "true"
           test "$SUCCEEDED" = "true"
       - name: Remove isolated candidate-reconciliation job
         if: always()
