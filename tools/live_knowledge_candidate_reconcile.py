@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
 from database import connect_database
 
@@ -18,6 +18,16 @@ EXPECTED_STALE_PROMOTED = 1
 EXPECTED_REVIEW_BLOCKED = 8
 OPEN_STATUSES = ("Pending Review", "Approved for Promotion", "Automatic Retry Required", "Destination Verified")
 ACTOR = "SalCAPA Governed Candidate Reconciliation Worker"
+FAILURE_CODES = {
+    "Stale promoted-candidate pre-state changed": "stale_prestate_changed",
+    "Review-blocked candidate pre-state changed": "review_prestate_changed",
+    "Candidate reconciliation sets overlap": "candidate_sets_overlap",
+    "Stale promoted-candidate concurrency guard failed": "stale_concurrency_guard",
+    "Review-blocked candidate classification changed": "review_classification_changed",
+    "Review-blocked candidate concurrency guard failed": "review_concurrency_guard",
+    "Candidate reconciliation transition is incomplete": "transition_incomplete",
+    "Candidate reconciliation readback is incomplete": "readback_incomplete",
+}
 
 
 def _json_expression(conn: Any, path: str) -> str:
@@ -26,8 +36,12 @@ def _json_expression(conn: Any, path: str) -> str:
     return "COALESCE(json_extract(c.classification_json,'$." + path.replace(",", ".") + "'),'')"
 
 
-def reconcile(conn: Any) -> dict[str, int]:
+def reconcile(
+    conn: Any,
+    emit: Callable[[str, str | int], None] | None = None,
+) -> dict[str, int]:
     """Atomically reconcile the exact verified metadata states."""
+    emit = emit or (lambda _key, _value: None)
     marks = ",".join("?" for _ in OPEN_STATUSES)
     extraction_status = _json_expression(conn, "extraction,status")
     extraction_disposition = _json_expression(conn, "extraction,disposition")
@@ -50,8 +64,12 @@ def reconcile(conn: Any) -> dict[str, int]:
     if getattr(conn, "backend", "sqlite") == "postgres":
         stale_sql += " FOR UPDATE"
         review_sql += " FOR UPDATE"
+    emit("stage", "stale_prestate_query")
     stale = conn.execute(stale_sql, OPEN_STATUSES).fetchall()
+    emit("pre_stale_count", len(stale))
+    emit("stage", "review_prestate_query")
     review = conn.execute(review_sql).fetchall()
+    emit("pre_review_count", len(review))
     if len(stale) != EXPECTED_STALE_PROMOTED:
         raise RuntimeError("Stale promoted-candidate pre-state changed")
     if len(review) != EXPECTED_REVIEW_BLOCKED:
@@ -62,6 +80,7 @@ def reconcile(conn: Any) -> dict[str, int]:
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     stale_changed = review_changed = events = 0
     try:
+        emit("stage", "metadata_transition")
         for row in stale:
             updated = conn.execute(
                 "UPDATE m365_knowledge_candidates SET status='Ingested and Verified' "
@@ -103,6 +122,7 @@ def reconcile(conn: Any) -> dict[str, int]:
             )
             review_changed += 1
             events += 1
+        emit("stage", "aggregate_readback")
         open_remaining = int(conn.execute(
             f"SELECT COUNT(*) FROM m365_knowledge_candidates WHERE status IN ({marks})",
             OPEN_STATUSES,
@@ -117,6 +137,7 @@ def reconcile(conn: Any) -> dict[str, int]:
         if open_remaining != 16 or pending_review != 8:
             raise RuntimeError("Candidate reconciliation readback is incomplete")
         conn.commit()
+        emit("stage", "committed")
     except Exception:
         conn.rollback()
         raise
@@ -133,11 +154,25 @@ def reconcile(conn: Any) -> dict[str, int]:
 
 
 def main() -> None:
+    def emit(key: str, value: str | int) -> None:
+        print(f"CANDIDATE_RECONCILE_{key.upper()}={value}", flush=True)
+
     if os.getenv("SALUS_DB_BACKEND", "").strip().lower() != "postgres":
         raise RuntimeError("The live candidate reconciliation requires managed PostgreSQL")
-    conn = connect_database()
+    emit("stage", "database_connect")
     try:
-        result = reconcile(conn)
+        conn = connect_database()
+    except Exception:
+        emit("failure", "database_connect_failed")
+        emit("complete", 0)
+        raise RuntimeError("Candidate reconciliation failed closed") from None
+    try:
+        result = reconcile(conn, emit)
+    except Exception as exc:
+        reason = FAILURE_CODES.get(str(exc), "unexpected_database_or_runtime_error")
+        emit("failure", reason)
+        emit("complete", 0)
+        raise RuntimeError("Candidate reconciliation failed closed") from None
     finally:
         conn.close()
     for key in sorted(result):
