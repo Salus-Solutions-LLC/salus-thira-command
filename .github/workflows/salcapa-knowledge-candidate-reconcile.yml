@@ -75,7 +75,7 @@ jobs:
               postgresSslMode="$(env_value SALUS_POSTGRES_SSLMODE)" \
               reconcileScriptBase64="$SCRIPT_B64" \
             --output none --only-show-errors
-          JOB_NAME=salcapa-candidate-reconcile-b48224
+          JOB_NAME=salcapa-cand-reconcile-b48224
           EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" \
             --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
           test -n "$EXECUTION_NAME"
@@ -99,7 +99,7 @@ jobs:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         run: |
           set -euo pipefail
-          JOB_NAME=salcapa-candidate-reconcile-b48224
+          JOB_NAME=salcapa-cand-reconcile-b48224
           if ! az account show --only-show-errors >/dev/null 2>&1; then exit 0; fi
           if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --only-show-errors >/dev/null 2>&1; then
             az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes --only-show-errors
