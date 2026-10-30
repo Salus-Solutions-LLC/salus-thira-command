@@ -11,7 +11,7 @@ param postgresSslMode string
 param reconcileScriptBase64 string
 
 resource reconcileJob 'Microsoft.App/jobs@2024-03-01' = {
-  name: 'salcapa-candidate-reconcile-b48224'
+  name: 'salcapa-cand-reconcile-b48224'
   location: location
   identity: {
     type: 'UserAssigned'

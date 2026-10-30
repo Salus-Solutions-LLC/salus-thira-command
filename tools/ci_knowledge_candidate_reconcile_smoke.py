@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 import sqlite3
 import sys
 import tempfile
@@ -12,7 +13,23 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from tools import live_knowledge_candidate_reconcile as reconcile
 
 
+ROOT = Path(__file__).resolve().parents[1]
+JOB_NAME = "salcapa-cand-reconcile-b48224"
+
+
+def check_azure_job_name_contract() -> None:
+    assert 2 <= len(JOB_NAME) <= 32, len(JOB_NAME)
+    assert JOB_NAME[0].isalpha() and JOB_NAME[-1].isalnum(), JOB_NAME
+    assert JOB_NAME.replace("-", "").isalnum() and JOB_NAME == JOB_NAME.lower(), JOB_NAME
+    workflow = (ROOT / ".github/workflows/salcapa-knowledge-candidate-reconcile.yml").read_text(encoding="utf-8")
+    bicep = (ROOT / "infra/azure/knowledge-candidate-reconcile-job.bicep").read_text(encoding="utf-8")
+    assert workflow.count(f"JOB_NAME={JOB_NAME}") == 2
+    assert f"name: '{JOB_NAME}'" in bicep
+    assert "salcapa-candidate-reconcile-b48224" not in workflow + bicep
+
+
 def check() -> None:
+    check_azure_job_name_contract()
     with tempfile.TemporaryDirectory() as directory:
         conn = sqlite3.connect(os.path.join(directory, "candidate-reconcile.sqlite"))
         conn.row_factory = sqlite3.Row
