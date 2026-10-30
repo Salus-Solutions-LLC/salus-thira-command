@@ -43,6 +43,11 @@ SOURCE_AREAS = {
     "90 Processed Intake": "PROCESSED",
     "Does Not Upload": "DOES_NOT_UPLOAD",
 }
+FAILURE_CODE_PREFIXES = (
+    "AUDIO_", "BINARY_", "DOCUMENT_", "FORMAT_", "IMAGE_", "MEDIA_",
+    "OCR_", "PDF_", "SOURCE_", "TEXT_", "TRANSCRIPT_", "TRANSCRIPTION_",
+    "VIDEO_", "ZIP_",
+)
 
 
 def _scalar(conn, sql: str, params=()) -> int:
@@ -125,6 +130,35 @@ def _extraction_failure_categories(conn) -> dict[str, int]:
             category = "other"
         categories[category] += count
     return categories
+
+
+def _extraction_failure_code_counts(conn) -> dict[str, int]:
+    """Return aggregate system-code counts without emitting document data."""
+    expression = _json_field_expression(conn, "extraction,failure_code")
+    counts: dict[str, int] = {}
+    unrecognized = 0
+    rows = conn.execute(
+        f"SELECT {expression} AS failure_code,COUNT(*) AS count "
+        "FROM m365_knowledge_candidates "
+        "WHERE classification_json LIKE '%Automatic Retry Required%' "
+        "GROUP BY failure_code"
+    ).fetchall()
+    if len(rows) > 100:
+        raise RuntimeError("Extraction failure-code boundary exceeded")
+    for row in rows:
+        code = str(row["failure_code"] or "").upper()
+        count = int(row["count"])
+        if (
+            re.fullmatch(r"[A-Z][A-Z0-9_]{1,119}", code)
+            and code.startswith(FAILURE_CODE_PREFIXES)
+        ):
+            key = f"failure_code_{code.lower()}"
+            counts[key] = counts.get(key, 0) + count
+        else:
+            unrecognized += count
+    counts["failure_code_distinct_recognized"] = len(counts)
+    counts["failure_code_unrecognized"] = unrecognized
+    return counts
 
 
 def _represented_source_ids(conn) -> set[str]:
@@ -240,6 +274,7 @@ def collect(conn, intake: Any | None = None) -> dict[str, int]:
     candidates = _count_statuses(conn, "m365_knowledge_candidates")
     extraction = _extraction_counts(conn)
     failure_categories = _extraction_failure_categories(conn)
+    failure_codes = _extraction_failure_code_counts(conn)
     represented = _scalar(conn, """
         SELECT COUNT(*) FROM (
           SELECT item_id AS source_item_id FROM m365_bulk_items
@@ -325,6 +360,7 @@ def collect(conn, intake: Any | None = None) -> dict[str, int]:
         "hold_review_required": hold_review_required,
     }
     result.update({f"failure_{key}": value for key, value in failure_categories.items()})
+    result.update(failure_codes)
     optional = {
         "bulk_extraction_checks": "m365_bulk_extraction_checks",
         "zip_jobs": "m365_zip_jobs",
