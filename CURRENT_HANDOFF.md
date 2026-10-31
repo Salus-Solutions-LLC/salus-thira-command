@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 31 October 2026 Central — v3.262 frozen; immutable image candidate
+
+- Marc approved [PR #1108](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1108) at its exact head `899eae09643429bd53837ef9f5cbf916473546c7` after all four required PR checks passed. Squash merge `29dc5ce15b7206dca7f26ca33a83e6ed2d967fca` is the exact immutable `release/v3.262` source. Release Branch Guard run `41230730040` passed. The frozen CI and contextual-intake runs are still finishing; do not claim the image is publishable until every required frozen check passes.
+- This image candidate pins only `release/v3.262` at `29dc5ce15b7206dca7f26ca33a83e6ed2d967fca` for one protected immutable publication and registry readback. It needs the remaining frozen checks, all PR checks, Marc's review of its exact final head, protected publication and digest readback before deployment. The protected app and workers remain v3.260. Four fictional Cedar reports remain unissued; page evidence, Charter and human review, buyer acknowledgment and separate public release remain open. Public Wix purchase, live payment and intake remain closed. Do not repeat L1A-10 payment or earlier uploads.
+
 ## 31 October 2026 Central — v3.261 image blocked; v3.262 security repair candidate
 
 - Marc approved [PR #1103](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1103) at exact head `7d4c4ba358378896da4db75eb96f22df832497e6` after all required checks. Squash merge `65e0307d80bf102e012bcb4db39e1f6dffd3812d` froze `release/v3.261` with the numbered Level 1A report steps. This is source only; the protected app and workers remain v3.260.
