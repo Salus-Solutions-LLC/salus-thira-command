@@ -38,6 +38,8 @@ def check_protected_graph_contract() -> None:
         assert f'{parameter}="$(env_value {environment})"' in workflow
         assert f"param {parameter} string" in bicep
         assert f"name: '{environment}'" in bicep
+    assert "ACTIVATION=deploy/azure/activations/application-dev.json" in workflow
+    assert "EXPECTED_IMAGE=\"$(jq -er '.image_digest' \"$ACTIVATION\")\"" in workflow
 
 
 def check() -> None:
