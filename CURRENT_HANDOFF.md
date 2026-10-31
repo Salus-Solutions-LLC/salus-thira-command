@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 31 October 2026 Central — numbered report steps merged; v3.261 source candidate
+
+- Marc approved [PR #1084](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1084) at exact head `ff3ed75e0115ab837be8c93360092574374b9da1` after the required checks. Squash merge `6a61cc663ae1fb41ef492ad945a6229750c27315` added five numbered progress steps to the Level 1A staff report cards, with scan and hash details in expandable sections. This is merged source only; protected v3.260 remains deployed. No report was issued and public Wix purchase, live payment and public intake remain closed.
+- A v3.261 source candidate labels the merged progress display on the current governed development branch. It does not itself deploy or change Azure access. Require candidate CI, Marc's review of the exact final PR head, frozen-source checks, one immutable image publication and registry readback, guarded protected deployment, and a staff browser check before calling the numbered display live. The four fictional Cedar reports remain drafts; exact page evidence, Charter review, Marc's human issue decision, buyer acknowledgment, and separate public release remain open. Do not repeat L1A-10 payment or earlier uploads.
+
 ## 30 October 2026 Central — staff report card progress display candidate
 
 - The Level 1A staff report cards now show five numbered steps: stage a Word draft, register the cleared draft, add page-review evidence, record Charter and human review, and make the separate issue decision. Each step reports its current state, including a newer file still awaiting screening. Exact version, scan, and hash details remain available in an expandable section. The server's screening, staff access, and report issue gates are unchanged.
