@@ -32,6 +32,19 @@ EXPECTED_PROMOTION_SCOPE_COUNTS = {
     "Approved for Promotion": 3,
     "Automatic Retry Required": 6,
 }
+EXPECTED_SOURCE_STATE_COUNTS = {
+    ("Approved for Promotion", "outside_pending"): 3,
+    ("Automatic Retry Required", "not_found"): 5,
+    ("Automatic Retry Required", "outside_pending"): 1,
+}
+SOURCE_AREA_KEYS = {
+    "20 Ready for Intake Review": "ready_for_intake_review",
+    "30 Exceptions and Manual Review": "exceptions_and_manual_review",
+    "40 Customer Batch Staging - Unassigned": "customer_batch_staging_unassigned",
+    "90 Migration Hold": "migration_hold",
+    "90 Processed Intake": "processed_intake",
+    "Does Not Upload": "does_not_upload",
+}
 OPEN_STATUSES = tuple(EXPECTED_INITIAL_STATUS_COUNTS)
 EXTRACTION_STATUSES = ("Complete", "Review Required", "Retry Paused")
 KNOWN_EVENTS = (
@@ -310,6 +323,7 @@ def collect_source_preflight(
     enterprise_id: str,
     intake_root_id: str,
     expected_counts: dict[str, int] = EXPECTED_PROMOTION_SCOPE_COUNTS,
+    expected_states: dict[tuple[str, str], int] | None = None,
 ) -> dict[str, int]:
     """Verify exact live source metadata and ancestry without reading bytes."""
     statuses = tuple(EXPECTED_PROMOTION_SCOPE_COUNTS)
@@ -333,6 +347,10 @@ def collect_source_preflight(
         "metadata_changed", "outside_pending", "route_missing", "ancestry_missing",
     }
     counts = {f"source_{_key(status)}_{state}": 0 for status in statuses for state in states}
+    counts.update({
+        f"source_{_key(status)}_outside_area_{area_key}": 0
+        for status in statuses for area_key in SOURCE_AREA_KEYS.values()
+    })
     endpoint = f"{GRAPH_ROOT}/drives/{drive_id}/items/"
     for row in rows:
         status = str(row["status"] or "")
@@ -389,7 +407,13 @@ def collect_source_preflight(
                     state = "verified"
                     while parent != pending_id:
                         if parent == intake_root_id:
+                            if len(names) < 2 or names[-1] not in SOURCE_AREA_KEYS:
+                                raise RuntimeError("Source-preflight outside area left the fixed boundary")
                             state = "outside_pending"
+                            counts[
+                                f"source_{_key(status)}_outside_area_"
+                                f"{SOURCE_AREA_KEYS[names[-1]]}"
+                            ] += 1
                             break
                         if parent in seen or len(seen) > 128:
                             raise RuntimeError("Source-preflight ancestry was invalid")
@@ -436,12 +460,24 @@ def collect_source_preflight(
         counts[f"source_{_key(status)}_{state}"] += 1
     if observed != expected_counts:
         raise RuntimeError("Source-preflight exact candidate scope changed")
+    if expected_states is not None:
+        actual_states = {
+            (status, state): counts[f"source_{_key(status)}_{state}"]
+            for status in statuses for state in states
+            if counts[f"source_{_key(status)}_{state}"]
+        }
+        if actual_states != expected_states:
+            raise RuntimeError("Source-preflight verified state changed")
     counts["source_scope_total"] = sum(observed.values())
     counts["source_verified_total"] = sum(
         counts[f"source_{_key(status)}_verified"] for status in statuses
     )
     counts["source_content_requests"] = 0
     counts["source_rows_changed"] = 0
+    counts["source_outside_area_total"] = sum(
+        counts[f"source_{_key(status)}_outside_area_{area_key}"]
+        for status in statuses for area_key in SOURCE_AREA_KEYS.values()
+    )
     counts["source_preflight_complete"] = 1
     return counts
 
@@ -609,6 +645,7 @@ def main() -> None:
             pending_id=pending_id,
             enterprise_id=enterprise_id,
             intake_root_id=config.folder_item_id,
+            expected_states=EXPECTED_SOURCE_STATE_COUNTS,
         ))
     finally:
         conn.close()

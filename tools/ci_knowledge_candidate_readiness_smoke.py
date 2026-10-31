@@ -214,7 +214,45 @@ def check() -> None:
         assert source["source_verified_total"] == 1, source
         assert source["source_approved_for_promotion_verified"] == 1, source
         assert source["source_automatic_retry_required_not_found"] == 1, source
+        assert source["source_outside_area_total"] == 0, source
         assert source["source_content_requests"] == 0, source
+
+        class OutsideClient(Client):
+            def get(self, url: str, **kwargs):
+                item_id = url.rsplit("/", 1)[-1]
+                if item_id == "item-00000001":
+                    return Response(200, {
+                        "id": item_id, "name": "name-1", "size": 101,
+                        "eTag": "etag-1", "lastModifiedDateTime": "2026-10-30T00:00:00Z",
+                        "parentReference": {"id": "ready-12345678"},
+                        "file": {},
+                        "webUrl": "https://salussolutions.sharepoint.com/source",
+                    })
+                if item_id == "ready-12345678":
+                    return Response(200, {
+                        "id": item_id, "name": "20 Ready for Intake Review",
+                        "parentReference": {"id": "root-12345678"}, "folder": {},
+                    })
+                return super().get(url, **kwargs)
+
+        outside = readiness.collect_source_preflight(
+            conn, OutsideClient(), {"Authorization": "test"},
+            drive_id="drive-12345678", pending_id="pending-12345678",
+            enterprise_id="enterprise-12345678", intake_root_id="root-12345678",
+            expected_counts={
+                "Approved for Promotion": 1,
+                "Automatic Retry Required": 1,
+            },
+            expected_states={
+                ("Approved for Promotion", "outside_pending"): 1,
+                ("Automatic Retry Required", "not_found"): 1,
+            },
+        )
+        assert outside["source_approved_for_promotion_outside_pending"] == 1, outside
+        assert outside[
+            "source_approved_for_promotion_outside_area_ready_for_intake_review"
+        ] == 1, outside
+        assert outside["source_outside_area_total"] == 1, outside
         assert result["content_downloads"] == 0 and result["rows_changed"] == 0, result
         conn.execute(
             "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
