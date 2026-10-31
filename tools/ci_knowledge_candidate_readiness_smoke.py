@@ -28,7 +28,8 @@ def check() -> None:
         conn.row_factory = sqlite3.Row
         conn.executescript("""
         CREATE TABLE m365_knowledge_candidates(
-          id INTEGER PRIMARY KEY,status TEXT NOT NULL,decision TEXT NOT NULL,
+          id INTEGER PRIMARY KEY,source_drive_id TEXT NOT NULL,source_item_id TEXT NOT NULL,
+          status TEXT NOT NULL,decision TEXT NOT NULL,
           target_folder TEXT NOT NULL,classification_json TEXT NOT NULL,
           destination_drive_id TEXT NOT NULL,destination_item_id TEXT NOT NULL,
           destination_web_url TEXT NOT NULL,destination_etag TEXT NOT NULL,
@@ -39,6 +40,11 @@ def check() -> None:
         CREATE TABLE m365_knowledge_events(
           id INTEGER PRIMARY KEY,candidate_id INTEGER NOT NULL,event_type TEXT NOT NULL
         );
+        CREATE TABLE m365_bulk_items(
+          drive_id TEXT NOT NULL,item_id TEXT NOT NULL,status TEXT NOT NULL,
+          reason TEXT NOT NULL,attempts INTEGER NOT NULL,next_attempt INTEGER NOT NULL,
+          lease_until INTEGER NOT NULL
+        );
         """)
         fixtures = (
             (1, "Approved for Promotion", "Complete", "Automatically processed under policy."),
@@ -47,9 +53,10 @@ def check() -> None:
         )
         for candidate_id, status, extraction_status, rationale in fixtures:
             conn.execute(
-                "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
-                    candidate_id, status, "Approved", "05 Research and Reference",
+                    candidate_id, "drive", f"item-{candidate_id}", status,
+                    "Approved", "05 Research and Reference",
                     json.dumps({"extraction": {"status": extraction_status}}),
                     "", "", "", "", "", "", "", "", rationale,
                 ),
@@ -75,6 +82,14 @@ def check() -> None:
             "INSERT INTO m365_knowledge_events VALUES(?,?,?)",
             (6, 2, "AutomaticallyPromotedVerifiedAndArchived"),
         )
+        conn.execute(
+            "INSERT INTO m365_bulk_items VALUES(?,?,?,?,?,?,?)",
+            ("drive", "item-1", "Done", "", 1, 0, 0),
+        )
+        conn.execute(
+            "INSERT INTO m365_bulk_items VALUES(?,?,?,?,?,?,?)",
+            ("drive", "item-2", "Retry", "promotion_retry_required", 6, 2000, 0),
+        )
         result = readiness.collect(
             conn,
             {
@@ -87,6 +102,7 @@ def check() -> None:
                 "Approved for Promotion": 1,
                 "Automatic Retry Required": 1,
             },
+            clock=1000,
         )
         assert result["open_remaining"] == 3, result
         assert result["status_approved_for_promotion"] == 1, result
@@ -113,11 +129,22 @@ def check() -> None:
             "promotion_fingerprint_automatic_retry_required_destination_complete_"
             "archive_partial_rationale_archive_promoted_present_retry_present"
         ] == 1, result
+        assert result["work_scope_total"] == 2, result
+        assert result["work_scope_fingerprint_groups"] == 2, result
+        assert result[
+            "work_fingerprint_approved_for_promotion_failure_policy_work_done_"
+            "reason_blank_attempts_one_two_schedule_not_scheduled"
+        ] == 1, result
+        assert result[
+            "work_fingerprint_automatic_retry_required_failure_archive_other_work_retry_"
+            "reason_promotion_retry_attempts_six_plus_schedule_retry_backoff"
+        ] == 1, result
         assert result["content_downloads"] == 0 and result["rows_changed"] == 0, result
         conn.execute(
-            "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                4, "Automatic Retry Required", "Approved", "05 Research and Reference",
+                4, "drive", "item-4", "Automatic Retry Required", "Approved",
+                "05 Research and Reference",
                 json.dumps({"extraction": {"status": "Complete"}}),
                 "", "", "", "", "", "", "", "", "Automatically processed under policy.",
             ),
@@ -135,6 +162,7 @@ def check() -> None:
                     "Approved for Promotion": 1,
                     "Automatic Retry Required": 1,
                 },
+                clock=1000,
             )
             raise AssertionError("open-candidate scope growth was not rejected")
         except RuntimeError as error:

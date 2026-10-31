@@ -8,6 +8,7 @@ detail, and it changes no ledger or Microsoft 365 state.
 from __future__ import annotations
 
 import os
+import time
 from typing import Any
 
 from database import connect_database
@@ -151,10 +152,152 @@ def _promotion_fingerprints(
     return result
 
 
+def _work_fingerprints(
+    conn: Any,
+    expected_counts: dict[str, int],
+    clock: int,
+) -> dict[str, int]:
+    """Correlate the fixed nine candidates to bounded durable-work categories."""
+    statuses = tuple(EXPECTED_PROMOTION_SCOPE_COUNTS)
+    if tuple(expected_counts) != statuses:
+        raise RuntimeError("Work-diagnostic status boundary changed")
+    extraction = _json_expression(conn, "extraction,status")
+    match = (
+        "b.drive_id=c.source_drive_id AND b.item_id=c.source_item_id"
+    )
+    match_count = f"(SELECT COUNT(*) FROM m365_bulk_items b WHERE {match})"
+    work_value = lambda column: (
+        f"(SELECT b.{column} FROM m365_bulk_items b WHERE {match} LIMIT 1)"
+    )
+    work_status = work_value("status")
+    work_reason = work_value("reason")
+    work_attempts = work_value("attempts")
+    work_next_attempt = work_value("next_attempt")
+    work_lease_until = work_value("lease_until")
+    failure_family = (
+        "CASE WHEN TRIM(c.review_rationale)='' THEN 'blank' "
+        "WHEN LOWER(c.review_rationale) LIKE '%automatically processed under%' THEN 'policy' "
+        "WHEN LOWER(c.review_rationale)='approved knowledge file could not be written' "
+        "THEN 'destination_write_denied' "
+        "WHEN LOWER(c.review_rationale)='knowledge destination could not be read' "
+        "THEN 'destination_read_denied' "
+        "WHEN LOWER(c.review_rationale)='approved knowledge folder was not uniquely resolved' "
+        "THEN 'destination_folder_unresolved' "
+        "WHEN LOWER(c.review_rationale)='knowledge destination verification failed' "
+        "THEN 'destination_verification_failed' "
+        "WHEN LOWER(c.review_rationale) LIKE "
+        "'verified intake source could not be archived (http 423)%' THEN 'archive_locked' "
+        "WHEN LOWER(c.review_rationale) LIKE "
+        "'verified intake source could not be archived (http %' THEN 'archive_http_other' "
+        "WHEN LOWER(c.review_rationale) LIKE '%archive%' "
+        "OR LOWER(c.review_rationale) LIKE '%archived source%' "
+        "OR LOWER(c.review_rationale) LIKE '%processed intake%' THEN 'archive_other' "
+        "WHEN LOWER(c.review_rationale) LIKE '%upload%' THEN 'upload' "
+        "WHEN LOWER(c.review_rationale) LIKE '%destination%' "
+        "OR LOWER(c.review_rationale) LIKE '%knowledge folder%' THEN 'destination_other' "
+        "WHEN LOWER(c.review_rationale) LIKE '%token%' "
+        "OR LOWER(c.review_rationale) LIKE '%identity%' THEN 'identity' "
+        "ELSE 'other' END"
+    )
+    work_state = (
+        f"CASE WHEN {match_count}=0 THEN 'missing' "
+        f"WHEN {match_count}>1 THEN 'multiple' "
+        f"WHEN {work_status}='Pending' THEN 'pending' "
+        f"WHEN {work_status}='Retry' THEN 'retry' "
+        f"WHEN {work_status}='Working' THEN 'working' "
+        f"WHEN {work_status}='Done' THEN 'done' "
+        f"WHEN {work_status}='Oversize' THEN 'oversize' "
+        f"WHEN {work_status}='Assignment Required' THEN 'assignment_required' "
+        f"WHEN {work_status}='Removed' THEN 'removed' ELSE 'other' END"
+    )
+    reason_family = (
+        f"CASE WHEN {match_count}=0 THEN 'missing' WHEN {match_count}>1 THEN 'multiple' "
+        f"WHEN COALESCE({work_reason},'')='' THEN 'blank' "
+        f"WHEN {work_reason}='promotion_retry_required' THEN 'promotion_retry' "
+        f"WHEN {work_reason}='source_changed_during_scan' THEN 'source_changed' "
+        f"WHEN {work_reason}='enterprise_route_assignment_required' THEN 'route_assignment' "
+        f"WHEN {work_reason}='file_size_limit' THEN 'size_limit' ELSE 'other' END"
+    )
+    attempt_bucket = (
+        f"CASE WHEN {match_count}=0 THEN 'missing' WHEN {match_count}>1 THEN 'multiple' "
+        f"WHEN COALESCE({work_attempts},0)=0 THEN 'zero' "
+        f"WHEN {work_attempts} BETWEEN 1 AND 2 THEN 'one_two' "
+        f"WHEN {work_attempts} BETWEEN 3 AND 5 THEN 'three_five' "
+        "ELSE 'six_plus' END"
+    )
+    schedule_state = (
+        f"CASE WHEN {match_count}=0 THEN 'missing' WHEN {match_count}>1 THEN 'multiple' "
+        f"WHEN {work_status}='Retry' AND {work_next_attempt}<={int(clock)} THEN 'retry_due' "
+        f"WHEN {work_status}='Retry' THEN 'retry_backoff' "
+        f"WHEN {work_status}='Working' AND {work_lease_until}>{int(clock)} THEN 'working_active' "
+        f"WHEN {work_status}='Working' THEN 'working_expired' ELSE 'not_scheduled' END"
+    )
+    marks = ",".join("?" for _ in statuses)
+    rows = conn.execute(
+        "SELECT status,failure_family,work_state,reason_family,attempt_bucket,"
+        "schedule_state,COUNT(*) AS count FROM ("
+        f"SELECT c.status AS status,{failure_family} AS failure_family,"
+        f"{work_state} AS work_state,{reason_family} AS reason_family,"
+        f"{attempt_bucket} AS attempt_bucket,{schedule_state} AS schedule_state "
+        "FROM m365_knowledge_candidates c "
+        f"WHERE c.status IN ({marks}) AND {extraction}='Complete'"
+        ") scoped GROUP BY status,failure_family,work_state,reason_family,"
+        "attempt_bucket,schedule_state",
+        statuses,
+    ).fetchall()
+    allowed_failure = {
+        "blank", "policy", "destination_write_denied", "destination_read_denied",
+        "destination_folder_unresolved", "destination_verification_failed",
+        "archive_locked", "archive_http_other", "archive_other", "upload",
+        "destination_other", "identity", "other",
+    }
+    allowed_work = {
+        "missing", "multiple", "pending", "retry", "working", "done", "oversize",
+        "assignment_required", "removed", "other",
+    }
+    allowed_reason = {
+        "missing", "multiple", "blank", "promotion_retry", "source_changed",
+        "route_assignment", "size_limit", "other",
+    }
+    allowed_attempt = {"missing", "multiple", "zero", "one_two", "three_five", "six_plus"}
+    allowed_schedule = {
+        "missing", "multiple", "retry_due", "retry_backoff", "working_active",
+        "working_expired", "not_scheduled",
+    }
+    observed = {status: 0 for status in statuses}
+    result: dict[str, int] = {}
+    for row in rows:
+        status = str(row["status"] or "")
+        failure = str(row["failure_family"] or "")
+        work = str(row["work_state"] or "")
+        reason = str(row["reason_family"] or "")
+        attempt = str(row["attempt_bucket"] or "")
+        schedule = str(row["schedule_state"] or "")
+        count = int(row["count"] or 0)
+        if (
+            status not in observed or failure not in allowed_failure
+            or work not in allowed_work or reason not in allowed_reason
+            or attempt not in allowed_attempt or schedule not in allowed_schedule
+        ):
+            raise RuntimeError("Work-diagnostic category left the fixed boundary")
+        observed[status] += count
+        key = "_".join((
+            "work_fingerprint", _key(status), f"failure_{failure}", f"work_{work}",
+            f"reason_{reason}", f"attempts_{attempt}", f"schedule_{schedule}",
+        ))
+        result[key] = count
+    if observed != expected_counts:
+        raise RuntimeError("Work-diagnostic exact candidate scope changed")
+    result["work_scope_total"] = sum(observed.values())
+    result["work_scope_fingerprint_groups"] = len(rows)
+    return result
+
+
 def collect(
     conn: Any,
     expected_status_counts: dict[str, int] = EXPECTED_INITIAL_STATUS_COUNTS,
     expected_promotion_counts: dict[str, int] = EXPECTED_PROMOTION_SCOPE_COUNTS,
+    clock: int | None = None,
 ) -> dict[str, int]:
     """Collect aggregate evidence and fail closed on scope growth or drift."""
     if tuple(expected_status_counts) != OPEN_STATUSES:
@@ -284,6 +427,9 @@ def collect(
     result.update({f"matrix_{key}": count for key, count in matrix.items()})
     result.update({f"event_{_key(name)}": count for name, count in event_counts.items()})
     result.update(_promotion_fingerprints(conn, expected_promotion_counts))
+    result.update(_work_fingerprints(
+        conn, expected_promotion_counts, int(time.time() if clock is None else clock)
+    ))
     return result
 
 
