@@ -746,6 +746,10 @@ def collect_processed_evidence(
     destination_states = {state: 0 for state in (
         "exact", "fallback_exact", "missing", "mismatch",
     )}
+    status_destination_states = {
+        (status, state): 0
+        for status in statuses for state in destination_states
+    }
     folder_ids: dict[str, str] = {}
     content_downloads = 0
     for row in rows:
@@ -773,6 +777,7 @@ def collect_processed_evidence(
             writer, folder_ids[target], str(row["source_name"] or ""), sha256
         )
         destination_states[state] += 1
+        status_destination_states[(status, state)] += 1
         content_downloads += downloads
     if observed != expected_counts or len(rows) != expected_scope:
         raise RuntimeError("Processed-evidence exact candidate scope changed")
@@ -790,6 +795,10 @@ def collect_processed_evidence(
     result.update({
         f"processed_evidence_status_{_key(status)}": count
         for status, count in observed.items()
+    })
+    result.update({
+        f"processed_evidence_status_{_key(status)}_destination_{state}": count
+        for (status, state), count in status_destination_states.items()
     })
     return result
 
