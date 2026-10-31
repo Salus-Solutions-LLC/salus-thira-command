@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 31 October 2026 Central — v3.262 immutable image verified; guarded deployment candidate
+
+- Marc approved PR #1110 at exact head `2783069dc135e7faa466f525f66c4bfe801a7de0` after all candidate and frozen-source checks passed. Squash merge `27087179c6e06439d247ab48886445f8f5fe0f21` triggered [protected image run 41233411884](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/41233411884); its authorization and publication jobs succeeded. Azure registry readback yielded `salcapadevb48224acr.azurecr.io/salcapa@sha256:af28300a3260690764a23b585746fe1c6d44e610198cde87ecbf4a5ee1fd94fd` for frozen v3.262 source `29dc5ce15b7206dca7f26ca33a83e6ed2d967fca`.
+- This candidate pins that exact digest for guarded protected app and scheduled knowledge-worker deployment. It requires v3.260 as the current image for both, retains v3.223 for rollback, and starts buyer sign-in, ordering, checkout/payment, intake, uploads and scanning closed. The five-minute scanner-result worker requires a separate update after application verification. No report has been issued; four fictional Cedar drafts still require exact page, Charter and Marc human review, followed by buyer acknowledgment and separate public release. Public Wix purchase, live payment and public intake remain closed. Do not repeat L1A-10 payment or prior uploads. Require PR checks and Marc's review of this exact deployment head before merge, then protected Azure run and readback.
+
 ## 31 October 2026 Central — v3.262 frozen; immutable image candidate
 
 - Marc approved [PR #1108](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1108) at its exact head `899eae09643429bd53837ef9f5cbf916473546c7` after all four required PR checks passed. Squash merge `29dc5ce15b7206dca7f26ca33a83e6ed2d967fca` is the exact immutable `release/v3.262` source. Frozen Release Branch Guard run `41230730040`, CI run `41230730096` and contextual-intake run `41230730062` all passed, including the dependency security audit. No image has been published yet.
