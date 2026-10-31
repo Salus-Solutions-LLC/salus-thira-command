@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 import sqlite3
 import sys
 import tempfile
@@ -12,7 +13,31 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from tools import live_knowledge_candidate_readiness as readiness
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def check_protected_graph_contract() -> None:
+    workflow = (ROOT / ".github/workflows/salcapa-knowledge-candidate-readiness.yml").read_text(
+        encoding="utf-8"
+    )
+    bicep = (ROOT / "infra/azure/knowledge-candidate-readiness-job.bicep").read_text(
+        encoding="utf-8"
+    )
+    mapping = {
+        "tenantId": "SALUS_OIDC_TENANT_ID",
+        "applicationClientId": "SALUS_OIDC_CLIENT_ID",
+        "driveId": "SALUS_M365_INTAKE_DRIVE_ID",
+        "folderItemId": "SALUS_M365_INTAKE_FOLDER_ITEM_ID",
+        "enterpriseFolderItemId": "SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID",
+    }
+    for parameter, environment in mapping.items():
+        assert f'{parameter}="$(env_value {environment})"' in workflow
+        assert f"param {parameter} string" in bicep
+        assert f"name: '{environment}'" in bicep
+
+
 def check() -> None:
+    check_protected_graph_contract()
     assert readiness.EXPECTED_INITIAL_STATUS_COUNTS == {
         "Pending Review": 8,
         "Approved for Promotion": 3,
@@ -29,6 +54,9 @@ def check() -> None:
         conn.executescript("""
         CREATE TABLE m365_knowledge_candidates(
           id INTEGER PRIMARY KEY,source_drive_id TEXT NOT NULL,source_item_id TEXT NOT NULL,
+          source_name TEXT NOT NULL,source_relative_path TEXT NOT NULL,
+          source_etag TEXT NOT NULL,source_size INTEGER NOT NULL,
+          source_modified_at TEXT NOT NULL,
           status TEXT NOT NULL,decision TEXT NOT NULL,
           target_folder TEXT NOT NULL,classification_json TEXT NOT NULL,
           destination_drive_id TEXT NOT NULL,destination_item_id TEXT NOT NULL,
@@ -53,9 +81,13 @@ def check() -> None:
         )
         for candidate_id, status, extraction_status, rationale in fixtures:
             conn.execute(
-                "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
-                    candidate_id, "drive", f"item-{candidate_id}", status,
+                    candidate_id, "drive-12345678", f"item-0000000{candidate_id}",
+                    f"name-{candidate_id}",
+                    f"10 Pending Classification/Enterprise/name-{candidate_id}",
+                    f"etag-{candidate_id}", 100 + candidate_id,
+                    "2026-10-30T00:00:00Z", status,
                     "Approved", "05 Research and Reference",
                     json.dumps({"extraction": {"status": extraction_status}}),
                     "", "", "", "", "", "", "", "", rationale,
@@ -84,11 +116,11 @@ def check() -> None:
         )
         conn.execute(
             "INSERT INTO m365_bulk_items VALUES(?,?,?,?,?,?,?)",
-            ("drive", "item-1", "Done", "", 1, 0, 0),
+            ("drive-12345678", "item-00000001", "Done", "", 1, 0, 0),
         )
         conn.execute(
             "INSERT INTO m365_bulk_items VALUES(?,?,?,?,?,?,?)",
-            ("drive", "item-2", "Retry", "promotion_retry_required", 6, 2000, 0),
+            ("drive-12345678", "item-00000002", "Retry", "promotion_retry_required", 6, 2000, 0),
         )
         result = readiness.collect(
             conn,
@@ -139,11 +171,57 @@ def check() -> None:
             "work_fingerprint_automatic_retry_required_failure_archive_other_work_retry_"
             "reason_promotion_retry_attempts_six_plus_schedule_retry_backoff"
         ] == 1, result
+        conn.execute("DELETE FROM m365_bulk_items")
+
+        class Response:
+            def __init__(self, status_code: int, payload: dict | None = None):
+                self.status_code = status_code
+                self.payload = payload or {}
+
+            def json(self) -> dict:
+                return self.payload
+
+        class Client:
+            def get(self, url: str, **_kwargs):
+                item_id = url.rsplit("/", 1)[-1]
+                if item_id == "item-00000001":
+                    return Response(200, {
+                        "id": item_id, "name": "name-1", "size": 101,
+                        "eTag": "etag-1", "lastModifiedDateTime": "2026-10-30T00:00:00Z",
+                        "parentReference": {"id": "enterprise-12345678"},
+                        "file": {},
+                        "webUrl": "https://salussolutions.sharepoint.com/source",
+                    })
+                if item_id == "enterprise-12345678":
+                    return Response(200, {
+                        "id": item_id, "name": "Enterprise",
+                        "parentReference": {"id": "pending-12345678"}, "folder": {},
+                    })
+                if item_id == "item-00000002":
+                    return Response(404)
+                raise AssertionError(item_id)
+
+        source = readiness.collect_source_preflight(
+            conn, Client(), {"Authorization": "test"},
+            drive_id="drive-12345678", pending_id="pending-12345678",
+            enterprise_id="enterprise-12345678", intake_root_id="root-12345678",
+            expected_counts={
+                "Approved for Promotion": 1,
+                "Automatic Retry Required": 1,
+            },
+        )
+        assert source["source_scope_total"] == 2, source
+        assert source["source_verified_total"] == 1, source
+        assert source["source_approved_for_promotion_verified"] == 1, source
+        assert source["source_automatic_retry_required_not_found"] == 1, source
+        assert source["source_content_requests"] == 0, source
         assert result["content_downloads"] == 0 and result["rows_changed"] == 0, result
         conn.execute(
-            "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                4, "drive", "item-4", "Automatic Retry Required", "Approved",
+                4, "drive-12345678", "item-00000004", "name-4",
+                "10 Pending Classification/Enterprise/name-4", "etag-4", 104,
+                "2026-10-30T00:00:00Z", "Automatic Retry Required", "Approved",
                 "05 Research and Reference",
                 json.dumps({"extraction": {"status": "Complete"}}),
                 "", "", "", "", "", "", "", "", "Automatically processed under policy.",

@@ -1,17 +1,24 @@
 """Read-only aggregate readiness evidence for open Knowledge Library candidates.
 
-The probe emits bounded counts only. It never selects or logs a source ID,
-name, path, content, attribution, identity, URL, free-text rationale, or event
-detail, and it changes no ledger or Microsoft 365 state.
+The protected source preflight uses exact source identifiers in memory only to
+request Microsoft Graph metadata. It emits bounded counts only, never logs an
+identifier, name, path, content, attribution, identity, URL, free-text
+rationale, event detail, or raw work reason, and changes no governed state.
 """
 
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 from database import connect_database
+
+
+GRAPH_ROOT = "https://graph.microsoft.com/v1.0"
+_SOURCE_ID = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
 
 
 EXPECTED_INITIAL_STATUS_COUNTS = {
@@ -293,6 +300,152 @@ def _work_fingerprints(
     return result
 
 
+def collect_source_preflight(
+    conn: Any,
+    client: Any,
+    headers: dict[str, str],
+    *,
+    drive_id: str,
+    pending_id: str,
+    enterprise_id: str,
+    intake_root_id: str,
+    expected_counts: dict[str, int] = EXPECTED_PROMOTION_SCOPE_COUNTS,
+) -> dict[str, int]:
+    """Verify exact live source metadata and ancestry without reading bytes."""
+    statuses = tuple(EXPECTED_PROMOTION_SCOPE_COUNTS)
+    identifiers = (drive_id, pending_id, enterprise_id, intake_root_id)
+    if tuple(expected_counts) != statuses or any(
+        not _SOURCE_ID.fullmatch(value) for value in identifiers
+    ):
+        raise RuntimeError("Source-preflight boundary is invalid")
+    extraction = _json_expression(conn, "extraction,status")
+    marks = ",".join("?" for _ in statuses)
+    rows = conn.execute(
+        "SELECT c.source_drive_id,c.source_item_id,c.source_name,"
+        "c.source_relative_path,c.source_etag,c.source_size,c.source_modified_at,"
+        "c.status FROM m365_knowledge_candidates c "
+        f"WHERE c.status IN ({marks}) AND {extraction}='Complete' ORDER BY c.id",
+        statuses,
+    ).fetchall()
+    observed = {status: 0 for status in statuses}
+    states = {
+        "verified", "not_found", "drive_mismatch", "version_changed",
+        "metadata_changed", "outside_pending", "route_missing", "ancestry_missing",
+    }
+    counts = {f"source_{_key(status)}_{state}": 0 for status in statuses for state in states}
+    endpoint = f"{GRAPH_ROOT}/drives/{drive_id}/items/"
+    for row in rows:
+        status = str(row["status"] or "")
+        item_id = str(row["source_item_id"] or "")
+        if status not in observed or not _SOURCE_ID.fullmatch(item_id):
+            raise RuntimeError("Source-preflight candidate boundary changed")
+        observed[status] += 1
+        duplicate_work = int(conn.execute(
+            "SELECT COUNT(*) FROM m365_bulk_items WHERE drive_id=? AND item_id=?",
+            (row["source_drive_id"], item_id),
+        ).fetchone()[0] or 0)
+        if duplicate_work:
+            raise RuntimeError("Source-preflight durable-work boundary changed")
+        if str(row["source_drive_id"] or "") != drive_id:
+            state = "drive_mismatch"
+        else:
+            response = client.get(
+                endpoint + item_id,
+                headers=headers,
+                params={"$select": (
+                    "id,name,size,eTag,lastModifiedDateTime,parentReference,"
+                    "file,remoteItem,webUrl"
+                )},
+            )
+            if response.status_code == 404:
+                state = "not_found"
+            elif response.status_code != 200:
+                raise RuntimeError("Source-preflight Microsoft Graph request failed")
+            else:
+                item = response.json()
+                parent = str((item.get("parentReference") or {}).get("id", ""))
+                web_url = str(item.get("webUrl", ""))
+                parsed = urlparse(web_url)
+                if (
+                    item.get("id") != item_id or not isinstance(item.get("file"), dict)
+                    or "remoteItem" in item or not _SOURCE_ID.fullmatch(parent)
+                    or parsed.scheme != "https" or parsed.username or parsed.password
+                    or not (parsed.hostname or "").lower().endswith(".sharepoint.com")
+                ):
+                    raise RuntimeError("Source-preflight Microsoft Graph response was invalid")
+                if str(item.get("eTag", "")) != str(row["source_etag"] or ""):
+                    state = "version_changed"
+                elif (
+                    str(item.get("name", "")) != str(row["source_name"] or "")
+                    or int(item.get("size", -1)) != int(row["source_size"] or -1)
+                    or str(item.get("lastModifiedDateTime", ""))
+                    != str(row["source_modified_at"] or "")
+                ):
+                    state = "metadata_changed"
+                else:
+                    names = [str(item["name"])]
+                    seen = {item_id}
+                    routed = enterprise_id == pending_id or parent == enterprise_id
+                    state = "verified"
+                    while parent != pending_id:
+                        if parent == intake_root_id:
+                            state = "outside_pending"
+                            break
+                        if parent in seen or len(seen) > 128:
+                            raise RuntimeError("Source-preflight ancestry was invalid")
+                        seen.add(parent)
+                        ancestor = client.get(
+                            endpoint + parent,
+                            headers=headers,
+                            params={
+                                "$select": "id,name,parentReference,folder,remoteItem"
+                            },
+                        )
+                        if ancestor.status_code == 404:
+                            state = "ancestry_missing"
+                            break
+                        if ancestor.status_code != 200:
+                            raise RuntimeError("Source-preflight ancestry request failed")
+                        folder = ancestor.json()
+                        next_parent = str(
+                            (folder.get("parentReference") or {}).get("id", "")
+                        )
+                        name = str(folder.get("name", ""))
+                        if (
+                            folder.get("id") != parent
+                            or not isinstance(folder.get("folder"), dict)
+                            or "remoteItem" in folder
+                            or not _SOURCE_ID.fullmatch(next_parent)
+                            or not name or name in {".", ".."}
+                            or "/" in name or "\\" in name
+                        ):
+                            raise RuntimeError("Source-preflight ancestry response was invalid")
+                        routed = routed or parent == enterprise_id
+                        names.append(name)
+                        parent = next_parent
+                    if state == "verified" and not routed:
+                        state = "route_missing"
+                    if state == "verified":
+                        current_path = "10 Pending Classification/" + "/".join(
+                            reversed(names)
+                        )
+                        if current_path != str(row["source_relative_path"] or ""):
+                            state = "metadata_changed"
+        if state not in states:
+            raise RuntimeError("Source-preflight state left the fixed boundary")
+        counts[f"source_{_key(status)}_{state}"] += 1
+    if observed != expected_counts:
+        raise RuntimeError("Source-preflight exact candidate scope changed")
+    counts["source_scope_total"] = sum(observed.values())
+    counts["source_verified_total"] = sum(
+        counts[f"source_{_key(status)}_verified"] for status in statuses
+    )
+    counts["source_content_requests"] = 0
+    counts["source_rows_changed"] = 0
+    counts["source_preflight_complete"] = 1
+    return counts
+
+
 def collect(
     conn: Any,
     expected_status_counts: dict[str, int] = EXPECTED_INITIAL_STATUS_COUNTS,
@@ -434,13 +587,32 @@ def collect(
 
 
 def main() -> None:
+    from salcapa_bulk_delta import resolve_pending
+    from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake
+
     if os.getenv("SALUS_DB_BACKEND", "").strip().lower() != "postgres":
         raise RuntimeError("The live open-candidate probe requires managed PostgreSQL")
+    config = GovernedM365Config.from_environment()
+    intake = GovernedM365Intake(config)
+    enterprise_id = os.getenv("SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID", "").strip()
+    if not _SOURCE_ID.fullmatch(enterprise_id):
+        raise RuntimeError("The live source-preflight enterprise route is invalid")
     conn = connect_database()
     try:
         result = collect(conn)
+        pending_id = resolve_pending(intake)
+        result.update(collect_source_preflight(
+            conn,
+            intake.client,
+            intake._headers(),
+            drive_id=config.drive_id,
+            pending_id=pending_id,
+            enterprise_id=enterprise_id,
+            intake_root_id=config.folder_item_id,
+        ))
     finally:
         conn.close()
+        intake.client.close()
     for key in sorted(result):
         print(f"CANDIDATE_READY_{key.upper()}={result[key]}", flush=True)
 
