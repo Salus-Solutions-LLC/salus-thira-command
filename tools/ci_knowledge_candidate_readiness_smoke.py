@@ -304,6 +304,12 @@ def check() -> None:
         )
         assert processed["processed_evidence_archive_verified"] == 2, processed
         assert processed["processed_evidence_destination_exact"] == 2, processed
+        assert processed[
+            "processed_evidence_status_approved_for_promotion_destination_exact"
+        ] == 1, processed
+        assert processed[
+            "processed_evidence_status_automatic_retry_required_destination_exact"
+        ] == 1, processed
         assert processed["processed_evidence_content_downloads"] == 4, processed
         assert processed["processed_evidence_rows_changed"] == 0, processed
         evidence_conn.close()
