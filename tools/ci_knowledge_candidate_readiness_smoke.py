@@ -39,14 +39,14 @@ def check_protected_graph_contract() -> None:
 def check() -> None:
     check_protected_graph_contract()
     assert readiness.EXPECTED_INITIAL_STATUS_COUNTS == {
-        "Pending Review": 8,
+        "Pending Review": 13,
         "Approved for Promotion": 3,
-        "Automatic Retry Required": 6,
+        "Automatic Retry Required": 1,
         "Destination Verified": 0,
     }
     assert readiness.EXPECTED_PROMOTION_SCOPE_COUNTS == {
         "Approved for Promotion": 3,
-        "Automatic Retry Required": 6,
+        "Automatic Retry Required": 1,
     }
     with tempfile.TemporaryDirectory() as directory:
         conn = sqlite3.connect(os.path.join(directory, "candidate-readiness.sqlite"))
@@ -341,7 +341,7 @@ def check() -> None:
             )
             raise AssertionError("open-candidate scope growth was not rejected")
         except RuntimeError as error:
-            assert "exceeded its approved boundary" in str(error), error
+            assert "exact checkpoint changed" in str(error), error
         conn.close()
     print("KNOWLEDGE_CANDIDATE_READINESS_PASS")
 

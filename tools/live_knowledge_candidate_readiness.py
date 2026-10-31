@@ -23,21 +23,22 @@ _SOURCE_ID = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
 
 
 EXPECTED_INITIAL_STATUS_COUNTS = {
-    "Pending Review": 8,
+    "Pending Review": 13,
     "Approved for Promotion": 3,
-    "Automatic Retry Required": 6,
+    "Automatic Retry Required": 1,
     "Destination Verified": 0,
 }
 EXPECTED_INITIAL_TOTAL = 17
 EXPECTED_PROMOTION_SCOPE_COUNTS = {
     "Approved for Promotion": 3,
-    "Automatic Retry Required": 6,
+    "Automatic Retry Required": 1,
 }
 EXPECTED_SOURCE_STATE_COUNTS = {
     ("Approved for Promotion", "outside_pending"): 3,
-    ("Automatic Retry Required", "not_found"): 5,
     ("Automatic Retry Required", "outside_pending"): 1,
 }
+EXPECTED_SOURCE_RECONCILIATIONS = 5
+SOURCE_RECONCILIATION_DISPOSITION = "Governed Missing Source Reconciliation Required"
 SOURCE_AREA_KEYS = {
     "20 Ready for Intake Review": "ready_for_intake_review",
     "30 Exceptions and Manual Review": "exceptions_and_manual_review",
@@ -59,6 +60,7 @@ KNOWN_EVENTS = (
     "AutomaticPromotionRetryScheduled",
     "AutomaticallyPromotedVerifiedAndArchived",
     "CandidateRoutedToGovernedExtractionReview",
+    "CandidateRoutedToGovernedSourceReconciliation",
 )
 
 
@@ -661,8 +663,8 @@ def collect(
             unexpected_extraction += count
             continue
         matrix[f"{_key(status)}_{_key(extraction_status)}"] += count
-    if any(observed[status] > expected_status_counts[status] for status in OPEN_STATUSES):
-        raise RuntimeError("Open-candidate count exceeded its approved boundary")
+    if observed != expected_status_counts:
+        raise RuntimeError("Open-candidate exact checkpoint changed")
     if unexpected_extraction:
         raise RuntimeError("Open candidate has an unexpected extraction state")
 
@@ -727,6 +729,21 @@ def collect(
         else:
             event_other += count
 
+    source_reconciliations = int(conn.execute(
+        "SELECT COUNT(*) FROM m365_knowledge_candidates c WHERE "
+        f"{_json_expression(conn, 'source_reconciliation,status')}='Review Required' "
+        f"AND {_json_expression(conn, 'source_reconciliation,disposition')}=? "
+        f"AND {_json_expression(conn, 'source_reconciliation,successor_match')}='None' "
+        f"AND {_json_expression(conn, 'source_reconciliation,boundary_files_rechecked')}='22377'",
+        (SOURCE_RECONCILIATION_DISPOSITION,),
+    ).fetchone()[0] or 0)
+    if expected_status_counts is EXPECTED_INITIAL_STATUS_COUNTS and (
+        source_reconciliations != EXPECTED_SOURCE_RECONCILIATIONS
+        or event_counts["CandidateRoutedToGovernedSourceReconciliation"]
+        != EXPECTED_SOURCE_RECONCILIATIONS
+    ):
+        raise RuntimeError("Governed source-reconciliation checkpoint changed")
+
     result = {
         "open_remaining": total,
         "resolved_since_checkpoint": expected_total - total,
@@ -748,6 +765,7 @@ def collect(
         "rationale_other": rationale_other,
         "known_rationale_matches": categorized_rationale,
         "event_other": event_other,
+        "source_reconciliations": source_reconciliations,
         "content_downloads": 0,
         "rows_changed": 0,
     }
@@ -785,7 +803,7 @@ def main() -> None:
             enterprise_id=enterprise_id,
             intake_root_id=config.folder_item_id,
             expected_states=EXPECTED_SOURCE_STATE_COUNTS,
-            scan_missing_successors=True,
+            scan_missing_successors=False,
         ))
     finally:
         conn.close()
