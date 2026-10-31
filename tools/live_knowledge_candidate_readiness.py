@@ -14,9 +14,9 @@ from database import connect_database
 
 
 EXPECTED_INITIAL_STATUS_COUNTS = {
-    "Pending Review": 0,
+    "Pending Review": 8,
     "Approved for Promotion": 3,
-    "Automatic Retry Required": 14,
+    "Automatic Retry Required": 6,
     "Destination Verified": 0,
 }
 EXPECTED_INITIAL_TOTAL = 17
@@ -28,6 +28,7 @@ KNOWN_EVENTS = (
     "AutomaticExtractionRetryScheduled",
     "AutomaticPromotionRetryScheduled",
     "AutomaticallyPromotedVerifiedAndArchived",
+    "CandidateRoutedToGovernedExtractionReview",
 )
 
 
