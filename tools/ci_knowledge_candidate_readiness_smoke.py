@@ -253,6 +253,65 @@ def check() -> None:
             "source_approved_for_promotion_outside_area_ready_for_intake_review"
         ] == 1, outside
         assert outside["source_outside_area_total"] == 1, outside
+
+        area_names = ["10 Pending Classification", *readiness.SOURCE_AREA_KEYS]
+        area_ids = {name: f"area-{index:08d}" for index, name in enumerate(area_names)}
+        root_url = f"{readiness.GRAPH_ROOT}/drives/drive-12345678/items/root-12345678/children"
+        pages = {
+            root_url: {"value": [
+                {"id": area_ids[name], "name": name, "folder": {},
+                 "parentReference": {"id": "root-12345678"}}
+                for name in area_names
+            ]},
+        }
+        for name, area_id in area_ids.items():
+            pages[
+                f"{readiness.GRAPH_ROOT}/drives/drive-12345678/items/{area_id}/children"
+            ] = {"value": []}
+        fingerprints = [
+            {"source_item_id": f"old-{index:08d}", "source_name": f"missing-{index}",
+             "source_size": 200 + index, "source_modified_at": "2026-10-30T00:00:00Z",
+             "source_etag": f"old-etag-{index}"}
+            for index in range(5)
+        ]
+        processed_url = (
+            f"{readiness.GRAPH_ROOT}/drives/drive-12345678/items/"
+            f"{area_ids['90 Processed Intake']}/children"
+        )
+        files = []
+        for suffix, index, etag in (
+            ("exact", 0, "old-etag-0"),
+            ("metadata", 1, "new-etag-1"),
+            ("ambiguous-a", 2, "new-etag-2a"),
+            ("ambiguous-b", 2, "new-etag-2b"),
+            ("exact-a", 4, "old-etag-4"),
+            ("exact-b", 4, "old-etag-4"),
+        ):
+            files.append({
+                "id": f"new-{suffix}-00000000", "name": f"missing-{index}",
+                "size": 200 + index, "eTag": etag,
+                "lastModifiedDateTime": "2026-10-30T00:00:00Z", "file": {},
+                "parentReference": {"id": area_ids["90 Processed Intake"]},
+            })
+        pages[processed_url] = {"value": files}
+
+        class CensusClient:
+            def get(self, url: str, **_kwargs):
+                if url not in pages:
+                    raise AssertionError(url)
+                return Response(200, pages[url])
+
+        matches = readiness.collect_missing_source_matches(
+            CensusClient(), {"Authorization": "test"},
+            drive_id="drive-12345678", intake_root_id="root-12345678",
+            missing_rows=fingerprints, expected_boundary_files=6,
+        )
+        assert matches["missing_successor_exact_unique"] == 1, matches
+        assert matches["missing_successor_exact_ambiguous"] == 1, matches
+        assert matches["missing_successor_metadata_unique"] == 1, matches
+        assert matches["missing_successor_metadata_ambiguous"] == 1, matches
+        assert matches["missing_successor_none"] == 1, matches
+        assert matches["missing_successor_content_requests"] == 0, matches
         assert result["content_downloads"] == 0 and result["rows_changed"] == 0, result
         conn.execute(
             "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",

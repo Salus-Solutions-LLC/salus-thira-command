@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import re
 import time
+from collections import deque
 from typing import Any
 from urllib.parse import urlparse
 
@@ -45,6 +46,10 @@ SOURCE_AREA_KEYS = {
     "90 Processed Intake": "processed_intake",
     "Does Not Upload": "does_not_upload",
 }
+EXPECTED_BOUNDARY_FILES = 22_377
+MAX_BOUNDARY_ITEMS = 50_000
+MAX_BOUNDARY_FOLDERS = 5_000
+MAX_BOUNDARY_PAGES = 1_000
 OPEN_STATUSES = tuple(EXPECTED_INITIAL_STATUS_COUNTS)
 EXTRACTION_STATUSES = ("Complete", "Review Required", "Retry Paused")
 KNOWN_EVENTS = (
@@ -324,6 +329,7 @@ def collect_source_preflight(
     intake_root_id: str,
     expected_counts: dict[str, int] = EXPECTED_PROMOTION_SCOPE_COUNTS,
     expected_states: dict[tuple[str, str], int] | None = None,
+    scan_missing_successors: bool = False,
 ) -> dict[str, int]:
     """Verify exact live source metadata and ancestry without reading bytes."""
     statuses = tuple(EXPECTED_PROMOTION_SCOPE_COUNTS)
@@ -352,6 +358,7 @@ def collect_source_preflight(
         for status in statuses for area_key in SOURCE_AREA_KEYS.values()
     })
     endpoint = f"{GRAPH_ROOT}/drives/{drive_id}/items/"
+    missing_rows = []
     for row in rows:
         status = str(row["status"] or "")
         item_id = str(row["source_item_id"] or "")
@@ -377,6 +384,7 @@ def collect_source_preflight(
             )
             if response.status_code == 404:
                 state = "not_found"
+                missing_rows.append(row)
             elif response.status_code != 200:
                 raise RuntimeError("Source-preflight Microsoft Graph request failed")
             else:
@@ -479,7 +487,138 @@ def collect_source_preflight(
         for status in statuses for area_key in SOURCE_AREA_KEYS.values()
     )
     counts["source_preflight_complete"] = 1
+    if scan_missing_successors:
+        counts.update(collect_missing_source_matches(
+            client, headers, drive_id=drive_id, intake_root_id=intake_root_id,
+            missing_rows=missing_rows,
+        ))
     return counts
+
+
+def collect_missing_source_matches(
+    client: Any,
+    headers: dict[str, str],
+    *,
+    drive_id: str,
+    intake_root_id: str,
+    missing_rows: list[Any],
+    expected_boundary_files: int = EXPECTED_BOUNDARY_FILES,
+) -> dict[str, int]:
+    """Search governed metadata for unique successors without reading bytes."""
+    if (
+        not _SOURCE_ID.fullmatch(drive_id)
+        or not _SOURCE_ID.fullmatch(intake_root_id)
+        or len(missing_rows) != 5
+        or expected_boundary_files < 1
+    ):
+        raise RuntimeError("Missing-source reconciliation boundary is invalid")
+    exact = [0] * len(missing_rows)
+    metadata = [0] * len(missing_rows)
+    queue = deque([(intake_root_id, "")])
+    seen_folders, seen_items, top_level = set(), set(), set()
+    files = pages = 0
+    select = "id,name,size,file,folder,remoteItem,lastModifiedDateTime,eTag,parentReference"
+    while queue:
+        folder_id, area = queue.popleft()
+        if folder_id in seen_folders or len(seen_folders) >= MAX_BOUNDARY_FOLDERS:
+            raise RuntimeError("Missing-source folder traversal is invalid")
+        seen_folders.add(folder_id)
+        endpoint = f"{GRAPH_ROOT}/drives/{drive_id}/items/{folder_id}/children"
+        page, params, seen_pages = endpoint, {"$select": select, "$top": "200"}, set()
+        while page:
+            if page in seen_pages or pages >= MAX_BOUNDARY_PAGES:
+                raise RuntimeError("Missing-source page traversal is invalid")
+            seen_pages.add(page)
+            pages += 1
+            response = client.get(page, headers=headers, params=params)
+            if response.status_code != 200:
+                raise RuntimeError("Missing-source boundary folder is unavailable")
+            payload = response.json()
+            values = payload.get("value")
+            if not isinstance(values, list) or len(values) > 1_000:
+                raise RuntimeError("Missing-source boundary response is invalid")
+            for item in values:
+                if not isinstance(item, dict) or "remoteItem" in item:
+                    raise RuntimeError("Missing-source boundary item is invalid")
+                item_id = str(item.get("id", ""))
+                name = str(item.get("name", ""))
+                parent = str((item.get("parentReference") or {}).get("id", ""))
+                if (
+                    not _SOURCE_ID.fullmatch(item_id) or item_id in seen_items
+                    or not name or name in {".", ".."} or "/" in name or "\\" in name
+                    or parent != folder_id
+                ):
+                    raise RuntimeError("Missing-source boundary metadata is invalid")
+                seen_items.add(item_id)
+                if len(seen_items) > MAX_BOUNDARY_ITEMS:
+                    raise RuntimeError("Missing-source boundary item limit exceeded")
+                item_area = area or name
+                if folder_id == intake_root_id:
+                    top_level.add(name)
+                is_folder = isinstance(item.get("folder"), dict)
+                is_file = isinstance(item.get("file"), dict)
+                if is_folder == is_file or item_area not in set(SOURCE_AREA_KEYS) | {
+                    "10 Pending Classification"
+                }:
+                    raise RuntimeError("Missing-source boundary kind or area is invalid")
+                if is_folder:
+                    queue.append((item_id, item_area))
+                    continue
+                size = item.get("size")
+                etag = str(item.get("eTag", ""))
+                modified = str(item.get("lastModifiedDateTime", ""))
+                if not isinstance(size, int) or size < 0 or not etag or not modified:
+                    raise RuntimeError("Missing-source boundary provenance is incomplete")
+                files += 1
+                for index, row in enumerate(missing_rows):
+                    if item_id == str(row["source_item_id"] or ""):
+                        raise RuntimeError("Missing-source direct and census evidence conflict")
+                    if (
+                        name == str(row["source_name"] or "")
+                        and size == int(row["source_size"] or -1)
+                        and modified == str(row["source_modified_at"] or "")
+                    ):
+                        metadata[index] += 1
+                        if etag == str(row["source_etag"] or ""):
+                            exact[index] += 1
+            next_page = payload.get("@odata.nextLink")
+            if next_page:
+                parsed, expected = urlparse(str(next_page)), urlparse(endpoint)
+                if (
+                    not isinstance(next_page, str) or len(next_page) > 8_192
+                    or parsed.scheme != "https" or parsed.netloc != "graph.microsoft.com"
+                    or parsed.username or parsed.password or parsed.fragment
+                    or parsed.path != expected.path or not parsed.query
+                ):
+                    raise RuntimeError("Missing-source continuation left the boundary")
+            page, params = (next_page, None) if next_page else ("", None)
+    expected_areas = set(SOURCE_AREA_KEYS) | {"10 Pending Classification"}
+    if top_level != expected_areas or files != expected_boundary_files:
+        raise RuntimeError("Missing-source boundary identity or count changed")
+    result = {
+        "missing_successor_exact_unique": 0,
+        "missing_successor_exact_ambiguous": 0,
+        "missing_successor_metadata_unique": 0,
+        "missing_successor_metadata_ambiguous": 0,
+        "missing_successor_none": 0,
+    }
+    for exact_count, metadata_count in zip(exact, metadata):
+        if exact_count == 1:
+            key = "missing_successor_exact_unique"
+        elif exact_count > 1:
+            key = "missing_successor_exact_ambiguous"
+        elif metadata_count == 1:
+            key = "missing_successor_metadata_unique"
+        elif metadata_count > 1:
+            key = "missing_successor_metadata_ambiguous"
+        else:
+            key = "missing_successor_none"
+        result[key] += 1
+    result["missing_successor_scope_total"] = len(missing_rows)
+    result["missing_successor_boundary_files"] = files
+    result["missing_successor_content_requests"] = 0
+    result["missing_successor_complete"] = 1
+    return result
 
 
 def collect(
@@ -646,6 +785,7 @@ def main() -> None:
             enterprise_id=enterprise_id,
             intake_root_id=config.folder_item_id,
             expected_states=EXPECTED_SOURCE_STATE_COUNTS,
+            scan_missing_successors=True,
         ))
     finally:
         conn.close()
