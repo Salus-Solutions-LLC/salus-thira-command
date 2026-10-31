@@ -9,6 +9,9 @@ param applicationClientId string
 param driveId string
 param folderItemId string
 param enterpriseFolderItemId string
+param knowledgeDriveId string
+param knowledgeFolderItemId string
+param processedIntakeFolderItemId string
 param postgresHost string
 param postgresDatabase string
 param postgresUser string
@@ -58,6 +61,9 @@ resource readinessJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'SALUS_M365_INTAKE_DRIVE_ID', value: driveId }
             { name: 'SALUS_M365_INTAKE_FOLDER_ITEM_ID', value: folderItemId }
             { name: 'SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID', value: enterpriseFolderItemId }
+            { name: 'SALUS_M365_KNOWLEDGE_DRIVE_ID', value: knowledgeDriveId }
+            { name: 'SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID', value: knowledgeFolderItemId }
+            { name: 'SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID', value: processedIntakeFolderItemId }
             { name: 'SALUS_M365_INTAKE_MAX_FILE_BYTES', value: '104857600' }
             { name: 'SALUS_DB_BACKEND', value: 'postgres' }
             { name: 'SALUS_POSTGRES_AUTH', value: 'entra' }

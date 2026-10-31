@@ -74,6 +74,9 @@ jobs:
               driveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" \
               folderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" \
               enterpriseFolderItemId="$(env_value SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID)" \
+              knowledgeDriveId="$(env_value SALUS_M365_KNOWLEDGE_DRIVE_ID)" \
+              knowledgeFolderItemId="$(env_value SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID)" \
+              processedIntakeFolderItemId="$(env_value SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID)" \
               postgresHost="$(env_value SALUS_POSTGRES_HOST)" \
               postgresDatabase="$(env_value SALUS_POSTGRES_DATABASE)" \
               postgresUser="$(env_value SALUS_POSTGRES_USER)" \

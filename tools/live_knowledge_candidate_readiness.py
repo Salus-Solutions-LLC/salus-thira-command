@@ -11,9 +11,10 @@ from __future__ import annotations
 import os
 import re
 import time
+import hashlib
 from collections import deque
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from database import connect_database
 
@@ -39,6 +40,7 @@ EXPECTED_SOURCE_STATE_COUNTS = {
 }
 EXPECTED_SOURCE_RECONCILIATIONS = 5
 SOURCE_RECONCILIATION_DISPOSITION = "Governed Missing Source Reconciliation Required"
+EXPECTED_PROCESSED_EVIDENCE_SCOPE = 4
 SOURCE_AREA_KEYS = {
     "20 Ready for Intake Review": "ready_for_intake_review",
     "30 Exceptions and Manual Review": "exceptions_and_manual_review",
@@ -623,6 +625,175 @@ def collect_missing_source_matches(
     return result
 
 
+def _destination_names(name: str, sha256: str) -> tuple[str, str]:
+    stem, separator, extension = name.rpartition(".")
+    if not stem:
+        stem, separator, extension = name, "", ""
+    suffix = f".{sha256[:24]}" + (f".{extension}" if separator else "")
+    primary = stem[:max(1, 240 - len(suffix))] + suffix
+    fallback_suffix = f".{sha256}.original.bin"
+    fallback = primary[:max(1, 240 - len(fallback_suffix))] + fallback_suffix
+    return primary, fallback
+
+
+def _read_destination_hash(
+    writer: Any,
+    folder_id: str,
+    name: str,
+    expected_sha256: str,
+) -> tuple[str, int]:
+    item_path = (
+        f"{GRAPH_ROOT}/drives/{writer.destination.drive_id}/items/"
+        f"{folder_id}:/{quote(name, safe='')}:"
+    )
+    response = writer.client.get(
+        item_path,
+        headers=writer._headers() | {"Accept": "application/json"},
+        params={"$select": "id,name,size,eTag,parentReference,file,webUrl"},
+    )
+    if response.status_code == 404:
+        return "missing", 0
+    if response.status_code != 200:
+        raise RuntimeError("Processed-evidence destination metadata request failed")
+    item = response.json()
+    item_id = str(item.get("id", ""))
+    parent_id = str((item.get("parentReference") or {}).get("id", ""))
+    size = int(item.get("size", -1))
+    web_url = str(item.get("webUrl", ""))
+    parsed = urlparse(web_url)
+    if (
+        not _SOURCE_ID.fullmatch(item_id)
+        or item.get("name") != name
+        or parent_id != folder_id
+        or not isinstance(item.get("file"), dict)
+        or size < 0 or size > writer.intake_config.max_file_bytes
+        or parsed.scheme != "https" or parsed.username or parsed.password
+        or not (parsed.hostname or "").lower().endswith(".sharepoint.com")
+    ):
+        raise RuntimeError("Processed-evidence destination metadata was invalid")
+    download = writer.client.get(
+        f"{GRAPH_ROOT}/drives/{writer.destination.drive_id}/items/{item_id}/content",
+        headers=writer._headers() | {"Accept": "application/octet-stream"},
+        timeout=120.0,
+    )
+    if download.status_code in {302, 303, 307, 308}:
+        location = str(download.headers.get("Location", ""))
+        parsed = urlparse(location)
+        if (
+            parsed.scheme != "https" or parsed.username or parsed.password
+            or not (parsed.hostname or "").lower().endswith(".sharepoint.com")
+        ):
+            raise RuntimeError("Processed-evidence destination download was untrusted")
+        download = writer.client.get(
+            location, headers={"Accept": "application/octet-stream"}, timeout=120.0
+        )
+    if download.status_code != 200:
+        raise RuntimeError("Processed-evidence destination content request failed")
+    observed = hashlib.sha256(download.content).hexdigest()
+    return ("exact" if observed == expected_sha256 else "mismatch"), 1
+
+
+def _destination_evidence_state(
+    writer: Any,
+    folder_id: str,
+    name: str,
+    sha256: str,
+) -> tuple[str, int]:
+    primary, fallback = _destination_names(name, sha256)
+    primary_state, downloads = _read_destination_hash(
+        writer, folder_id, primary, sha256
+    )
+    if primary_state == "exact":
+        return "exact", downloads
+    fallback_state, fallback_downloads = _read_destination_hash(
+        writer, folder_id, fallback, sha256
+    )
+    downloads += fallback_downloads
+    if fallback_state == "exact":
+        return "fallback_exact", downloads
+    if primary_state == "missing" and fallback_state == "missing":
+        return "missing", downloads
+    return "mismatch", downloads
+
+
+def collect_processed_evidence(
+    conn: Any,
+    writer: Any,
+    expected_counts: dict[str, int] = EXPECTED_PROMOTION_SCOPE_COUNTS,
+    expected_scope: int = EXPECTED_PROCESSED_EVIDENCE_SCOPE,
+) -> dict[str, int]:
+    """Hash-check four archived originals and their deterministic destinations."""
+    statuses = tuple(EXPECTED_PROMOTION_SCOPE_COUNTS)
+    if tuple(expected_counts) != statuses or sum(expected_counts.values()) != expected_scope:
+        raise RuntimeError("Processed-evidence scope is invalid")
+    writer.destination.validate()
+    extraction = _json_expression(conn, "extraction,status")
+    marks = ",".join("?" for _ in statuses)
+    rows = conn.execute(
+        "SELECT c.source_item_id,c.source_etag,c.source_sha256,c.source_name,"
+        "c.target_folder,c.status FROM m365_knowledge_candidates c "
+        f"WHERE c.status IN ({marks}) AND {extraction}='Complete' "
+        "AND c.destination_drive_id='' AND c.destination_item_id='' "
+        "AND c.destination_web_url='' AND c.destination_etag='' "
+        "AND c.source_archive_item_id='' AND c.source_archive_web_url='' "
+        "AND c.source_archive_etag='' AND c.source_archived_at='' "
+        "AND NOT EXISTS (SELECT 1 FROM m365_bulk_items b "
+        "WHERE b.drive_id=c.source_drive_id AND b.item_id=c.source_item_id) "
+        "ORDER BY c.id",
+        statuses,
+    ).fetchall()
+    observed = {status: 0 for status in statuses}
+    destination_states = {state: 0 for state in (
+        "exact", "fallback_exact", "missing", "mismatch",
+    )}
+    folder_ids: dict[str, str] = {}
+    content_downloads = 0
+    for row in rows:
+        status = str(row["status"] or "")
+        item_id = str(row["source_item_id"] or "")
+        sha256 = str(row["source_sha256"] or "")
+        target = str(row["target_folder"] or "")
+        if (
+            status not in observed or not _SOURCE_ID.fullmatch(item_id)
+            or not re.fullmatch(r"[0-9a-f]{64}", sha256)
+            or not target
+        ):
+            raise RuntimeError("Processed-evidence candidate boundary changed")
+        observed[status] += 1
+        archived = writer.verify_already_archived_source(item_id, sha256)
+        content_downloads += 1
+        if (
+            archived is None or archived.get("item_id") != item_id
+            or str(archived.get("etag", "")) != str(row["source_etag"] or "")
+        ):
+            raise RuntimeError("Processed-evidence archived original changed")
+        if target not in folder_ids:
+            folder_ids[target] = writer._resolve_folder(target)
+        state, downloads = _destination_evidence_state(
+            writer, folder_ids[target], str(row["source_name"] or ""), sha256
+        )
+        destination_states[state] += 1
+        content_downloads += downloads
+    if observed != expected_counts or len(rows) != expected_scope:
+        raise RuntimeError("Processed-evidence exact candidate scope changed")
+    result = {
+        "processed_evidence_scope_total": len(rows),
+        "processed_evidence_archive_verified": len(rows),
+        "processed_evidence_content_downloads": content_downloads,
+        "processed_evidence_rows_changed": 0,
+        "processed_evidence_complete": 1,
+    }
+    result.update({
+        f"processed_evidence_destination_{state}": count
+        for state, count in destination_states.items()
+    })
+    result.update({
+        f"processed_evidence_status_{_key(status)}": count
+        for status, count in observed.items()
+    })
+    return result
+
+
 def collect(
     conn: Any,
     expected_status_counts: dict[str, int] = EXPECTED_INITIAL_STATUS_COUNTS,
@@ -782,11 +953,18 @@ def collect(
 def main() -> None:
     from salcapa_bulk_delta import resolve_pending
     from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake
+    from salcapa_knowledge_promotion import (
+        GraphKnowledgeWriter,
+        KnowledgeDestinationConfig,
+    )
 
     if os.getenv("SALUS_DB_BACKEND", "").strip().lower() != "postgres":
         raise RuntimeError("The live open-candidate probe requires managed PostgreSQL")
     config = GovernedM365Config.from_environment()
     intake = GovernedM365Intake(config)
+    writer = GraphKnowledgeWriter(
+        config, KnowledgeDestinationConfig.from_environment()
+    )
     enterprise_id = os.getenv("SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID", "").strip()
     if not _SOURCE_ID.fullmatch(enterprise_id):
         raise RuntimeError("The live source-preflight enterprise route is invalid")
@@ -805,9 +983,11 @@ def main() -> None:
             expected_states=EXPECTED_SOURCE_STATE_COUNTS,
             scan_missing_successors=False,
         ))
+        result.update(collect_processed_evidence(conn, writer))
     finally:
         conn.close()
         intake.client.close()
+        writer.client.close()
     for key in sorted(result):
         print(f"CANDIDATE_READY_{key.upper()}={result[key]}", flush=True)
 

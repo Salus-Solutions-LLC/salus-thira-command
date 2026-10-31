@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 from pathlib import Path
 import sqlite3
@@ -29,6 +30,9 @@ def check_protected_graph_contract() -> None:
         "driveId": "SALUS_M365_INTAKE_DRIVE_ID",
         "folderItemId": "SALUS_M365_INTAKE_FOLDER_ITEM_ID",
         "enterpriseFolderItemId": "SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID",
+        "knowledgeDriveId": "SALUS_M365_KNOWLEDGE_DRIVE_ID",
+        "knowledgeFolderItemId": "SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID",
+        "processedIntakeFolderItemId": "SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID",
     }
     for parameter, environment in mapping.items():
         assert f'{parameter}="$(env_value {environment})"' in workflow
@@ -172,6 +176,137 @@ def check() -> None:
             "reason_promotion_retry_attempts_six_plus_schedule_retry_backoff"
         ] == 1, result
         conn.execute("DELETE FROM m365_bulk_items")
+
+        evidence_content = b"governed evidence fixture"
+        evidence_sha = hashlib.sha256(evidence_content).hexdigest()
+        primary_name, fallback_name = readiness._destination_names(
+            "evidence.docx", evidence_sha
+        )
+        assert primary_name.endswith(f".{evidence_sha[:24]}.docx")
+        assert fallback_name.endswith(f".{evidence_sha}.original.bin")
+
+        class EvidenceResponse:
+            def __init__(
+                self, status_code: int, payload: dict | None = None,
+                content: bytes = b"", headers: dict | None = None,
+            ):
+                self.status_code = status_code
+                self.payload = payload or {}
+                self.content = content
+                self.headers = headers or {}
+
+            def json(self) -> dict:
+                return self.payload
+
+        class EvidenceClient:
+            def __init__(self, primary_content: bytes, fallback_content: bytes | None):
+                self.primary_content = primary_content
+                self.fallback_content = fallback_content
+
+            def get(self, url: str, **_kwargs):
+                if url.endswith("/primary-item-00000000/content"):
+                    return EvidenceResponse(200, content=self.primary_content)
+                if url.endswith("/fallback-item-0000000/content"):
+                    return EvidenceResponse(200, content=self.fallback_content or b"")
+                if fallback_name.replace(" ", "%20") in url:
+                    if self.fallback_content is None:
+                        return EvidenceResponse(404)
+                    return EvidenceResponse(200, {
+                        "id": "fallback-item-0000000", "name": fallback_name,
+                        "size": len(self.fallback_content), "eTag": "fallback-etag",
+                        "parentReference": {"id": "folder-12345678"}, "file": {},
+                        "webUrl": "https://salussolutions.sharepoint.com/fallback",
+                    })
+                if primary_name.replace(" ", "%20") in url:
+                    return EvidenceResponse(200, {
+                        "id": "primary-item-00000000", "name": primary_name,
+                        "size": len(self.primary_content), "eTag": "primary-etag",
+                        "parentReference": {"id": "folder-12345678"}, "file": {},
+                        "webUrl": "https://salussolutions.sharepoint.com/primary",
+                    })
+                raise AssertionError(url)
+
+        class EvidenceWriter:
+            class Destination:
+                drive_id = "knowledge-drive-12345678"
+
+                @staticmethod
+                def validate() -> None:
+                    return None
+
+            class IntakeConfig:
+                max_file_bytes = 104857600
+
+            def __init__(self, primary_content: bytes, fallback_content: bytes | None):
+                self.destination = self.Destination()
+                self.intake_config = self.IntakeConfig()
+                self.client = EvidenceClient(primary_content, fallback_content)
+
+            def _headers(self) -> dict[str, str]:
+                return {"Authorization": "test"}
+
+            @staticmethod
+            def _resolve_folder(_target: str) -> str:
+                return "folder-12345678"
+
+            @staticmethod
+            def verify_already_archived_source(item_id: str, _sha256: str) -> dict:
+                return {"item_id": item_id, "etag": "evidence-etag"}
+
+        exact_state, exact_downloads = readiness._destination_evidence_state(
+            EvidenceWriter(evidence_content, None), "folder-12345678",
+            "evidence.docx", evidence_sha,
+        )
+        assert (exact_state, exact_downloads) == ("exact", 1)
+        fallback_state, fallback_downloads = readiness._destination_evidence_state(
+            EvidenceWriter(b"transformed", evidence_content), "folder-12345678",
+            "evidence.docx", evidence_sha,
+        )
+        assert (fallback_state, fallback_downloads) == ("fallback_exact", 2)
+
+        evidence_conn = sqlite3.connect(":memory:")
+        evidence_conn.row_factory = sqlite3.Row
+        evidence_conn.executescript("""
+        CREATE TABLE m365_knowledge_candidates(
+          id INTEGER PRIMARY KEY,source_drive_id TEXT NOT NULL,
+          source_item_id TEXT NOT NULL,source_etag TEXT NOT NULL,
+          source_sha256 TEXT NOT NULL,source_name TEXT NOT NULL,
+          target_folder TEXT NOT NULL,status TEXT NOT NULL,
+          classification_json TEXT NOT NULL,
+          destination_drive_id TEXT NOT NULL,destination_item_id TEXT NOT NULL,
+          destination_web_url TEXT NOT NULL,destination_etag TEXT NOT NULL,
+          source_archive_item_id TEXT NOT NULL,source_archive_web_url TEXT NOT NULL,
+          source_archive_etag TEXT NOT NULL,source_archived_at TEXT NOT NULL
+        );
+        CREATE TABLE m365_bulk_items(drive_id TEXT NOT NULL,item_id TEXT NOT NULL);
+        """)
+        for candidate_id, status in (
+            (1, "Approved for Promotion"),
+            (2, "Automatic Retry Required"),
+        ):
+            evidence_conn.execute(
+                "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    candidate_id, "drive-12345678", f"archive-item-0000000{candidate_id}",
+                    "evidence-etag", evidence_sha, "evidence.docx",
+                    "05 Research and Reference", status,
+                    json.dumps({"extraction": {"status": "Complete"}}),
+                    "", "", "", "", "", "", "", "",
+                ),
+            )
+        processed = readiness.collect_processed_evidence(
+            evidence_conn, EvidenceWriter(evidence_content, None),
+            expected_counts={
+                "Approved for Promotion": 1,
+                "Automatic Retry Required": 1,
+            },
+            expected_scope=2,
+        )
+        assert processed["processed_evidence_archive_verified"] == 2, processed
+        assert processed["processed_evidence_destination_exact"] == 2, processed
+        assert processed["processed_evidence_content_downloads"] == 4, processed
+        assert processed["processed_evidence_rows_changed"] == 0, processed
+        evidence_conn.close()
 
         class Response:
             def __init__(self, status_code: int, payload: dict | None = None):
