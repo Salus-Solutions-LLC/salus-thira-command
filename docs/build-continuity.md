@@ -11,11 +11,11 @@ active_build_system_issue: 970
 active_increment: salus_v3261_numbered_report_steps_immutable_image_publication
 last_completed_increment: v3260_four_Cedar_working_Word_drafts_screened_and_registered
 candidate_release: v3.261
-validation_pr: 1103
-validation_branch: codex/level1a-v3261-source-freeze-20261031
+validation_pr: 1106
+validation_branch: codex/level1a-v3261-image-20261031
 validation_base: development/salcapa-platform
-validation_head: 7d4c4ba358378896da4db75eb96f22df832497e6
-validation_gate_state: all_required_gates_green
+validation_head: pending_exact_candidate_commit
+validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_current_v3261_source_candidate
 first_root_failing_gate: v3261_image_not_published_or_deployed
 root_cause: source_only_ui_change_requires_governed_release
