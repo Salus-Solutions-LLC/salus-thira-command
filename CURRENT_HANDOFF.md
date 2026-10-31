@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 31 October 2026 Central — v3.261 image blocked; v3.262 security repair candidate
+
+- Marc approved [PR #1103](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1103) at exact head `7d4c4ba358378896da4db75eb96f22df832497e6` after all required checks. Squash merge `65e0307d80bf102e012bcb4db39e1f6dffd3812d` froze `release/v3.261` with the numbered Level 1A report steps. This is source only; the protected app and workers remain v3.260.
+- The first v3.261 image candidate, [PR #1106](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1106) at `642e66eba312a20e448b17180af4ce9bebcab33b`, did not publish an image. Frozen Release Branch Guard passed, but frozen CI run `41225770149` and contextual-intake run `41225770047` failed their security audit because pypdf 6.21.2 has seven advisories and the audit requires 6.21.4. PR #1106 was closed unmerged. No Azure deployment, buyer access, report issue, Wix purchase or live payment changed.
+- A narrow v3.262 source successor updates the pypdf requirement and matching protected workflow pins to 6.21.4. It requires candidate CI, Marc's exact-head approval, frozen-source audit, immutable image publication and registry readback, guarded app and worker deployment, and the staff browser check. The four fictional Cedar reports remain unissued. Exact page and Charter evidence, Marc's human issue decision, buyer acknowledgment, and separate public release remain open. Do not repeat the existing L1A-10 payment or earlier uploads.
+
 ## 31 October 2026 Central — numbered report steps merged; v3.261 source candidate
 
 - Marc approved [PR #1084](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1084) at exact head `ff3ed75e0115ab837be8c93360092574374b9da1` after the required checks. Squash merge `6a61cc663ae1fb41ef492ad945a6229750c27315` added five numbered progress steps to the Level 1A staff report cards, with scan and hash details in expandable sections. This is merged source only; protected v3.260 remains deployed. No report was issued and public Wix purchase, live payment and public intake remain closed.
