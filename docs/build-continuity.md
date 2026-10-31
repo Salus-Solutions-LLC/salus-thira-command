@@ -11,7 +11,7 @@ active_build_system_issue: 970
 active_increment: salus_v3261_numbered_report_steps_source_candidate
 last_completed_increment: v3260_four_Cedar_working_Word_drafts_screened_and_registered
 candidate_release: v3.261
-validation_pr: 0
+validation_pr: 1103
 validation_branch: codex/level1a-v3261-source-freeze-20261031
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
