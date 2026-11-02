@@ -2,9 +2,12 @@
 """Regression checks for governed knowledge classification and promotion."""
 
 import hashlib
+import json
 import sqlite3
 import sys
+import tempfile
 import httpx
+from fastapi import HTTPException
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,7 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from salcapa_knowledge_promotion import (
     ClassificationCommand, KnowledgeDestinationConfig, GraphKnowledgeWriter,
-    PENDING_PREFIX, TARGETS, _init_tables, automatic_classification, refresh_archived_extraction,
+    PENDING_PREFIX, TARGETS, _init_tables, automatic_classification,
+    pending_review_queue_item, refresh_archived_extraction, register_knowledge_promotion,
 )
 
 
@@ -27,6 +31,131 @@ def main():
     )
     assert approved.decision == "Approved"
     assert approved.permit_products == ["ChatGPT", "SalCAPA", "SalINTEL"]
+    review_row = {
+        "id": 41, "status": "Pending Review", "source_name": "review.pdf",
+        "source_relative_path": "SalCAPA Intake/reference/review.pdf",
+        "source_size": 1234, "source_modified_at": "2026-11-02T00:00:00Z",
+        "target_folder": "05 Research and Reference",
+        "classification_json": json.dumps({"extraction": {
+            "status": "Review Required", "retry_eligible": False,
+            "disposition": "Governed Extraction Review Required",
+            "failure_code": "PDF_PARSE_FAILED",
+        }}),
+        "destination_drive_id": "", "destination_item_id": "",
+        "destination_web_url": "", "destination_etag": "",
+        "source_archive_item_id": "", "source_archive_web_url": "",
+        "source_archive_etag": "", "source_archived_at": "",
+    }
+    review_item = pending_review_queue_item(review_row)
+    assert review_item["review_type"] == "Governed extraction review"
+    assert review_item["failure_code"] == "PDF_PARSE_FAILED"
+    assert review_item["links"] == {}
+    assert not review_item["research_ready"] and not review_item["release_ready"]
+    assert "source_item_id" not in review_item and "classification_json" not in review_item
+    complete_row = {
+        **review_row,
+        "destination_drive_id": "knowledge-drive", "destination_item_id": "library-item",
+        "destination_web_url": "https://salussolutions.sharepoint.com/library-copy",
+        "destination_etag": "destination-etag",
+        "source_archive_item_id": "archive-item",
+        "source_archive_web_url": "https://salussolutions.sharepoint.com/archive-copy",
+        "source_archive_etag": "archive-etag", "source_archived_at": "2026-11-02T00:00:00Z",
+    }
+    complete_item = pending_review_queue_item(complete_row)
+    assert complete_item["destination_evidence"] == "complete"
+    assert complete_item["archive_evidence"] == "complete"
+    assert set(complete_item["links"]) == {"library_copy", "archived_original"}
+    unresolved_row = {
+        **review_row,
+        "id": 42,
+        "classification_json": json.dumps({
+            "extraction": {"status": "Complete"},
+            "source_reconciliation": {
+                "status": "Review Required",
+                "disposition": "Governed Missing Source Reconciliation Required",
+                "successor_match": "None", "boundary_files_rechecked": 22377,
+            },
+        }),
+    }
+    unresolved_item = pending_review_queue_item(unresolved_row)
+    assert unresolved_item["review_type"] == "Unresolved source reconciliation"
+    assert unresolved_item["successor_match"] == "None"
+    assert unresolved_item["boundary_files_rechecked"] == 22377
+    try:
+        pending_review_queue_item({**review_row, "status": "Approved for Promotion"})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("A non-review candidate entered the governed review queue")
+    with tempfile.TemporaryDirectory() as database_directory:
+        database_path = Path(database_directory) / "review-queue.sqlite"
+
+        def review_db():
+            conn = sqlite3.connect(database_path)
+            conn.row_factory = sqlite3.Row
+            return conn
+
+        conn = review_db()
+        _init_tables(conn)
+        conn.execute(
+            "INSERT INTO m365_knowledge_candidates"
+            "(source_drive_id,source_item_id,source_name,source_relative_path,source_etag,"
+            "source_sha256,source_size,source_modified_at,discovered_at,status,decision,"
+            "target_folder,classification_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                "drive-review", "item-review", review_row["source_name"],
+                review_row["source_relative_path"], "etag-review", "0" * 64,
+                review_row["source_size"], review_row["source_modified_at"],
+                "2026-11-02T00:00:00Z", "Pending Review", "Approved",
+                review_row["target_folder"], review_row["classification_json"],
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+        class FakeApp:
+            def __init__(self):
+                self.state = SimpleNamespace()
+                self.routes = {}
+
+            def _route(self, method, path):
+                def decorate(func):
+                    self.routes[(method, path)] = func
+                    return func
+                return decorate
+
+            def get(self, path, **_kwargs):
+                return self._route("GET", path)
+
+            def post(self, path, **_kwargs):
+                return self._route("POST", path)
+
+            def on_event(self, event):
+                return self._route(event.upper(), event)
+
+        review_app = FakeApp()
+        register_knowledge_promotion(review_app, {
+            "Request": object, "HTTPException": HTTPException, "db": review_db,
+            "now": lambda: "2026-11-02T00:00:00Z",
+            "auth_context": lambda request: request.context,
+            "protected_member_request": lambda request: request.protected,
+        })
+        queue = review_app.routes[(
+            "GET", "/api/integrations/m365/knowledge/review-queue"
+        )]
+        result = queue(SimpleNamespace(
+            context={"role": "System Administrator", "username": "reviewer"},
+            protected=False,
+        ))
+        assert result["count"] == 1 and result["read_only"]
+        assert not result["protected_member_access"] and not result["release_authorized"]
+        for role, protected in (("Client Executive", True), ("Reviewer", False)):
+            try:
+                queue(SimpleNamespace(context={"role": role}, protected=protected))
+            except HTTPException as exc:
+                assert exc.status_code == 403
+            else:
+                raise AssertionError(f"{role} received the Salus-only review queue")
     assessment = SimpleNamespace(
         name="Strategic assessment research.txt",
         content=b"Approved internal reference material.",
@@ -343,6 +472,13 @@ def main():
     assert "last_error_code" in module
     assert "destination_write_denied" in module
     assert "last_retry_codes" in module
+    assert "/api/integrations/m365/knowledge/review-queue" in module
+    assert "protected_member_request(request)" in module
+    review_ui = open("static/salcapa-knowledge-status.js", encoding="utf-8").read()
+    assert "Governed review queue" in review_ui
+    assert "No automatic disposition" in review_ui
+    assert "/api/integrations/m365/knowledge/review-queue" in review_ui
+    assert "automated_disposition_allowed" not in review_ui
     print("M365_KNOWLEDGE_PROMOTION_PASS")
 
 

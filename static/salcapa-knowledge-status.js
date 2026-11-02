@@ -4,9 +4,39 @@ subtitles.knowledge_status = 'Find an uploaded document and see whether its orig
 
 function knowledgeStatusLabel(status) {
   if (status === 'Ingested and Verified') return 'Ready to reference';
+  if (status === 'Pending Review') return 'Governed review required';
   if (status === 'Automatic Retry Required') return 'Processing will retry';
   if (status === 'Approved for Promotion') return 'Processing';
   return status || 'Processing';
+}
+
+function knowledgeReviewQueueRow(row) {
+  const links = row.links || {};
+  const available = [
+    links.archived_original ? `<a href="${esc(links.archived_original)}" target="_blank" rel="noopener noreferrer">Open restricted archived original &gt;</a>` : '',
+    links.library_copy ? `<a href="${esc(links.library_copy)}" target="_blank" rel="noopener noreferrer">Open restricted library copy &gt;</a>` : '',
+  ].filter(Boolean).join(' ');
+  return `<article class="card knowledge-item knowledge-review-item">
+    <div class="section-title"><div><h3>${esc(row.source_name || 'Unnamed document')}</h3><p class="subtle">${esc(row.source_relative_path || 'Recorded intake source')}</p></div><strong>${esc(row.review_type)}</strong></div>
+    <p><strong>Required next step:</strong> ${esc(row.next_action)}</p>
+    <dl><dt>Target</dt><dd>${esc(row.target_folder || 'Not configured')}</dd>
+      <dt>Extraction condition</dt><dd>${esc(row.failure_code || 'Extraction complete')}</dd>
+      <dt>Destination evidence</dt><dd>${esc(row.destination_evidence)}</dd>
+      <dt>Archive evidence</dt><dd>${esc(row.archive_evidence)}</dd>
+      ${row.successor_match ? `<dt>Successor match</dt><dd>${esc(row.successor_match)} after ${Number(row.boundary_files_rechecked || 0).toLocaleString()} boundary files rechecked</dd>` : ''}
+    </dl>
+    <p class="subtle">This queue is read-only. It does not authorize research use, citation, assignment, release, or disclosure.</p>
+    ${available ? `<div class="row-actions">${available}</div>` : '<p class="subtle">No verified review copy is available through this queue.</p>'}
+  </article>`;
+}
+
+function knowledgeReviewQueue(queue) {
+  const items = queue.items || [];
+  const counts = queue.counts || {};
+  return `<section class="card knowledge-review-hero"><h2>Governed review queue</h2>
+    <p><strong>${items.length} records require human review.</strong> ${Number(counts.governed_extraction_review || 0)} require extraction review and ${Number(counts.unresolved_source_reconciliation || 0)} require source recovery or a governed unavailable-source exception.</p>
+    <div class="notice"><strong>No automatic disposition.</strong> Protected Members cannot access this queue. Review evidence does not authorize research, teaching, citation, assignment, or release.</div></section>
+    <div class="knowledge-list knowledge-review-list">${items.length ? items.map(knowledgeReviewQueueRow).join('') : '<div class="card">No governed Knowledge reviews are open.</div>'}</div>`;
 }
 
 function knowledgeStatusMetadata(row) {
@@ -49,15 +79,18 @@ async function knowledgeStatusView() {
     return;
   }
   $('#content').innerHTML = '<section class="card"><h2>Knowledge Documents</h2><p>Checking automatically processed uploads…</p></section>';
-  let data;
+  let data, reviewQueue;
   try {
-    data = await api('/api/integrations/m365/knowledge/candidates');
+    [data, reviewQueue] = await Promise.all([
+      api('/api/integrations/m365/knowledge/candidates'),
+      api('/api/integrations/m365/knowledge/review-queue'),
+    ]);
   } catch (_) {
     $('#content').innerHTML = '<div class="notice" role="alert">Knowledge document status is unavailable right now. Please try again later.</div>';
     return;
   }
   const items = data.items || [];
-  $('#content').innerHTML = `<section class="card knowledge-hero"><h2>Knowledge Documents</h2>
+  $('#content').innerHTML = `${knowledgeReviewQueue(reviewQueue)}<section class="card knowledge-hero"><h2>Knowledge Documents</h2>
     <p>See what has been received, processed, verified, and archived. Processing retries automatically when it cannot complete.</p>
     <label>Find a document<input id="knowledge-filter" type="search" placeholder="Search by file name or category" autocomplete="off"></label>
     <p id="knowledge-count" class="subtle" aria-live="polite"></p></section>
