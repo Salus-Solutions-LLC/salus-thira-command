@@ -40,20 +40,115 @@ def check_protected_graph_contract() -> None:
         assert f"name: '{environment}'" in bicep
     assert "ACTIVATION=deploy/azure/activations/application-dev.json" in workflow
     assert "EXPECTED_IMAGE=\"$(jq -er '.image_digest' \"$ACTIVATION\")\"" in workflow
+    live = (ROOT / "tools/live_knowledge_candidate_readiness.py").read_text(
+        encoding="utf-8"
+    )
+    main = live.split("def main() -> None:", 1)[1]
+    assert "collect_source_preflight(" not in main
+    assert "collect_processed_evidence(" not in main
+    assert '"source_requests": 0' in live
+    assert '"rows_changed": 0' in live
 
 
 def check() -> None:
     check_protected_graph_contract()
     assert readiness.EXPECTED_INITIAL_STATUS_COUNTS == {
         "Pending Review": 13,
-        "Approved for Promotion": 3,
-        "Automatic Retry Required": 1,
+        "Approved for Promotion": 0,
+        "Automatic Retry Required": 0,
         "Destination Verified": 0,
     }
     assert readiness.EXPECTED_PROMOTION_SCOPE_COUNTS == {
-        "Approved for Promotion": 3,
-        "Automatic Retry Required": 1,
+        "Approved for Promotion": 0,
+        "Automatic Retry Required": 0,
     }
+    assert readiness.EXPECTED_PENDING_REVIEW_COUNTS == {
+        "extraction_review": 8,
+        "source_reconciliation": 5,
+    }
+    pending_conn = sqlite3.connect(":memory:")
+    pending_conn.row_factory = sqlite3.Row
+    pending_conn.executescript("""
+    CREATE TABLE m365_knowledge_candidates(
+      id INTEGER PRIMARY KEY,source_drive_id TEXT NOT NULL,source_item_id TEXT NOT NULL,
+      source_name TEXT NOT NULL,source_relative_path TEXT NOT NULL,
+      source_etag TEXT NOT NULL,source_size INTEGER NOT NULL,
+      source_modified_at TEXT NOT NULL,status TEXT NOT NULL,decision TEXT NOT NULL,
+      target_folder TEXT NOT NULL,classification_json TEXT NOT NULL,
+      destination_drive_id TEXT NOT NULL,destination_item_id TEXT NOT NULL,
+      destination_web_url TEXT NOT NULL,destination_etag TEXT NOT NULL,
+      source_archive_item_id TEXT NOT NULL,source_archive_web_url TEXT NOT NULL,
+      source_archive_etag TEXT NOT NULL,source_archived_at TEXT NOT NULL,
+      review_rationale TEXT NOT NULL
+    );
+    CREATE TABLE m365_knowledge_events(
+      id INTEGER PRIMARY KEY,candidate_id INTEGER NOT NULL,event_type TEXT NOT NULL
+    );
+    CREATE TABLE m365_bulk_items(
+      drive_id TEXT NOT NULL,item_id TEXT NOT NULL,status TEXT NOT NULL,
+      reason TEXT NOT NULL,attempts INTEGER NOT NULL,next_attempt INTEGER NOT NULL,
+      lease_until INTEGER NOT NULL
+    );
+    """)
+    failure_codes = (
+        "DOCUMENT_PACKAGE_INVALID", "DOCUMENT_XML_INVALID", "PDF_PARSE_FAILED",
+        "PDF_ENCRYPTED", "IMAGE_HEADER_INVALID", "MEDIA_HEADER_INVALID",
+        "TEXT_ENCODING_UNSUPPORTED", "FORMAT_NOT_SUPPORTED",
+    )
+    for index, failure_code in enumerate(failure_codes, 1):
+        classification = {
+            "extraction": {
+                "status": "Review Required", "retry_eligible": False,
+                "disposition": readiness.EXTRACTION_REVIEW_DISPOSITION,
+                "failure_code": failure_code,
+            }
+        }
+        pending_conn.execute(
+            "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                index, "drive-12345678", f"item-{index:08d}", f"name-{index}",
+                f"10 Pending Classification/Enterprise/name-{index}", f"etag-{index}",
+                100 + index, "2026-11-02T00:00:00Z", "Pending Review", "Approved",
+                "05 Research and Reference", json.dumps(classification),
+                "", "", "", "", "", "", "", "", "Governed extraction review",
+            ),
+        )
+        pending_conn.execute(
+            "INSERT INTO m365_knowledge_events VALUES(?,?,?)",
+            (index, index, "CandidateRoutedToGovernedExtractionReview"),
+        )
+    for index in range(9, 14):
+        classification = {
+            "extraction": {"status": "Complete"},
+            "source_reconciliation": {
+                "status": "Review Required",
+                "disposition": readiness.SOURCE_RECONCILIATION_DISPOSITION,
+                "successor_match": "None", "boundary_files_rechecked": 22377,
+            },
+        }
+        pending_conn.execute(
+            "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                index, "drive-12345678", f"item-{index:08d}", f"name-{index}",
+                f"10 Pending Classification/Enterprise/name-{index}", f"etag-{index}",
+                100 + index, "2026-11-02T00:00:00Z", "Pending Review", "Approved",
+                "05 Research and Reference", json.dumps(classification),
+                "", "", "", "", "", "", "", "", "Processed intake archive review",
+            ),
+        )
+        pending_conn.execute(
+            "INSERT INTO m365_knowledge_events VALUES(?,?,?)",
+            (index, index, "CandidateRoutedToGovernedSourceReconciliation"),
+        )
+    pending = readiness.collect(pending_conn, clock=1000)
+    assert pending["open_remaining"] == 13, pending
+    assert pending["pending_scope_extraction_review"] == 8, pending
+    assert pending["pending_scope_source_reconciliation"] == 5, pending
+    assert pending["source_reconciliation_unresolved"] == 5, pending
+    assert pending["pending_scope_other"] == 0, pending
+    assert pending["content_downloads"] == 0 and pending["source_requests"] == 0, pending
+    assert pending["rows_changed"] == 0 and pending["releases"] == 0, pending
+    pending_conn.close()
     with tempfile.TemporaryDirectory() as directory:
         conn = sqlite3.connect(os.path.join(directory, "candidate-readiness.sqlite"))
         conn.row_factory = sqlite3.Row
