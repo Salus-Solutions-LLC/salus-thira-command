@@ -1,0 +1,131 @@
+name: SalCAPA governed destination repair
+
+on:
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - '.github/workflows/salcapa-knowledge-destination-repair.yml'
+      - 'infra/azure/knowledge-destination-repair-job.bicep'
+      - 'tools/live_knowledge_destination_repair.py'
+  workflow_dispatch:
+
+concurrency:
+  group: salcapa-knowledge-destination-repair
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  authorize_scoped:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected exact-byte destination-repair gate passed."
+
+  destination_repair:
+    needs: authorize_scoped
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Repair four governed destinations and reconcile evidence
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-repair-app.json
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/salcapa-repair-worker.json
+          ACTIVATION=deploy/azure/activations/application-dev.json
+          test "$(jq -r '.operation' "$ACTIVATION")" = "deploy_application"
+          test "$(jq -r '.target_environment' "$ACTIVATION")" = "dev"
+          test "$(jq -r '.unique_suffix' "$ACTIVATION")" = "b48224"
+          EXPECTED_IMAGE="$(jq -er '.image_digest' "$ACTIVATION")"
+          [[ "$EXPECTED_IMAGE" =~ ^salcapadevb48224acr\.azurecr\.io/salcapa@sha256:[0-9a-f]{64}$ ]]
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-repair-app.json)" = "$EXPECTED_IMAGE"
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-repair-worker.json)" = "$EXPECTED_IMAGE"
+          env_value() {
+            jq -r --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/salcapa-repair-worker.json
+          }
+          test "$(env_value SALUS_DB_BACKEND)" = "postgres"
+          test "$(env_value SALUS_POSTGRES_AUTH)" = "entra"
+          IDENTITY_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query id --output tsv --only-show-errors)"
+          IDENTITY_CLIENT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query clientId --output tsv --only-show-errors)"
+          ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors)"
+          REGISTRY_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query loginServer --output tsv --only-show-errors)"
+          SCRIPT_B64="$(base64 -w0 tools/live_knowledge_destination_repair.py)"
+          az deployment group create \
+            --name "salcapa-destination-repair-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/knowledge-destination-repair-job.bicep \
+            --parameters environmentId="$ENVIRONMENT_ID" identityId="$IDENTITY_ID" \
+              registryServer="$REGISTRY_SERVER" imageDigest="$EXPECTED_IMAGE" \
+              managedIdentityClientId="$IDENTITY_CLIENT_ID" \
+              tenantId="$(env_value SALUS_OIDC_TENANT_ID)" \
+              applicationClientId="$(env_value SALUS_OIDC_CLIENT_ID)" \
+              driveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" \
+              folderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" \
+              enterpriseFolderItemId="$(env_value SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID)" \
+              knowledgeDriveId="$(env_value SALUS_M365_KNOWLEDGE_DRIVE_ID)" \
+              knowledgeFolderItemId="$(env_value SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID)" \
+              processedIntakeFolderItemId="$(env_value SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID)" \
+              postgresHost="$(env_value SALUS_POSTGRES_HOST)" \
+              postgresDatabase="$(env_value SALUS_POSTGRES_DATABASE)" \
+              postgresUser="$(env_value SALUS_POSTGRES_USER)" \
+              postgresSslMode="$(env_value SALUS_POSTGRES_SSLMODE)" \
+              repairScriptBase64="$SCRIPT_B64" \
+            --output none --only-show-errors
+          JOB_NAME=salcapa-dest-repair-b48224
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
+          test -n "$EXECUTION_NAME"
+          SUCCEEDED=false
+          for attempt in $(seq 1 120); do
+            STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" \
+              --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" \
+              --query properties.status --output tsv --only-show-errors)"
+            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
+            if [ "$STATUS" = "Failed" ]; then break; fi
+            sleep 10
+          done
+          LOG_FOUND=false
+          for attempt in $(seq 1 6); do
+            LOG_OUTPUT="$(az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
+              --execution "$EXECUTION_NAME" --container salcapa-destination-repair \
+              --tail 100 --format text --only-show-errors 2>&1 || true)"
+            FILTERED_LOG="$(printf '%s\n' "$LOG_OUTPUT" | grep -E 'DESTINATION_REPAIR_[A-Z0-9_]+=' || true)"
+            if printf '%s\n' "$FILTERED_LOG" | grep -q 'DESTINATION_REPAIR_COMPLETE=1'; then
+              printf '%s\n' "$FILTERED_LOG"
+              LOG_FOUND=true
+              break
+            fi
+            sleep 5
+          done
+          test "$LOG_FOUND" = "true"
+          test "$SUCCEEDED" = "true"
+      - name: Remove isolated destination-repair job
+        if: always()
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          JOB_NAME=salcapa-dest-repair-b48224
+          if ! az account show --only-show-errors >/dev/null 2>&1; then exit 0; fi
+          if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --only-show-errors >/dev/null 2>&1; then
+            az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes --only-show-errors
+          fi
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
+            --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"

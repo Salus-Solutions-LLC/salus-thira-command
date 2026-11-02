@@ -33,6 +33,8 @@ on:
       - tools/live_knowledge_candidate_readiness.py
       - tools/ci_knowledge_candidate_reconcile_smoke.py
       - tools/live_knowledge_candidate_reconcile.py
+      - tools/ci_knowledge_destination_repair_smoke.py
+      - tools/live_knowledge_destination_repair.py
       - tools/live_m365_intake_acceptance.py
       - portable_backup.py
       - database.py
@@ -166,6 +168,8 @@ jobs:
         run: python tools/ci_knowledge_candidate_readiness_smoke.py
       - name: Verify bounded open-candidate metadata reconciliation
         run: python tools/ci_knowledge_candidate_reconcile_smoke.py
+      - name: Verify governed exact-byte destination repair
+        run: python tools/ci_knowledge_destination_repair_smoke.py
       - name: Verify release continuity before source freeze
         run: |
           python tools/ci_build_continuity_smoke.py
