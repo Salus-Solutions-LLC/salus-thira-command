@@ -1,4 +1,8 @@
 .knowledge-hero { margin-bottom: 18px; }
+.knowledge-review-hero { margin-bottom: 14px; border-left: 4px solid var(--salus-orange); }
+.knowledge-review-hero h2 { margin-top: 0; }
+.knowledge-review-list { margin-bottom: 24px; }
+.knowledge-review-item { border-left: 4px solid var(--salus-blue); }
 .knowledge-hero h2 { margin: 0 0 6px; }
 .knowledge-hero label { display: block; max-width: 520px; margin-top: 20px; }
 .knowledge-list { display: grid; gap: 14px; }

@@ -683,12 +683,108 @@ def _create_tables(conn) -> None:
     """)
 
 
+def _review_evidence_state(row: Any, fields: tuple[str, ...]) -> str:
+    present = [bool(str(row[field] or "")) for field in fields]
+    return "complete" if all(present) else "partial" if any(present) else "none"
+
+
+def _restricted_sharepoint_link(value: Any) -> str:
+    link = str(value or "")
+    parsed = urlparse(link)
+    if (
+        parsed.scheme != "https" or parsed.username or parsed.password
+        or not (parsed.hostname or "").lower().endswith(".sharepoint.com")
+    ):
+        return ""
+    return link
+
+
+def pending_review_queue_item(row: Any) -> dict[str, Any]:
+    """Return one bounded Salus-only review record without source identifiers."""
+    if str(row["status"] or "") != "Pending Review":
+        raise ValueError("Knowledge candidate is not pending governed review")
+    try:
+        classification = json.loads(row["classification_json"] or "{}")
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Knowledge candidate classification is invalid") from exc
+    extraction = classification.get("extraction") or {}
+    reconciliation = classification.get("source_reconciliation") or {}
+    if (
+        extraction.get("status") == "Review Required"
+        and extraction.get("disposition") == "Governed Extraction Review Required"
+        and extraction.get("retry_eligible") is False
+        and not reconciliation
+    ):
+        review_type = "Governed extraction review"
+        next_action = (
+            "Inspect the exact available original and extraction evidence; record a separate "
+            "human disposition before citation or use."
+        )
+    elif (
+        extraction.get("status") == "Complete"
+        and reconciliation.get("status") == "Review Required"
+        and reconciliation.get("disposition")
+        == "Governed Missing Source Reconciliation Required"
+        and reconciliation.get("successor_match") == "None"
+        and int(reconciliation.get("boundary_files_rechecked") or 0) == 22_377
+    ):
+        review_type = "Unresolved source reconciliation"
+        next_action = (
+            "Locate and verify the exact original or record a governed unavailable-source "
+            "exception; do not infer a replacement."
+        )
+    else:
+        raise ValueError("Knowledge candidate left the governed review boundary")
+    failure_code = str(extraction.get("failure_code") or "").upper()
+    if failure_code and not re.fullmatch(r"[A-Z0-9_]{1,80}", failure_code):
+        failure_code = "UNCLASSIFIED"
+    destination_state = _review_evidence_state(row, (
+        "destination_drive_id", "destination_item_id",
+        "destination_web_url", "destination_etag",
+    ))
+    archive_state = _review_evidence_state(row, (
+        "source_archive_item_id", "source_archive_web_url",
+        "source_archive_etag", "source_archived_at",
+    ))
+    links: dict[str, str] = {}
+    if destination_state == "complete":
+        link = _restricted_sharepoint_link(row["destination_web_url"])
+        if link:
+            links["library_copy"] = link
+    if archive_state == "complete":
+        link = _restricted_sharepoint_link(row["source_archive_web_url"])
+        if link:
+            links["archived_original"] = link
+    return {
+        "candidate_id": int(row["id"]),
+        "source_name": str(row["source_name"] or "Unnamed document")[:512],
+        "source_relative_path": str(row["source_relative_path"] or "")[:2000],
+        "source_size": int(row["source_size"] or 0),
+        "source_modified_at": str(row["source_modified_at"] or "")[:80],
+        "target_folder": str(row["target_folder"] or "")[:240],
+        "review_type": review_type,
+        "failure_code": failure_code,
+        "destination_evidence": destination_state,
+        "archive_evidence": archive_state,
+        "successor_match": str(reconciliation.get("successor_match") or ""),
+        "boundary_files_rechecked": int(
+            reconciliation.get("boundary_files_rechecked") or 0
+        ),
+        "next_action": next_action,
+        "links": links,
+        "automated_disposition_allowed": False,
+        "research_ready": False,
+        "release_ready": False,
+    }
+
+
 def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
     Request = namespace["Request"]
     HTTPException = namespace["HTTPException"]
     db = namespace["db"]
     now = namespace["now"]
     auth_context = namespace["auth_context"]
+    protected_member_request = namespace.get("protected_member_request", lambda _request: False)
     app.state.knowledge_processing = {
         "state": "registered",
         "last_discovered": 0,
@@ -718,6 +814,12 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
         context = auth_context(request)
         if context.get("role") not in {"System Administrator", "Reviewer", "Approver"}:
             raise HTTPException(403, "Knowledge-review authority is required")
+        return context
+
+    def pending_review_authority(request):
+        context = auth_context(request)
+        if protected_member_request(request) or context.get("role") != "System Administrator":
+            raise HTTPException(403, "Salus Knowledge review authority is required")
         return context
 
     def actor(context):
@@ -1405,6 +1507,47 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
 
     list_candidates.__annotations__["request"] = Request
     app.get("/api/integrations/m365/knowledge/candidates", include_in_schema=False)(list_candidates)
+
+    def pending_review_queue(request):
+        pending_review_authority(request)
+        conn = db()
+        try:
+            _init_tables(conn)
+            rows = conn.execute(
+                "SELECT * FROM m365_knowledge_candidates "
+                "WHERE status='Pending Review' ORDER BY id"
+            ).fetchall()
+            if len(rows) > 100:
+                raise HTTPException(409, "Governed Knowledge review boundary exceeded")
+            try:
+                items = [pending_review_queue_item(row) for row in rows]
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+            counts = {
+                "governed_extraction_review": sum(
+                    item["review_type"] == "Governed extraction review" for item in items
+                ),
+                "unresolved_source_reconciliation": sum(
+                    item["review_type"] == "Unresolved source reconciliation"
+                    for item in items
+                ),
+            }
+            return {
+                "items": items,
+                "count": len(items),
+                "counts": counts,
+                "read_only": True,
+                "protected_member_access": False,
+                "automatic_disposition": False,
+                "release_authorized": False,
+            }
+        finally:
+            conn.close()
+
+    pending_review_queue.__annotations__["request"] = Request
+    app.get(
+        "/api/integrations/m365/knowledge/review-queue", include_in_schema=False
+    )(pending_review_queue)
 
     def classify(candidate_id: int, command: ClassificationCommand, request):
         context = authority(request); conn = db(); _init_tables(conn)
