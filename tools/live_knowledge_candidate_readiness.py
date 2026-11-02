@@ -1,9 +1,9 @@
 """Read-only aggregate readiness evidence for open Knowledge Library candidates.
 
-The protected source preflight uses exact source identifiers in memory only to
-request Microsoft Graph metadata. It emits bounded counts only, never logs an
-identifier, name, path, content, attribution, identity, URL, free-text
-rationale, event detail, or raw work reason, and changes no governed state.
+The protected entrypoint reads managed PostgreSQL aggregate categories only.
+It makes no Microsoft Graph request, emits no identifier, name, path, content,
+attribution, identity, URL, free-text rationale, event detail, or raw work
+reason, and changes no governed state.
 """
 
 from __future__ import annotations
@@ -25,22 +25,25 @@ _SOURCE_ID = re.compile(r"^[A-Za-z0-9_!.-]{8,256}$")
 
 EXPECTED_INITIAL_STATUS_COUNTS = {
     "Pending Review": 13,
-    "Approved for Promotion": 3,
-    "Automatic Retry Required": 1,
+    "Approved for Promotion": 0,
+    "Automatic Retry Required": 0,
     "Destination Verified": 0,
 }
-EXPECTED_INITIAL_TOTAL = 17
+EXPECTED_INITIAL_TOTAL = 13
 EXPECTED_PROMOTION_SCOPE_COUNTS = {
-    "Approved for Promotion": 3,
-    "Automatic Retry Required": 1,
+    "Approved for Promotion": 0,
+    "Automatic Retry Required": 0,
 }
-EXPECTED_SOURCE_STATE_COUNTS = {
-    ("Approved for Promotion", "outside_pending"): 3,
-    ("Automatic Retry Required", "outside_pending"): 1,
+EXPECTED_PENDING_REVIEW_COUNTS = {
+    "extraction_review": 8,
+    "source_reconciliation": 5,
 }
+EXPECTED_SOURCE_STATE_COUNTS: dict[tuple[str, str], int] = {}
+EXPECTED_EXTRACTION_REVIEWS = 8
 EXPECTED_SOURCE_RECONCILIATIONS = 5
 SOURCE_RECONCILIATION_DISPOSITION = "Governed Missing Source Reconciliation Required"
-EXPECTED_PROCESSED_EVIDENCE_SCOPE = 4
+EXTRACTION_REVIEW_DISPOSITION = "Governed Extraction Review Required"
+EXPECTED_PROCESSED_EVIDENCE_SCOPE = 0
 SOURCE_AREA_KEYS = {
     "20 Ready for Intake Review": "ready_for_intake_review",
     "30 Exceptions and Manual Review": "exceptions_and_manual_review",
@@ -83,6 +86,135 @@ def _evidence_state(fields: tuple[str, ...]) -> str:
         f"CASE WHEN {complete_evidence} THEN 'complete' "
         f"WHEN {any_evidence} THEN 'partial' ELSE 'none' END"
     )
+
+
+def _pending_review_fingerprints(
+    conn: Any,
+    expected_counts: dict[str, int] = EXPECTED_PENDING_REVIEW_COUNTS,
+) -> dict[str, int]:
+    """Group the exact 13-item review scope without selecting item identity."""
+    if expected_counts != EXPECTED_PENDING_REVIEW_COUNTS:
+        raise RuntimeError("Pending-review expectation changed")
+    extraction_status = _json_expression(conn, "extraction,status")
+    extraction_disposition = _json_expression(conn, "extraction,disposition")
+    extraction_retry = _json_expression(conn, "extraction,retry_eligible")
+    extraction_code = _json_expression(conn, "extraction,failure_code")
+    reconciliation_status = _json_expression(conn, "source_reconciliation,status")
+    reconciliation_disposition = _json_expression(
+        conn, "source_reconciliation,disposition"
+    )
+    reconciliation_match = _json_expression(conn, "source_reconciliation,successor_match")
+    reconciliation_boundary = _json_expression(
+        conn, "source_reconciliation,boundary_files_rechecked"
+    )
+    extraction_event = (
+        "EXISTS (SELECT 1 FROM m365_knowledge_events ee WHERE ee.candidate_id=c.id "
+        "AND ee.event_type='CandidateRoutedToGovernedExtractionReview')"
+    )
+    reconciliation_event = (
+        "EXISTS (SELECT 1 FROM m365_knowledge_events se WHERE se.candidate_id=c.id "
+        "AND se.event_type='CandidateRoutedToGovernedSourceReconciliation')"
+    )
+    review_type = (
+        "CASE WHEN "
+        f"{extraction_status}='Review Required' AND "
+        f"{extraction_disposition}='{EXTRACTION_REVIEW_DISPOSITION}' AND "
+        f"CAST({extraction_retry} AS TEXT) IN ('false','0') AND {extraction_event} AND "
+        f"{reconciliation_status}='' THEN 'extraction_review' "
+        "WHEN "
+        f"{extraction_status}='Complete' AND "
+        f"{reconciliation_status}='Review Required' AND "
+        f"{reconciliation_disposition}='{SOURCE_RECONCILIATION_DISPOSITION}' AND "
+        f"{reconciliation_match}='None' AND "
+        f"CAST({reconciliation_boundary} AS TEXT)='22377' AND {reconciliation_event} "
+        "THEN 'source_reconciliation' ELSE 'other' END"
+    )
+    normalized_extraction = (
+        f"CASE WHEN {extraction_status}='Review Required' THEN 'review_required' "
+        f"WHEN {extraction_status}='Complete' THEN 'complete' ELSE 'other' END"
+    )
+    failure_family = (
+        f"CASE WHEN {extraction_status}='Complete' THEN 'not_applicable' "
+        f"WHEN UPPER({extraction_code}) LIKE 'DOCUMENT_%' THEN 'document' "
+        f"WHEN UPPER({extraction_code}) LIKE 'PDF_%' THEN 'pdf' "
+        f"WHEN UPPER({extraction_code}) LIKE 'IMAGE_%' THEN 'image' "
+        f"WHEN UPPER({extraction_code}) LIKE 'MEDIA_%' THEN 'media' "
+        f"WHEN UPPER({extraction_code}) LIKE 'TEXT_%' THEN 'text' "
+        f"WHEN UPPER({extraction_code}) LIKE 'FORMAT_%' THEN 'format' ELSE 'other' END"
+    )
+    retry_state = (
+        f"CASE WHEN {extraction_status}='Complete' THEN 'not_applicable' "
+        f"WHEN CAST({extraction_retry} AS TEXT) IN ('false','0') THEN 'ineligible' "
+        f"WHEN CAST({extraction_retry} AS TEXT) IN ('true','1') THEN 'eligible' "
+        "ELSE 'unspecified' END"
+    )
+    destination_state = _evidence_state((
+        "destination_drive_id", "destination_item_id",
+        "destination_web_url", "destination_etag",
+    ))
+    archive_state = _evidence_state((
+        "source_archive_item_id", "source_archive_web_url",
+        "source_archive_etag", "source_archived_at",
+    ))
+    rows = conn.execute(
+        "SELECT review_type,extraction_state,failure_family,decision_state,target_state,"
+        "destination_state,archive_state,retry_state,COUNT(*) AS count FROM ("
+        f"SELECT {review_type} AS review_type,"
+        f"{normalized_extraction} AS extraction_state,{failure_family} AS failure_family,"
+        "CASE WHEN c.decision='Approved' THEN 'approved' ELSE 'not_approved' END "
+        "AS decision_state,CASE WHEN c.target_folder<>'' THEN 'configured' ELSE 'missing' END "
+        f"AS target_state,{destination_state} AS destination_state,"
+        f"{archive_state} AS archive_state,{retry_state} AS retry_state "
+        "FROM m365_knowledge_candidates c WHERE c.status='Pending Review'"
+        ") scoped GROUP BY review_type,extraction_state,failure_family,decision_state,"
+        "target_state,destination_state,archive_state,retry_state"
+    ).fetchall()
+    allowed = {
+        "review_type": {*expected_counts, "other"},
+        "extraction_state": {"review_required", "complete", "other"},
+        "failure_family": {
+            "not_applicable", "document", "pdf", "image", "media", "text",
+            "format", "other",
+        },
+        "decision_state": {"approved", "not_approved"},
+        "target_state": {"configured", "missing"},
+        "destination_state": {"none", "partial", "complete"},
+        "archive_state": {"none", "partial", "complete"},
+        "retry_state": {"not_applicable", "ineligible", "eligible", "unspecified"},
+    }
+    observed = {name: 0 for name in expected_counts}
+    other = 0
+    result: dict[str, int] = {}
+    for row in rows:
+        values = {name: str(row[name] or "") for name in allowed}
+        if any(values[name] not in allowed[name] for name in allowed):
+            raise RuntimeError("Pending-review category left the fixed boundary")
+        count = int(row["count"] or 0)
+        if values["review_type"] in observed:
+            observed[values["review_type"]] += count
+        else:
+            other += count
+        key = "_".join((
+            "pending_fingerprint", values["review_type"],
+            f"extraction_{values['extraction_state']}",
+            f"failure_{values['failure_family']}",
+            f"decision_{values['decision_state']}",
+            f"target_{values['target_state']}",
+            f"destination_{values['destination_state']}",
+            f"archive_{values['archive_state']}",
+            f"retry_{values['retry_state']}",
+        ))
+        result[key] = count
+    if observed != expected_counts or other or sum(observed.values()) != EXPECTED_INITIAL_TOTAL:
+        raise RuntimeError("Pending-review exact candidate scope changed")
+    result.update({f"pending_scope_{name}": count for name, count in observed.items()})
+    result.update({
+        "pending_scope_total": sum(observed.values()),
+        "pending_scope_other": other,
+        "pending_scope_fingerprint_groups": len(rows),
+        "source_reconciliation_unresolved": observed["source_reconciliation"],
+    })
+    return result
 
 
 def _promotion_fingerprints(
@@ -914,15 +1046,27 @@ def collect(
         f"{_json_expression(conn, 'source_reconciliation,status')}='Review Required' "
         f"AND {_json_expression(conn, 'source_reconciliation,disposition')}=? "
         f"AND {_json_expression(conn, 'source_reconciliation,successor_match')}='None' "
-        f"AND {_json_expression(conn, 'source_reconciliation,boundary_files_rechecked')}='22377'",
+        f"AND CAST({_json_expression(conn, 'source_reconciliation,boundary_files_rechecked')} "
+        "AS TEXT)='22377'",
         (SOURCE_RECONCILIATION_DISPOSITION,),
     ).fetchone()[0] or 0)
+    extraction_reviews = int(conn.execute(
+        "SELECT COUNT(*) FROM m365_knowledge_candidates c WHERE c.status='Pending Review' "
+        f"AND {_json_expression(conn, 'extraction,status')}='Review Required' "
+        f"AND {_json_expression(conn, 'extraction,disposition')}=? "
+        f"AND CAST({_json_expression(conn, 'extraction,retry_eligible')} AS TEXT) "
+        "IN ('false','0')",
+        (EXTRACTION_REVIEW_DISPOSITION,),
+    ).fetchone()[0] or 0)
     if expected_status_counts is EXPECTED_INITIAL_STATUS_COUNTS and (
-        source_reconciliations != EXPECTED_SOURCE_RECONCILIATIONS
+        extraction_reviews != EXPECTED_EXTRACTION_REVIEWS
+        or source_reconciliations != EXPECTED_SOURCE_RECONCILIATIONS
+        or event_counts["CandidateRoutedToGovernedExtractionReview"]
+        != EXPECTED_EXTRACTION_REVIEWS
         or event_counts["CandidateRoutedToGovernedSourceReconciliation"]
         != EXPECTED_SOURCE_RECONCILIATIONS
     ):
-        raise RuntimeError("Governed source-reconciliation checkpoint changed")
+        raise RuntimeError("Governed Pending Review checkpoint changed")
 
     result = {
         "open_remaining": total,
@@ -945,13 +1089,20 @@ def collect(
         "rationale_other": rationale_other,
         "known_rationale_matches": categorized_rationale,
         "event_other": event_other,
+        "extraction_reviews": extraction_reviews,
         "source_reconciliations": source_reconciliations,
         "content_downloads": 0,
+        "source_requests": 0,
         "rows_changed": 0,
+        "protected_member_access_changes": 0,
+        "assignment_changes": 0,
+        "releases": 0,
     }
     result.update({f"status_{_key(status)}": count for status, count in observed.items()})
     result.update({f"matrix_{key}": count for key, count in matrix.items()})
     result.update({f"event_{_key(name)}": count for name, count in event_counts.items()})
+    if expected_status_counts is EXPECTED_INITIAL_STATUS_COUNTS:
+        result.update(_pending_review_fingerprints(conn))
     result.update(_promotion_fingerprints(conn, expected_promotion_counts))
     result.update(_work_fingerprints(
         conn, expected_promotion_counts, int(time.time() if clock is None else clock)
@@ -960,43 +1111,13 @@ def collect(
 
 
 def main() -> None:
-    from salcapa_bulk_delta import resolve_pending
-    from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake
-    from salcapa_knowledge_promotion import (
-        GraphKnowledgeWriter,
-        KnowledgeDestinationConfig,
-    )
-
     if os.getenv("SALUS_DB_BACKEND", "").strip().lower() != "postgres":
         raise RuntimeError("The live open-candidate probe requires managed PostgreSQL")
-    config = GovernedM365Config.from_environment()
-    intake = GovernedM365Intake(config)
-    writer = GraphKnowledgeWriter(
-        config, KnowledgeDestinationConfig.from_environment()
-    )
-    enterprise_id = os.getenv("SALUS_M365_ENTERPRISE_INTAKE_FOLDER_ITEM_ID", "").strip()
-    if not _SOURCE_ID.fullmatch(enterprise_id):
-        raise RuntimeError("The live source-preflight enterprise route is invalid")
     conn = connect_database()
     try:
         result = collect(conn)
-        pending_id = resolve_pending(intake)
-        result.update(collect_source_preflight(
-            conn,
-            intake.client,
-            intake._headers(),
-            drive_id=config.drive_id,
-            pending_id=pending_id,
-            enterprise_id=enterprise_id,
-            intake_root_id=config.folder_item_id,
-            expected_states=EXPECTED_SOURCE_STATE_COUNTS,
-            scan_missing_successors=False,
-        ))
-        result.update(collect_processed_evidence(conn, writer))
     finally:
         conn.close()
-        intake.client.close()
-        writer.client.close()
     for key in sorted(result):
         print(f"CANDIDATE_READY_{key.upper()}={result[key]}", flush=True)
 
