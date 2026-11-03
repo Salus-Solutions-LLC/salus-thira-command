@@ -3,7 +3,7 @@
 ## 3 November 2026 Central — v3.267 source frozen; immutable image candidate
 
 - Marc approved PR #1150 exact head `256bd4907692be7964c52a04f452a6f0932910a2` after all four required checks passed. Squash merge `519be0fe1476fa925e5e16f5ba7d07e4fe0af8b6` is the exact `release/v3.267` source. Release Branch Guard run `41679045330`, CI run `41679045450` and SalCAPA Contextual Intake run `41679045326` all passed, including the historical-candidate exclusion regression, PostgreSQL, security and both production-container paths.
-- This image-only candidate pins that exact frozen source for one protected immutable publication and registry readback. It does not deploy the application or workers. Production remains healthy on v3.266 pending the separately governed exact-digest deployment and successful 22,377-of-22,377 receipt.
+- PR #1151 pins that exact frozen source for one protected immutable publication and registry readback. It does not deploy the application or workers. Production remains healthy on v3.266 pending the separately governed exact-digest deployment and successful 22,377-of-22,377 receipt.
 
 ## 3 November 2026 Central — v3.266 receipt rejected; v3.267 current-boundary correction
 
