@@ -692,16 +692,16 @@ def render_protection_advisor_docx(
     cover_footer = deepcopy(cover_section.footer._element)
 
     blank_section = document.add_section(WD_SECTION.CONTINUOUS)
-    # Keep page two free of body and header content while repeating the approved footer.
-    _clear_story(blank_section.header)
-    _replace_story(blank_section.footer, cover_footer, cover_footer_part)
+    # Page two has no body or header, but all page variants need the approved footer.
+    for header in (blank_section.header, blank_section.even_page_header, blank_section.first_page_header):
+        _clear_story(header)
 
     results_section = document.add_section(WD_SECTION.NEW_PAGE)
     _replace_story(results_section.header, cover_header, cover_header_part)
-    _replace_story(results_section.footer, cover_footer, cover_footer_part)
-    _normalize_footer(cover_section.footer)
-    _normalize_footer(blank_section.footer)
-    _normalize_footer(results_section.footer)
+    for section in (cover_section, blank_section, results_section):
+        for footer in (section.footer, section.even_page_footer, section.first_page_footer):
+            _replace_story(footer, cover_footer, cover_footer_part)
+            _normalize_footer(footer)
 
     try:
         result = json.loads(part1_text)
