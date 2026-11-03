@@ -79,33 +79,44 @@ async function knowledgeStatusView() {
     return;
   }
   $('#content').innerHTML = '<section class="card"><h2>Knowledge Documents</h2><p>Checking automatically processed uploads…</p></section>';
-  let data, reviewQueue;
+  let reviewQueue;
   try {
-    [data, reviewQueue] = await Promise.all([
-      api('/api/integrations/m365/knowledge/candidates'),
-      api('/api/integrations/m365/knowledge/review-queue'),
-    ]);
+    reviewQueue = await api('/api/integrations/m365/knowledge/review-queue');
   } catch (_) {
-    $('#content').innerHTML = '<div class="notice" role="alert">Knowledge document status is unavailable right now. Please try again later.</div>';
+    $('#content').innerHTML = '<div class="notice" role="alert">The governed review queue is unavailable right now. Please try again later.</div>';
     return;
   }
-  const items = data.items || [];
   $('#content').innerHTML = `${knowledgeReviewQueue(reviewQueue)}<section class="card knowledge-hero"><h2>Knowledge Documents</h2>
     <p>See what has been received, processed, verified, and archived. Processing retries automatically when it cannot complete.</p>
     <label>Find a document<input id="knowledge-filter" type="search" placeholder="Search by file name or category" autocomplete="off"></label>
     <p id="knowledge-count" class="subtle" aria-live="polite"></p></section>
     <div id="knowledge-list" class="knowledge-list" aria-live="polite"></div>`;
   const filter = $('#knowledge-filter');
-  const show = () => {
+  let requestNumber = 0;
+  let searchDelay;
+  const show = async () => {
+    const activeRequest = ++requestNumber;
     const q = filter.value.trim().toLocaleLowerCase();
-    const visible = items.filter(row => `${row.source_name || ''} ${row.target_folder || ''}`.toLocaleLowerCase().includes(q));
-    const page = visible.slice(0, 100);
-    $('#knowledge-count').textContent = `${page.length} of ${visible.length} matching document${visible.length === 1 ? '' : 's'} shown${visible.length > 100 ? ' · refine the search to find older items' : ''}`;
-    $('#knowledge-list').innerHTML = visible.length ? page.map(knowledgeStatusRow).join('')
-      : '<div class="card">No documents match this name or category.</div>';
+    $('#knowledge-count').textContent = 'Checking governed document status…';
+    try {
+      const data = await api(`/api/integrations/m365/knowledge/candidates?limit=100&q=${encodeURIComponent(q)}`);
+      if (activeRequest !== requestNumber) return;
+      const items = data.items || [];
+      const total = Number(data.total || 0);
+      $('#knowledge-count').textContent = `${items.length} of ${total} matching document${total === 1 ? '' : 's'} shown${total > items.length ? ' · refine the search to find older items' : ''}`;
+      $('#knowledge-list').innerHTML = items.length ? items.map(knowledgeStatusRow).join('')
+        : '<div class="card">No documents match this name or category.</div>';
+    } catch (_) {
+      if (activeRequest !== requestNumber) return;
+      $('#knowledge-count').textContent = 'Document status is unavailable right now.';
+      $('#knowledge-list').innerHTML = '<div class="notice" role="alert">The governed review queue remains available above. Document search could not be loaded; no review or release authority changed.</div>';
+    }
   };
-  filter.addEventListener('input', show);
-  show();
+  filter.addEventListener('input', () => {
+    clearTimeout(searchDelay);
+    searchDelay = setTimeout(show, 250);
+  });
+  await show();
 }
 
 const renderBeforeKnowledgeStatus = render;
