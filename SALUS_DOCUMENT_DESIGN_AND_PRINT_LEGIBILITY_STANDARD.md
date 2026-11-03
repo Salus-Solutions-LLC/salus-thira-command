@@ -1,6 +1,6 @@
 # Salus Document Design and Print Legibility Standard
 
-**Authority:** SAL-D128, Marc's 3 November 2026 direction. **Handling:** Salus Internal. **State:** governed documentation candidate pending repository checks, exact-head approval and merge.
+**Authority:** SAL-D128, Marc's 3 November 2026 direction. **Handling:** Salus Internal. **State:** authoritative after approved PR #1156 merged as `e7326687b313487f7bc8ee614700f781bb43f19e` on 3 November 2026.
 
 ## Purpose and applicability
 

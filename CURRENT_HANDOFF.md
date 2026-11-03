@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 Central — SAL-D127 and SAL-D128 authoritative; merge readback passed
+
+- **Governed merge:** Marc approved PR #1156 exact head `00b5ce4195662e28ef73e44775d8c29372bace04` after package-and-handoff, PostgreSQL transaction and professional-report Windows checks passed. Squash merge `e7326687b313487f7bc8ee614700f781bb43f19e` makes SAL-D127, SAL-D128 and both controlling standards authoritative.
+- **Readback:** The authoritative merge commit contains both Decision Register entries, both Charter application-map entries, `SALUS_RESEARCH_CAPTURE_AND_KNOWLEDGE_TRANSFER_STANDARD.md` and `SALUS_DOCUMENT_DESIGN_AND_PRINT_LEGIBILITY_STANDARD.md`. The Charter requires 12-point body text, at least 10-point table text, no text below 10 points, at least 36 points of cover space and 100-percent print-scale review.
+- **Scope boundary:** The merge changes governance documentation only. It changes no DOCX, PDF, PPTX, Protected Member record, OSINT endpoint inventory, connector, application, worker or production setting. Existing document binaries require controlled successors and exact-file validation before future use.
+- **Closeout correction:** The initial merged standard files retained their pre-merge candidate-state labels. This narrow reconciliation updates only authoritative status and handoff evidence; it does not change the approved requirements. It requires its own checks and exact-head approval before merge.
+
 ## 3 November 2026 Central — Level 1A page 2 footer review correction proposed
 
 - **Observed blocker:** The existing Level 1A page-review validator rejected any extracted text on page 2, while SAL-D035's approved successor requires the aligned Salus footer on every page, including page 2. The four native Word Cedar report PDFs carry the approved footer on page 2 and remain unissued.
