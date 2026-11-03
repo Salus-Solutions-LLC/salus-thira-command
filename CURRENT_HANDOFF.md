@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 Central — v3.267 source frozen; immutable image candidate
+
+- Marc approved PR #1150 exact head `256bd4907692be7964c52a04f452a6f0932910a2` after all four required checks passed. Squash merge `519be0fe1476fa925e5e16f5ba7d07e4fe0af8b6` is the exact `release/v3.267` source. Release Branch Guard run `41679045330`, CI run `41679045450` and SalCAPA Contextual Intake run `41679045326` all passed, including the historical-candidate exclusion regression, PostgreSQL, security and both production-container paths.
+- This image-only candidate pins that exact frozen source for one protected immutable publication and registry readback. It does not deploy the application or workers. Production remains healthy on v3.266 pending the separately governed exact-digest deployment and successful 22,377-of-22,377 receipt.
+
 ## 3 November 2026 Central — v3.266 receipt rejected; v3.267 current-boundary correction
 
 - **Fail-closed live result:** Marc approved PR #1149 exact head `44675ec455f5db3299aada570215b14175e74931`; squash merge `0baf69ebadbde759ead0a93a47a5277059facb72` triggered protected readback run `41675042468`. Authorization passed and the isolated job was removed, but the receipt was rejected because the service's represented-file CTE included all candidate IDs. Authoritative issue #520 evidence already proves that this union contains 22,387 IDs: the 22,377 current-boundary files plus 10 historical IDs outside the boundary. The failed receipt is retained as audit evidence and is not acceptance.
