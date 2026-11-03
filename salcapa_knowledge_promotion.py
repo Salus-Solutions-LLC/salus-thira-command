@@ -1500,10 +1500,41 @@ def register_knowledge_promotion(app, namespace: dict[str, Any]) -> None:
                 daemon=True,
             ).start()
 
-    def list_candidates(request):
-        authority(request); conn = db(); _init_tables(conn)
-        rows = [dict(row) for row in conn.execute("SELECT * FROM m365_knowledge_candidates ORDER BY id DESC").fetchall()]
-        conn.close(); return {"items": rows, "count": len(rows)}
+    def list_candidates(request, q: str = "", limit: int = 100):
+        pending_review_authority(request)
+        query = str(q or "").strip().lower()
+        if len(query) > 200:
+            raise HTTPException(422, "Knowledge document search is too long")
+        page_limit = max(1, min(int(limit or 100), 100))
+        where = ""
+        parameters: tuple[Any, ...] = ()
+        if query:
+            where = "WHERE lower(source_name) LIKE ? OR lower(target_folder) LIKE ?"
+            pattern = f"%{query}%"
+            parameters = (pattern, pattern)
+        conn = db()
+        try:
+            _init_tables(conn)
+            total = int(conn.execute(
+                f"SELECT COUNT(*) AS total FROM m365_knowledge_candidates {where}",
+                parameters,
+            ).fetchone()["total"])
+            rows = [dict(row) for row in conn.execute(
+                "SELECT source_name,target_folder,status,source_archived_at,"
+                "classification_json,source_modified_at,source_owner,source_sha256,"
+                "source_archive_web_url,destination_web_url "
+                f"FROM m365_knowledge_candidates {where} ORDER BY id DESC LIMIT ?",
+                parameters + (page_limit,),
+            ).fetchall()]
+            return {
+                "items": rows,
+                "count": len(rows),
+                "total": total,
+                "limit": page_limit,
+                "query": query,
+            }
+        finally:
+            conn.close()
 
     list_candidates.__annotations__["request"] = Request
     app.get("/api/integrations/m365/knowledge/candidates", include_in_schema=False)(list_candidates)

@@ -110,6 +110,20 @@ def main():
                 review_row["target_folder"], review_row["classification_json"],
             ),
         )
+        for index in range(105):
+            conn.execute(
+                "INSERT INTO m365_knowledge_candidates"
+                "(source_drive_id,source_item_id,source_name,source_relative_path,source_etag,"
+                "source_sha256,source_size,source_modified_at,discovered_at,status,decision,"
+                "target_folder,classification_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    "drive-bounded", f"item-{index}", f"Bounded {index}.txt",
+                    f"90 Processed Intake/Bounded {index}.txt", f"etag-{index}",
+                    f"{index:064x}", index + 1, "2026-11-02T00:00:00Z",
+                    "2026-11-02T00:00:00Z", "Ingested and Verified", "Approved",
+                    "05 Research and Reference", "{}",
+                ),
+            )
         conn.commit()
         conn.close()
 
@@ -143,6 +157,28 @@ def main():
         queue = review_app.routes[(
             "GET", "/api/integrations/m365/knowledge/review-queue"
         )]
+        candidates = review_app.routes[(
+            "GET", "/api/integrations/m365/knowledge/candidates"
+        )]
+        administrator = SimpleNamespace(
+            context={"role": "System Administrator", "username": "reviewer"},
+            protected=False,
+        )
+        page = candidates(administrator, "", 100)
+        assert page["count"] == 100 and page["total"] == 106
+        assert page["limit"] == 100 and page["query"] == ""
+        assert "source_item_id" not in page["items"][0]
+        match = candidates(administrator, "bounded 104", 100)
+        assert match["count"] == 1 and match["total"] == 1
+        assert match["items"][0]["source_name"] == "Bounded 104.txt"
+        try:
+            candidates(SimpleNamespace(
+                context={"role": "System Administrator"}, protected=True,
+            ), "", 100)
+        except HTTPException as exc:
+            assert exc.status_code == 403
+        else:
+            raise AssertionError("Protected Member received Knowledge document status")
         result = queue(SimpleNamespace(
             context={"role": "System Administrator", "username": "reviewer"},
             protected=False,
@@ -478,6 +514,9 @@ def main():
     assert "Governed review queue" in review_ui
     assert "No automatic disposition" in review_ui
     assert "/api/integrations/m365/knowledge/review-queue" in review_ui
+    assert "knowledge/candidates?limit=100&q=" in review_ui
+    assert "encodeURIComponent(q)" in review_ui
+    assert "The governed review queue remains available above" in review_ui
     assert "automated_disposition_allowed" not in review_ui
     print("M365_KNOWLEDGE_PROMOTION_PASS")
 
