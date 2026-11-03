@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 13:29 Central — approved page 2 footer fix merged; report QA remains open
+
+- **Exact source:** Marc approved PR #1154 at head `055bc06bab0494ee8535801d0cb24b7cc9ca54e1`. All four required checks passed; it merged to `development/salcapa-platform` as `62c95d8b38f503115134fbe99ae9732e04223720`. The report QA validator now accepts only the controlled Salus footer and correct page number on page 2, with no body or header. This is source only; no successor image has been frozen, published, or deployed for this fix.
+- **Four Cedar reports:** The aligned-footer Word files approved by Marc remain unissued. Their existing native Word PDF exports have 8 SalINTEL, 9 SalTHIRA, 8 SalOPS, and 7 SalCAPA pages; page 2 extracted text matches the controlled footer forms. New local schema-correct page-review ZIP candidates are in `C:\Users\MarcDuncan\.codex\visualizations\2026\09\27\01a0e384-5043-7372-81ee-7bd487284480\cedar_reports\footer_candidates\aligned_footer_candidates`, named `*_Cedar_Level1A_PAGE_REVIEW_SCHEMA_CANDIDATE_20261103.zip`. Exact Word and PDF hashes match their manifests. Every page inspection, native Word accessibility, and parity status remains Pending; the archives have not been uploaded or registered. The four aligned-footer Word successors must first be screened and registered as new exact draft versions before matching QA archives can be used.
+- **Boundary:** Protected app release and buyer controls require fresh Azure readback before any change. Fictional order L1A-10 was paid once; do not repeat payment, prior uploads, or scanner dispositions. Public Wix purchase, live payment, public intake/uploads, and report issue remain closed. Marc is the sole Salus human reviewer; ChatGPT is an assistant, not an independent human reviewer.
+- **Next:** Reconcile the open v3.267 protected deployment track, then freeze and publish a successor containing the merged footer validator; stage the four approved aligned-footer report versions, register exact screened QA, obtain Marc's page/content, Charter and issue decisions, and separately review public release.
+
 ## 3 November 2026 Central — Level 1A page 2 footer review correction proposed
 
 - **Observed blocker:** The existing Level 1A page-review validator rejected any extracted text on page 2, while SAL-D035's approved successor requires the aligned Salus footer on every page, including page 2. The four native Word Cedar report PDFs carry the approved footer on page 2 and remain unissued.
