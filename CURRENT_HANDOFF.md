@@ -6,6 +6,12 @@
 - **Source candidate:** Draft PR #1154 changes only the QA archive validator to accept the controlled footer wording and correct page number on page 2 while rejecting report body or header text there. The focused paid-report test covers both the accepted footer and a rejected body-text case. This source is not merged or deployed; CI and Marc's exact-head review are still required.
 - **Release boundary:** No report was issued and no buyer or Azure setting changed. Public Wix purchase, live payment, and public intake remain closed. Do not restage the earlier documents or repeat the fictional payment. After approval and checks, follow the governed source freeze, immutable image and protected deployment before registering new page evidence.
 
+## 3 November 2026 Central — v3.267 immutable image verified; guarded deployment candidate
+
+- Marc approved PR #1151 exact head `076457796c1ede108d8afab8305f3c04fe484ad5`; squash merge `09db61ba1bf1627c2ffff1840e514ab1c27ea67f` triggered protected image run `41694838984`, which passed authorization, exact source verification, publication and registry readback. The verified immutable image is `salcapadevb48224acr.azurecr.io/salcapa@sha256:28533629ff5bf8ec142dd063ed7bca0c2ace3255bc14caf60dedbb665de9c49c`.
+- PR #1153 pins only that digest for the app and scheduled Knowledge worker, requires the current v3.266 digest as pre-state, retains v3.223 rollback, and leaves the scanner-result worker unchanged because it is outside the consideration request path. Protected deployment and a successful manual 22,377-of-22,377 receipt remain required.
+- The first exact-head approval for PR #1153 became stale when the governed base advanced through the separately approved Level 1A footer correction. The deployment candidate is reconciled onto development head `62c95d8b38f503115134fbe99ae9732e04223720`; all required checks and a new exact-head approval are required before merge. Production remains v3.266.
+
 ## 3 November 2026 Central — v3.267 source frozen; immutable image candidate
 
 - Marc approved PR #1150 exact head `256bd4907692be7964c52a04f452a6f0932910a2` after all four required checks passed. Squash merge `519be0fe1476fa925e5e16f5ba7d07e4fe0af8b6` is the exact `release/v3.267` source. Release Branch Guard run `41679045330`, CI run `41679045450` and SalCAPA Contextual Intake run `41679045326` all passed, including the historical-candidate exclusion regression, PostgreSQL, security and both production-container paths.
