@@ -41,9 +41,10 @@ with TemporaryDirectory() as tmp:
     assert all(graphic.get("descr") for graphic in cover_graphics)
     footer_graphics = [
         graphic for section in rendered.sections
-        for graphic in section.footer._element.iter(qn("wp:docPr"))
+        for footer in (section.footer, section.even_page_footer, section.first_page_footer)
+        for graphic in footer._element.iter(qn("wp:docPr"))
     ]
-    assert len(footer_graphics) == 3
+    assert len(footer_graphics) == 9
     assert all(graphic.get("descr") == "Salus Solutions logo." for graphic in footer_graphics)
     text = "\n".join(
         [p.text for p in rendered.paragraphs]
