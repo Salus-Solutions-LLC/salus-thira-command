@@ -9792,8 +9792,15 @@ def inspect_package_qa_archive(content:bytes,report_sha256:str):
                     or len(item['note'])>500):
                 raise ValueError('page inspection log')
             text_content=page.extract_text() or ''
-            if number==2 and text_content.strip(): raise ValueError('second page is not blank')
-            if number!=2 and not re.search(rf'page\s+{number}\s+of\s+{count}',text_content,re.IGNORECASE):
+            if number==2:
+                # The approved report page 2 has no body or header, but carries
+                # the controlled Salus footer, including its page number.
+                footer_text=' '.join(text_content.split())
+                if not re.fullmatch(
+                        rf'\|\s*(?:Salus Confidential|Approved personnel only\s*\|\s*Controlled report)'
+                        rf'\s*\|\s*page\s+2\s+of\s+{count}',footer_text,re.IGNORECASE):
+                    raise ValueError('second page contains more than the approved footer')
+            elif not re.search(rf'page\s+{number}\s+of\s+{count}',text_content,re.IGNORECASE):
                 raise ValueError('page count footer')
     except (ValueError,KeyError,TypeError,AttributeError,IndexError) as exc:
         raise HTTPException(422,'Report QA evidence does not match the exact Word file, PDF pages or page log.') from exc
