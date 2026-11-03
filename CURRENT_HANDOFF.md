@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 Central — v3.266 deployed; final 22,377-file receipt candidate
+
+- **Governed deployment passed:** Marc approved PR #1146 exact head `87735a0a660677b3bfcf7810908a0a85ad880a07` after all three required checks passed. Squash merge `eccce4207597a4a1921ed52a8f37b4d9769ceb45` triggered protected Azure run `41670311020`, which passed authorization, exact v3.263 pre-state and v3.266 image verification, what-if/apply, ready-runtime and identity contracts, isolated Microsoft 365 acceptance and cleanup, and scheduled Knowledge-worker promotion/readback. The app and scheduled Knowledge worker now use `salcapadevb48224acr.azurecr.io/salcapa@sha256:cb497d4a415b1e75739a3c0ba3a849991f793e0407e4dfe4863930b679537b81`; v3.263 is prior and v3.223 remains rollback.
+- **Final acceptance candidate:** The deployment workflow does not call the new consideration service. This candidate adds one protected, aggregate-only execution using the deployed v3.266 image and managed PostgreSQL identity. It creates one auditable System Administrator release-readback receipt, fails unless boundary and considered counts both equal 22,377, confirms Protected Member access and assignment/release authority remain false, prints counts and receipt identity only, and deletes its isolated job after execution.
+- **Scope boundary:** The scanner-result worker remains on v3.263 and is not on the read-only consideration request path, so no scanner promotion is required for this acceptance. The 7,116 extraction-review, 733 processor-remediation and 93 governed-hold obligations remain visible limitations; the receipt must not represent unavailable content as read or resolve those obligations.
+
 ## 3 November 2026 09:52 CST — aligned Salus report/footer successors; no report issue
 
 - Marc directed the approved reticle and “Salus Solutions” to share one line and align with the other bottom-footer words on every page, including report page 2. Page 2 retains no body or header. The governed decision is proposed as SAL-D126 because SAL-D125 now belongs to the Knowledge Library; the earlier footer PR #1141 is conflicted and must be superseded. No new governance source is merged by this entry.
