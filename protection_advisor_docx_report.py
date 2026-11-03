@@ -692,14 +692,15 @@ def render_protection_advisor_docx(
     cover_footer = deepcopy(cover_section.footer._element)
 
     blank_section = document.add_section(WD_SECTION.CONTINUOUS)
-    # The second page is intentionally empty, including its header and footer.
+    # Keep page two free of body and header content while repeating the approved footer.
     _clear_story(blank_section.header)
-    _clear_story(blank_section.footer)
+    _replace_story(blank_section.footer, cover_footer, cover_footer_part)
 
     results_section = document.add_section(WD_SECTION.NEW_PAGE)
     _replace_story(results_section.header, cover_header, cover_header_part)
     _replace_story(results_section.footer, cover_footer, cover_footer_part)
     _normalize_footer(cover_section.footer)
+    _normalize_footer(blank_section.footer)
     _normalize_footer(results_section.footer)
 
     try:
@@ -869,11 +870,11 @@ def render_protection_advisor_pdf(
                         self.drawCentredString(0, 0, watermark)
                         self.rotate(-45)
                         self.translate(-width / 2, -height / 2)
-                    draw_brand_footer(self)
-                    self.setFillAlpha(1)
-                    self.setFillColor(colors.black)
-                    self.setFont("SalusBody", 8)
-                    self.drawRightString(width - .65 * inch, .30 * inch, f"page {number} of {total}")
+                draw_brand_footer(self)
+                self.setFillAlpha(1)
+                self.setFillColor(colors.black)
+                self.setFont("SalusBody", 8)
+                self.drawRightString(width - .65 * inch, .30 * inch, f"page {number} of {total}")
                 self.restoreState()
                 super().showPage()
             super().save()
