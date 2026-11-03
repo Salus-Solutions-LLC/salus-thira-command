@@ -61,6 +61,12 @@ def main():
          json.dumps(classification, sort_keys=True)),
     )
     conn.execute(
+        "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?)",
+        (2, "historical-only", "Historical File.txt", "Historical/File.txt", "b" * 64,
+         "2026-10-01", "Salus", "Ingested and Verified", "05 Research and Reference",
+         json.dumps(classification, sort_keys=True)),
+    )
+    conn.execute(
         "INSERT INTO m365_knowledge_holds VALUES(?,?,?,?,?,?)",
         ("item-3", "Held continuity image", "Area/Held.jpg", "Does Not Upload",
          "governed hold", "Governed Hold"),
@@ -78,6 +84,8 @@ def main():
         "all_represented_files_considered": True,
     }
     assert result["results"][0]["content_preview"]
+    assert all(row["title"] != "Continuity Source" or row["relative_path"] != "Historical/File.txt"
+               for row in result["results"])
     assert result["protected_member_access"] is False
     assert result["assignment_or_release_authority"] is False
     assert conn.execute(
