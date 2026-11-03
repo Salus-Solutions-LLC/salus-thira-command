@@ -9,7 +9,7 @@
 ## 3 November 2026 Central — v3.267 immutable image verified; guarded deployment candidate
 
 - Marc approved PR #1151 exact head `076457796c1ede108d8afab8305f3c04fe484ad5`; squash merge `09db61ba1bf1627c2ffff1840e514ab1c27ea67f` triggered protected image run `41694838984`, which passed authorization, exact source verification, publication and registry readback. The verified immutable image is `salcapadevb48224acr.azurecr.io/salcapa@sha256:28533629ff5bf8ec142dd063ed7bca0c2ace3255bc14caf60dedbb665de9c49c`.
-- This deployment candidate pins only that digest for the app and scheduled Knowledge worker, requires the current v3.266 digest as pre-state, retains v3.223 rollback, and leaves the scanner-result worker unchanged because it is outside the consideration request path. Protected deployment and a successful manual 22,377-of-22,377 receipt remain required.
+- PR #1153 pins only that digest for the app and scheduled Knowledge worker, requires the current v3.266 digest as pre-state, retains v3.223 rollback, and leaves the scanner-result worker unchanged because it is outside the consideration request path. Protected deployment and a successful manual 22,377-of-22,377 receipt remain required.
 
 ## 3 November 2026 Central — v3.267 source frozen; immutable image candidate
 
