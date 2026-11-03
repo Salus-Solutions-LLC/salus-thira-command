@@ -81,8 +81,7 @@ def test_template_based_docx_has_footer_on_second_page_and_required_font_styles(
     assert len(document.sections) == 3
     assert not list(document.sections[1].header._element.iter(qn("w:t")))
     for section in document.sections:
-        assert any(node.text == "page " for node in section.footer._element.iter(qn("w:t")))
-        assert any(section.footer._element.iter(qn("wp:docPr")))
+        assert any(graphic.get("descr") == "Salus Solutions logo." for graphic in section.footer._element.iter(qn("wp:docPr")))
     assert document.styles["Normal"].font.name == "Times New Roman"
     assert document.styles["Heading 1"].font.name == "Arial"
 
