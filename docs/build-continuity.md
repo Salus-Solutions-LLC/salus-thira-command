@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3267_current_knowledge_boundary_live_evaluator_acceptance
 last_completed_increment: v3267_application_and_scheduled_knowledge_worker_deployed_and_verified
 candidate_release: v3.267
-validation_pr: pending
+validation_pr: 1159
 validation_branch: codex/knowledge-v3267-boundary-precount-20261103
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
