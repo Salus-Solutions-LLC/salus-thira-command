@@ -1,11 +1,11 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 03 November 2026 13:58 CST
+last_verified_at: 03 November 2026 14:07 CST
 current_frozen_release: v3.267
 current_frozen_commit: 519be0fe1476fa925e5e16f5ba7d07e4fe0af8b6
 active_development_branch: development/salcapa-platform
-current_development_head: e7326687b313487f7bc8ee614700f781bb43f19e
+current_development_head: 97ec85f5b9afacd37e1f2078ea7b35ac2e9b4ae0
 active_product_milestone: issue_520_sald116_knowledge_library_acceptance
 active_build_system_issue: 520
 active_increment: salus_v3267_current_knowledge_boundary_receipt_evidence
