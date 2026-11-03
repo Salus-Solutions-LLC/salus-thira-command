@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 Central — v3.268 source frozen; immutable image candidate
+
+- Marc approved PR #1160 exact head `3eded7f188eca781b3dd33533c64ff6d2cc4e344` after the tenant/decision-boundary, package/handoff, PostgreSQL and Windows checks passed. Squash merge `cc05d3fc986e5cdac497ea14049afef962599d64` is the exact `release/v3.268` source. Release Branch Guard run `41715960098`, CI run `41715959973` and SalCAPA Contextual Intake run `41715960017` all passed, including focused consideration coverage, PostgreSQL and production-container paths.
+- This candidate changes only the immutable image-publication activation to exact release `v3.268` and source commit `cc05d3fc986e5cdac497ea14049afef962599d64`. It does not deploy the application or workers, run the live receipt, grant Protected Member access or change assignment/release authority. Production remains v3.267.
+- Required next gates are repository checks, Marc's exact-head approval, protected image publication and registry readback. Deployment and the 22,377-boundary/22,387-considered receipt remain separately governed.
+
 ## 3 November 2026 Central — v3.267 live pre-count proves status-filter defect; v3.268 complete-representation correction
 
 - Marc approved PR #1159 exact head `0cd362c5f1f02514284b8b36eaac42b89b7138a9`; squash merge `11cf1226dfb4c75b3137b49f3e90651c2af79bfe` made the aggregate represented-boundary pre-count authoritative. Protected run `41713561506` passed authorization and Azure login, emitted `KNOWLEDGE_CONSIDERATION_PRECHECK_BOUNDARY_FILES=98`, then failed closed before receipt creation; the isolated job was removed successfully. This is not acceptance.
