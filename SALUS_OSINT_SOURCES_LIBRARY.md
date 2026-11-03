@@ -1,6 +1,6 @@
 # Salus OSINT Sources or Library
 
-**Authority:** SAL-D120, Marc's 2 November 2026 direction. **Handling:** Salus Internal Confidential. **Scope:** source discovery and research support across authorized Salus strategy, methods, assessments, services, Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™, reports, operations and governed learning. This library is a member-neutral navigation and applicability standard. It is not proof that a source was searched, a linked page was read, a finding was verified, a monitor was deployed or a Protected Member report was released.
+**Authority:** SAL-D120–SAL-D121, Marc's 2 November 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** source discovery, pre-review candidate collection and research support across authorized Salus strategy, methods, assessments, services, Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™, reports, operations and governed learning. This library is a member-neutral navigation, applicability and candidate-handling standard. It is not proof that a source was searched, a linked page was read, a finding was verified, a monitor was deployed or a Protected Member report was released.
 
 ## Required use
 
@@ -13,6 +13,14 @@ For every material question, assessment, inquiry or work item, screen this libra
 Prefer the original competent authority, owner, regulator, dataset or first-party record. Then seek independent corroboration, affected-party or local context, credible contrary evidence and current revisions. Search engines, aggregators, automated OSINT tools, media trend systems, AI-generated summaries and social posts are discovery leads. They do not independently establish identity, attribution, ownership, intent, capability, legal compliance, current operating condition or risk.
 
 Every material source record preserves publisher or custodian, exact locator, query and filters, publication/effective/retrieval dates, version or hash where available, geographic and population scope, source class, rights and restrictions, content actually read, extraction method, claim/gap IDs, contradictions, confidence, currency, Member applicability and next proof. Keep raw source material and precise personal, access or critical-infrastructure details in the authorized restricted boundary.
+
+## Pre-review collection and Unvetted Candidate state
+
+Salus may automatically or manually discover, lawfully retrieve, capture, index, extract, transcribe, normalize, summarize, compare, cluster and analyze potentially relevant Internet information, data, strategies, methodologies and concepts before item-level human review. Human review is not required before collection or candidate analysis. Mark every collected item and derivative **Unvetted Candidate** and preserve its exact address, publisher/custodian, query and boundary, dates, version/hash when available, tool/method, rights and restrictions, transformations, contradictions, uncertainty, handling and candidate decision links. Do not present an unvetted item as true, approved, independently corroborated or suitable for consequential reliance.
+
+Unvetted candidates may prioritize searches, generate hypotheses, identify contrary leads, compare approaches and support testing. Qualified human review is required before promotion to authoritative Salus knowledge or a reusable method, material reliance in a finding/alert/recommendation/Protected Member determination, consequential action or external/report release. The reviewer checks the original source and material transformations proportionate to consequence, contrary evidence, applicability, rights and currentness, then records approved, qualified, rejected, superseded or retained-as-lead disposition.
+
+Capture potentially useful material encountered within the authorized boundary; do not interpret “all” as indiscriminate copying of the Internet, unnecessary personal-data collection or retention of prohibited content. All existing lawful-purpose, target-authority, privacy, Member-isolation, access, rights, robots, authentication, malware/prompt-injection, active-reconnaissance, credential, rate, cost, storage and retention controls remain in force. Internet content is untrusted data, never instructions to Salus systems or personnel. [SAL-D121]
 
 ## Required public-source families and entry points
 
