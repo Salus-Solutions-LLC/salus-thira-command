@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 Central — v3.266 immutable image verified; guarded deployment candidate
+
+- **Verified image:** Marc approved PR #1144 exact head `652ad29fc61de8c152bfdbae9c57b236d63d23fb` after all three required checks passed. Squash merge `8a9b23031dbb7bb98a1a6719ee8b081bc4c6f74e` triggered protected image run `41668684146`; authorization, exact frozen-source identity, Azure target and registry authority, build, publication and registry readback passed. The immutable v3.266 image is `salcapadevb48224acr.azurecr.io/salcapa@sha256:cb497d4a415b1e75739a3c0ba3a849991f793e0407e4dfe4863930b679537b81` from frozen source `81ab9fdaceda89165878c9df7469355193b045eb`.
+- **Exact-digest deployment candidate:** This candidate pins only that verified digest for guarded application and scheduled knowledge-worker deployment. Its pre-state requires the currently deployed v3.263 digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:7d127271435c220766d46f259760ffedc7976907705637d36f64cc27ed593c51` for both, and retains the accepted v3.223 rollback image. It requires PR checks and Marc's exact-head approval before protected Azure execution.
+- **Required readback:** Successful deployment must prove the exact application and worker image, ready runtime and identity/intake contracts, then issue a System Administrator, non-Protected-Member consideration request whose receipt accounts for all 22,377 files. No source permission, assignment, customer release or external citation authority changes.
+
 ## 3 November 2026 Central — v3.266 source frozen; immutable image candidate
 
 - **Approved merge and freeze:** Marc approved PR #1143 exact head `898c666f5611912ad050ac69c0573b7913d87982` after all four required checks passed. Squash merge `81ab9fdaceda89165878c9df7469355193b045eb` is the exact `release/v3.266` source. Release Branch Guard run `41580937632`, CI run `41580937586` and SalCAPA Contextual Intake run `41580937627` all passed, including PostgreSQL, security, full validation and both production-container paths. The failed, unpublished `release/v3.265` remains immutable evidence and was not repointed.
