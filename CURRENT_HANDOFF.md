@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 2 November 2026 Central — v3.265 frozen-source stop; v3.266 compatibility repair candidate
+
+- **Safe stop:** Marc approved PR #1138 exact head `61aaca0898ddeade13fea08d0e80e2a179a39185`; it passed all required PR checks and merged as `989c2d02acb1cacb4230ee53efa34888c9f27218`. Protected `release/v3.265` was created at that exact merge. The release guard passed, but frozen-source CI run `41577411926` failed before image publication or Azure deployment. Production remains v3.263 and unchanged.
+- **First failing gate:** PostgreSQL runtime registration reached `salcapa_knowledge_consideration.register_knowledge_consideration` through the existing SalINTEL relationships smoke and raised `KeyError: 'Query'`. The module incorrectly expected FastAPI's `Query` helper in the runtime core namespace even though that helper is not part of the core contract. This is a source compatibility defect, not a corpus, permission or production-state failure.
+- **Narrow repair:** The v3.266 candidate imports FastAPI `Query` directly in the route module and removes only the invalid namespace lookup. It does not change the 22,377-file consideration rule, result or receipt semantics, Protected Member denial, source access, assignment, human-validation requirement or customer-release controls.
+- **Governed next action:** Run the existing required PR checks on the repair, obtain Marc's approval of the exact new PR head, freeze a new immutable `release/v3.266` source, publish one verified immutable image, perform the guarded deployment and read back a 22,377-of-22,377 consideration receipt. The failed, unpublished v3.265 freeze remains immutable evidence and must not be repointed or deployed.
+
 ## 2 November 2026 Central — corpus-wide consideration completion candidate
 
 - **Approved outcome:** Marc directed the shortest completion path: every file in the designated `SalCAPA Intake` boundary must be used for review and consideration, and item-level validation is to occur before a final product is released to a customer rather than as an added pre-inquiry step. SAL-D125 records that decision without weakening mandatory access, security, assignment, release or rollback controls.
