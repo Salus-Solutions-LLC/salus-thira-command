@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3266_corpus_wide_knowledge_consideration_immutable_image_publication
 last_completed_increment: v3266_source_frozen_and_all_frozen_source_checks_green
 candidate_release: v3.266
-validation_pr: pending
+validation_pr: 1144
 validation_branch: codex/knowledge-v3266-image-20261103
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
