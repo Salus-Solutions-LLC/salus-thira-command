@@ -59,18 +59,20 @@ def consider(conn: Any, query: str, actor: str, created_at: str) -> dict[str, An
 
     represented_cte = """
       WITH represented AS (
-        SELECT item_id source_item_id FROM m365_bulk_items
-        WHERE kind='file' AND status<>'Removed'
+        SELECT source_item_id FROM m365_knowledge_candidates
         UNION
         SELECT source_item_id FROM m365_knowledge_holds WHERE status='Governed Hold'
       )
     """
-    boundary_count = int(conn.execute(
+    represented_count = int(conn.execute(
         represented_cte + "SELECT COUNT(*) count FROM represented"
     ).fetchone()["count"])
-    minimum = int(os.getenv("SALUS_KNOWLEDGE_MINIMUM_BOUNDARY_FILES", EXPECTED_MINIMUM_FILES))
-    if boundary_count < minimum:
+    boundary_count = int(os.getenv(
+        "SALUS_KNOWLEDGE_MINIMUM_BOUNDARY_FILES", EXPECTED_MINIMUM_FILES
+    ))
+    if represented_count < boundary_count:
         raise RuntimeError("The governed Knowledge Library boundary is incomplete")
+    historical_additional = represented_count - boundary_count
 
     content_available = int(conn.execute(
         represented_cte + """
@@ -99,7 +101,7 @@ def consider(conn: Any, query: str, actor: str, created_at: str) -> dict[str, An
         SELECT b.item_id,
           b.name || ' ' || b.metadata_json || ' ' || b.status || ' ' || b.reason search_text
         FROM m365_bulk_items b JOIN represented r ON r.source_item_id=b.item_id
-        WHERE b.kind='file' AND b.status<>'Removed'
+        WHERE b.kind='file'
         UNION ALL
         SELECT h.source_item_id,
           h.source_name || ' ' || h.source_relative_path || ' ' || h.source_area || ' ' || h.hold_reason search_text
@@ -155,15 +157,51 @@ def consider(conn: Any, query: str, actor: str, created_at: str) -> dict[str, An
 
     remaining = MAX_RESULTS - len(results)
     if remaining:
-        metadata_rows = conn.execute(
-            "SELECT item_id source_item_id,name,metadata_json,status,reason FROM m365_bulk_items "
-            "WHERE kind='file' AND status<>'Removed' AND ("
+        hold_rows = conn.execute(
+            represented_cte
+            + "SELECT h.source_item_id,h.source_name,h.source_relative_path,h.source_area,h.hold_reason "
+            "FROM m365_knowledge_holds h JOIN represented r ON r.source_item_id=h.source_item_id "
+            "WHERE h.status='Governed Hold' AND ("
             + " OR ".join(
-                "lower(name || ' ' || metadata_json || ' ' || status || ' ' || reason) LIKE ?"
+                "lower(h.source_name || ' ' || h.source_relative_path || ' ' || "
+                "h.source_area || ' ' || h.hold_reason) LIKE ?"
                 for _ in terms
             )
-            + ") ORDER BY updated_at DESC LIMIT ?",
-            parameters + (MAX_RESULTS,),
+            + ") ORDER BY h.source_item_id LIMIT ?",
+            parameters + (remaining,),
+        ).fetchall()
+        for row in hold_rows:
+            source_id = str(row["source_item_id"])
+            if source_id in seen:
+                continue
+            seen.add(source_id)
+            results.append({
+                "record_key": hashlib.sha256(source_id.encode()).hexdigest(),
+                "title": row["source_name"],
+                "relative_path": row["source_relative_path"],
+                "source_area": row["source_area"],
+                "candidate_state": "Unvetted Candidate",
+                "representation": "Governed hold metadata",
+                "content_preview": "",
+                "limitation": row["hold_reason"] or "Content remains under governed hold",
+                "customer_release_ready": False,
+            })
+            if len(results) >= MAX_RESULTS:
+                break
+
+    remaining = MAX_RESULTS - len(results)
+    if remaining:
+        metadata_rows = conn.execute(
+            represented_cte
+            + "SELECT b.item_id source_item_id,b.name,b.metadata_json,b.status,b.reason "
+            "FROM m365_bulk_items b JOIN represented r ON r.source_item_id=b.item_id "
+            "WHERE b.kind='file' AND ("
+            + " OR ".join(
+                "lower(b.name || ' ' || b.metadata_json || ' ' || b.status || ' ' || b.reason) LIKE ?"
+                for _ in terms
+            )
+            + ") ORDER BY b.updated_at DESC LIMIT ?",
+            parameters + (remaining,),
         ).fetchall()
         for row in metadata_rows:
             source_id = str(row["source_item_id"])
@@ -186,11 +224,11 @@ def consider(conn: Any, query: str, actor: str, created_at: str) -> dict[str, An
 
     receipt_id = str(uuid.uuid4())
     query_sha256 = hashlib.sha256(query.strip().encode("utf-8")).hexdigest()
-    metadata_only = max(0, boundary_count - min(content_available, boundary_count))
+    metadata_only = max(0, represented_count - min(content_available, represented_count))
     _create_receipt_table(conn)
     conn.execute(
         "INSERT INTO m365_knowledge_consideration_receipts VALUES(?,?,?,?,?,?,?,?,?,?)",
-        (receipt_id, query_sha256, boundary_count, boundary_count, matched_count,
+        (receipt_id, query_sha256, boundary_count, represented_count, matched_count,
          content_available, metadata_only, governed_holds, actor[:240], created_at),
     )
     conn.commit()
@@ -200,12 +238,15 @@ def consider(conn: Any, query: str, actor: str, created_at: str) -> dict[str, An
         "results": results,
         "coverage": {
             "boundary_files": boundary_count,
-            "considered_files": boundary_count,
+            "represented_files": represented_count,
+            "considered_files": represented_count,
+            "historical_additional_representations": historical_additional,
             "matched_files": matched_count,
-            "considered_without_match": boundary_count - matched_count,
+            "considered_without_match": represented_count - matched_count,
             "content_available_files": content_available,
             "metadata_only_or_unresolved_files": metadata_only,
             "governed_hold_files": governed_holds,
+            "all_boundary_files_considered": True,
             "all_represented_files_considered": True,
         },
         "use_state": "Salus-internal Unvetted Candidate",

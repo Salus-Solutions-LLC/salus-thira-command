@@ -54,15 +54,16 @@ def main():
         "extraction": {"status": "Complete", "text": "Continuity strategy and recovery data"},
         "citation_metadata": {"document_title": "Continuity Source"},
     }
+    for number in range(3):
+        conn.execute(
+            "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (number + 1, f"item-{number}", f"File {number}.txt", f"Area/File {number}.txt",
+             "a" * 64, "2026-11-02", "Salus", "Ingested and Verified",
+             "05 Research and Reference", json.dumps(classification, sort_keys=True)),
+        )
     conn.execute(
         "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?)",
-        (1, "item-1", "File 1.txt", "Area/File 1.txt", "a" * 64,
-         "2026-11-02", "Salus", "Ingested and Verified", "05 Research and Reference",
-         json.dumps(classification, sort_keys=True)),
-    )
-    conn.execute(
-        "INSERT INTO m365_knowledge_candidates VALUES(?,?,?,?,?,?,?,?,?,?)",
-        (2, "historical-only", "Historical File.txt", "Historical/File.txt", "b" * 64,
+        (4, "historical-only", "Historical File.txt", "Historical/File.txt", "b" * 64,
          "2026-10-01", "Salus", "Ingested and Verified", "05 Research and Reference",
          json.dumps(classification, sort_keys=True)),
     )
@@ -75,22 +76,26 @@ def main():
     result = consider(conn, "continuity strategy", "test-actor", "2026-11-02T12:00:00Z")
     assert result["coverage"] == {
         "boundary_files": 4,
-        "considered_files": 4,
-        "matched_files": 2,
-        "considered_without_match": 2,
-        "content_available_files": 1,
-        "metadata_only_or_unresolved_files": 3,
+        "represented_files": 5,
+        "considered_files": 5,
+        "historical_additional_representations": 1,
+        "matched_files": 5,
+        "considered_without_match": 0,
+        "content_available_files": 4,
+        "metadata_only_or_unresolved_files": 1,
         "governed_hold_files": 1,
+        "all_boundary_files_considered": True,
         "all_represented_files_considered": True,
     }
     assert result["results"][0]["content_preview"]
-    assert all(row["title"] != "Continuity Source" or row["relative_path"] != "Historical/File.txt"
-               for row in result["results"])
+    assert any(row["relative_path"] == "Historical/File.txt" for row in result["results"])
+    assert any(row["representation"] == "Governed hold metadata" for row in result["results"])
     assert result["protected_member_access"] is False
     assert result["assignment_or_release_authority"] is False
-    assert conn.execute(
-        "SELECT COUNT(*) count FROM m365_knowledge_consideration_receipts"
-    ).fetchone()["count"] == 1
+    receipt = conn.execute(
+        "SELECT boundary_count,considered_count FROM m365_knowledge_consideration_receipts"
+    ).fetchone()
+    assert (receipt["boundary_count"], receipt["considered_count"]) == (4, 5)
     print("knowledge consideration smoke passed")
 
 
