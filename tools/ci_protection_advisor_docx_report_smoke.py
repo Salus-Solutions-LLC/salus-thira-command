@@ -43,7 +43,7 @@ with TemporaryDirectory() as tmp:
         graphic for section in rendered.sections
         for graphic in section.footer._element.iter(qn("wp:docPr"))
     ]
-    assert len(footer_graphics) == 2
+    assert len(footer_graphics) == 3
     assert all(graphic.get("descr") == "Salus Solutions logo." for graphic in footer_graphics)
     text = "\n".join(
         [p.text for p in rendered.paragraphs]
@@ -68,7 +68,8 @@ with TemporaryDirectory() as tmp:
         assert "Controlled Unclassified Information (CUI)" not in header_xml
         assert "#bfbfbf" in header_xml.lower(), "watermark must remain light gray"
         assert "z-index:-251658240" in header_xml, "watermark must remain behind readable content"
-    assert not any(p.text.strip() for p in rendered.sections[1].footer.paragraphs)
+    assert any("Salus Solutions" in p.text for p in rendered.sections[1].footer.paragraphs)
+    assert any(rendered.sections[1].footer._element.iter(qn("wp:docPr")))
 
     confidential = build_report_context(
         client_code_name="EXAMPLE-MEMBER", project_code_name="EXAMPLE-PROJECT",
