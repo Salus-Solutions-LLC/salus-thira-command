@@ -62,8 +62,6 @@ def consider(conn: Any, query: str, actor: str, created_at: str) -> dict[str, An
         SELECT item_id source_item_id FROM m365_bulk_items
         WHERE kind='file' AND status<>'Removed'
         UNION
-        SELECT source_item_id FROM m365_knowledge_candidates
-        UNION
         SELECT source_item_id FROM m365_knowledge_holds WHERE status='Governed Hold'
       )
     """
@@ -74,14 +72,22 @@ def consider(conn: Any, query: str, actor: str, created_at: str) -> dict[str, An
     if boundary_count < minimum:
         raise RuntimeError("The governed Knowledge Library boundary is incomplete")
 
-    content_available = int(conn.execute("""
-      SELECT COUNT(DISTINCT source_item_id) count FROM m365_knowledge_candidates
-      WHERE classification_json LIKE '%\"status\": \"Complete\"%'
-    """).fetchone()["count"])
-    governed_holds = int(conn.execute("""
-      SELECT COUNT(DISTINCT source_item_id) count FROM m365_knowledge_holds
-      WHERE status='Governed Hold'
-    """).fetchone()["count"])
+    content_available = int(conn.execute(
+        represented_cte + """
+          SELECT COUNT(DISTINCT c.source_item_id) count
+          FROM m365_knowledge_candidates c
+          JOIN represented r ON r.source_item_id=c.source_item_id
+          WHERE c.classification_json LIKE '%\"status\": \"Complete\"%'
+        """
+    ).fetchone()["count"])
+    governed_holds = int(conn.execute(
+        represented_cte + """
+          SELECT COUNT(DISTINCT h.source_item_id) count
+          FROM m365_knowledge_holds h
+          JOIN represented r ON r.source_item_id=h.source_item_id
+          WHERE h.status='Governed Hold'
+        """
+    ).fetchone()["count"])
 
     clause, parameters = _patterns(terms)
     searchable_cte = represented_cte + """
@@ -108,9 +114,10 @@ def consider(conn: Any, query: str, actor: str, created_at: str) -> dict[str, An
     results: list[dict[str, Any]] = []
     seen: set[str] = set()
     candidate_rows = conn.execute(
-        "SELECT source_item_id,source_name,source_relative_path,source_sha256,"
+        represented_cte
+        + "SELECT c.source_item_id,c.source_name,c.source_relative_path,c.source_sha256,"
         "source_modified_at,source_owner,status,target_folder,classification_json "
-        "FROM m365_knowledge_candidates WHERE "
+        "FROM m365_knowledge_candidates c JOIN represented r ON r.source_item_id=c.source_item_id WHERE "
         + " OR ".join(
             "lower(source_name || ' ' || source_relative_path || ' ' || classification_json) LIKE ?"
             for _ in terms

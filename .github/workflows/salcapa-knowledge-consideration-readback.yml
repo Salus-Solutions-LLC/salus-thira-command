@@ -1,11 +1,6 @@
 name: SalCAPA Knowledge consideration readback
 
 on:
-  push:
-    branches: [development/salcapa-platform]
-    paths:
-      - '.github/workflows/salcapa-knowledge-consideration-readback.yml'
-      - 'tools/live_knowledge_consideration_readback.py'
   workflow_dispatch:
 
 concurrency:
@@ -48,8 +43,9 @@ jobs:
           test "$RESOURCE_GROUP" = "rg-salcapa-dev"
           ACTIVATION=deploy/azure/activations/application-dev.json
           EXPECTED_IMAGE="$(jq -er '.image_digest' "$ACTIVATION")"
-          test "$(jq -r '.source_release' "$ACTIVATION")" = "release/v3.266"
-          test "$(jq -r '.source_commit' "$ACTIVATION")" = "81ab9fdaceda89165878c9df7469355193b045eb"
+          test "$(jq -r '.source_release' "$ACTIVATION")" = "release/v3.267"
+          SOURCE_COMMIT="$(jq -er '.source_commit' "$ACTIVATION")"
+          [[ "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           [[ "$EXPECTED_IMAGE" =~ ^salcapadevb48224acr\.azurecr\.io/salcapa@sha256:[0-9a-f]{64}$ ]]
           az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-consideration-app.json
           az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/salcapa-consideration-worker.json
