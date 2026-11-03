@@ -340,7 +340,7 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         import zipfile
         pdf_buffer=BytesIO();canvas=Canvas(pdf_buffer)
         canvas.drawString(40,40,'Page 1 of 3');canvas.showPage()
-        canvas.showPage()
+        canvas.drawString(40,40,'| Salus Confidential | Page 2 of 3');canvas.showPage()
         canvas.drawString(40,40,'Page 3 of 3');canvas.save()
         pdf=pdf_buffer.getvalue()
         manifest=dict(report_sha256=sha256(template).hexdigest(),
@@ -353,6 +353,7 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
             archive_file.writestr('manifest.json',json.dumps(manifest))
             archive_file.writestr('rendered.pdf',pdf)
         archive_bytes=archive_buffer.getvalue()
+        assert app.inspect_package_qa_archive(archive_bytes,sha256(template).hexdigest())
         app.PACKAGE_SCAN_MODE='defender'
         app.PACKAGE_SCANNER_ACCEPTED=True
         assert staff.post(f'/api/level1a-reports/{report_id}/qa-evidence',
