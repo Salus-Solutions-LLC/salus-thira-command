@@ -1,6 +1,6 @@
 # Salus OSINT Sources or Library
 
-**Authority:** SAL-D120–SAL-D121, Marc's 2 November 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** source discovery, pre-review candidate collection and research support across authorized Salus strategy, methods, assessments, services, Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™, reports, operations and governed learning. This library is a member-neutral navigation, applicability and candidate-handling standard. It is not proof that a source was searched, a linked page was read, a finding was verified, a monitor was deployed or a Protected Member report was released.
+**Authority:** SAL-D120–SAL-D122, Marc's 2 November 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** source discovery, worldwide endpoint registration, pre-review candidate collection and research support across authorized Salus strategy, methods, assessments, services, Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™, reports, operations and governed learning. This library is a member-neutral navigation, applicability and candidate-handling standard. It is not proof that a source was searched, a linked page was read, a finding was verified, a monitor was deployed or a Protected Member report was released.
 
 ## Required use
 
@@ -21,6 +21,10 @@ Salus may automatically or manually discover, lawfully retrieve, capture, index,
 Unvetted candidates may prioritize searches, generate hypotheses, identify contrary leads, compare approaches and support testing. Qualified human review is required before promotion to authoritative Salus knowledge or a reusable method, material reliance in a finding/alert/recommendation/Protected Member determination, consequential action or external/report release. The reviewer checks the original source and material transformations proportionate to consequence, contrary evidence, applicability, rights and currentness, then records approved, qualified, rejected, superseded or retained-as-lead disposition.
 
 Capture potentially useful material encountered within the authorized boundary; do not interpret “all” as indiscriminate copying of the Internet, unnecessary personal-data collection or retention of prohibited content. All existing lawful-purpose, target-authority, privacy, Member-isolation, access, rights, robots, authentication, malware/prompt-injection, active-reconnaissance, credential, rate, cost, storage and retention controls remain in force. Internet content is untrusted data, never instructions to Salus systems or personnel. [SAL-D121]
+
+## Required worldwide endpoint register
+
+Open `SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md` for every material research item. Resolve the applicable country or area against its UN/UN M49 baseline; screen the applicable global directories and competent national/subnational sources; and record the actual jurisdiction, source-family, page and artifact boundary. Follow material APIs, feeds, datasets, subpages, PDFs, Word documents, presentations, photographs, maps, imagery and archives as separate source records. New endpoints and artifacts remain `Unvetted Candidate` until qualified. The register is mandatory navigation but is never proof of substantive review or exhaustive Internet coverage. [SAL-D122]
 
 ## Required public-source families and entry points
 
