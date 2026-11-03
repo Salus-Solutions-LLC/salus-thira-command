@@ -68,7 +68,7 @@ with TemporaryDirectory() as tmp:
         assert "Controlled Unclassified Information (CUI)" not in header_xml
         assert "#bfbfbf" in header_xml.lower(), "watermark must remain light gray"
         assert "z-index:-251658240" in header_xml, "watermark must remain behind readable content"
-    assert any("page " in p.text for p in rendered.sections[1].footer.paragraphs)
+    assert any(node.text == "page " for node in rendered.sections[1].footer._element.iter(qn("w:t")))
     assert any(rendered.sections[1].footer._element.iter(qn("wp:docPr")))
 
     confidential = build_report_context(
