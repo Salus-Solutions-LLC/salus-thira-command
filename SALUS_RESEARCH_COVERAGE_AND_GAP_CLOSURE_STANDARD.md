@@ -1,6 +1,6 @@
 # Salus research coverage and gap-closure standard
 
-**Authority:** SAL-D065–SAL-D072 and SAL-D120–SAL-D122, Marc's 28 September and 2 November 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
+**Authority:** SAL-D065–SAL-D072 and SAL-D120–SAL-D124, Marc's 28 September and 2 November 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
 
 ## Purpose
 
@@ -17,6 +17,10 @@ Screen `SALUS_OSINT_SOURCES_LIBRARY.md` for every material item and disposition 
 Automated or analyst-assisted collection may preserve and analyze potentially relevant Internet information before item-level human review. Record it as **Unvetted Candidate**, preserve provenance, exact collection boundary, transformations, restrictions and contradictions, and keep it distinct from qualified evidence. Candidate material may guide research, hypotheses, comparison and testing; it does not earn substantively assessed, finding, recommendation, method or release status. A qualified human reviews the original source and material transformations proportionate to consequence before authoritative adoption, material reliance, consequential action, Protected Member determination or external/report release. [SAL-D121]
 
 Use `SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md` to resolve every applicable country/area and screen its global directories plus competent national/subnational sources. Give each jurisdiction/source-family cell a found, no-listing-located, pending, blocked, excluded or not-applicable disposition. Separately record material linked pages, feeds, datasets and files. A country directory, URL or downloaded-file count does not establish that its content was reviewed or applied. [SAL-D122]
+
+Use the weekly SAL-D123 discovery result as a source-index maintenance input, not proof that a particular assessment searched or reviewed the discovered material. Reconcile new, changed, superseded and unavailable addresses with the item-level source boundary, preserve unresolved retrievals, and distinguish authoritative-register total counts from candidate additions pending governed merge. [SAL-D123]
+
+At the start of every new white paper, inquiry, Part 1, consented Part 2, assessment and other material work item, derive explicit and reasonably implied member-neutral topic labels, screen related source families and competent originals, and register useful new addresses. Record why an inferred topic is material and keep it separate from evidence that it applies to a Protected Member. Use minimized public queries and retain the open expansion queue when urgent work proceeds before full source pursuit. [SAL-D124]
 
 Each source or unsuccessful search records the exact query or source class, publisher/custodian, locator, retrieved and effective dates, version, geographic and population coverage, access/license restriction, evidence type, extraction or inspection method, analyst, result and limitation. Preserve an exact Member source inventory and restricted evidence. A search-result count, prior chat summary, file count or citation list does not prove substantive review.
 

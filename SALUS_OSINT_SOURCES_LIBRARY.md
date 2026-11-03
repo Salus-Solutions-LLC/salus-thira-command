@@ -1,6 +1,6 @@
 # Salus OSINT Sources or Library
 
-**Authority:** SAL-D120–SAL-D122, Marc's 2 November 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** source discovery, worldwide endpoint registration, pre-review candidate collection and research support across authorized Salus strategy, methods, assessments, services, Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™, reports, operations and governed learning. This library is a member-neutral navigation, applicability and candidate-handling standard. It is not proof that a source was searched, a linked page was read, a finding was verified, a monitor was deployed or a Protected Member report was released.
+**Authority:** SAL-D120–SAL-D124, Marc's 2 November 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** source discovery, weekly and work-triggered expansion, worldwide endpoint registration, pre-review candidate collection and research support across authorized Salus strategy, methods, assessments, services, Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™, reports, operations and governed learning. This library is a member-neutral navigation, applicability and candidate-handling standard. It is not proof that a source was searched, a linked page was read, a finding was verified, a monitor was deployed or a Protected Member report was released.
 
 ## Required use
 
@@ -25,6 +25,12 @@ Capture potentially useful material encountered within the authorized boundary; 
 ## Required worldwide endpoint register
 
 Open `SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md` for every material research item. Resolve the applicable country or area against its UN/UN M49 baseline; screen the applicable global directories and competent national/subnational sources; and record the actual jurisdiction, source-family, page and artifact boundary. Follow material APIs, feeds, datasets, subpages, PDFs, Word documents, presentations, photographs, maps, imagery and archives as separate source records. New endpoints and artifacts remain `Unvetted Candidate` until qualified. The register is mandatory navigation but is never proof of substantive review or exhaustive Internet coverage. [SAL-D122]
+
+## Required weekly expansion and reporting
+
+The active weekly automation conducts a fresh worldwide source-discovery and register-maintenance run every Monday at 09:00 America/Chicago. It adds every materially useful new address to a governed candidate register update, preserves changed, relocated, unavailable and superseded lineage, and records the actual boundary and result in `SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md`. After every run it reports to Marc the exact authoritative unique-address total and the run's added, changed, superseded, unavailable and pending-review counts, including zeros. Invocation is not completion; candidate additions become authoritative only after repository checks, Marc's exact-head approval and merge. [SAL-D123]
+
+For every new white paper, customer inquiry, Protection Advisor Part 1, consented Part 2, assessment, research question, project, service, method, strategy or materially inferred topic, identify related source families and competent original sources, search using member-neutral topic abstractions, and add every materially useful new address to a governed candidate register update. Record the work type, topic label, boundary, duplicates, barriers and unresolved queue. Inferred topics are discovery leads, not Member facts or findings; do not expose Member or Salus-confidential detail in public queries without separate authority. [SAL-D124]
 
 ## Required public-source families and entry points
 
