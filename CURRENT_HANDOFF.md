@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 Central — Level 1A page 2 footer review correction proposed
+
+- **Observed blocker:** The existing Level 1A page-review validator rejected any extracted text on page 2, while SAL-D035's approved successor requires the aligned Salus footer on every page, including page 2. The four native Word Cedar report PDFs carry the approved footer on page 2 and remain unissued.
+- **Source candidate:** Draft PR #1154 changes only the QA archive validator to accept the controlled footer wording and correct page number on page 2 while rejecting report body or header text there. The focused paid-report test covers both the accepted footer and a rejected body-text case. This source is not merged or deployed; CI and Marc's exact-head review are still required.
+- **Release boundary:** No report was issued and no buyer or Azure setting changed. Public Wix purchase, live payment, and public intake remain closed. Do not restage the earlier documents or repeat the fictional payment. After approval and checks, follow the governed source freeze, immutable image and protected deployment before registering new page evidence.
+
 ## 3 November 2026 Central — v3.267 source frozen; immutable image candidate
 
 - Marc approved PR #1150 exact head `256bd4907692be7964c52a04f452a6f0932910a2` after all four required checks passed. Squash merge `519be0fe1476fa925e5e16f5ba7d07e4fe0af8b6` is the exact `release/v3.267` source. Release Branch Guard run `41679045330`, CI run `41679045450` and SalCAPA Contextual Intake run `41679045326` all passed, including the historical-candidate exclusion regression, PostgreSQL, security and both production-container paths.

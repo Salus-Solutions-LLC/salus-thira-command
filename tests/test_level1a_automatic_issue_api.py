@@ -340,7 +340,7 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         import zipfile
         pdf_buffer=BytesIO();canvas=Canvas(pdf_buffer)
         canvas.drawString(40,40,'Page 1 of 3');canvas.showPage()
-        canvas.showPage()
+        canvas.drawString(40,40,'| Salus Confidential | Page 2 of 3');canvas.showPage()
         canvas.drawString(40,40,'Page 3 of 3');canvas.save()
         pdf=pdf_buffer.getvalue()
         manifest=dict(report_sha256=sha256(template).hexdigest(),
@@ -353,6 +353,23 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
             archive_file.writestr('manifest.json',json.dumps(manifest))
             archive_file.writestr('rendered.pdf',pdf)
         archive_bytes=archive_buffer.getvalue()
+        assert app.inspect_package_qa_archive(archive_bytes,sha256(template).hexdigest())
+        bad_buffer=BytesIO();bad_canvas=Canvas(bad_buffer)
+        bad_canvas.drawString(40,40,'Page 1 of 3');bad_canvas.showPage()
+        bad_canvas.drawString(40,40,'| Salus Confidential | Page 2 of 3')
+        bad_canvas.drawString(40,400,'Unexpected report body');bad_canvas.showPage()
+        bad_canvas.drawString(40,40,'Page 3 of 3');bad_canvas.save()
+        bad_pdf=bad_buffer.getvalue()
+        bad_manifest={**manifest,'pdf_sha256':sha256(bad_pdf).hexdigest()}
+        bad_archive=BytesIO()
+        with zipfile.ZipFile(bad_archive,'w') as archive_file:
+            archive_file.writestr('manifest.json',json.dumps(bad_manifest))
+            archive_file.writestr('rendered.pdf',bad_pdf)
+        try:
+            app.inspect_package_qa_archive(bad_archive.getvalue(),sha256(template).hexdigest())
+            assert False,'Page 2 report body must be rejected'
+        except app.HTTPException as exc:
+            assert exc.status_code==422
         app.PACKAGE_SCAN_MODE='defender'
         app.PACKAGE_SCANNER_ACCEPTED=True
         assert staff.post(f'/api/level1a-reports/{report_id}/qa-evidence',

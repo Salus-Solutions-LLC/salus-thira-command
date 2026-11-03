@@ -395,6 +395,7 @@ def test_level_one_quote_requires_review_and_exact_member_acceptance(tmp_path):
         pdf_canvas=canvas.Canvas(pdf_buffer)
         pdf_canvas.drawString(60,40,'page 1 of 3')
         pdf_canvas.showPage()
+        pdf_canvas.drawString(60,40,'| Salus Confidential | page 2 of 3')
         pdf_canvas.showPage()
         pdf_canvas.drawString(60,40,'page 3 of 3')
         pdf_canvas.save()
