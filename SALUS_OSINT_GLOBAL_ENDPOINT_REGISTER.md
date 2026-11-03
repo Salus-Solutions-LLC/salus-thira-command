@@ -1,6 +1,6 @@
 # Salus OSINT Global Endpoint Register
 
-**Authority:** SAL-D120–SAL-D122. **Handling:** Salus Internal Confidential. **Status:** governed member-neutral navigation artifact; every endpoint, linked record and derivative remains **Unvetted Candidate** until qualified under SAL-D121. **Discovery date:** 2 November 2026 Central. **Scope:** worldwide public-source discovery for Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™, research, strategy, methodology, governed learning and authorized Protected Member work.
+**Authority:** SAL-D120–SAL-D124. **Handling:** Salus Internal Confidential. **Status:** governed member-neutral navigation artifact; every endpoint, linked record and derivative remains **Unvetted Candidate** until qualified under SAL-D121. **Discovery date:** 2 November 2026 Central. **Weekly maintenance:** active Codex heartbeat `weekly-salus-osint-source-expansion`, Mondays at 09:00 America/Chicago. **Work-triggered maintenance:** every new white paper, inquiry, Part 1, Part 2, assessment and material explicit or inferred topic. **Scope:** worldwide public-source discovery for Protection Advisor, SalINTEL™, SalTHIRA™, SalOPS™, SalCAPA™, research, strategy, methodology, governed learning and authorized Protected Member work.
 
 ## Coverage boundary
 
@@ -139,3 +139,15 @@ For each in-scope country or area, begin with UN M49 and then screen, as applica
 For each country, continue from the directories above into competent national and subnational government portals, emergency alerts, gazettes, data portals, regulators, ministries, responders, utilities, transport operators, public-health agencies, courts, procurement portals, registries, universities, standards bodies and professional institutions when they can change the authorized decision. Add each stable useful endpoint to this register or the member-neutral source index with provenance and restrictions. Do not stop at a directory entry when it links to a material original, PDF, Word file, dataset, photograph, map, feed or archive.
 
 Priority controls order, not candidate eligibility. Close a country/source-family cell only with a found endpoint, reasoned not-applicable or exclusion, documented access/rights barrier, or named pending search. Record the actual countries, directories, pages and artifacts reviewed. This register never supports an “all Internet sources reviewed” claim and does not authorize recurring monitoring, paid access, active reconnaissance, prohibited scraping, external disclosure, consequential action or report release.
+
+## Required weekly discovery and address count
+
+Under SAL-D123, conduct a fresh worldwide discovery and register-maintenance run once each week. Compare results with these endpoint tables, add every materially useful new address to a governed candidate update, and preserve canonical redirects, aliases, changed status, replacement and supersession lineage. Do not silently delete an unavailable or superseded address.
+
+The reportable authoritative address total is the count of unique absolute HTTP or HTTPS destinations in endpoint-table entries after canonicalization. Count an address once even when it has multiple labels or uses; do not count duplicate aliases or repeated appearances. After every weekly run, tell Marc the authoritative total and the run's added, changed, superseded, unavailable and pending-review counts, including zeros. Record the full run evidence in `SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md`. A scheduled invocation without the log and count report is not a completed run. Candidate additions require checks, Marc's exact-head approval and merge; the weekly automation may not merge its own changes.
+
+## Required work-triggered topic expansion
+
+Under SAL-D124, each new white paper, customer inquiry, Protection Advisor Part 1, consented Part 2, assessment, research question, project, service, strategy, method and materially inferred work topic must screen for related competent sources and addresses. Register every materially useful new address as `Unvetted Candidate` with the originating work type, a member-neutral topic label, provenance, applicability, search route, duplicate decision and unresolved proof. Feed pending additions into the next weekly reconciliation; do not wait for the weekly run when the address is material to current work.
+
+Inference expands discovery only. Use the least identifying public query that supports the work and never expose Protected Member or Salus-confidential details without separate authority. An inferred topic or related address is not evidence that the topic applies to a Member and does not support a finding, risk score, action or release without qualification.
