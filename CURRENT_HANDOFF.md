@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 Central — Level 1A page 2 footer review correction proposed
+
+- **Observed blocker:** The existing Level 1A page-review validator rejected any extracted text on page 2, while SAL-D035's approved successor requires the aligned Salus footer on every page, including page 2. The four native Word Cedar report PDFs carry the approved footer on page 2 and remain unissued.
+- **Source candidate:** Draft PR #1152 changes only the QA archive validator to accept the controlled footer wording and correct page number on page 2 while rejecting report body or header text there. The focused paid-report test covers both the accepted footer and a rejected body-text case. This source is not merged or deployed; CI and Marc's exact-head review are still required.
+- **Release boundary:** No report was issued and no buyer or Azure setting changed. Public Wix purchase, live payment, and public intake remain closed. Do not restage the earlier documents or repeat the fictional payment. After approval and checks, follow the governed source freeze, immutable image and protected deployment before registering new page evidence.
+
 ## 3 November 2026 Central — v3.266 receipt rejected; v3.267 current-boundary correction
 
 - **Fail-closed live result:** Marc approved PR #1149 exact head `44675ec455f5db3299aada570215b14175e74931`; squash merge `0baf69ebadbde759ead0a93a47a5277059facb72` triggered protected readback run `41675042468`. Authorization passed and the isolated job was removed, but the receipt was rejected because the service's represented-file CTE included all candidate IDs. Authoritative issue #520 evidence already proves that this union contains 22,387 IDs: the 22,377 current-boundary files plus 10 historical IDs outside the boundary. The failed receipt is retained as audit evidence and is not acceptance.
