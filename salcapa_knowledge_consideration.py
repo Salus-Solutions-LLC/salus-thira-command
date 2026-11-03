@@ -9,6 +9,8 @@ import re
 import uuid
 from typing import Any
 
+from fastapi import Query
+
 
 EXPECTED_MINIMUM_FILES = 22_377
 MAX_RESULTS = 100
@@ -209,7 +211,6 @@ def consider(conn: Any, query: str, actor: str, created_at: str) -> dict[str, An
 def register_knowledge_consideration(app: Any, namespace: dict[str, Any]) -> None:
     Request = namespace["Request"]
     HTTPException = namespace["HTTPException"]
-    Query = namespace["Query"]
     db = namespace["db"]
     now = namespace["now"]
     auth_context = namespace["auth_context"]
