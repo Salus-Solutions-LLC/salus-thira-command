@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 2 November 2026 Central — SAL-D125 branded footer successor candidates; no report issue
+
+- Marc directed the approved Salus logo and name in the bottom footer of every page of every new or materially revised Salus document, explicitly including report page 2. The prior SAL-D035 no-footer exception is superseded for future versions; page 2 retains no body or header, and the report body begins on page 3.
+- Four Cedar report and four controlled-template successor DOCX candidates were produced in `C:/Users/MarcDuncan/.codex/visualizations/2026/09/27/01a0e384-5043-7372-81ee-7bd487284480/cedar_reports/footer_candidates/`. They reuse the exact approved cover logo and preserve body text. LibreOffice rendered every page; report counts match predecessors (SalINTEL 9, SalTHIRA 9, SalOPS 9, SalCAPA 7), and the template counts are 9, 6, 7 and 6. Every page, including page 2, shows the logo/name footer. Native Word/PDF/print page review and exact binary approval remain open; none is a controlled successor yet.
+- The four registered Cedar drafts and their existing page-evidence archives remain unchanged and unissued. Public Wix purchase, live payment and public intake remain closed. Do not repeat order L1A-10 payment, prior uploads or scanner dispositions. Next: review exact candidate files, register approved templates, stage only approved report successors through private screening, reconcile their page evidence and complete Marc's human issue decision. Assess other document generators for prospective SAL-D125 coverage under separate governed source and release controls.
+
+
 ## 2 November 2026 Central — governed SAL-D123–SAL-D124 weekly and work-triggered OSINT expansion merged; schedule active
 
 - **Governed merge:** Marc approved [PR #1139](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1139) at exact head `8d27c975683bfa30d80d2d8d7d9937b76a644ad4` after `package-and-handoff-sequence`, `package-postgres-transaction` and `professional-report-windows` passed. Squash merge `a75faf741bf2e367d0f65769e0044cd8dd6ec528` makes SAL-D123 and SAL-D124 authoritative source.
