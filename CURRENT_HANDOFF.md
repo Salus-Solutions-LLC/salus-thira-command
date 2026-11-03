@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 Central — v3.266 source frozen; immutable image candidate
+
+- **Approved merge and freeze:** Marc approved PR #1143 exact head `898c666f5611912ad050ac69c0573b7913d87982` after all four required checks passed. Squash merge `81ab9fdaceda89165878c9df7469355193b045eb` is the exact `release/v3.266` source. Release Branch Guard run `41580937632`, CI run `41580937586` and SalCAPA Contextual Intake run `41580937627` all passed, including PostgreSQL, security, full validation and both production-container paths. The failed, unpublished `release/v3.265` remains immutable evidence and was not repointed.
+- **Image-only candidate:** PR #1144 pins only `release/v3.266` at `81ab9fdaceda89165878c9df7469355193b045eb` for one protected immutable image publication and registry digest readback. It does not deploy the application or workers. The deployed release remains v3.263 until a later exact-digest deployment activation passes its own governed gates.
+- **Boundaries preserved:** The 22,377-file consideration service remains System Administrator-only and rejects Protected Member context. Image publication changes no source permission, assignment, disposition, external-citation authority, human-validation requirement or customer-release control. After registry readback, application deployment and a 22,377-of-22,377 consideration receipt remain required.
+
 ## 2 November 2026 Central — v3.265 frozen-source stop; v3.266 compatibility repair candidate
 
 - **Safe stop:** Marc approved PR #1138 exact head `61aaca0898ddeade13fea08d0e80e2a179a39185`; it passed all required PR checks and merged as `989c2d02acb1cacb4230ee53efa34888c9f27218`. Protected `release/v3.265` was created at that exact merge. The release guard passed, but frozen-source CI run `41577411926` failed before image publication or Azure deployment. Production remains v3.263 and unchanged.
