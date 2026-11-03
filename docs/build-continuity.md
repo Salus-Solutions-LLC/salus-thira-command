@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3263_governed_knowledge_review_queue_application_promotion
 last_completed_increment: v3263_immutable_image_published_and_registry_verified
 candidate_release: v3.263
-validation_pr: pending
+validation_pr: 1129
 validation_branch: codex/knowledge-review-queue-v3263-deploy-20261102
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
