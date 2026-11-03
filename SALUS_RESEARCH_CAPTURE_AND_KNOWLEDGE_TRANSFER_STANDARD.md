@@ -1,6 +1,6 @@
 # Salus Research Capture and Knowledge Transfer Standard
 
-**Authority:** SAL-D127, Marc's 3 November 2026 direction. **Handling:** Salus Internal Confidential. **State:** governed documentation candidate pending repository checks, exact-head approval and merge.
+**Authority:** SAL-D127, Marc's 3 November 2026 direction. **Handling:** Salus Internal Confidential. **State:** authoritative after approved PR #1156 merged as `e7326687b313487f7bc8ee614700f781bb43f19e` on 3 November 2026.
 
 ## Purpose and scope
 
