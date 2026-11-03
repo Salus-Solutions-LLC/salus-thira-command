@@ -5,7 +5,7 @@ last_verified_at: 02 November 2026 18:12 CST
 current_frozen_release: v3.263
 current_frozen_commit: 6e658b22c140281cc94034374ec1efddbbbb49da
 active_development_branch: development/salcapa-platform
-current_development_head: d96e521155aef2be674f8148b55fd5e93301882b
+current_development_head: f744f16cc8e5ab6aadb57c86c278d121c5c90225
 active_product_milestone: issue_520_sald116_knowledge_library_acceptance
 active_build_system_issue: 520
 active_increment: salus_v3263_governed_knowledge_review_queue_application_promotion
