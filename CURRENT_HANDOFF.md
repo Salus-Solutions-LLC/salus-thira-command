@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 2 November 2026 Central — bounded status repair merged; v3.264 source candidate
+
+- Marc approved [PR #1133](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1133) at exact head `e6279551dac8cf494dfe09243b6600b2c128dbc0` after all three required jobs passed, including the 106-record bounded-status, search, identifier-omission and Protected Member denial smoke. Squash merge `0d801e9e85e28afcab9fd15bc967ae6b9c83fddb` makes the bounded Knowledge document status repair authoritative source. The deployed application and workers remain v3.263; the combined **Knowledge Documents** page defect is not yet repaired in production.
+- This candidate labels the exact merged source as v3.264 and updates build continuity for issue #520. It makes no additional functional change. Require all source-candidate checks and Marc's review of the exact final head before creating immutable `release/v3.264`; then require frozen-source checks, one immutable image publication and registry readback, guarded application and scheduled-worker deployment, a separate scanner-worker image alignment and authenticated combined-page verification. Do not modify production or claim the page accepted before those gates pass.
+- The repair and release marker change no candidate, corpus, assignment, disposition, research/citation readiness, Protected Member access or release authority. The Knowledge Library remains incomplete: the authoritative boundary is 22,377 files and acceptance remains open for 7,116 governed extraction reviews, 733 processor-remediation obligations, 93 governed holds, 13 human reviews, item-level research/teaching/citation dispositions and verified Salus-only ChatGPT workspace controls. Issue #520 remains active.
+
 ## 2 November 2026 Central — bounded Knowledge document status repair candidate
 
 - [PR #1132](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1132) passed all three required jobs and merged at exact approved head `d6a1a1ff0f9b577df4903b0446330fb38129c0b9` as squash commit `5bb7e9cc41f780d86f4b324d0c450f166be0548f`. A subsequent authenticated System Administrator browser recheck again reached SalCAPA v3.263 but the **Knowledge Documents** page remained unavailable after waiting for its data. The failure is persistent, not accepted as a transient readback.
