@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3266_corpus_wide_knowledge_consideration_receipt_readback
 last_completed_increment: v3266_application_and_scheduled_knowledge_worker_deployed_and_verified
 candidate_release: v3.266
-validation_pr: pending
+validation_pr: 1149
 validation_branch: codex/knowledge-v3266-consideration-readback-20261103
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
