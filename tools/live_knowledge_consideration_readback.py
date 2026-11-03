@@ -34,6 +34,20 @@ def main() -> None:
     stage = "connect_database"
     conn = connect_database()
     try:
+        stage = "represented_boundary_precount"
+        precheck_boundary = int(conn.execute("""
+          WITH represented AS (
+            SELECT item_id source_item_id FROM m365_bulk_items
+            WHERE kind='file' AND status<>'Removed'
+            UNION
+            SELECT source_item_id FROM m365_knowledge_holds WHERE status='Governed Hold'
+          )
+          SELECT COUNT(*) count FROM represented
+        """).fetchone()["count"])
+        print(
+            f"KNOWLEDGE_CONSIDERATION_PRECHECK_BOUNDARY_FILES={precheck_boundary}",
+            flush=True,
+        )
         stage = "create_consideration_receipt"
         result = consider(
             conn, QUERY, ACTOR,

@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 Central — v3.267 receipt guard proves represented boundary below minimum; exact aggregate pre-count candidate
+
+- Marc approved PR #1158 exact head `de72ad04bdd9b16a3d9ed611dc57b82c1bdff8e7`; squash merge `bd63bd4917657a8183442861c9ecf950c6f4c293` made the bounded failure-stage evidence authoritative. Protected receipt run `41710962646` passed its scoped gate and Azure login, then failed closed at `create_consideration_receipt` with `RuntimeError`; the isolated Azure job was removed successfully. In v3.267, that stage has one application-level `RuntimeError`: the represented current-boundary count is below the required 22,377 minimum. No receipt was created and this run is not acceptance.
+- This next candidate performs the identical aggregate represented-boundary count immediately before `consider()` and emits only `KNOWLEDGE_CONSIDERATION_PRECHECK_BOUNDARY_FILES=<integer>`. The hard minimum, receipt checks, Protected Member denial, assignment/release denial and human-validation requirement remain unchanged. It emits no item identity, path, content, attribution, member data, status breakdown, query, database error text, credential or source detail.
+- Repository checks, Marc's exact-head approval, merge and one protected aggregate run remain required. If the pre-count is below 22,377, do not weaken the guard: compare it with a fresh recursive OneDrive boundary census and reconcile the represented gap under separate governed change control.
+
 ## 3 November 2026 Central — SAL-D127 and SAL-D128 authoritative; merge readback passed
 
 - **Governed merge:** Marc approved PR #1156 exact head `00b5ce4195662e28ef73e44775d8c29372bace04` after package-and-handoff, PostgreSQL transaction and professional-report Windows checks passed. Squash merge `e7326687b313487f7bc8ee614700f781bb43f19e` makes SAL-D127, SAL-D128 and both controlling standards authoritative.
