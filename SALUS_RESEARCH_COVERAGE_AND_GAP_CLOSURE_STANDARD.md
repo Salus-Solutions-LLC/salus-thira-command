@@ -1,6 +1,6 @@
 # Salus research coverage and gap-closure standard
 
-**Authority:** SAL-D065–SAL-D072, Marc's 28 September 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
+**Authority:** SAL-D065–SAL-D072 and SAL-D120–SAL-D121, Marc's 28 September and 2 November 2026 directions. **Handling:** Salus Internal Confidential. **Scope:** every authorized Salus research, assessment, methodology, questionnaire, service, report, pricing, marketing and improvement decision at Levels 1–3. This is an approved member-neutral method, not proof that a particular search, Member report, live feature or recurring monitor has been completed.
 
 ## Purpose
 
@@ -14,9 +14,11 @@ For each material topic, seek and compare as applicable: Member and owner record
 
 Screen `SALUS_OSINT_SOURCES_LIBRARY.md` for every material item and disposition every current source family before closing the research boundary. Search all applicable families and update the member-neutral source index when a useful new public source, feed, dataset or tool is found. The library check structures discovery; it does not replace the source-by-source reading, four-stream accounting, contradiction, Member applicability and completion evidence required by this standard. [SAL-D120]
 
+Automated or analyst-assisted collection may preserve and analyze potentially relevant Internet information before item-level human review. Record it as **Unvetted Candidate**, preserve provenance, exact collection boundary, transformations, restrictions and contradictions, and keep it distinct from qualified evidence. Candidate material may guide research, hypotheses, comparison and testing; it does not earn substantively assessed, finding, recommendation, method or release status. A qualified human reviews the original source and material transformations proportionate to consequence before authoritative adoption, material reliance, consequential action, Protected Member determination or external/report release. [SAL-D121]
+
 Each source or unsuccessful search records the exact query or source class, publisher/custodian, locator, retrieved and effective dates, version, geographic and population coverage, access/license restriction, evidence type, extraction or inspection method, analyst, result and limitation. Preserve an exact Member source inventory and restricted evidence. A search-result count, prior chat summary, file count or citation list does not prove substantive review.
 
-Inspect the content-bearing parts of each format. Email may carry the operative notice in HTML or an attached document; PDF pages may be image-only; a spreadsheet may contain restricted personal fields. Record which parts were actually parsed, visually reviewed or deliberately withheld. Use automated topic hits to prioritize human reading, never to establish that a domain was assessed or absent. Keep personal records segregated and extract only aggregate, decision-relevant facts for reports.
+Inspect the content-bearing parts of each format before qualification or release. Email may carry the operative notice in HTML or an attached document; PDF pages may be image-only; a spreadsheet may contain restricted personal fields. Record which parts were automatically parsed, visually reviewed or deliberately withheld. Use automated topic hits to prioritize human reading, never to establish that a domain was substantively assessed or absent. Keep personal records segregated and extract only aggregate, decision-relevant facts for reports.
 
 ## Item-level source chain and application
 
