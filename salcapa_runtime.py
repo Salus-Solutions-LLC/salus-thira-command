@@ -31,6 +31,7 @@ from salcapa_m365_intake import register_m365_intake
 from salcapa_m365_material_ingestion import register_m365_material_ingestion
 from salcapa_m365_source_change import register_m365_source_change_control
 from salcapa_knowledge_promotion import register_knowledge_promotion
+from salcapa_knowledge_consideration import register_knowledge_consideration
 from salintel_material_index import register_salintel_material_index
 from salthira_material_evidence_routing import register_salthira_material_evidence_routing
 from salcapa_demo_fixtures import register_demo_fixture_contract
@@ -76,6 +77,7 @@ register_m365_intake(core.app, core.__dict__)
 register_m365_material_ingestion(core.app, core.__dict__)
 register_m365_source_change_control(core.app, core.__dict__)
 register_knowledge_promotion(core.app, core.__dict__)
+register_knowledge_consideration(core.app, core.__dict__)
 register_salintel_material_index(core.app, core.__dict__)
 register_salthira_material_evidence_routing(core.app, core.__dict__)
 register_demo_fixture_contract(core)
@@ -83,7 +85,7 @@ register_demo_evaluator(core)
 register_mission_map(core.app, core.__dict__)
 register_analytical_actions(core.app, core.__dict__)
 
-SALCAPA_RELEASE_VERSION = "3.264"
+SALCAPA_RELEASE_VERSION = "3.265"
 core.app.state.salcapa_release_version = SALCAPA_RELEASE_VERSION
 
 _base_production_readiness = core.production_readiness

@@ -107,7 +107,6 @@ Identify whether Internet material in scope is **Unvetted Candidate** or human-q
 ## SAL-D122 worldwide endpoint and linked-artifact check
 
 Open `SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md`; identify the applicable country/area against the UN/UN M49 baseline; screen applicable worldwide directories and competent national/subnational authorities; and state each jurisdiction/source-family disposition. Follow material subpages, nested links, APIs, feeds, datasets, PDFs, Word documents, presentations, photographs, maps, imagery and archives as separate candidate source records. Record the actual addresses and reviewed boundary, not a claim that every website or file was found. Keep new endpoints and artifacts `Unvetted Candidate` until qualified; no register entry authorizes collection automation, credentials, paid access, monitoring, active reconnaissance, consequential action or release.
-
 ## SAL-D123 weekly discovery and address-inventory check
 
 Read `SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md` and verify the active `weekly-salus-osint-source-expansion` cadence. State the last completed run, exact authoritative source commit, next due run, actual search boundary, access barriers, unresolved queue and candidate PR. Recompute the unique canonical HTTP/HTTPS address total from the endpoint tables and reconcile it with the last report. A scheduled invocation is not completion. After every run report the authoritative total and added, changed, superseded, unavailable and pending-review counts, including zeros. Candidate changes require checks, Marc's exact-head approval and merge; never allow the automation to merge or activate its own work.
@@ -115,6 +114,10 @@ Read `SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md` and verify the active `weekly-salus-o
 ## SAL-D124 work-triggered and inferred-topic expansion check
 
 Classify whether the work is a new white paper, customer inquiry, Protection Advisor Part 1, consented Part 2, assessment, research question, project, service, method, strategy or another material explicit or inferred topic. Before closing research, record the member-neutral topic labels and related source families screened; add useful new addresses to a governed candidate register update and the weekly reconciliation queue. Use the least identifying public query that can support the work. Never infer a Member fact or finding from a topic label, and never submit Member or Salus-confidential details to public search or tools without separate authority.
+
+## SAL-D125 Knowledge Library consideration check
+
+For every applicable inquiry, review, research task, data search or concept- or strategy-development effort, run the governed `SalCAPA Intake` corpus consideration service and retain its receipt. Confirm that the receipt's considered count equals the complete represented boundary, currently 22,377 files. Use extracted content where available and provenance-bound metadata, failure, remediation or hold evidence where content is unresolved; state the limitation and never claim unavailable content was read. Treat all results as Salus-internal `Unvetted Candidate` material until human validation. Before a customer-facing final product, material reliance, authoritative method adoption, consequential action, Protected Member conclusion or external citation, confirm the required human validation and governed release. Do not use this check to grant Protected Member access, assign an item, change source permissions or bypass release controls.
 
 ## SAL-D071 completion and continuation check
 
