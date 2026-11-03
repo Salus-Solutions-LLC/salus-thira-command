@@ -36,6 +36,7 @@ on:
       - tools/live_knowledge_candidate_reconcile.py
       - tools/ci_knowledge_destination_repair_smoke.py
       - tools/ci_knowledge_consideration_smoke.py
+      - tools/live_knowledge_consideration_readback.py
       - tools/live_knowledge_destination_repair.py
       - tools/live_m365_intake_acceptance.py
       - portable_backup.py
@@ -96,6 +97,7 @@ on:
       - tools/ci_salcapa_office_processing_smoke.py
       - tools/ci_m365_knowledge_promotion_smoke.py
       - tools/ci_knowledge_consideration_smoke.py
+      - tools/live_knowledge_consideration_readback.py
       - tools/live_m365_intake_acceptance.py
       - portable_backup.py
       - database.py
@@ -176,6 +178,8 @@ jobs:
         run: python tools/ci_knowledge_destination_repair_smoke.py
       - name: Verify corpus-wide Knowledge Library consideration receipt
         run: python tools/ci_knowledge_consideration_smoke.py
+      - name: Compile protected Knowledge consideration readback
+        run: python -m py_compile tools/live_knowledge_consideration_readback.py
       - name: Verify release continuity before source freeze
         run: |
           python tools/ci_build_continuity_smoke.py
