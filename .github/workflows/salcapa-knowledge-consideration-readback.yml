@@ -43,7 +43,7 @@ jobs:
           test "$RESOURCE_GROUP" = "rg-salcapa-dev"
           ACTIVATION=deploy/azure/activations/application-dev.json
           EXPECTED_IMAGE="$(jq -er '.image_digest' "$ACTIVATION")"
-          test "$(jq -r '.source_release' "$ACTIVATION")" = "release/v3.267"
+          test "$(jq -r '.source_release' "$ACTIVATION")" = "release/v3.268"
           SOURCE_COMMIT="$(jq -er '.source_commit' "$ACTIVATION")"
           [[ "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           [[ "$EXPECTED_IMAGE" =~ ^salcapadevb48224acr\.azurecr\.io/salcapa@sha256:[0-9a-f]{64}$ ]]
