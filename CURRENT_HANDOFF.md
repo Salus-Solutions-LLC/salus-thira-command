@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 3 November 2026 Central — v3.268 immutable image verified; deployment candidate
+
+- Marc approved PR #1161 exact head `208455c06e7edfb49adf7dc8016c8bc746f1d051` after all three required checks passed. Squash merge `1f1d00082beec8e4a53ef5883f0240a619b68227` triggered protected image-publication run `41761358745`; authorization, exact frozen-source identity, Azure target/registry authority, build, publication and registry readback all passed.
+- The registry-verified v3.268 image is `salcapadevb48224acr.azurecr.io/salcapa@sha256:37140446a429c1e798d41c22fcce5af7dbbb9142fe7c57eaa1a88b3e756421c2`, built from exact frozen source `release/v3.268` at `cc05d3fc986e5cdac497ea14049afef962599d64`.
+- This deployment candidate targets that exact digest for the application and scheduled Knowledge worker, retains current v3.267 digest `sha256:28533629ff5bf8ec142dd063ed7bca0c2ace3255bc14caf60dedbb665de9c49c` as immediate pre-state/rollback, and aligns the protected consideration-receipt workflow with v3.268. The scanner worker remains unchanged and outside the consideration request path.
+- Production remains v3.267. Required next gates are repository checks, Marc's exact-head approval, protected deployment/readback/cleanup, then one protected receipt proving 22,377 current-boundary files and all 22,387 governed representations considered. No Protected Member access or assignment/release authority is granted.
+
 ## 3 November 2026 Central — v3.268 source frozen; immutable image candidate
 
 - Marc approved PR #1160 exact head `3eded7f188eca781b3dd33533c64ff6d2cc4e344` after the tenant/decision-boundary, package/handoff, PostgreSQL and Windows checks passed. Squash merge `cc05d3fc986e5cdac497ea14049afef962599d64` is the exact `release/v3.268` source. Release Branch Guard run `41715960098`, CI run `41715959973` and SalCAPA Contextual Intake run `41715960017` all passed, including focused consideration coverage, PostgreSQL and production-container paths.
