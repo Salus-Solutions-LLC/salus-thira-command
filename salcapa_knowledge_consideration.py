@@ -62,6 +62,8 @@ def consider(conn: Any, query: str, actor: str, created_at: str) -> dict[str, An
         SELECT source_item_id FROM m365_knowledge_candidates
         UNION
         SELECT source_item_id FROM m365_knowledge_holds WHERE status='Governed Hold'
+        UNION
+        SELECT item_id FROM m365_bulk_items WHERE kind='file' AND status<>'Removed'
       )
     """
     represented_count = int(conn.execute(
