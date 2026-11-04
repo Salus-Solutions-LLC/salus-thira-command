@@ -11,7 +11,7 @@ active_build_system_issue: 520
 active_increment: salus_v3269_complete_representation_union
 last_completed_increment: v3268_application_and_scheduled_knowledge_worker_deployed_and_verified
 candidate_release: v3.269
-validation_pr: pending
+validation_pr: 1163
 validation_branch: codex/knowledge-v3269-complete-union-20261104
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
