@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 5 November 2026 Central — v3.269 deployed; final receipt count aligned to complete governed superset
+
+- Marc approved PR #1165 exact head `5a09960996812f214e049cedb36d9f77fd505d31`; squash merge `c7bc7860a883f0903b0155bfd6379db1b45dd9de` triggered protected deployment run `42124214485`. Exact source/rollback, immutable digest, application deployment, runtime/identity/ingress/sign-in, isolated Microsoft 365 acceptance and cleanup, Protection Advisor, and scheduled Knowledge-worker promotion all passed. Production application and scheduled Knowledge worker are on v3.269 digest `sha256:cf0770bd0c20307c67d28bf07c162f36d3f70360d6960fe5c6f2ef789d1ad324`; rollback was not invoked.
+- Protected receipt run `42125563276` passed authorization and Azure login, then failed closed before receipt creation with `KNOWLEDGE_CONSIDERATION_PRECHECK_REPRESENTED_FILES=22399`; cleanup passed. This is not acceptance.
+- The deployed v3.269 union considers all 22,377 current source files plus 22 additional governed historical/ledger representations. The earlier fixed expectation of 22,387 counted only 10 retained historical candidate IDs and did not include 12 additional active, non-`Removed` bulk-ledger representations. No file is missing; the acceptance contract rejected the complete governed superset.
+- Final bounded correction: keep the deployed service and exact source boundary unchanged, align only the aggregate receipt expectation to 22,399 represented/considered and 22 historical/additional representations, then run one protected receipt. Unavailable content remains disclosed; Protected Member access and assignment/release authority remain false.
+
 ## 5 November 2026 Central — v3.269 image verified; final deployment candidate
 
 - Marc approved PR #1164 exact head `552d1d69086bef5d4ffc33bdacb87fec5545f87a`; squash merge `5dfe623a2438ac6fc9fe5561e0edd7781b19f864` triggered protected image-publication run `42122578578`. Authorization, exact frozen-source identity, Azure target/registry authority, build, publication and registry readback passed.

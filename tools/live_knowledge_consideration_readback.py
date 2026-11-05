@@ -11,8 +11,8 @@ from salcapa_knowledge_consideration import consider
 
 
 EXPECTED_BOUNDARY_FILES = 22_377
-EXPECTED_REPRESENTED_FILES = 22_387
-EXPECTED_HISTORICAL_ADDITIONAL = 10
+EXPECTED_REPRESENTED_FILES = 22_399
+EXPECTED_HISTORICAL_ADDITIONAL = 22
 ACTOR = "System Administrator - governed v3.269 release readback"
 QUERY = "Salus Knowledge Library governed completion readback"
 
