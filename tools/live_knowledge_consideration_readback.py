@@ -13,7 +13,7 @@ from salcapa_knowledge_consideration import consider
 EXPECTED_BOUNDARY_FILES = 22_377
 EXPECTED_REPRESENTED_FILES = 22_387
 EXPECTED_HISTORICAL_ADDITIONAL = 10
-ACTOR = "System Administrator - governed v3.268 release readback"
+ACTOR = "System Administrator - governed v3.269 release readback"
 QUERY = "Salus Knowledge Library governed completion readback"
 
 
@@ -43,6 +43,8 @@ def main() -> None:
             SELECT source_item_id FROM m365_knowledge_candidates
             UNION
             SELECT source_item_id FROM m365_knowledge_holds WHERE status='Governed Hold'
+            UNION
+            SELECT item_id FROM m365_bulk_items WHERE kind='file' AND status<>'Removed'
           )
           SELECT COUNT(*) count FROM represented
         """).fetchone()["count"])

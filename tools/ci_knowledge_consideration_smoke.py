@@ -50,6 +50,17 @@ def main():
              json.dumps({"relative_path": f"Area/File {number}.txt"}),
              "Done", "", "file", number),
         )
+    conn.execute(
+        "INSERT INTO m365_bulk_items VALUES(?,?,?,?,?,?,?)",
+        ("item-3", "Held continuity image", json.dumps({"relative_path": "Area/Held.jpg"}),
+         "Does Not Upload", "governed hold", "file", 3),
+    )
+    conn.execute(
+        "INSERT INTO m365_bulk_items VALUES(?,?,?,?,?,?,?)",
+        ("item-4", "Pending continuity strategy.txt",
+         json.dumps({"relative_path": "Area/Pending continuity strategy.txt"}),
+         "Pending Classification", "classification pending", "file", 4),
+    )
     classification = {
         "extraction": {"status": "Complete", "text": "Continuity strategy and recovery data"},
         "citation_metadata": {"document_title": "Continuity Source"},
@@ -72,17 +83,17 @@ def main():
         ("item-3", "Held continuity image", "Area/Held.jpg", "Does Not Upload",
          "governed hold", "Governed Hold"),
     )
-    os.environ["SALUS_KNOWLEDGE_MINIMUM_BOUNDARY_FILES"] = "4"
+    os.environ["SALUS_KNOWLEDGE_MINIMUM_BOUNDARY_FILES"] = "5"
     result = consider(conn, "continuity strategy", "test-actor", "2026-11-02T12:00:00Z")
     assert result["coverage"] == {
-        "boundary_files": 4,
-        "represented_files": 5,
-        "considered_files": 5,
+        "boundary_files": 5,
+        "represented_files": 6,
+        "considered_files": 6,
         "historical_additional_representations": 1,
-        "matched_files": 5,
+        "matched_files": 6,
         "considered_without_match": 0,
         "content_available_files": 4,
-        "metadata_only_or_unresolved_files": 1,
+        "metadata_only_or_unresolved_files": 2,
         "governed_hold_files": 1,
         "all_boundary_files_considered": True,
         "all_represented_files_considered": True,
@@ -90,12 +101,13 @@ def main():
     assert result["results"][0]["content_preview"]
     assert any(row["relative_path"] == "Historical/File.txt" for row in result["results"])
     assert any(row["representation"] == "Governed hold metadata" for row in result["results"])
+    assert any(row["representation"] == "Provenance-bound metadata" for row in result["results"])
     assert result["protected_member_access"] is False
     assert result["assignment_or_release_authority"] is False
     receipt = conn.execute(
         "SELECT boundary_count,considered_count FROM m365_knowledge_consideration_receipts"
     ).fetchone()
-    assert (receipt["boundary_count"], receipt["considered_count"]) == (4, 5)
+    assert (receipt["boundary_count"], receipt["considered_count"]) == (5, 6)
     print("knowledge consideration smoke passed")
 
 
