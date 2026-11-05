@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 5 November 2026 Central — v3.269 image verified; final deployment candidate
+
+- Marc approved PR #1164 exact head `552d1d69086bef5d4ffc33bdacb87fec5545f87a`; squash merge `5dfe623a2438ac6fc9fe5561e0edd7781b19f864` triggered protected image-publication run `42122578578`. Authorization, exact frozen-source identity, Azure target/registry authority, build, publication and registry readback passed.
+- The verified v3.269 image is `salcapadevb48224acr.azurecr.io/salcapa@sha256:cf0770bd0c20307c67d28bf07c162f36d3f70360d6960fe5c6f2ef789d1ad324`. This candidate targets that exact digest for the application and scheduled Knowledge worker, retains v3.268 digest `sha256:37140446a429c1e798d41c22fcce5af7dbbb9142fe7c57eaa1a88b3e756421c2` as immediate pre-state and aligns the protected receipt with v3.269.
+- Production remains v3.268. The only remaining acceptance path is repository checks, Marc exact-head approval, protected deployment and one successful aggregate receipt proving 22,377 current source files and all 22,387 governed representations considered. The scanner worker remains outside the request path; Protected Member access and assignment/release authority remain false.
+
 ## 5 November 2026 Central — v3.269 source frozen; immutable image candidate
 
 - Marc approved PR #1163 exact head `af45a5006538fd5d7edccd910e3e8462fd5c9d62` after tenant/access-boundary, package/handoff, PostgreSQL and Windows checks passed. Squash merge `c4d0d635030dc7081d121b43448354c62cf89f9e` is the exact `release/v3.269` source.
