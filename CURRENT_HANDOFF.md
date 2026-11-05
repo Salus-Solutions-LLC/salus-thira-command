@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 5 November 2026 Central — v3.269 source frozen; immutable image candidate
+
+- Marc approved PR #1163 exact head `af45a5006538fd5d7edccd910e3e8462fd5c9d62` after tenant/access-boundary, package/handoff, PostgreSQL and Windows checks passed. Squash merge `c4d0d635030dc7081d121b43448354c62cf89f9e` is the exact `release/v3.269` source.
+- Release Branch Guard run `41961991300`, SalCAPA Contextual Intake run `41961991281` and full CI run `41961991322` all passed on that exact frozen source, including focused consideration coverage, PostgreSQL and production-container paths.
+- This candidate changes only the immutable image-publication activation to exact release v3.269 and source commit `c4d0d635030dc7081d121b43448354c62cf89f9e`. Production remains verified v3.268. Deployment and the successful 22,377-boundary/22,387-considered receipt remain separately governed; no Protected Member access or assignment/release authority is granted.
+
 ## 4 November 2026 Central — v3.268 deployed; live receipt proves three pending-ledger representations omitted
 
 - Marc approved PR #1162 exact head `2c9c7e22a029b60440de2a1b84ce1e98a7f3a830`; squash merge `a20d4bbd70d920e6be040baa3158ab2e5a3dad5e` triggered protected deployment run `41762893087`. Exact source/rollback, immutable digest, application deployment, runtime/identity/ingress/sign-in, isolated Microsoft 365 acceptance and cleanup, Protection Advisor, and scheduled Knowledge-worker promotion all passed. Production application and scheduled Knowledge worker are v3.268 digest `sha256:37140446a429c1e798d41c22fcce5af7dbbb9142fe7c57eaa1a88b3e756421c2`; rollback was not invoked. The scanner worker remains unchanged and outside the consideration request path.
