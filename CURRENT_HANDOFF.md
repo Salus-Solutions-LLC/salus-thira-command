@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 6 November 2026 Central — v3.270 immutable image verified; guarded deployment candidate
+
+- Marc approved image PR #1174 at exact head `6369e90d5d27d57a9352d7501cc1570cd78db9f1` after all three candidate checks and the frozen v3.270 release, CI, security and contextual-intake checks passed. Squash merge `113dbed8ab7bab8329d2fe314353eaed9e2c3c08` triggered protected publication [run 42265823884](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/42265823884). Authorization, exact frozen-source build, publication and registry readback passed; immutable image `salcapadevb48224acr.azurecr.io/salcapa@sha256:719650a9fa7fc0ab14a8823c73308824a688d45fecef0333a74a1dc8d1888e70` is verified.
+- This candidate pins that digest for guarded application and scheduled Knowledge-worker deployment. The last verified current image is v3.269 digest `sha256:cf0770bd0c20307c67d28bf07c162f36d3f70360d6960fe5c6f2ef789d1ad324`; v3.223 remains rollback. Deployment starts all buyer controls closed. The five-minute scanner-result worker needs its separate check and update. Public Wix purchase, live payment, public intake/uploads, and four-report issue remain closed; Stripe was last verified in test mode.
+- Next: pass required candidate checks, obtain Marc's review of this exact deployment head, run protected deployment and verify app, worker, readiness and rollback prestate. Then address live Stripe configuration, fresh new-buyer acceptance, qualified reports and separate public-release approval. Never repeat fictional order L1A-10 payment, prior uploads or scanner dispositions.
+
 ## 6 November 2026 Central — v3.270 source frozen; immutable image candidate
 
 - Marc approved PR #1173 at exact head `fc4e776de5436138831619d95a55741c69a31fae` after all four required checks passed. Squash merge `3e0078f46423d1f6181103d3b5a36782b0474118` and protected branch `release/v3.270` point to the same source. The Release Branch Guard passed; frozen CI and Contextual Intake checks were still running at the last readback. This candidate pins that exact source for one protected image publication and registry digest readback. No image digest or deployment is yet accepted.
