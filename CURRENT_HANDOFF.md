@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 5 November 2026 Central — v3.269 live set advanced; receipt must bind to its observed count
+
+- Marc approved PR #1166 exact head `835247914a2f278a4af4509d3450deb294f00ab4` after all three required checks passed; squash merge `28e5d62e4febdbfae9b5a4426d30c846776f64a6` aligned the aggregate receipt to the then-observed 22,399 represented records. It changed no deployed image, access control, Protected Member boundary, assignment or release authority.
+- Protected readback run `42127994952` passed scoped authorization, exact v3.269 image and managed-identity preflight, then failed closed before receipt creation because the live represented set had advanced to 22,403. Isolated-job cleanup passed. This is not acceptance and does not show a missing-file or service failure.
+- The correction keeps the proven minimums of 22,377 current-source files and 22,399 represented records, binds the receipt to the exact aggregate pre-count observed at execution, and requires represented, considered, additional-representation and durable-receipt counts to reconcile without drift. This supports a growing governed library without excluding new provenance records or repeatedly hard-coding a larger exact total. Protected Member access and assignment/release authority must remain false.
+
 ## 5 November 2026 Central — v3.269 deployed; final receipt count aligned to complete governed superset
 
 - Marc approved PR #1165 exact head `5a09960996812f214e049cedb36d9f77fd505d31`; squash merge `c7bc7860a883f0903b0155bfd6379db1b45dd9de` triggered protected deployment run `42124214485`. Exact source/rollback, immutable digest, application deployment, runtime/identity/ingress/sign-in, isolated Microsoft 365 acceptance and cleanup, Protection Advisor, and scheduled Knowledge-worker promotion all passed. Production application and scheduled Knowledge worker are on v3.269 digest `sha256:cf0770bd0c20307c67d28bf07c162f36d3f70360d6960fe5c6f2ef789d1ad324`; rollback was not invoked.

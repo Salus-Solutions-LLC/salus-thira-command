@@ -10,9 +10,8 @@ from database import connect_database
 from salcapa_knowledge_consideration import consider
 
 
-EXPECTED_BOUNDARY_FILES = 22_377
-EXPECTED_REPRESENTED_FILES = 22_399
-EXPECTED_HISTORICAL_ADDITIONAL = 22
+MINIMUM_BOUNDARY_FILES = 22_377
+MINIMUM_REPRESENTED_FILES = 22_399
 ACTOR = "System Administrator - governed v3.269 release readback"
 QUERY = "Salus Knowledge Library governed completion readback"
 
@@ -52,8 +51,8 @@ def main() -> None:
             f"KNOWLEDGE_CONSIDERATION_PRECHECK_REPRESENTED_FILES={precheck_represented}",
             flush=True,
         )
-        if precheck_represented != EXPECTED_REPRESENTED_FILES:
-            raise RuntimeError("Represented-file count changed")
+        if precheck_represented < MINIMUM_REPRESENTED_FILES:
+            raise RuntimeError("Represented-file count fell below the governed minimum")
         stage = "create_consideration_receipt"
         result = consider(
             conn, QUERY, ACTOR,
@@ -66,17 +65,21 @@ def main() -> None:
         if not re.fullmatch(r"[0-9a-f-]{36}", receipt_id):
             raise RuntimeError("Consideration receipt identity is invalid")
         stage = "boundary_count"
-        if int(coverage["boundary_files"]) != EXPECTED_BOUNDARY_FILES:
-            raise RuntimeError("Knowledge boundary count changed")
+        boundary_files = int(coverage["boundary_files"])
+        represented_files = int(coverage["represented_files"])
+        considered_files = int(coverage["considered_files"])
+        historical_additional = int(coverage["historical_additional_representations"])
+        if boundary_files < MINIMUM_BOUNDARY_FILES:
+            raise RuntimeError("Knowledge boundary fell below the governed minimum")
         stage = "represented_count"
-        if int(coverage["represented_files"]) != EXPECTED_REPRESENTED_FILES:
-            raise RuntimeError("Knowledge represented-file count changed")
+        if represented_files != precheck_represented:
+            raise RuntimeError("Knowledge represented-file count drifted during readback")
         stage = "considered_count"
-        if int(coverage["considered_files"]) != EXPECTED_REPRESENTED_FILES:
+        if considered_files != represented_files:
             raise RuntimeError("Not every represented file was considered")
         stage = "historical_additional_count"
-        if int(coverage["historical_additional_representations"]) != EXPECTED_HISTORICAL_ADDITIONAL:
-            raise RuntimeError("Historical additional-representation count changed")
+        if historical_additional != represented_files - boundary_files:
+            raise RuntimeError("Additional-representation count is inconsistent")
         stage = "full_boundary_consideration_flag"
         if coverage["all_boundary_files_considered"] is not True:
             raise RuntimeError("Full current-boundary consideration was not recorded")
@@ -95,9 +98,9 @@ def main() -> None:
             "FROM m365_knowledge_consideration_receipts WHERE receipt_id=?",
             (receipt_id,),
         ).fetchone()
-        if row is None or int(row["boundary_count"]) != EXPECTED_BOUNDARY_FILES:
+        if row is None or int(row["boundary_count"]) != boundary_files:
             raise RuntimeError("Durable consideration receipt readback failed")
-        if int(row["considered_count"]) != EXPECTED_REPRESENTED_FILES or row["actor"] != ACTOR:
+        if int(row["considered_count"]) != represented_files or row["actor"] != ACTOR:
             raise RuntimeError("Durable consideration receipt content changed")
     except Exception as exc:
         print(f"KNOWLEDGE_CONSIDERATION_FAILURE_STAGE={stage}", flush=True)
