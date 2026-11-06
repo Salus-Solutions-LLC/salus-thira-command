@@ -134,6 +134,7 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         app.LEVEL1A_UPLOAD_ENABLED=False
         app.PACKAGE_SCANNER_ACCEPTED=False
         app.PACKAGE_SCAN_MODE=''
+        app.LEVEL1A_TEST_CHECKOUT_ONLY=True
         app.secret=lambda key,default='': {
             'SALUS_STRIPE_SECRET_KEY':'rk_test_fictional',
             'SALUS_STRIPE_WEBHOOK_SECRET':'whsec_fictional'}.get(key,default)
@@ -147,6 +148,12 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         assert not mode['level1a_purchase_available']
         assert buyer.post(f'/api/level1a/orders/{oid}/checkout').status_code==503
         app.LEVEL1A_CHECKOUT_ENABLED=True
+        app.LEVEL1A_TEST_CHECKOUT_ONLY=False
+        assert buyer.post(f'/api/level1a/orders/{oid}/checkout').status_code==503
+        app.LEVEL1A_PUBLIC_LIVE_ENABLED=True
+        assert buyer.post(f'/api/level1a/orders/{oid}/checkout').status_code==503
+        app.LEVEL1A_PUBLIC_LIVE_ENABLED=False
+        app.LEVEL1A_TEST_CHECKOUT_ONLY=True
         started=buyer.post(f'/api/level1a/orders/{oid}/checkout')
         assert started.status_code==200 and started.json()['status']=='Pending',started.text
         pending=buyer.get(f'/api/level1a/orders/{oid}/checkout').json()

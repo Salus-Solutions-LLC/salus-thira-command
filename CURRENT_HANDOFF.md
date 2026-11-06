@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 6 November 2026 Central — Level 1A public checkout source safeguard candidate
+
+- Protected read-only readiness run [42199505955](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/42199505955) verified the deployed v3.269 image, scheduled scanner, Defender/quarantine, and single Sev2 alert route. Its Stripe readback classified the configured key as **test mode** and found a webhook secret. The temporary vault-only read grant used for this check was removed and the prior six-assignment vault role set was restored. Do not repeat the grant or the existing fictional payment and uploads.
+- This source candidate adds a default-off public live-release switch. The public purchase indicator requires that switch, no named pilot, customer OIDC, and the existing intake/scanner controls. Checkout rejects an unset mode, conflicting pilot/live settings, a test key in public mode, or a missing webhook secret before reusing or creating a Stripe session. It has not been merged, frozen, built, deployed, or accepted.
+- Public Wix purchase and live payment remain closed. The Wix Level 1A page still directs visitors to Contact. A separate verified new-buyer live transaction/intake path, qualified four-report issue, buyer acknowledgment, and exact public-release approval remain open. Next action: complete required source checks and exact-head review, then continue the governed release and buyer acceptance sequence. Do not describe this candidate as a public launch.
+
 ## 5 November 2026 Central — v3.269 Knowledge consideration accepted
 
 - Marc approved PR #1167 exact head `e1e68ab666b35b73c224ce5628d7840d4d91af00` after all three required checks passed; squash merge `79cfc3c4886b218023ccdb86a3c9d6be182c97e1` made the live-count-bound aggregate receipt authoritative. It changed no deployed image, source file, access control, Protected Member boundary, assignment or release authority.

@@ -79,6 +79,7 @@ PACKAGE_COMMERCIAL_WORKFLOW_ENABLED = os.getenv('SALUS_PACKAGE_COMMERCIAL_WORKFL
 LEVEL1A_ORDER_DRAFT_ENABLED = os.getenv('SALUS_LEVEL1A_ORDER_DRAFT_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_CHECKOUT_ENABLED = os.getenv('SALUS_LEVEL1A_CHECKOUT_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_TEST_CHECKOUT_ONLY = os.getenv('SALUS_LEVEL1A_TEST_CHECKOUT_ONLY','0').lower() in ('1','true','yes')
+LEVEL1A_PUBLIC_LIVE_ENABLED = os.getenv('SALUS_LEVEL1A_PUBLIC_LIVE_ENABLED','0').lower() in ('1','true','yes')
 LEVEL1A_PILOT_EMAIL = os.getenv('SALUS_LEVEL1A_PILOT_EMAIL','').strip().casefold()
 LEVEL1A_PILOT_OBJECT_ID = os.getenv('SALUS_LEVEL1A_PILOT_OBJECT_ID','').strip().lower()
 LEVEL1A_INTAKE_ENABLED = os.getenv('SALUS_LEVEL1A_INTAKE_ENABLED','0').lower() in ('1','true','yes')
@@ -3884,7 +3885,7 @@ def backfill_baseline_versions():
 backfill_baseline_versions()
 
 @app.get('/api/system/mode')
-def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'customer_signin_available':customer_oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc'),'level1a_draft_available':bool(LEVEL1A_ORDER_DRAFT_ENABLED and AUTH_MODE in ('session','oidc')),'level1a_checkout_available':bool(LEVEL1A_CHECKOUT_ENABLED),'level1a_purchase_available':bool(LEVEL1A_ORDER_DRAFT_ENABLED and LEVEL1A_CHECKOUT_ENABLED and LEVEL1A_INTAKE_ENABLED and LEVEL1A_UPLOAD_ENABLED and PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and AUTH_MODE in ('session','oidc'))}
+def system_mode(): return {'auth_mode':AUTH_MODE,'version':APP_VERSION,'db_backend':DB_BACKEND,'restore_enabled':ALLOW_RESTORE,'environment':ENVIRONMENT,'storage_backend':STORAGE_BACKEND,'av_mode':AV_MODE,'av_required':AV_REQUIRED,'oidc_configured':oidc_configured(),'customer_signin_available':customer_oidc_configured(),'rate_limit_backend':RATE_LIMITER.backend,'secret_backend':secret_readiness().get('backend'),'managed_db_target':managed_target_status().get('target'),'package_handoff_candidate_available':package_workflow_ready() and AUTH_MODE in ('session','oidc'),'level1a_draft_available':bool(LEVEL1A_ORDER_DRAFT_ENABLED and AUTH_MODE in ('session','oidc')),'level1a_checkout_available':bool(LEVEL1A_CHECKOUT_ENABLED),'level1a_purchase_available':bool(LEVEL1A_PUBLIC_LIVE_ENABLED and not LEVEL1A_TEST_CHECKOUT_ONLY and not LEVEL1A_PILOT_EMAIL and not LEVEL1A_PILOT_OBJECT_ID and LEVEL1A_ORDER_DRAFT_ENABLED and LEVEL1A_CHECKOUT_ENABLED and LEVEL1A_INTAKE_ENABLED and LEVEL1A_UPLOAD_ENABLED and PACKAGE_SCANNER_ACCEPTED and PACKAGE_SCAN_MODE=='defender' and customer_oidc_configured() and AUTH_MODE=='oidc')}
 
 def staff_oidc_return_path(value:str)->str:
     if value == '/protection-advisor/review' or re.fullmatch(
@@ -6343,6 +6344,11 @@ def accept_level1a_order(order_id:int,p:Level1AAcceptanceIn,request:Request):
 def start_level1a_checkout(order_id:int,request:Request):
     if not LEVEL1A_CHECKOUT_ENABLED:
         raise HTTPException(503,'Level 1A checkout is not released.')
+    if (LEVEL1A_PUBLIC_LIVE_ENABLED and
+            (LEVEL1A_TEST_CHECKOUT_ONLY or LEVEL1A_PILOT_EMAIL or LEVEL1A_PILOT_OBJECT_ID)):
+        raise HTTPException(503,'Public checkout needs configuration review.')
+    if not LEVEL1A_PUBLIC_LIVE_ENABLED and not LEVEL1A_TEST_CHECKOUT_ONLY:
+        raise HTTPException(503,'Level 1A checkout mode is not released.')
     ctx=_level1a_draft_authority(request)
     conn=db()
     try:
@@ -6369,9 +6375,17 @@ def start_level1a_checkout(order_id:int,request:Request):
             raise HTTPException(503,'Secure checkout is not configured.') from exc
         if not stripe_key:
             raise HTTPException(503,'Secure checkout is not configured.')
+        if LEVEL1A_PUBLIC_LIVE_ENABLED:
+            try:
+                webhook_secret=secret('SALUS_STRIPE_WEBHOOK_SECRET','').strip()
+            except Exception as exc:
+                raise HTTPException(503,'Secure checkout is not configured.') from exc
+            if not webhook_secret.startswith('whsec_'):
+                raise HTTPException(503,'Secure checkout needs configuration review.')
         try:
             validate_level1a_checkout_key(stripe_key,
-                test_only=LEVEL1A_TEST_CHECKOUT_ONLY)
+                test_only=LEVEL1A_TEST_CHECKOUT_ONLY,
+                live_only=LEVEL1A_PUBLIC_LIVE_ENABLED)
         except CheckoutVerificationError as exc:
             raise HTTPException(503,'Secure checkout needs configuration review.') from exc
         if previous:
@@ -6395,7 +6409,8 @@ def start_level1a_checkout(order_id:int,request:Request):
             session=create_level1a_checkout_session(binding,stripe_key,
                 origin+'/package-checkout-return?flow=level1a&session_id={CHECKOUT_SESSION_ID}',
                 origin+'/package-checkout-cancel?flow=level1a',attempt_no=attempt,
-                test_only=LEVEL1A_TEST_CHECKOUT_ONLY)
+                test_only=LEVEL1A_TEST_CHECKOUT_ONLY,
+                live_only=LEVEL1A_PUBLIC_LIVE_ENABLED)
             recorded=record_level1a_session(conn,binding,attempt,session['id'],
                                             session['url'],now())
         except CheckoutVerificationError as exc:
