@@ -1,0 +1,161 @@
+name: SalCAPA protected Level 1A public readiness
+
+on:
+  push:
+    branches:
+      - development/salcapa-platform
+    paths:
+      - '.github/workflows/azure-level1a-public-readiness-20261106.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salcapa-application-deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo 'Protected read-only Level 1A readiness authorized.'
+
+  inspect:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Sign in to the pinned Azure tenant
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Read current Level 1A launch controls without changing them
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          EXPECTED_SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          EXPECTED_TENANT: ${{ vars.AZURE_TENANT_ID }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = 'rg-salcapa-dev'
+          test "$EXPECTED_SUBSCRIPTION" = '076f90cd-cc6a-4547-a4ff-de3fc1825472'
+          test "$EXPECTED_TENANT" = 'e06fd260-a201-44da-b03b-9cde7e119d04'
+          test "$(az account show --query id -o tsv)" = "$EXPECTED_SUBSCRIPTION"
+          test "$(az account show --query tenantId -o tsv)" = "$EXPECTED_TENANT"
+
+          az containerapp show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224 -o json > "$RUNNER_TEMP/level1a-app.json"
+          az containerapp job show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-scan-worker -o json > "$RUNNER_TEMP/level1a-worker.json"
+
+          ACCOUNT_ID="/subscriptions/$EXPECTED_SUBSCRIPTION/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Storage/storageAccounts/salcapadevb48224scan"
+          az rest --method GET --url "https://management.azure.com$ACCOUNT_ID/blobServices/default?api-version=2023-05-01" -o json > "$RUNNER_TEMP/level1a-storage.json"
+          az rest --method GET --url "https://management.azure.com$ACCOUNT_ID/providers/Microsoft.Security/defenderForStorageSettings/current?api-version=2025-06-01" -o json > "$RUNNER_TEMP/level1a-defender.json"
+
+          ALERT_ROOT="/subscriptions/$EXPECTED_SUBSCRIPTION/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Insights"
+          ACTION_ID="$ALERT_ROOT/actionGroups/salcapa-dev-b48224-scan-alerts-v2"
+          az rest --method GET --url "https://management.azure.com$ACTION_ID?api-version=2023-01-01" -o json > "$RUNNER_TEMP/level1a-alert-group.json"
+          for NAME in salcapa-dev-b48224-scan-result-worker-failed salcapa-dev-b48224-scan-inventory-failed; do
+            az rest --method GET --url "https://management.azure.com$ALERT_ROOT/metricAlerts/$NAME?api-version=2018-03-01" -o json > "$RUNNER_TEMP/$NAME.json"
+          done
+          for NAME in salcapa-dev-b48224-scan-result-worker-missed salcapa-dev-b48224-scan-inventory-missed; do
+            az rest --method GET --url "https://management.azure.com$ALERT_ROOT/scheduledQueryRules/$NAME?api-version=2023-12-01" -o json > "$RUNNER_TEMP/$NAME.json"
+          done
+
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+          from urllib.parse import urlparse
+
+          root = Path(os.environ['RUNNER_TEMP'])
+          def read(name):
+              return json.loads((root / name).read_text(encoding='utf-8'))
+          def yes(value):
+              return 'yes' if value else 'no'
+
+          app = read('level1a-app.json')
+          worker = read('level1a-worker.json')
+          storage = read('level1a-storage.json')
+          defender = read('level1a-defender.json')
+          alert_group = read('level1a-alert-group.json')
+          app_container = app['properties']['template']['containers'][0]
+          app_env = {e['name']: e.get('value') or '' for e in app_container.get('env', [])}
+          worker_container = worker['properties']['template']['containers'][0]
+          worker_env = {e['name']: e.get('value') or '' for e in worker_container.get('env', [])}
+          app_image = app_container['image']
+          expected_image = 'salcapadevb48224acr.azurecr.io/salcapa@sha256:cf0770bd0c20307c67d28bf07c162f36d3f70360d6960fe5c6f2ef789d1ad324'
+          worker_config = worker['properties']['configuration']
+          storage_props = storage['properties']
+          defender_props = defender['properties']
+          action_id = f'/subscriptions/{os.environ["EXPECTED_SUBSCRIPTION"]}/resourceGroups/{os.environ["RESOURCE_GROUP"]}/providers/Microsoft.Insights/actionGroups/salcapa-dev-b48224-scan-alerts-v2'
+          metric_names = ('salcapa-dev-b48224-scan-result-worker-failed', 'salcapa-dev-b48224-scan-inventory-failed')
+          query_names = ('salcapa-dev-b48224-scan-result-worker-missed', 'salcapa-dev-b48224-scan-inventory-missed')
+          metric_ok = all(
+              (a := read(f'{name}.json'))['properties'].get('enabled') is True
+              and a['properties'].get('severity') == 2
+              and [x.get('actionGroupId', '').lower() for x in a['properties'].get('actions', [])] == [action_id.lower()]
+              for name in metric_names
+          )
+          query_ok = all(
+              (a := read(f'{name}.json'))['properties'].get('enabled') is True
+              and a['properties'].get('severity') == 2
+              and [x.lower() for x in a['properties'].get('actions', {}).get('actionGroups', [])] == [action_id.lower()]
+              for name in query_names
+          )
+          receivers = alert_group['properties'].get('emailReceivers', [])
+          alerts_ok = alert_group['properties'].get('enabled') is True and len(receivers) == 1 and metric_ok and query_ok
+
+          def managed_secret(name):
+              direct = app_env.get(name, '')
+              if direct:
+                  return direct
+              vault_url = app_env.get('SALUS_KEY_VAULT_URL', '')
+              if urlparse(vault_url).hostname != 'salcapa-dev-b48224-kv.vault.azure.net':
+                  return None
+              secret_name = app_env.get(name + '_KEYVAULT_NAME') or name.lower().replace('_', '-')
+              if not re.fullmatch(r'[A-Za-z0-9-]{1,127}', secret_name):
+                  return None
+              result = subprocess.run(
+                  ['az', 'keyvault', 'secret', 'show', '--vault-name', 'salcapa-dev-b48224-kv', '--name', secret_name, '--query', 'value', '-o', 'tsv'],
+                  capture_output=True, text=True, check=False,
+              )
+              return result.stdout.strip() if result.returncode == 0 else None
+
+          key = managed_secret('SALUS_STRIPE_SECRET_KEY')
+          webhook = managed_secret('SALUS_STRIPE_WEBHOOK_SECRET')
+          stripe_mode = ('unknown' if key is None else 'test' if key.startswith(('sk_test_', 'rk_test_')) else 'live' if key.startswith(('sk_live_', 'rk_live_')) else 'absent' if not key else 'unrecognized')
+          webhook_state = 'unknown' if webhook is None else yes(webhook.startswith('whsec_'))
+          settings = {
+              'Pinned deployed image': yes(app_image == expected_image),
+              'Customer sign-in enabled': yes(app_env.get('SALUS_CUSTOMER_OIDC_ENABLED') == '1'),
+              'Buyer pilot restriction cleared': yes(not app_env.get('SALUS_LEVEL1A_PILOT_EMAIL') and not app_env.get('SALUS_LEVEL1A_PILOT_OBJECT_ID')),
+              'Draft order enabled': yes(app_env.get('SALUS_LEVEL1A_ORDER_DRAFT_ENABLED') == '1'),
+              'Checkout enabled': yes(app_env.get('SALUS_LEVEL1A_CHECKOUT_ENABLED') == '1'),
+              'Test-only checkout disabled': yes(app_env.get('SALUS_LEVEL1A_TEST_CHECKOUT_ONLY') != '1'),
+              'Paid intake enabled': yes(app_env.get('SALUS_LEVEL1A_INTAKE_ENABLED') == '1'),
+              'Screened uploads enabled': yes(app_env.get('SALUS_LEVEL1A_UPLOAD_ENABLED') == '1'),
+              'Scanner acceptance enabled': yes(app_env.get('SALUS_PACKAGE_SCANNER_ACCEPTED') == '1'),
+              'Five-minute scanner worker scheduled': yes(worker_config.get('triggerType') == 'Schedule' and worker_config.get('scheduleTriggerConfig', {}).get('cronExpression') == '*/5 * * * *'),
+              'Scanner worker uses Defender': yes(worker_env.get('SALUS_PACKAGE_SCAN_MODE') == 'defender'),
+              'Versioned quarantine': yes(storage_props.get('isVersioningEnabled') is True and storage_props.get('deleteRetentionPolicy', {}).get('enabled') is True),
+              'Defender on-upload scanning': yes(defender_props.get('isEnabled') is True and defender_props.get('malwareScanning', {}).get('onUpload', {}).get('isEnabled') is True),
+              'Single active scanner alert route': yes(alerts_ok),
+              'Stripe key mode': stripe_mode,
+              'Stripe webhook secret present': webhook_state,
+          }
+          lines = ['## Level 1A public readiness (read-only)', '', '| Check | Observed |', '|---|---|']
+          lines.extend(f'| {label} | {value} |' for label, value in settings.items())
+          lines.extend(['', 'No setting, payment, queue message, Blob, or report was changed. This check does not authorize public opening.'])
+          Path(os.environ['GITHUB_STEP_SUMMARY']).write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          print('Read-only readiness classifications written to the protected run summary.')
+          PY
+
