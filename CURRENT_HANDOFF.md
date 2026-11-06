@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 5 November 2026 Central — v3.269 Knowledge consideration accepted
+
+- Marc approved PR #1167 exact head `e1e68ab666b35b73c224ce5628d7840d4d91af00` after all three required checks passed; squash merge `79cfc3c4886b218023ccdb86a3c9d6be182c97e1` made the live-count-bound aggregate receipt authoritative. It changed no deployed image, source file, access control, Protected Member boundary, assignment or release authority.
+- Protected readback run `42140017517` passed scoped authorization, exact deployed v3.269 image and managed PostgreSQL identity preflight, consideration, durable receipt readback and isolated-job cleanup. Receipt `0fffdffe-df75-47c2-8f96-bc532391e602` records 22,377 current-source boundary files and all 22,403 live governed representations considered, including 26 additional historical/ledger representations. All 22,403 matched the completion inquiry; none was omitted.
+- The receipt reports 14,479 content-available representations, 7,924 metadata-only or unresolved representations and 93 governed holds. It does not represent unavailable content as read. `ALL_BOUNDARY_FILES_CONSIDERED=1`, `ALL_REPRESENTED_FILES_CONSIDERED=1`, `PROTECTED_MEMBER_ACCESS=0` and `ASSIGNMENT_OR_RELEASE_AUTHORITY=0` all passed. Human validation remains required before customer-facing release or material reliance.
+- Production remains v3.269 digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:cf0770bd0c20307c67d28bf07c162f36d3f70360d6960fe5c6f2ef789d1ad324`. The SalCAPA Intake Knowledge consideration acceptance objective is complete at the recorded live count; future additions are included through the governed live union and receipts bind to the exact execution count.
+
 ## 5 November 2026 Central — v3.269 live set advanced; receipt must bind to its observed count
 
 - Marc approved PR #1166 exact head `835247914a2f278a4af4509d3450deb294f00ab4` after all three required checks passed; squash merge `28e5d62e4febdbfae9b5a4426d30c846776f64a6` aligned the aggregate receipt to the then-observed 22,399 represented records. It changed no deployed image, access control, Protected Member boundary, assignment or release authority.
