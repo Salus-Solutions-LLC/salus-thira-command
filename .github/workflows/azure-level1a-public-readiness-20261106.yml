@@ -117,21 +117,28 @@ jobs:
           def managed_secret(name):
               direct = app_env.get(name, '')
               if direct:
-                  return direct
+                  return direct, 'direct'
               vault_url = app_env.get('SALUS_KEY_VAULT_URL', '')
               if urlparse(vault_url).hostname != 'salcapa-dev-b48224-kv.vault.azure.net':
-                  return None
+                  return None, 'vault_not_configured'
               secret_name = app_env.get(name + '_KEYVAULT_NAME') or name.lower().replace('_', '-')
               if not re.fullmatch(r'[A-Za-z0-9-]{1,127}', secret_name):
-                  return None
+                  return None, 'invalid_secret_mapping'
               result = subprocess.run(
                   ['az', 'keyvault', 'secret', 'show', '--vault-name', 'salcapa-dev-b48224-kv', '--name', secret_name, '--query', 'value', '-o', 'tsv'],
                   capture_output=True, text=True, check=False,
               )
-              return result.stdout.strip() if result.returncode == 0 else None
+              if result.returncode == 0:
+                  return result.stdout.strip(), 'vault_read'
+              error = result.stderr.lower()
+              if any(term in error for term in ('forbidden', 'permission', 'not authorized')):
+                  return None, 'vault_access_denied'
+              if any(term in error for term in ('not found', 'secret not found', 'could not be found')):
+                  return None, 'vault_secret_not_found'
+              return None, 'vault_read_error'
 
-          key = managed_secret('SALUS_STRIPE_SECRET_KEY')
-          webhook = managed_secret('SALUS_STRIPE_WEBHOOK_SECRET')
+          key, key_lookup = managed_secret('SALUS_STRIPE_SECRET_KEY')
+          webhook, webhook_lookup = managed_secret('SALUS_STRIPE_WEBHOOK_SECRET')
           stripe_mode = ('unknown' if key is None else 'test' if key.startswith(('sk_test_', 'rk_test_')) else 'live' if key.startswith(('sk_live_', 'rk_live_')) else 'absent' if not key else 'unrecognized')
           webhook_state = 'unknown' if webhook is None else yes(webhook.startswith('whsec_'))
           settings = {
@@ -150,7 +157,9 @@ jobs:
               'Defender on-upload scanning': yes(defender_props.get('isEnabled') is True and defender_props.get('malwareScanning', {}).get('onUpload', {}).get('isEnabled') is True),
               'Single active scanner alert route': yes(alerts_ok),
               'Stripe key mode': stripe_mode,
+              'Stripe key lookup': key_lookup,
               'Stripe webhook secret present': webhook_state,
+              'Stripe webhook lookup': webhook_lookup,
           }
           lines = ['## Level 1A public readiness (read-only)', '', '| Check | Observed |', '|---|---|']
           lines.extend(f'| {label} | {value} |' for label, value in settings.items())
