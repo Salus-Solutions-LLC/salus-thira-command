@@ -15,7 +15,7 @@ validation_pr: 1168
 validation_branch: codex/knowledge-v3269-acceptance-closeout-20261105
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
-validation_gate_state: github_validation_running
+validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_open_prior_count_drift_runs_retained_as_audit_evidence
 first_root_failing_gate: none
 root_cause: resolved_live_receipt_now_binds_to_the_exact_execution_count
