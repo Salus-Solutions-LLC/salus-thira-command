@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 6 November 2026 Central — v3.270 source frozen; immutable image candidate
+
+- Marc approved PR #1173 at exact head `fc4e776de5436138831619d95a55741c69a31fae` after all four required checks passed. Squash merge `3e0078f46423d1f6181103d3b5a36782b0474118` and protected branch `release/v3.270` point to the same source. The Release Branch Guard passed; frozen CI and Contextual Intake checks were still running at the last readback. This candidate pins that exact source for one protected image publication and registry digest readback. No image digest or deployment is yet accepted.
+- Protected app and scheduled Knowledge worker remain on v3.269 digest `sha256:cf0770bd0c20307c67d28bf07c162f36d3f70360d6960fe5c6f2ef789d1ad324` at the last verified readback. The five-minute scanner-result worker requires a separate exact-image check and update. Public Wix purchase, live payment, public intake/uploads, and report issue remain closed. The most recent protected Stripe check found a test key; do not repeat that vault grant or the fictional L1A-10 payment or uploads.
+- Next: finish every frozen-source and image-candidate check, obtain Marc's review of the image PR's exact current head, publish once through the protected workflow, and verify the registry digest. Guarded app deployment, worker update, live-key configuration, new-buyer acceptance, qualified four-report issue, buyer acknowledgment, and separate public release remain open gates. Do not treat image publication as launch.
+
 ## 6 November 2026 Central — v3.270 Level 1A public checkout source candidate
 
 - Protected read-only readiness run [42199505955](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/42199505955) verified the deployed v3.269 image, scheduled scanner, Defender/quarantine, and single Sev2 alert route. Its Stripe readback classified the configured key as **test mode** and found a webhook secret. The temporary vault-only read grant used for this check was removed and the prior six-assignment vault role set was restored. Do not repeat the grant or the existing fictional payment and uploads.
