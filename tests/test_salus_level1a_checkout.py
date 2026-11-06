@@ -75,3 +75,23 @@ def test_protected_pilot_rejects_live_key_before_reusing_or_creating_checkout():
             transport=fake_post,test_only=True)
     assert calls==[]
     validate_level1a_checkout_key('rk_test_fictional',test_only=True)
+
+
+def test_public_checkout_rejects_test_key_before_creating_session():
+    calls=[]
+    def fake_post(*args):
+        calls.append(args)
+        raise AssertionError('Test Stripe must never receive a public request.')
+    with pytest.raises(CheckoutVerificationError,match='live key'):
+        validate_level1a_checkout_key('sk_test_fictional',live_only=True)
+    with pytest.raises(CheckoutVerificationError,match='live key'):
+        create_level1a_checkout_session(
+            _binding(),'sk_test_fictional',
+            'https://salcapa.salus.solutions/success',
+            'https://salcapa.salus.solutions/cancel',
+            transport=fake_post,live_only=True)
+    assert calls==[]
+    validate_level1a_checkout_key('rk_live_fictional',live_only=True)
+    with pytest.raises(CheckoutVerificationError,match='mode requires review'):
+        validate_level1a_checkout_key('rk_live_fictional',
+                                      test_only=True,live_only=True)
