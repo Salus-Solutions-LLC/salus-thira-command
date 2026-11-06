@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 5 November 2026 Central — Wix Level 1A information page published and linked
+
+- Marc authorized publication. In the Wix Classic Editor, the existing Level 1A Assessment page was added to the active horizontal header menu and the site was published. No duplicate page was created.
+- Public readback at https://www.salus.solutions/level-1a-assessment confirmed the title “Level 1A Assessment | Salus Solutions,” the heading “One defined site or function. One $1,500 assessment,” and a live header link labeled “Level 1A Assessment” targeting `/level-1a-assessment`.
+- This is publication of the informational offer page and navigation only. Public purchase, live Stripe payment, public intake/uploads and report issue remain closed. Do not repeat fictional order L1A-10 payment, existing uploads, scanner dispositions or report staging. Complete the remaining governed report and paid-release gates before claiming the full rollout live.
+
 ## 5 November 2026 Central — v3.269 Knowledge consideration accepted
 
 - Marc approved PR #1167 exact head `e1e68ab666b35b73c224ce5628d7840d4d91af00` after all three required checks passed; squash merge `79cfc3c4886b218023ccdb86a3c9d6be182c97e1` made the live-count-bound aggregate receipt authoritative. It changed no deployed image, source file, access control, Protected Member boundary, assignment or release authority.
