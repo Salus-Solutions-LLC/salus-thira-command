@@ -6345,7 +6345,8 @@ def start_level1a_checkout(order_id:int,request:Request):
     if not LEVEL1A_CHECKOUT_ENABLED:
         raise HTTPException(503,'Level 1A checkout is not released.')
     if (LEVEL1A_PUBLIC_LIVE_ENABLED and
-            (LEVEL1A_TEST_CHECKOUT_ONLY or LEVEL1A_PILOT_EMAIL or LEVEL1A_PILOT_OBJECT_ID)):
+            (LEVEL1A_TEST_CHECKOUT_ONLY or LEVEL1A_PILOT_EMAIL or LEVEL1A_PILOT_OBJECT_ID or
+             AUTH_MODE != 'oidc' or not customer_oidc_configured())):
         raise HTTPException(503,'Public checkout needs configuration review.')
     if not LEVEL1A_PUBLIC_LIVE_ENABLED and not LEVEL1A_TEST_CHECKOUT_ONLY:
         raise HTTPException(503,'Level 1A checkout mode is not released.')
