@@ -6345,7 +6345,8 @@ def start_level1a_checkout(order_id:int,request:Request):
     if not LEVEL1A_CHECKOUT_ENABLED:
         raise HTTPException(503,'Level 1A checkout is not released.')
     if (LEVEL1A_PUBLIC_LIVE_ENABLED and
-            (LEVEL1A_TEST_CHECKOUT_ONLY or LEVEL1A_PILOT_EMAIL or LEVEL1A_PILOT_OBJECT_ID)):
+            (LEVEL1A_TEST_CHECKOUT_ONLY or LEVEL1A_PILOT_EMAIL or LEVEL1A_PILOT_OBJECT_ID or
+             AUTH_MODE != 'oidc' or not customer_oidc_configured())):
         raise HTTPException(503,'Public checkout needs configuration review.')
     if not LEVEL1A_PUBLIC_LIVE_ENABLED and not LEVEL1A_TEST_CHECKOUT_ONLY:
         raise HTTPException(503,'Level 1A checkout mode is not released.')
@@ -6370,14 +6371,15 @@ def start_level1a_checkout(order_id:int,request:Request):
             ORDER BY attempt_no DESC LIMIT 1''',
             (tid,uid,order_id,binding.acceptance_id)).fetchone()
         try:
-            stripe_key=secret('SALUS_STRIPE_SECRET_KEY','').strip()
+            stripe_key=secret('SALUS_STRIPE_LIVE_SECRET_KEY' if LEVEL1A_PUBLIC_LIVE_ENABLED
+                else 'SALUS_STRIPE_SECRET_KEY','').strip()
         except Exception as exc:
             raise HTTPException(503,'Secure checkout is not configured.') from exc
         if not stripe_key:
             raise HTTPException(503,'Secure checkout is not configured.')
         if LEVEL1A_PUBLIC_LIVE_ENABLED:
             try:
-                webhook_secret=secret('SALUS_STRIPE_WEBHOOK_SECRET','').strip()
+                webhook_secret=secret('SALUS_STRIPE_LIVE_WEBHOOK_SECRET','').strip()
             except Exception as exc:
                 raise HTTPException(503,'Secure checkout is not configured.') from exc
             if not webhook_secret.startswith('whsec_'):
@@ -6391,11 +6393,26 @@ def start_level1a_checkout(order_id:int,request:Request):
         if previous:
             if previous['status']!='Pending':
                 raise HTTPException(409,'The prior payment needs reconciliation.')
+            previous_key=stripe_key
+            previous_live=previous['stripe_session_id'].startswith('cs_live_')
+            if previous_live != LEVEL1A_PUBLIC_LIVE_ENABLED:
+                try:
+                    previous_key=secret('SALUS_STRIPE_LIVE_SECRET_KEY' if previous_live
+                        else 'SALUS_STRIPE_SECRET_KEY','').strip()
+                except Exception as exc:
+                    raise HTTPException(503,'Unable to verify the current checkout.') from exc
             try:
-                session=retrieve_checkout_session(previous['stripe_session_id'],stripe_key)
+                validate_level1a_checkout_key(previous_key,
+                    test_only=not previous_live,live_only=previous_live)
+            except Exception as exc:
+                raise HTTPException(503,'Unable to verify the current checkout.') from exc
+            try:
+                session=retrieve_checkout_session(previous['stripe_session_id'],previous_key)
             except Exception as exc:
                 raise HTTPException(503,'Unable to verify the current checkout.') from exc
             if session.get('status')=='open':
+                if previous_live != LEVEL1A_PUBLIC_LIVE_ENABLED:
+                    raise HTTPException(409,'The prior payment needs reconciliation.')
                 return {'status':'Pending','checkout_url':previous['checkout_url'],
                         'order_id':order_id,'amount_cents':binding.amount_cents,
                         'currency':binding.currency,'upload_available':False}
@@ -7565,13 +7582,29 @@ async def package_checkout_stripe_webhook(request:Request):
     payload=await request.body()
     if len(payload)>65536:
         raise HTTPException(413,'Stripe event exceeds the accepted size.')
-    try:
-        webhook_secret=secret('SALUS_STRIPE_WEBHOOK_SECRET','').strip()
-        stripe_key=secret('SALUS_STRIPE_SECRET_KEY','').strip()
-        event=verify_webhook_signature(payload,request.headers.get('Stripe-Signature',''),
-                                       webhook_secret)
-    except Exception as exc:
-        raise HTTPException(400,'Stripe event signature could not be verified.') from exc
+    event=None;stripe_key='';live_event=False
+    for live_mode, key_name, webhook_name in (
+            (False,'SALUS_STRIPE_SECRET_KEY','SALUS_STRIPE_WEBHOOK_SECRET'),
+            (True,'SALUS_STRIPE_LIVE_SECRET_KEY','SALUS_STRIPE_LIVE_WEBHOOK_SECRET')):
+        try:
+            signing_secret=secret(webhook_name,'').strip()
+            candidate_key=secret(key_name,'').strip()
+            if not signing_secret.startswith('whsec_'):
+                continue
+            candidate=verify_webhook_signature(payload,
+                request.headers.get('Stripe-Signature',''),signing_secret)
+            if live_mode and candidate.get('livemode') is not True:
+                continue
+            if not live_mode and candidate.get('livemode') is True:
+                continue
+            validate_level1a_checkout_key(candidate_key,
+                test_only=not live_mode,live_only=live_mode)
+            event=candidate;stripe_key=candidate_key;live_event=live_mode
+            break
+        except Exception:
+            continue
+    if event is None:
+        raise HTTPException(400,'Stripe event signature could not be verified.')
     if event['type'] in ('charge.refunded','charge.dispute.created',
                          'payment_intent.canceled','payment_intent.payment_failed'):
         event_object=(event.get('data') or {}).get('object') or {}
@@ -7601,6 +7634,8 @@ async def package_checkout_stripe_webhook(request:Request):
         return {'received':True,'outcome':'Ignored'}
     event_object=(event.get('data') or {}).get('object') or {}
     session_id=event_object.get('id','')
+    if session_id.startswith('cs_live_') != live_event:
+        raise HTTPException(409,'The Stripe Session mode did not match its event.')
     try:
         session=retrieve_checkout_session(session_id,stripe_key)
     except Exception as exc:
