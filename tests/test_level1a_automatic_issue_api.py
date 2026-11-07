@@ -137,7 +137,9 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
         app.LEVEL1A_TEST_CHECKOUT_ONLY=True
         app.secret=lambda key,default='': {
             'SALUS_STRIPE_SECRET_KEY':'rk_test_fictional',
-            'SALUS_STRIPE_WEBHOOK_SECRET':'whsec_fictional'}.get(key,default)
+            'SALUS_STRIPE_WEBHOOK_SECRET':'whsec_fictional',
+            'SALUS_STRIPE_LIVE_SECRET_KEY':'rk_live_fictional',
+            'SALUS_STRIPE_LIVE_WEBHOOK_SECRET':'whsec_live_fictional'}.get(key,default)
         app.create_level1a_checkout_session=lambda *args,**kwargs: {
             'id':'cs_test_example12345678',
             'url':'https://checkout.stripe.com/c/pay/fictional'}
@@ -176,13 +178,19 @@ def test_signed_in_issue_retry_and_download(tmp_path,review_mode):
             'metadata':binding.metadata(),'payment_intent':'pi_fictional'}
         app.retrieve_checkout_session=lambda session_id,key: paid_session
         import hmac,json,time
-        def signed_event(event):
+        def signed_event(event,signing_secret=b'whsec_fictional'):
             payload=json.dumps(event,separators=(',',':')).encode()
             stamp=str(int(time.time()))
-            signature=hmac.new(b'whsec_fictional',stamp.encode()+b'.'+payload,
+            signature=hmac.new(signing_secret,stamp.encode()+b'.'+payload,
                                'sha256').hexdigest()
             return buyer.post('/api/package-checkout/stripe-webhook',
                 content=payload,headers={'Stripe-Signature':f't={stamp},v1={signature}'})
+        live_ping={'id':'evt_fictional_live_ping','type':'ping','livemode':True}
+        assert signed_event(live_ping,b'whsec_live_fictional').json()=={
+            'received':True,'outcome':'Ignored'}
+        assert signed_event(live_ping).status_code==400
+        assert signed_event({**live_ping,'livemode':False},
+            b'whsec_live_fictional').status_code==400
         payment=signed_event({'id':'evt_fictional_paid',
             'type':'checkout.session.completed',
             'data':{'object':{'id':'cs_test_example12345678'}}})

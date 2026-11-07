@@ -92,7 +92,7 @@ jobs:
           worker_container = worker['properties']['template']['containers'][0]
           worker_env = {e['name']: e.get('value') or '' for e in worker_container.get('env', [])}
           app_image = app_container['image']
-          expected_image = 'salcapadevb48224acr.azurecr.io/salcapa@sha256:cf0770bd0c20307c67d28bf07c162f36d3f70360d6960fe5c6f2ef789d1ad324'
+          expected_image = 'salcapadevb48224acr.azurecr.io/salcapa@sha256:719650a9fa7fc0ab14a8823c73308824a688d45fecef0333a74a1dc8d1888e70'
           worker_config = worker['properties']['configuration']
           storage_props = storage['properties']
           defender_props = defender['properties']
@@ -137,8 +137,8 @@ jobs:
                   return None, 'vault_secret_not_found'
               return None, 'vault_read_error'
 
-          key, key_lookup = managed_secret('SALUS_STRIPE_SECRET_KEY')
-          webhook, webhook_lookup = managed_secret('SALUS_STRIPE_WEBHOOK_SECRET')
+          key, key_lookup = managed_secret('SALUS_STRIPE_LIVE_SECRET_KEY')
+          webhook, webhook_lookup = managed_secret('SALUS_STRIPE_LIVE_WEBHOOK_SECRET')
           stripe_mode = ('unknown' if key is None else 'test' if key.startswith(('sk_test_', 'rk_test_')) else 'live' if key.startswith(('sk_live_', 'rk_live_')) else 'absent' if not key else 'unrecognized')
           webhook_state = 'unknown' if webhook is None else yes(webhook.startswith('whsec_'))
           settings = {

@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 6 November 2026 Central — live Stripe credentials saved; source candidate only
+
+- Marc confirmed saving `salus-stripe-live-secret-key` and `salus-stripe-live-webhook-secret` in the protected Azure Key Vault through masked forms. Their values and current enabled state have not been independently read back. The existing Stripe webhook destination is active, but its description still says test mode; its live-mode linkage has not been accepted.
+- A source candidate separates the live checkout and webhook credentials from the existing test-only pilot, keeps older test events verifiable, and updates the protected public-readiness check to the verified v3.270 image and live credential names. It has not merged, passed required CI, frozen, built, or deployed.
+- Public Wix purchase, live payment, public intake/uploads, and report issue remain closed. Next: validate and review the exact source candidate, obtain required approval, publish and deploy through protected gates, verify live credential and webhook mode without exposing values, and complete separate public-release acceptance. Never repeat the fictional payment, uploads, scanner dispositions, or staged report drafts.
+
 ## 6 November 2026 Central — v3.270 named-staff report pilot verified
 
 - Marc approved PR #1178 at exact head `f649561cae4f55ca8a579d78e04823c795199655` after all three required checks passed. Squash merge `469b4c9b55ba530486ed9089fa175e2a38e3a5e9` triggered protected [staff pilot run 42282578003](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/42282578003). Authorization, exact v3.270 app and named-buyer test-only boundary, closed starting staff controls, pinning Marc's distinct verified Salus staff identity to existing fictional paid order L1A-10, ready revision, and unchanged buyer boundary all passed. Rollback was not invoked. No report was registered or issued, and no payment or upload was repeated.
