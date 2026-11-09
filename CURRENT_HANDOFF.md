@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 9 November 2026 Central — v3.271 protected app deployed; scanner worker candidate
+
+- Marc approved PR #1185 exact head `35b9ded8987cfb69c9b113237eb1a708949b4fc9` after fresh required checks passed. Merge `56eaba7ceef0003bc447fa6b56642486e690e4dc` triggered protected [run 42673986575](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/42673986575). Its authorization and deployment jobs succeeded. The guarded run verified the frozen v3.271 source, immutable registry image `sha256:50392d26e64de8c443351926cc3dd2038bcd7cf35dbe078f5546ec261ccdc6c5`, v3.270 prestate, Azure targets, app readiness, Microsoft 365 intake isolation, fictional Advisor acceptance, scheduled knowledge-worker promotion, and rollback availability. Buyer sign-in, ordering, checkout/payment, intake, uploads, and scanning controls started closed.
+- Draft PR #1187 at its current exact head proposes an image-only update of the existing five-minute scanner-result worker from verified v3.270 to registry-verified v3.271. This candidate has not merged or run and needs required checks and Marc's exact-head approval. No payment, upload, report issue, or public release occurred. Four fictional Cedar reports remain unissued. Public Wix purchase, live payment, and public intake/uploads remain closed.
+- Next: finish PR #1187 checks, obtain Marc's exact-source review, run and read back the protected scanner-worker update. Then separately restore the named-buyer test pilot and pinned staff report workspace; complete report and live public-release gates. Never repeat fictional L1A-10 payment, earlier uploads, or scanner dispositions.
+
+
 ## 9 November 2026 Central — v3.271 immutable image verified; guarded deployment candidate
 
 - Marc approved image PR #1184 at exact head `9520fafbdd5b8293c702be80bea14abaf129a68d` after all candidate and frozen-source checks passed. Squash merge `da7ded8a60cdc8157ef92a6591d0e056e7d0844e` triggered protected publication [run 42666292822](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/42666292822). Authorization, exact frozen-source build, publication, and registry digest readback succeeded. Verified immutable image: `salcapadevb48224acr.azurecr.io/salcapa@sha256:50392d26e64de8c443351926cc3dd2038bcd7cf35dbe078f5546ec261ccdc6c5`.
