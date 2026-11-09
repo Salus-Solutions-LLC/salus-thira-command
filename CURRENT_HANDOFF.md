@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 9 November 2026 Central — v3.271 source frozen; immutable image candidate
+
+- Marc approved PR #1181 at exact head `1af406f0fc4aca0db3d44d73da5c865a7f2849b9` after all four required checks passed. Squash merge `3f089616b8c7736cbf4d0add2964d33afb9f05b9` and protected branch `release/v3.271` point to the same frozen source. Draft PR #1184 pins that source for one protected immutable image build and registry digest readback. No v3.271 image digest or deployment is yet accepted.
+- The last verified protected deployment is v3.270 app and workers with only the named buyer in Stripe test mode and Marc's pinned staff report workspace. Public Wix purchase, live payment, public intake/uploads, and report issue remain closed. The live Stripe key and webhook secret were entered into Azure Key Vault through masked forms, but app binding and live-mode readback are still unverified. Do not repeat the fictional L1A-10 payment or prior uploads.
+- Four fictional Cedar reports remain unissued. Next: pass frozen-source and image-candidate checks, obtain Marc's review of PR #1184's exact current head, publish once through the protected workflow, and verify the registry digest. Guarded app deployment, worker update, live credential-mode readback, new-buyer acceptance, qualified four-report issue, buyer acknowledgment, and separate public release remain gates. Do not treat image publication as launch.
+
 ## 6 November 2026 Central — live Stripe separation merged; v3.271 source-freeze candidate
 
 - Marc confirmed saving `salus-stripe-live-secret-key` and `salus-stripe-live-webhook-secret` in the protected Azure Key Vault through masked forms. Their values and current enabled state have not been independently read back. The existing Stripe webhook destination is active, but its description still says test mode; its live-mode linkage has not been accepted.
