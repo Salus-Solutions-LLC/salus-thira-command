@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 9 November 2026 Central — v3.271 immutable image verified; guarded deployment candidate
+
+- Marc approved image PR #1184 at exact head `9520fafbdd5b8293c702be80bea14abaf129a68d` after all candidate and frozen-source checks passed. Squash merge `da7ded8a60cdc8157ef92a6591d0e056e7d0844e` triggered protected publication [run 42666292822](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/42666292822). Authorization, exact frozen-source build, publication, and registry digest readback succeeded. Verified immutable image: `salcapadevb48224acr.azurecr.io/salcapa@sha256:50392d26e64de8c443351926cc3dd2038bcd7cf35dbe078f5546ec261ccdc6c5`.
+- This candidate pins the digest for guarded application and scheduled Knowledge-worker deployment. The last verified app image is v3.270 digest `sha256:719650a9fa7fc0ab14a8823c73308824a688d45fecef0333a74a1dc8d1888e70`; v3.223 remains rollback. Deployment starts buyer controls closed. The five-minute scanner-result worker needs a separate image check and update. Public Wix purchase, live payment, public intake/uploads, and four-report issue remain closed. Live Stripe credential binding and mode readback remain unverified.
+- Next: pass required candidate checks, obtain Marc's review of this exact deployment head, run protected deployment, and verify app, scheduled worker, readiness, and rollback prestate. Then update the scanner-result worker, prove live credential separation without charging, complete new-buyer and qualified-report acceptance, and seek separate public-release approval. Never repeat fictional order L1A-10 payment, prior uploads, or scanner dispositions.
+
 ## 9 November 2026 Central — v3.271 source frozen; immutable image candidate
 
 - Marc approved PR #1181 at exact head `1af406f0fc4aca0db3d44d73da5c865a7f2849b9` after all four required checks passed. Squash merge `3f089616b8c7736cbf4d0add2964d33afb9f05b9` and protected branch `release/v3.271` point to the same frozen source. Draft PR #1184 pins that source for one protected immutable image build and registry digest readback. No v3.271 image digest or deployment is yet accepted.
