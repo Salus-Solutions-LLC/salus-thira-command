@@ -11,7 +11,7 @@ active_build_system_issue: 1013
 active_increment: salus_v3271_level1a_application_promotion
 last_completed_increment: v3271_immutable_image_published_and_registry_verified_after_pr1184
 candidate_release: v3.271
-validation_pr: pending_v3271_deployment_candidate
+validation_pr: 1185
 validation_branch: codex/level1a-v3271-deploy-20261109
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_commit
