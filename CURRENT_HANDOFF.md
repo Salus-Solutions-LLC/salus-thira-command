@@ -1,10 +1,10 @@
 # Salus Solutions — Current Handoff
 
-## 6 November 2026 Central — live Stripe credentials saved; source candidate only
+## 6 November 2026 Central — live Stripe separation merged; v3.271 source-freeze candidate
 
 - Marc confirmed saving `salus-stripe-live-secret-key` and `salus-stripe-live-webhook-secret` in the protected Azure Key Vault through masked forms. Their values and current enabled state have not been independently read back. The existing Stripe webhook destination is active, but its description still says test mode; its live-mode linkage has not been accepted.
-- A source candidate separates the live checkout and webhook credentials from the existing test-only pilot, keeps older test events verifiable, and updates the protected public-readiness check to the verified v3.270 image and live credential names. It has not merged, passed required CI, frozen, built, or deployed.
-- Public Wix purchase, live payment, public intake/uploads, and report issue remain closed. Next: validate and review the exact source candidate, obtain required approval, publish and deploy through protected gates, verify live credential and webhook mode without exposing values, and complete separate public-release acceptance. Never repeat the fictional payment, uploads, scanner dispositions, or staged report drafts.
+- Marc approved PR #1180 at exact head `f65dc0cb40c694a288491e8b91adb4bcf9cb406b` after all required checks passed. Squash merge `93fbec4259ce50a53cbc188f18d29f7a7ae49f4a` separates live checkout and webhook credentials from the existing test-only pilot and preserves verification of older test events. This is merged source only; it has not been frozen, built or deployed. The protected read-only readiness [run 42339659110](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/42339659110) succeeded, but its count-only log is not proof that live Stripe or public gates passed.
+- Public Wix purchase, live payment, public intake/uploads, and report issue remain closed. Next: validate and exact-review the v3.271 source-freeze candidate, then publish and deploy through protected gates, verify live credential and webhook mode without exposing values, and complete separate public-release acceptance. Never repeat the fictional payment, uploads, scanner dispositions, or staged report drafts.
 
 ## 6 November 2026 Central — v3.270 named-staff report pilot verified
 
