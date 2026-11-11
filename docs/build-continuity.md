@@ -14,7 +14,7 @@ candidate_release: v3.272
 validation_pr: 1196
 validation_branch: codex/salcapa-v3272-scan-worker-20261111
 validation_base: development/salcapa-platform
-validation_head: pending_exact_candidate_commit
+validation_head: f12f0c85553e16eeb4b5428100f3dd9ef9eaf34d
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_current_v3272_candidate
 first_root_failing_gate: five_minute_scanner_result_worker_remains_on_v3271_image
