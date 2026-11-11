@@ -1,0 +1,14 @@
+{
+  "activation_key": "salcapa-knowledge-review-promotion-20261111-30dc4af9",
+  "approved_operation_commit": "30dc4af952e34da9d13122b433087698e96e065f",
+  "exact_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:d7b558b543431d2ed06dc9121d99f3fe409dd0dcde267ed06e87e956d28a4f14",
+  "expected_candidate_count": 13,
+  "expected_extraction_review_count": 8,
+  "expected_source_reconciliation_count": 5,
+  "maximum_executions": 1,
+  "operation": "approve_and_promote_exact_pending_review_boundary",
+  "public_release_authorized": false,
+  "schema_version": 1,
+  "source_substitution_authorized": false,
+  "target_environment": "dev"
+}
