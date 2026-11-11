@@ -14,7 +14,7 @@ candidate_release: v3.272
 validation_pr: 1194
 validation_branch: codex/salcapa-v3272-dashboard-image-20261111
 validation_base: development/salcapa-platform
-validation_head: pending_exact_candidate_commit
+validation_head: 299dc3027adbd0a25c26d11640246c417b9b2224
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: none_current_v3272_candidate
 first_root_failing_gate: immutable_v3272_dashboard_image_not_yet_published
