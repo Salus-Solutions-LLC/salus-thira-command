@@ -5,14 +5,15 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
 from salcapa_knowledge_promotion import _create_tables
 from tools import live_knowledge_pending_review_promote as promotion
-
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 def _classification(category: str) -> str:
