@@ -1,0 +1,197 @@
+name: SalCAPA pending-review approval and promotion
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: salcapa-knowledge-live-promotion
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  authorize_exact_scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected exact pending-review approval and promotion gate passed."
+
+  approve_and_promote:
+    needs: authorize_exact_scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Pause the accepted worker and run the exact promotion
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          APP_NAME=salcapa-dev-b48224
+          WORKER_NAME=salcapa-dev-b48224-kb-scan
+          PROMOTION_JOB=salcapa-review-promote-b48224
+          EXPECTED_IMAGE=salcapadevb48224acr.azurecr.io/salcapa@sha256:d7b558b543431d2ed06dc9121d99f3fe409dd0dcde267ed06e87e956d28a4f14
+
+          az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" -o json > "$RUNNER_TEMP/app.json"
+          az containerapp job show -g "$RESOURCE_GROUP" -n "$WORKER_NAME" -o json > "$RUNNER_TEMP/worker.json"
+          jq -e --arg image "$EXPECTED_IMAGE" '
+            .properties.template.containers[0].image == $image
+          ' "$RUNNER_TEMP/app.json" >/dev/null
+          jq -e --arg image "$EXPECTED_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Schedule" and
+            .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *" and
+            .properties.configuration.scheduleTriggerConfig.parallelism == 1 and
+            .properties.configuration.scheduleTriggerConfig.replicaCompletionCount == 1
+          ' "$RUNNER_TEMP/worker.json" >/dev/null
+
+          env_value() {
+            local value
+            value="$(jq -r --arg name "$1" '[.properties.template.containers[0].env[] | select(.name == $name) | .value] | if length == 1 then .[0] else "" end' "$RUNNER_TEMP/worker.json")"
+            test -n "$value"
+            printf '%s' "$value"
+          }
+          test "$(env_value SALUS_DB_BACKEND)" = "postgres"
+          test "$(env_value SALUS_POSTGRES_AUTH)" = "entra"
+
+          WORKER_ID="$(jq -r '.id' "$RUNNER_TEMP/worker.json")"
+          test -n "$WORKER_ID"
+          az rest --method patch --uri "${WORKER_ID}?api-version=2025-07-01" \
+            --body '{"properties":{"configuration":{"triggerType":"Manual"}}}' \
+            --output none --only-show-errors
+          echo "KNOWLEDGE_REVIEW_WORKER_PAUSED=1" >> "$GITHUB_ENV"
+          az containerapp job show -g "$RESOURCE_GROUP" -n "$WORKER_NAME" -o json > "$RUNNER_TEMP/worker-paused.json"
+          jq -e --arg image "$EXPECTED_IMAGE" '
+            .properties.template.containers[0].image == $image and
+            .properties.configuration.triggerType == "Manual"
+          ' "$RUNNER_TEMP/worker-paused.json" >/dev/null
+
+          DRAINED=false
+          for attempt in $(seq 1 120); do
+            az containerapp job execution list -g "$RESOURCE_GROUP" -n "$WORKER_NAME" -o json --only-show-errors > "$RUNNER_TEMP/worker-executions.json"
+            if jq -e 'all(.[]; .properties.status == "Succeeded" or .properties.status == "Failed" or .properties.status == "Stopped")' "$RUNNER_TEMP/worker-executions.json" >/dev/null; then
+              DRAINED=true
+              break
+            fi
+            sleep 10
+          done
+          test "$DRAINED" = true
+
+          IDENTITY_ID="$(az identity show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-identity --query id -o tsv --only-show-errors)"
+          IDENTITY_CLIENT_ID="$(az identity show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-identity --query clientId -o tsv --only-show-errors)"
+          ENVIRONMENT_ID="$(az containerapp env show -g "$RESOURCE_GROUP" -n salcapa-dev-b48224-aca-env --query id -o tsv --only-show-errors)"
+          REGISTRY_SERVER="$(az acr show -g "$RESOURCE_GROUP" -n salcapadevb48224acr --query loginServer -o tsv --only-show-errors)"
+          SCRIPT_B64="$(base64 -w0 tools/live_knowledge_pending_review_promote.py)"
+          az deployment group create \
+            --name "salcapa-review-promote-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/knowledge-pending-review-promotion-job.bicep \
+            --parameters environmentId="$ENVIRONMENT_ID" identityId="$IDENTITY_ID" \
+              registryServer="$REGISTRY_SERVER" imageDigest="$EXPECTED_IMAGE" \
+              tenantId="$(env_value SALUS_OIDC_TENANT_ID)" \
+              applicationClientId="$(env_value SALUS_OIDC_CLIENT_ID)" \
+              managedIdentityClientId="$IDENTITY_CLIENT_ID" \
+              intakeDriveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" \
+              intakeFolderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" \
+              knowledgeDriveId="$(env_value SALUS_M365_KNOWLEDGE_DRIVE_ID)" \
+              knowledgeFolderItemId="$(env_value SALUS_M365_KNOWLEDGE_FOLDER_ITEM_ID)" \
+              processedFolderItemId="$(env_value SALUS_M365_PROCESSED_INTAKE_FOLDER_ITEM_ID)" \
+              postgresHost="$(env_value SALUS_POSTGRES_HOST)" \
+              postgresDatabase="$(env_value SALUS_POSTGRES_DATABASE)" \
+              postgresUser="$(env_value SALUS_POSTGRES_USER)" \
+              postgresSslMode="$(env_value SALUS_POSTGRES_SSLMODE)" \
+              promotionScriptBase64="$SCRIPT_B64" \
+            --output none --only-show-errors
+
+          EXECUTION_NAME="$(az containerapp job start -g "$RESOURCE_GROUP" -n "$PROMOTION_JOB" --query name -o tsv --only-show-errors)"
+          [[ "$EXECUTION_NAME" =~ ^salcapa-review-promote-b48224-[a-z0-9]+$ ]]
+          SUCCEEDED=false
+          STATUS=Unknown
+          for attempt in $(seq 1 360); do
+            az containerapp job execution show -g "$RESOURCE_GROUP" -n "$PROMOTION_JOB" \
+              --job-execution-name "$EXECUTION_NAME" -o json --only-show-errors > "$RUNNER_TEMP/promotion-execution.json"
+            jq -e --arg image "$EXPECTED_IMAGE" '
+              .properties.template.containers[0].image == $image and
+              .properties.template.containers[0].command == ["python","-c"]
+            ' "$RUNNER_TEMP/promotion-execution.json" >/dev/null
+            STATUS="$(jq -r '.properties.status' "$RUNNER_TEMP/promotion-execution.json")"
+            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
+            if [ "$STATUS" = "Failed" ]; then break; fi
+            sleep 10
+          done
+
+          LOG_FOUND=false
+          for attempt in $(seq 1 12); do
+            LOG_OUTPUT="$(az containerapp job logs show -g "$RESOURCE_GROUP" -n "$PROMOTION_JOB" \
+              --execution "$EXECUTION_NAME" --container salcapa-review-promote \
+              --tail 200 --format text --only-show-errors 2>&1 || true)"
+            FILTERED_LOG="$(printf '%s\n' "$LOG_OUTPUT" | grep -E 'KNOWLEDGE_REVIEW_PROMOTION_[A-Z0-9_]+=' || true)"
+            if [ -n "$FILTERED_LOG" ]; then
+              printf '%s\n' "$FILTERED_LOG"
+              LOG_FOUND=true
+              break
+            fi
+            sleep 5
+          done
+          test "$LOG_FOUND" = true
+          test "$SUCCEEDED" = true
+          echo "KNOWLEDGE_REVIEW_PROMOTION_EXECUTION=$EXECUTION_NAME" >> "$GITHUB_ENV"
+
+      - name: Restore the accepted worker schedule and remove the isolated job
+        if: always()
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          if ! az account show --only-show-errors >/dev/null 2>&1; then exit 1; fi
+          WORKER_NAME=salcapa-dev-b48224-kb-scan
+          PROMOTION_JOB=salcapa-review-promote-b48224
+          EXPECTED_IMAGE=salcapadevb48224acr.azurecr.io/salcapa@sha256:d7b558b543431d2ed06dc9121d99f3fe409dd0dcde267ed06e87e956d28a4f14
+          CLEANUP_OK=true
+          if az containerapp job show -g "$RESOURCE_GROUP" -n "$PROMOTION_JOB" --only-show-errors >/dev/null 2>&1; then
+            az containerapp job delete -g "$RESOURCE_GROUP" -n "$PROMOTION_JOB" --yes --only-show-errors || CLEANUP_OK=false
+          fi
+          if [ "$(az containerapp job list -g "$RESOURCE_GROUP" --query "[?name == '$PROMOTION_JOB'] | length(@)" -o tsv --only-show-errors)" != "0" ]; then
+            CLEANUP_OK=false
+          fi
+          if [ "${KNOWLEDGE_REVIEW_WORKER_PAUSED:-0}" = "1" ]; then
+            WORKER_ID="$(az containerapp job show -g "$RESOURCE_GROUP" -n "$WORKER_NAME" --query id -o tsv --only-show-errors)"
+            if [ -z "$WORKER_ID" ]; then
+              CLEANUP_OK=false
+            else
+              az containerapp job show -g "$RESOURCE_GROUP" -n "$WORKER_NAME" -o json > "$RUNNER_TEMP/worker-before-restore.json"
+              if ! jq -e --arg image "$EXPECTED_IMAGE" '.properties.template.containers[0].image == $image' "$RUNNER_TEMP/worker-before-restore.json" >/dev/null; then
+                CLEANUP_OK=false
+              elif ! az rest --method patch --uri "${WORKER_ID}?api-version=2025-07-01" \
+                --body '{"properties":{"configuration":{"triggerType":"Schedule","scheduleTriggerConfig":{"cronExpression":"*/2 * * * *","replicaCompletionCount":1,"parallelism":1}}}}' \
+                --output none --only-show-errors; then
+                CLEANUP_OK=false
+              fi
+            fi
+          fi
+          az containerapp job show -g "$RESOURCE_GROUP" -n "$WORKER_NAME" -o json > "$RUNNER_TEMP/worker-restored.json"
+          if ! jq -e --arg image "$EXPECTED_IMAGE" '
+              .properties.template.containers[0].image == $image and
+              .properties.configuration.triggerType == "Schedule" and
+              .properties.configuration.scheduleTriggerConfig.cronExpression == "*/2 * * * *" and
+              .properties.configuration.scheduleTriggerConfig.parallelism == 1 and
+              .properties.configuration.scheduleTriggerConfig.replicaCompletionCount == 1
+            ' "$RUNNER_TEMP/worker-restored.json" >/dev/null; then
+            CLEANUP_OK=false
+          fi
+          test "$CLEANUP_OK" = true
+          echo "Accepted knowledge worker schedule restored; isolated promotion job removed."
