@@ -10,12 +10,12 @@ active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
 active_increment: salcapa_dashboard_overview_landing
 last_completed_increment: v3271_public_readiness_refresh_merged_pr1191
-candidate_release: dashboard_overview_candidate
+candidate_release: none
 validation_pr: 1192
 validation_branch: candidate/salcapa-dashboard-overview-20261111
 validation_base: development/salcapa-platform
-validation_head: 49ef3bfe5c03e31f19dc3d27a535c1ca8fc4adff
-validation_gate_state: focused_validation_requested
+validation_head: 26b47e3b2a8803de57b01de0304be012ac789e64
+validation_gate_state: github_validation_running
 failed_workflows: none_observed_dashboard_candidate
 first_root_failing_gate: none_observed_dashboard_candidate
 root_cause: none_observed_dashboard_candidate
@@ -676,3 +676,6 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 
 dashboard_resume_candidate_20261111: Marc explicitly resumed SalCAPA Dashboard work. Authoritative development head was verified at `b53d61562458b5e4732497d35f6b40297219d6b6` with no current governed SalCAPA validation/activation worker lease observed in open PRs. PR #1192 exact initial head `49ef3bfe5c03e31f19dc3d27a535c1ca8fc4adff` adds a true SalCAPA Overview landing page, preserves existing Common Operating Picture and Command Center functions, teaches the approved Understand the Situation / Coordinate the Work distinction, provides a role-aware recommended next step, and adds regression assertions in `tools/ci_salcapa_smoke.py`. No frozen release, Azure deployment, tenant/access/disclosure control, human authority, or server-controlled lifecycle state changed. Validate the exact PR head before advancing to development.
+
+
+dashboard_resume_validation_repair_20261111: The first exact-head validation produced 28 passing checks and two failures. The build-continuity failure was caused by candidate metadata using an unsupported validation gate label and a non-version candidate_release value; this repair restores the governed schema with `candidate_release: none` and `validation_gate_state: github_validation_running`. The separate PDF page-rendering container failure reported unexpected renderer output files and is treated as a CI/runtime failure pending fresh exact-head validation; no Dashboard authority, tenancy, release, or Azure state changed.
