@@ -164,7 +164,10 @@ def main() -> None:
         encoding="utf-8"
     )
     assert "environment: salcapa-dev-approval" in workflow
-    assert "workflow_dispatch:" in workflow and "push:" not in workflow
+    assert "push:" in workflow and "workflow_dispatch:" not in workflow
+    assert "knowledge-pending-review-promotion-20261111.json" in workflow
+    assert 'test "$GITHUB_RUN_ATTEMPT" = "1"' in workflow
+    assert "--diff-filter=A" in workflow
     assert "triggerType\":\"Manual" in workflow
     assert "DRAINED=false" in workflow
     assert "triggerType\":\"Schedule" in workflow

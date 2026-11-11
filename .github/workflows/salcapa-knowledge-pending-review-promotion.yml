@@ -1,7 +1,10 @@
 name: SalCAPA pending-review approval and promotion
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'deploy/azure/activations/knowledge-pending-review-promotion-20261111.json'
 
 concurrency:
   group: salcapa-knowledge-live-promotion
@@ -29,7 +32,45 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 2
           persist-credentials: false
+      - name: Validate the one-time exact activation record
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          ACTIVATION=deploy/azure/activations/knowledge-pending-review-promotion-20261111.json
+          test "$(git diff-tree --no-commit-id --name-only --diff-filter=A -r HEAD^ HEAD -- "$ACTIVATION")" = "$ACTIVATION"
+          python - "$ACTIVATION" <<'PY'
+          import json
+          import sys
+
+          record = json.load(open(sys.argv[1], encoding="utf-8"))
+          expected = {
+              "activation_key": "salcapa-knowledge-review-promotion-20261111-30dc4af9",
+              "approved_operation_commit": "30dc4af952e34da9d13122b433087698e96e065f",
+              "exact_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:d7b558b543431d2ed06dc9121d99f3fe409dd0dcde267ed06e87e956d28a4f14",
+              "expected_candidate_count": 13,
+              "expected_extraction_review_count": 8,
+              "expected_source_reconciliation_count": 5,
+              "maximum_executions": 1,
+              "operation": "approve_and_promote_exact_pending_review_boundary",
+              "public_release_authorized": False,
+              "schema_version": 1,
+              "source_substitution_authorized": False,
+              "target_environment": "dev",
+          }
+          if record != expected:
+              raise SystemExit("One-time Knowledge promotion activation record is not exact")
+          PY
+          APPROVED_OPERATION_COMMIT="$(jq -r '.approved_operation_commit' "$ACTIVATION")"
+          git merge-base --is-ancestor "$APPROVED_OPERATION_COMMIT" HEAD
+          git diff --name-only "$APPROVED_OPERATION_COMMIT"..HEAD | sort > "$RUNNER_TEMP/activation-diff.txt"
+          printf '%s\n' \
+            .github/workflows/salcapa-knowledge-pending-review-promotion.yml \
+            deploy/azure/activations/knowledge-pending-review-promotion-20261111.json \
+            tools/ci_knowledge_pending_review_promotion_smoke.py \
+            | sort > "$RUNNER_TEMP/expected-activation-diff.txt"
+          cmp "$RUNNER_TEMP/activation-diff.txt" "$RUNNER_TEMP/expected-activation-diff.txt"
       - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
