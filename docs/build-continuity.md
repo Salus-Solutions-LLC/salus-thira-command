@@ -1,30 +1,30 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 November 2026 12:37 CST
+last_verified_at: 11 November 2026 12:57 CST
 current_frozen_release: v3.271
 current_frozen_commit: 3f089616b8c7736cbf4d0add2964d33afb9f05b9
 active_development_branch: development/salcapa-platform
-current_development_head: b53d61562458b5e4732497d35f6b40297219d6b6
+current_development_head: 459ac8b75787bdd59bc683f0debfe824b49193e2
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
-active_increment: salcapa_dashboard_overview_landing
-last_completed_increment: v3271_public_readiness_refresh_merged_pr1191
-candidate_release: none
-validation_pr: 1192
-validation_branch: candidate/salcapa-dashboard-overview-20261111
+active_increment: salus_v3272_dashboard_overview_source_freeze
+last_completed_increment: dashboard_overview_merged_pr1192_at_459ac8b7_v3271_remains_current_frozen
+candidate_release: v3.272
+validation_pr: pending
+validation_branch: codex/salcapa-v3272-dashboard-freeze-20261111
 validation_base: development/salcapa-platform
-validation_head: 0f700f5aa0822297713e3dde636825b8cba0a1aa
+validation_head: pending_exact_candidate_commit
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: package_and_handoff_sequence_and_production_container_at_0f700f5aa0822297713e3dde636825b8cba0a1aa
-first_root_failing_gate: demo_continuity_rejected_source_only_candidate_release_none
-root_cause: demo_continuity_assumed_every_increment_had_a_release_candidate_and_pdf_renderer_shared_its_home_with_governed_output
-repair_head: ebacf3ff1dbf78f8806e194ce3b3e63f09ef7510
-repair_summary: permit_bounded_source_only_demo_continuity_and_isolate_renderer_runtime_cache_from_governed_output
-genuine_blockers: exact_repair_candidate_checks_human_review_merge_and_handoff_reconciliation
-next_authorized_step: validate_pr1192_exact_repair_candidate_then_obtain_Marc_exact_head_approval_before_merge
-deployed_demo_release: v3.270
-deployed_demo_state: v3270_app_and_workers_verified_v3271_image_published_named_test_only_pilots_public_Level1A_live_payment_closed
+failed_workflows: none_current_v3272_candidate
+first_root_failing_gate: v3272_dashboard_source_not_yet_frozen_built_or_deployed
+root_cause: merged_dashboard_overview_requires_source_freeze_immutable_image_and_guarded_deployment
+repair_head: 459ac8b75787bdd59bc683f0debfe824b49193e2
+repair_summary: freeze_the_approved_dashboard_overview_and_validation_repairs_as_v3272
+genuine_blockers: v3271_superseded_only_after_v3272_source_freeze_checks_exact_head_approval_image_publication_guarded_deployment_and_live_readback
+next_authorized_step: validate_v3272_source_candidate_then_obtain_Marc_exact_head_approval_for_source_freeze
+deployed_demo_release: v3.271
+deployed_demo_state: v3271_app_and_workers_verified_named_test_only_pilots_public_Level1A_live_payment_closed_dashboard_overview_not_deployed
 ---
 
 # SalCAPA build continuity
@@ -682,3 +682,6 @@ dashboard_resume_validation_repair_20261111: The first exact-head validation pro
 
 
 dashboard_resume_validation_root_repairs_20261111: PR #1192 exact head `0f700f5aa0822297713e3dde636825b8cba0a1aa` completed 45 checks successfully and failed two required gates. The package-and-handoff sequence exposed a cross-contract defect: build continuity correctly permits `candidate_release: none` for a bounded source-only increment, while demonstration continuity attempted to parse every candidate as a release version. The production-container gate separately showed that the approved PDF renderer could create runtime cache material under `HOME` inside the governed output directory, while host-based SQLite and PostgreSQL page-rendering checks passed. Repair commit `ebacf3ff1dbf78f8806e194ce3b3e63f09ef7510` permits the source-only continuity state without weakening release-version checks and moves renderer home/cache material to a separate ephemeral directory while preserving the exact-output fail-closed check. Governed reconstruction, Python compilation, build continuity and demonstration continuity passed locally. The broader SalCAPA smoke could not run locally because FastAPI is not installed in the desktop runtime; exact GitHub validation remains required. No frozen release, Azure deployment, tenant/access boundary or human authority changed.
+
+
+dashboard_resume_merged_v3272_freeze_candidate_20261111: Marc approved PR #1192 exact head `68c526ef8f00aab8311a9c2171cc10bed3a1dc09` after all 47 required checks passed, including successful production-container PDF rendering and the successful rerun of a Windows-only subprocess timeout that had already passed 188 tests. Squash merge `459ac8b75787bdd59bc683f0debfe824b49193e2` makes the SalCAPA™ Overview landing and both validation repairs authoritative on `development/salcapa-platform`. Governed-branch readback confirmed the Overview as the default landing, the Common Operating Picture and Command Center distinction, role-aware next-step guidance, and isolated renderer HOME/XDG cache handling. This v3.272 candidate labels the approved merged source only. It does not freeze a release branch, publish an image, change Azure, open public controls or establish live acceptance. Required candidate checks and Marc's exact-head source-freeze approval remain before a protected `release/v3.272` branch may be advanced.
