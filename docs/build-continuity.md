@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 November 2026 11:17 CST
+last_verified_at: 11 November 2026 12:37 CST
 current_frozen_release: v3.271
 current_frozen_commit: 3f089616b8c7736cbf4d0add2964d33afb9f05b9
 active_development_branch: development/salcapa-platform
@@ -14,15 +14,15 @@ candidate_release: none
 validation_pr: 1192
 validation_branch: candidate/salcapa-dashboard-overview-20261111
 validation_base: development/salcapa-platform
-validation_head: 26b47e3b2a8803de57b01de0304be012ac789e64
-validation_gate_state: github_validation_running
-failed_workflows: none_observed_dashboard_candidate
-first_root_failing_gate: none_observed_dashboard_candidate
-root_cause: none_observed_dashboard_candidate
-repair_head: 49ef3bfe5c03e31f19dc3d27a535c1ca8fc4adff
-repair_summary: add_true_overview_landing_and_preserve_existing_cop_command_center_controls
-genuine_blockers: none_current_dashboard_increment
-next_authorized_step: complete_required_checks_for_pr1192_then_close_without_merge_and_advance_exact_green_head
+validation_head: 0f700f5aa0822297713e3dde636825b8cba0a1aa
+validation_gate_state: controlled_validation_in_progress
+failed_workflows: package_and_handoff_sequence_and_production_container_at_0f700f5aa0822297713e3dde636825b8cba0a1aa
+first_root_failing_gate: demo_continuity_rejected_source_only_candidate_release_none
+root_cause: demo_continuity_assumed_every_increment_had_a_release_candidate_and_pdf_renderer_shared_its_home_with_governed_output
+repair_head: ebacf3ff1dbf78f8806e194ce3b3e63f09ef7510
+repair_summary: permit_bounded_source_only_demo_continuity_and_isolate_renderer_runtime_cache_from_governed_output
+genuine_blockers: exact_repair_candidate_checks_human_review_merge_and_handoff_reconciliation
+next_authorized_step: validate_pr1192_exact_repair_candidate_then_obtain_Marc_exact_head_approval_before_merge
 deployed_demo_release: v3.270
 deployed_demo_state: v3270_app_and_workers_verified_v3271_image_published_named_test_only_pilots_public_Level1A_live_payment_closed
 ---
@@ -679,3 +679,6 @@ dashboard_resume_candidate_20261111: Marc explicitly resumed SalCAPA Dashboard w
 
 
 dashboard_resume_validation_repair_20261111: The first exact-head validation produced 28 passing checks and two failures. The build-continuity failure was caused by candidate metadata using an unsupported validation gate label and a non-version candidate_release value; this repair restores the governed schema with `candidate_release: none` and `validation_gate_state: github_validation_running`. The separate PDF page-rendering container failure reported unexpected renderer output files and is treated as a CI/runtime failure pending fresh exact-head validation; no Dashboard authority, tenancy, release, or Azure state changed.
+
+
+dashboard_resume_validation_root_repairs_20261111: PR #1192 exact head `0f700f5aa0822297713e3dde636825b8cba0a1aa` completed 45 checks successfully and failed two required gates. The package-and-handoff sequence exposed a cross-contract defect: build continuity correctly permits `candidate_release: none` for a bounded source-only increment, while demonstration continuity attempted to parse every candidate as a release version. The production-container gate separately showed that the approved PDF renderer could create runtime cache material under `HOME` inside the governed output directory, while host-based SQLite and PostgreSQL page-rendering checks passed. Repair commit `ebacf3ff1dbf78f8806e194ce3b3e63f09ef7510` permits the source-only continuity state without weakening release-version checks and moves renderer home/cache material to a separate ephemeral directory while preserving the exact-output fail-closed check. Governed reconstruction, Python compilation, build continuity and demonstration continuity passed locally. The broader SalCAPA smoke could not run locally because FastAPI is not installed in the desktop runtime; exact GitHub validation remains required. No frozen release, Azure deployment, tenant/access boundary or human authority changed.
