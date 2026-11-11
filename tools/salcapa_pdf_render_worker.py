@@ -75,6 +75,8 @@ def render(manifest: dict) -> dict:
     labels = []
     try: labels = list(reader.page_labels)
     except Exception: pass
+    runtime_home = output_dir.parent / "renderer-home"
+    runtime_home.mkdir(mode=0o700)
     started = time.monotonic(); results = []; total_pixels = total_bytes = 0
     try:
         for number in numbers:
@@ -93,7 +95,8 @@ def render(manifest: dict) -> dict:
             try:
                 completed = subprocess.run([str(executable), "-f", str(number), "-l", str(number), "-r", str(int(manifest["dpi"])),
                     "-png", "-singlefile", "-cropbox", str(source), str(prefix)], cwd=output_dir,
-                    env={"LC_ALL": "C.UTF-8", "HOME": str(output_dir), "PATH": "/usr/bin:/bin"},
+                    env={"LC_ALL": "C.UTF-8", "HOME": str(runtime_home),
+                         "XDG_CACHE_HOME": str(runtime_home / "cache"), "PATH": "/usr/bin:/bin"},
                     stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     timeout=remaining, check=False, start_new_session=True)
             except (OSError, subprocess.TimeoutExpired) as exc:

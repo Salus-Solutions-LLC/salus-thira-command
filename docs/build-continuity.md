@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 09 November 2026 12:13 CST
+last_verified_at: 11 November 2026 12:37 CST
 current_frozen_release: v3.271
 current_frozen_commit: 3f089616b8c7736cbf4d0add2964d33afb9f05b9
 active_development_branch: development/salcapa-platform
-current_development_head: da7ded8a60cdc8157ef92a6591d0e056e7d0844e
-active_product_milestone: issue_1013_level1a_public_release
-active_build_system_issue: 1013
-active_increment: salus_v3271_level1a_application_promotion
-last_completed_increment: v3271_immutable_image_published_and_registry_verified_after_pr1184
-candidate_release: v3.271
-validation_pr: 1185
-validation_branch: codex/level1a-v3271-deploy-20261109
+current_development_head: b53d61562458b5e4732497d35f6b40297219d6b6
+active_product_milestone: issue_337_issue_360_dashboard_resume
+active_build_system_issue: 368
+active_increment: salcapa_dashboard_overview_landing
+last_completed_increment: v3271_public_readiness_refresh_merged_pr1191
+candidate_release: none
+validation_pr: 1192
+validation_branch: candidate/salcapa-dashboard-overview-20261111
 validation_base: development/salcapa-platform
-validation_head: pending_exact_candidate_commit
+validation_head: 0f700f5aa0822297713e3dde636825b8cba0a1aa
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_current_v3271_candidate
-first_root_failing_gate: v3271_image_not_yet_deployed_and_live_credential_binding_unverified
-root_cause: published_live_test_stripe_separation_image_requires_guarded_application_promotion
-repair_head: da7ded8a60cdc8157ef92a6591d0e056e7d0844e
-repair_summary: deploy_registry_verified_v3271_image_with_exact_v3270_prestate_and_rollback
-genuine_blockers: protected_deployment_then_scanner_worker_live_credential_binding_new_buyer_four_report_issue_and_separate_public_release
-next_authorized_step: Marc_exact_head_approval_after_required_checks_for_guarded_v3271_application_deployment
+failed_workflows: package_and_handoff_sequence_and_production_container_at_0f700f5aa0822297713e3dde636825b8cba0a1aa
+first_root_failing_gate: demo_continuity_rejected_source_only_candidate_release_none
+root_cause: demo_continuity_assumed_every_increment_had_a_release_candidate_and_pdf_renderer_shared_its_home_with_governed_output
+repair_head: ebacf3ff1dbf78f8806e194ce3b3e63f09ef7510
+repair_summary: permit_bounded_source_only_demo_continuity_and_isolate_renderer_runtime_cache_from_governed_output
+genuine_blockers: exact_repair_candidate_checks_human_review_merge_and_handoff_reconciliation
+next_authorized_step: validate_pr1192_exact_repair_candidate_then_obtain_Marc_exact_head_approval_before_merge
 deployed_demo_release: v3.270
 deployed_demo_state: v3270_app_and_workers_verified_v3271_image_published_named_test_only_pilots_public_Level1A_live_payment_closed
 ---
@@ -673,3 +673,12 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc approved PR #916 exact head `66b07ec99d2dcbff10cbf9c0021e1ce625b60b78` after all 64 frozen-source checks and all three PR checks passed. Squash merge `74096d409821b74911b112a2088a3f026c4bc361` triggered protected run [38269945142](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38269945142), which succeeded and read back immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:81b76a9d1a8dfe8ac1bd98256c4b4369ccb680a4f8101199e5db04c7c1b4bc2d` from v3.247 source `c669f700513fc69f617f33db8630905e20415e69`.
 - PR #917 stages guarded deployment only. It expects the currently serving v3.246 app and worker digest, retains v3.223 rollback, and starts with buyer sign-in, draft ordering, checkout/payment, intake, uploads and scanning closed. Protected v3.246 still serves the named pilot until this deployment passes. Next: exact-head CI and Marc review, protected deployment/readback, then separate pilot reactivation and fresh buyer-led remote offer and agreement acceptance.
+
+
+dashboard_resume_candidate_20261111: Marc explicitly resumed SalCAPA Dashboard work. Authoritative development head was verified at `b53d61562458b5e4732497d35f6b40297219d6b6` with no current governed SalCAPA validation/activation worker lease observed in open PRs. PR #1192 exact initial head `49ef3bfe5c03e31f19dc3d27a535c1ca8fc4adff` adds a true SalCAPA Overview landing page, preserves existing Common Operating Picture and Command Center functions, teaches the approved Understand the Situation / Coordinate the Work distinction, provides a role-aware recommended next step, and adds regression assertions in `tools/ci_salcapa_smoke.py`. No frozen release, Azure deployment, tenant/access/disclosure control, human authority, or server-controlled lifecycle state changed. Validate the exact PR head before advancing to development.
+
+
+dashboard_resume_validation_repair_20261111: The first exact-head validation produced 28 passing checks and two failures. The build-continuity failure was caused by candidate metadata using an unsupported validation gate label and a non-version candidate_release value; this repair restores the governed schema with `candidate_release: none` and `validation_gate_state: github_validation_running`. The separate PDF page-rendering container failure reported unexpected renderer output files and is treated as a CI/runtime failure pending fresh exact-head validation; no Dashboard authority, tenancy, release, or Azure state changed.
+
+
+dashboard_resume_validation_root_repairs_20261111: PR #1192 exact head `0f700f5aa0822297713e3dde636825b8cba0a1aa` completed 45 checks successfully and failed two required gates. The package-and-handoff sequence exposed a cross-contract defect: build continuity correctly permits `candidate_release: none` for a bounded source-only increment, while demonstration continuity attempted to parse every candidate as a release version. The production-container gate separately showed that the approved PDF renderer could create runtime cache material under `HOME` inside the governed output directory, while host-based SQLite and PostgreSQL page-rendering checks passed. Repair commit `ebacf3ff1dbf78f8806e194ce3b3e63f09ef7510` permits the source-only continuity state without weakening release-version checks and moves renderer home/cache material to a separate ephemeral directory while preserving the exact-output fail-closed check. Governed reconstruction, Python compilation, build continuity and demonstration continuity passed locally. The broader SalCAPA smoke could not run locally because FastAPI is not installed in the desktop runtime; exact GitHub validation remains required. No frozen release, Azure deployment, tenant/access boundary or human authority changed.
