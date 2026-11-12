@@ -135,6 +135,8 @@ class _FakeIntake:
 
 
 class _FakeWriter:
+    archive_available = 0
+
     def __init__(self, _intake_config, _destination):
         self.destination = SimpleNamespace(
             drive_id="knowledge-drive", processed_folder_item_id="processed-folder"
@@ -154,11 +156,23 @@ class _FakeWriter:
             "etag": "archive-etag",
         }
 
-    def verify_already_archived_source(self, _item_id, _sha256):
-        return None
+    def verify_already_archived_source(self, item_id, sha256, *, include_content=False):
+        candidate_id = int(item_id.rsplit("-", 1)[1])
+        if candidate_id > self.archive_available:
+            return None
+        content = f"exact-source-{candidate_id}".encode()
+        assert hashlib.sha256(content).hexdigest() == sha256
+        result = {
+            "item_id": item_id,
+            "web_url": "https://example.sharepoint.com/archive/" + item_id,
+            "etag": f"etag-{candidate_id}",
+        }
+        if include_content:
+            result["content"] = content
+        return result
 
 
-def _run(available: int) -> tuple[dict[str, int], sqlite3.Connection]:
+def _run(available: int, archived: int = 0) -> tuple[dict[str, int], sqlite3.Connection]:
     conn = _database(available)
     emitted: list[tuple[str, str | int]] = []
     ids = promotion.approve_exact_boundary(conn, lambda key, value: emitted.append((key, value)))
@@ -175,6 +189,7 @@ def _run(available: int) -> tuple[dict[str, int], sqlite3.Connection]:
     )
     promotion.KnowledgeDestinationConfig = SimpleNamespace(from_environment=lambda: SimpleNamespace())
     promotion.GovernedM365Intake = _FakeIntake
+    _FakeWriter.archive_available = archived
     promotion.GraphKnowledgeWriter = _FakeWriter
     result = promotion.promote_exact_boundary(
         conn, ids, lambda key, value: emitted.append((key, value))
@@ -265,6 +280,14 @@ def main() -> None:
     assert conn.execute(
         "SELECT COUNT(*) FROM m365_knowledge_candidates WHERE status='Automatic Retry Required'"
     ).fetchone()[0] == 1
+    conn.close()
+
+    result, conn = _run(0, archived=8)
+    assert result["promoted"] == 8
+    assert result["unavailable_source_exceptions"] == 5
+    assert result["failed_closed"] == 0
+    assert result["verified_complete"] == 8
+    assert result["accounted_complete"] == 13
     conn.close()
 
     print("Knowledge pending-review approval and promotion smoke checks passed.")

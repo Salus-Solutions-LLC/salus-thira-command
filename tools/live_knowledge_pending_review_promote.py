@@ -438,7 +438,38 @@ def promote_exact_boundary(
                     unavailable += 1
                     emit("processed", ordinal)
                     continue
-                raise M365IntakeError("Exact governed source is unavailable")
+                archived = writer.verify_already_archived_source(
+                    row["source_item_id"], row["source_sha256"], include_content=True
+                )
+                content = archived.get("content") if archived else None
+                if (
+                    not archived
+                    or archived.get("item_id") != row["source_item_id"]
+                    or archived.get("etag") != row["source_etag"]
+                    or not isinstance(content, bytes)
+                    or len(content) != int(row["source_size"])
+                ):
+                    raise M365IntakeError("Exact governed source is unavailable")
+                destination = writer.put_verified(
+                    row["target_folder"], row["source_name"], content, row["source_sha256"]
+                )
+                conn.execute(
+                    "UPDATE m365_knowledge_candidates SET status='Destination Verified',"
+                    "destination_drive_id=?,destination_item_id=?,destination_web_url=?,"
+                    "destination_etag=? WHERE id=?",
+                    (
+                        writer.destination.drive_id,
+                        destination["item_id"],
+                        destination["web_url"],
+                        destination["etag"],
+                        row["id"],
+                    ),
+                )
+                conn.commit()
+                _finish(conn, row, writer, destination, archived)
+                promoted += 1
+                emit("processed", ordinal)
+                continue
             document = intake.read_delta_document(
                 ledger_row,
                 pending_folder_id=pending_id,
