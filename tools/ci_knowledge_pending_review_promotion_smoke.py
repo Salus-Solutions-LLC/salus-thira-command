@@ -136,6 +136,7 @@ class _FakeIntake:
 
 class _FakeWriter:
     archive_available = 0
+    missing_not_found = True
 
     def __init__(self, _intake_config, _destination):
         self.destination = SimpleNamespace(
@@ -159,6 +160,8 @@ class _FakeWriter:
     def verify_already_archived_source(self, item_id, sha256, *, include_content=False):
         candidate_id = int(item_id.rsplit("-", 1)[1])
         if candidate_id > self.archive_available:
+            if self.missing_not_found:
+                raise promotion.KnowledgePromotionError("Archived source item was not found")
             return None
         content = f"exact-source-{candidate_id}".encode()
         assert hashlib.sha256(content).hexdigest() == sha256
@@ -172,7 +175,9 @@ class _FakeWriter:
         return result
 
 
-def _run(available: int, archived: int = 0) -> tuple[dict[str, int], sqlite3.Connection]:
+def _run(
+    available: int, archived: int = 0, *, not_found: bool = True
+) -> tuple[dict[str, int], sqlite3.Connection]:
     conn = _database(available)
     emitted: list[tuple[str, str | int]] = []
     ids = promotion.approve_exact_boundary(conn, lambda key, value: emitted.append((key, value)))
@@ -190,6 +195,7 @@ def _run(available: int, archived: int = 0) -> tuple[dict[str, int], sqlite3.Con
     promotion.KnowledgeDestinationConfig = SimpleNamespace(from_environment=lambda: SimpleNamespace())
     promotion.GovernedM365Intake = _FakeIntake
     _FakeWriter.archive_available = archived
+    _FakeWriter.missing_not_found = not_found
     promotion.GraphKnowledgeWriter = _FakeWriter
     result = promotion.promote_exact_boundary(
         conn, ids, lambda key, value: emitted.append((key, value))
@@ -274,12 +280,20 @@ def main() -> None:
 
     result, conn = _run(7)
     assert result["promoted"] == 7
+    assert result["unavailable_source_exceptions"] == 6
+    assert result["failed_closed"] == 0
+    assert result["accounted_complete"] == 13
+    assert conn.execute(
+        "SELECT COUNT(*) FROM m365_knowledge_candidates WHERE status=?",
+        (promotion.UNAVAILABLE_STATUS,),
+    ).fetchone()[0] == 6
+    conn.close()
+
+    result, conn = _run(7, not_found=False)
+    assert result["promoted"] == 7
     assert result["unavailable_source_exceptions"] == 5
     assert result["failed_closed"] == 1
     assert result["accounted_complete"] == 12
-    assert conn.execute(
-        "SELECT COUNT(*) FROM m365_knowledge_candidates WHERE status='Automatic Retry Required'"
-    ).fetchone()[0] == 1
     conn.close()
 
     result, conn = _run(0, archived=8)
