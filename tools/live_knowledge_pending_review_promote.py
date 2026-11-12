@@ -21,7 +21,12 @@ from salcapa_knowledge_promotion import (
     KnowledgePromotionError,
     TARGETS,
 )
-from salcapa_m365_intake import GovernedM365Config, GovernedM365Intake, M365IntakeError
+from salcapa_m365_intake import (
+    GRAPH_ROOT,
+    GovernedM365Config,
+    GovernedM365Intake,
+    M365IntakeError,
+)
 
 
 EXPECTED_TOTAL = 13
@@ -50,6 +55,23 @@ ACTIVE_STATUSES = {
 
 def _now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _archived_source_not_found(writer: GraphKnowledgeWriter, item_id: str) -> bool:
+    """Distinguish an exact Graph 404 without relying on the frozen image helper."""
+    response = writer.client.get(
+        f"{GRAPH_ROOT}/drives/{writer.intake_config.drive_id}/items/{item_id}",
+        headers=writer._headers() | {"Accept": "application/json"},
+        params={"$select": "id,file"},
+    )
+    if response.status_code == 404:
+        return True
+    if response.status_code != 200:
+        raise KnowledgePromotionError("Archived source preflight could not be read")
+    payload = response.json()
+    if payload.get("id") != item_id or "file" not in payload:
+        raise KnowledgePromotionError("Archived source preflight identity could not be verified")
+    return False
 
 
 def _category(classification: dict[str, Any]) -> str:
@@ -452,6 +474,11 @@ def promote_exact_boundary(
                         "Verified destination awaits exact source archive verification"
                     )
                 if _category(json.loads(row["classification_json"] or "{}")) == "reconciliation":
+                    _record_unavailable_source_exception(conn, row)
+                    unavailable += 1
+                    emit("processed", ordinal)
+                    continue
+                if _archived_source_not_found(writer, row["source_item_id"]):
                     _record_unavailable_source_exception(conn, row)
                     unavailable += 1
                     emit("processed", ordinal)
