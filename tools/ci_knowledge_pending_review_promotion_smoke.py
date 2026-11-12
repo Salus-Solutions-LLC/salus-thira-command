@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from salcapa_knowledge_promotion import _create_tables
+from salcapa_bulk_delta import create_tables as create_bulk_tables
 from tools import live_knowledge_pending_review_promote as promotion
 
 
@@ -40,10 +41,16 @@ def _classification(category: str) -> str:
     return json.dumps(evidence, sort_keys=True)
 
 
-def _database() -> sqlite3.Connection:
+def _database(available: int) -> sqlite3.Connection:
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     _create_tables(conn)
+    create_bulk_tables(conn)
+    conn.execute(
+        "INSERT INTO m365_bulk_cursors(drive_id,pending_id,link,phase,last_error) "
+        "VALUES(?,?,?,?,?)",
+        ("intake-drive", "pending-folder", "delta-link", "delta", ""),
+    )
     for candidate_id in range(1, 14):
         content = f"exact-source-{candidate_id}".encode()
         conn.execute(
@@ -70,28 +77,51 @@ def _database() -> sqlite3.Connection:
                 _classification("extraction" if candidate_id <= 8 else "reconciliation"),
             ),
         )
+        if candidate_id <= available:
+            conn.execute(
+                "INSERT INTO m365_bulk_items("
+                "drive_id,pending_id,item_id,parent_id,name,kind,etag,size,metadata_json,"
+                "status,reason,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    "intake-drive",
+                    "pending-folder",
+                    f"source-item-{candidate_id:02d}",
+                    "pending-folder",
+                    f"Document {candidate_id}.txt",
+                    "file",
+                    f"etag-{candidate_id}",
+                    len(content),
+                    json.dumps(
+                        {
+                            "mime_type": "text/plain",
+                            "last_modified": "2026-11-01T00:00:00+00:00",
+                            "ctag": f"ctag-{candidate_id}",
+                            "source_owner": "",
+                            "source_owner_id": "",
+                            "last_modified_by": "",
+                            "web_url": "https://example.sharepoint.com/source",
+                        },
+                        sort_keys=True,
+                    ),
+                    "Done",
+                    "",
+                    1,
+                ),
+            )
     conn.commit()
     return conn
 
 
 class _FakeIntake:
-    available = 13
-
     def __init__(self, _config):
         pass
 
     def list_files(self):
-        return [
-            {
-                "id": f"source-item-{candidate_id:02d}",
-                "name": f"Document {candidate_id}.txt",
-                "etag": f"etag-{candidate_id}",
-            }
-            for candidate_id in range(1, self.available + 1)
-        ]
+        raise AssertionError("The bounded repair must not enumerate the 22,377-file tree")
 
-    def read_listed_document(self, row, *, access_classification):
-        del access_classification
+    def read_delta_document(self, row, *, pending_folder_id, access_classification):
+        assert pending_folder_id == "pending-folder"
+        assert access_classification == "Salus Internal"
         candidate_id = int(row["id"].rsplit("-", 1)[1])
         content = f"exact-source-{candidate_id}".encode()
         return SimpleNamespace(
@@ -129,7 +159,7 @@ class _FakeWriter:
 
 
 def _run(available: int) -> tuple[dict[str, int], sqlite3.Connection]:
-    conn = _database()
+    conn = _database(available)
     emitted: list[tuple[str, str | int]] = []
     ids = promotion.approve_exact_boundary(conn, lambda key, value: emitted.append((key, value)))
     assert ids == list(range(1, 14))
@@ -144,7 +174,6 @@ def _run(available: int) -> tuple[dict[str, int], sqlite3.Connection]:
         from_environment=lambda: SimpleNamespace(drive_id="intake-drive")
     )
     promotion.KnowledgeDestinationConfig = SimpleNamespace(from_environment=lambda: SimpleNamespace())
-    _FakeIntake.available = available
     promotion.GovernedM365Intake = _FakeIntake
     promotion.GraphKnowledgeWriter = _FakeWriter
     result = promotion.promote_exact_boundary(
@@ -179,13 +208,19 @@ def main() -> None:
     assert "SALUS_POSTGRES_AUTH" in bicep
     assert "public_release_authorized\": False" in live
     assert "source_substitution_authorized\": False" in live
+    assert "intake.list_files()" not in live
+    assert "read_delta_document" in live
+    assert "Governed Source Unavailable" in live
 
     result, conn = _run(13)
     assert result == {
         "promoted": 13,
         "already_complete": 0,
+        "unavailable_source_exceptions": 0,
+        "already_unavailable": 0,
         "failed_closed": 0,
         "verified_complete": 13,
+        "accounted_complete": 13,
     }
     assert conn.execute(
         "SELECT COUNT(*) FROM m365_knowledge_candidates WHERE status='Ingested and Verified'"
@@ -194,15 +229,36 @@ def main() -> None:
 
     result, conn = _run(8)
     assert result["promoted"] == 8
-    assert result["failed_closed"] == 5
+    assert result["unavailable_source_exceptions"] == 5
+    assert result["failed_closed"] == 0
     assert result["verified_complete"] == 8
+    assert result["accounted_complete"] == 13
     assert conn.execute(
-        "SELECT COUNT(*) FROM m365_knowledge_candidates WHERE status='Automatic Retry Required'"
+        "SELECT COUNT(*) FROM m365_knowledge_candidates WHERE status=?",
+        (promotion.UNAVAILABLE_STATUS,),
     ).fetchone()[0] == 5
     assert conn.execute(
         "SELECT COUNT(*) FROM m365_knowledge_events WHERE event_type=?",
-        (promotion.FAILURE_EVENT,),
+        (promotion.UNAVAILABLE_EVENT,),
     ).fetchone()[0] == 5
+    emitted: list[tuple[str, str | int]] = []
+    ids = promotion.approve_exact_boundary(conn, lambda key, value: emitted.append((key, value)))
+    resumed = promotion.promote_exact_boundary(
+        conn, ids, lambda key, value: emitted.append((key, value))
+    )
+    assert resumed["already_complete"] == 8
+    assert resumed["already_unavailable"] == 5
+    assert resumed["accounted_complete"] == 13
+    conn.close()
+
+    result, conn = _run(7)
+    assert result["promoted"] == 7
+    assert result["unavailable_source_exceptions"] == 5
+    assert result["failed_closed"] == 1
+    assert result["accounted_complete"] == 12
+    assert conn.execute(
+        "SELECT COUNT(*) FROM m365_knowledge_candidates WHERE status='Automatic Retry Required'"
+    ).fetchone()[0] == 1
     conn.close()
 
     print("Knowledge pending-review approval and promotion smoke checks passed.")

@@ -30,6 +30,8 @@ EXPECTED_RECONCILIATION = 5
 APPROVAL_EVENT = "OwnerBatchApprovedForPromotion"
 PROMOTION_EVENT = "OwnerApprovedPromotedVerifiedAndArchived"
 FAILURE_EVENT = "OwnerApprovedPromotionRetryRequired"
+UNAVAILABLE_EVENT = "OwnerApprovedUnavailableSourceException"
+UNAVAILABLE_STATUS = "Governed Source Unavailable"
 ACTOR = "Marc Duncan"
 RATIONALE = (
     "Explicit owner approval on 2026-11-11 for governed internal research, citation, "
@@ -42,6 +44,7 @@ ACTIVE_STATUSES = {
     "Automatic Retry Required",
     "Destination Verified",
     "Ingested and Verified",
+    UNAVAILABLE_STATUS,
 }
 
 
@@ -71,12 +74,34 @@ def _category(classification: dict[str, Any]) -> str:
     raise RuntimeError("pending_review_boundary_changed")
 
 
+def _is_unavailable_exception(classification: dict[str, Any]) -> bool:
+    reconciliation = classification.get("source_reconciliation") or {}
+    return (
+        (classification.get("extraction") or {}).get("status") == "Complete"
+        and reconciliation.get("status")
+        == "Governed Unavailable-Source Exception Approved"
+        and reconciliation.get("disposition")
+        == "Governed Missing Source Reconciliation Required"
+        and reconciliation.get("successor_match") == "None"
+        and int(reconciliation.get("boundary_files_rechecked") or 0) == 22_377
+        and reconciliation.get("content_available") is False
+        and reconciliation.get("metadata_only") is True
+        and reconciliation.get("source_substitution_authorized") is False
+        and reconciliation.get("public_release_authorized") is False
+        and reconciliation.get("approved_by") == ACTOR
+    )
+
+
 def _validate_row(row: Any) -> str:
     try:
         classification = json.loads(row["classification_json"] or "{}")
     except (TypeError, ValueError) as exc:
         raise RuntimeError("pending_review_classification_invalid") from exc
-    category = _category(classification)
+    category = (
+        "reconciliation"
+        if row["status"] == UNAVAILABLE_STATUS and _is_unavailable_exception(classification)
+        else _category(classification)
+    )
     if row["decision"] != "Approved" or row["target_folder"] not in TARGETS:
         raise RuntimeError("pending_review_approval_metadata_changed")
     products = classification.get("permit_products") or []
@@ -224,6 +249,93 @@ def _record_retry(conn: Any, candidate_id: int, code: str) -> None:
     conn.commit()
 
 
+def _record_unavailable_source_exception(conn: Any, row: Any) -> None:
+    """Close a proven missing-source review without claiming source content exists."""
+    classification = json.loads(row["classification_json"] or "{}")
+    reconciliation = dict(classification.get("source_reconciliation") or {})
+    if _category(classification) != "reconciliation":
+        raise RuntimeError("unavailable_source_exception_scope_changed")
+    reconciliation.update(
+        {
+            "status": "Governed Unavailable-Source Exception Approved",
+            "content_available": False,
+            "metadata_only": True,
+            "source_substitution_authorized": False,
+            "public_release_authorized": False,
+            "approved_by": ACTOR,
+            "approved_at": _now(),
+        }
+    )
+    classification["source_reconciliation"] = reconciliation
+    timestamp = _now()
+    updated = conn.execute(
+        "UPDATE m365_knowledge_candidates SET status=?,classification_json=? "
+        "WHERE id=? AND status IN ('Approved for Promotion','Automatic Retry Required')",
+        (UNAVAILABLE_STATUS, json.dumps(classification, sort_keys=True), row["id"]),
+    )
+    if updated.rowcount != 1:
+        raise RuntimeError("approved_boundary_state_changed")
+    conn.execute(
+        "INSERT INTO m365_knowledge_events"
+        "(candidate_id,event_type,actor,detail_json,created_at) VALUES(?,?,?,?,?)",
+        (
+            row["id"],
+            UNAVAILABLE_EVENT,
+            ACTOR,
+            json.dumps(
+                {
+                    "content_available": False,
+                    "metadata_only": True,
+                    "public_release_authorized": False,
+                    "source_substitution_authorized": False,
+                    "source_item_id": row["source_item_id"],
+                    "source_etag": row["source_etag"],
+                    "source_sha256": row["source_sha256"],
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ),
+            timestamp,
+        ),
+    )
+    conn.commit()
+
+
+def _ledger_source(conn: Any, drive_id: str, source_item_id: str) -> tuple[str, dict[str, Any] | None]:
+    cursors = conn.execute(
+        "SELECT pending_id,phase,last_error FROM m365_bulk_cursors WHERE drive_id=?",
+        (drive_id,),
+    ).fetchall()
+    if len(cursors) != 1 or cursors[0]["phase"] != "delta" or cursors[0]["last_error"]:
+        raise RuntimeError("governed_source_ledger_not_ready")
+    pending_id = str(cursors[0]["pending_id"] or "")
+    source = conn.execute(
+        "SELECT parent_id,name,kind,etag,size,metadata_json,status,reason "
+        "FROM m365_bulk_items WHERE drive_id=? AND pending_id=? AND item_id=?",
+        (drive_id, pending_id, source_item_id),
+    ).fetchone()
+    if source is None or source["status"] == "Removed":
+        return pending_id, None
+    if source["kind"] != "file":
+        raise RuntimeError("approved_boundary_state_changed")
+    metadata = json.loads(source["metadata_json"] or "{}")
+    item = {
+        "id": source_item_id,
+        "parent_id": source["parent_id"],
+        "name": source["name"],
+        "etag": source["etag"],
+        "size": int(source["size"]),
+        "mime_type": metadata.get("mime_type", ""),
+        "last_modified": metadata.get("last_modified", ""),
+        "ctag": metadata.get("ctag", ""),
+        "source_owner": metadata.get("source_owner", ""),
+        "source_owner_id": metadata.get("source_owner_id", ""),
+        "last_modified_by": metadata.get("last_modified_by", ""),
+        "web_url": metadata.get("web_url", ""),
+    }
+    return pending_id, item
+
+
 def _finish(
     conn: Any,
     row: Any,
@@ -280,8 +392,7 @@ def promote_exact_boundary(
     intake_config = GovernedM365Config.from_environment()
     intake = GovernedM365Intake(intake_config)
     writer = GraphKnowledgeWriter(intake_config, KnowledgeDestinationConfig.from_environment())
-    listed = {item["id"]: item for item in intake.list_files()}
-    promoted = already_complete = failed = 0
+    promoted = already_complete = unavailable = already_unavailable = failed = 0
     failure_counts: dict[str, int] = {}
     for ordinal, candidate_id in enumerate(candidate_ids, 1):
         row = conn.execute(
@@ -294,6 +405,11 @@ def promote_exact_boundary(
             raise RuntimeError("approved_boundary_state_changed")
         if row["status"] == "Ingested and Verified":
             already_complete += 1
+            continue
+        if row["status"] == UNAVAILABLE_STATUS:
+            if not _is_unavailable_exception(json.loads(row["classification_json"] or "{}")):
+                raise RuntimeError("approved_boundary_state_changed")
+            already_unavailable += 1
             continue
         try:
             if row["status"] == "Destination Verified":
@@ -309,11 +425,24 @@ def promote_exact_boundary(
                     _finish(conn, row, writer, destination, archived)
                     promoted += 1
                     continue
-            listed_row = listed.get(row["source_item_id"])
-            if listed_row is None:
+            pending_id, ledger_row = _ledger_source(
+                conn, intake_config.drive_id, row["source_item_id"]
+            )
+            if ledger_row is None:
+                if row["status"] == "Destination Verified":
+                    raise KnowledgePromotionError(
+                        "Verified destination awaits exact source archive verification"
+                    )
+                if _category(json.loads(row["classification_json"] or "{}")) == "reconciliation":
+                    _record_unavailable_source_exception(conn, row)
+                    unavailable += 1
+                    emit("processed", ordinal)
+                    continue
                 raise M365IntakeError("Exact governed source is unavailable")
-            document = intake.read_listed_document(
-                listed_row, access_classification="Salus Internal"
+            document = intake.read_delta_document(
+                ledger_row,
+                pending_folder_id=pending_id,
+                access_classification="Salus Internal",
             )
             if (
                 document.item_id != row["source_item_id"]
@@ -352,7 +481,7 @@ def promote_exact_boundary(
         emit("processed", ordinal)
     for code in sorted(failure_counts):
         emit(f"failure_{code}", failure_counts[code])
-    final_complete = int(
+    verified_complete = int(
         conn.execute(
             "SELECT COUNT(*) FROM m365_knowledge_candidates c "
             "WHERE c.status='Ingested and Verified' AND EXISTS "
@@ -362,13 +491,28 @@ def promote_exact_boundary(
         ).fetchone()[0]
         or 0
     )
-    if final_complete != promoted + already_complete:
+    unavailable_complete = int(
+        conn.execute(
+            "SELECT COUNT(*) FROM m365_knowledge_candidates c "
+            "WHERE c.status=? AND EXISTS "
+            "(SELECT 1 FROM m365_knowledge_events e WHERE e.candidate_id=c.id "
+            "AND e.event_type=?)",
+            (UNAVAILABLE_STATUS, UNAVAILABLE_EVENT),
+        ).fetchone()[0]
+        or 0
+    )
+    if verified_complete != promoted + already_complete:
         raise RuntimeError("promotion_readback_failed")
+    if unavailable_complete != unavailable + already_unavailable:
+        raise RuntimeError("unavailable_source_exception_readback_failed")
     return {
         "promoted": promoted,
         "already_complete": already_complete,
+        "unavailable_source_exceptions": unavailable,
+        "already_unavailable": already_unavailable,
         "failed_closed": failed,
-        "verified_complete": final_complete,
+        "verified_complete": verified_complete,
+        "accounted_complete": verified_complete + unavailable_complete,
     }
 
 
@@ -392,8 +536,9 @@ def main() -> None:
         conn.close()
     for key in sorted(result):
         emit(key, result[key])
-    emit("complete", 1 if result["failed_closed"] == 0 else 0)
-    if result["failed_closed"]:
+    complete = result["failed_closed"] == 0 and result["accounted_complete"] == EXPECTED_TOTAL
+    emit("complete", 1 if complete else 0)
+    if not complete:
         raise RuntimeError("One or more exact sources failed closed")
 
 
