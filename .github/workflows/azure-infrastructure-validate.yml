@@ -523,6 +523,7 @@ jobs:
           reviewed_second_attempts = {
               ('release/v3.228', '56524b7591526f90a75953cbcf70d47164a23bc0'),
               ('release/v3.230', '1157a071c5c2daed864783737e5b84543671cd9c'),
+              ('release/v3.273', '3572f2b4cf7c2cb65c772d0a848db7d9e6951944'),
           }
           if 'activation_retry_attempt' in application_activation and not (
               application_activation['activation_retry_attempt'] == 2
