@@ -1,28 +1,28 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 11 November 2026 14:09 CST
+last_verified_at: 12 November 2026 11:58 CST
 current_frozen_release: v3.272
 current_frozen_commit: 3ff465936689538622949110cf9f3e1794a5ab1c
 active_development_branch: development/salcapa-platform
-current_development_head: a01102bd563415046282f837e373d64b64196eae
+current_development_head: 86b69752db3d590b4a79a96fbfce407998cebb6d
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
-active_increment: salus_v3272_dashboard_scanner_worker_application_promotion
-last_completed_increment: dashboard_overview_v3272_app_and_knowledge_worker_deployed_pr1195_run43091547898
-candidate_release: v3.272
-validation_pr: 1196
-validation_branch: codex/salcapa-v3272-scan-worker-20261111
+active_increment: salus_v3273_shared_web_links_source_freeze
+last_completed_increment: shared_web_links_merged_pr1209_at_86b69752_v3272_superseded_only_after_v3273_acceptance
+candidate_release: v3.273
+validation_pr: 1210
+validation_branch: codex/freeze-v3-273-shared-web-links-20261112
 validation_base: development/salcapa-platform
-validation_head: f12f0c85553e16eeb4b5428100f3dd9ef9eaf34d
+validation_head: 86b69752db3d590b4a79a96fbfce407998cebb6d
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_current_v3272_candidate
-first_root_failing_gate: five_minute_scanner_result_worker_remains_on_v3271_image
-root_cause: v3272_dashboard_app_and_scheduled_knowledge_worker_are_verified_but_scanner_result_worker_requires_separate_image_only_promotion
-repair_head: a01102bd563415046282f837e373d64b64196eae
-repair_summary: promote_only_the_scanner_result_worker_to_registry_verified_v3272_with_exact_v3271_prestate_and_rollback
-genuine_blockers: scanner_worker_candidate_checks_exact_head_approval_protected_image_only_readback_and_handoff_reconciliation
-next_authorized_step: obtain_Marc_exact_head_approval_after_required_checks_for_separate_v3272_scanner_worker_promotion
+failed_workflows: none_current_v3273_candidate
+first_root_failing_gate: v3273_shared_web_links_source_not_yet_frozen_built_or_deployed
+root_cause: merged_shared_web_links_require_source_freeze_immutable_image_and_guarded_deployment
+repair_head: 86b69752db3d590b4a79a96fbfce407998cebb6d
+repair_summary: freeze_the_approved_credential_free_shared_web_links_as_v3273
+genuine_blockers: v3272_superseded_only_after_v3273_source_freeze_checks_exact_head_approval_image_publication_guarded_deployment_and_live_readback
+next_authorized_step: validate_pr1210_exact_source_candidate_then_apply_Marc_completion_approval_to_the_exact_green_head
 deployed_demo_release: v3.272
 deployed_demo_state: v3272_dashboard_app_and_knowledge_worker_verified_scanner_result_worker_v3271_named_test_only_pilots_public_Level1A_live_payment_closed
 ---
@@ -685,3 +685,6 @@ dashboard_resume_validation_root_repairs_20261111: PR #1192 exact head `0f700f5a
 
 
 dashboard_resume_merged_v3272_freeze_candidate_20261111: Marc approved PR #1192 exact head `68c526ef8f00aab8311a9c2171cc10bed3a1dc09` after all 47 required checks passed, including successful production-container PDF rendering and the successful rerun of a Windows-only subprocess timeout that had already passed 188 tests. Squash merge `459ac8b75787bdd59bc683f0debfe824b49193e2` makes the SalCAPA™ Overview landing and both validation repairs authoritative on `development/salcapa-platform`. Governed-branch readback confirmed the Overview as the default landing, the Common Operating Picture and Command Center distinction, role-aware next-step guidance, and isolated renderer HOME/XDG cache handling. This v3.272 candidate labels the approved merged source only. It does not freeze a release branch, publish an image, change Azure, open public controls or establish live acceptance. Required candidate checks and Marc's exact-head source-freeze approval remain before a protected `release/v3.272` branch may be advanced.
+
+
+shared_web_links_merged_v3273_freeze_candidate_20261112: Marc approved PR #1209 exact head `d28c13abbaa746ec39a152bcc63f2d84622572e0` after the package-and-handoff, PostgreSQL, Windows professional-report and public Protection Advisor suites passed. Squash merge `86b69752db3d590b4a79a96fbfce407998cebb6d` makes the credential-free shared Web Links source authoritative. The Administration navigation, HTTPS link and description fields, Salus-only access, Auditor read-only role, Protected Member denial, tenant isolation, edit-conflict guard, attribution and portable recovery were covered. This v3.273 candidate labels that exact merged source only; it does not create a release branch, publish an image or change Azure. The open v3.272 scanner-worker promotion remains separate and its v3.272 application precondition will fail closed after v3.273 deployment unless separately reconciled.

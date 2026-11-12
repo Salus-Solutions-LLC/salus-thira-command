@@ -1,10 +1,10 @@
 # Salus Solutions — Current Handoff
 
-## 12 November 2026 Central — shared Salus web-links Dashboard candidate
+## 12 November 2026 Central — shared Salus web-links merged; v3.273 freeze candidate
 
-- Marc directed a shared list of website addresses and descriptions under the Dashboard's Administration heading. His final scope expressly removes usernames and passwords. Every logged-in Salus Personnel role with write authority may add or edit links for other Salus personnel; Auditors remain read-only under the existing role contract; Protected Members are denied and do not see the navigation entry.
-- This bounded source candidate adds only HTTPS links and descriptions, rejects credentials embedded in a URL, preserves tenant isolation, uses optimistic version checks to prevent silent overwrites, attributes every create/update, and includes the records in portable backup/recovery. Links open in a separate no-referrer window. No credential field, credential storage, password manager, public sharing, source permission change or production deployment is included.
-- Required acceptance remains focused API/navigation coverage, the full package-and-handoff suite, PostgreSQL transaction coverage, Windows professional-report coverage, Marc's exact-head approval, merge, governed source freeze, immutable image publication and protected Azure deployment/readback. Production remains v3.272 until those separate gates pass.
+- Marc approved [PR #1209](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1209) exact head `d28c13abbaa746ec39a152bcc63f2d84622572e0` after all four validation surfaces passed. Squash merge `86b69752db3d590b4a79a96fbfce407998cebb6d` makes the shared Web Links source authoritative on `development/salcapa-platform`.
+- The merged feature places **Web Links** beneath the Dashboard's Administration heading and description. It stores only an HTTPS address and description, rejects URL-embedded credentials, permits Salus Personnel with write authority to add/edit, keeps Auditors read-only, denies Protected Members, preserves tenant isolation, prevents silent concurrent overwrite, attributes every change and includes records in portable recovery.
+- This v3.273 candidate changes only the runtime release label and continuity record. It does not create `release/v3.273`, publish an image or change Azure. Production remains v3.272 until exact source-freeze checks, immutable image publication, guarded deployment and live readback pass. Public sharing, credential storage and source permissions remain unchanged.
 
 ## 12 November 2026 Central — Knowledge pending-review approval and promotion complete
 
