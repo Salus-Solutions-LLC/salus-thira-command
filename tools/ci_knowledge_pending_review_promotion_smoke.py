@@ -138,10 +138,38 @@ class _FakeWriter:
     archive_available = 0
     missing_not_found = True
 
-    def __init__(self, _intake_config, _destination):
+    class _Response:
+        def __init__(self, status_code, payload=None):
+            self.status_code = status_code
+            self._payload = payload or {}
+
+        def json(self):
+            return self._payload
+
+    class _Client:
+        def __init__(self, writer):
+            self.writer = writer
+
+        def get(self, url, *, headers, params):
+            assert headers["Accept"] == "application/json"
+            assert params == {"$select": "id,file"}
+            item_id = url.rsplit("/", 1)[1]
+            candidate_id = int(item_id.rsplit("-", 1)[1])
+            if candidate_id > self.writer.archive_available:
+                return _FakeWriter._Response(
+                    404 if self.writer.missing_not_found else 503
+                )
+            return _FakeWriter._Response(200, {"id": item_id, "file": {}})
+
+    def __init__(self, intake_config, _destination):
+        self.intake_config = intake_config
+        self.client = self._Client(self)
         self.destination = SimpleNamespace(
             drive_id="knowledge-drive", processed_folder_item_id="processed-folder"
         )
+
+    def _headers(self):
+        return {"Authorization": "Bearer test"}
 
     def put_verified(self, _folder, name, _content, sha256):
         return {
