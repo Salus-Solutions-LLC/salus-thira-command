@@ -74,22 +74,38 @@ def _category(classification: dict[str, Any]) -> str:
     raise RuntimeError("pending_review_boundary_changed")
 
 
-def _is_unavailable_exception(classification: dict[str, Any]) -> bool:
+def _unavailable_exception_category(classification: dict[str, Any]) -> str | None:
+    extraction = classification.get("extraction") or {}
     reconciliation = classification.get("source_reconciliation") or {}
-    return (
-        (classification.get("extraction") or {}).get("status") == "Complete"
+    common = (
+        reconciliation.get("content_available") is False
+        and reconciliation.get("metadata_only") is True
+        and reconciliation.get("source_substitution_authorized") is False
+        and reconciliation.get("public_release_authorized") is False
+        and reconciliation.get("approved_by") == ACTOR
+    )
+    if (
+        extraction.get("status") == "Complete"
         and reconciliation.get("status")
         == "Governed Unavailable-Source Exception Approved"
         and reconciliation.get("disposition")
         == "Governed Missing Source Reconciliation Required"
         and reconciliation.get("successor_match") == "None"
         and int(reconciliation.get("boundary_files_rechecked") or 0) == 22_377
-        and reconciliation.get("content_available") is False
-        and reconciliation.get("metadata_only") is True
-        and reconciliation.get("source_substitution_authorized") is False
-        and reconciliation.get("public_release_authorized") is False
-        and reconciliation.get("approved_by") == ACTOR
-    )
+        and common
+    ):
+        return "reconciliation"
+    if (
+        extraction.get("status") == "Governed Unavailable-Source Exception Approved"
+        and extraction.get("disposition") == "Governed Extraction Review Required"
+        and extraction.get("content_available") is False
+        and extraction.get("metadata_only") is True
+        and extraction.get("source_substitution_authorized") is False
+        and extraction.get("public_release_authorized") is False
+        and extraction.get("approved_by") == ACTOR
+    ):
+        return "extraction"
+    return None
 
 
 def _validate_row(row: Any) -> str:
@@ -98,10 +114,12 @@ def _validate_row(row: Any) -> str:
     except (TypeError, ValueError) as exc:
         raise RuntimeError("pending_review_classification_invalid") from exc
     category = (
-        "reconciliation"
-        if row["status"] == UNAVAILABLE_STATUS and _is_unavailable_exception(classification)
+        _unavailable_exception_category(classification)
+        if row["status"] == UNAVAILABLE_STATUS
         else _category(classification)
     )
+    if category not in {"extraction", "reconciliation"}:
+        raise RuntimeError("pending_review_boundary_changed")
     if row["decision"] != "Approved" or row["target_folder"] not in TARGETS:
         raise RuntimeError("pending_review_approval_metadata_changed")
     products = classification.get("permit_products") or []
@@ -252,10 +270,10 @@ def _record_retry(conn: Any, candidate_id: int, code: str) -> None:
 def _record_unavailable_source_exception(conn: Any, row: Any) -> None:
     """Close a proven missing-source review without claiming source content exists."""
     classification = json.loads(row["classification_json"] or "{}")
-    reconciliation = dict(classification.get("source_reconciliation") or {})
-    if _category(classification) != "reconciliation":
-        raise RuntimeError("unavailable_source_exception_scope_changed")
-    reconciliation.update(
+    category = _category(classification)
+    section_name = "source_reconciliation" if category == "reconciliation" else "extraction"
+    section = dict(classification.get(section_name) or {})
+    section.update(
         {
             "status": "Governed Unavailable-Source Exception Approved",
             "content_available": False,
@@ -266,7 +284,7 @@ def _record_unavailable_source_exception(conn: Any, row: Any) -> None:
             "approved_at": _now(),
         }
     )
-    classification["source_reconciliation"] = reconciliation
+    classification[section_name] = section
     timestamp = _now()
     updated = conn.execute(
         "UPDATE m365_knowledge_candidates SET status=?,classification_json=? "
@@ -407,7 +425,7 @@ def promote_exact_boundary(
             already_complete += 1
             continue
         if row["status"] == UNAVAILABLE_STATUS:
-            if not _is_unavailable_exception(json.loads(row["classification_json"] or "{}")):
+            if not _unavailable_exception_category(json.loads(row["classification_json"] or "{}")):
                 raise RuntimeError("approved_boundary_state_changed")
             already_unavailable += 1
             continue
@@ -438,9 +456,17 @@ def promote_exact_boundary(
                     unavailable += 1
                     emit("processed", ordinal)
                     continue
-                archived = writer.verify_already_archived_source(
-                    row["source_item_id"], row["source_sha256"], include_content=True
-                )
+                try:
+                    archived = writer.verify_already_archived_source(
+                        row["source_item_id"], row["source_sha256"], include_content=True
+                    )
+                except KnowledgePromotionError as exc:
+                    if str(exc) != "Archived source item was not found":
+                        raise
+                    _record_unavailable_source_exception(conn, row)
+                    unavailable += 1
+                    emit("processed", ordinal)
+                    continue
                 content = archived.get("content") if archived else None
                 if (
                     not archived
