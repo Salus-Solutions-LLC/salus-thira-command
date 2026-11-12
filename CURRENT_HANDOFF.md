@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 12 November 2026 Central — shared Salus web-links Dashboard candidate
+
+- Marc directed a shared list of website addresses and descriptions under the Dashboard's Administration heading. His final scope expressly removes usernames and passwords. Every logged-in Salus Personnel role with write authority may add or edit links for other Salus personnel; Auditors remain read-only under the existing role contract; Protected Members are denied and do not see the navigation entry.
+- This bounded source candidate adds only HTTPS links and descriptions, rejects credentials embedded in a URL, preserves tenant isolation, uses optimistic version checks to prevent silent overwrites, attributes every create/update, and includes the records in portable backup/recovery. Links open in a separate no-referrer window. No credential field, credential storage, password manager, public sharing, source permission change or production deployment is included.
+- Required acceptance remains focused API/navigation coverage, the full package-and-handoff suite, PostgreSQL transaction coverage, Windows professional-report coverage, Marc's exact-head approval, merge, governed source freeze, immutable image publication and protected Azure deployment/readback. Production remains v3.272 until those separate gates pass.
+
 ## 12 November 2026 Central — Knowledge pending-review approval and promotion complete
 
 - Marc approved [PR #1206](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1206) exact head `7f3393ec4a098d63c18b6107e2aa88db08254301` after all three required suites passed; squash merge `5d8e34938df961afb9d243d440690115d72d5eeb` made the injected exact-404 correction authoritative. Marc then approved [PR #1207](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1207) exact head `5cee9f16da80db5373a36632eb4f62084cb51802` after the same three required suites passed; squash merge `ad479407a222a1d667f0f2d157b36aa7680dbfa6` triggered the new single-use protected activation.
