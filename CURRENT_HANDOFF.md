@@ -1,10 +1,11 @@
 # Salus Solutions — Current Handoff
 
-## 12 November 2026 Central — shared Salus web-links merged; v3.273 freeze candidate
+## 12 November 2026 Central — shared Salus web-links v3.273 source frozen; immutable image candidate
 
 - Marc approved [PR #1209](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1209) exact head `d28c13abbaa746ec39a152bcc63f2d84622572e0` after all four validation surfaces passed. Squash merge `86b69752db3d590b4a79a96fbfce407998cebb6d` makes the shared Web Links source authoritative on `development/salcapa-platform`.
 - The merged feature places **Web Links** beneath the Dashboard's Administration heading and description. It stores only an HTTPS address and description, rejects URL-embedded credentials, permits Salus Personnel with write authority to add/edit, keeps Auditors read-only, denies Protected Members, preserves tenant isolation, prevents silent concurrent overwrite, attributes every change and includes records in portable recovery.
-- This v3.273 candidate changes only the runtime release label and continuity record. It does not create `release/v3.273`, publish an image or change Azure. Production remains v3.272 until exact source-freeze checks, immutable image publication, guarded deployment and live readback pass. Public sharing, credential storage and source permissions remain unchanged.
+- Marc's standing completion approval applied to [PR #1210](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1210) exact head `fd4b4e06ec5087261d0e62f61341243cf952b5a0` only after its analytical, Linux/package, PostgreSQL and Windows gates passed. Squash merge `3572f2b4cf7c2cb65c772d0a848db7d9e6951944` and `release/v3.273` point to the same frozen source; the Release Branch Guard passed.
+- [PR #1211](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1211) pins only that exact frozen source for one protected immutable image build and registry-digest readback. It does not deploy or establish live acceptance. Production remains v3.272 until image publication, guarded deployment and live shared-Web-Links readback pass. Public sharing, credential storage and source permissions remain unchanged.
 
 ## 12 November 2026 Central — Knowledge pending-review approval and promotion complete
 
