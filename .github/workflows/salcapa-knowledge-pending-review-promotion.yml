@@ -4,7 +4,7 @@ on:
   push:
     branches: [development/salcapa-platform]
     paths:
-      - 'deploy/azure/activations/knowledge-pending-review-final-missing-source-disposition-20261112.json'
+      - 'deploy/azure/activations/knowledge-pending-review-injected-missing-source-probe-20261112.json'
 
 concurrency:
   group: salcapa-knowledge-live-promotion
@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = "1"
-          ACTIVATION=deploy/azure/activations/knowledge-pending-review-final-missing-source-disposition-20261112.json
+          ACTIVATION=deploy/azure/activations/knowledge-pending-review-injected-missing-source-probe-20261112.json
           test "$(git diff-tree --no-commit-id --name-only --diff-filter=A -r HEAD^ HEAD -- "$ACTIVATION")" = "$ACTIVATION"
           python - "$ACTIVATION" <<'PY'
           import json
@@ -46,8 +46,8 @@ jobs:
 
           record = json.load(open(sys.argv[1], encoding="utf-8"))
           expected = {
-              "activation_key": "salcapa-knowledge-final-missing-source-disposition-20261112-cfd99cd6",
-              "approved_operation_commit": "cfd99cd60c6794aba69fdd804f48af8dbb0a74b3",
+              "activation_key": "salcapa-knowledge-injected-missing-source-probe-20261112-5d8e3493",
+              "approved_operation_commit": "5d8e34938df961afb9d243d440690115d72d5eeb",
               "exact_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:d7b558b543431d2ed06dc9121d99f3fe409dd0dcde267ed06e87e956d28a4f14",
               "expected_candidate_count": 13,
               "expected_extraction_review_count": 8,
@@ -57,10 +57,10 @@ jobs:
               "maximum_executions": 1,
               "expected_prior_unavailable_source_exceptions": 5,
               "expected_prior_verified_complete": 3,
-              "operation": "complete_exact_missing_source_disposition",
-              "prior_failed_run_id": 43265942001,
+              "operation": "complete_injected_missing_source_probe",
+              "prior_failed_run_id": 43268487025,
               "public_release_authorized": False,
-              "schema_version": 4,
+              "schema_version": 5,
               "source_substitution_authorized": False,
               "target_environment": "dev",
           }
@@ -72,7 +72,7 @@ jobs:
           git diff --name-only "$APPROVED_OPERATION_COMMIT"..HEAD | sort > "$RUNNER_TEMP/activation-diff.txt"
           printf '%s\n' \
             .github/workflows/salcapa-knowledge-pending-review-promotion.yml \
-            deploy/azure/activations/knowledge-pending-review-final-missing-source-disposition-20261112.json \
+            deploy/azure/activations/knowledge-pending-review-injected-missing-source-probe-20261112.json \
             tools/ci_knowledge_pending_review_promotion_smoke.py \
             | sort > "$RUNNER_TEMP/expected-activation-diff.txt"
           cmp "$RUNNER_TEMP/activation-diff.txt" "$RUNNER_TEMP/expected-activation-diff.txt"

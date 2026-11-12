@@ -243,8 +243,8 @@ def main() -> None:
     )
     assert "environment: salcapa-dev-approval" in workflow
     assert "push:" in workflow and "workflow_dispatch:" not in workflow
-    assert "knowledge-pending-review-final-missing-source-disposition-20261112.json" in workflow
-    assert "cfd99cd60c6794aba69fdd804f48af8dbb0a74b3" in workflow
+    assert "knowledge-pending-review-injected-missing-source-probe-20261112.json" in workflow
+    assert "5d8e34938df961afb9d243d440690115d72d5eeb" in workflow
     assert 'test "$(marker_value VERIFIED_COMPLETE)" = "3"' in workflow
     assert 'test "$(marker_value ACCOUNTED_COMPLETE)" = "13"' in workflow
     assert 'test "$(marker_value COMPLETE)" = "1"' in workflow
