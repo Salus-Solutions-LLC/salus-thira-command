@@ -194,7 +194,13 @@ def main() -> None:
     )
     assert "environment: salcapa-dev-approval" in workflow
     assert "push:" in workflow and "workflow_dispatch:" not in workflow
-    assert "knowledge-pending-review-promotion-20261111.json" in workflow
+    assert "knowledge-pending-review-promotion-recovery-20261112.json" in workflow
+    assert "acc3d0a2722311c9e357fad2f44391238226f7df" in workflow
+    assert 'test "$(marker_value VERIFIED_COMPLETE)" = "8"' in workflow
+    assert 'test "$(marker_value ACCOUNTED_COMPLETE)" = "13"' in workflow
+    assert 'test "$(marker_value COMPLETE)" = "1"' in workflow
+    assert 'test "$((VERIFIED_THIS_RUN + VERIFIED_PRIOR))" = "8"' in workflow
+    assert 'test "$((UNAVAILABLE_THIS_RUN + UNAVAILABLE_PRIOR))" = "5"' in workflow
     assert 'test "$GITHUB_RUN_ATTEMPT" = "1"' in workflow
     assert "--diff-filter=A" in workflow
     assert "triggerType\":\"Manual" in workflow
