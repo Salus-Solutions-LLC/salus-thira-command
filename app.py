@@ -665,6 +665,20 @@ def init_db():
     CREATE INDEX IF NOT EXISTS idx_governed_intake_tenant_created ON governed_intake(tenant_id,created_at,id);
     CREATE INDEX IF NOT EXISTS idx_governed_intake_tenant_type_status ON governed_intake(tenant_id,record_type,status);
 
+    CREATE TABLE IF NOT EXISTS shared_web_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      url TEXT NOT NULL,
+      description TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1,
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_by TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_shared_web_links_tenant_updated ON shared_web_links(tenant_id,updated_at,id);
+
     CREATE TABLE IF NOT EXISTS audit_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ts TEXT NOT NULL,
@@ -3196,6 +3210,14 @@ class PackagePredecessorQualificationIn(BaseModel):
     limitations_disposition: str = Field(min_length=40,max_length=4000)
     confirm_independent_review: Literal[True]
 
+class SharedWebLinkIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    url: str = Field(min_length=1,max_length=2048)
+    description: str = Field(min_length=1,max_length=500)
+
+class SharedWebLinkUpdateIn(SharedWebLinkIn):
+    version: int = Field(gt=0)
+
 ROLE_PERMISSIONS={
     'System Administrator': {'read','write','decide','admin'},
     'Assessment Director': {'read','write','decide'},
@@ -4560,6 +4582,25 @@ COP_ACTION_SOURCES={
 def protected_member_request(request:Request):
     return role(request) in PROTECTED_MEMBER_ROLES
 
+def require_shared_web_link_access(request:Request, *, write:bool=False):
+    require(request,'read')
+    if protected_member_request(request):
+        raise HTTPException(403,'Shared web links are restricted to Salus personnel.')
+    if write and role(request)=='Auditor':
+        raise HTTPException(403,'Auditors have read-only access to shared web links.')
+
+def normalize_shared_web_link(url:str) -> str:
+    value=(url or '').strip()
+    if any(ch.isspace() or ord(ch)<32 for ch in value):
+        raise HTTPException(422,'Web link must not contain spaces or control characters.')
+    try: parsed=urllib.parse.urlsplit(value)
+    except ValueError: raise HTTPException(422,'Web link is invalid.')
+    if parsed.scheme.lower()!='https' or not parsed.hostname:
+        raise HTTPException(422,'Web link must be a complete HTTPS address.')
+    if parsed.username is not None or parsed.password is not None:
+        raise HTTPException(422,'Web links must not contain usernames or passwords.')
+    return value
+
 def require_salus_component_authority(request:Request,component:str):
     if protected_member_request(request) or role(request)=='Auditor':
         raise HTTPException(403,f'{component} lifecycle authority is restricted to authorized Salus personnel.')
@@ -4665,6 +4706,56 @@ def _list_cop_decisions(conn,request:Request):
 @app.get('/api/salcapa/workspace')
 def get_salcapa_workspace(request:Request):
     require(request,'read'); return salcapa_workspace_contract(request)
+
+@app.get('/api/salcapa/shared-web-links')
+def list_shared_web_links(request:Request):
+    require_shared_web_link_access(request)
+    conn=db()
+    rows=[dict(row) for row in conn.execute(
+        'SELECT id,url,description,version,created_by,created_at,updated_by,updated_at '
+        'FROM shared_web_links WHERE tenant_id=? ORDER BY LOWER(description),id',
+        (tenant_id(request),),
+    )]
+    conn.close(); return rows
+
+@app.post('/api/salcapa/shared-web-links')
+def create_shared_web_link(p:SharedWebLinkIn,request:Request):
+    require_shared_web_link_access(request,write=True)
+    url=normalize_shared_web_link(p.url); description=p.description.strip()
+    if not description: raise HTTPException(422,'Description is required.')
+    tid=tenant_id(request); who=actor(request); ts=now(); conn=db()
+    cur=conn.execute(
+        'INSERT INTO shared_web_links(tenant_id,url,description,version,created_by,created_at,updated_by,updated_at) '
+        'VALUES(?,?,?,?,?,?,?,?)',(tid,url,description,1,who,ts,who,ts)
+    )
+    link_id=cur.lastrowid
+    audit(conn,'CREATE','shared_web_link',link_id,'Shared web link created.',who,tenant_override=tid)
+    conn.commit()
+    row=dict(conn.execute('SELECT id,url,description,version,created_by,created_at,updated_by,updated_at FROM shared_web_links WHERE id=? AND tenant_id=?',(link_id,tid)).fetchone())
+    conn.close(); return row
+
+@app.patch('/api/salcapa/shared-web-links/{link_id}')
+def update_shared_web_link(link_id:int,p:SharedWebLinkUpdateIn,request:Request):
+    require_shared_web_link_access(request,write=True)
+    url=normalize_shared_web_link(p.url); description=p.description.strip()
+    if not description: raise HTTPException(422,'Description is required.')
+    tid=tenant_id(request); who=actor(request); ts=now(); conn=db()
+    row=conn.execute('SELECT * FROM shared_web_links WHERE id=? AND tenant_id=?',(link_id,tid)).fetchone()
+    if not row: conn.close(); raise HTTPException(404,'Shared web link not found.')
+    if int(row['version'])!=p.version:
+        conn.close(); raise HTTPException(409,'This link was updated by another person. Refresh and try again.')
+    updated=conn.execute(
+        'UPDATE shared_web_links SET url=?,description=?,version=version+1,updated_by=?,updated_at=? '
+        'WHERE id=? AND tenant_id=? AND version=?',
+        (url,description,who,ts,link_id,tid,p.version),
+    )
+    if updated.rowcount!=1:
+        conn.rollback(); conn.close()
+        raise HTTPException(409,'This link was updated by another person. Refresh and try again.')
+    audit(conn,'UPDATE','shared_web_link',link_id,f'Shared web link updated to version {p.version+1}.',who,tenant_override=tid)
+    conn.commit()
+    result=dict(conn.execute('SELECT id,url,description,version,created_by,created_at,updated_by,updated_at FROM shared_web_links WHERE id=? AND tenant_id=?',(link_id,tid)).fetchone())
+    conn.close(); return result
 
 def _protective_readiness_summary(conn, assessment_ids:list[int], tenant:int):
     promise='See, Decide, Coordinate, Act, and Prove progress from an unverified condition toward demonstrated protective assurance.'
