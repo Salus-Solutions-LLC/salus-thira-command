@@ -1,0 +1,18 @@
+{
+  "activation_key": "salcapa-knowledge-processed-archive-recovery-20261112-ee9875d1",
+  "approved_operation_commit": "ee9875d117ccce2ace0bc51dd0496655d831edcd",
+  "exact_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:d7b558b543431d2ed06dc9121d99f3fe409dd0dcde267ed06e87e956d28a4f14",
+  "expected_candidate_count": 13,
+  "expected_extraction_review_count": 8,
+  "expected_source_reconciliation_count": 5,
+  "expected_unavailable_source_exceptions": 5,
+  "expected_verified_complete": 8,
+  "maximum_executions": 1,
+  "expected_prior_unavailable_source_exceptions": 5,
+  "operation": "complete_exact_processed_archive_boundary",
+  "prior_failed_run_id": 43263452492,
+  "public_release_authorized": false,
+  "schema_version": 3,
+  "source_substitution_authorized": false,
+  "target_environment": "dev"
+}
