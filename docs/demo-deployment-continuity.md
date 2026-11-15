@@ -1,35 +1,42 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 02 October 2026 21:50 CDT
+last_verified_at: 14 November 2026 22:55 CST
 environment: azure_development_demonstration
-deployed_release: v3.208
-deployed_commit: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
-image_digest: sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966
-deployed_at: 02 October 2026 21:33 CDT
-deployment_workflow_run: 37089539089
-deployment_acceptance: full_demonstration_acceptance
-current_stable_release: v3.208
-current_stable_commit: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
-promotion_candidate: v3.208
-promotion_candidate_image_commit: 9517d5a3d8ff03ed8e8311f86a34485e16a85ec0
-promotion_candidate_image_digest: sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966
-promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966
-promotion_candidate_image_published_at: 02 October 2026 21:15 CDT
-promotion_candidate_image_workflow_run: 37089024553
-promotion_candidate_image_acceptance: immutable_image_deployed_and_accepted
-promotion_readiness: accepted
-fictional_member_seed_state: verified
-critical_journey_acceptance: verified
-rollback_baseline: v3.206
-genuine_blocker: none
+deployed_release: v3.223
+deployed_commit: 5dff59b381a0c455f99c6f15d0e2a37c273f4056
+image_digest: sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c
+deployed_at: 12 November 2026 12:43 CST
+deployment_workflow_run: 43281277021
+deployment_acceptance: live_runtime_readiness_accepted
+current_stable_release: v3.223
+current_stable_commit: 5dff59b381a0c455f99c6f15d0e2a37c273f4056
+promotion_candidate: v3.276
+promotion_candidate_image_commit: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
+promotion_candidate_image_digest: sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944
+promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944
+promotion_candidate_image_published_at: 14 November 2026 22:50 CST
+promotion_candidate_image_workflow_run: 43678397809
+promotion_candidate_image_acceptance: immutable_image_published_not_deployed
+promotion_readiness: preflight_ready
+fictional_member_seed_state: not_verified
+critical_journey_acceptance: not_verified
+rollback_baseline: v3.223
+genuine_blocker: v3276_exact_application_candidate_approval_protected_live_acceptance_cleanup_and_worker_verification_pending
 ---
 
 # SalCAPA development demonstration continuity
 
+## 14 November 2026 - current baseline and pending promotion
+
+The current app and scheduled worker still use accepted v3.223. Protected v3.273 run 43281277021 failed overall and verified rollback; it is not a successful v3.273 release. The frontmatter deployment time is the minute of the current application ARM last-modified timestamp during that restoration, not a measured first-serving time. Read-only Azure portal verification on 14 November confirmed app revision salcapa-dev-b48224--0000235 and both v3.223 images; worker schedule remains */2 * * * *, timeout 900 seconds and zero retries. This selected current readback is not full historical configuration equality.
+
+Run 43678397809 published frozen v3.276 once; independent registry tag/digest readback matched. The image is published, not deployed or accepted as a working ChatGPT connection. Preflight-ready denotes a concrete review candidate; exact-head checks, Marc's separate deployment authority and all protected live acceptance/cleanup/rollback/worker gates remain required. The reader remains disabled and the assessment remains on hold. Earlier current-state language below is historical and superseded by this dated record and CURRENT_HANDOFF.md.
+
+
 This non-sensitive engineering record identifies the current accepted Azure development demonstration and its verified rollback. GitHub release branches, exact commits, immutable image digests, protected workflow results, and closed validation records control whenever another source disagrees.
 
-## Current accepted deployment
+## Historical deployment acceptance log
 
 - [Governed deployment workflow 37089539089](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/37089539089) accepted exact frozen **v3.208** source `9517d5a3d8ff03ed8e8311f86a34485e16a85ec0` at immutable image digest `sha256:0936238597e51f13138d9121724328d170ab71000693b5bde4272456d320b966`, with v3.206 retained for rollback. The protected run passed application readiness, identity, isolated Microsoft 365 checks, fictional Protection Advisor journey, and knowledge-worker promotion. Azure independently confirmed revision `salcapa-dev-b48224--0000147` at 100% traffic and a successful isolated knowledge-worker execution. Marc approved this exact live app and Advisor output. This acceptance covers the development demonstration app. The standing scanner-result worker still used v3.206 at the last readback; Member uploads, quotes, and purchases remain closed pending separate scanner, payment, and release gates. Large-batch issue #520 remains paused. Older entries below are historical.
 

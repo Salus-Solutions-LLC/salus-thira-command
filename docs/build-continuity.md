@@ -1,33 +1,51 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 November 2026 22:40 CST
+last_verified_at: 14 November 2026 23:01 CST
 current_frozen_release: v3.276
 current_frozen_commit: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
 active_development_branch: development/salcapa-platform
-current_development_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
+current_development_head: 4cec0e69cc998ab6cbab1ebe3d852e3aa5c35330
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
-active_increment: protection_advisor_readonly_v3276_immutable_image_publication
-last_completed_increment: v3276_sanitized_reader_source_merged_frozen_all_five_PR_gates_passed
+active_increment: protection_advisor_readonly_v3276_application_promotion
+last_completed_increment: v3276_immutable_image_published_once_independent_registry_readback_and_v3223_baseline_verified
 candidate_release: v3.276
-validation_pr: 1230
-validation_branch: codex/advisor-v3276-publication-20261114
+validation_pr: 1233
+validation_branch: codex/advisor-v3276-promotion-20261114
 validation_base: development/salcapa-platform
-validation_head: pending_exact_publication_head
+validation_head: pending_exact_application_candidate_head
 validation_gate_state: controlled_validation_in_progress
 failed_workflows: historical_v3274_dependency_audit_v3275_CodeQL_and_v3273_email_promotions
 first_root_failing_gate: historical_reader_exception_disclosure_corrected_in_frozen_v3276
 root_cause: v3275_raw_exception_message_replaced_with_fixed_public_text_in_v3276
 repair_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
-repair_summary: v3276_frozen_prepare_exact_immutable_publication_preserve_disabled_reader_and_v3223_rollback
-genuine_blockers: exact_publication_head_approval_protected_execution_registry_digest_readback_then_app_deployment_and_per_user_OAuth_workspace_acceptance
-next_authorized_step: validate_publication_candidate_then_obtain_exact_head_merge_and_one_image_publication_authority
+repair_summary: v3276_image_verified_prepare_disabled_reader_app_promotion_preserve_v3223_rollback
+genuine_blockers: exact_application_head_approval_protected_deployment_full_existing_acceptance_cleanup_and_worker_verification_then_per_user_OAuth_workspace_acceptance
+next_authorized_step: validate_application_candidate_then_obtain_exact_head_merge_and_one_protected_deployment_authority
 deployed_demo_release: v3.223
-deployed_demo_state: failed_v3273_promotion_restored_and_verified_v3223_app_worker_schedule_and_hostname_v3273_image_retained
+deployed_demo_state: v3223_current_application_worker_digest_and_schedule_verified_v3276_image_published_not_deployed
 ---
 
 # SalCAPA build continuity
+
+## 14 November 2026 Central - v3.276 image published and registry verified; disabled-reader application promotion candidate
+
+Marc explicitly approved PR #1230 exact head `2852ba962ee42a232afe6166d56db1b93c560389` for ready/merge and one protected image publication with registry verification. Rechecked all five passing PR checks and clean mergeability, marked ready and squash merged as `0d7f69b4aba54a7d37563829fa0dafe2d66f2a52`. Exact activation, reference preflight, regression script and workflow blobs match the approved head. Re-read all five governing records after merge. All 51 post-merge jobs completed successfully.
+
+Protected publication [run 43678397809](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/43678397809), attempt 1, authorize job 132703484874 and publish job 132703506566, succeeded. It verified exact frozen `release/v3.276` source `7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3`, Azure target/registry authority, OCI source/version labels, nonroot runtime and worker assertions, pushed the source tag and read back immutable reference `salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944`. No retry, second activation or mutable latest tag was used. No application deployment was included.
+
+Independent signed-in SALUS staff Azure portal readback of repository salcapa, tag `source-7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3`, matched that exact digest and showed tag/manifest creation on 14 November 2026 at 22:50 CST. Current application JSON still shows accepted v3.223 digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c`, revision `salcapa-dev-b48224--0000235`, Succeeded, and no Advisor MCP environment settings. Worker JSON shows the same accepted digest, Succeeded, Schedule `*/2 * * * *`, timeout 900 seconds, zero retries and the established one-shot scan command. Their last-modified values remain 12 November 2026 at 18:43:08 and 18:42:48 UTC respectively. This verifies selected current baseline fields, not a full before/after equality assertion. Restricted content-free readback receipt: work/protection-advisor-private-20261114/v3276-image-registry-readback.json.
+
+This candidate requests a fresh v3.276 application activation bound to the published digest and frozen source, retaining the verified v3.223 previous application/worker images and rollback commit/digest. It removes the consumed v3.273 retry-attempt field; no old activation is replayed. The application deployment workflow, infrastructure and runtime source remain unchanged. Reader configuration stays absent/default-disabled; no OAuth client/credential/callback/consent/account grant, developer mode or workspace plugin is enabled by this request. Reconciled the connection runbook and historical demonstration continuity frontmatter to distinguish current v3.223 rollback from the published v3.276 candidate.
+
+Merging this candidate would request one protected application promotion, including exact target/source/digest and prestate verification, Azure preview, readiness/identity/ingress, isolated Microsoft 365 intake with cleanup, the existing fictional Advisor journey (including verification-email delivery), then scheduled-worker promotion only after application acceptance. Failures retain cleanup/rollback controls and the v3.223 baseline. The new closed-set delivery diagnostic is included in the image; one prior neutral mail probe does not establish this full journey. A deployment attempt may not be blindly replayed. No application promotion has yet been authorized or run for v3.276.
+
+Next: validate the exact candidate, obtain Marc's separate ready/merge and one protected application deployment/acceptance authorization, verify the run, current app/worker/digest/hostname and cleanup or rollback. Then complete the separately reviewed per-user OAuth/client/actual callback/expiry/current workspace identity mapping, concrete access confirmation, workspace-only publication and read/denial/unchanged-state acceptance. Prior administrator Compass readback is not workspace access acceptance. The assessment remains on hold. Future public-source downloads and reunification research remain queued in their restricted requirement record; no collection has begun.
+
+Search/capture: consulted authoritative repository, approved PR and protected workflow evidence, signed-in Azure registry and selected runtime JSON, original publication/application contracts and existing restricted readback. Task-specific complete live-corpus consideration and automatic all-chat capture remain open under the separately recorded Knowledge service/representation gaps. No new Member assessment, unrelated protected records, report generation or source-content promotion occurred.
+
+
 
 ## 14 November 2026 Central - v3.276 source merged and frozen; immutable publication request
 
