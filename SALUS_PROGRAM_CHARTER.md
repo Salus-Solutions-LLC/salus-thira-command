@@ -112,6 +112,9 @@ This map makes every currently approved decision findable in the Charter. The ex
 | SAL-D129 | Require every Salus Insights white paper and other external research publication to use neutral, non-adversarial attribution: do not single out an organization or person as a negative example, imply blame merely because it supplied source material, elevate one peer group as Salus's exclusive or preferred authority, or create an implied endorsement or unfavorable comparison by selective naming. Prefer source-category descriptions in narrative and retain exact source citations for provenance; name an entity in the body only when materially necessary, evidence-supported and reviewed for fairness, accuracy, context and stakeholder impact. |
 | SAL-D130 | Require every Salus Insights white paper to review the current official Salus Services catalog and every linked service subpage, then include a reader-facing explanation of the primary and other materially relevant Salus services that can address the paper's risk, readiness, protection, response, recovery or improvement themes. Preserve scope, eligibility, availability, legal and licensing boundaries; a white paper identifies possible service pathways but does not authorize, promise, price or represent delivery. |
 
+| SAL-D131 | Require whole-system, all-hazards and defensive assessment, per-section Red-Team review, capability proof, resource competition, early intervention, continuity, recovery and evidence-governed reporting for every customer and Protected Member, proportionate to the authorized context. |
+| SAL-D132 | Apply SALUS-PAI-001 Predictive and Anticipatory Intelligence in every applicable substantive category of every assessment and research product; require evidence-supported forecasts or defensible scenarios, indicators, horizons, human decision triggers, Red-Team challenge and outcome validation. |
+
 SAL-D020 and SAL-D021 are superseded intake decisions retained in the Decision Register as history; SAL-D022 governs the current intake rule, with the routing clarification in SAL-D024. On approval of a later material decision, reconcile this map and the substantive Charter rule before treating the new decision as implemented.
 
 ## Approved operating architecture
@@ -800,3 +803,114 @@ Topic inference is a discovery aid, not a fact, Member characteristic, risk rati
 ## SAL-D126 branded footer on every page of every new Salus document
 
 Marc directed on 2 November 2026 that every new or materially revised Salus document carry the approved Salus reticle and “Salus Solutions” on the same line, aligned with the other words in the bottom footer of every page, including the otherwise blank second page of stand-alone reports. The report body still begins on page 3, and page 2 has no body content or header. Preserve the required confidentiality treatment and visible `page X of Y` on all report pages. Use the exact approved logo asset, accessible alternative text, readable spacing and the approved OPM-aligned typography; verify every rendered Word, PDF and print page before issue. Apply this prospectively to controlled templates, reports, agreements and other downloadable or printable Salus documents. An issued predecessor remains immutable until a separately approved impact review and controlled successor. Candidate files and local rendering do not themselves grant template approval, report issue or public release. [SAL-D126]
+
+## Whole-system assessment and protection [SAL-D131]
+
+**Applicability:** Every Salus customer and Protected Member engagement, assessment, investigation, research product, protective service and operational plan. Apply the complete enterprise baseline at the authorized level, proportionate to mission, operating environment, assets, exposure and circumstances. Specialized modules, including livestock, aviation, manufacturing and campus safety, apply where relevant; record exclusions and their reasons rather than silently omitting a domain.
+
+Every Salus assessment shall examine not only what could go wrong, but why it could happen, how it might be detected or prevented, what capabilities would be needed to manage it, what happens when protective measures fail, and how the Protected Member can demonstrate that corrective actions are effective.
+
+1. **Whole-system investigation:** Examine people, property, operations, finances, governance, infrastructure, technology, supply chains, neighboring conditions and mission-essential functions; assess interactions and local-to-global dependencies.
+2. **All-hazards and adversarial assessment:** Evaluate natural, accidental, technological, criminal, intentional, insider-enabled and compound threats, including sabotage and workplace violence. Keep analysis defensive, lawful and evidence-supported.
+3. **Mandatory Red-Team review:** Challenge original findings and every proposed recommendation. Include a clearly identified Red-Team perspective in each substantive section under SAL-D111; retain material dissent and human disposition.
+4. **Defensive attack-tree analysis:** Trace threats to essential functions through dependencies, failure modes, existing controls, detection, cascading consequences and restoration requirements. Keep exploit-enabling details in restricted protective-security records; do not conduct active testing without separate authority.
+5. **Public safety and resource competition:** Evaluate emergency services, mutual aid, medical capabilities, transportation, utilities and competing resource demands across Prevention, Protection, Mitigation, Response and Recovery. Test Resource Availability Under Stress (RAUS), including simultaneous regional demand.
+6. **Protective intelligence and early intervention:** Identify evidence-supported weak signals, emerging threats, suspicious-activity reporting mechanisms, intervention thresholds and responsible human decision-makers. Apply SALUS-PAI-001; a signal or allegation is not a verified finding.
+7. **Capability-based assessment:** Distinguish documented capability, demonstrated performance, capability limitations, dependencies, consequences, gaps and prioritized improvements. Preserve existing strengths; set measurable improvement targets and proof. Compare dated plans and actual incidents, exercises and later instructions; reconcile proposed, adopted and exercised authority before relying on it.
+8. **Incident management and recovery:** Address notification, human decision authority, coordinated response, evidence preservation, continuity, corrective action, recovery and verification of effectiveness. Test transitions of command, volunteer and partner sustainability, essential-function restoration and fallback arrangements.
+9. **Evidence governance:** Preserve source provenance, confidence, classification, privacy, audit trails and restricted annexes for sensitive protective-security information. Keep identifiable engagement evidence within its authorized boundary. Source titles and prior chat summaries are leads, not proof that original contents were reviewed.
+10. **Professional reporting:** Apply the approved Salus architecture, six-step SalTHIRA™ method, same-level SalINTEL™ → SalTHIRA™ → SalOPS™ → SalCAPA™ chain, plain-language findings, prioritized recommendations and federal/OPM-style formatting under the controlled Salus document standard. Retain report identity, source-to-decision trace and separate qualification, exact-artifact and human-release gates.
+
+This rule extends the existing SAL-D030, SAL-D038–SAL-D046, SAL-D050–SAL-D057, SAL-D063–SAL-D076 and SAL-D111 standards. It does not replace their exact requirements, authorize new operational activity or make an untested capability a demonstrated one.
+
+## Predictive and Anticipatory Intelligence — Mandatory Program Standard [SAL-D132]
+
+**Requirement ID:** SALUS-PAI-001  
+**Applicability:** All Salus Solutions customers, Protected Members, engagements, research, investigations, assessments, intelligence products, protective services, operational planning and continuing risk-management activities.
+
+Salus Solutions shall integrate Predictive and Anticipatory Intelligence (PAI) into every applicable category of every assessment, investigation, research product and protective engagement.
+
+Salus shall not limit its analytical work to identifying current or historical threats, hazards, vulnerabilities, risks or capabilities. Each substantive analytical category shall examine reasonably foreseeable future conditions, emerging trends, potential changes in exposure, plausible adverse developments, cascading consequences, resource competition and opportunities for early intervention.
+
+### Definitions and recurring analytical cycle
+
+**Predictive intelligence** is the disciplined, evidence-based estimation of future conditions, developments, threats, hazards, consequences and operational requirements using historical information, current observations, trends, causal relationships and appropriate analytical models.
+
+**Anticipatory intelligence** identifies plausible emerging conditions, weak signals, alternative futures, cascading developments and opportunities for preventive action, including when reliable probabilities cannot be assigned. Predictive intelligence asks what is likely to happen, when and with what consequences. Anticipatory intelligence asks what could emerge, what would indicate that it is developing and what preparations are warranted.
+
+Distinguish established facts, assumptions, hypotheses, scenarios and forecasts. Neither prediction nor anticipation is certainty. The recurring cycle supports, and does not replace, the approved six-step SalTHIRA™ method. Retain a traceable baseline, evidence, alternatives, anticipated developments, warning indicators, confidence, decisions, responsible personnel and next review date.
+
+### Mandatory analytical requirements
+
+1. Establish a documented, evidence-supported baseline.
+2. Identify historical patterns, emerging conditions, causal drivers, dependencies and relevant uncertainties.
+3. Develop evidence-supported forecasts where reliable forecasting is feasible.
+4. Develop alternative anticipatory scenarios, including high-consequence and compound events.
+5. Identify observable leading indicators, warning thresholds, decision lead times and monitoring requirements.
+6. Evaluate consequences across Prevention, Protection, Mitigation, Response and Recovery, including Resource Availability Under Stress (RAUS).
+7. Identify preventive and protective actions that may reduce likelihood, exposure, vulnerability or consequences before an adverse event occurs.
+8. Assign forecast confidence, evidence limitations, responsible authorities, action triggers and reassessment requirements.
+9. Apply a documented Red-Team challenge to the forecast, its assumptions, alternative explanations and proposed recommendations.
+10. Preserve analytical provenance, authorized human decisions, monitoring results, forecast revisions, corrective actions and effectiveness verification.
+
+### Application in every substantive category
+
+| Category | Required anticipatory question |
+|---|---|
+| Natural hazards | Are frequency, intensity, seasonality, exposure or consequences changing? |
+| Infrastructure | Which assets show deterioration, increasing failures, capacity constraints or deferred maintenance? |
+| Public safety | When might response capacity be exceeded, delayed or diverted? |
+| Security and crime | Are credible threat patterns, precursors or environmental conditions changing? |
+| Insider threats | Are control failures or concerning behaviors emerging that warrant lawful, proportionate review? |
+| Cybersecurity | What emerging attack patterns, dependencies or technical weaknesses could create future disruption? |
+| Financial condition | What trends could lead to insolvency, liquidity shortages, unexpected expenditures or loss of insurance? |
+| Governance | Are decision delays, staffing gaps, unresolved disputes or authority problems likely to impair performance? |
+| Personnel | What workforce shortages, turnover, fatigue, succession problems or training gaps may emerge? |
+| Agriculture and livestock | What could affect herd health, reproduction, feed, water, forage, market prices or cattle sales? |
+| Utilities and transportation | What conditions may cause future outages, restrictions or service interruptions? |
+| Supply chain | Which suppliers, materials, contractors or transportation channels show signs of future scarcity? |
+| Emergency management | Which plausible incidents could exceed existing plans, staffing, equipment or communications capability? |
+| Recovery | What conditions could delay restoration, increase costs or prevent a return to essential operations? |
+
+Apply the same questions to other material domains and examine interactions across categories. This table is a screening floor, not an exhaustive list or proof of completed research.
+
+### Horizons, methods and warning records
+
+Consider immediate (0–72 hours), near-term (3–30 days), short-term (1–12 months), medium-term (1–3 years) and long-term (3–10+ years) horizons. Select and justify the horizons relevant to the subject and available evidence; they are planning windows, not promised forecast accuracy or monitoring-service commitments.
+
+Select and document appropriate methods: trend/time-series and causal analysis, scenario planning, horizon scanning, structured expert judgment, historical analogues, geographic analysis, dependency modeling, leading-indicator monitoring and alternative-hypothesis testing. For higher-consequence work, also consider Red-Team forecasting, pre-mortems, cascading-event forecasting, RAUS and comparison of prior forecasts with actual outcomes.
+
+For each material forecast or scenario, retain leading indicators, thresholds, intervention lead time, responsible authority, confidence and uncertainty, disconfirming evidence and monitoring/review requirements. Record missing predictive data as an intelligence gap; never fill it with invented probabilities.
+
+### Required output in every substantive section
+
+Every substantive research and assessment section shall contain a clearly identified **Predictive and Anticipatory Intelligence** subsection, proportionate to the subject's significance and available evidence, containing:
+
+- Verified current baseline and evidence.
+- Future drivers, trends, emerging threats and dependencies.
+- Most likely development where evidence supports a forecast.
+- Plausible adverse, alternative and high-consequence developments.
+- Observable early-warning indicators and relevant forecast horizon.
+- High, medium or low confidence with supporting explanation and limitations.
+- Preventive, protective, mitigation, response or recovery options.
+- Decision trigger, responsible human authority and action lead time.
+- Red-Team challenge, alternative interpretation, disconfirming evidence and possible failure of the recommendation.
+- Responsible review owner and reassessment schedule.
+
+Where reliable prediction is not possible, explain why and provide defensible anticipatory scenarios, indicators and preparedness options rather than unsupported probabilities. A single final chapter does not satisfy category-level analysis.
+
+### Four-product integration and continuing obligation
+
+SalINTEL™ shall support collection, validation, horizon scanning and forecasting. SalTHIRA™ shall incorporate predictive findings into its approved six-step methodology and capability analysis. SalOPS™ shall translate findings into readiness, protection, operational contingencies and recovery measures. SalCAPA™ shall govern the resulting intelligence, warnings, decisions, actions, evidence and verification.
+
+Maintain one evidence-to-decision-to-proof identity across the same-level product chain. Governed implementation requirements include indicator dashboards, historical comparisons, confidence tracking, alerts, review dates, escalation thresholds and forecast-performance measurement; these are requirements, not claims of deployed features.
+
+Review predictive intelligence when material new evidence, changing conditions, warning thresholds, incidents or scheduled reassessments justify revision. Escalate high-consequence indicators through approved human decision authorities. Compare prior forecasts with outcomes; retain missed indicators, false alarms, revisions and evidence of intervention effectiveness through governed learning.
+
+### Governance and impact control
+
+All PAI activities shall comply with lawful collection, privacy, evidence integrity, source traceability, least-privilege access, human oversight, Red-Team review, auditability and governed retention. Assess false positives, false negatives and consequences of unnecessary intervention. Models and AI predictions remain advisory; consequential protective or operational decisions require appropriately authorized human judgment.
+
+PAI is analytical decision support. It shall not be represented as certainty or used to justify unsupported allegations, discriminatory profiling or unauthorized action. Preserve SAL-D025, SAL-D027, SAL-D043, SAL-D059, SAL-D063, SAL-D064, SAL-D091, SAL-D111 and SAL-D116–SAL-D128 controls as applicable.
+
+Open an impact review for affected methods, templates, active assessments, issued reports, questionnaires and software. Preserve issued predecessors and existing report identities. Policy incorporation does not itself update a Word template, qualify a finding, implement monitoring, complete corpus consideration, deploy software, authorize expenditure or release a report.
