@@ -11,7 +11,7 @@ active_build_system_issue: 368
 active_increment: protection_advisor_readonly_v3275_immutable_image_publication
 last_completed_increment: v3275_security_corrected_source_merged_and_frozen_reader_disabled
 candidate_release: v3.275
-validation_pr: 1226
+validation_pr: 1228
 validation_branch: codex/advisor-v3275-publication-20261114
 validation_base: development/salcapa-platform
 validation_head: pending_exact_publication_candidate_head
