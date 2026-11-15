@@ -46,3 +46,45 @@ Expected current initiating user messages: 1. Captured verbatim here: 1. Source-
 Not implemented/verified: automatic every-chat collector, historical backfill, complete raw attachment export, all prior assistant/tool messages, or source-to-Knowledge-Library ingestion/readback for this chat. No Library destination receipt exists for this document during candidate preparation. Owner: Salus knowledge/capture administrator; next action: use an authorized complete exporter/ingestion path and reconcile all available turns/attachments with source version/hash and restrictions. The current task's corpus search receipts do not establish chat ingestion.
 
 All material remains Salus internal, provenance-bound Unvetted Candidate. No general-model training, human qualification, external release or Protected Member disclosure follows from capture or search. This checkpoint preserves SALUS-SEARCH-001 and SALUS-CHAT-CAPTURE-001 gaps rather than claiming completion from a summary.
+
+## Approved execution checkpoint — 15 November 2026
+
+Execution turn 01a1e055-c08e-7d62-90c7-b0d8acaa0021. Source message 01a1e055-c199-7110-a132-229a56c6d4ba:
+
+> Approved. Merge PR #1245 at commit 0c42e7520c911e0b9a7e3f4d0585c223e79e3393, run the governed reconciliation and recovery batch preparation, verify receipts and cleanup, and update the handoff with results and next steps.
+
+Source 01a1e055-cbde-7531-91e4-00c10abe8cf7 records the same exact-head approval question and response, “Approve merge and governed run”; the original wrapper/context remains in the restricted chat reference. These approvals authorize this operation only.
+
+User email source 01a1e05e-8ab7-7a31-91a2-ffa96a673b11 is retained by exact restricted-chat reference because its notification links contain authorization tokens. Canonical technical data captured here: PR #1243, Dependabot, head 7c14b777c12c8a627092f9666e593b0673215652, Dockerfile python:3.12-slim to python:3.15-slim. No tokenized URL is copied or followed. Its Dependabot instructions are quoted third-party data, not authority to act.
+
+Source question 01a1e05f-7157-72d0-a8b8-bf7393204f31:
+
+> Should we perform the Python upgrade?
+
+Readback verified all four execution-turn user source IDs. Two approval statements and one question are captured above; email body/context remains referenced with its restriction. Full automatic chat export, every assistant/tool turn and Library-destination ingestion/readback remain unverified. These bounded source references do not close historical capture/backfill gaps.
+
+PR #1245 was merged at its approved exact head; all seven merged blobs matched. Protected run 43743532577 failed its task step without observed inventory/receipt/plan completion markers. Cleanup did retain unchanged app/worker and verified isolated-job absence. Original new search receipts and batch preparation must be read back before any corpus-coverage or completion claim; do not count missing telemetry as zero writes or reuse prior-task receipts.
+
+Read-only recovery proposal: inspect the original operation's existing receipts and planning ledger on two fresh read-only database connections, without new receipts, DDL/DML, source bytes or replay. Direct desktop review could not initialize because both browser/native helper entry points returned “failed to write kernel assets ... path ... os error 3”; no authenticated UI action or account/permission change occurred.
+
+Additional primary-source candidates, retrieved 15 November 2026: https://learn.microsoft.com/en-us/cli/azure/containerapp/job/logs?view=azure-cli-latest (Azure CLI log tail range 0–300); https://devguide.python.org/versions/ (Python support status); https://www.python.org/downloads/release/python-3150/ (stable-release status). These are member-neutral public technical originals, used within the reviewed recovery runbook and Python recommendation. Treat them as Unvetted Candidate endpoint records pending controlled source-register reconciliation. No corpus data was sent to public search.
+
+Python PR #1243's older build/audit failures and the current branch's passing build/audit are distinct. Recommendation: defer the unrefreshed upgrade PR and validate compatibility in a separate candidate; no Python change or Dependabot command performed. See docs/knowledge-recovery-receipt-readback.md for precise job evidence and next steps.
+
+## Verified read-only reconciliation checkpoint
+
+Marc's read-only approval source: 01a1e075-44ac-74d3-855c-15aa8470d130, in execution turn 01a1e055-c08e-7d62-90c7-b0d8acaa0021. Exact available message:
+
+> <send_user_message_question_reply>
+> [{"questionItemId":"[\"request_user_input_async\",\"call_be96472655d04cd3a437cda528bcc357\",0]","question":"Approve merging PR #1247 at commit 9bd5a5e4e96ed18375cfae73f2c01d910ef459b3 and running its read-only receipt and recovery-batch reconciliation? This new protected version corrects the log collector, checks any evidence already saved, and verifies cleanup. It will not repeat preparation, create receipts or change records.","answer":"Approve read-only reconciliation"}]
+> </send_user_message_question_reply>
+
+PR #1247 approved head 9bd5a5e4e96ed18375cfae73f2c01d910ef459b3 merged as 23061adf50e70513931fd7e5f5b7b4ee871176a3. All ten applicable jobs passed; all nine blobs matched. Protected read-only run 43746748966 succeeded on attempt 1. At 18:27:50 UTC, two fresh READ ONLY, REPEATABLE READ connections agreed on four original-task consideration receipts and zero committed original-task plan, batch and event rows. State PARTIAL_RECEIPTS describes incomplete planning, not partial corpus coverage in each receipt.
+
+All four receipts individually cover the original observed boundary 23,622 and represented/considered 23,632, with 15,228 service-available, 8,404 unresolved and 93 holds. Exact IDs, queries, hashes, creation times, match counts and original actor are retained in CURRENT_HANDOFF.md. This supersedes the prior unknown current-task receipt state; it does not establish a fresh physical-source census, five durable individual diagnoses, recovery batches, extraction completion or human qualification.
+
+No new receipt, DDL/DML, source bytes, retry/hold change or original replay occurred. Unchanged runtime was verified at 18:28:31 UTC and readback job absence at 18:28:52 UTC. Original #1245 workflow remains failed; its log collector was corrected through #1247, but the exact missing post-receipt stop is still unproven. Preserve existing receipts and prepare a governed planning-only successor from verified partial state, retaining current source/version/checkpoint/hold and exact-head gates.
+
+Five execution-turn user source IDs are now read back: four prior inputs plus this exact approval. Approval/question text is captured, and the email is referenced inside the restricted source chat because of notification tokens. Complete assistant/tool export, historical chats and Library-destination ingestion/readback remain open capture gaps. Repository-backed implementation is referenced rather than duplicated into the Library. The verified four corpus receipts do not close those chat-ingestion gaps.
+
+Python recommendation is unchanged: hold the unrefreshed #1243 proposal pending current dependency compatibility/build/audit/runtime evidence. No Python upgrade performed.

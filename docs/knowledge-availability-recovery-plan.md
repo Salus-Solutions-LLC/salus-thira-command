@@ -1,6 +1,6 @@
 # Knowledge availability reconciliation and recovery batch preparation
 
-Status: candidate for exact-head approval; no live operation has run for this task.
+Status: PR #1245 exact approved head merged as 1ca19fed9ab818868956479ab59108414ae8e2a4. Protected run 43743532577 failed without usable task results; runtime/cleanup passed. Subsequent read-only run 43746748966 independently verified all four task receipts and zero plan/batch/event rows; preparation remains unfinished. Do not replay this consumed operation. See docs/knowledge-recovery-receipt-readback.md for the confirmed invalid log-tail setting and proposed read-only reconciliation.
 
 ## Objective and authority
 
