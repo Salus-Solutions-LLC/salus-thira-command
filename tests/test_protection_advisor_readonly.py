@@ -7,6 +7,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
+import jwt
+from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -18,12 +20,29 @@ SESSION = "SPA-SESSION-" + "A" * 32
 SUBMISSION = "SPA-SUBMISSION-" + "B" * 32
 ANONYMOUS = "SPA-SESSION-" + "C" * 32
 DELETED = "SPA-SESSION-" + "D" * 32
-TOKEN = "fictional-test-credential-" + "z" * 40
 BASE = "https://salcapa.example.test"
+TENANT = "11111111-1111-1111-1111-111111111111"
+AUDIENCE = "22222222-2222-2222-2222-222222222222"
+CLIENT = "33333333-3333-3333-3333-333333333333"
+OBJECT = "44444444-4444-4444-4444-444444444444"
+
+
+@pytest.fixture(scope="session")
+def signing_key():
+    return rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+
+def access_token(signing_key, **changes):
+    now = int(datetime.now(timezone.utc).timestamp())
+    claims = {"iss": f"https://login.microsoftonline.com/{TENANT}/v2.0", "tid": TENANT,
+              "aud": AUDIENCE, "oid": OBJECT, "azp": CLIENT, "scp": reader.READ_SCOPE,
+              "ver": "2.0", "iat": now - 1, "nbf": now - 1, "exp": now + 3600}
+    claims.update(changes)
+    return jwt.encode(claims, signing_key, algorithm="RS256")
 
 
 @pytest.fixture
-def setup_reader(tmp_path, monkeypatch):
+def setup_reader(tmp_path, monkeypatch, signing_key):
     path = tmp_path / "source.db"
     postgres = os.getenv("SALUS_ADVISOR_MCP_TEST_POSTGRES") == "1"
     schema = "advisor_reader_test_" + uuid.uuid4().hex
@@ -75,10 +94,15 @@ def setup_reader(tmp_path, monkeypatch):
     monkeypatch.setenv("SALUS_ADVISOR_MCP_ENABLED", "1")
     monkeypatch.setenv("SALUS_ADVISOR_MCP_BASE_URL", BASE)
     monkeypatch.setenv("SALUS_ADVISOR_MCP_WORKSPACE_ID", reader.WORKSPACE_ID)
+    monkeypatch.setenv("SALUS_ADVISOR_MCP_TENANT_ID", TENANT)
+    monkeypatch.setenv("SALUS_ADVISOR_MCP_AUDIENCE", AUDIENCE)
+    monkeypatch.setenv("SALUS_ADVISOR_MCP_CLIENT_ID", CLIENT)
+    monkeypatch.setenv("SALUS_ADVISOR_MCP_ALLOWED_OBJECT_IDS", OBJECT)
+    monkeypatch.setattr(reader, "_signing_key", lambda *_: signing_key.public_key())
     monkeypatch.setenv("SALUS_ADVISOR_MCP_EXPIRES_AT", (datetime.now(timezone.utc) + timedelta(days=1)).isoformat())
     app = FastAPI()
-    reader.register_advisor_readonly(app, {"db": db, "secret": lambda *_: hashlib.sha256(TOKEN.encode()).hexdigest()})
-    client = TestClient(app, base_url=BASE, headers={"Authorization": "Bearer " + TOKEN})
+    reader.register_advisor_readonly(app, {"db": db})
+    client = TestClient(app, base_url=BASE, headers={"Authorization": "Bearer " + access_token(signing_key)})
     try:
         yield client, db
     finally:
@@ -117,7 +141,7 @@ def test_complete_original_part2_and_answer_notes_no_auth_material(setup_reader)
     assert conn.execute("SELECT status FROM advisor_public_submissions").fetchone()[0] == "Awaiting Salus Review"
     audit = conn.execute("SELECT * FROM security_events").fetchone()
     assert audit["event_type"] == "ADVISOR_MCP_READ"
-    assert "Example House" not in audit["detail"] and SUBMISSION not in audit["detail"] and TOKEN not in str(dict(audit))
+    assert "Example House" not in audit["detail"] and SUBMISSION not in audit["detail"] and OBJECT not in str(dict(audit))
     conn.close()
 
 
@@ -150,6 +174,41 @@ def test_cookie_prototype_headers_and_bad_bearer_do_not_grant_access(setup_reade
     client, _ = setup_reader
     client.headers.pop("authorization")
     client.headers.update({"X-Salus-Role": "System Administrator", "Cookie": "salus_session=fictional"})
+    assert rpc(client, "tools/list").status_code == 401
+
+
+@pytest.mark.parametrize("changes", [
+    {"aud": "wrong-audience"}, {"iss": "https://issuer.example"},
+    {"tid": "55555555-5555-5555-5555-555555555555"},
+    {"azp": "55555555-5555-5555-5555-555555555555"},
+    {"oid": "55555555-5555-5555-5555-555555555555"},
+    {"exp": 1}, {"nbf": 4_000_000_000}, {"iat": 4_000_000_000},
+    {"scp": "Other.Read"}, {"scp": None, "roles": [reader.READ_SCOPE]}, {"ver": "1.0"},
+])
+def test_invalid_or_unauthorized_microsoft_claims_are_denied(setup_reader, signing_key, changes):
+    client, _ = setup_reader
+    client.headers["authorization"] = "Bearer " + access_token(signing_key, **changes)
+    response = rpc(client, "tools/list")
+    assert response.status_code == 401
+    assert "resource_metadata=" in response.headers["www-authenticate"]
+
+
+def test_signature_required_and_account_revocation_is_immediate(setup_reader, signing_key, monkeypatch):
+    client, _ = setup_reader
+    other_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    client.headers["authorization"] = "Bearer " + access_token(other_key)
+    assert rpc(client, "tools/list").status_code == 401
+    client.headers["authorization"] = "Bearer " + access_token(signing_key)
+    monkeypatch.setenv("SALUS_ADVISOR_MCP_ALLOWED_OBJECT_IDS", "55555555-5555-5555-5555-555555555555")
+    assert rpc(client, "tools/list").status_code == 401
+
+
+def test_resource_discovery_is_public_but_source_requires_sign_in(setup_reader):
+    client, _ = setup_reader
+    client.headers.pop("authorization")
+    metadata = client.get(reader.METADATA_PATH).json()
+    assert metadata["resource"] == BASE + reader.ENDPOINT
+    assert metadata["scopes_supported"] == [f"api://{AUDIENCE}/{reader.READ_SCOPE}"]
     assert rpc(client, "tools/list").status_code == 401
     client.headers["authorization"] = "Bearer " + "wrong" * 10
     assert rpc(client, "tools/list").status_code == 401

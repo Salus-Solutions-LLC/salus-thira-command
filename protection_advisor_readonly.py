@@ -1,4 +1,4 @@
-"""Disabled-by-default, workspace-credential-scoped Protection Advisor MCP reader.
+"""Disabled-by-default, Salus Microsoft-identity-scoped Protection Advisor MCP reader.
 
 This is a source-record reader, not an assessment, report generator, or approval
 interface. All business queries execute inside an enforced read-only transaction.
@@ -14,9 +14,12 @@ import json
 import os
 import re
 import uuid
+from functools import lru_cache
 from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlsplit
+
+import jwt
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse, Response
@@ -25,6 +28,8 @@ from starlette.concurrency import run_in_threadpool
 
 WORKSPACE_ID = "63469967-e4d5-4a40-894d-d97636a15e19"
 ENDPOINT = "/mcp/protection-advisor"
+METADATA_PATH = "/.well-known/oauth-protected-resource/mcp/protection-advisor"
+READ_SCOPE = "ProtectionAdvisor.Read"
 PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26")
 MAX_BYTES = 2_000_000
 MAX_REQUEST_BYTES = 16_384
@@ -32,6 +37,7 @@ HEADERS = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
 KEY = re.compile(r"SPA-(?:SUBMISSION|SESSION)-[A-F0-9]{32}\Z")
 ANNOTATIONS = {"readOnlyHint": True, "destructiveHint": False,
                "idempotentHint": True, "openWorldHint": False}
+GUID = re.compile(r"[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\Z")
 TOOLS = [
     {
         "name": "search",
@@ -72,6 +78,16 @@ TOOLS.append({
 
 def _sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+@lru_cache(maxsize=4)
+def _jwks(tenant: str) -> Any:
+    # Tenant is a validated GUID, never a URL supplied by a tool caller.
+    return jwt.PyJWKClient(f"https://login.microsoftonline.com/{tenant}/discovery/v2.0/keys", timeout=5)
+
+
+def _signing_key(tenant: str, token: str) -> Any:
+    return _jwks(tenant).get_signing_key_from_jwt(token).key
 
 
 def _json(text: str, expected: str | None = None) -> Any:
@@ -288,7 +304,7 @@ def register_advisor_readonly(app: Any, ctx: dict) -> None:
                 (tenant_id,ts,event_type,severity,user_name,source_ip,request_id,detail)
                 VALUES(?,?,?,?,?,?,?,?)""", (None, datetime.now(timezone.utc).isoformat(),
                 "ADVISOR_MCP_READ", "Info", "Salus ChatGPT workspace reader", "", uuid.uuid4().hex,
-                f"workspace={WORKSPACE_ID}; tool={tool}; record_sha256={record_hash}"))
+                f"workspace={WORKSPACE_ID}; principal_sha256={request.state.advisor_mcp_principal}; tool={tool}; record_sha256={record_hash}"))
             conn.commit()
         finally:
             conn.close()
@@ -309,7 +325,7 @@ def register_advisor_readonly(app: Any, ctx: dict) -> None:
         audit_read(request, name, _sha(str(args.get("id", ""))))
         return serialized
 
-    def authenticate(request: Request) -> str:
+    def configuration(request: Request) -> tuple[str, str, str, str]:
         if os.getenv("SALUS_ADVISOR_MCP_ENABLED", "0") != "1":
             raise HTTPException(404, "Not found")
         base = os.getenv("SALUS_ADVISOR_MCP_BASE_URL", "").rstrip("/")
@@ -322,21 +338,51 @@ def register_advisor_readonly(app: Any, ctx: dict) -> None:
             raise HTTPException(403, "Invalid connection destination")
         if request.headers.get("origin") not in (None, "https://chatgpt.com", "https://admin.openai.com", base):
             raise HTTPException(403, "Invalid origin")
+        tenant = os.getenv("SALUS_ADVISOR_MCP_TENANT_ID", "").lower()
+        audience = os.getenv("SALUS_ADVISOR_MCP_AUDIENCE", "").lower()
+        client = os.getenv("SALUS_ADVISOR_MCP_CLIENT_ID", "").lower()
+        if not all(GUID.fullmatch(value) for value in (tenant, audience, client)):
+            raise HTTPException(503, "Read-only OAuth configuration is incomplete")
         try:
             expires = datetime.fromisoformat(os.getenv("SALUS_ADVISOR_MCP_EXPIRES_AT", "").replace("Z", "+00:00"))
             if expires.tzinfo is None or expires <= datetime.now(timezone.utc):
                 raise ValueError()
-            digest = ctx["secret"]("SALUS_ADVISOR_MCP_TOKEN_SHA256", "")
         except Exception:
             raise HTTPException(503, "Read-only connection configuration is incomplete") from None
-        if not re.fullmatch("[a-f0-9]{64}", digest):
-            raise HTTPException(503, "Read-only connection configuration is incomplete")
+        return base, tenant, audience, client
+
+    def authenticate(request: Request) -> str:
+        base, tenant, audience, client = configuration(request)
+        scope = f"api://{audience}/{READ_SCOPE}"
+        challenge = {"WWW-Authenticate": f'Bearer resource_metadata="{base}{METADATA_PATH}", scope="{scope}"'}
         authorization = request.headers.get("authorization", "")
         scheme, _, token = authorization.partition(" ")
-        if scheme.casefold() != "bearer" or not 32 <= len(token) <= 512 or not hmac.compare_digest(_sha(token), digest):
-            raise HTTPException(401, "Read-only connection credential required", headers={"WWW-Authenticate": "Bearer"})
+        if scheme.casefold() != "bearer" or not 32 <= len(token) <= 16_384:
+            raise HTTPException(401, "Microsoft sign-in with the Protection Advisor read scope is required", headers=challenge)
+        allowed = {value.strip().lower() for value in os.getenv("SALUS_ADVISOR_MCP_ALLOWED_OBJECT_IDS", "").split(",") if value.strip()}
+        if not allowed or not all(GUID.fullmatch(value) for value in allowed):
+            raise HTTPException(503, "Salus workspace account authorization is incomplete")
+        try:
+            claims = jwt.decode(token, _signing_key(tenant, token), algorithms=["RS256"],
+                audience=audience, issuer=f"https://login.microsoftonline.com/{tenant}/v2.0",
+                options={"require": ["exp", "nbf", "iat", "iss", "aud", "tid", "oid", "azp", "scp", "ver"], "strict_aud": True})
+            if (claims["tid"] != tenant or claims["ver"] != "2.0" or claims["azp"] != client
+                    or not isinstance(claims["scp"], str) or READ_SCOPE not in claims["scp"].split()
+                    or claims["oid"] not in allowed):
+                raise ValueError()
+        except Exception:
+            raise HTTPException(401, "Authorized Salus Microsoft sign-in with the read scope is required", headers=challenge) from None
         # A browser's staff/member cookies and prototype headers never grant this scope.
+        request.state.advisor_mcp_principal = _sha(tenant + ":" + claims["oid"])
         return base
+
+    @app.get(METADATA_PATH)
+    def advisor_mcp_metadata(request: Request) -> Response:
+        base, tenant, audience, _ = configuration(request)
+        return JSONResponse({"resource": base + ENDPOINT,
+            "authorization_servers": [f"https://login.microsoftonline.com/{tenant}/v2.0"],
+            "scopes_supported": [f"api://{audience}/{READ_SCOPE}"],
+            "bearer_methods_supported": ["header"], "resource_name": "Salus Protection Advisor - Read Only"}, headers=HEADERS)
 
     @app.get(ENDPOINT)
     def advisor_mcp_get(request: Request) -> Response:
@@ -382,7 +428,9 @@ def register_advisor_readonly(app: Any, ctx: dict) -> None:
             elif method == "ping":
                 response["result"] = {}
             elif method == "tools/list":
-                response["result"] = {"tools": TOOLS}
+                scheme = [{"type": "oauth2", "scopes": [f"api://{os.environ['SALUS_ADVISOR_MCP_AUDIENCE'].lower()}/{READ_SCOPE}"]}]
+                response["result"] = {"tools": [{**tool, "securitySchemes": scheme,
+                    "_meta": {"securitySchemes": scheme}} for tool in TOOLS]}
             elif method == "tools/call":
                 name, args = params.get("name"), params.get("arguments", {})
                 if name not in {"search", "fetch", "fetch_original"} or not isinstance(args, dict):
