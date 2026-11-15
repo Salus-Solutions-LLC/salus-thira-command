@@ -117,6 +117,8 @@ This map makes every currently approved decision findable in the Charter. The ex
 
 | SAL-D133 | Always search the Knowledge Library and every other authorized information location for relevant supportive, contrary and qualifying evidence for each and every task; retain actual search/corpus-coverage records, source reconciliation and explicit access or content gaps. |
 
+| SAL-D134 | Capture all available data, information, strategies, concepts and methodologies from every Salus chat and Work/Codex chat into governed knowledge, with complete source context, version/provenance, restricted-zone routing, candidate status and source-to-destination readback; track every capture gap and historical backfill obligation. |
+
 SAL-D020 and SAL-D021 are superseded intake decisions retained in the Decision Register as history; SAL-D022 governs the current intake rule, with the routing clarification in SAL-D024. On approval of a later material decision, reconcile this map and the substantive Charter rule before treating the new decision as implemented.
 
 ## Approved operating architecture
@@ -945,3 +947,32 @@ Distinguish **searched with relevant results**, **searched with no relevant resu
 If a location or the required consideration service is unavailable, attempt an authorized alternative, continue independent work and record the exact gap, limitation, owner and next retrieval. Never label an unsearched or inaccessible location searched, infer unavailable content, or silently waive the requirement. Do not claim complete search coverage or close a decision-changing evidence gap until it is resolved or receives a qualified, authorized limitation disposition. Urgent protective work may proceed under the existing documented urgent-work authority while the search obligation and follow-up remain open.
 
 Search and collection do not establish truth, evidence qualification, permission to disclose, authoritative adoption or release. Apply the existing human validation, research-capture, report-impact, evidence-lifecycle and release controls. This rule broadens the earlier “material” or “applicable inquiry/research” triggers in SAL-D065–SAL-D070, SAL-D116, SAL-D120, SAL-D124 and SAL-D125 to **every task**; it preserves their deeper source-review, corpus-coverage, privacy and validation requirements. It does not claim that all connectors, corpus access, workflow enforcement or historical-task remediation have been implemented.
+
+## Capture every chat and Work chat into governed knowledge [SAL-D134]
+
+**Requirement ID:** SALUS-CHAT-CAPTURE-001  
+**Applicability:** Each and every Salus chat and Work/Codex chat, including internal, customer and Protected Member work, routine and administrative tasks, ongoing conversations, corrections, follow-ups, interrupted work and authorized agent/subtask outputs.
+
+Salus shall always capture into its governed Knowledge Library system all available data, information, strategies, concepts and methodologies received, used or produced in every such chat. Preserve the complete available source record and context, rather than selecting only a useful summary or an approved lesson. Include visible user and assistant messages, corrections and decisions; questions, assumptions, alternatives, rejected ideas, contradictions and uncertainties; plans, models, methods, prompts, checklists and recommendations; authorized tool results and work evidence; and supplied or generated files, media, attachments and exact source/artifact references.
+
+### Capture, provenance and reconciliation
+
+Create or update one governed capture record for each source conversation, linked to stable conversation/turn/task IDs, platform/workspace/project, author role, timestamps/time zone, source location, scope and customer/Protected Member boundary. Preserve available source bytes or an approved faithful export, attachment and artifact identity, versions and hashes when obtainable, rights, sensitivity, restrictions, transformations, capture status, owner and where-used links. Retain source context and relationships so an isolated statement cannot silently become an approved fact or decision.
+
+Capture automatically during the work and reconcile at each handoff, interruption, closeout and material update. Until automation is implemented and verified, perform authorized manual capture and maintain the same durable reconciliation record; a promised future upload does not count as capture. Deduplicate by source identity and version/hash, append changed turns or revisions, retain supersession and avoid duplicate library records. Do not rewrite the authoritative repository source into a second Library copy; capture its exact source/commit pointer and the chat's actual contribution.
+
+Capture and intake do not wait for item-level human vetting. Record new conversation content and derived concepts as **Salus-internal Unvetted Candidate** material with explicit claims, uncertainty and restrictions. Preserve erroneous, rejected and superseded proposals with their disposition and correction; do not present them as doctrine. Human qualification and the existing consequential-use, decision, artifact and release gates remain mandatory.
+
+### Preserve the approved information zones
+
+Apply the approved Knowledge and Records Architecture. Capture reusable member-neutral information into governed enterprise intake/knowledge. Retain full transcripts, identifiable Protected Member material, sensitive operational records and attachments within their authorized restricted engagement or governance collection; the enterprise Knowledge index holds only a permitted non-disclosing pointer or qualified generalized lesson. The complete governed capture may be distributed across those linked restricted records; it must not collapse them into a broadly accessible enterprise collection.
+
+Keep credentials and authentication secrets in their approved secret store, with a restricted reference and redaction record in the capture. Preserve all available lawful information without copying secrets, prohibited content or another Member's identifiable records into an inappropriate location. Source rights, lawful collection, privacy, least privilege, Member isolation, retention/legal-hold and authorized deletion duties continue to apply. Capture gives no external-sharing, model-training, public-link or cross-Member disclosure authority.
+
+### Every-chat coverage and completion proof
+
+Maintain a conversation/turn/attachment manifest showing expected, captured, source-referenced, changed, duplicate, restricted, unavailable and pending items; the exact destination and successful content/metadata readback; source/version/hash reconciliation; failed or inaccessible exports; retries, owner and next action. Reconcile visible source totals and available versions against the destination record. A schedule, source link, generated summary or indexing flag alone does not prove capture of the complete conversation.
+
+Include authorized historical chats in a governed backfill inventory and capture queue. Lack of platform export, source access, deleted content, unavailable attachments or an unimplemented collector is an explicit recoverable coverage gap, not a silent exemption or a claim of completion. Continue accessible capture while preserving the missing-item obligation. Never claim every chat is captured or all data has entered the Library without source-to-destination evidence.
+
+Before task closeout, reconcile its capture manifest with the SALUS-SEARCH-001 search record, decisions, artifacts, lessons and next-task handoff. Apply captured knowledge to subsequent authorized work through provenance-aware retrieval and qualification under SAL-D025, SAL-D026, SAL-D116, SAL-D125, SAL-D127 and SAL-D133. This rule makes capture universal, extending earlier “relevant statement” and “material research” triggers; it does not itself establish a deployed chat exporter, completed backfill, a verified ingestion receipt or an approved enterprise lesson.

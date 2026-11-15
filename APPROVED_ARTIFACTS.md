@@ -52,7 +52,7 @@
 | `CURRENT_HANDOFF.md` | Current deployment state, unfinished work, defects, and next action | Authoritative current-state record |
 | `SALUS_PROJECT_INSTRUCTIONS.md` | Mandatory behavior for chats in the Salus Project | Authoritative Project instruction source |
 | `SALUS_CHAT_STARTUP_PROTOCOL.md` | Mandatory new-chat startup and handoff protocol | Authoritative continuity procedure |
-| `Salus_Knowledge_and_Records_Architecture.md` | Enterprise knowledge, governed intake, Protected Member records, routing, retention, and deletion design | Approved target design, 22 September 2026 |
+| `Salus_Knowledge_and_Records_Architecture.md` | Enterprise knowledge, governed intake, Protected Member records, routing, retention, deletion and universal chat/Work-chat capture design | Approved target design, 22 September 2026; SAL-D134 capture extension follows Marc's 14 November 2026 direction and becomes authoritative through approval and governed merge of this source candidate. The existing zones and source rights remain; capture automation, historical backfill and per-chat ingestion require separate verified evidence. |
 
 | `SALUS_EXPANDED_LENS_DISCOVERY_METHOD_20260928.md` | Member-neutral conditional sub-lenses, uncertainty/discovery loop, bounded past-chat provenance and four-product handoff; repository `development/salcapa-platform` after merge | Approved by Marc, 28 September 2026 (SAL-D054). Method only; the 50-chat recent-list boundary and bounded previews of all 48 visible prior project chats are explicit. Not an issued Member finding, revised Word binary or deployed feature. |
 
