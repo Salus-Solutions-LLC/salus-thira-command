@@ -1,33 +1,47 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 November 2026 22:12 CST
-current_frozen_release: v3.274
-current_frozen_commit: d8125b42fca4789be1c34a67d39831b2f5a212d3
+last_verified_at: 14 November 2026 22:33 CST
+current_frozen_release: v3.275
+current_frozen_commit: ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6
 active_development_branch: development/salcapa-platform
-current_development_head: b5ec38c324f32977ffd5cbb07fa784ea21c18625
+current_development_head: ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
-active_increment: protection_advisor_readonly_v3275_security_source_candidate
-last_completed_increment: v3274_source_merged_frozen_release_guard_passed_publication_held
-candidate_release: v3.275
-validation_pr: 1226
-validation_branch: codex/advisor-v3275-security-20261114
+active_increment: protection_advisor_readonly_v3276_error_sanitization_source_candidate
+last_completed_increment: v3275_source_merged_frozen_publication_withheld_codeql_finding
+candidate_release: v3.276
+validation_pr: pending
+validation_branch: codex/advisor-v3276-errors-20261114
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_head
 validation_gate_state: github_validation_running
-failed_workflows: v3274_runs43675351616_43675351589_43675351545_43675351593_pip_audit
-first_root_failing_gate: pip_audit_opentelemetry_api_1_45_1_CVE_2026_126360
-root_cause: pinned_opentelemetry_api_1_45_1_has_published_denial_of_service_advisory_fixed_in_1_45_2
-repair_head: d8125b42fca4789be1c34a67d39831b2f5a212d3
-repair_summary: patch_opentelemetry_api_to_1_45_2_preserve_v3274_freeze_prepare_v3275_disabled_reader
-genuine_blockers: superseded_v3273_activations_not_reusable_v3274_security_audit_failed_v3275_validation_exact_source_approval_image_deployment_and_oauth_acceptance
-next_authorized_step: validate_v3275_security_correction_obtain_exact_head_merge_and_new_freeze_approval_before_image_publication
+failed_workflows: v3275_CodeQL_run43676750680_job132698529628
+first_root_failing_gate: CodeQL_py_stack_trace_exposure_reader_exception_message
+root_cause: reader_returned_str_exc_from_ValueError_and_LookupError_to_JSON_RPC_caller
+repair_head: ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6
+repair_summary: fixed_public_error_text_fictional_disclosure_regressions_CodeQL_on_governed_PRs
+genuine_blockers: superseded_v3275_publication_request_closed_codeql_fix_validation_exact_source_approval_new_freeze_image_deployment_and_oauth_acceptance
+next_authorized_step: validate_v3276_exact_head_including_CodeQL_then_obtain_source_merge_and_freeze_authority
 deployed_demo_release: v3.223
 deployed_demo_state: failed_v3273_promotion_restored_and_verified_v3223_app_worker_schedule_and_hostname_v3273_image_retained
 ---
 
 # SalCAPA build continuity
+
+## 14 November 2026 Central - v3.275 source merged and frozen; publication withheld for reader error disclosure
+
+Marc explicitly authorized PR #1226 exact head `a44d3e5b0bcde0a7346892b3a00b08b9b084757a`. All four PR checks passed, clean mergeability was verified, and it was marked ready and squash merged as `ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6`. Verified `release/v3.275` absent, created it at the merge commit and independently read back that SHA. Requirements/runtime/reader/acceptance-script blobs match the approved head; all five governing records were re-read. Preserve frozen v3.274 and v3.275 unchanged.
+
+Broader push analysis run `43676750680`, job `132698529628`, failed the existing CodeQL gate with one `py/stack-trace-exposure` finding: the reader returned `str(exc)` from caught ValueError/LookupError in its JSON-RPC response. Source inspection confirms that downstream errors can carry internal detail. No actual disclosure or exploitation is established. The dependency/security and immutable-release jobs passed; the failed CodeQL result is not waived. Prepared image request PR #1228 was closed without merge or execution. No image activation, registry publication, deployment or access setting changed.
+
+This v3.276 source candidate replaces exception-derived public text with a fixed error message, retains JSON-RPC failure codes and complete-access denial, and adds fictional regression cases injecting private details through ValueError, LookupError and RuntimeError. It adds the governed development target to the existing CodeQL pull-request trigger so this gate runs before future source merges; analysis and findings enforcement remain unchanged. The runtime identity advances to v3.276. Source-only preparation preserves the disabled reader, existing read/denial/hash/pagination/audit controls, accepted v3.223 rollback and every protected promotion gate. No image-publication candidate is active.
+
+Required next proof: focused and full tests, both continuity checks, all exact-head PR checks including CodeQL, Marc's exact source merge/new-freeze approval, then a separate image request and registry readback, protected application promotion and concrete per-user OAuth/client/callback/expiry/account/workspace activation acceptance. Existing administrator readback of the retained combined record and original is not availability through the workspace connection, and no independently retained Part 1-only result is claimed. The assessment remains on hold.
+
+Search/capture: used authoritative repository/governing records, exact CodeQL log and original reader/tests/workflow, and prior restricted source-readback evidence. Concurrent Knowledge census failed closed on live representation gaps; historical receipts do not establish this task's complete live-corpus consideration. That task receipt, automatic chat capture and unavailable contents remain open. No unrelated Member records, new assessment research or external Member queries were accessed.
+
+
 
 ## 14 November 2026 - v3.274 source frozen; publication held for dependency security correction
 
