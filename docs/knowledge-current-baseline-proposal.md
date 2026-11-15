@@ -1,5 +1,9 @@
 # Current recovery baseline proposal: source membership and search coverage
 
+Current authority: **Approved for governed recovery planning only [SAL-D137]**, manifest `9a662aa94726890dfc7e4845620161ab372d81c2cc27ba8f45d84ee694840821`. Marc approved this baseline only on 15 November 2026. See [the approved decision record](knowledge-current-baseline-approval-20261115.md). The immutable private proposal and earlier status/counter observations below retain their original capture-state meaning. Separate batch preparation, processing, retry/hold and execution gates remain in force; no new run or record rewrite occurred.
+
+## Preparation and verification history
+
 Status: current source-level baseline proposal verified through approved #1259; awaiting separate baseline approval. The earlier #1255 pre-write stop remains historical evidence below.
 
 Current logical key: salus-current-recovery-baseline-proposal-20261115. Manifest SHA-256: `9a662aa94726890dfc7e4845620161ab372d81c2cc27ba8f45d84ee694840821`. See [the approval summary](knowledge-current-baseline-approval-20261115.md) and [verified bounded-refresh record](knowledge-current-baseline-refresh.md). Run 43769786652, attempt 1, independently verified 23,757 private members, 8,430 unresolved sources, the four unchanged originals and four fresh query receipts. Three complete 23,747-file inventories agreed; every current physical source was represented. One review timestamp was refreshed under locks; per-source identity/version/category membership remained unchanged. Commit window 29,915 ms, exact current-core/durable readback and runtime/job cleanup passed. Source-record writes, baseline adoption, batches and processing remain zero.

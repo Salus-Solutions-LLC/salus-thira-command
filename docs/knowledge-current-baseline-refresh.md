@@ -1,5 +1,9 @@
 # Bounded locked refresh for the current baseline proposal
 
+Current authority: **Approved for governed recovery planning only [SAL-D137]**, manifest `9a662aa94726890dfc7e4845620161ab372d81c2cc27ba8f45d84ee694840821`. Marc approved this baseline only on 15 November 2026. See [the approved decision record](knowledge-current-baseline-approval-20261115.md). The immutable private proposal and earlier status/counter observations below retain their original capture-state meaning. Separate batch preparation, processing, retry/hold and execution gates remain in force; no new run or record rewrite occurred.
+
+## Preparation and verification history
+
 Status: approved #1259 executed once; proposal and four fresh receipts committed and independently verified. Baseline approval remains pending. Do not replay this activation.
 
 ## 15 November 2026 Central — Current source-level baseline and four fresh receipts committed and independently verified; baseline approval pending
