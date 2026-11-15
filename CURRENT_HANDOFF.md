@@ -1,5 +1,16 @@
 # Salus Solutions — Current Handoff
 
+## 14 November 2026 Central — whole-system and predictive-intelligence Charter requirements incorporated
+
+- Marc's “agreed. finish this.” authorized completion of the named PR #1215. Its unchanged exact head `59ef0561a88d50a824fbd2f4bdfbd54d9859ab63` passed all three required jobs in [run 43663716637](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/43663716637): `package-and-handoff-sequence`, `package-postgres-transaction` and `professional-report-windows`.
+- [PR #1215](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1215) was squash-merged as `58befeb87fd08e3c4cfea1525d72ffb072d1b963` into `development/salcapa-platform`. All four merged files were retrieved at that exact commit and matched the prepared contents exactly. The change added 132 lines and deleted none.
+- SAL-D131 whole-system assessment and protection and SAL-D132 / SALUS-PAI-001 Predictive and Anticipatory Intelligence are now incorporated in the authoritative Program Charter, decision application map and Startup Protocol. This status entry supersedes the “prepared for review” status below; the Decision Register status cells are reconciled to the completed approval/check/merge evidence.
+- Charter incorporation is complete. No original Tierra Linda files were supplied for substantive assessment in this work; the transcript's file listings and prior analytical claims remain leads for source verification. No individual assessment, report, template binary or software feature is represented as complete or released by this policy change.
+- The separately governed impact queue remains with Marc: apply the requirements to four-product methods and controlled template successors, active/issued reports, questionnaires and software with source/corpus consideration, human qualification, exact-artifact checks and applicable release gates. Preserve existing report identity and issued predecessors. APPROVED_ARTIFACTS.md is unchanged because no new artifact binary was approved.
+- No production deployment or live probe was performed. The last recorded v3.223 restoration and v3.273 verification-email blocker remain unchanged. No new expense, access change, intake, monitoring or automation was initiated.
+- This reconciliation changes only the two decision status cells and adds this handoff entry. It introduces no new policy or implementation scope. Next action outside the completed Charter amendment: select and authorize the first item in the recorded impact queue; do not infer completion of those downstream items from this merge.
+
+
 ## 14 November 2026 Central — whole-system and predictive-intelligence Charter amendment prepared for review
 
 - Objective: incorporate Marc's shared Facility Assessment requirements as enterprise standards, including the whole-system framework (SAL-D131) and SALUS-PAI-001 (SAL-D132). Marc selected “Prepare the governed amendment” in this chat. Policy approval in the source chat is distinct from exact-head approval of this repository candidate.
