@@ -11671,6 +11671,8 @@ register_salintel_domain_capability(app, globals())
 # Register the isolated public Protection Advisor prospect boundary.
 from public_protection_advisor import register_public_protection_advisor
 register_public_protection_advisor(app, globals())
+from protection_advisor_readonly import register_advisor_readonly
+register_advisor_readonly(app, globals())
 
 # Register folder-selected Microsoft 365 intake and released-report storage.
 from salcapa_m365_intake import register_m365_intake
