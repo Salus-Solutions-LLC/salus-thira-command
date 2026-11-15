@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -193,7 +194,30 @@ def main() -> None:
                 assert build["validation_pr"].isdigit()
             if not failed_job_rollout:
                 assert build["genuine_blockers"] != "none"
-    assert version(values["promotion_candidate"]) <= version(values["current_stable_release"])
+    if version(values["promotion_candidate"]) > version(values["current_stable_release"]):
+        # A published successor awaiting approval must remain distinct from
+        # the accepted runtime. Bind that pending state to both exact image
+        # and application records instead of relabelling it as accepted.
+        assert values["promotion_readiness"] == "preflight_ready"
+        assert values["promotion_candidate"] == build["current_frozen_release"] == build["candidate_release"]
+        assert values["promotion_candidate_image_commit"] == build["current_frozen_commit"]
+        assert values["promotion_candidate_image_acceptance"] == "immutable_image_published_not_deployed"
+        assert values["deployed_release"] == values["current_stable_release"] == values["rollback_baseline"]
+        assert values["deployed_commit"] == values["current_stable_commit"]
+        publication = json.loads((ROOT / "deploy/azure/activations/image-dev.json").read_text(encoding="utf-8"))
+        application = json.loads((ROOT / "deploy/azure/activations/application-dev.json").read_text(encoding="utf-8"))
+        assert publication["operation"] == "publish_image"
+        assert application["operation"] == "deploy_application"
+        assert publication["target_environment"] == application["target_environment"] == "dev"
+        assert publication["source_release"] == application["source_release"] == "release/" + values["promotion_candidate"]
+        assert publication["source_commit"] == application["source_commit"] == values["promotion_candidate_image_commit"]
+        assert application["image_digest"] == values["promotion_candidate_image_reference"]
+        assert application["rollback_release"] == "release/" + values["current_stable_release"]
+        assert application["rollback_commit"] == values["current_stable_commit"]
+        rollback = "salcapadevb48224acr.azurecr.io/salcapa@" + values["image_digest"]
+        assert application["rollback_image_digest"] == rollback
+        assert application["previous_application_image_digest"] == rollback
+        assert application["previous_worker_image_digest"] == rollback
     if values["promotion_candidate"] == values["current_stable_release"]:
         assert values["promotion_candidate_image_commit"] == values["current_stable_commit"]
     assert version(values["current_stable_release"]) >= version(values["deployed_release"])
