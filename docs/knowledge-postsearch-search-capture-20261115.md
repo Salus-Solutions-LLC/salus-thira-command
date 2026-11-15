@@ -49,3 +49,12 @@ No current protected source inventory, historical-log recovery, actual five-case
 
 
 Chat capture limitation: the approval and this result are retained by restricted chat reference and governed repository closeout. No claim is made that every chat/work-chat has been exported to the Library, and no duplicate repository-source Library copy was created.
+
+
+## 15 November 2026 — Approved read-only follow-up captured
+
+Marc directly answered the exact-version approval question for PR #1252 at 1560eaf93e4755925b597790ca5e132f50f16cd3: “Approve merge and read-only diagnostic.” This approved merging and one read-only cohort measurement, independent receipt/empty-ledger verification and cleanup. It did not authorize planning writes, new search receipts, baseline adoption, source processing, retry/hold resumption or promotion. The restricted originating chat retains that approval; no fabricated message/export identifier is asserted.
+
+Merged 640d54cf71d053e0731ef3990eb4ab16dec3eac6; protected run 43761349512 attempt 1, approval job 132956641515 and task job 132956675253 succeeded. Fresh independent snapshots at 21:04:16 and 21:05:16 UTC agreed: represented 23,757; legacy available 15,327; exact/strict text 15,322; unresolved 8,430; availability exceptions five. Net changes from original receipts are +125 represented, +99 available, +26 unresolved; these are aggregate changes without historical identity reconstruction. Four exact original receipt rows and their cbb850ab8dd3a06e300b5ce2edc40764efc821a9f2fa25d4beca73d6319c01af hash were unchanged on both connections. Target plan/batch/event counts were all zero; writes, new receipts, plan preparation, content downloads and baseline adoption were zero. Runtime unchanged and isolated-job absence were independently verified at 21:05:59 and 21:06:19 UTC. See knowledge-cohort-drift-diagnostic.md for all hashes, partition and limitations.
+
+The original four searches remain preserved as original-window evidence. This follow-up does not claim a fresh search of every location, content qualification, consideration coverage for newly represented sources or universal chat/work-chat export. Repository-backed code remains authoritative in GitHub. Current result/approval and the remaining membership, consideration and original-log gaps are captured in the governed handoff; no duplicate source copy or new Library receipt was created. New/delta consideration for an approved prospective scope requires separate evidence and authorization before any new planning run.
