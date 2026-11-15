@@ -1,0 +1,66 @@
+# Receipt-preserving post-search recovery planning
+
+Status: candidate for exact-head approval. No protected run of this continuation has occurred.
+
+## Verified starting state
+
+Authoritative branch: development/salcapa-platform, inspected at 091cf57fee4c4c3e1421c28f400e72815e2ce568. Read the Program Charter, Decision Register, Current Handoff, Approved Artifacts and Chat Startup Protocol. SAL-D116, SAL-D118, SAL-D119, SAL-D125, SAL-D133 and SAL-D134 apply.
+
+Original #1245 merge 1ca19fed9ab818868956479ab59108414ae8e2a4 ran once as 43743532577. Its result collection failed; the unsupported --tail 600 collector was subsequently fixed to 300 by approved #1247 merge 23061adf50e70513931fd7e5f5b7b4ee871176a3. Read-only run 43746748966 proved four exact original-task receipts and zero original-task plan/batch/event rows on two connections. Both isolated jobs were removed and complete selected app/worker identity/template/configuration remained unchanged. The inner historical post-search stop was not retained in those GitHub logs.
+
+Preserve these immutable receipt IDs and every field, including matched counts/timestamps:
+- availability_reconciliation: 95838b67-b96f-4d75-a079-d1c4b72bfddb
+- recovery_batches: fb31513b-df74-4e08-8a33-40f63ea306f6
+- safety_and_contrary: 4a7de341-6c03-4233-9b9f-41fdcf43abd8
+- verification: 99bf8254-40d4-4327-8511-f834127623ef
+
+Their canonical sorted-row SHA-256 is cbb850ab8dd3a06e300b5ce2edc40764efc821a9f2fa25d4beca73d6319c01af. Each records original boundary 23,622, represented/considered 23,632, service-available 15,228, unresolved 8,404 and holds 93. These are original-window observations, not a fresh census or content qualification.
+
+## Diagnosis: distinguish historical evidence from demonstrated code behavior
+
+The original path captures all candidate/checkpoint/bulk metadata before four searches and several complete inventories. save_plan later requires that entire old snapshot to remain byte-for-byte equal, including attempts, next-attempt, lease and checked times. A benign scheduler checkpoint update therefore produces PLAN_08 before commit even when source, extraction, rights and approval evidence are unchanged. The final old readback similarly treats all later checkpoint movement as failure.
+
+Regression fixtures reproduce that exact old PLAN_08 with a committed checkpoint-only update, then prove that this continuation preserves the source/authority invariants and stores the current checkpoint under locks. This is a demonstrated design defect and remedy, not proof of the historical production cause. Actual original failure code/stage must come from the retained original telemetry query, if available. Do not infer a timeout, checkpoint drift or lock failure solely from four receipts and zero plans.
+
+The protected workflow attempts one bounded, existing-workspace Log Analytics read: ContainerAppConsoleLogs_CL; exact ContainerJobName_s salcapa-recovery-plan-b48224; TimeGenerated 15 November 2026 17:52–18:08 UTC; only STABILITY_/TASK_KNOWLEDGE_ telemetry; maximum 300 rows and a 90-second CLI bound. No other workspace, raw source content, permissions or log settings are requested. A strict reducer publishes only known failure codes/stages, inventory/known-receipt marker counts and a safe-record hash. Missing access, no marker, malformed results and contradictory markers stay distinct. Raw CLI errors are private. If historical evidence is unavailable, retain that gap and qualify the historical cause as unknown while testing the current bounded path.
+
+Primary technical references: [Azure jobs log queries](https://learn.microsoft.com/en-us/azure/container-apps/tutorial-event-driven-jobs), [Log Analytics query](https://learn.microsoft.com/en-us/cli/azure/monitor/log-analytics?view=azure-cli-latest), [PostgreSQL materialized CTE behavior](https://www.postgresql.org/docs/current/queries-with.html) and [PostgreSQL locking](https://www.postgresql.org/docs/current/explicit-locking.html). Provider material is candidate technical evidence; actual SQL behavior is tested with PostgreSQL 16.
+
+## Guarded continuation
+
+New execution phase: salus-post-search-recovery-plan-20261115. Existing logical target remains salus-availability-recovery-plan-20261115; do not create a second obligation or duplicate the searches. New script/query-helper hashes and all immutable execution/runtime pins are bound by activation.
+
+1. Require exact equality of all four known receipt rows and zero target plan/batch/event rows. Any changed, missing, additional or already-completed target state stops before planning.
+2. Establish two consecutive identical complete root-metadata inventories within three initial observations. Preserve all seven-area, ancestry, shortcut, version, pagination and explicit resource guards. Confirm every current file is represented.
+3. Read the current complete candidate/hold/bulk/checkpoint representation as a preview. Bind the accepted recovery-cohort projection to SHA-256 7836ad36e47829cdf3bf34ae269d5868017cee39759ae314da6912f0945ac3a9. Require the exact disjoint 8,404 cohort and five separate availability exceptions. Do not silently replace the old cohort or its receipts.
+4. Complete one final full inventory and require exact equality with the stable inventory. No remote Graph request is made while database write guards are held.
+5. Start a short transaction. Obtain an operation advisory lock and NOWAIT SHARE locks on candidates, holds, bulk, extraction checks and the receipt table. Active writers or another continuation stop immediately. The elapsed budget is 60 seconds, checked between bounded operations; each statement receives the remaining budget capped at 30 seconds, with a two-second lock timeout. This is a checked execution budget, not a claim of an asynchronous hard timer across Python/network failure.
+6. Read metadata once afresh under those locks. Candidate/source/extraction/classification-hash/review metadata, holds and represented membership must be unchanged from the preview. Bulk drive/folder/item, parent, eTag, size, status and reason must also be unchanged. Source, authority or cohort drift still fails closed.
+7. Refresh only scheduling evidence: extraction-checkpoint rows and bulk attempts, due time, updated time and lease fields. Record observed differences without rewriting any checkpoint. Build the plan from this frozen current state and current clock; a live lease stays visible and no batch becomes executable.
+8. Atomically create/append only the three existing-design planning-ledger tables, retaining the original logical target key. All sources appear once in bounded batches, at most 50. Preserve every candidate version and applicable failure/archive/provenance/hold/checkpoint evidence. Store execution run/script binding, original/readback IDs, exact receipt snapshot/IDs, invariant hashes, historical diagnostic and observed scheduling changes inside the hashed manifest.
+9. Compare exact manifest, batch payloads/counts/hashes, audit event and preserved receipts before commit. Roll back on any error. Commit-attempted and acknowledgment flags remain separate; an uncertain acknowledgment always requires readback, never a blind retry.
+10. Open a new READ ONLY, REPEATABLE READ connection. Verify the exact saved plan/batches/event and unchanged four receipt rows. Recheck source/authority invariants. Report subsequent scheduling movement separately; an immutable saved plan describes its commit-time state and every later recovery still requires a fresh per-batch preflight.
+
+The SQL reader decodes classification JSON once per candidate in a materialized CTE and returns only scalar metadata, hashes and text-presence booleans. Extracted text and raw failure detail never leave SQL. Tests compare the result with the original exact projection; the materialization is a query optimization, not permission to change availability semantics or weaken extraction limits.
+
+The connection facade denies source/receipt DML, data-modifying CTEs, multiple statements and other schema changes. Planning writes are enabled only after all pre-state checks and restricted to CREATE IF NOT EXISTS/INSERT on m365_knowledge_recovery_plans, m365_knowledge_recovery_batches and m365_knowledge_recovery_plan_events. This is an additional reviewed-code safeguard, not a new database role or access grant.
+
+## Cohorts, qualification and results
+
+Expected distinct-source categories remain 7,085 governed review; 733 retry-paused; 488 automatic-retry; 93 hold; five other/conflicting. The five availability exceptions are outside those 8,404. The 26 multiple-candidate and 38 no-recorded-archive traits overlap and are not extra sources. Candidate failure-code counts are not a source partition; retain the actual correlated matrix in the private hashed manifest.
+
+The known availability counter's broad Complete match remains unchanged. This operation records the exact five candidate conditions without claiming original content repaired or deploying a service predicate correction. Existing receipts remain immutable.
+
+All batches stay Prepared - Not Authorized for Processing and Unvetted Candidate. No source byte download, parser invocation, source/schema modification, retry resumption, hold change, Protected Member access, assignment or release is authorized. Actual archive bytes and derivatives still require separate verification/qualified authority.
+
+Emit fixed phase start/timing, failure code/stage, safe SQLSTATE, commit-attempt/acknowledgment, current source/census hashes, exact receipt preservation and final plan counts/hash. Never print source IDs, names, paths, owner data, content, arbitrary errors or dynamic private manifest keys. Failure telemetry survives the bounded 300-line collector; no unsupported tail or suppressed-only success path is permitted.
+
+## Validation, runtime and cleanup
+
+CI must pass the old PLAN_08 regression, fresh scheduling capture, source/review/hold/status drift refusal, exact receipt corruption and write-denial checks, atomic rollback/repeat guard, total-budget rejection, ambiguous commit, independent connection, redaction and historical-reducer bounds. Dedicated PostgreSQL tests exercise real CTE semantics, source writer NOWAIT rejection, transaction/DDL rollback, advisory behavior and read-only verification. Actual pre-Azure guards, every guarded-field mutation, attempt 2, changed script/helper bytes, shell syntax, collector fixtures and Bicep compilation remain required.
+
+Accepted app/worker remain v3.223 digest 8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c. The isolated job uses published v3.276 digest 550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944, frozen commit 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3. It is not a production application promotion.
+
+The new job salcapa-postsearch-plan-b48224 requires absent namespace, protected salcapa-dev-approval and run attempt 1. Cleanup always compares full selected app/worker identity, template and configuration with the same ARM API 2025-07-01, checks task tag/digest before job deletion, and proves absence. Retain durable receipts/planning evidence; deleting audit data is not cleanup.
+
+After exact-head approval and execution, inspect actual history availability/code/stage, every phase result, preserved receipt hash, all batch/category/exception/overlap counts, manifest/evidence/matrix hashes and independent readback. Update CURRENT_HANDOFF.md with exact run/jobs/times, commit/SQL/cleanup status, any remaining historical gap and next qualified processor/source-owner recovery steps. A green workflow or source test alone is not preparation acceptance. Both prior activations remain consumed, and Python upgrade/reader/assessment holds remain unchanged.
