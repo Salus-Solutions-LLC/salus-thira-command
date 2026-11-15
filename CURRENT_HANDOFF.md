@@ -2,6 +2,22 @@
 
 
 
+
+## 14 November 2026 Central - v3.276 source merged and frozen; immutable publication request
+
+Marc authorized marking PR #1229 ready, merging exact head `dbcceb1b41dcdeea4367b51cec7cdfa11d6e66a1` and freezing `release/v3.276`. Rechecked clean mergeability and all five passing jobs including CodeQL, marked ready and squash merged as `7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3`. Verified the release ref absent, created it at that commit and independently read back its exact SHA. Requirements, runtime, reader, regression tests and CodeQL workflow blobs match the approved source. Re-read the five governing records. Preserve all frozen branches unchanged.
+
+This request advances the existing image activation to `release/v3.276`, exact source `7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3`, activation `salcapa-v3.276-image-7b79b284`. Merging requests one protected immutable publication to the existing dev registry. It preserves workload-federated identity, protected approval, exact frozen-source/version/OCI-label/nonroot/worker assertions and registry digest readback. The publication workflow is unchanged and performs no app/worker deployment. Reader configuration, business records, permissions, credentials and workspace availability are unchanged. No publication has been executed by this candidate.
+
+Release lineage: `v3274_dependency_audit_withheld_before_publication` identifies frozen source d8125b42fca4789be1c34a67d39831b2f5a212d3; `v3275_codeql_withheld_before_publication` identifies ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6. PR #1228 was closed without merge or execution. The consumed v3.273 attempt-2 application activation remains staged and unchanged; it is not the deployed application. Accepted runtime/rollback remains v3.223. Never retry either old activation or publish the withheld sources.
+
+The historical reference-image preflight adds a bounded exception for only staged v3.273 to exact frozen v3.276. It requires this source/activation identity, both withheld-release markers and the unchanged v3.223 application/worker rollback lineage; no generic version skip is admitted. Its PR trigger now includes the governed development target, so the complete reference-image contract/build is checked before merge. Existing historical cases and protected publication gates remain intact.
+
+Next: complete final exact-head checks and obtain Marc's specific approval to merge this request and execute one immutable image publication; verify run result and independently read back its registry digest. Only then prepare protected app promotion with the reader disabled and v3.223 rollback. Complete the separately reviewed per-user OAuth client, actual callback, expiry and current workspace identity mapping, concrete access confirmation, workspace-only publication and read/denial/unchanged-state acceptance. Existing administrator retrieval of retained Compass records does not establish live workspace access. The assessment remains on hold.
+
+Search/capture limits: consulted authoritative repository/governing records, exact approved source/security results, publication and historical preflight contracts and prior restricted source-readback evidence. Complete live-corpus task consideration and automatic chat capture remain open under the separately recorded Knowledge representation/capture gaps. No new assessment, unrelated Protected Member access, report generation or source-content promotion occurred.
+
+
 ## 14 November 2026 Central - v3.275 source merged and frozen; publication withheld for reader error disclosure
 
 Marc explicitly authorized PR #1226 exact head `a44d3e5b0bcde0a7346892b3a00b08b9b084757a`. All four PR checks passed, clean mergeability was verified, and it was marked ready and squash merged as `ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6`. Verified `release/v3.275` absent, created it at the merge commit and independently read back that SHA. Requirements/runtime/reader/acceptance-script blobs match the approved head; all five governing records were re-read. Preserve frozen v3.274 and v3.275 unchanged.

@@ -12,11 +12,12 @@ on:
       - 'docs/demo-deployment-continuity.md'
       - 'docs/build-continuity.md'
       - 'tools/ci_salcapa_v3109_candidate_image_preflight.py'
+      - 'tools/ci_advisor_v3276_publication_lineage_smoke.py'
       - 'tools/ci_azure_image_publication_contract_smoke.py'
       - '.github/workflows/azure-image-publish.yml'
       - '.github/workflows/salcapa-demo-candidate-image.yml'
   pull_request:
-    branches: [main]
+    branches: [main, development/salcapa-platform]
   workflow_dispatch:
 
 permissions:
@@ -47,6 +48,7 @@ jobs:
         run: |
           test "$(git -C frozen-v3109 rev-parse HEAD)" = "$FROZEN_V3109_COMMIT"
           python tools/ci_salcapa_v3109_candidate_image_preflight.py
+          python tools/ci_advisor_v3276_publication_lineage_smoke.py
           python tools/ci_azure_image_publication_contract_smoke.py
       - name: Build the exact frozen reference image locally
         run: >-
