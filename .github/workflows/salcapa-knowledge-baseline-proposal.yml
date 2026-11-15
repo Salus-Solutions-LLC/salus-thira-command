@@ -1,0 +1,271 @@
+name: SalCAPA current knowledge baseline proposal
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/salcapa-knowledge-baseline-proposal.yml'
+      - 'infra/azure/knowledge-baseline-proposal-job.bicep'
+      - 'tools/live_knowledge_baseline_proposal.py'
+      - 'tools/live_knowledge_postsearch_resume.py'
+      - 'tests/test_knowledge_baseline_proposal.py'
+      - 'deploy/azure/activations/knowledge-baseline-proposal-20261115.json'
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'deploy/azure/activations/knowledge-baseline-proposal-20261115.json'
+
+concurrency:
+  group: salcapa-knowledge-diagnostic
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: python -m compileall -q tools/live_knowledge_baseline_proposal.py tests/test_knowledge_baseline_proposal.py
+      - run: python -m pip install -r requirements.txt pytest==8.4.2 PyYAML==6.0.2
+      - run: python -m pytest -q -p no:cacheprovider tests/test_knowledge_baseline_proposal.py
+      - name: Validate exact proposal activation and shell syntax
+        run: |
+          python - <<'PY'
+          import hashlib,json,os,pathlib,shutil,subprocess,tempfile,yaml
+          root=pathlib.Path('.')
+          workflow=yaml.load((root/'.github/workflows/salcapa-knowledge-baseline-proposal.yml').read_text(),Loader=yaml.BaseLoader)
+          assert 'workflow_dispatch' not in workflow['on']
+          assert workflow['jobs']['authorize_scoped']['environment']=='salcapa-dev-approval'
+          for job in workflow['jobs'].values():
+              for step in job.get('steps',[]):
+                  if 'run' in step: subprocess.run(['bash','-n'],input=step['run'],text=True,check=True)
+          activation=json.loads((root/'deploy/azure/activations/knowledge-baseline-proposal-20261115.json').read_text())
+          assert activation['baseline_proposal_records_authorized'] is True
+          assert activation['baseline_proposal_schema_authorized'] is True
+          assert activation['new_search_receipt_count']==activation['query_count']==4
+          assert all(activation[key] is False for key in ('recovery_ledger_changes_authorized','source_record_or_schema_changes_authorized','automatic_processing_authorized','new_baseline_adoption_authorized','production_deployment_authorized'))
+          guard=next(s['run'] for s in workflow['jobs']['task_search']['steps'] if s.get('name')=='Validate exact task and script')
+          assert 'az ' not in guard
+          with tempfile.TemporaryDirectory() as directory:
+              fixture=pathlib.Path(directory)
+              target=fixture/'deploy/azure/activations/knowledge-baseline-proposal-20261115.json'
+              target.parent.mkdir(parents=True)
+              (fixture/'tools').mkdir()
+              for name in ('live_knowledge_cohort_drift.py','live_knowledge_postsearch_resume.py'):
+                  shutil.copyfile(root/'tools'/name,fixture/'tools'/name)
+              def check(value,attempt='1'):
+                  target.write_text(json.dumps(value))
+                  return subprocess.run(['bash','-euo','pipefail','-c',guard],cwd=fixture,env={**os.environ,'GITHUB_RUN_ATTEMPT':attempt},capture_output=True,text=True).returncode
+              assert check(activation)==0
+              for key in activation:
+                  changed=dict(activation);changed[key]='invalid-binding-fixture'
+                  assert check(changed)!=0,key
+              assert check(activation,'2')!=0
+              for name in ('live_knowledge_cohort_drift.py','live_knowledge_postsearch_resume.py'):
+                  path=fixture/'tools'/name;before=path.read_bytes();path.write_bytes(before+b'# altered')
+                  assert check(activation)!=0
+                  path.write_bytes(before)
+              print('Actual pre-Azure guard rejected drift in '+str(len(activation))+' fields, replay and both altered scripts')
+          PY
+      - run: az bicep build --file infra/azure/knowledge-baseline-proposal-job.bicep --stdout > /tmp/knowledge-task-search.json
+
+
+  postgres_postsearch_plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postsearch_plan
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postsearch_plan"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      SALUS_DB_BACKEND: postgres
+      SALUS_POSTGRES_AUTH: dsn
+      SALUS_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postsearch_plan # repo-hygiene: allow - localhost-only ephemeral PostgreSQL CI fixture
+      TEST_POSTSEARCH_POSTGRES: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt pytest==8.4.2
+      - run: python -m pytest -q -p no:cacheprovider tests/test_knowledge_baseline_proposal.py
+
+  authorize_scoped:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected task-specific Knowledge consideration gate passed."
+
+  task_search:
+    needs: authorize_scoped
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate exact task and script
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          python - <<'PY'
+          import hashlib,json,pathlib
+          expected=json.loads('{"operation": "knowledge_baseline_proposal", "task_key": "salus-current-recovery-baseline-proposal-20261115", "target_environment": "dev", "resource_group": "rg-salcapa-dev", "original_operation_key": "salus-availability-recovery-plan-20261115", "reference_diagnostic_run_id": 43761349512, "expected_unresolved_sources": 8430, "expected_availability_exceptions": 5, "expected_categories": {"governed_review": 7085, "retry_paused": 733, "automatic_retry": 512, "governed_hold": 93, "other_or_conflicting": 5, "complete_without_text": 0, "no_candidate": 2}, "proposal_state": "Proposed - Awaiting Baseline Approval", "script_sha256": "a48098fd02a26b982ec555449e7299d527081a869e5f7de7613f6be46e33a3e6", "support_script_sha256": "2bfaf1b5c16c6a66f77bd69c61dec7a36afc6cefe3c9b7f67795972586d0ee49", "source_release": "release/v3.276", "source_commit": "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3", "execution_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944", "expected_runtime_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c", "preserved_receipt_count": 4, "preserved_receipt_snapshot_sha256": "cbb850ab8dd3a06e300b5ce2edc40764efc821a9f2fa25d4beca73d6319c01af", "minimum_physical_boundary": 23747, "maximum_inventory_observations": 4, "transaction_budget_seconds": 60, "max_execution_seconds": 900, "query_count": 4, "new_search_receipt_count": 4, "baseline_proposal_records_authorized": true, "baseline_proposal_schema_authorized": true, "new_search_receipts_authorized": true, "recovery_ledger_changes_authorized": false, "source_record_or_schema_changes_authorized": false, "source_content_downloads_authorized": false, "automatic_processing_authorized": false, "new_baseline_adoption_authorized": false, "production_deployment_authorized": false, "protected_member_access": false, "assignment_or_release_authority": false, "execution_cpu": "0.5", "execution_memory": "1Gi"}')
+          actual=json.loads(pathlib.Path('deploy/azure/activations/knowledge-baseline-proposal-20261115.json').read_text())
+          assert actual==expected,'activation binding mismatch'
+          for path,key in [('tools/live_knowledge_baseline_proposal.py','script_sha256'),('tools/live_knowledge_postsearch_resume.py','support_script_sha256')]:
+              assert hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()==expected[key],'script binding mismatch'
+          PY
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Reconcile current source membership and atomically prepare proposed baseline with new coverage
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          ACTIVATION=deploy/azure/activations/knowledge-baseline-proposal-20261115.json
+          EXPECTED_IMAGE="$(jq -er '.execution_image_digest' "$ACTIVATION")"
+          EXPECTED_RUNTIME="$(jq -er '.expected_runtime_image_digest' "$ACTIVATION")"
+          test "$(jq -r '.source_release' "$ACTIVATION")" = "release/v3.276"
+          SOURCE_COMMIT="$(jq -er '.source_commit' "$ACTIVATION")"
+          test "$SOURCE_COMMIT" = "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3"
+          test "$EXPECTED_IMAGE" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944"
+          test "$EXPECTED_RUNTIME" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c"
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-consideration-app.json
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/salcapa-consideration-worker.json
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-consideration-app.json)" = "$EXPECTED_RUNTIME"
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-consideration-worker.json)" = "$EXPECTED_RUNTIME"
+          # Compare identical pinned ARM schemas; suppress no fields.
+          for kind in app worker; do
+            RESOURCE_ID="$(jq -er '.id' "/tmp/salcapa-consideration-$kind.json")"
+            az rest --method get --url "https://management.azure.com${RESOURCE_ID}?api-version=2025-07-01" --output json > "/tmp/recovery-$kind-before.json"
+          done
+          env_value() {
+            jq -r --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/salcapa-consideration-worker.json
+          }
+          test "$(env_value SALUS_DB_BACKEND)" = "postgres"
+          test "$(env_value SALUS_POSTGRES_AUTH)" = "entra"
+          IDENTITY_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query id --output tsv --only-show-errors)"
+          IDENTITY_CLIENT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query clientId --output tsv --only-show-errors)"
+          ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors)"
+          REGISTRY_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query loginServer --output tsv --only-show-errors)"
+          test "$(az acr repository show --name salcapadevb48224acr --image "salcapa@${EXPECTED_IMAGE##*@}" --query digest --output tsv --only-show-errors)" = "${EXPECTED_IMAGE##*@}"
+          JOB_NAME=salcapa-baseline-proposal-b48224
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
+          echo "TASK_JOB_NAMESPACE_CLEAR=1" >> "$GITHUB_ENV"
+          SUPPORT_B64="$(base64 -w0 tools/live_knowledge_postsearch_resume.py)"
+          SCRIPT_B64="$(base64 -w0 tools/live_knowledge_baseline_proposal.py)"
+          az deployment group create \
+            --name "salcapa-consideration-readback-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/knowledge-baseline-proposal-job.bicep \
+            --parameters environmentId="$ENVIRONMENT_ID" identityId="$IDENTITY_ID" \
+              registryServer="$REGISTRY_SERVER" imageDigest="$EXPECTED_IMAGE" \
+              managedIdentityClientId="$IDENTITY_CLIENT_ID" \
+              tenantId="$(env_value SALUS_OIDC_TENANT_ID)" \
+              applicationClientId="$(env_value SALUS_OIDC_CLIENT_ID)" \
+              driveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" \
+              folderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" \
+              postgresHost="$(env_value SALUS_POSTGRES_HOST)" \
+              postgresDatabase="$(env_value SALUS_POSTGRES_DATABASE)" \
+              postgresUser="$(env_value SALUS_POSTGRES_USER)" \
+              postgresSslMode="$(env_value SALUS_POSTGRES_SSLMODE)" \
+              acceptanceScriptBase64="$SCRIPT_B64" \
+              phaseRunId="$GITHUB_RUN_ID" phaseScriptSha256="$(jq -r '.script_sha256' "$ACTIVATION")" \
+              supportScriptBase64="$SUPPORT_B64" \
+            --output none --only-show-errors
+          JOB_NAME=salcapa-baseline-proposal-b48224
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
+          test -n "$EXECUTION_NAME"
+          SUCCEEDED=false
+          for attempt in $(seq 1 90); do
+            STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" \
+              --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" \
+              --query properties.status --output tsv --only-show-errors)"
+            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
+            if [ "$STATUS" = "Failed" ]; then break; fi
+            sleep 10
+          done
+          LOG_EXIT=0
+          az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
+            --execution "$EXECUTION_NAME" --container salcapa-baseline-proposal \
+            --tail 300 --format text --only-show-errors > /tmp/task-knowledge-search.log 2>&1 || LOG_EXIT=$?
+          case "$STATUS" in
+            Succeeded|Failed|Running|Pending|Processing|Stopped|Unknown) OBSERVED_STATUS="$STATUS" ;;
+            *) OBSERVED_STATUS=Unknown ;;
+          esac
+          echo "TASK_KNOWLEDGE_EXECUTION_STATUS=$OBSERVED_STATUS"
+          echo "TASK_KNOWLEDGE_LOG_FETCH_EXIT=$LOG_EXIT"
+          # Emit only fixed telemetry; raw CLI errors stay private.
+          grep -E '^.*(TASK_KNOWLEDGE|BASELINE|STABILITY|POSTSEARCH)_[A-Z0-9_]+=.*$' /tmp/task-knowledge-search.log || true
+          test "$LOG_EXIT" = "0"
+          grep -q 'BASELINE_PROPOSAL_COMPLETE=1' /tmp/task-knowledge-search.log
+          grep -q 'BASELINE_FRESH_CONNECTION_VERIFIED=1' /tmp/task-knowledge-search.log
+          grep -q 'BASELINE_PRESERVED_RECEIPTS=4' /tmp/task-knowledge-search.log
+          grep -q 'BASELINE_NEW_RECEIPTS=4' /tmp/task-knowledge-search.log
+          grep -q 'BASELINE_UNRESOLVED_FILES=8430' /tmp/task-knowledge-search.log
+          grep -q 'BASELINE_SOURCE_RECORD_WRITES=0' /tmp/task-knowledge-search.log
+          grep -q 'BASELINE_BASELINE_ACCEPTED=0' /tmp/task-knowledge-search.log
+          grep -q 'BASELINE_RECOVERY_BATCHES_PREPARED=0' /tmp/task-knowledge-search.log
+          test "$SUCCEEDED" = "true"
+      - name: Remove and verify isolated task-search job
+        if: always()
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          JOB_NAME=salcapa-baseline-proposal-b48224
+          if [ "${TASK_JOB_NAMESPACE_CLEAR:-0}" != "1" ]; then exit 0; fi
+          az account show --only-show-errors >/dev/null
+          RUNTIME_OK=1
+          if (
+            set -euo pipefail
+            az rest --method get --url "https://management.azure.com$(jq -er '.id' /tmp/recovery-app-before.json)?api-version=2025-07-01" --output json > /tmp/task-search-app-after.json
+            az rest --method get --url "https://management.azure.com$(jq -er '.id' /tmp/recovery-worker-before.json)?api-version=2025-07-01" --output json > /tmp/task-search-worker-after.json
+            for pair in "recovery-app-before task-search-app-after" "recovery-worker-before task-search-worker-after"; do
+              read -r before after <<< "$pair"
+              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$before.json" > /tmp/task-search-before.json
+              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$after.json" > /tmp/task-search-after.json
+              cmp /tmp/task-search-before.json /tmp/task-search-after.json
+            done
+          ); then
+            echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=1"
+          else
+            RUNTIME_OK=0
+            echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=0"
+          fi
+          if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/task-search-cleanup.json 2>/dev/null; then
+            test "$(jq -r '.tags.salusTaskKey' /tmp/task-search-cleanup.json)" = "salus-current-recovery-baseline-proposal-20261115"
+            test "$(jq -r '.properties.template.containers[0].image' /tmp/task-search-cleanup.json)" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944"
+            az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes --only-show-errors
+          fi
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
+            --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
+          echo "TASK_KNOWLEDGE_ISOLATED_JOB_REMOVED=1"
+          test "$RUNTIME_OK" = "1"
