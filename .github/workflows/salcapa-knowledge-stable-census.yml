@@ -1,0 +1,253 @@
+name: SalCAPA stable census diagnostics
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/salcapa-knowledge-stable-census.yml'
+      - 'infra/azure/knowledge-stable-census-job.bicep'
+      - 'tools/live_knowledge_stable_census.py'
+      - 'tests/test_knowledge_stable_census.py'
+      - 'deploy/azure/activations/knowledge-stable-census-20261115.json'
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'deploy/azure/activations/knowledge-stable-census-20261115.json'
+
+concurrency:
+  group: salcapa-knowledge-diagnostic
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: python -m compileall -q tools/live_knowledge_stable_census.py tests/test_knowledge_stable_census.py
+      - run: python -m pip install -r requirements.txt pytest==8.4.2 PyYAML==6.0.2
+      - run: python -m pytest -q -p no:cacheprovider tests/test_knowledge_stable_census.py
+      - name: Validate workflow shell syntax and activation binding
+        run: |
+          python - <<'PY'
+          import hashlib, json, pathlib, subprocess, yaml
+          root = pathlib.Path(".")
+          workflow = yaml.load((root / ".github/workflows/salcapa-knowledge-stable-census.yml").read_text(), Loader=yaml.BaseLoader)
+          assert "workflow_dispatch" not in workflow["on"]
+          assert workflow["jobs"]["authorize_scoped"]["environment"] == "salcapa-dev-approval"
+          for job in workflow["jobs"].values():
+              for step in job.get("steps", []):
+                  if "run" in step:
+                      subprocess.run(["bash", "-n"], input=step["run"], text=True, check=True)
+          activation = json.loads((root / "deploy/azure/activations/knowledge-stable-census-20261115.json").read_text())
+          script = (root / "tools/live_knowledge_stable_census.py").read_bytes()
+          assert hashlib.sha256(script).hexdigest() == activation["script_sha256"]
+          assert activation["query_count"] == 4
+          assert activation["source_content_downloads_authorized"] is False
+          assert activation["automatic_processing_authorized"] is False
+          assert activation["source_record_or_schema_changes_authorized"] is False
+          assert activation["maximum_inventory_observations"] == 3
+          assert workflow["jobs"]["task_search"]["timeout-minutes"] == "30"
+          assert activation["production_deployment_authorized"] is False
+          assert activation["protected_member_access"] is False
+          assert activation["assignment_or_release_authority"] is False
+          print("task-search workflow syntax and activation binding passed")
+          PY
+      - run: az bicep build --file infra/azure/knowledge-stable-census-job.bicep --stdout > /tmp/knowledge-task-search.json
+
+
+  postgres_stable_census:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: stable_census
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d stable_census"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      SALUS_DB_BACKEND: postgres
+      SALUS_POSTGRES_AUTH: dsn
+      SALUS_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stable_census
+      TEST_STABILITY_POSTGRES: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt pytest==8.4.2
+      - run: python -m pytest -q -p no:cacheprovider tests/test_knowledge_stable_census.py
+
+  authorize_scoped:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected task-specific Knowledge consideration gate passed."
+
+  task_search:
+    needs: authorize_scoped
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate exact task and script
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          ACTIVATION=deploy/azure/activations/knowledge-stable-census-20261115.json
+          test "$(jq -r '.operation' "$ACTIVATION")" = "knowledge_stable_census_diagnostics"
+          test "$(jq -r '.target_environment' "$ACTIVATION")" = "dev"
+          test "$(jq -r '.resource_group' "$ACTIVATION")" = "rg-salcapa-dev"
+          test "$(jq -r '.task_key' "$ACTIVATION")" = "salus-stable-census-diagnostics-20261115"
+          test "$(jq -r '.query_count' "$ACTIVATION")" = "4"
+          test "$(jq -r '.max_execution_seconds' "$ACTIVATION")" = "900"
+          test "$(jq -r '.automatic_processing_authorized' "$ACTIVATION")" = "false"
+          test "$(jq -r '.source_record_or_schema_changes_authorized' "$ACTIVATION")" = "false"
+          test "$(jq -r '.maximum_inventory_observations' "$ACTIVATION")" = "3"
+          test "$(jq -r '.previous_run_id' "$ACTIVATION")" = "43678462983"
+          test "$(jq -r '.source_content_downloads_authorized' "$ACTIVATION")" = "false"
+          test "$(jq -r '.source_boundary_method' "$ACTIVATION")" = "read_only_full_root_graph_delta_census"
+          test "$(jq -r '.production_deployment_authorized' "$ACTIVATION")" = "false"
+          test "$(jq -r '.protected_member_access' "$ACTIVATION")" = "false"
+          test "$(jq -r '.assignment_or_release_authority' "$ACTIVATION")" = "false"
+          test "$(sha256sum tools/live_knowledge_stable_census.py | cut -d ' ' -f 1)" = "$(jq -r '.script_sha256' "$ACTIVATION")"
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Diagnose inventories and verify strict stable census and four receipts
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          ACTIVATION=deploy/azure/activations/knowledge-stable-census-20261115.json
+          EXPECTED_IMAGE="$(jq -er '.execution_image_digest' "$ACTIVATION")"
+          EXPECTED_RUNTIME="$(jq -er '.expected_runtime_image_digest' "$ACTIVATION")"
+          test "$(jq -r '.source_release' "$ACTIVATION")" = "release/v3.276"
+          SOURCE_COMMIT="$(jq -er '.source_commit' "$ACTIVATION")"
+          test "$SOURCE_COMMIT" = "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3"
+          test "$EXPECTED_IMAGE" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944"
+          test "$EXPECTED_RUNTIME" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c"
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-consideration-app.json
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/salcapa-consideration-worker.json
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-consideration-app.json)" = "$EXPECTED_RUNTIME"
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-consideration-worker.json)" = "$EXPECTED_RUNTIME"
+          # Compare identical pinned ARM schemas; suppress no fields.
+          for kind in app worker; do
+            RESOURCE_ID="$(jq -er '.id' "/tmp/salcapa-consideration-$kind.json")"
+            az rest --method get --url "https://management.azure.com${RESOURCE_ID}?api-version=2025-07-01" --output json > "/tmp/recovery-$kind-before.json"
+          done
+          env_value() {
+            jq -r --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/salcapa-consideration-worker.json
+          }
+          test "$(env_value SALUS_DB_BACKEND)" = "postgres"
+          test "$(env_value SALUS_POSTGRES_AUTH)" = "entra"
+          IDENTITY_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query id --output tsv --only-show-errors)"
+          IDENTITY_CLIENT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query clientId --output tsv --only-show-errors)"
+          ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors)"
+          REGISTRY_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query loginServer --output tsv --only-show-errors)"
+          test "$(az acr repository show --name salcapadevb48224acr --image "salcapa@${EXPECTED_IMAGE##*@}" --query digest --output tsv --only-show-errors)" = "${EXPECTED_IMAGE##*@}"
+          JOB_NAME=salcapa-stable-census-b48224
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
+          echo "TASK_JOB_NAMESPACE_CLEAR=1" >> "$GITHUB_ENV"
+          SCRIPT_B64="$(base64 -w0 tools/live_knowledge_stable_census.py)"
+          az deployment group create \
+            --name "salcapa-consideration-readback-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/knowledge-stable-census-job.bicep \
+            --parameters environmentId="$ENVIRONMENT_ID" identityId="$IDENTITY_ID" \
+              registryServer="$REGISTRY_SERVER" imageDigest="$EXPECTED_IMAGE" \
+              managedIdentityClientId="$IDENTITY_CLIENT_ID" \
+              tenantId="$(env_value SALUS_OIDC_TENANT_ID)" \
+              applicationClientId="$(env_value SALUS_OIDC_CLIENT_ID)" \
+              driveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" \
+              folderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" \
+              postgresHost="$(env_value SALUS_POSTGRES_HOST)" \
+              postgresDatabase="$(env_value SALUS_POSTGRES_DATABASE)" \
+              postgresUser="$(env_value SALUS_POSTGRES_USER)" \
+              postgresSslMode="$(env_value SALUS_POSTGRES_SSLMODE)" \
+              acceptanceScriptBase64="$SCRIPT_B64" \
+            --output none --only-show-errors
+          JOB_NAME=salcapa-stable-census-b48224
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
+          test -n "$EXECUTION_NAME"
+          SUCCEEDED=false
+          for attempt in $(seq 1 90); do
+            STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" \
+              --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" \
+              --query properties.status --output tsv --only-show-errors)"
+            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
+            if [ "$STATUS" = "Failed" ]; then break; fi
+            sleep 10
+          done
+          az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
+            --execution "$EXECUTION_NAME" --container salcapa-stable-census \
+            --tail 300 --format text --only-show-errors > /tmp/task-knowledge-search.log 2>&1
+          # Print safe failure/counter evidence before any success assertion.
+          grep -E '^.*(TASK_KNOWLEDGE|RECOVERY|STABILITY)_[A-Z0-9_]+=.*$' /tmp/task-knowledge-search.log || true
+          grep -q 'STABILITY_CONSECUTIVE_COMPLETE_INVENTORIES_EQUAL=1' /tmp/task-knowledge-search.log
+          grep -q 'STABILITY_FRESH_CONNECTION_RECEIPTS_VERIFIED=4' /tmp/task-knowledge-search.log
+          grep -q 'TASK_KNOWLEDGE_VERIFIED_RECEIPTS=4' /tmp/task-knowledge-search.log
+          grep -q 'TASK_KNOWLEDGE_COMPLETE=1' /tmp/task-knowledge-search.log
+          grep -q 'STABILITY_CENSUS_COMPLETE=1' /tmp/task-knowledge-search.log
+          test "$SUCCEEDED" = "true"
+      - name: Remove and verify isolated task-search job
+        if: always()
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          JOB_NAME=salcapa-stable-census-b48224
+          if [ "${TASK_JOB_NAMESPACE_CLEAR:-0}" != "1" ]; then exit 0; fi
+          az account show --only-show-errors >/dev/null
+          RUNTIME_OK=1
+          if (
+            set -euo pipefail
+            az rest --method get --url "https://management.azure.com$(jq -er '.id' /tmp/recovery-app-before.json)?api-version=2025-07-01" --output json > /tmp/task-search-app-after.json
+            az rest --method get --url "https://management.azure.com$(jq -er '.id' /tmp/recovery-worker-before.json)?api-version=2025-07-01" --output json > /tmp/task-search-worker-after.json
+            for pair in "recovery-app-before task-search-app-after" "recovery-worker-before task-search-worker-after"; do
+              read -r before after <<< "$pair"
+              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$before.json" > /tmp/task-search-before.json
+              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$after.json" > /tmp/task-search-after.json
+              cmp /tmp/task-search-before.json /tmp/task-search-after.json
+            done
+          ); then
+            echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=1"
+          else
+            RUNTIME_OK=0
+            echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=0"
+          fi
+          if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/task-search-cleanup.json 2>/dev/null; then
+            test "$(jq -r '.tags.salusTaskKey' /tmp/task-search-cleanup.json)" = "salus-stable-census-diagnostics-20261115"
+            test "$(jq -r '.properties.template.containers[0].image' /tmp/task-search-cleanup.json)" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944"
+            az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes --only-show-errors
+          fi
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
+            --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
+          echo "TASK_KNOWLEDGE_ISOLATED_JOB_REMOVED=1"
+          test "$RUNTIME_OK" = "1"
+
