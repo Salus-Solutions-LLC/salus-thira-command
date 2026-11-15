@@ -1,33 +1,48 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 15 November 2026 06:54 CST
+last_verified_at: 15 November 2026 10:56 CST
 current_frozen_release: v3.276
 current_frozen_commit: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
 active_development_branch: development/salcapa-platform
-current_development_head: 5301a60f4e53893796ec0e800317cedafbf349fe
+current_development_head: a23ff0ded4535688690b0341d2f24c8d9e1aaad9
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
 active_increment: protection_advisor_readonly_v3276_held_application_promotion
-last_completed_increment: pr1240_merged_48_postmerge_jobs_passed_all33_current_pending_comparisons_complete_archive_version_limit_verified
+last_completed_increment: pr1242_merged_48_postmerge_jobs_passed_standalone_readonly_diagnostic_candidate_16_fictional_tests_passed
 candidate_release: v3.276
-validation_pr: 1242
-validation_branch: codex/advisor-intake-evidence-20261115
+validation_pr: 1244
+validation_branch: codex/advisor-metadata-diagnostic-candidate-20261115
 validation_base: development/salcapa-platform
-validation_head: pending_exact_pending_receipt_and_evidence_plan_head
+validation_head: pending_exact_standalone_metadata_diagnostic_candidate_head
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3276_deploy_run43679803060_M365_listing_guard_historical_cause_unproven_source_checks_green_at_pr1240_merge
+failed_workflows: v3276_deploy_run43679803060_M365_listing_guard_historical_cause_unproven_source_checks_green_at_pr1242_merge
 first_root_failing_gate: isolated_M365_intake_read_listed_document_consistency_guard
 root_cause: specific_ID_name_etag_size_parent_or_snapshot_mismatch_unrecorded_underlying_cause_unproven
 repair_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
-repair_summary: record_all33_pending_metadata_result_archive_version_limit_and_proposed_safe_failure_evidence_contract
+repair_summary: standalone_metadata_diagnostic_candidate_with_restricted_exact_receipt_run_isolation_and_fictional_validation_no_live_runtime_change
 genuine_blockers: historical_candidate_predicate_unretained_v3223_bounded_archive_incompatible_v3276_consumed_no_new_promotion_authority_OAuth_workspace_acceptance_open
-next_authorized_step: validate_receipt_and_proposed_failure_evidence_plan_before_preparing_a_separately_governed_source_or_promotion_candidate
+next_authorized_step: review_exact_standalone_diagnostic_candidate_then_reconcile_live_source_image_and_restricted_receipt_destination_before_any_live_diagnostic
 deployed_demo_release: v3.223
 deployed_demo_state: v3276_intake_failure_rolled_back_to_verified_v3223_app_worker_hostname_reader_disabled
 ---
 
 # SalCAPA build continuity
+
+## 15 November 2026 10:56 CST - PR #1242 merged; standalone metadata diagnostic candidate validated with fictional data
+
+Marc authorized PR #1242 exact head `2284dbbfa9376552fe60b0b33f95d04b15c76942`, ready/merge and continued read-only intake diagnosis, retaining the disabled reader and assessment hold. Rechecked all five passing PR jobs and clean mergeability, marked ready and squash merged as `a23ff0ded4535688690b0341d2f24c8d9e1aaad9`. The evidence plan, build continuity and connection runbook matched the approved head. CURRENT_HANDOFF.md additionally preserves concurrent approved #1241 merge `e73c6b5d` and its separate stable-census receipt; that work does not establish this ChatGPT connection or the historical intake cause. Refreshed all five governing records. All 48 post-merge jobs completed successfully. No image publication, protected execution, deployment, activation replay or access grant occurred in this task.
+
+Independent public readback at 16:52:49 UTC (10:52 CST) passed readiness, reported accepted v3.223 and returned 404 for reader GET, initialize POST and protected-resource metadata. No authenticated source/tool call was made. Restricted receipt: work/protection-advisor-private-20261114/after-pr1242-public-disabled-readback.json. This is selected public readback, not a new full Azure configuration or business-record audit.
+
+Prepared the standalone source candidate tools/m365_intake_metadata_diagnostic.py under the merged evidence design. Existing intake methods, server, worker and live acceptance implementation remain byte-unchanged. The candidate pins local module/listing hashes for accepted v3.223 and frozen v3.276; unknown code and a v3.223 bounded archive fail before source access. Listing/comparison limits, per-request timeout and a between-operation budget are explicit. Metadata-only observations retain all six guard flags, fixed failure stage, timing and run-scoped opaque candidate references. The random key is not retained. General output contains only fixed aggregate fields. Source image identity remains an operator pin requiring independent Azure verification; the tool does not claim registry/image attestation.
+
+The exclusive restricted file sink rejects Git working trees and existing destinations, flushes and verifies exact readback before a successful summary. Existing directory authorization/Windows ACLs must be independently established; no permission is granted by the tool. Retention, cleanup, metadata, elapsed-budget and version errors fail explicitly without raw exception details or source content. The PR-only fictional validation workflow has read-only repository permission and no Azure authentication, protected environment, push/dispatch trigger or live-source execution. The new diagnostic is not included in the published v3.276 image and has not been run on live intake records. It is not a modification of the historical acceptance job.
+
+Local validation: 16 fictional diagnostic tests passed, covering each of six predicates and simultaneous drift, missing/non-200 metadata, source/version pins, pending/archive sample bounds, timeout/incompletion, run isolation, changed/failed retention, exclusive file handling, provider redaction, CLI output/cleanup failure and forbidden content/write entrypoints. Three existing bounded-listing regressions passed. Both continuity checks and compilation passed. No real document download, parse, source mutation or new Member-record read occurred. Final source hygiene and exact-head repository checks remain required for review.
+
+The last live pending observation remains the prior 33-item metadata-only pass; it is not repeated or relabeled here. Its success cannot reconstruct the historical failed item/predicate omitted by consumed run 43679803060. That cause remains unproven. Accepted v3.223 and held/published v3.276 remain distinct, with no consumed activation replay. Next: review the exact standalone candidate; before any live diagnostic reconcile deployed source/image and an authorized restricted evidence destination, then retain/read back a candidate-correlated receipt without changing the reader or assessment state. No application promotion is prepared by this candidate. **Reader disabled; assessment and future public-source/reunification collection on hold.**
+
 
 ## 15 November 2026 06:54 CST - PR #1240 merged; current pending check complete and archive version limit verified
 

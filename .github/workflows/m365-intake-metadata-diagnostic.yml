@@ -1,0 +1,34 @@
+name: M365 metadata diagnostic fictional validation
+
+on:
+  pull_request:
+    branches: [development/salcapa-platform]
+    paths:
+      - '.github/workflows/m365-intake-metadata-diagnostic.yml'
+      - 'tools/m365_intake_metadata_diagnostic.py'
+      - 'tests/test_m365_intake_metadata_diagnostic.py'
+      - 'salcapa_m365_intake.py'
+      - 'docs/m365-intake-failure-evidence-plan.md'
+
+permissions:
+  contents: read
+
+jobs:
+  fictional-metadata-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Fictional metadata, privacy and restricted receipt tests
+        run: python -m unittest tests.test_m365_intake_metadata_diagnostic -v
+      - name: Continuity and source hygiene
+        run: |
+          python tools/ci_build_continuity_smoke.py
+          python tools/ci_demo_deployment_continuity_smoke.py
+          python tools/check_repository_hygiene.py
+          git diff --check
