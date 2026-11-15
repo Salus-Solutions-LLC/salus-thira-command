@@ -1,33 +1,50 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 November 2026 23:44 CST
+last_verified_at: 15 November 2026 00:20 CST
 current_frozen_release: v3.276
 current_frozen_commit: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
 active_development_branch: development/salcapa-platform
-current_development_head: d72db13b3fa11f3a716fd8bf381eb67f2fbf0ebd
+current_development_head: fec2308cc5a9e57ad50c125f0fc5d4cc65f739eb
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
 active_increment: protection_advisor_readonly_v3276_held_application_promotion
-last_completed_increment: v3276_single_attempt_intake_guard_failed_cleanup_and_v3223_rollback_independently_verified
+last_completed_increment: pr1236_merged_metadata_probe_empty_sampling_completed_fallback_one_pass_retained_no_historical_root_cause
 candidate_release: v3.276
-validation_pr: 1236
-validation_branch: codex/advisor-v3276-deployment-readback-20261114
+validation_pr: 1239
+validation_branch: codex/advisor-intake-diagnostic-20261115
 validation_base: development/salcapa-platform
-validation_head: pending_exact_rollback_record_candidate_head
+validation_head: pending_exact_metadata_receipt_candidate_head
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3276_deploy_run43679803060_M365_listing_guard_and_infra_run43679803097_inert_fixture_hygiene
+failed_workflows: v3276_deploy_run43679803060_M365_listing_guard_post1236_infra43683911601_fixture_hygiene_security43683911726_PyPI_timeout
 first_root_failing_gate: isolated_M365_intake_read_listed_document_consistency_guard
 root_cause: specific_ID_name_etag_size_parent_or_snapshot_mismatch_unrecorded_underlying_cause_unproven
 repair_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
-repair_summary: retain_v3223_and_disabled_reader_record_consumed_v3276_attempt_and_fixture_only_hygiene_annotations
-genuine_blockers: v3276_activation_consumed_specific_guard_predicate_unproven_metadata_probe_completion_unverified_no_new_promotion_authority_OAuth_workspace_acceptance_open
-next_authorized_step: validate_record_only_hygiene_repair_then_verify_bounded_metadata_diagnostic_before_any_new_promotion
+repair_summary: record_bounded_metadata_results_and_limits_annotate_two_additional_localhost_CI_fixtures_retain_disabled_reader_and_v3223
+genuine_blockers: v3276_activation_consumed_historical_predicate_unproven_fallback_three_pass_incomplete_no_new_promotion_authority_OAuth_workspace_acceptance_open
+next_authorized_step: validate_receipt_fixture_candidate_then_review_safe_candidate_correlated_preflight_before_any_successor_promotion
 deployed_demo_release: v3.223
 deployed_demo_state: v3276_intake_failure_rolled_back_to_verified_v3223_app_worker_hostname_reader_disabled
 ---
 
 # SalCAPA build continuity
+
+## 15 November 2026 Central - PR #1236 merged; bounded metadata observations retained
+
+Marc authorized exact PR #1236 head `b7eb5e34aa96ccfa9013bc7fc960e0dd15d84782`, ready/merge and continued read-only intake diagnosis, explicitly retaining the disabled reader and assessment hold. All eight applicable PR jobs passed and two protected-operation jobs were correctly skipped before squash merge `8d1086f784f88e31c68e7b969a6415b621c637fc`. Key approved blobs matched after merge and all five governing records were re-read. No deployment, image publication, workflow replay, access grant or assessment action occurred.
+
+A fresh existing-app `/bin/sh` console acknowledged input on accepted v3.223 revision `salcapa-dev-b48224--0000237`, replica ending `-qpql4`. The original metadata-only probe completed three passes at 06:10:09, 06:10:19 and 06:10:29 UTC (00:10 CST), each listing 33 pending items within a 500-item bound. None qualified as a positive-size supported-family sample, so all candidate arrays were empty. Its explicit completion marker reported zero content downloads and business writes. This establishes probe execution, not item consistency. Restricted receipt: work/protection-advisor-private-20261114/m365-guard-probe-20261115-first-readback.json.
+
+The revised private probe mirrors the acceptance script's fallback selection and has SHA-256 `6df02b1f3a8654db0198d0e3ef6cf8be368f3d3810c99c3842bff1ddc1d5be92`. Its unsupported-format fallback, isolated eTag mismatch and output redaction were mock-verified. The fully retained pass 2 listed 33 pending items at 06:13:19.192841 UTC and received candidate metadata HTTP 200 at 06:13:19.329155 UTC. All six mismatch flags (ID, name, eTag, size, parent boundary, saved snapshot) were false for one hashed bound-read candidate. An earlier visible fragment shows the same candidate and six false flags at 06:13:09.557666 UTC, but its pass header was outside the retained viewport. The terminal then showed Terminated and a shell prompt; no third-pass result or final completion marker was retained. The termination cause is unproven. Report one fully retained comparison, not a completed three-pass stability test. Probe source performs metadata reads only, with no content downloads, parser, database or business writes. Candidate hash/timing remain in the restricted receipt work/protection-advisor-private-20261114/m365-guard-probe-v2-20261115-readback.json; raw names, item IDs, URLs and content are absent.
+
+These observations do not identify the candidate or failed predicate from consumed deployment run 43679803060. That historical evidence was not retained, and a current no-mismatch sample does not establish its root cause or justify retrying the activation. The accepted baseline remains v3.223; v3.276 stays published and held. No guard was weakened and no source/runtime correction is inferred from this limited result.
+
+Post-merge validation is not all green: infrastructure run 43683911601 failed hygiene on two additional localhost-only ephemeral PostgreSQL fixtures introduced by concurrent stable-census work; security run 43683911726 failed when pip-audit timed out contacting PyPI. The former fixtures match the workflow's postgres:16 service, explicitly configured postgres test user/password, localhost:5432 and stable_census test database. This candidate adds the existing checker's explicit line-level fixture annotation only to that workflow URL and matching test assertion. Scanner patterns and real-credential handling remain unchanged. The dependency audit remains unverified at that merge; no timeout is labeled an audit pass and no protected workflow is rerun.
+
+Independent public readback at 06:20:55 UTC (00:20 CST), 15 November, passed readiness, reported release 3.223 and returned 404 for reader GET, initialize POST and protected-resource metadata. No authenticated source/tool call was made. Restricted receipt: work/protection-advisor-private-20261114/intake-diagnostic-public-disabled-readback-20261115.json. Local checks passed both continuity contracts, hygiene across 1,186 tracked text files and whitespace validation. Stable-census tests reported 20 passed, 7 dedicated PostgreSQL cases skipped and 23 subtests passed; real PostgreSQL cases remain a CI requirement.
+
+Next: review this source-only receipt/fixture candidate, retain the historical intake blocker and prepare narrowly scoped, candidate-correlated failure telemetry or a bounded preflight proposal for separate review before any successor promotion. No further diagnostic execution, release, OAuth/client/credential/callback/consent, workspace publication or account access is enabled by this record. Existing administrator Compass source readback remains distinct from unfinished workspace connection acceptance and the missing separately retained historical Part 1-only snapshot. **Reader disabled; assessment and public-source/reunification collection on hold.**
+
 
 ## 14 November 2026 Central - one v3.276 deployment failed intake consistency; v3.223 rollback verified
 

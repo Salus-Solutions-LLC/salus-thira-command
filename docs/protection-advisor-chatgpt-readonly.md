@@ -2,6 +2,10 @@
 
 Status: reader source merged in PR #1219; closed-set delivery diagnostics merged in PR #1222. Frozen v3.276 and its image are verified, but its one deployment failed intake consistency and rolled back to accepted v3.223. The activation is consumed; no retry is authorized. The reader is disabled and has not been deployed, connected or accepted. The requested assessment remains on hold.
 
+## 15 November 2026 - bounded metadata diagnostic; connection remains disabled
+
+PR #1236 merged as `8d1086f784f88e31c68e7b969a6415b621c637fc` after eight passing applicable PR jobs. The metadata-only console probe completed three empty-sample passes over 33 pending items. A revised fallback probe yielded one fully retained HTTP-200 candidate comparison with all six consistency mismatch flags false, then terminated before verified three-pass completion. The historical failed candidate/predicate remains unavailable; these current observations establish neither root cause nor live intake acceptance. Detailed boundaries and restricted receipts are recorded in CURRENT_HANDOFF.md. Post-merge hygiene found two concurrent local-only CI fixtures and the dependency audit timed out contacting PyPI; this candidate annotates only those inert fixture lines. No reader, deployment, permission or assessment action follows from this receipt.
+
 ## Authorized boundary
 
 Marc authorized establishing read-only Protection Advisor access for every account in the Salus Solutions ChatGPT workspace on 14 November 2026. The inspected workspace ID is `63469967-e4d5-4a40-894d-d97636a15e19`. At inspection it had one member, Marc Duncan, Owner. The workspace's custom plugin catalog and shared-connection inventory were empty. SharePoint was available workspace-wide, had write tools selected and showed Microsoft permissions requiring action. Those settings were not changed.
