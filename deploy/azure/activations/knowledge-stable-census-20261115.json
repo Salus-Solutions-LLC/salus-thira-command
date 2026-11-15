@@ -6,7 +6,7 @@
   "query_count": 4,
   "max_execution_seconds": 900,
   "maximum_inventory_observations": 3,
-  "previous_run_id": 43678462983,
+  "previous_run_id": 43683803092,
   "source_boundary_method": "complete_root_delta_metadata_inventories_strict_consecutive_equality",
   "source_record_or_schema_changes_authorized": false,
   "automatic_processing_authorized": false,
@@ -18,5 +18,8 @@
   "source_commit": "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3",
   "execution_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944",
   "expected_runtime_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c",
-  "script_sha256": "9a440c530b7636b44d28cc3df69e23c39107d38d9d613843825e0e0537f83959"
+  "script_sha256": "9a440c530b7636b44d28cc3df69e23c39107d38d9d613843825e0e0537f83959",
+  "previous_census_run_id": 43678462983,
+  "recovery_attempt": 2,
+  "recovery_reason": "pre_azure_activation_binding_mismatch"
 }
