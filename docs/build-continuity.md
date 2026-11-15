@@ -11,7 +11,7 @@ active_build_system_issue: 368
 active_increment: protection_advisor_readonly_v3276_held_application_promotion
 last_completed_increment: pr1239_merged_51_postmerge_jobs_passed_ten_current_metadata_comparisons_complete_no_historical_root_cause
 candidate_release: v3.276
-validation_pr: 1239
+validation_pr: 1240
 validation_branch: codex/advisor-intake-window-20261115
 validation_base: development/salcapa-platform
 validation_head: pending_exact_completed_window_receipt_head

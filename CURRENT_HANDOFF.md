@@ -15,6 +15,8 @@ The new single-pass metadata probe SHA-256 is `c2ffa715d040da470b147980626713260
 
 Scope remains ten current pending-item comparisons, not all 33 items, the full Library, content acceptance, the missing third pass of the older probe, or a reproduction of the historical failed item. Consumed deployment run 43679803060 did not retain that failed candidate/predicate, so its underlying cause remains unproven. Do not waive fail-closed guards, infer a runtime fix from current stable samples, replay the consumed v3.276 activation or claim that the ChatGPT connection is accepted. The accepted deployment is still v3.223; the v3.276 image remains published and held.
 
+Draft receipt review is PR #1240. It changes only three continuity/runbook documents and requests no protected operation.
+
 Next: review this receipt-only update. Before proposing another application promotion, prepare a separately reviewed, privacy-preserving plan to retain the exact candidate-correlated mismatch predicate and timing without raw source data, then validate stable, drifted and out-of-bound behavior. No runtime/telemetry change or further promotion is included here. Existing administrator Compass source readback is distinct from unfinished per-user OAuth/workspace acceptance and the absent separately retained historical Part 1-only snapshot. **Reader disabled; assessment and future public-source/reunification collection on hold.**
 
 ## 15 November 2026 Central - PR #1236 merged; bounded metadata observations retained
