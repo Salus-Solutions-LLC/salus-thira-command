@@ -1,5 +1,15 @@
 # Salus Solutions — Current Handoff
 
+
+## 14 November 2026 - v3.274 source frozen; publication held for dependency security correction
+
+Marc authorized PR #1224 exact head `81396621c1cea2bdb2f0edb9d54501d7d6b059e1`. Its four PR checks passed; it was marked ready and squash merged as `d8125b42fca4789be1c34a67d39831b2f5a212d3`. Readback verified the approved runtime, configuration, reader and acceptance-script blobs. The previously absent `release/v3.274` branch was created at that exact merge commit and read back independently. Its immutable-release guard passed. Do not rewrite the frozen branch.
+
+Broader push checks then failed in four inspected jobs at `pip-audit -r requirements.txt`: `opentelemetry-api==1.45.1`, CVE-2026-126360, fixed in 1.45.2. Their functional smoke checks and Bandit steps passed. Inspected jobs: 132694163541 (run 43675351616), 132694163364 (43675351589), 132694163345 (43675351545), and 132694163334 (43675351593). The upstream advisory https://github.com/open-telemetry/opentelemetry-python/security/advisories/GHSA-mf5v-w3w3-f6cg confirms the affected version and patch. This is an audit finding, not evidence of exploitation. Publication is held; no image activation was edited or invoked.
+
+This narrow successor candidate changes only the dependency pin to 1.45.2, the runtime release identity to v3.275 and continuity records. It preserves the disabled-by-default read-only reader and every existing acceptance/rollback gate. Require dependency resolution/security audit, meaningful reader/runtime checks, exact-head approval, a new immutable freeze, separate image publication/readback and protected deployment approval. No Azure configuration, account permission, OAuth consent, workspace connection or assessment state is changed. Compass retained-source verification remains complete within its recorded limits; all-workspace connection acceptance remains open and the assessment remains on hold.
+
+
 ## 14 November 2026 Central — PR #1222 merged; retained source readback verified; v3.274 successor candidate
 
 - Marc explicitly authorized marking PR #1222 ready and merging revision `a8e5d0b17575daaffe868123bed30e5608892132`. Reconfirmed its exact head, clean mergeability and all four passing checks; marked it ready and squash-merged as `dd9d9194e98cff91d4d9ad0f5da4d3d9ab131091`. Re-read the five governing records after merge. The diagnostic is authoritative source, not a deployed release. Prepared this successor in isolated `codex/advisor-connection-preflight-20261114`, preserving unrelated copies.

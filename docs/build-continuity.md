@@ -1,33 +1,43 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 November 2026 21:50 CST
-current_frozen_release: v3.273
-current_frozen_commit: 3572f2b4cf7c2cb65c772d0a848db7d9e6951944
+last_verified_at: 14 November 2026 22:12 CST
+current_frozen_release: v3.274
+current_frozen_commit: d8125b42fca4789be1c34a67d39831b2f5a212d3
 active_development_branch: development/salcapa-platform
-current_development_head: fee9019bb4fbb6934294de22a902d4cbb53a643c
+current_development_head: d8125b42fca4789be1c34a67d39831b2f5a212d3
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
-active_increment: protection_advisor_readonly_v3274_successor_source_candidate
-last_completed_increment: v3273_hold_diagnosed_current_delivery_passed_reader_source_and_retained_record_verified
-candidate_release: v3.274
-validation_pr: 1224
-validation_branch: codex/advisor-connection-preflight-20261114
+active_increment: protection_advisor_readonly_v3275_security_source_candidate
+last_completed_increment: v3274_source_merged_frozen_release_guard_passed_publication_held
+candidate_release: v3.275
+validation_pr: pending
+validation_branch: codex/advisor-v3275-security-20261114
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_head
 validation_gate_state: local_verified_github_pending
-failed_workflows: historical_v3273_runs43278248318_and43281277021_account_verification_email
-first_root_failing_gate: historical_v3273_verification_email_check_current_delivery_probe_passed
-root_cause: historical_error_code_unavailable_current_unchanged_delivery_function_accepted_and_received
-repair_head: dd9d9194e98cff91d4d9ad0f5da4d3d9ab131091
-repair_summary: preserve_v3223_prepare_v3274_with_disabled_reader_and_closed_set_email_diagnostics
-genuine_blockers: superseded_v3273_activation_not_reusable_exact_successor_source_approval_immutable_image_deployment_oauth_and_workspace_acceptance
-next_authorized_step: validate_and_review_v3274_source_candidate_then_separately_approve_immutable_publication_deployment_and_read_access
+failed_workflows: v3274_runs43675351616_43675351589_43675351545_43675351593_pip_audit
+first_root_failing_gate: pip_audit_opentelemetry_api_1_45_1_CVE_2026_126360
+root_cause: pinned_opentelemetry_api_1_45_1_has_published_denial_of_service_advisory_fixed_in_1_45_2
+repair_head: d8125b42fca4789be1c34a67d39831b2f5a212d3
+repair_summary: patch_opentelemetry_api_to_1_45_2_preserve_v3274_freeze_prepare_v3275_disabled_reader
+genuine_blockers: superseded_v3273_activations_not_reusable_v3274_security_audit_failed_v3275_validation_exact_source_approval_image_deployment_and_oauth_acceptance
+next_authorized_step: validate_v3275_security_correction_obtain_exact_head_merge_and_new_freeze_approval_before_image_publication
 deployed_demo_release: v3.223
 deployed_demo_state: failed_v3273_promotion_restored_and_verified_v3223_app_worker_schedule_and_hostname_v3273_image_retained
 ---
 
 # SalCAPA build continuity
+
+## 14 November 2026 - v3.274 source frozen; publication held for dependency security correction
+
+Marc authorized PR #1224 exact head `81396621c1cea2bdb2f0edb9d54501d7d6b059e1`. Its four PR checks passed; it was marked ready and squash merged as `d8125b42fca4789be1c34a67d39831b2f5a212d3`. Readback verified the approved runtime, configuration, reader and acceptance-script blobs. The previously absent `release/v3.274` branch was created at that exact merge commit and read back independently. Its immutable-release guard passed. Do not rewrite the frozen branch.
+
+Broader push checks then failed in four inspected jobs at `pip-audit -r requirements.txt`: `opentelemetry-api==1.45.1`, CVE-2026-126360, fixed in 1.45.2. Their functional smoke checks and Bandit steps passed. Inspected jobs: 132694163541 (run 43675351616), 132694163364 (43675351589), 132694163345 (43675351545), and 132694163334 (43675351593). The upstream advisory https://github.com/open-telemetry/opentelemetry-python/security/advisories/GHSA-mf5v-w3w3-f6cg confirms the affected version and patch. This is an audit finding, not evidence of exploitation. Publication is held; no image activation was edited or invoked.
+
+This narrow successor candidate changes only the dependency pin to 1.45.2, the runtime release identity to v3.275 and continuity records. It preserves the disabled-by-default read-only reader and every existing acceptance/rollback gate. Require dependency resolution/security audit, meaningful reader/runtime checks, exact-head approval, a new immutable freeze, separate image publication/readback and protected deployment approval. No Azure configuration, account permission, OAuth consent, workspace connection or assessment state is changed. Compass retained-source verification remains complete within its recorded limits; all-workspace connection acceptance remains open and the assessment remains on hold.
+
+
 
 ## 14 November 2026 — bounded current-delivery diagnosis and v3.274 source preparation
 
