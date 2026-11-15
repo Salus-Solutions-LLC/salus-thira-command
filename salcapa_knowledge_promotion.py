@@ -597,6 +597,8 @@ class GraphKnowledgeWriter:
             url, headers=self._headers() | {"Accept":"application/json"},
             params={"$select":"id,parentReference,webUrl,eTag,size,file"},
         )
+        if response.status_code == 404:
+            raise KnowledgePromotionError("Archived source item was not found")
         if response.status_code != 200:
             raise KnowledgePromotionError("Archived source could not be read for reconciliation")
         item = response.json()

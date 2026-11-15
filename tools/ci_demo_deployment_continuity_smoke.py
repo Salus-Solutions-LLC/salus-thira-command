@@ -118,70 +118,81 @@ def main() -> None:
         assert values["current_stable_commit"] == build["current_frozen_commit"]
     else:
         frozen = version(build["current_frozen_release"])
-        candidate = version(build["candidate_release"])
-        abandoned_gap = (
-            candidate == (frozen[0], frozen[1] + 2)
-            and build["root_cause"] == (
-                "v3.164_abandoned_before_image_publication_after_release_identity_mismatch"
-            )
-            and build["active_increment"] == "knowledge_promotion_v3165"
-        )
-        failed_job_rollout = (
-            candidate == (frozen[0], frozen[1] + 2)
-            and build["root_cause"] == "v3.183_abandoned_before_azure_acceptance_after_job_name_validation"
-            and build["failed_workflows"] == "v3.183_deployment_failed_invalid_job_name"
-        )
-        failed_release_identity = (
-            frozen == (3, 185)
-            and candidate == (3, 187)
-            and build["root_cause"] == "v3.186_abandoned_before_publication_after_release_identity_mismatch"
-            and build["failed_workflows"] == "v3.186_image_publication_failed_release_identity"
-        )
-        assert candidate in {frozen, (frozen[0], frozen[1] + 1)} or abandoned_gap or failed_job_rollout or failed_release_identity
-        if candidate != frozen and not abandoned_gap and not failed_job_rollout and not failed_release_identity:
-            assert "superseded" in build["genuine_blockers"]
-            assert f"v{frozen[0]}{frozen[1]}" in build["last_completed_increment"]
-        failed_worker_auth = (
-            frozen == (3, 184)
-            and candidate == (3, 185)
-            and version(values["current_stable_release"]) == (3, 182)
-            and build["root_cause"] == "v3.184_abandoned_after_worker_secret_lookup"
-            and build["failed_workflows"] == "v3.184_live_worker_secret_lookup_failed"
-        )
-        failed_worker_timeout = (
-            frozen == (3, 185)
-            and candidate == (3, 186)
-            and version(values["current_stable_release"]) == (3, 182)
-            and build["root_cause"] == "v3.185_abandoned_after_worker_timeout"
-            and build["failed_workflows"] == "v3.185_live_worker_timeout"
-        )
-        failed_pending_traversal = (
-            frozen == (3, 187)
-            and candidate == (3, 188)
-            and version(values["current_stable_release"]) == (3, 182)
-            and build["root_cause"] == "v3.187_abandoned_after_pending_traversal_limit"
-            and build["failed_workflows"] == "v3.187_live_pending_traversal_limit"
-        )
-        failed_recording_timeout = (
-            frozen == (3, 188)
-            and candidate == (3, 189)
-            and version(values["current_stable_release"]) == (3, 182)
-            and build["root_cause"] == "v3.188_abandoned_after_bounded_batch_timeout"
-            and build["failed_workflows"] == "v3.188_second_live_batch_timed_out"
-        )
-        failed_reconstructed_audio = (
-            frozen == (3, 189)
-            and candidate == (3, 190)
-            and version(values["current_stable_release"]) == (3, 182)
-            and build["root_cause"] == "v3.189_image_reconstructed_outdated_audio_module"
-            and build["failed_workflows"] == "v3.189_live_worker_audio_signature_mismatch"
-        )
-        if abandoned_gap or failed_job_rollout or failed_worker_auth or failed_worker_timeout or failed_release_identity or failed_pending_traversal or failed_recording_timeout or failed_reconstructed_audio:
-            assert build["validation_pr"] in {"pending", "none"} or build["validation_pr"].isdigit()
-        else:
+        candidate_value = build["candidate_release"]
+        if candidate_value == "none":
+            # A bounded source-only increment may validate against the current
+            # frozen release without proposing a new release or deployment.
             assert build["validation_pr"].isdigit()
-        if not failed_job_rollout:
-            assert build["genuine_blockers"] != "none"
+            assert build["validation_gate_state"] in {
+                "github_validation_running",
+                "controlled_validation_in_progress",
+                "controlled_validation_passed_closed_without_merge",
+            }
+        else:
+            candidate = version(candidate_value)
+            abandoned_gap = (
+                candidate == (frozen[0], frozen[1] + 2)
+                and build["root_cause"] == (
+                    "v3.164_abandoned_before_image_publication_after_release_identity_mismatch"
+                )
+                and build["active_increment"] == "knowledge_promotion_v3165"
+            )
+            failed_job_rollout = (
+                candidate == (frozen[0], frozen[1] + 2)
+                and build["root_cause"] == "v3.183_abandoned_before_azure_acceptance_after_job_name_validation"
+                and build["failed_workflows"] == "v3.183_deployment_failed_invalid_job_name"
+            )
+            failed_release_identity = (
+                frozen == (3, 185)
+                and candidate == (3, 187)
+                and build["root_cause"] == "v3.186_abandoned_before_publication_after_release_identity_mismatch"
+                and build["failed_workflows"] == "v3.186_image_publication_failed_release_identity"
+            )
+            assert candidate in {frozen, (frozen[0], frozen[1] + 1)} or abandoned_gap or failed_job_rollout or failed_release_identity
+            if candidate != frozen and not abandoned_gap and not failed_job_rollout and not failed_release_identity:
+                assert "superseded" in build["genuine_blockers"]
+                assert f"v{frozen[0]}{frozen[1]}" in build["last_completed_increment"]
+            failed_worker_auth = (
+                frozen == (3, 184)
+                and candidate == (3, 185)
+                and version(values["current_stable_release"]) == (3, 182)
+                and build["root_cause"] == "v3.184_abandoned_after_worker_secret_lookup"
+                and build["failed_workflows"] == "v3.184_live_worker_secret_lookup_failed"
+            )
+            failed_worker_timeout = (
+                frozen == (3, 185)
+                and candidate == (3, 186)
+                and version(values["current_stable_release"]) == (3, 182)
+                and build["root_cause"] == "v3.185_abandoned_after_worker_timeout"
+                and build["failed_workflows"] == "v3.185_live_worker_timeout"
+            )
+            failed_pending_traversal = (
+                frozen == (3, 187)
+                and candidate == (3, 188)
+                and version(values["current_stable_release"]) == (3, 182)
+                and build["root_cause"] == "v3.187_abandoned_after_pending_traversal_limit"
+                and build["failed_workflows"] == "v3.187_live_pending_traversal_limit"
+            )
+            failed_recording_timeout = (
+                frozen == (3, 188)
+                and candidate == (3, 189)
+                and version(values["current_stable_release"]) == (3, 182)
+                and build["root_cause"] == "v3.188_abandoned_after_bounded_batch_timeout"
+                and build["failed_workflows"] == "v3.188_second_live_batch_timed_out"
+            )
+            failed_reconstructed_audio = (
+                frozen == (3, 189)
+                and candidate == (3, 190)
+                and version(values["current_stable_release"]) == (3, 182)
+                and build["root_cause"] == "v3.189_image_reconstructed_outdated_audio_module"
+                and build["failed_workflows"] == "v3.189_live_worker_audio_signature_mismatch"
+            )
+            if abandoned_gap or failed_job_rollout or failed_worker_auth or failed_worker_timeout or failed_release_identity or failed_pending_traversal or failed_recording_timeout or failed_reconstructed_audio:
+                assert build["validation_pr"] in {"pending", "none"} or build["validation_pr"].isdigit()
+            else:
+                assert build["validation_pr"].isdigit()
+            if not failed_job_rollout:
+                assert build["genuine_blockers"] != "none"
     assert version(values["promotion_candidate"]) <= version(values["current_stable_release"])
     if values["promotion_candidate"] == values["current_stable_release"]:
         assert values["promotion_candidate_image_commit"] == values["current_stable_commit"]

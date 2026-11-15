@@ -109,6 +109,15 @@ This map makes every currently approved decision findable in the Charter. The ex
 | SAL-D125 | Require every applicable Salus inquiry to evaluate all 22,377 represented `SalCAPA Intake` files through the best available provenance-bound representation: extracted content when available and explicit metadata, failure or hold evidence when it is not. Permit Salus-internal use as `Unvetted Candidate` material before item-level human validation, while requiring human validation before customer release or material reliance and preserving Protected Member, assignment and release controls. |
 | SAL-D127 | Require every Salus document and material research activity to capture all sources used or discovered and all concepts, methodologies, strategies and lessons produced in the governed OSINT or Knowledge Library path, with provenance, status, rights, Member segregation and where-used links. A document requires a complete research-capture record or an explicit not-applicable rationale before it may be represented as research-complete or released. |
 | SAL-D128 | Require every new or materially revised Salus document to use 12-point body text, at least 10-point table text and no text smaller than 10 points anywhere; require at least 36 points of clear cover-page space between the logo/name lockup and title; and verify the exact file at 100-percent print scale, adjusting layout rather than shrinking type. |
+| SAL-D129 | Require every Salus Insights white paper and other external research publication to use neutral, non-adversarial attribution: do not single out an organization or person as a negative example, imply blame merely because it supplied source material, elevate one peer group as Salus's exclusive or preferred authority, or create an implied endorsement or unfavorable comparison by selective naming. Prefer source-category descriptions in narrative and retain exact source citations for provenance; name an entity in the body only when materially necessary, evidence-supported and reviewed for fairness, accuracy, context and stakeholder impact. |
+| SAL-D130 | Require every Salus Insights white paper to review the current official Salus Services catalog and every linked service subpage, then include a reader-facing explanation of the primary and other materially relevant Salus services that can address the paper's risk, readiness, protection, response, recovery or improvement themes. Preserve scope, eligibility, availability, legal and licensing boundaries; a white paper identifies possible service pathways but does not authorize, promise, price or represent delivery. |
+
+| SAL-D131 | Require whole-system, all-hazards and defensive assessment, per-section Red-Team review, capability proof, resource competition, early intervention, continuity, recovery and evidence-governed reporting for every customer and Protected Member, proportionate to the authorized context. |
+| SAL-D132 | Apply SALUS-PAI-001 Predictive and Anticipatory Intelligence in every applicable substantive category of every assessment and research product; require evidence-supported forecasts or defensible scenarios, indicators, horizons, human decision triggers, Red-Team challenge and outcome validation. |
+
+| SAL-D133 | Always search the Knowledge Library and every other authorized information location for relevant supportive, contrary and qualifying evidence for each and every task; retain actual search/corpus-coverage records, source reconciliation and explicit access or content gaps. |
+
+| SAL-D134 | Capture all available data, information, strategies, concepts and methodologies from every Salus chat and Work/Codex chat into governed knowledge, with complete source context, version/provenance, restricted-zone routing, candidate status and source-to-destination readback; track every capture gap and historical backfill obligation. |
 
 SAL-D020 and SAL-D021 are superseded intake decisions retained in the Decision Register as history; SAL-D022 governs the current intake rule, with the routing clarification in SAL-D024. On approval of a later material decision, reconcile this map and the substantive Charter rule before treating the new decision as implemented.
 
@@ -205,6 +214,26 @@ Every new or materially revised Salus document and every material research activ
 Route materially useful public or third-party addresses and linked artifacts into the governed OSINT Library as `Unvetted Candidate`; route qualified reusable member-neutral knowledge through governed Knowledge Library intake; and keep Protected Member originals, identifiable applications and sensitive derivatives inside their authorized engagement boundary. Capture, indexing and candidate analysis do not establish truth, human qualification, authoritative doctrine, permission to reproduce, a Protected Member finding, consequential authority, model training, deployment or release. Except for a documented urgent limitation with an owner and due date, do not represent a Salus document as research-complete or release it as a final customer-facing product until the capture record is reconciled and reviewed.
 
 Salus may correlate authorized information internally across engagements, but enterprise learning does not grant automatic cross-Protected-Member disclosure. Keep identifiable Protected Member evidence and security-sensitive derivatives segregated. A reusable enterprise record may cite a restricted source without copying its protected contents. Apply legal, contractual, privacy, licensing, access, purpose and human disclosure controls to every derivative. Human approval remains required for consequential methodology changes, final findings, recommendations, risk acceptance, external publication and service commitments. See SAL-D025 and the approved Knowledge and Records Architecture.
+
+### Neutral attribution in Salus white papers and external research [SAL-D129]
+
+Every Salus Insights white paper and other Salus external research publication shall use neutral, non-adversarial attribution. Do not “put anyone on the spot,” call out, shame or single out a named organization, association, chapter, professional body, public agency, company, vendor, peer group, competitor, Protected Member or individual as a bad example. Do not imply that a source organization caused, exemplifies or owns a problem merely because its library, presentation, report or website supplied evidence. Separate the identity of the source from the subject of the analysis.
+
+Avoid selective narrative naming that could reasonably imply Salus endorsement, favoritism, comparative superiority or exclusive subject-matter authority for one peer organization while omitting similarly situated groups. Where the reader does not need the organization’s identity to understand the decision, use a neutral source-category description such as “professional-association materials,” “industry education sources,” “official incident records” or “current practitioner literature,” and preserve the exact source name and locator in the references, notes or governed research record for provenance. When a named authority is materially necessary, state the objective selection basis and material limits; include a reasonably balanced set of relevant peer or contrary perspectives when they can change the conclusion. A citation, inclusion or omission must not be presented as endorsement by Salus or by the named source.
+
+Naming may be necessary to report an official adjudication, public enforcement action, regulatory filing, authoritative incident record, direct organizational statement, controlling standard or historically material event accurately. In those cases, confine the narrative to supported facts and the decision-relevant mechanism; distinguish allegation, finding, opinion and inference; avoid unnecessary evaluative comparison; state limitations and current status; and do not attribute institutional fault beyond the competent record. This rule does not conceal material facts, suppress contrary evidence, misstate the public record or prevent lawful reporting of a named event. Accuracy, safety, legal duties and source traceability remain mandatory.
+
+Before external release, perform and record a neutral-attribution and stakeholder-impact review. Ask whether any named entity could reasonably believe it is being blamed, embarrassed, used as a negative example, treated as a Salus-endorsed authority, or disadvantaged relative to an unnamed peer. If so, generalize or anonymize the narrative while retaining controlled provenance, or document why naming is materially necessary and obtain qualified editorial and human publication approval. Record the affected passages, decision, reviewer and any peer-balance or legal review. Apply SAL-D027 to active and issued white papers; do not silently revise an issued predecessor. A reference list alone does not create an adverse callout, but references and surrounding text must remain accurate, proportionate and non-misleading.
+
+### Salus service-portfolio coverage in white papers [SAL-D130]
+
+Every new or materially revised Salus Insights white paper shall review the current official Salus Services catalog at `https://www.salus.solutions/services` and every service subpage linked from that catalog. The review must occur during research and again before release so that the paper reflects the then-current public service descriptions rather than a remembered, copied or stale list. Record the review date, catalog address, subpages considered, applicable services, excluded services and rationale in the governed research-capture record required by SAL-D127.
+
+Each paper shall include a clear reader-facing section, normally titled “How Salus Can Help,” that explains the primary Salus service addressed by the paper and the other materially relevant services that may help the intended reader prepare, protect, respond, recover, mitigate, investigate, communicate, sustain operations or improve readiness. Connect each included service to a risk, consequence, dependency or capability gap established in the paper. Cover the complete relevant service pathway across phases and disciplines rather than presenting only the most obvious engagement. When useful for reader awareness, identify the availability of the broader official service portfolio and direct the reader to the current Services catalog; do not pad the paper with an undifferentiated list of unrelated offerings or claim a relationship that the research does not support.
+
+Service descriptions must remain accurate, proportionate and consistent with the current official service page and applicable governed Salus records. A white paper may identify a possible separately scoped service opportunity, but it does not authorize work, establish eligibility or availability, create a commitment, state a fee, supersede an assessment, or represent that legal, licensing, jurisdictional, staffing, partner or operational conditions have been satisfied. Salus must confirm those boundaries and any deliverables in writing before paid work begins. Do not invent capabilities, outcomes, credentials, response times or guarantees. Apply the neutral-attribution requirements of SAL-D129 and clearly distinguish analytical findings from Salus service information.
+
+The pre-release review shall confirm that the live catalog and all linked service subpages were considered, every material service connection is supported by the paper, the reader can distinguish the principal service from adjacent services, no material relevant capability was omitted without rationale, obsolete claims were removed, and all scope and availability qualifications remain visible. Record the reviewer and human publication disposition. Apply SAL-D027 to affected drafts and issued papers; do not silently replace an issued predecessor.
 
 ### Complete `SalCAPA Intake` Knowledge Library boundary [SAL-D116]
 
@@ -778,3 +807,172 @@ Topic inference is a discovery aid, not a fact, Member characteristic, risk rati
 ## SAL-D126 branded footer on every page of every new Salus document
 
 Marc directed on 2 November 2026 that every new or materially revised Salus document carry the approved Salus reticle and “Salus Solutions” on the same line, aligned with the other words in the bottom footer of every page, including the otherwise blank second page of stand-alone reports. The report body still begins on page 3, and page 2 has no body content or header. Preserve the required confidentiality treatment and visible `page X of Y` on all report pages. Use the exact approved logo asset, accessible alternative text, readable spacing and the approved OPM-aligned typography; verify every rendered Word, PDF and print page before issue. Apply this prospectively to controlled templates, reports, agreements and other downloadable or printable Salus documents. An issued predecessor remains immutable until a separately approved impact review and controlled successor. Candidate files and local rendering do not themselves grant template approval, report issue or public release. [SAL-D126]
+
+## Whole-system assessment and protection [SAL-D131]
+
+**Applicability:** Every Salus customer and Protected Member engagement, assessment, investigation, research product, protective service and operational plan. Apply the complete enterprise baseline at the authorized level, proportionate to mission, operating environment, assets, exposure and circumstances. Specialized modules, including livestock, aviation, manufacturing and campus safety, apply where relevant; record exclusions and their reasons rather than silently omitting a domain.
+
+Every Salus assessment shall examine not only what could go wrong, but why it could happen, how it might be detected or prevented, what capabilities would be needed to manage it, what happens when protective measures fail, and how the Protected Member can demonstrate that corrective actions are effective.
+
+1. **Whole-system investigation:** Examine people, property, operations, finances, governance, infrastructure, technology, supply chains, neighboring conditions and mission-essential functions; assess interactions and local-to-global dependencies.
+2. **All-hazards and adversarial assessment:** Evaluate natural, accidental, technological, criminal, intentional, insider-enabled and compound threats, including sabotage and workplace violence. Keep analysis defensive, lawful and evidence-supported.
+3. **Mandatory Red-Team review:** Challenge original findings and every proposed recommendation. Include a clearly identified Red-Team perspective in each substantive section under SAL-D111; retain material dissent and human disposition.
+4. **Defensive attack-tree analysis:** Trace threats to essential functions through dependencies, failure modes, existing controls, detection, cascading consequences and restoration requirements. Keep exploit-enabling details in restricted protective-security records; do not conduct active testing without separate authority.
+5. **Public safety and resource competition:** Evaluate emergency services, mutual aid, medical capabilities, transportation, utilities and competing resource demands across Prevention, Protection, Mitigation, Response and Recovery. Test Resource Availability Under Stress (RAUS), including simultaneous regional demand.
+6. **Protective intelligence and early intervention:** Identify evidence-supported weak signals, emerging threats, suspicious-activity reporting mechanisms, intervention thresholds and responsible human decision-makers. Apply SALUS-PAI-001; a signal or allegation is not a verified finding.
+7. **Capability-based assessment:** Distinguish documented capability, demonstrated performance, capability limitations, dependencies, consequences, gaps and prioritized improvements. Preserve existing strengths; set measurable improvement targets and proof. Compare dated plans and actual incidents, exercises and later instructions; reconcile proposed, adopted and exercised authority before relying on it.
+8. **Incident management and recovery:** Address notification, human decision authority, coordinated response, evidence preservation, continuity, corrective action, recovery and verification of effectiveness. Test transitions of command, volunteer and partner sustainability, essential-function restoration and fallback arrangements.
+9. **Evidence governance:** Preserve source provenance, confidence, classification, privacy, audit trails and restricted annexes for sensitive protective-security information. Keep identifiable engagement evidence within its authorized boundary. Source titles and prior chat summaries are leads, not proof that original contents were reviewed.
+10. **Professional reporting:** Apply the approved Salus architecture, six-step SalTHIRA™ method, same-level SalINTEL™ → SalTHIRA™ → SalOPS™ → SalCAPA™ chain, plain-language findings, prioritized recommendations and federal/OPM-style formatting under the controlled Salus document standard. Retain report identity, source-to-decision trace and separate qualification, exact-artifact and human-release gates.
+
+This rule extends the existing SAL-D030, SAL-D038–SAL-D046, SAL-D050–SAL-D057, SAL-D063–SAL-D076 and SAL-D111 standards. It does not replace their exact requirements, authorize new operational activity or make an untested capability a demonstrated one.
+
+## Predictive and Anticipatory Intelligence — Mandatory Program Standard [SAL-D132]
+
+**Requirement ID:** SALUS-PAI-001  
+**Applicability:** All Salus Solutions customers, Protected Members, engagements, research, investigations, assessments, intelligence products, protective services, operational planning and continuing risk-management activities.
+
+Salus Solutions shall integrate Predictive and Anticipatory Intelligence (PAI) into every applicable category of every assessment, investigation, research product and protective engagement.
+
+Salus shall not limit its analytical work to identifying current or historical threats, hazards, vulnerabilities, risks or capabilities. Each substantive analytical category shall examine reasonably foreseeable future conditions, emerging trends, potential changes in exposure, plausible adverse developments, cascading consequences, resource competition and opportunities for early intervention.
+
+### Definitions and recurring analytical cycle
+
+**Predictive intelligence** is the disciplined, evidence-based estimation of future conditions, developments, threats, hazards, consequences and operational requirements using historical information, current observations, trends, causal relationships and appropriate analytical models.
+
+**Anticipatory intelligence** identifies plausible emerging conditions, weak signals, alternative futures, cascading developments and opportunities for preventive action, including when reliable probabilities cannot be assigned. Predictive intelligence asks what is likely to happen, when and with what consequences. Anticipatory intelligence asks what could emerge, what would indicate that it is developing and what preparations are warranted.
+
+Distinguish established facts, assumptions, hypotheses, scenarios and forecasts. Neither prediction nor anticipation is certainty. The recurring cycle supports, and does not replace, the approved six-step SalTHIRA™ method. Retain a traceable baseline, evidence, alternatives, anticipated developments, warning indicators, confidence, decisions, responsible personnel and next review date.
+
+### Mandatory analytical requirements
+
+1. Establish a documented, evidence-supported baseline.
+2. Identify historical patterns, emerging conditions, causal drivers, dependencies and relevant uncertainties.
+3. Develop evidence-supported forecasts where reliable forecasting is feasible.
+4. Develop alternative anticipatory scenarios, including high-consequence and compound events.
+5. Identify observable leading indicators, warning thresholds, decision lead times and monitoring requirements.
+6. Evaluate consequences across Prevention, Protection, Mitigation, Response and Recovery, including Resource Availability Under Stress (RAUS).
+7. Identify preventive and protective actions that may reduce likelihood, exposure, vulnerability or consequences before an adverse event occurs.
+8. Assign forecast confidence, evidence limitations, responsible authorities, action triggers and reassessment requirements.
+9. Apply a documented Red-Team challenge to the forecast, its assumptions, alternative explanations and proposed recommendations.
+10. Preserve analytical provenance, authorized human decisions, monitoring results, forecast revisions, corrective actions and effectiveness verification.
+
+### Application in every substantive category
+
+| Category | Required anticipatory question |
+|---|---|
+| Natural hazards | Are frequency, intensity, seasonality, exposure or consequences changing? |
+| Infrastructure | Which assets show deterioration, increasing failures, capacity constraints or deferred maintenance? |
+| Public safety | When might response capacity be exceeded, delayed or diverted? |
+| Security and crime | Are credible threat patterns, precursors or environmental conditions changing? |
+| Insider threats | Are control failures or concerning behaviors emerging that warrant lawful, proportionate review? |
+| Cybersecurity | What emerging attack patterns, dependencies or technical weaknesses could create future disruption? |
+| Financial condition | What trends could lead to insolvency, liquidity shortages, unexpected expenditures or loss of insurance? |
+| Governance | Are decision delays, staffing gaps, unresolved disputes or authority problems likely to impair performance? |
+| Personnel | What workforce shortages, turnover, fatigue, succession problems or training gaps may emerge? |
+| Agriculture and livestock | What could affect herd health, reproduction, feed, water, forage, market prices or cattle sales? |
+| Utilities and transportation | What conditions may cause future outages, restrictions or service interruptions? |
+| Supply chain | Which suppliers, materials, contractors or transportation channels show signs of future scarcity? |
+| Emergency management | Which plausible incidents could exceed existing plans, staffing, equipment or communications capability? |
+| Recovery | What conditions could delay restoration, increase costs or prevent a return to essential operations? |
+
+Apply the same questions to other material domains and examine interactions across categories. This table is a screening floor, not an exhaustive list or proof of completed research.
+
+### Horizons, methods and warning records
+
+Consider immediate (0–72 hours), near-term (3–30 days), short-term (1–12 months), medium-term (1–3 years) and long-term (3–10+ years) horizons. Select and justify the horizons relevant to the subject and available evidence; they are planning windows, not promised forecast accuracy or monitoring-service commitments.
+
+Select and document appropriate methods: trend/time-series and causal analysis, scenario planning, horizon scanning, structured expert judgment, historical analogues, geographic analysis, dependency modeling, leading-indicator monitoring and alternative-hypothesis testing. For higher-consequence work, also consider Red-Team forecasting, pre-mortems, cascading-event forecasting, RAUS and comparison of prior forecasts with actual outcomes.
+
+For each material forecast or scenario, retain leading indicators, thresholds, intervention lead time, responsible authority, confidence and uncertainty, disconfirming evidence and monitoring/review requirements. Record missing predictive data as an intelligence gap; never fill it with invented probabilities.
+
+### Required output in every substantive section
+
+Every substantive research and assessment section shall contain a clearly identified **Predictive and Anticipatory Intelligence** subsection, proportionate to the subject's significance and available evidence, containing:
+
+- Verified current baseline and evidence.
+- Future drivers, trends, emerging threats and dependencies.
+- Most likely development where evidence supports a forecast.
+- Plausible adverse, alternative and high-consequence developments.
+- Observable early-warning indicators and relevant forecast horizon.
+- High, medium or low confidence with supporting explanation and limitations.
+- Preventive, protective, mitigation, response or recovery options.
+- Decision trigger, responsible human authority and action lead time.
+- Red-Team challenge, alternative interpretation, disconfirming evidence and possible failure of the recommendation.
+- Responsible review owner and reassessment schedule.
+
+Where reliable prediction is not possible, explain why and provide defensible anticipatory scenarios, indicators and preparedness options rather than unsupported probabilities. A single final chapter does not satisfy category-level analysis.
+
+### Four-product integration and continuing obligation
+
+SalINTEL™ shall support collection, validation, horizon scanning and forecasting. SalTHIRA™ shall incorporate predictive findings into its approved six-step methodology and capability analysis. SalOPS™ shall translate findings into readiness, protection, operational contingencies and recovery measures. SalCAPA™ shall govern the resulting intelligence, warnings, decisions, actions, evidence and verification.
+
+Maintain one evidence-to-decision-to-proof identity across the same-level product chain. Governed implementation requirements include indicator dashboards, historical comparisons, confidence tracking, alerts, review dates, escalation thresholds and forecast-performance measurement; these are requirements, not claims of deployed features.
+
+Review predictive intelligence when material new evidence, changing conditions, warning thresholds, incidents or scheduled reassessments justify revision. Escalate high-consequence indicators through approved human decision authorities. Compare prior forecasts with outcomes; retain missed indicators, false alarms, revisions and evidence of intervention effectiveness through governed learning.
+
+### Governance and impact control
+
+All PAI activities shall comply with lawful collection, privacy, evidence integrity, source traceability, least-privilege access, human oversight, Red-Team review, auditability and governed retention. Assess false positives, false negatives and consequences of unnecessary intervention. Models and AI predictions remain advisory; consequential protective or operational decisions require appropriately authorized human judgment.
+
+PAI is analytical decision support. It shall not be represented as certainty or used to justify unsupported allegations, discriminatory profiling or unauthorized action. Preserve SAL-D025, SAL-D027, SAL-D043, SAL-D059, SAL-D063, SAL-D064, SAL-D091, SAL-D111 and SAL-D116–SAL-D128 controls as applicable.
+
+Open an impact review for affected methods, templates, active assessments, issued reports, questionnaires and software. Preserve issued predecessors and existing report identities. Policy incorporation does not itself update a Word template, qualify a finding, implement monitoring, complete corpus consideration, deploy software, authorize expenditure or release a report.
+
+## Mandatory information search for every task [SAL-D133]
+
+**Requirement ID:** SALUS-SEARCH-001  
+**Applicability:** Every Salus task, without a materiality threshold: every customer and Protected Member engagement and every internal question, inquiry, decision, research activity, assessment, investigation, strategy, plan, operational-support activity, service, software change, administrative action, document, communication, review and improvement.
+
+For each and every task, Salus shall always search the Knowledge Library and all other authorized information locations for relevant and supportive information. Search for evidence that confirms, challenges, qualifies, updates or contradicts the proposed answer, assumption, method or action. Do not limit retrieval to sources that support a preferred conclusion.
+
+This is a standing task requirement, not an optional research step. A short, routine, repeated, technical or administrative task is not exempt. Search depth and query design may be proportionate to the task, but the search itself and honest coverage accounting remain mandatory.
+
+### Required locations and search sequence
+
+1. **Define and discover the source boundary.** Identify the task, decision, current scope, responsible person, authorized customer/Protected Member boundary, information needed and relevant dates. Maintain a task-specific location inventory, using authoritative indexes and connected-source discovery to find additional locations. Do not treat a previously convenient source list as the complete boundary.
+2. **Always search the Knowledge Library.** Run task-specific searches and the governed SAL-D116/SAL-D125 corpus-consideration process across the complete current represented boundary. Retain the receipt and its actual live boundary and considered counts; do not freeze the requirement at a historical count. Consider extracted content where available and explicit provenance, metadata, failure or hold representations where it is not. A relevance screen or metadata match is not proof that original contents were read.
+3. **Search all other authorized locations.** Include governing repository records and approved artifacts; SalCAPA™ evidence, decisions, lessons and records; SharePoint and OneDrive libraries, folders and archives; authorized engagement records and customer-supplied originals; current task attachments and local project references; authorized prior chats and Pages; relevant email, Teams and other connected records; the OSINT Library and endpoint/source registers; and competent external original sources, linked records, datasets, research and contrary perspectives. Discover and search additional task-relevant locations as they become known. Apply task-specific queries or relevance checks to each location in the authorized source inventory; pursue relevant results and material links in their original context.
+4. **Read and reconcile relevant evidence.** Inspect original content, date/version, provenance, authority, access and reuse restrictions, limitations and decision relevance. Compare current and historical records, independent and contrary evidence, and source conflicts. Explain which findings support, change or constrain the task; retain a reasoned no-change or no-relevant-result disposition where appropriate.
+5. **Repeat when the task changes.** Update searches when scope, questions, assumptions, evidence, relevant conditions or source versions change, and recheck decision-changing gaps and volatile facts before completion or release. A previous task's search, a weekly discovery run, memory, a bibliography or the first search result does not substitute for this task's actual search.
+
+“All other locations” means all known or discovered locations within the lawful, authorized information boundary for the task, including task-relevant public sources. It does not authorize searching another Protected Member's restricted material, unrelated private accounts, prohibited sources or inaccessible systems. Record those access and purpose boundaries explicitly. Preserve Member isolation, lawful collection, privacy, source rights, least privilege, cost limits and human approval; obtain separately required authority before expanding access, using paid sources, conducting active collection or disclosing confidential queries externally.
+
+### Search evidence and completion gate
+
+Maintain a governed search record for every task. Record task ID/topic, source inventory and discovery boundary, location/source IDs, exact query or review method, execution date/time, source dates/versions, applicable corpus receipt and counts, results and originals actually inspected, supportive and contrary evidence, relevance/no-match decisions, where-used links, restrictions, unresolved gaps, responsible owner and next action.
+
+Distinguish **searched with relevant results**, **searched with no relevant result**, **access blocked**, **not indexed or content unavailable**, **search pending**, and **outside the authorized boundary with reason**. “Not applicable” alone is not a substitute for searching the Knowledge Library or documenting a location's task-specific relevance check. A no-result response covers only the query and actual searched boundary; it does not establish that information does not exist.
+
+If a location or the required consideration service is unavailable, attempt an authorized alternative, continue independent work and record the exact gap, limitation, owner and next retrieval. Never label an unsearched or inaccessible location searched, infer unavailable content, or silently waive the requirement. Do not claim complete search coverage or close a decision-changing evidence gap until it is resolved or receives a qualified, authorized limitation disposition. Urgent protective work may proceed under the existing documented urgent-work authority while the search obligation and follow-up remain open.
+
+Search and collection do not establish truth, evidence qualification, permission to disclose, authoritative adoption or release. Apply the existing human validation, research-capture, report-impact, evidence-lifecycle and release controls. This rule broadens the earlier “material” or “applicable inquiry/research” triggers in SAL-D065–SAL-D070, SAL-D116, SAL-D120, SAL-D124 and SAL-D125 to **every task**; it preserves their deeper source-review, corpus-coverage, privacy and validation requirements. It does not claim that all connectors, corpus access, workflow enforcement or historical-task remediation have been implemented.
+
+## Capture every chat and Work chat into governed knowledge [SAL-D134]
+
+**Requirement ID:** SALUS-CHAT-CAPTURE-001  
+**Applicability:** Each and every Salus chat and Work/Codex chat, including internal, customer and Protected Member work, routine and administrative tasks, ongoing conversations, corrections, follow-ups, interrupted work and authorized agent/subtask outputs.
+
+Salus shall always capture into its governed Knowledge Library system all available data, information, strategies, concepts and methodologies received, used or produced in every such chat. Preserve the complete available source record and context, rather than selecting only a useful summary or an approved lesson. Include visible user and assistant messages, corrections and decisions; questions, assumptions, alternatives, rejected ideas, contradictions and uncertainties; plans, models, methods, prompts, checklists and recommendations; authorized tool results and work evidence; and supplied or generated files, media, attachments and exact source/artifact references.
+
+### Capture, provenance and reconciliation
+
+Create or update one governed capture record for each source conversation, linked to stable conversation/turn/task IDs, platform/workspace/project, author role, timestamps/time zone, source location, scope and customer/Protected Member boundary. Preserve available source bytes or an approved faithful export, attachment and artifact identity, versions and hashes when obtainable, rights, sensitivity, restrictions, transformations, capture status, owner and where-used links. Retain source context and relationships so an isolated statement cannot silently become an approved fact or decision.
+
+Capture automatically during the work and reconcile at each handoff, interruption, closeout and material update. Until automation is implemented and verified, perform authorized manual capture and maintain the same durable reconciliation record; a promised future upload does not count as capture. Deduplicate by source identity and version/hash, append changed turns or revisions, retain supersession and avoid duplicate library records. Do not rewrite the authoritative repository source into a second Library copy; capture its exact source/commit pointer and the chat's actual contribution.
+
+Capture and intake do not wait for item-level human vetting. Record new conversation content and derived concepts as **Salus-internal Unvetted Candidate** material with explicit claims, uncertainty and restrictions. Preserve erroneous, rejected and superseded proposals with their disposition and correction; do not present them as doctrine. Human qualification and the existing consequential-use, decision, artifact and release gates remain mandatory.
+
+### Preserve the approved information zones
+
+Apply the approved Knowledge and Records Architecture. Capture reusable member-neutral information into governed enterprise intake/knowledge. Retain full transcripts, identifiable Protected Member material, sensitive operational records and attachments within their authorized restricted engagement or governance collection; the enterprise Knowledge index holds only a permitted non-disclosing pointer or qualified generalized lesson. The complete governed capture may be distributed across those linked restricted records; it must not collapse them into a broadly accessible enterprise collection.
+
+Keep credentials and authentication secrets in their approved secret store, with a restricted reference and redaction record in the capture. Preserve all available lawful information without copying secrets, prohibited content or another Member's identifiable records into an inappropriate location. Source rights, lawful collection, privacy, least privilege, Member isolation, retention/legal-hold and authorized deletion duties continue to apply. Capture gives no external-sharing, model-training, public-link or cross-Member disclosure authority.
+
+### Every-chat coverage and completion proof
+
+Maintain a conversation/turn/attachment manifest showing expected, captured, source-referenced, changed, duplicate, restricted, unavailable and pending items; the exact destination and successful content/metadata readback; source/version/hash reconciliation; failed or inaccessible exports; retries, owner and next action. Reconcile visible source totals and available versions against the destination record. A schedule, source link, generated summary or indexing flag alone does not prove capture of the complete conversation.
+
+Include authorized historical chats in a governed backfill inventory and capture queue. Lack of platform export, source access, deleted content, unavailable attachments or an unimplemented collector is an explicit recoverable coverage gap, not a silent exemption or a claim of completion. Continue accessible capture while preserving the missing-item obligation. Never claim every chat is captured or all data has entered the Library without source-to-destination evidence.
+
+Before task closeout, reconcile its capture manifest with the SALUS-SEARCH-001 search record, decisions, artifacts, lessons and next-task handoff. Apply captured knowledge to subsequent authorized work through provenance-aware retrieval and qualification under SAL-D025, SAL-D026, SAL-D116, SAL-D125, SAL-D127 and SAL-D133. This rule makes capture universal, extending earlier “relevant statement” and “material research” triggers; it does not itself establish a deployed chat exporter, completed backfill, a verified ingestion receipt or an approved enterprise lesson.

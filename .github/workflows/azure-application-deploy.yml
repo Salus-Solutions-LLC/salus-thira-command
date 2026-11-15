@@ -68,7 +68,8 @@ jobs:
             ((has("activation_retry_attempt") | not) or (
               .activation_retry_attempt == 2 and (
                 (.source_release == "release/v3.228" and .source_commit == "56524b7591526f90a75953cbcf70d47164a23bc0") or
-                (.source_release == "release/v3.230" and .source_commit == "1157a071c5c2daed864783737e5b84543671cd9c")
+                (.source_release == "release/v3.230" and .source_commit == "1157a071c5c2daed864783737e5b84543671cd9c") or
+                (.source_release == "release/v3.273" and .source_commit == "3572f2b4cf7c2cb65c772d0a848db7d9e6951944")
               )
             )) and
             ((keys - [

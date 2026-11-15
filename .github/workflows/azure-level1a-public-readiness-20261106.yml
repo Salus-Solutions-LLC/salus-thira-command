@@ -92,7 +92,7 @@ jobs:
           worker_container = worker['properties']['template']['containers'][0]
           worker_env = {e['name']: e.get('value') or '' for e in worker_container.get('env', [])}
           app_image = app_container['image']
-          expected_image = 'salcapadevb48224acr.azurecr.io/salcapa@sha256:719650a9fa7fc0ab14a8823c73308824a688d45fecef0333a74a1dc8d1888e70'
+          expected_image = 'salcapadevb48224acr.azurecr.io/salcapa@sha256:50392d26e64de8c443351926cc3dd2038bcd7cf35dbe078f5546ec261ccdc6c5'
           worker_config = worker['properties']['configuration']
           storage_props = storage['properties']
           defender_props = defender['properties']
@@ -148,6 +148,7 @@ jobs:
               'Draft order enabled': yes(app_env.get('SALUS_LEVEL1A_ORDER_DRAFT_ENABLED') == '1'),
               'Checkout enabled': yes(app_env.get('SALUS_LEVEL1A_CHECKOUT_ENABLED') == '1'),
               'Test-only checkout disabled': yes(app_env.get('SALUS_LEVEL1A_TEST_CHECKOUT_ONLY') != '1'),
+              'Public live purchase flag enabled': yes(app_env.get('SALUS_LEVEL1A_PUBLIC_LIVE_ENABLED') == '1'),
               'Paid intake enabled': yes(app_env.get('SALUS_LEVEL1A_INTAKE_ENABLED') == '1'),
               'Screened uploads enabled': yes(app_env.get('SALUS_LEVEL1A_UPLOAD_ENABLED') == '1'),
               'Scanner acceptance enabled': yes(app_env.get('SALUS_PACKAGE_SCANNER_ACCEPTED') == '1'),

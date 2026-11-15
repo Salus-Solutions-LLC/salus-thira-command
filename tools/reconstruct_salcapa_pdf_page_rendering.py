@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = (
     ("salcapa_pdf_page_rendering.py.gz", "salcapa_pdf_page_rendering.py", "0661699abab699005c2fce11e64ff8ede195b1d13b1fd01e65caffc3a531727f", "f9711349f9810d273ad45fac5b1be208adce279ae357da1efd5b7bdabb6f71fa", 41808),
-    ("salcapa_pdf_render_worker.py.gz", "tools/salcapa_pdf_render_worker.py", "9fe5dc26b9480feeca3bcfbb6629bad7370a29d4a2c137d2a47415b459c5d864", "b52895ec7a8c1a5a8abe671139e15c80112a89cb15c5410891834743b8196042", 9041),
+    ("salcapa_pdf_render_worker.py.gz", "tools/salcapa_pdf_render_worker.py", "1422f7c8e305a9c7d8bd038bd0b84308eecb2ada2593213220e184755840a0dd", "b22bce4315b8ce237346633f016aec668b57fc1fc1d0ce625ff0b0b88eac66d8", 9349),
     ("ci_salcapa_pdf_page_rendering_smoke.py.gz", "tools/ci_salcapa_pdf_page_rendering_smoke.py", "890cd4e6ff0378d45285fe133c0331ded3e97f0eaac1af391cc234b0259a9e37", "4e6a1a0684ceaefedfd686241c9ea5cdfe213ee15e80c4c33b28323f2e48e768", 16682),
 )
 

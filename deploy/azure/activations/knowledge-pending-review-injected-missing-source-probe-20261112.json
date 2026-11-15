@@ -1,0 +1,19 @@
+{
+  "activation_key": "salcapa-knowledge-injected-missing-source-probe-20261112-5d8e3493",
+  "approved_operation_commit": "5d8e34938df961afb9d243d440690115d72d5eeb",
+  "exact_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:d7b558b543431d2ed06dc9121d99f3fe409dd0dcde267ed06e87e956d28a4f14",
+  "expected_candidate_count": 13,
+  "expected_extraction_review_count": 8,
+  "expected_source_reconciliation_count": 5,
+  "expected_unavailable_source_exceptions": 10,
+  "expected_verified_complete": 3,
+  "maximum_executions": 1,
+  "expected_prior_unavailable_source_exceptions": 5,
+  "expected_prior_verified_complete": 3,
+  "operation": "complete_injected_missing_source_probe",
+  "prior_failed_run_id": 43268487025,
+  "public_release_authorized": false,
+  "schema_version": 5,
+  "source_substitution_authorized": false,
+  "target_environment": "dev"
+}

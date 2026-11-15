@@ -17,11 +17,19 @@ navigation_html = (repository_root / 'static' / 'index.html').read_text(encoding
 navigation_js = (repository_root / 'static' / 'app.js').read_text(encoding='utf-8')
 navigation_css = (repository_root / 'static' / 'styles.css').read_text(encoding='utf-8')
 assert '<div class="nav-primary" aria-label="Start here">' in navigation_html
+assert 'class="active" data-view="overview"' in navigation_html
+assert navigation_html.index('data-view="overview"') < navigation_html.index('data-view="dashboard"')
 assert navigation_html.index('data-view="dashboard"') < navigation_html.index('<details class="nav-work-areas">')
 assert navigation_html.index('data-view="common_operating_picture"') < navigation_html.index('<details class="nav-work-areas">')
 assert '<summary><span>More work areas</span>' in navigation_html
 assert navigation_html.index('data-view="reports"') > navigation_html.index('<details class="nav-work-areas">')
 assert "closest('details.nav-work-areas')" in navigation_js
+assert "let currentView='overview';" in navigation_js
+assert "if(currentView==='overview') return overview();" in navigation_js
+assert "Understand the Situation" in navigation_js
+assert "Coordinate the Work" in navigation_js
+assert "Recommended next step:" in navigation_js
+assert "Authorized people retain decision, approval, and operational authority." in navigation_js
 assert 'workAreaDisclosure.open=true' in navigation_js
 assert 'Prepare a report for authorized review' in navigation_js
 assert '<h2>Needs Your Attention</h2>' in navigation_js

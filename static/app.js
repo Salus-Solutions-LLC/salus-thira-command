@@ -1,19 +1,20 @@
 const $ = s => document.querySelector(s);
-let currentView='dashboard';
+let currentView='overview';
 let currentRole=localStorage.getItem('salus_role')||'Assessment Director';
 let currentUser=localStorage.getItem('salus_user')||'Local Operator';
 let activeAssessmentId=Number(localStorage.getItem('salus_assessment_id')||0);
 let validatingImprovementId=null;
 let overridingThreatId=null;
 let editingRecord=null;
+let editingSharedWebLinkId=null;
 let systemMode={auth_mode:'prototype',version:'2.2.0',restore_enabled:false};
 let accessState=null;
 let workspaceState=null;
 let copDecisionRequests=[];
 let copDecisionSources=[];
 const PRODUCT_TERMS=window.SalusProductTerms||{salcapa:{name:'SalCAPA™'},salintel:{name:'SalINTEL™'},salthira:{name:'SalTHIRA™'},salops:{name:'SalOPS™'}};
-const viewTitles={dashboard:`${PRODUCT_TERMS.salcapa.name} Command Center`,common_operating_picture:`${PRODUCT_TERMS.salcapa.name} Common Operating Picture`,salintel:`${PRODUCT_TERMS.salintel.name} Intelligence Overview`,salintel_domains:`${PRODUCT_TERMS.salintel.name} Type of Investigation`,assessments:`${PRODUCT_TERMS.salthira.name} Risk Assessments`,salthira:`${PRODUCT_TERMS.salthira.name} Risk Assessments`,salops:`${PRODUCT_TERMS.salops.name} Operations & Requests`,reports:`${PRODUCT_TERMS.salcapa.name} Reports`,level1a_staff:'Level 1A report work'};
-const subtitles={dashboard:'Coordinate decisions, assignments, approvals, and action.',common_operating_picture:'See what is happening, what matters, and what has changed.',risk:'Calculated risk remains intact while accountable professional judgment is recorded separately.',priorities:'Transparent improvement ranking across consequence reduction, mission benefit, feasibility, sustainability, compliance, staffing, cost, and time.',reassessment:'Event-driven reassessment triggers from intelligence, incidents, exercises, changes, and completed improvements.',assessments:'Controlled workspaces for each THIRA engagement.',threats:'Evidence-based threats and hazards, screened and traceable.',scenarios:'Credible operating conditions, consequences, assumptions, and decisions.',capabilities:'Required outcomes measured against demonstrated performance.',evidence:'Controlled evidence with verification, validity, lifecycle review, and stale-evidence reassessment.',gaps:'Required capability versus demonstrated capability.',improvements:'Competing improvement alternatives, costs, and expected benefit.',decisions:'Approve, defer, reject, transfer, monitor, or accept risk.',accepted_risks:'Accepted risk remains active, owned, reviewable, and traceable until formally closed or superseded.',implementation:'Track approved actions through completion, evidence-based validation, and closure.',reports:'Executive reports preserved from authoritative assessment records.',trace:'Trace each finding from mission through decision.',attachments:'Controlled evidence attachments with file integrity hashes.',governance:'Workflow transitions, scope-change approvals, assessment versions, and revision history.',audit:'Governed activity and version history.',backups:'Integrity-verified backup packages, recovery controls, and restore safeguards.',security:'Operational readiness, security events, identity, storage, and protection controls.',salintel_domains:'Investigate, qualify, and govern knowledge across SalINTEL domains.',configuration:'Industry profiles, assessment weighting, and role-aware access.'};
+const viewTitles={overview:`${PRODUCT_TERMS.salcapa.name} Overview`,dashboard:`${PRODUCT_TERMS.salcapa.name} Command Center`,common_operating_picture:`${PRODUCT_TERMS.salcapa.name} Common Operating Picture`,salintel:`${PRODUCT_TERMS.salintel.name} Intelligence Overview`,salintel_domains:`${PRODUCT_TERMS.salintel.name} Type of Investigation`,assessments:`${PRODUCT_TERMS.salthira.name} Risk Assessments`,salthira:`${PRODUCT_TERMS.salthira.name} Risk Assessments`,salops:`${PRODUCT_TERMS.salops.name} Operations & Requests`,reports:`${PRODUCT_TERMS.salcapa.name} Reports`,level1a_staff:'Level 1A report work',shared_web_links:'Shared Web Links'};
+const subtitles={overview:'See the situation, coordinate the work, and know what happens next.',dashboard:'Coordinate decisions, assignments, approvals, and action.',common_operating_picture:'See what is happening, what matters, and what has changed.',risk:'Calculated risk remains intact while accountable professional judgment is recorded separately.',priorities:'Transparent improvement ranking across consequence reduction, mission benefit, feasibility, sustainability, compliance, staffing, cost, and time.',reassessment:'Event-driven reassessment triggers from intelligence, incidents, exercises, changes, and completed improvements.',assessments:'Controlled workspaces for each THIRA engagement.',threats:'Evidence-based threats and hazards, screened and traceable.',scenarios:'Credible operating conditions, consequences, assumptions, and decisions.',capabilities:'Required outcomes measured against demonstrated performance.',evidence:'Controlled evidence with verification, validity, lifecycle review, and stale-evidence reassessment.',gaps:'Required capability versus demonstrated capability.',improvements:'Competing improvement alternatives, costs, and expected benefit.',decisions:'Approve, defer, reject, transfer, monitor, or accept risk.',accepted_risks:'Accepted risk remains active, owned, reviewable, and traceable until formally closed or superseded.',implementation:'Track approved actions through completion, evidence-based validation, and closure.',reports:'Executive reports preserved from authoritative assessment records.',trace:'Trace each finding from mission through decision.',attachments:'Controlled evidence attachments with file integrity hashes.',governance:'Workflow transitions, scope-change approvals, assessment versions, and revision history.',audit:'Governed activity and version history.',backups:'Integrity-verified backup packages, recovery controls, and restore safeguards.',security:'Operational readiness, security events, identity, storage, and protection controls.',shared_web_links:'Shared website addresses and descriptions for Salus personnel.',salintel_domains:'Investigate, qualify, and govern knowledge across SalINTEL domains.',configuration:'Industry profiles, assessment weighting, and role-aware access.'};
 
 function authHeaders(){return ['session','oidc'].includes(systemMode.auth_mode)?{}:{'X-Salus-Role':currentRole,'X-Salus-User':currentUser,'X-Salus-Tenant':'1'}}
 async function api(url,opts={}){const r=await fetch(url,{headers:{'Content-Type':'application/json',...authHeaders(),...(opts.headers||{})},...opts}); if(!r.ok) throw new Error(await r.text()); return r.json();}
@@ -49,7 +50,40 @@ function applyWorkspaceNavigation(){
   }
 }
 
-async function render(){if(currentView==='level1a')return level1aView();try{if(currentView==='level1a_staff') return level1aStaffView(); if(currentView==='dashboard'||currentView==='common_operating_picture') return dashboard(); if(currentView==='salintel') return salintel(); if(currentView==='salintel_domains') return salintelDomains(); if(currentView==='salops') return salops(); if(currentView==='salthira') return entityView('assessments'); if(currentView==='risk') return riskAnalytics(); if(currentView==='priorities') return prioritization(); if(currentView==='reassessment') return entityView('reassessment_triggers'); if(currentView==='trace') return trace(); if(currentView==='attachments') return attachments(); if(currentView==='governance') return governance(); if(currentView==='audit') return audit(); if(currentView==='backups') return backups(); if(currentView==='security') return securityReadiness(); if(currentView==='implementation') return implementation(); if(currentView==='reports') return reports(); if(currentView==='configuration') return configuration(); return entityView(currentView);}catch(e){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(e.message)}</div>`}}
+async function render(){if(currentView==='level1a')return level1aView();try{if(currentView==='level1a_staff') return level1aStaffView(); if(currentView==='overview') return overview(); if(currentView==='dashboard'||currentView==='common_operating_picture') return dashboard(); if(currentView==='salintel') return salintel(); if(currentView==='salintel_domains') return salintelDomains(); if(currentView==='salops') return salops(); if(currentView==='salthira') return entityView('assessments'); if(currentView==='risk') return riskAnalytics(); if(currentView==='priorities') return prioritization(); if(currentView==='reassessment') return entityView('reassessment_triggers'); if(currentView==='trace') return trace(); if(currentView==='attachments') return attachments(); if(currentView==='governance') return governance(); if(currentView==='audit') return audit(); if(currentView==='backups') return backups(); if(currentView==='security') return securityReadiness(); if(currentView==='shared_web_links') return sharedWebLinks(); if(currentView==='implementation') return implementation(); if(currentView==='reports') return reports(); if(currentView==='configuration') return configuration(); return entityView(currentView);}catch(e){$('#content').innerHTML=`<div class="notice"><strong>Error</strong><br>${esc(e.message)}</div>`}}
+
+async function overview(){
+  const d=await api('/api/salcapa/common-operating-picture'),m=d.metrics,w=d.workspace,threads=d.coordinate?.threads||[],requests=d.act?.decision_requests||[];
+  workspaceState=w;applyWorkspaceNavigation();
+  const protectedMember=isProtectedMember();
+  const openThreads=threads.filter(t=>t.status==='Open').length;
+  const pendingDecisions=requests.filter(r=>r.status==='Awaiting Decision').length;
+  const primaryView=protectedMember?'common_operating_picture':'dashboard';
+  const primaryPurpose=protectedMember
+    ?'Start with the Common Operating Picture to see what is happening, what matters, and what has changed.'
+    :'Start with the Command Center to coordinate decisions, assignments, approvals, and action.';
+  const roleLabel=protectedMember?'Protected Member workspace':'Salus workspace';
+
+  $('#content').innerHTML=`
+    <div class="card cop-hero"><span>${PRODUCT_TERMS.salcapa.name} Overview · ${esc(roleLabel)}</span><h2>Understand the situation. Coordinate the work.</h2><p>SalCAPA keeps the facts and the work connected so you can see what matters, move authorized work forward, and preserve the evidence behind it.</p></div>
+    <div class="two-col grid">
+      <article class="card">
+        <span class="subtle">Understand the Situation</span>
+        <h2>Common Operating Picture</h2>
+        <p>See what is happening, what matters, and what has changed.</p>
+        <div class="grid stats">${metric('Qualified Intelligence',m.qualified_intelligence)}${metric('Needs Attention',m.priority_actions)}</div>
+        <button class="${primaryView==='common_operating_picture'?'btn':'action-link'}" onclick="setView('common_operating_picture')">View the situation &gt;</button>
+      </article>
+      <article class="card">
+        <span class="subtle">Coordinate the Work</span>
+        <h2>Command Center</h2>
+        <p>Coordinate decisions, assignments, approvals, and action.</p>
+        <div class="grid stats">${metric('Decisions Waiting',pendingDecisions)}${metric('Open Coordination',openThreads)}</div>
+        <button class="${primaryView==='dashboard'?'btn':'action-link'}" onclick="setView('dashboard')">Coordinate the work &gt;</button>
+      </article>
+    </div>
+    <div class="notice" style="margin-top:16px"><strong>Recommended next step:</strong> ${esc(primaryPurpose)} Authorized people retain decision, approval, and operational authority.</div>`;
+}
 
 async function dashboard(){
   const d=await api('/api/salcapa/common-operating-picture'),m=d.metrics,w=d.workspace,readiness=d.protective_readiness,see=d.see,threads=d.coordinate.threads,requests=d.act.decision_requests;copDecisionRequests=requests;
@@ -667,6 +701,44 @@ function showLogin(message=''){
   $('#login-form').onsubmit=async e=>{e.preventDefault();const d={};new FormData(e.target).forEach((v,k)=>d[k]=v);const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});if(!r.ok){showLogin('Invalid username or password.');return}await initialize();};
 }
 async function logoutSession(){await fetch('/api/auth/logout',{method:'POST'});accessState=null;window.SalusIntakeCapture?.sync();showLogin('Signed out.');}
+
+async function sharedWebLinks(){
+  if(isProtectedMember()){
+    $('#content').innerHTML='<div class="notice">Shared web links are restricted to Salus personnel.</div>';
+    return;
+  }
+  const rows=await api('/api/salcapa/shared-web-links');
+  const canEdit=currentRole!=='Auditor';
+  const editing=rows.find(row=>row.id===editingSharedWebLinkId)||null;
+  if(editingSharedWebLinkId&&!editing)editingSharedWebLinkId=null;
+  const form=canEdit?`<div class="card"><h2>${editing?'Edit web link':'Add a web link'}</h2><p class="subtle">Add a shared website address and a short description. Do not enter usernames, passwords, access tokens, or other credentials.</p><form id="shared-web-link-form"><label>Web link<input name="url" type="url" required maxlength="2048" pattern="https://.*" placeholder="https://example.com" value="${esc(editing?.url||'')}"></label><label>Description<textarea name="description" required maxlength="500">${esc(editing?.description||'')}</textarea></label>${editing?`<input type="hidden" name="version" value="${Number(editing.version)}">`:''}<div class="form-actions"><button class="btn">${editing?'Save changes':'Add link'}</button>${editing?'<button class="btn secondary" type="button" id="cancel-shared-web-link">Cancel</button>':''}</div><p id="shared-web-link-status" role="status" aria-live="polite"></p></form></div>`:'<div class="notice">Auditors can view this shared list but cannot change it.</div>';
+  const linkRows=rows.map(row=>[
+    `<a href="${esc(row.url)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">${esc(row.url)}</a>`,
+    esc(row.description),
+    esc(row.updated_by),
+    esc(row.updated_at),
+    canEdit?`<button class="btn secondary" onclick="editSharedWebLink(${row.id})">Edit</button>`:''
+  ]);
+  $('#content').innerHTML=`${form}<div class="section-title"><h2>Shared web links</h2><span class="subtle">${rows.length} link${rows.length===1?'':'s'}</span></div>${rows.length?table(['Web link','Description','Updated by','Updated','Action'],linkRows):'<div class="card"><p>No shared web links have been added.</p></div>'}`;
+  const editor=$('#shared-web-link-form');
+  if(editor)editor.onsubmit=async event=>{
+    event.preventDefault();
+    const button=editor.querySelector('button[type="submit"],button:not([type])');
+    const status=$('#shared-web-link-status');
+    button.disabled=true;status.textContent='Saving…';
+    const values=Object.fromEntries(new FormData(editor));
+    const body={url:values.url,description:values.description};
+    if(editing){body.version=Number(values.version);}
+    try{
+      await api(editing?`/api/salcapa/shared-web-links/${editing.id}`:'/api/salcapa/shared-web-links',{method:editing?'PATCH':'POST',body:JSON.stringify(body)});
+      editingSharedWebLinkId=null;await sharedWebLinks();
+    }catch(error){button.disabled=false;status.textContent='The link was not saved. '+error.message;}
+  };
+  const cancel=$('#cancel-shared-web-link');
+  if(cancel)cancel.onclick=()=>{editingSharedWebLinkId=null;sharedWebLinks();};
+}
+
+function editSharedWebLink(id){editingSharedWebLinkId=id;sharedWebLinks();}
 
 async function securityReadiness(){
   if(currentRole!=='System Administrator'){ $('#content').innerHTML='<div class="notice">Security and readiness controls require the System Administrator role.</div>'; return; }

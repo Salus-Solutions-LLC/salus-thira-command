@@ -25,9 +25,10 @@ class Response:
 
 
 class Client:
-    def __init__(self): self.parent="archive-12345678"
+    def __init__(self): self.parent="archive-12345678"; self.status=200
     def get(self,url,**kwargs):
         if url.endswith("/content"): return Response(200,content=b"exact-source")
+        if self.status != 200: return Response(self.status)
         return Response(200,{"id":"item-12345678","file":{},"eTag":"archived","size":12,
             "parentReference":{"id":self.parent},"webUrl":"https://tenant.sharepoint.com/archive"})
 
@@ -46,6 +47,12 @@ def check():
     try: writer.verify_already_archived_source("item-12345678","0"*64)
     except promotion.KnowledgePromotionError: pass
     else: raise AssertionError("incorrect archived hash accepted")
+    client.status=404
+    try: writer.verify_already_archived_source("item-12345678",sha)
+    except promotion.KnowledgePromotionError as exc:
+        assert str(exc)=="Archived source item was not found"
+    else: raise AssertionError("missing archived source was not distinguished")
+    client.status=200
 
     with tempfile.TemporaryDirectory() as directory:
         path=os.path.join(directory,"reconcile.sqlite")

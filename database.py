@@ -27,7 +27,7 @@ ID_TABLES = {
     'level1a_agreement_versions','level1a_agreement_downloads','level1a_acceptances',
     'level1a_checkout_sessions','level1a_payment_events',
     'level1a_intake_items','level1a_intake_uploads','level1a_pending_scans',
-    'entity_versions','scope_changes','workflow_events','dr_validations','governed_intake',
+    'entity_versions','scope_changes','workflow_events','dr_validations','governed_intake','shared_web_links',
     'materials','material_links','material_events',
     'salintel_domains','salintel_domain_events','salintel_domain_registry_backups','salintel_domain_registry_restore_requests','salintel_investigations','salintel_investigation_items','salintel_investigation_events'
 }

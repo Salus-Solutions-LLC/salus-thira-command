@@ -82,6 +82,19 @@ STAGE="account creation and verification email"
 jq -nc --arg email "$EMAIL" --arg password "$PASSWORD" '{email:$email,password:$password,detailed_assessment_acknowledged:true,identifiable_retention_consent:true}' > "$WORK/account.json"
 curl -fsS -c "$COOKIE" -b "$COOKIE" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
   -d @"$WORK/account.json" "$BASE/public/protection-advisor/account" > "$WORK/account-result.json"
+# Emit only closed-set diagnostics; never print the response, addresses, tokens,
+# verification URL, or an unrecognized server-provided error string.
+jq -r '
+  (.email_verification_error // "") as $error |
+  "Advisor verification: authenticated=\(.authenticated == true)" +
+  " state=\(if .email_verification == "Delivered" then "Delivered" elif .email_verification == "Pending" then "Pending" else "unexpected" end)" +
+  " error=\(if $error == "" then "none"
+    elif ($error | type) != "string" then "unrecognized_error"
+    elif $error == "delivery_not_configured" or $error == "sender_not_configured" then $error
+    elif ($error | length) == 14 and ($error | test("^graph_http_[1-5][0-9]{2}$")) then $error
+    elif (["CredentialUnavailableError", "ClientAuthenticationError", "ConnectTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "ConnectError", "ReadError", "WriteError", "RemoteProtocolError"] | index($error)) != null then $error
+    else "unrecognized_error" end)"
+' "$WORK/account-result.json" >&2
 jq -e '.authenticated==true and .email_verification=="Delivered" and (.email_verification_error==null or .email_verification_error=="")' "$WORK/account-result.json" >/dev/null
 
 STAGE="draft save"

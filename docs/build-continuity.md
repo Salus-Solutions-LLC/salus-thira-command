@@ -1,33 +1,85 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 06 November 2026 22:52 CST
-current_frozen_release: v3.270
-current_frozen_commit: 3e0078f46423d1f6181103d3b5a36782b0474118
+last_verified_at: 14 November 2026 22:40 CST
+current_frozen_release: v3.276
+current_frozen_commit: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
 active_development_branch: development/salcapa-platform
-current_development_head: 93fbec4259ce50a53cbc188f18d29f7a7ae49f4a
-active_product_milestone: issue_1013_level1a_public_release
-active_build_system_issue: 1013
-active_increment: salus_v3271_live_stripe_source_freeze
-last_completed_increment: v3270_app_worker_and_named_test_pilots_verified_v3270_superseded_only_after_v3271_source_freeze
-candidate_release: v3.271
-validation_pr: 1181
-validation_branch: codex/level1a-v3271-freeze-20261106
+current_development_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
+active_product_milestone: issue_337_issue_360_dashboard_resume
+active_build_system_issue: 368
+active_increment: protection_advisor_readonly_v3276_immutable_image_publication
+last_completed_increment: v3276_sanitized_reader_source_merged_frozen_all_five_PR_gates_passed
+candidate_release: v3.276
+validation_pr: 1230
+validation_branch: codex/advisor-v3276-publication-20261114
 validation_base: development/salcapa-platform
-validation_head: pending_exact_candidate_commit
+validation_head: pending_exact_publication_head
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: none_current_v3270_candidate
-first_root_failing_gate: live_stripe_separation_source_not_yet_frozen_built_or_deployed
-root_cause: v3271_source_freeze_and_immutable_image_required_before_protected_deployment
-repair_head: 93fbec4259ce50a53cbc188f18d29f7a7ae49f4a
-repair_summary: freeze_merged_live_stripe_separation_then_publish_and_deploy_with_closed_controls
-genuine_blockers: v3270_superseded_only_after_v3271_source_freeze_live_credentials_webhook_new_buyer_four_reports_and_separate_public_release
-next_authorized_step: validate_v3271_candidate_then_Marc_exact_head_approval_for_source_freeze
-deployed_demo_release: v3.270
-deployed_demo_state: v3270_app_and_workers_verified_named_test_only_pilots_public_Level1A_live_payment_closed
+failed_workflows: historical_v3274_dependency_audit_v3275_CodeQL_and_v3273_email_promotions
+first_root_failing_gate: historical_reader_exception_disclosure_corrected_in_frozen_v3276
+root_cause: v3275_raw_exception_message_replaced_with_fixed_public_text_in_v3276
+repair_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
+repair_summary: v3276_frozen_prepare_exact_immutable_publication_preserve_disabled_reader_and_v3223_rollback
+genuine_blockers: exact_publication_head_approval_protected_execution_registry_digest_readback_then_app_deployment_and_per_user_OAuth_workspace_acceptance
+next_authorized_step: validate_publication_candidate_then_obtain_exact_head_merge_and_one_image_publication_authority
+deployed_demo_release: v3.223
+deployed_demo_state: failed_v3273_promotion_restored_and_verified_v3223_app_worker_schedule_and_hostname_v3273_image_retained
 ---
 
 # SalCAPA build continuity
+
+## 14 November 2026 Central - v3.276 source merged and frozen; immutable publication request
+
+Marc authorized marking PR #1229 ready, merging exact head `dbcceb1b41dcdeea4367b51cec7cdfa11d6e66a1` and freezing `release/v3.276`. Rechecked clean mergeability and all five passing jobs including CodeQL, marked ready and squash merged as `7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3`. Verified the release ref absent, created it at that commit and independently read back its exact SHA. Requirements, runtime, reader, regression tests and CodeQL workflow blobs match the approved source. Re-read the five governing records. Preserve all frozen branches unchanged.
+
+This request advances the existing image activation to `release/v3.276`, exact source `7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3`, activation `salcapa-v3.276-image-7b79b284`. Merging requests one protected immutable publication to the existing dev registry. It preserves workload-federated identity, protected approval, exact frozen-source/version/OCI-label/nonroot/worker assertions and registry digest readback. The publication workflow is unchanged and performs no app/worker deployment. Reader configuration, business records, permissions, credentials and workspace availability are unchanged. No publication has been executed by this candidate.
+
+Release lineage: `v3274_dependency_audit_withheld_before_publication` identifies frozen source d8125b42fca4789be1c34a67d39831b2f5a212d3; `v3275_codeql_withheld_before_publication` identifies ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6. PR #1228 was closed without merge or execution. The consumed v3.273 attempt-2 application activation remains staged and unchanged; it is not the deployed application. Accepted runtime/rollback remains v3.223. Never retry either old activation or publish the withheld sources.
+
+The historical reference-image preflight adds a bounded exception for only staged v3.273 to exact frozen v3.276. It requires this source/activation identity, both withheld-release markers and the unchanged v3.223 application/worker rollback lineage; no generic version skip is admitted. Its PR trigger now includes the governed development target, so the complete reference-image contract/build is checked before merge. Existing historical cases and protected publication gates remain intact.
+
+Next: complete final exact-head checks and obtain Marc's specific approval to merge this request and execute one immutable image publication; verify run result and independently read back its registry digest. Only then prepare protected app promotion with the reader disabled and v3.223 rollback. Complete the separately reviewed per-user OAuth client, actual callback, expiry and current workspace identity mapping, concrete access confirmation, workspace-only publication and read/denial/unchanged-state acceptance. Existing administrator retrieval of retained Compass records does not establish live workspace access. The assessment remains on hold.
+
+Search/capture limits: consulted authoritative repository/governing records, exact approved source/security results, publication and historical preflight contracts and prior restricted source-readback evidence. Complete live-corpus task consideration and automatic chat capture remain open under the separately recorded Knowledge representation/capture gaps. No new assessment, unrelated Protected Member access, report generation or source-content promotion occurred.
+
+
+
+## 14 November 2026 Central - v3.275 source merged and frozen; publication withheld for reader error disclosure
+
+Marc explicitly authorized PR #1226 exact head `a44d3e5b0bcde0a7346892b3a00b08b9b084757a`. All four PR checks passed, clean mergeability was verified, and it was marked ready and squash merged as `ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6`. Verified `release/v3.275` absent, created it at the merge commit and independently read back that SHA. Requirements/runtime/reader/acceptance-script blobs match the approved head; all five governing records were re-read. Preserve frozen v3.274 and v3.275 unchanged.
+
+Broader push analysis run `43676750680`, job `132698529628`, failed the existing CodeQL gate with one `py/stack-trace-exposure` finding: the reader returned `str(exc)` from caught ValueError/LookupError in its JSON-RPC response. Source inspection confirms that downstream errors can carry internal detail. No actual disclosure or exploitation is established. The dependency/security and immutable-release jobs passed; the failed CodeQL result is not waived. Prepared image request PR #1228 was closed without merge or execution. No image activation, registry publication, deployment or access setting changed.
+
+This v3.276 source candidate replaces exception-derived public text with a fixed error message, retains JSON-RPC failure codes and complete-access denial, and adds fictional regression cases injecting private details through ValueError, LookupError and RuntimeError. It adds the governed development target to the existing CodeQL pull-request trigger so this gate runs before future source merges; analysis and findings enforcement remain unchanged. The runtime identity advances to v3.276. Source-only preparation preserves the disabled reader, existing read/denial/hash/pagination/audit controls, accepted v3.223 rollback and every protected promotion gate. No image-publication candidate is active.
+
+Required next proof: focused and full tests, both continuity checks, all exact-head PR checks including CodeQL, Marc's exact source merge/new-freeze approval, then a separate image request and registry readback, protected application promotion and concrete per-user OAuth/client/callback/expiry/account/workspace activation acceptance. Existing administrator readback of the retained combined record and original is not availability through the workspace connection, and no independently retained Part 1-only result is claimed. The assessment remains on hold.
+
+Search/capture: used authoritative repository/governing records, exact CodeQL log and original reader/tests/workflow, and prior restricted source-readback evidence. Concurrent Knowledge census failed closed on live representation gaps; historical receipts do not establish this task's complete live-corpus consideration. That task receipt, automatic chat capture and unavailable contents remain open. No unrelated Member records, new assessment research or external Member queries were accessed.
+
+
+
+## 14 November 2026 - v3.274 source frozen; publication held for dependency security correction
+
+Marc authorized PR #1224 exact head `81396621c1cea2bdb2f0edb9d54501d7d6b059e1`. Its four PR checks passed; it was marked ready and squash merged as `d8125b42fca4789be1c34a67d39831b2f5a212d3`. Readback verified the approved runtime, configuration, reader and acceptance-script blobs. The previously absent `release/v3.274` branch was created at that exact merge commit and read back independently. Its immutable-release guard passed. Do not rewrite the frozen branch.
+
+Broader push checks then failed in four inspected jobs at `pip-audit -r requirements.txt`: `opentelemetry-api==1.45.1`, CVE-2026-126360, fixed in 1.45.2. Their functional smoke checks and Bandit steps passed. Inspected jobs: 132694163541 (run 43675351616), 132694163364 (43675351589), 132694163345 (43675351545), and 132694163334 (43675351593). The upstream advisory https://github.com/open-telemetry/opentelemetry-python/security/advisories/GHSA-mf5v-w3w3-f6cg confirms the affected version and patch. This is an audit finding, not evidence of exploitation. Publication is held; no image activation was edited or invoked.
+
+This narrow successor candidate changes only the dependency pin to 1.45.2, the runtime release identity to v3.275 and continuity records. It preserves the disabled-by-default read-only reader and every existing acceptance/rollback gate. Require dependency resolution/security audit, meaningful reader/runtime checks, exact-head approval, a new immutable freeze, separate image publication/readback and protected deployment approval. No Azure configuration, account permission, OAuth consent, workspace connection or assessment state is changed. Compass retained-source verification remains complete within its recorded limits; all-workspace connection acceptance remains open and the assessment remains on hold.
+
+
+
+## 14 November 2026 — bounded current-delivery diagnosis and v3.274 source preparation
+
+Marc approved PR #1222 exact head `a8e5d0b17575daaffe868123bed30e5608892132` after all four checks passed. Squash merge `dd9d9194e98cff91d4d9ad0f5da4d3d9ab131091` makes the closed-set verification-email diagnostic authoritative. PR #1219's OAuth reader remains merged, disabled and undeployed. This candidate changes the source release marker to **v3.274**; it does not freeze a branch, publish an image, change an activation record, deploy, enable the reader or grant access.
+
+Authenticated Azure resource readback confirmed the accepted v3.223 image digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` on revision `salcapa-dev-b48224--0000235`, Graph notification mode and the existing configured sender. Entra lists only selected file/list permissions for the workload identity. That alone does not establish a mail defect: read-only Exchange checks verified that the sender mailbox exists and that the exact existing workload principal has an in-scope application mail-send role. No permission was added or broadened.
+
+Marc specifically approved one neutral diagnostic email to his Salus mailbox. The existing delivery function is identical in frozen v3.223 and v3.273 source. One invocation in the accepted live application returned `graph_accepted=true`, `error_code=none`; a matching inbox message and body preview were independently retrieved. No customer data or verification link was included and no Advisor account or assessment was created. This proves the current delivery path for that one message, not the historical cause or full successor launch acceptance. The old exact failure code remains unavailable. Do not rerun either consumed v3.273 activation.
+
+The separately governed successor retains all existing readiness, identity, Microsoft 365, fictional Advisor, cleanup, rollback and worker gates. Its reader remains disabled by default and must initially be deployed without a record-access grant. The approved new logging preserves the acceptance predicate and can report a safe code if the full fictional journey fails again. Exact-head checks/approval, new immutable release identity and image readback, protected application activation, per-user OAuth client/callback/expiry/account configuration and workspace-only read-tool/denial tests remain distinct prerequisites. Administrator retrieval of an existing record is not acceptance of a ChatGPT connection. Preserve the assessment hold.
+
+v3271_pr1185_platform_check_retry: The first PR check run 42672255743 failed before any job started with a GitHub internal server error (correlation 3da3f914-21c4-463b-8e63-016c427c1fc6). No application deployment or Azure setting change resulted. Re-run was refused by GitHub, so this continuity update triggers a fresh candidate check run. Require every current check and Marc's approval of the new exact head before merge.
 
 sald119_open_candidate_reconcile_candidate: The next bounded transition reconciles only one stale open row already proven destination/archive-complete with a verified promotion event to Ingested and Verified, and routes only the eight Automatic Retry Required rows already carrying Governed Extraction Review Required to the established Pending Review queue. It adds nine metadata-only audit events, preserves classification and all source/provenance/access/failure evidence, fails on exact pre-state drift or overlap, downloads and moves no content, and leaves the remaining extraction-complete promotion failures untouched. Local validation, repository CI, Marc exact-head approval, protected v3.260 execution, aggregate readback and isolated-job cleanup remain required.
 
@@ -671,3 +723,18 @@ Marc approved PR #864 exact head `3d1953dc79e38c26f556011f7245ef6a35ff932a` afte
 
 - Marc approved PR #916 exact head `66b07ec99d2dcbff10cbf9c0021e1ce625b60b78` after all 64 frozen-source checks and all three PR checks passed. Squash merge `74096d409821b74911b112a2088a3f026c4bc361` triggered protected run [38269945142](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/38269945142), which succeeded and read back immutable digest `salcapadevb48224acr.azurecr.io/salcapa@sha256:81b76a9d1a8dfe8ac1bd98256c4b4369ccb680a4f8101199e5db04c7c1b4bc2d` from v3.247 source `c669f700513fc69f617f33db8630905e20415e69`.
 - PR #917 stages guarded deployment only. It expects the currently serving v3.246 app and worker digest, retains v3.223 rollback, and starts with buyer sign-in, draft ordering, checkout/payment, intake, uploads and scanning closed. Protected v3.246 still serves the named pilot until this deployment passes. Next: exact-head CI and Marc review, protected deployment/readback, then separate pilot reactivation and fresh buyer-led remote offer and agreement acceptance.
+
+
+dashboard_resume_candidate_20261111: Marc explicitly resumed SalCAPA Dashboard work. Authoritative development head was verified at `b53d61562458b5e4732497d35f6b40297219d6b6` with no current governed SalCAPA validation/activation worker lease observed in open PRs. PR #1192 exact initial head `49ef3bfe5c03e31f19dc3d27a535c1ca8fc4adff` adds a true SalCAPA Overview landing page, preserves existing Common Operating Picture and Command Center functions, teaches the approved Understand the Situation / Coordinate the Work distinction, provides a role-aware recommended next step, and adds regression assertions in `tools/ci_salcapa_smoke.py`. No frozen release, Azure deployment, tenant/access/disclosure control, human authority, or server-controlled lifecycle state changed. Validate the exact PR head before advancing to development.
+
+
+dashboard_resume_validation_repair_20261111: The first exact-head validation produced 28 passing checks and two failures. The build-continuity failure was caused by candidate metadata using an unsupported validation gate label and a non-version candidate_release value; this repair restores the governed schema with `candidate_release: none` and `validation_gate_state: github_validation_running`. The separate PDF page-rendering container failure reported unexpected renderer output files and is treated as a CI/runtime failure pending fresh exact-head validation; no Dashboard authority, tenancy, release, or Azure state changed.
+
+
+dashboard_resume_validation_root_repairs_20261111: PR #1192 exact head `0f700f5aa0822297713e3dde636825b8cba0a1aa` completed 45 checks successfully and failed two required gates. The package-and-handoff sequence exposed a cross-contract defect: build continuity correctly permits `candidate_release: none` for a bounded source-only increment, while demonstration continuity attempted to parse every candidate as a release version. The production-container gate separately showed that the approved PDF renderer could create runtime cache material under `HOME` inside the governed output directory, while host-based SQLite and PostgreSQL page-rendering checks passed. Repair commit `ebacf3ff1dbf78f8806e194ce3b3e63f09ef7510` permits the source-only continuity state without weakening release-version checks and moves renderer home/cache material to a separate ephemeral directory while preserving the exact-output fail-closed check. Governed reconstruction, Python compilation, build continuity and demonstration continuity passed locally. The broader SalCAPA smoke could not run locally because FastAPI is not installed in the desktop runtime; exact GitHub validation remains required. No frozen release, Azure deployment, tenant/access boundary or human authority changed.
+
+
+dashboard_resume_merged_v3272_freeze_candidate_20261111: Marc approved PR #1192 exact head `68c526ef8f00aab8311a9c2171cc10bed3a1dc09` after all 47 required checks passed, including successful production-container PDF rendering and the successful rerun of a Windows-only subprocess timeout that had already passed 188 tests. Squash merge `459ac8b75787bdd59bc683f0debfe824b49193e2` makes the SalCAPA™ Overview landing and both validation repairs authoritative on `development/salcapa-platform`. Governed-branch readback confirmed the Overview as the default landing, the Common Operating Picture and Command Center distinction, role-aware next-step guidance, and isolated renderer HOME/XDG cache handling. This v3.272 candidate labels the approved merged source only. It does not freeze a release branch, publish an image, change Azure, open public controls or establish live acceptance. Required candidate checks and Marc's exact-head source-freeze approval remain before a protected `release/v3.272` branch may be advanced.
+
+
+shared_web_links_merged_v3273_freeze_candidate_20261112: Marc approved PR #1209 exact head `d28c13abbaa746ec39a152bcc63f2d84622572e0` after the package-and-handoff, PostgreSQL, Windows professional-report and public Protection Advisor suites passed. Squash merge `86b69752db3d590b4a79a96fbfce407998cebb6d` makes the credential-free shared Web Links source authoritative. The Administration navigation, HTTPS link and description fields, Salus-only access, Auditor read-only role, Protected Member denial, tenant isolation, edit-conflict guard, attribution and portable recovery were covered. This v3.273 candidate labels that exact merged source only; it does not create a release branch, publish an image or change Azure. The open v3.272 scanner-worker promotion remains separate and its v3.272 application precondition will fail closed after v3.273 deployment unless separately reconciled.
