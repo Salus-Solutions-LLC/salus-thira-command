@@ -2,6 +2,10 @@
 
 Status: reader source merged in PR #1219; closed-set delivery diagnostics merged in PR #1222. Frozen v3.276 and its image are verified, but its one deployment failed intake consistency and rolled back to accepted v3.223. The activation is consumed; no retry is authorized. The reader is disabled and has not been deployed, connected or accepted. The requested assessment remains on hold.
 
+## 15 November 2026 06:39 CST - completed bounded metadata observation
+
+PR #1239 merged as `92ccf8cd2755148690554ac407400d889f3874f0`; all 51 post-merge jobs passed. A new single-pass probe completed ten item metadata comparisons with HTTP 200 and zero mismatches across all six guards. The 33-item pending window contained positive-size files whose extensions were all outside the diagnostic family groups, explaining the earlier empty format sample. This does not prove all-item/content acceptance or the historical failure's cause. Public readback still reports healthy v3.223 and 404 for all three reader endpoints. Exact restricted receipt and limits are in CURRENT_HANDOFF.md. No deployment, permission change, workspace publication, document-content download or assessment action occurred.
+
 ## 15 November 2026 - bounded metadata diagnostic; connection remains disabled
 
 PR #1236 merged as `8d1086f784f88e31c68e7b969a6415b621c637fc` after eight passing applicable PR jobs. The metadata-only console probe completed three empty-sample passes over 33 pending items. A revised fallback probe yielded one fully retained HTTP-200 candidate comparison with all six consistency mismatch flags false, then terminated before verified three-pass completion. The historical failed candidate/predicate remains unavailable; these current observations establish neither root cause nor live intake acceptance. Detailed boundaries and restricted receipts are recorded in CURRENT_HANDOFF.md. Post-merge hygiene found two concurrent local-only CI fixtures and the dependency audit timed out contacting PyPI; this candidate annotates only those inert fixture lines. No reader, deployment, permission or assessment action follows from this receipt.

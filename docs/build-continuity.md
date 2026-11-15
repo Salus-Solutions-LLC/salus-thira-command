@@ -1,33 +1,46 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 15 November 2026 00:20 CST
+last_verified_at: 15 November 2026 06:39 CST
 current_frozen_release: v3.276
 current_frozen_commit: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
 active_development_branch: development/salcapa-platform
-current_development_head: fec2308cc5a9e57ad50c125f0fc5d4cc65f739eb
+current_development_head: 92ccf8cd2755148690554ac407400d889f3874f0
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
 active_increment: protection_advisor_readonly_v3276_held_application_promotion
-last_completed_increment: pr1236_merged_metadata_probe_empty_sampling_completed_fallback_one_pass_retained_no_historical_root_cause
+last_completed_increment: pr1239_merged_51_postmerge_jobs_passed_ten_current_metadata_comparisons_complete_no_historical_root_cause
 candidate_release: v3.276
 validation_pr: 1239
-validation_branch: codex/advisor-intake-diagnostic-20261115
+validation_branch: codex/advisor-intake-window-20261115
 validation_base: development/salcapa-platform
-validation_head: pending_exact_metadata_receipt_candidate_head
+validation_head: pending_exact_completed_window_receipt_head
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3276_deploy_run43679803060_M365_listing_guard_post1236_infra43683911601_fixture_hygiene_security43683911726_PyPI_timeout
+failed_workflows: v3276_deploy_run43679803060_M365_listing_guard_historical_cause_unproven_source_checks_green_at_pr1239_merge
 first_root_failing_gate: isolated_M365_intake_read_listed_document_consistency_guard
 root_cause: specific_ID_name_etag_size_parent_or_snapshot_mismatch_unrecorded_underlying_cause_unproven
 repair_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
-repair_summary: record_bounded_metadata_results_and_limits_annotate_two_additional_localhost_CI_fixtures_retain_disabled_reader_and_v3223
-genuine_blockers: v3276_activation_consumed_historical_predicate_unproven_fallback_three_pass_incomplete_no_new_promotion_authority_OAuth_workspace_acceptance_open
-next_authorized_step: validate_receipt_fixture_candidate_then_review_safe_candidate_correlated_preflight_before_any_successor_promotion
+repair_summary: record_complete_ten_item_metadata_probe_current_extension_sampling_limit_and_unchanged_disabled_reader_v3223
+genuine_blockers: v3276_activation_consumed_historical_candidate_predicate_unretained_no_new_promotion_authority_OAuth_workspace_acceptance_open
+next_authorized_step: validate_receipt_only_update_then_review_privacy_preserving_candidate_correlated_failure_evidence_plan_before_any_successor_promotion
 deployed_demo_release: v3.223
 deployed_demo_state: v3276_intake_failure_rolled_back_to_verified_v3223_app_worker_hostname_reader_disabled
 ---
 
 # SalCAPA build continuity
+
+## 15 November 2026 06:39 CST - PR #1239 merged; ten-item metadata diagnostic completed
+
+Marc authorized exact head `3fce299d2abb53f453a284987f8a8b1fb026fe67`, ready/merge and continued read-only intake diagnosis, keeping the reader disabled and assessment on hold. Rechecked seven passing applicable PR jobs, two correctly skipped protected operations and clean mergeability, then squash merged PR #1239 as `92ccf8cd2755148690554ac407400d889f3874f0`. The concurrent approved #1237 merge `95782daf91e6161209db94e3d231d8ea663b3041` reached the base immediately before this merge; its workflow/activation changes are preserved. Relative to that merge parent, this task changes only the reviewed six files, including the two fixture comments. It does not replay that separate activation. All five governing records were re-read after merge. All 51 post-merge jobs completed successfully, resolving the prior source-check failures at this newer merge; this does not supersede the failed live v3.276 intake acceptance.
+
+Independent public verification at 12:37:11 UTC (06:37 CST) passed readiness, reported accepted v3.223 and returned 404 for reader GET, initialize POST and protected-resource metadata. The fresh existing-app console connected to revision `salcapa-dev-b48224--0000237`, replica ending `-pj4lx`, using the existing SALUS staff session and existing app identity. No scale setting, resource, credential, permission, runtime or source record was changed. Restricted public receipt: work/protection-advisor-private-20261114/after-pr1239-public-disabled-readback.json.
+
+The new single-pass metadata probe SHA-256 is `c2ffa715d040da470b1479806267132609921004e5b83537d5dd1e758eac907c`. A mock verified size-only drift detection, zero/positive size counts and omission of raw names/IDs. Live execution completed at 12:38:37 UTC (06:38 CST) in 11.51 seconds. It listed 33 pending items within a 500-item limit: all 33 had positive size and all extensions fell outside its six supported-family groups. Thus the prior empty format sample was caused by this current extension distribution, not zero-length items. Other is a diagnostic category, not a corruption, maliciousness or invalid-record finding. It selected the acceptance fallback first and then broadened by the same size/ID order to ten items. All ten metadata requests returned HTTP 200; each of the six mismatch counters (ID, name, eTag, size, parent boundary and saved snapshot) was zero. The selected batch completed with its explicit completion receipt and without hitting its time guard. No content was downloaded or parsed and no business records were written. Content-free candidate-set hash, times and exact counts remain in work/protection-advisor-private-20261114/m365-window-shape-20261115-readback.json; no raw names, item IDs, source URLs or content are included.
+
+Scope remains ten current pending-item comparisons, not all 33 items, the full Library, content acceptance, the missing third pass of the older probe, or a reproduction of the historical failed item. Consumed deployment run 43679803060 did not retain that failed candidate/predicate, so its underlying cause remains unproven. Do not waive fail-closed guards, infer a runtime fix from current stable samples, replay the consumed v3.276 activation or claim that the ChatGPT connection is accepted. The accepted deployment is still v3.223; the v3.276 image remains published and held.
+
+Next: review this receipt-only update. Before proposing another application promotion, prepare a separately reviewed, privacy-preserving plan to retain the exact candidate-correlated mismatch predicate and timing without raw source data, then validate stable, drifted and out-of-bound behavior. No runtime/telemetry change or further promotion is included here. Existing administrator Compass source readback is distinct from unfinished per-user OAuth/workspace acceptance and the absent separately retained historical Part 1-only snapshot. **Reader disabled; assessment and future public-source/reunification collection on hold.**
+
 
 ## 15 November 2026 Central - PR #1236 merged; bounded metadata observations retained
 
