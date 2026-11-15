@@ -11,7 +11,7 @@ active_build_system_issue: 368
 active_increment: protection_advisor_readonly_v3276_held_application_promotion
 last_completed_increment: pr1242_merged_48_postmerge_jobs_passed_standalone_readonly_diagnostic_candidate_16_fictional_tests_passed
 candidate_release: v3.276
-validation_pr: 1242
+validation_pr: 1244
 validation_branch: codex/advisor-metadata-diagnostic-candidate-20261115
 validation_base: development/salcapa-platform
 validation_head: pending_exact_standalone_metadata_diagnostic_candidate_head

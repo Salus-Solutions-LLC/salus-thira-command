@@ -17,6 +17,8 @@ The exclusive restricted file sink rejects Git working trees and existing destin
 
 Local validation: 16 fictional diagnostic tests passed, covering each of six predicates and simultaneous drift, missing/non-200 metadata, source/version pins, pending/archive sample bounds, timeout/incompletion, run isolation, changed/failed retention, exclusive file handling, provider redaction, CLI output/cleanup failure and forbidden content/write entrypoints. Three existing bounded-listing regressions passed. Both continuity checks and compilation passed. No real document download, parse, source mutation or new Member-record read occurred. Final source hygiene and exact-head repository checks remain required for review.
 
+Draft source review is PR #1244. Local hygiene passed across 1,190 tracked text files and whitespace validation passed; exact-head repository validation remains required.
+
 The last live pending observation remains the prior 33-item metadata-only pass; it is not repeated or relabeled here. Its success cannot reconstruct the historical failed item/predicate omitted by consumed run 43679803060. That cause remains unproven. Accepted v3.223 and held/published v3.276 remain distinct, with no consumed activation replay. Next: review the exact standalone candidate; before any live diagnostic reconcile deployed source/image and an authorized restricted evidence destination, then retain/read back a candidate-correlated receipt without changing the reader or assessment state. No application promotion is prepared by this candidate. **Reader disabled; assessment and future public-source/reunification collection on hold.**
 
 ## 15 November 2026 06:54 CST - PR #1240 merged; current pending check complete and archive version limit verified
