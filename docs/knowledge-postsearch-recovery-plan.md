@@ -1,6 +1,15 @@
 # Receipt-preserving post-search recovery planning
 
-Status: approved #1249 merged and executed once; stopped safely on live cohort drift before commit. Recovery preparation remains incomplete.
+Status: #1249 stopped before commit; approved #1252 has now independently verified current cohort drift, four receipts, empty planning records and cleanup. Recovery preparation remains incomplete.
+
+## Accepted read-only follow-up: 15 November 2026
+
+PR #1252 head 1560eaf93e4755925b597790ca5e132f50f16cd3 merged as 640d54cf71d053e0731ef3990eb4ab16dec3eac6 and ran once as [43761349512](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/43761349512). Two independent READ ONLY, REPEATABLE READ snapshots agreed at 21:04:16 and 21:05:16 UTC: 23,757 represented, 15,327 legacy-available, 15,322 exact/strict text, 8,430 unresolved and five separate availability exceptions. Current categories: review 7,085; paused 733; automatic retry 512; held 93; other/conflicting five; no candidate two; Complete without text zero. The net unresolved increase is 26; aggregate counts do not establish source-level transitions or reconstruct the original 8,404.
+
+Both connections preserved all four exact original receipt rows, hash cbb850ab8dd3a06e300b5ce2edc40764efc821a9f2fa25d4beca73d6319c01af, and verified zero original-target plan/batch/event rows. No writes, preparation, downloads, new receipts or baseline adoption occurred. Current projection 6f0da7b4a7181cc56f96828cf9cf73e5143488b2911fa56dfd62acbd6c981058 differs from the old approved projection. Full runtime comparison passed at 21:05:59 UTC and isolated-job absence at 21:06:19 UTC. No planning activation was replayed.
+
+See [the accepted diagnostic record](knowledge-cohort-drift-diagnostic.md) and CURRENT_HANDOFF.md for full counts, hashes, times, provenance and next gates. Recover historical correlated membership or explicitly govern a prospective baseline with new/delta consideration evidence before preparing a new exact-version planning candidate. Keep the four receipts immutable; they do not prove consideration of a changed corpus. Historical original failure telemetry and chat-export/backfill gaps remain. No new physical census was performed by #1252.
+
 
 ## 15 November 2026 Central — Approved post-search continuation stopped on live cohort drift before commit; receipts and cleanup verified
 
