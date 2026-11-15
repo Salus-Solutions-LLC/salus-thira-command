@@ -324,7 +324,7 @@ class ReceiptTests(unittest.TestCase):
 @unittest.skipUnless(os.getenv("TEST_STABILITY_POSTGRES")=="1","dedicated CI PostgreSQL only")
 class PostgreSQLReceiptTests(ReceiptTests):
     def setUp(self):
-        assert os.getenv("SALUS_DATABASE_URL","").startswith("postgresql://postgres:postgres@localhost:5432/stable_census")
+        assert os.getenv("SALUS_DATABASE_URL","").startswith("postgresql://postgres:postgres@localhost:5432/stable_census") # repo-hygiene: allow - localhost-only ephemeral PostgreSQL CI fixture
         self.conn=self.connect()
         for table in TABLES: self.conn.execute("DROP TABLE IF EXISTS "+table)
         self.conn.executescript(SCHEMA)

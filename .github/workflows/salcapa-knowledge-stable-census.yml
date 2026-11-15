@@ -79,7 +79,7 @@ jobs:
     env:
       SALUS_DB_BACKEND: postgres
       SALUS_POSTGRES_AUTH: dsn
-      SALUS_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stable_census
+      SALUS_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stable_census # repo-hygiene: allow - localhost-only ephemeral PostgreSQL CI fixture
       TEST_STABILITY_POSTGRES: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
