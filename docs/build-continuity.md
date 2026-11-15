@@ -1,33 +1,43 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 12 November 2026 12:45 CST
+last_verified_at: 14 November 2026 21:50 CST
 current_frozen_release: v3.273
 current_frozen_commit: 3572f2b4cf7c2cb65c772d0a848db7d9e6951944
 active_development_branch: development/salcapa-platform
-current_development_head: 5f3b269fe0b07e07e6b4d2089196604aec622e32
+current_development_head: fee9019bb4fbb6934294de22a902d4cbb53a643c
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
-active_increment: salus_v3273_shared_web_links_application_promotion
-last_completed_increment: v3273_second_attempt_reproduced_email_delivery_failure_and_restored_v3223_run43281277021
-candidate_release: v3.273
-validation_pr: 1214
-validation_branch: codex/reconcile-v3-273-email-blocker-20261112
+active_increment: protection_advisor_readonly_v3274_successor_source_candidate
+last_completed_increment: v3273_hold_diagnosed_current_delivery_passed_reader_source_and_retained_record_verified
+candidate_release: v3.274
+validation_pr: 1224
+validation_branch: codex/advisor-connection-preflight-20261114
 validation_base: development/salcapa-platform
-validation_head: 5f3b269fe0b07e07e6b4d2089196604aec622e32
-validation_gate_state: controlled_validation_in_progress
-failed_workflows: protected_runs43278248318_and43281277021_account_creation_and_verification_email
-first_root_failing_gate: v3273_fictional_advisor_verification_email_not_delivered
-root_cause: repeatable_external_verification_email_delivery_failure_after_exact_v3273_runtime_identity_m365_checks
-repair_head: 5f3b269fe0b07e07e6b4d2089196604aec622e32
-repair_summary: stop_after_bounded_second_attempt_preserve_verified_v3223_and_require_email_delivery_diagnosis_before_successor_release
-genuine_blockers: exact_email_delivery_error_diagnosis_successor_source_correction_new_release_and_full_protected_readback
-next_authorized_step: diagnose_graph_verification_email_delivery_without_another_v3273_activation_then_build_a_separately_governed_successor
+validation_head: pending_exact_candidate_head
+validation_gate_state: local_verified_github_pending
+failed_workflows: historical_v3273_runs43278248318_and43281277021_account_verification_email
+first_root_failing_gate: historical_v3273_verification_email_check_current_delivery_probe_passed
+root_cause: historical_error_code_unavailable_current_unchanged_delivery_function_accepted_and_received
+repair_head: dd9d9194e98cff91d4d9ad0f5da4d3d9ab131091
+repair_summary: preserve_v3223_prepare_v3274_with_disabled_reader_and_closed_set_email_diagnostics
+genuine_blockers: superseded_v3273_activation_not_reusable_exact_successor_source_approval_immutable_image_deployment_oauth_and_workspace_acceptance
+next_authorized_step: validate_and_review_v3274_source_candidate_then_separately_approve_immutable_publication_deployment_and_read_access
 deployed_demo_release: v3.223
 deployed_demo_state: failed_v3273_promotion_restored_and_verified_v3223_app_worker_schedule_and_hostname_v3273_image_retained
 ---
 
 # SalCAPA build continuity
+
+## 14 November 2026 — bounded current-delivery diagnosis and v3.274 source preparation
+
+Marc approved PR #1222 exact head `a8e5d0b17575daaffe868123bed30e5608892132` after all four checks passed. Squash merge `dd9d9194e98cff91d4d9ad0f5da4d3d9ab131091` makes the closed-set verification-email diagnostic authoritative. PR #1219's OAuth reader remains merged, disabled and undeployed. This candidate changes the source release marker to **v3.274**; it does not freeze a branch, publish an image, change an activation record, deploy, enable the reader or grant access.
+
+Authenticated Azure resource readback confirmed the accepted v3.223 image digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c` on revision `salcapa-dev-b48224--0000235`, Graph notification mode and the existing configured sender. Entra lists only selected file/list permissions for the workload identity. That alone does not establish a mail defect: read-only Exchange checks verified that the sender mailbox exists and that the exact existing workload principal has an in-scope application mail-send role. No permission was added or broadened.
+
+Marc specifically approved one neutral diagnostic email to his Salus mailbox. The existing delivery function is identical in frozen v3.223 and v3.273 source. One invocation in the accepted live application returned `graph_accepted=true`, `error_code=none`; a matching inbox message and body preview were independently retrieved. No customer data or verification link was included and no Advisor account or assessment was created. This proves the current delivery path for that one message, not the historical cause or full successor launch acceptance. The old exact failure code remains unavailable. Do not rerun either consumed v3.273 activation.
+
+The separately governed successor retains all existing readiness, identity, Microsoft 365, fictional Advisor, cleanup, rollback and worker gates. Its reader remains disabled by default and must initially be deployed without a record-access grant. The approved new logging preserves the acceptance predicate and can report a safe code if the full fictional journey fails again. Exact-head checks/approval, new immutable release identity and image readback, protected application activation, per-user OAuth client/callback/expiry/account configuration and workspace-only read-tool/denial tests remain distinct prerequisites. Administrator retrieval of an existing record is not acceptance of a ChatGPT connection. Preserve the assessment hold.
 
 v3271_pr1185_platform_check_retry: The first PR check run 42672255743 failed before any job started with a GitHub internal server error (correlation 3da3f914-21c4-463b-8e63-016c427c1fc6). No application deployment or Azure setting change resulted. Re-run was refused by GitHub, so this continuity update triggers a fresh candidate check run. Require every current check and Marc's approval of the new exact head before merge.
 
