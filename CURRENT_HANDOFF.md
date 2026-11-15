@@ -19,6 +19,8 @@ Post-merge validation is not all green: infrastructure run 43683911601 failed hy
 
 Independent public readback at 06:20:55 UTC (00:20 CST), 15 November, passed readiness, reported release 3.223 and returned 404 for reader GET, initialize POST and protected-resource metadata. No authenticated source/tool call was made. Restricted receipt: work/protection-advisor-private-20261114/intake-diagnostic-public-disabled-readback-20261115.json. Local checks passed both continuity contracts, hygiene across 1,186 tracked text files and whitespace validation. Stable-census tests reported 20 passed, 7 dedicated PostgreSQL cases skipped and 23 subtests passed; real PostgreSQL cases remain a CI requirement.
 
+Draft review is PR #1239. Concurrent approved handoff merge fec2308cc5a9e57ad50c125f0fc5d4cc65f739eb (#1238) is preserved; its separate census execution and authority do not enable this reader or resolve this task's historical intake evidence gap.
+
 Next: review this source-only receipt/fixture candidate, retain the historical intake blocker and prepare narrowly scoped, candidate-correlated failure telemetry or a bounded preflight proposal for separate review before any successor promotion. No further diagnostic execution, release, OAuth/client/credential/callback/consent, workspace publication or account access is enabled by this record. Existing administrator Compass source readback remains distinct from unfinished workspace connection acceptance and the missing separately retained historical Part 1-only snapshot. **Reader disabled; assessment and public-source/reunification collection on hold.**
 
 ## 14 November 2026 Central - one v3.276 deployment failed intake consistency; v3.223 rollback verified
