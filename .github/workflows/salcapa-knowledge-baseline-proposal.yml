@@ -1,4 +1,4 @@
-name: SalCAPA current knowledge baseline proposal
+name: SalCAPA current knowledge baseline refresh
 
 on:
   pull_request:
@@ -8,11 +8,11 @@ on:
       - 'tools/live_knowledge_baseline_proposal.py'
       - 'tools/live_knowledge_postsearch_resume.py'
       - 'tests/test_knowledge_baseline_proposal.py'
-      - 'deploy/azure/activations/knowledge-baseline-proposal-20261115.json'
+      - 'deploy/azure/activations/knowledge-baseline-refresh-20261115.json'
   push:
     branches: [development/salcapa-platform]
     paths:
-      - 'deploy/azure/activations/knowledge-baseline-proposal-20261115.json'
+      - 'deploy/azure/activations/knowledge-baseline-refresh-20261115.json'
 
 concurrency:
   group: salcapa-knowledge-diagnostic
@@ -44,7 +44,14 @@ jobs:
           for job in workflow['jobs'].values():
               for step in job.get('steps',[]):
                   if 'run' in step: subprocess.run(['bash','-n'],input=step['run'],text=True,check=True)
-          activation=json.loads((root/'deploy/azure/activations/knowledge-baseline-proposal-20261115.json').read_text())
+          activation=json.loads((root/'deploy/azure/activations/knowledge-baseline-refresh-20261115.json').read_text())
+          import ast,base64
+          parsed=ast.parse((root/'tools/live_knowledge_baseline_proposal.py').read_text())
+          constants={n.targets[0].id:ast.literal_eval(n.value) for n in parsed.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id in ('KEY','PHASE_KEY','MAX_REFRESH_SOURCES')}
+          assert constants['KEY']==activation['proposal_operation_key']
+          assert constants['PHASE_KEY']==activation['task_key']
+          assert constants['MAX_REFRESH_SOURCES']==activation['maximum_candidate_refresh_sources']==100
+          assert sum(len(base64.b64encode((root/'tools'/name).read_bytes())) for name in ('live_knowledge_baseline_proposal.py','live_knowledge_postsearch_resume.py'))+2048<128000
           assert activation['baseline_proposal_records_authorized'] is True
           assert activation['baseline_proposal_schema_authorized'] is True
           assert activation['new_search_receipt_count']==activation['query_count']==4
@@ -53,7 +60,7 @@ jobs:
           assert 'az ' not in guard
           with tempfile.TemporaryDirectory() as directory:
               fixture=pathlib.Path(directory)
-              target=fixture/'deploy/azure/activations/knowledge-baseline-proposal-20261115.json'
+              target=fixture/'deploy/azure/activations/knowledge-baseline-refresh-20261115.json'
               target.parent.mkdir(parents=True)
               (fixture/'tools').mkdir()
               for name in ('live_knowledge_baseline_proposal.py','live_knowledge_postsearch_resume.py'):
@@ -131,8 +138,8 @@ jobs:
           test "$GITHUB_RUN_ATTEMPT" = "1"
           python - <<'PY'
           import hashlib,json,pathlib
-          expected=json.loads('{"operation": "knowledge_baseline_proposal", "task_key": "salus-current-recovery-baseline-proposal-20261115", "target_environment": "dev", "resource_group": "rg-salcapa-dev", "original_operation_key": "salus-availability-recovery-plan-20261115", "reference_diagnostic_run_id": 43761349512, "expected_unresolved_sources": 8430, "expected_availability_exceptions": 5, "expected_categories": {"governed_review": 7085, "retry_paused": 733, "automatic_retry": 512, "governed_hold": 93, "other_or_conflicting": 5, "complete_without_text": 0, "no_candidate": 2}, "proposal_state": "Proposed - Awaiting Baseline Approval", "script_sha256": "a48098fd02a26b982ec555449e7299d527081a869e5f7de7613f6be46e33a3e6", "support_script_sha256": "2bfaf1b5c16c6a66f77bd69c61dec7a36afc6cefe3c9b7f67795972586d0ee49", "source_release": "release/v3.276", "source_commit": "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3", "execution_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944", "expected_runtime_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c", "preserved_receipt_count": 4, "preserved_receipt_snapshot_sha256": "cbb850ab8dd3a06e300b5ce2edc40764efc821a9f2fa25d4beca73d6319c01af", "minimum_physical_boundary": 23747, "maximum_inventory_observations": 4, "transaction_budget_seconds": 60, "max_execution_seconds": 900, "query_count": 4, "new_search_receipt_count": 4, "baseline_proposal_records_authorized": true, "baseline_proposal_schema_authorized": true, "new_search_receipts_authorized": true, "recovery_ledger_changes_authorized": false, "source_record_or_schema_changes_authorized": false, "source_content_downloads_authorized": false, "automatic_processing_authorized": false, "new_baseline_adoption_authorized": false, "production_deployment_authorized": false, "protected_member_access": false, "assignment_or_release_authority": false, "execution_cpu": "0.5", "execution_memory": "1Gi"}')
-          actual=json.loads(pathlib.Path('deploy/azure/activations/knowledge-baseline-proposal-20261115.json').read_text())
+          expected=json.loads('{"operation": "knowledge_baseline_refresh", "task_key": "salus-current-recovery-baseline-refresh-20261115", "proposal_operation_key": "salus-current-recovery-baseline-proposal-20261115", "prior_failed_run_id": 43765713976, "maximum_candidate_refresh_sources": 100, "target_environment": "dev", "resource_group": "rg-salcapa-dev", "original_operation_key": "salus-availability-recovery-plan-20261115", "reference_diagnostic_run_id": 43761349512, "expected_unresolved_sources": 8430, "expected_availability_exceptions": 5, "expected_categories": {"governed_review": 7085, "retry_paused": 733, "automatic_retry": 512, "governed_hold": 93, "other_or_conflicting": 5, "complete_without_text": 0, "no_candidate": 2}, "proposal_state": "Proposed - Awaiting Baseline Approval", "script_sha256": "ae518470df0b531b7f8fb52f77192e696acdce54def130dbf15eb71c7c34b57b", "support_script_sha256": "2bfaf1b5c16c6a66f77bd69c61dec7a36afc6cefe3c9b7f67795972586d0ee49", "source_release": "release/v3.276", "source_commit": "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3", "execution_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944", "expected_runtime_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c", "preserved_receipt_count": 4, "preserved_receipt_snapshot_sha256": "cbb850ab8dd3a06e300b5ce2edc40764efc821a9f2fa25d4beca73d6319c01af", "minimum_physical_boundary": 23747, "maximum_inventory_observations": 4, "transaction_budget_seconds": 60, "max_execution_seconds": 900, "query_count": 4, "new_search_receipt_count": 4, "baseline_proposal_records_authorized": true, "baseline_proposal_schema_authorized": true, "new_search_receipts_authorized": true, "recovery_ledger_changes_authorized": false, "source_record_or_schema_changes_authorized": false, "source_content_downloads_authorized": false, "automatic_processing_authorized": false, "new_baseline_adoption_authorized": false, "production_deployment_authorized": false, "protected_member_access": false, "assignment_or_release_authority": false, "execution_cpu": "0.5", "execution_memory": "1Gi"}')
+          actual=json.loads(pathlib.Path('deploy/azure/activations/knowledge-baseline-refresh-20261115.json').read_text())
           assert actual==expected,'activation binding mismatch'
           for path,key in [('tools/live_knowledge_baseline_proposal.py','script_sha256'),('tools/live_knowledge_postsearch_resume.py','support_script_sha256')]:
               assert hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()==expected[key],'script binding mismatch'
@@ -148,7 +155,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$RESOURCE_GROUP" = "rg-salcapa-dev"
-          ACTIVATION=deploy/azure/activations/knowledge-baseline-proposal-20261115.json
+          ACTIVATION=deploy/azure/activations/knowledge-baseline-refresh-20261115.json
           EXPECTED_IMAGE="$(jq -er '.execution_image_digest' "$ACTIVATION")"
           EXPECTED_RUNTIME="$(jq -er '.expected_runtime_image_digest' "$ACTIVATION")"
           test "$(jq -r '.source_release' "$ACTIVATION")" = "release/v3.276"
@@ -175,7 +182,7 @@ jobs:
           ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors)"
           REGISTRY_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query loginServer --output tsv --only-show-errors)"
           test "$(az acr repository show --name salcapadevb48224acr --image "salcapa@${EXPECTED_IMAGE##*@}" --query digest --output tsv --only-show-errors)" = "${EXPECTED_IMAGE##*@}"
-          JOB_NAME=salcapa-baseline-proposal-b48224
+          JOB_NAME=salcapa-baseline-refresh-b48224
           test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
           echo "TASK_JOB_NAMESPACE_CLEAR=1" >> "$GITHUB_ENV"
           SUPPORT_B64="$(base64 -w0 tools/live_knowledge_postsearch_resume.py)"
@@ -199,7 +206,7 @@ jobs:
               phaseRunId="$GITHUB_RUN_ID" phaseScriptSha256="$(jq -r '.script_sha256' "$ACTIVATION")" \
               supportScriptBase64="$SUPPORT_B64" \
             --output none --only-show-errors
-          JOB_NAME=salcapa-baseline-proposal-b48224
+          JOB_NAME=salcapa-baseline-refresh-b48224
           EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" \
             --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
           test -n "$EXECUTION_NAME"
@@ -214,7 +221,7 @@ jobs:
           done
           LOG_EXIT=0
           az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
-            --execution "$EXECUTION_NAME" --container salcapa-baseline-proposal \
+            --execution "$EXECUTION_NAME" --container salcapa-baseline-refresh \
             --tail 300 --format text --only-show-errors > /tmp/task-knowledge-search.log 2>&1 || LOG_EXIT=$?
           case "$STATUS" in
             Succeeded|Failed|Running|Pending|Processing|Stopped|Unknown) OBSERVED_STATUS="$STATUS" ;;
@@ -225,6 +232,7 @@ jobs:
           # Emit only fixed telemetry; raw CLI errors stay private.
           grep -E '^.*(TASK_KNOWLEDGE|BASELINE|STABILITY|POSTSEARCH)_[A-Z0-9_]+=.*$' /tmp/task-knowledge-search.log || true
           test "$LOG_EXIT" = "0"
+          grep -q 'BASELINE_LOCKED_REFRESH_VERIFIED=1' /tmp/task-knowledge-search.log
           grep -q 'BASELINE_PROPOSAL_COMPLETE=1' /tmp/task-knowledge-search.log
           grep -q 'BASELINE_FRESH_CONNECTION_VERIFIED=1' /tmp/task-knowledge-search.log
           grep -q 'BASELINE_PRESERVED_RECEIPTS=4' /tmp/task-knowledge-search.log
@@ -240,7 +248,7 @@ jobs:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         run: |
           set -euo pipefail
-          JOB_NAME=salcapa-baseline-proposal-b48224
+          JOB_NAME=salcapa-baseline-refresh-b48224
           if [ "${TASK_JOB_NAMESPACE_CLEAR:-0}" != "1" ]; then exit 0; fi
           az account show --only-show-errors >/dev/null
           RUNTIME_OK=1
@@ -261,7 +269,7 @@ jobs:
             echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=0"
           fi
           if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/task-search-cleanup.json 2>/dev/null; then
-            test "$(jq -r '.tags.salusTaskKey' /tmp/task-search-cleanup.json)" = "salus-current-recovery-baseline-proposal-20261115"
+            test "$(jq -r '.tags.salusTaskKey' /tmp/task-search-cleanup.json)" = "salus-current-recovery-baseline-refresh-20261115"
             test "$(jq -r '.properties.template.containers[0].image' /tmp/task-search-cleanup.json)" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944"
             az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes --only-show-errors
           fi
