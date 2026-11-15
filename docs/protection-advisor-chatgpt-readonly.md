@@ -2,6 +2,10 @@
 
 Status: reader source merged in PR #1219; closed-set delivery diagnostics merged in PR #1222. Frozen v3.276 and its image are verified, but its one deployment failed intake consistency and rolled back to accepted v3.223. The activation is consumed; no retry is authorized. The reader is disabled and has not been deployed, connected or accepted. The requested assessment remains on hold.
 
+## 15 November 2026 06:54 CST - all current pending items compared; archive compatibility limit
+
+PR #1240 merged as `5301a60f4e53893796ec0e800317cedafbf349fe`; all 48 post-merge jobs passed. A new metadata-only pass completed comparisons for all 33 items in its current pending listing, each HTTP 200 with zero mismatches across the six guards. The bounded archive attempt stopped before source requests because accepted v3.223 permits max_files only for pending intake; live method hash and a no-client invocation verified this. No unbounded fallback or runtime replacement occurred. The historical v3.276 failed item/predicate remains unavailable. The proposed evidence design is [Microsoft 365 intake failure evidence plan](m365-intake-failure-evidence-plan.md); no instrumentation, promotion or reader activation is included. Public readback still reports healthy v3.223 and 404 for all three reader endpoints. The assessment remains on hold.
+
 ## 15 November 2026 06:39 CST - completed bounded metadata observation
 
 PR #1239 merged as `92ccf8cd2755148690554ac407400d889f3874f0`; all 51 post-merge jobs passed. A new single-pass probe completed ten item metadata comparisons with HTTP 200 and zero mismatches across all six guards. The 33-item pending window contained positive-size files whose extensions were all outside the diagnostic family groups, explaining the earlier empty format sample. This does not prove all-item/content acceptance or the historical failure's cause. Public readback still reports healthy v3.223 and 404 for all three reader endpoints. Exact restricted receipt and limits are in CURRENT_HANDOFF.md. No deployment, permission change, workspace publication, document-content download or assessment action occurred.

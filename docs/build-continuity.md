@@ -1,33 +1,48 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 15 November 2026 06:39 CST
+last_verified_at: 15 November 2026 06:54 CST
 current_frozen_release: v3.276
 current_frozen_commit: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
 active_development_branch: development/salcapa-platform
-current_development_head: 92ccf8cd2755148690554ac407400d889f3874f0
+current_development_head: 5301a60f4e53893796ec0e800317cedafbf349fe
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
 active_increment: protection_advisor_readonly_v3276_held_application_promotion
-last_completed_increment: pr1239_merged_51_postmerge_jobs_passed_ten_current_metadata_comparisons_complete_no_historical_root_cause
+last_completed_increment: pr1240_merged_48_postmerge_jobs_passed_all33_current_pending_comparisons_complete_archive_version_limit_verified
 candidate_release: v3.276
-validation_pr: 1240
-validation_branch: codex/advisor-intake-window-20261115
+validation_pr: 1242
+validation_branch: codex/advisor-intake-evidence-20261115
 validation_base: development/salcapa-platform
-validation_head: pending_exact_completed_window_receipt_head
+validation_head: pending_exact_pending_receipt_and_evidence_plan_head
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: v3276_deploy_run43679803060_M365_listing_guard_historical_cause_unproven_source_checks_green_at_pr1239_merge
+failed_workflows: v3276_deploy_run43679803060_M365_listing_guard_historical_cause_unproven_source_checks_green_at_pr1240_merge
 first_root_failing_gate: isolated_M365_intake_read_listed_document_consistency_guard
 root_cause: specific_ID_name_etag_size_parent_or_snapshot_mismatch_unrecorded_underlying_cause_unproven
 repair_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
-repair_summary: record_complete_ten_item_metadata_probe_current_extension_sampling_limit_and_unchanged_disabled_reader_v3223
-genuine_blockers: v3276_activation_consumed_historical_candidate_predicate_unretained_no_new_promotion_authority_OAuth_workspace_acceptance_open
-next_authorized_step: validate_receipt_only_update_then_review_privacy_preserving_candidate_correlated_failure_evidence_plan_before_any_successor_promotion
+repair_summary: record_all33_pending_metadata_result_archive_version_limit_and_proposed_safe_failure_evidence_contract
+genuine_blockers: historical_candidate_predicate_unretained_v3223_bounded_archive_incompatible_v3276_consumed_no_new_promotion_authority_OAuth_workspace_acceptance_open
+next_authorized_step: validate_receipt_and_proposed_failure_evidence_plan_before_preparing_a_separately_governed_source_or_promotion_candidate
 deployed_demo_release: v3.223
 deployed_demo_state: v3276_intake_failure_rolled_back_to_verified_v3223_app_worker_hostname_reader_disabled
 ---
 
 # SalCAPA build continuity
+
+## 15 November 2026 06:54 CST - PR #1240 merged; current pending check complete and archive version limit verified
+
+Marc authorized PR #1240 exact head `4f8b14d9b7ab8e916bf45abbd23539ac48c91017`, ready/merge and continued read-only intake diagnosis, keeping the reader disabled and assessment on hold. Rechecked all five passing PR jobs and clean mergeability, marked ready and squash merged as `5301a60f4e53893796ec0e800317cedafbf349fe`. All three reviewed document blobs matched the approved head; the five governing records were refreshed. All 48 post-merge jobs completed successfully. No deployment, image publication, activation replay, source-record mutation or access grant occurred.
+
+Independent public readback at 12:48:56 UTC (06:48 CST) passed readiness, reported accepted v3.223 and returned 404 for reader GET, initialize POST and protected-resource metadata. Restricted receipt: work/protection-advisor-private-20261114/after-pr1240-public-disabled-readback.json. The existing app console connected to revision `salcapa-dev-b48224--0000237`, replica ending `-rws8p`, using the existing SALUS staff session/app identity. Scale settings, resources and permissions were unchanged.
+
+The expanded metadata-only probe SHA-256 is `f5c5431bb1ae534b2ccd54836f990e7178e35f8285709f35082b73d6c9b81b5b`. A mock checked pending/archive sample selection, isolated eTag drift and raw-identifier redaction. At 12:50:53 UTC (06:50 CST), the live pending pass completed in 14.686 seconds. It listed 33 pending items within a 500-item listing limit and compared all 33 within a 50-item comparison limit. Every metadata request returned HTTP 200; all six mismatch counters were zero and the selected batch completed without reaching its time guard. All 33 were positive-size files outside the diagnostic's six supported-extension groups. No document bytes were downloaded or parsed and no business records were written. This supersedes the ten-item sampling limit for this newer current pending observation only.
+
+The separate processed-archive invocation emitted ValueError before a listing or completion receipt. Live no-client/no-config invocation independently verified that accepted v3.223 rejects processed_only with max_files before a source request. The live list_files AST hash `009e4546334e5c135fa5f7c0cf52cd713193dd7156fb2ca1024a183d606d0bfc` matches accepted source `5dff59b381a0c455f99c6f15d0e2a37c273f4056`; frozen v3.276's corresponding hash is `a71bf9f3ce0687aeb7c20c73c5ce02a6510ae4048fdd7279872ce16693ec9623`. Source inspection confirms newer v3.276 permits a bounded archive and streams listing pages differently. The document-read consistency method is identical, but the listing methods differ. No archive item comparison occurred; the bound was retained, with no unbounded fallback or live method replacement. This diagnostic compatibility limit does not establish the cause of the historical v3.276 document-guard failure.
+
+Restricted exact results, candidate-set hash, method/source hashes and compatibility readback are retained outside Git at work/protection-advisor-private-20261114/m365-pending-full-and-archive-compatibility-20261115.json. Raw names, IDs, URLs, eTags and source content are absent. These are current pending metadata observations, not a full-Library or content-acceptance receipt, proof of historical source stability, or acceptance of a working ChatGPT connection. Consumed deployment run 43679803060 did not retain its failed item/predicate; the historical underlying cause remains unproven. More successful current samples cannot recover those missing facts.
+
+Prepared proposed diagnostic design docs/m365-intake-failure-evidence-plan.md: retain the six exact failure predicates, stage/timing and run-scoped opaque correlation in restricted evidence, preserve existing rejection and pre-content-read ordering, keep general CI output content-free, test stable/all-drift/out-of-bound/diagnostic-failure cases and stop on deployed-version incompatibility. This is a reviewable design only, not runtime instrumentation, a deployment or permission change. The accepted baseline remains v3.223; v3.276 stays published/held and its activation consumed. Next: review this receipt and evidence plan before preparing any separately governed source/promotion candidate. Existing administrator Compass source readback remains distinct from unfinished OAuth/workspace acceptance and the missing separately retained historical Part 1-only snapshot. **Reader disabled; assessment and future public-source/reunification collection on hold.**
+
 
 ## 15 November 2026 06:39 CST - PR #1239 merged; ten-item metadata diagnostic completed
 
