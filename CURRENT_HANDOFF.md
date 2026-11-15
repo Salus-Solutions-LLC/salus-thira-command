@@ -1,6 +1,18 @@
 # Salus Solutions — Current Handoff
 
 
+
+## 14 November 2026 Central - v3.275 source merged and frozen; image publication candidate
+
+Marc explicitly authorized marking PR #1226 ready, merging exact head `a44d3e5b0bcde0a7346892b3a00b08b9b084757a` and freezing `release/v3.275` at the resulting commit. Rechecked clean mergeability and all four passing checks, marked ready and squash merged as `ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6`. Verified the release ref did not exist before creation, created it at the merge commit and independently read back that exact SHA. Key dependency/runtime/reader/acceptance-script blobs match the approved head. Re-read the five governing records after merge. Do not rewrite v3.274 or v3.275.
+
+This candidate advances only the image activation to frozen `release/v3.275`, source `ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6`, activation `salcapa-v3.275-image-ae2b083d`, plus continuity/handoff. It preserves the existing dev registry, workload-federated identity, protected approval environment, exact frozen-source/runtime/OCI-label/nonroot/worker assertions and digest readback. Merging this candidate will request one protected immutable image publication to the existing registry. It does not deploy the application or worker, add credentials, change a permission or enable the reader. No image publication has yet been invoked or accepted. Require final exact-head checks and Marc's specific publication approval before merge, then verify the workflow and registry digest before preparing application promotion.
+
+The last accepted deployment remains v3.223. Historical v3.273 promotion activations are consumed and must not be replayed. v3.274 publication remains held for its failed dependency audit; v3.275 contains the approved 1.45.2 patch. Administrator retrieval verified the complete retained combined response/profile/history and exact registered original within the prior handoff's explicit historical Part 1-only and original-content limits; this is not a live ChatGPT connection. The per-user client, actual callback, expiry and verified workspace account mapping, concrete access confirmation, workspace-only publication and read/denial/unchanged-state tests remain open. The assessment remains on hold.
+
+Search/capture limits: inspected the authoritative repository, governing records, immutable publication workflow/contract, source checks and existing restricted readback evidence. The broader Knowledge census in the concurrent workstream failed closed on growing source-representation gaps; its historical receipts do not establish this task's complete live-corpus coverage. Task-specific full-corpus consideration and automated full-chat capture remain open. No unrelated Protected Member records or new assessment research were accessed.
+
+
 ## 14 November 2026 - v3.274 source frozen; publication held for dependency security correction
 
 Marc authorized PR #1224 exact head `81396621c1cea2bdb2f0edb9d54501d7d6b059e1`. Its four PR checks passed; it was marked ready and squash merged as `d8125b42fca4789be1c34a67d39831b2f5a212d3`. Readback verified the approved runtime, configuration, reader and acceptance-script blobs. The previously absent `release/v3.274` branch was created at that exact merge commit and read back independently. Its immutable-release guard passed. Do not rewrite the frozen branch.
