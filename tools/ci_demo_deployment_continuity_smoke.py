@@ -198,7 +198,8 @@ def main() -> None:
         # A published successor awaiting approval must remain distinct from
         # the accepted runtime. Bind that pending state to both exact image
         # and application records instead of relabelling it as accepted.
-        assert values["promotion_readiness"] == "preflight_ready"
+        assert values["promotion_readiness"] in {"preflight_ready", "not_ready"}
+        assert values["critical_journey_acceptance"] == "not_verified"
         assert values["promotion_candidate"] == build["current_frozen_release"] == build["candidate_release"]
         assert values["promotion_candidate_image_commit"] == build["current_frozen_commit"]
         assert values["promotion_candidate_image_acceptance"] == "immutable_image_published_not_deployed"

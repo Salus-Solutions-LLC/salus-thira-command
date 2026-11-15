@@ -62,6 +62,14 @@ def test_pending_published_image_preserves_accepted_runtime(pending_promotion):
     checks.main()
 
 
+def test_held_image_after_rollback_remains_unaccepted(pending_promotion):
+    amend_frontmatter(checks.RECORD, {"promotion_readiness": "not_ready"})
+    checks.main()
+    amend_frontmatter(checks.RECORD, {"critical_journey_acceptance": "verified"})
+    with pytest.raises(AssertionError):
+        checks.main()
+
+
 @pytest.mark.parametrize("document,field,value", [
     ("demo", "promotion_readiness", "accepted"),
     ("demo", "promotion_candidate_image_acceptance", "immutable_image_deployed_and_accepted"),

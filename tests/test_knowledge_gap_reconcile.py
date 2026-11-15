@@ -164,7 +164,7 @@ class EnrollmentTests(unittest.TestCase):
 @unittest.skipUnless(os.getenv("TEST_GAP_POSTGRES") == "1","dedicated CI PostgreSQL only")
 class PostgreSQLEnrollmentTests(EnrollmentTests):
     def setUp(self):
-        assert os.getenv("SALUS_DATABASE_URL","").startswith("postgresql://postgres:postgres@localhost:5432/gap_reconcile")
+        assert os.getenv("SALUS_DATABASE_URL","").startswith("postgresql://postgres:postgres@localhost:5432/gap_reconcile") # repo-hygiene: allow - matches the localhost-only PostgreSQL CI fixture
         from database import connect_database
         self.conn = connect_database()
         for table in TABLES:

@@ -1,33 +1,55 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 November 2026 23:01 CST
+last_verified_at: 14 November 2026 23:43 CST
 current_frozen_release: v3.276
 current_frozen_commit: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
 active_development_branch: development/salcapa-platform
-current_development_head: 4cec0e69cc998ab6cbab1ebe3d852e3aa5c35330
+current_development_head: 6ebdf9d2b420a3d8bffc556524154e9983b6131a
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
-active_increment: protection_advisor_readonly_v3276_application_promotion
-last_completed_increment: v3276_immutable_image_published_once_independent_registry_readback_and_v3223_baseline_verified
+active_increment: protection_advisor_readonly_v3276_held_application_promotion
+last_completed_increment: v3276_single_attempt_intake_guard_failed_cleanup_and_v3223_rollback_independently_verified
 candidate_release: v3.276
 validation_pr: 1233
-validation_branch: codex/advisor-v3276-promotion-20261114
+validation_branch: codex/advisor-v3276-deployment-readback-20261114
 validation_base: development/salcapa-platform
-validation_head: pending_exact_application_candidate_head
+validation_head: pending_exact_rollback_record_candidate_head
 validation_gate_state: controlled_validation_in_progress
-failed_workflows: historical_v3274_dependency_audit_v3275_CodeQL_and_v3273_email_promotions
-first_root_failing_gate: historical_reader_exception_disclosure_corrected_in_frozen_v3276
-root_cause: v3275_raw_exception_message_replaced_with_fixed_public_text_in_v3276
+failed_workflows: v3276_deploy_run43679803060_M365_listing_guard_and_infra_run43679803097_inert_fixture_hygiene
+first_root_failing_gate: isolated_M365_intake_read_listed_document_consistency_guard
+root_cause: specific_ID_name_etag_size_parent_or_snapshot_mismatch_unrecorded_underlying_cause_unproven
 repair_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
-repair_summary: v3276_image_verified_prepare_disabled_reader_app_promotion_preserve_v3223_rollback
-genuine_blockers: exact_application_head_approval_protected_deployment_full_existing_acceptance_cleanup_and_worker_verification_then_per_user_OAuth_workspace_acceptance
-next_authorized_step: validate_application_candidate_then_obtain_exact_head_merge_and_one_protected_deployment_authority
+repair_summary: retain_v3223_and_disabled_reader_record_consumed_v3276_attempt_and_fixture_only_hygiene_annotations
+genuine_blockers: v3276_activation_consumed_specific_guard_predicate_unproven_metadata_probe_completion_unverified_no_new_promotion_authority_OAuth_workspace_acceptance_open
+next_authorized_step: validate_record_only_hygiene_repair_then_verify_bounded_metadata_diagnostic_before_any_new_promotion
 deployed_demo_release: v3.223
-deployed_demo_state: v3223_current_application_worker_digest_and_schedule_verified_v3276_image_published_not_deployed
+deployed_demo_state: v3276_intake_failure_rolled_back_to_verified_v3223_app_worker_hostname_reader_disabled
 ---
 
 # SalCAPA build continuity
+
+## 14 November 2026 Central - one v3.276 deployment failed intake consistency; v3.223 rollback verified
+
+Marc explicitly authorized PR #1233 exact head `afba33725cd019fcc5eeaaf2c78dbbeaca1aa43f`, one protected deployment with full acceptance/rollback controls, and keeping the reader disabled and assessment on hold. Rechecked all five passing PR jobs and clean mergeability, marked ready and squash merged as `6ebdf9d2b420a3d8bffc556524154e9983b6131a`. Approved activation, continuity, checker and regression blobs matched after merge; all five governing records were re-read. Concurrent authorized handoff work was preserved.
+
+Protected [run 43679803060](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/43679803060), attempt 1, authorize job 132707745453 and deployment job 132707770854, finished with overall **failure**. Exact frozen/rollback source and registry/target checks, Azure preview/application deployment, live readiness/identity/ingress/sign-in and previous-worker continuity passed. The isolated Microsoft 365 intake execution failed; temporary-job deletion and zero-remaining-job assertion passed. The fictional Advisor journey and scheduled-worker promotion were skipped, so no verification email or Advisor acceptance is claimed for this attempt. No second deployment, workflow rerun or old activation replay occurred. This v3.276 activation is consumed.
+
+Recorded failure at 05:15:12 UTC, 15 November 2026 (14 November, 23:15 CST): `tools/live_m365_intake_acceptance.py` line 169 called `GovernedM365Intake.read_listed_document`; `salcapa_m365_intake.py` line 368 raised `M365IntakeError: Governed Microsoft 365 item changed after listing`. That guard rejects an ID, name, eTag, size, parent-boundary or saved-listing mismatch before reading that failed item. The log retained neither the specific failed predicate nor its compared values. Do not assert that an external source mutation, worker activity, a provider defect or any one field caused the failure. Earlier samples may already have been read; no global zero-download claim is made for the failed acceptance job.
+
+Rollback succeeded and independently verified current state is accepted **v3.223**. Azure app JSON shows digest `sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c`, revision `salcapa-dev-b48224--0000237`, Succeeded, with no Advisor MCP settings. Worker JSON shows the same digest, Succeeded, Schedule `*/2 * * * *`, timeout 900 seconds and zero retries. Their last-modified timestamps are 05:17:00 and 05:16:41 UTC. An independent unauthenticated public readback at 05:20:53 UTC passed the readiness contract and reported version 3.223; reader GET, initialize POST and protected-resource metadata each returned 404. The hostname was restored by the rollback gate. This is selected current-state readback, not complete before/after configuration equality, a new Member-record audit or workspace connection acceptance. Private receipts remain outside Git at work/protection-advisor-private-20261114/v3276-deployment-rollback-readback.json and v3276-final-public-disabled-readback.json.
+
+The published v3.276 image remains `sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944`, frozen source `7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3`; it is held, not deployed or accepted. Preserve all frozen refs and the one-publication receipt. Do not waive the listing/version/ancestry/byte guards, relabel a changed candidate as unchanged, silently skip the failed item or retry the consumed application activation.
+
+Bounded diagnosis: AST comparison established that the complete read_listed_document method is identical in v3.223 and v3.276. A three-pass, at-most-500-pending-record metadata-only probe was prepared and mock-tested to distinguish the six comparisons and omit raw names/IDs/URLs; it does not download bytes, parse documents or write business data. The existing app console initially connected but did not return a command receipt; custom-command attempts reported Failed to connect. A normal readiness GET refreshed the existing scale-to-zero app and the portal showed a new replica, but no probe completion or metadata observations were verified. Thus no current-source stability result or historical root cause is claimed. The prepared private probe SHA-256 is `863201dd2736b6a7be7d23ff976c95deba9d447a730f4537d6d2b380cc06c07f`. No debug container, scaling-setting change, new permission or persistent diagnostic resource was created.
+
+Separate post-merge [infrastructure validation run 43679803097](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/43679803097), job 132707745717, failed repository hygiene. Local inspection identified only the localhost PostgreSQL CI fixture URL and its matching test assertion in the concurrent Knowledge-gap workflow/tests. Verified they match the explicitly configured ephemeral postgres:16 service, localhost:5432 and test database, then added the checker's permitted, explicit fixture-only annotations on those two lines. No real credential was exempted and the checker/rules are unchanged. Local hygiene now passes across 1,180 tracked text files. This reporting/fixture repair does not resolve the live intake failure or authorize another deployment.
+
+This follow-up only records rollback/hold, annotates those inert fixtures and validates the explicit not-ready/rollback continuity state while retaining exact frozen/image/application/rollback binding and unverified critical-journey status. Image and application activation files, deployment workflow, runtime, permissions and reader configuration remain unchanged. Require final source checks and separate exact-head approval before merging this record-only repair; merging it must not trigger a deployment, publication or consumed Knowledge activation.
+
+Next, owner Marc/System Administrator: obtain a verified candidate-correlated, metadata-only diagnostic through a functioning console or a separately reviewed isolated read-only execution. Record the exact guard predicate, same-sample pre/post provenance and timing with safe output; distinguish current observations from unavailable historical evidence. Identify the correction and test stable, drifted and out-of-bound sources without weakening fail-closed controls before preparing any separately authorized successor promotion. Per-user OAuth/workspace access remains unfinished and disabled. **The assessment remains on hold; future public-source/reunification collection remains queued and unstarted.** Task-specific complete live-corpus consideration and automatic full-chat capture remain open; no exhaustive source-review or capture claim is made.
+
+
 
 ## 14 November 2026 Central - v3.276 image published and registry verified; disabled-reader application promotion candidate
 

@@ -1,6 +1,6 @@
 # Protection Advisor read-only ChatGPT connection
 
-Status: reader source merged in PR #1219; closed-set delivery diagnostics merged in PR #1222. Frozen v3.276 source and its immutable image are verified; application promotion remains a separate candidate. The reader is disabled and has not been deployed, connected or accepted. The requested assessment remains on hold.
+Status: reader source merged in PR #1219; closed-set delivery diagnostics merged in PR #1222. Frozen v3.276 and its image are verified, but its one deployment failed intake consistency and rolled back to accepted v3.223. The activation is consumed; no retry is authorized. The reader is disabled and has not been deployed, connected or accepted. The requested assessment remains on hold.
 
 ## Authorized boundary
 

@@ -1,13 +1,13 @@
 ---
 schema_version: 1
 record_kind: salcapa_demo_deployment_continuity
-last_verified_at: 14 November 2026 22:55 CST
+last_verified_at: 14 November 2026 23:38 CST
 environment: azure_development_demonstration
 deployed_release: v3.223
 deployed_commit: 5dff59b381a0c455f99c6f15d0e2a37c273f4056
 image_digest: sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c
-deployed_at: 12 November 2026 12:43 CST
-deployment_workflow_run: 43281277021
+deployed_at: 14 November 2026 23:17 CST
+deployment_workflow_run: 43679803060
 deployment_acceptance: live_runtime_readiness_accepted
 current_stable_release: v3.223
 current_stable_commit: 5dff59b381a0c455f99c6f15d0e2a37c273f4056
@@ -18,14 +18,19 @@ promotion_candidate_image_reference: salcapadevb48224acr.azurecr.io/salcapa@sha2
 promotion_candidate_image_published_at: 14 November 2026 22:50 CST
 promotion_candidate_image_workflow_run: 43678397809
 promotion_candidate_image_acceptance: immutable_image_published_not_deployed
-promotion_readiness: preflight_ready
+promotion_readiness: not_ready
 fictional_member_seed_state: not_verified
 critical_journey_acceptance: not_verified
 rollback_baseline: v3.223
-genuine_blocker: v3276_exact_application_candidate_approval_protected_live_acceptance_cleanup_and_worker_verification_pending
+genuine_blocker: v3276_attempt_consumed_M365_listing_consistency_failure_specific_predicate_unproven_reader_disabled
 ---
 
 # SalCAPA development demonstration continuity
+
+## 14 November 2026 - v3.276 attempt closed; accepted v3.223 restored
+
+Run 43679803060 failed the isolated M365 intake listing-consistency check. Temporary-job cleanup and rollback passed; the Advisor journey and worker promotion were skipped. Independent portal and public readback verified restored v3.223 app revision 0000237, worker image/schedule and disabled reader responses. The updated deployed_at value is the observed application ARM restoration last-modified minute. The v3.276 image remains published and held; its activation is consumed and promotion_readiness is not_ready. The failed predicate and underlying cause were not retained; the attempted console metadata probe produced no verified result. No further promotion, reader access, assessment or research collection is authorized by this record. Earlier preflight-ready language below is historical and superseded by this dated entry and CURRENT_HANDOFF.md.
+
 
 ## 14 November 2026 - current baseline and pending promotion
 
