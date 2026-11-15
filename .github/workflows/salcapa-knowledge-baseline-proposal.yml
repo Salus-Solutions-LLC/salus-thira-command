@@ -56,7 +56,7 @@ jobs:
               target=fixture/'deploy/azure/activations/knowledge-baseline-proposal-20261115.json'
               target.parent.mkdir(parents=True)
               (fixture/'tools').mkdir()
-              for name in ('live_knowledge_cohort_drift.py','live_knowledge_postsearch_resume.py'):
+              for name in ('live_knowledge_baseline_proposal.py','live_knowledge_postsearch_resume.py'):
                   shutil.copyfile(root/'tools'/name,fixture/'tools'/name)
               def check(value,attempt='1'):
                   target.write_text(json.dumps(value))
@@ -66,7 +66,7 @@ jobs:
                   changed=dict(activation);changed[key]='invalid-binding-fixture'
                   assert check(changed)!=0,key
               assert check(activation,'2')!=0
-              for name in ('live_knowledge_cohort_drift.py','live_knowledge_postsearch_resume.py'):
+              for name in ('live_knowledge_baseline_proposal.py','live_knowledge_postsearch_resume.py'):
                   path=fixture/'tools'/name;before=path.read_bytes();path.write_bytes(before+b'# altered')
                   assert check(activation)!=0
                   path.write_bytes(before)
