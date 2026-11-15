@@ -1,33 +1,49 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 November 2026 22:33 CST
-current_frozen_release: v3.275
-current_frozen_commit: ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6
+last_verified_at: 14 November 2026 22:40 CST
+current_frozen_release: v3.276
+current_frozen_commit: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
 active_development_branch: development/salcapa-platform
-current_development_head: ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6
+current_development_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
-active_increment: protection_advisor_readonly_v3276_error_sanitization_source_candidate
-last_completed_increment: v3275_source_merged_frozen_publication_withheld_codeql_finding
+active_increment: protection_advisor_readonly_v3276_immutable_image_publication
+last_completed_increment: v3276_sanitized_reader_source_merged_frozen_all_five_PR_gates_passed
 candidate_release: v3.276
-validation_pr: 1229
-validation_branch: codex/advisor-v3276-errors-20261114
+validation_pr: 1230
+validation_branch: codex/advisor-v3276-publication-20261114
 validation_base: development/salcapa-platform
-validation_head: pending_exact_candidate_head
-validation_gate_state: github_validation_running
-failed_workflows: v3275_CodeQL_run43676750680_job132698529628
-first_root_failing_gate: CodeQL_py_stack_trace_exposure_reader_exception_message
-root_cause: reader_returned_str_exc_from_ValueError_and_LookupError_to_JSON_RPC_caller
-repair_head: ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6
-repair_summary: fixed_public_error_text_fictional_disclosure_regressions_CodeQL_on_governed_PRs
-genuine_blockers: superseded_v3275_publication_request_closed_codeql_fix_validation_exact_source_approval_new_freeze_image_deployment_and_oauth_acceptance
-next_authorized_step: validate_v3276_exact_head_including_CodeQL_then_obtain_source_merge_and_freeze_authority
+validation_head: pending_exact_publication_head
+validation_gate_state: controlled_validation_in_progress
+failed_workflows: historical_v3274_dependency_audit_v3275_CodeQL_and_v3273_email_promotions
+first_root_failing_gate: historical_reader_exception_disclosure_corrected_in_frozen_v3276
+root_cause: v3275_raw_exception_message_replaced_with_fixed_public_text_in_v3276
+repair_head: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
+repair_summary: v3276_frozen_prepare_exact_immutable_publication_preserve_disabled_reader_and_v3223_rollback
+genuine_blockers: exact_publication_head_approval_protected_execution_registry_digest_readback_then_app_deployment_and_per_user_OAuth_workspace_acceptance
+next_authorized_step: validate_publication_candidate_then_obtain_exact_head_merge_and_one_image_publication_authority
 deployed_demo_release: v3.223
 deployed_demo_state: failed_v3273_promotion_restored_and_verified_v3223_app_worker_schedule_and_hostname_v3273_image_retained
 ---
 
 # SalCAPA build continuity
+
+## 14 November 2026 Central - v3.276 source merged and frozen; immutable publication request
+
+Marc authorized marking PR #1229 ready, merging exact head `dbcceb1b41dcdeea4367b51cec7cdfa11d6e66a1` and freezing `release/v3.276`. Rechecked clean mergeability and all five passing jobs including CodeQL, marked ready and squash merged as `7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3`. Verified the release ref absent, created it at that commit and independently read back its exact SHA. Requirements, runtime, reader, regression tests and CodeQL workflow blobs match the approved source. Re-read the five governing records. Preserve all frozen branches unchanged.
+
+This request advances the existing image activation to `release/v3.276`, exact source `7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3`, activation `salcapa-v3.276-image-7b79b284`. Merging requests one protected immutable publication to the existing dev registry. It preserves workload-federated identity, protected approval, exact frozen-source/version/OCI-label/nonroot/worker assertions and registry digest readback. The publication workflow is unchanged and performs no app/worker deployment. Reader configuration, business records, permissions, credentials and workspace availability are unchanged. No publication has been executed by this candidate.
+
+Release lineage: `v3274_dependency_audit_withheld_before_publication` identifies frozen source d8125b42fca4789be1c34a67d39831b2f5a212d3; `v3275_codeql_withheld_before_publication` identifies ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6. PR #1228 was closed without merge or execution. The consumed v3.273 attempt-2 application activation remains staged and unchanged; it is not the deployed application. Accepted runtime/rollback remains v3.223. Never retry either old activation or publish the withheld sources.
+
+The historical reference-image preflight adds a bounded exception for only staged v3.273 to exact frozen v3.276. It requires this source/activation identity, both withheld-release markers and the unchanged v3.223 application/worker rollback lineage; no generic version skip is admitted. Its PR trigger now includes the governed development target, so the complete reference-image contract/build is checked before merge. Existing historical cases and protected publication gates remain intact.
+
+Next: complete final exact-head checks and obtain Marc's specific approval to merge this request and execute one immutable image publication; verify run result and independently read back its registry digest. Only then prepare protected app promotion with the reader disabled and v3.223 rollback. Complete the separately reviewed per-user OAuth client, actual callback, expiry and current workspace identity mapping, concrete access confirmation, workspace-only publication and read/denial/unchanged-state acceptance. Existing administrator retrieval of retained Compass records does not establish live workspace access. The assessment remains on hold.
+
+Search/capture limits: consulted authoritative repository/governing records, exact approved source/security results, publication and historical preflight contracts and prior restricted source-readback evidence. Complete live-corpus task consideration and automatic chat capture remain open under the separately recorded Knowledge representation/capture gaps. No new assessment, unrelated Protected Member access, report generation or source-content promotion occurred.
+
+
 
 ## 14 November 2026 Central - v3.275 source merged and frozen; publication withheld for reader error disclosure
 

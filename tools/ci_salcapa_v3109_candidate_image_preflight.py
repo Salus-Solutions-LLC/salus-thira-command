@@ -138,7 +138,30 @@ else:
     # no generic version skip can qualify an image for publication.
     immediate_successor = (accepted_version[0], accepted_version[1] + 1)
     superseding_successor = (accepted_version[0], accepted_version[1] + 2)
-    if (accepted_version, published_version) == ((3, 225), (3, 227)):
+    if (accepted_version, published_version) == ((3, 273), (3, 276)):
+        # The v3.273 activation is consumed and rolled back to v3.223.
+        # v3.274 failed dependency audit; v3.275 failed CodeQL. Neither
+        # withheld source was published. Admit only this exact repair source
+        # while preserving the unchanged staged activation and rollback.
+        build = front_matter(BUILD_CONTINUITY)
+        continuity = BUILD_CONTINUITY.read_text(encoding="utf-8")
+        assert build["current_frozen_release"] == "v3.276"
+        assert build["candidate_release"] == "v3.276"
+        assert build["current_frozen_commit"] == "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3"
+        assert image_publication["source_commit"] == "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3"
+        assert accepted_application["source_commit"] == "3572f2b4cf7c2cb65c772d0a848db7d9e6951944"
+        assert accepted_application["activation_key"] == "salcapa-v3.273-application-3572f2b4"
+        assert accepted_application["activation_retry_attempt"] == 2
+        assert accepted_application["rollback_release"] == "release/v3.223"
+        assert accepted_application["rollback_commit"] == "5dff59b381a0c455f99c6f15d0e2a37c273f4056"
+        rollback = "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c"
+        assert accepted_application["rollback_image_digest"] == rollback
+        assert accepted_application["previous_application_image_digest"] == rollback
+        assert accepted_application["previous_worker_image_digest"] == rollback
+        assert build["deployed_demo_release"] == "v3.223"
+        assert "v3274_dependency_audit_withheld_before_publication" in continuity
+        assert "v3275_codeql_withheld_before_publication" in continuity
+    elif (accepted_version, published_version) == ((3, 225), (3, 227)):
         # Frozen v3.226 was withheld before image publication because the
         # generated Word report lacked five graphic descriptions. The reviewed
         # v3.227 source repairs that output while the deployed v3.225 image
