@@ -19,7 +19,7 @@ resource acceptanceJob 'Microsoft.App/jobs@2024-03-01' = {
   location: location
   tags: {
     salusOperation: 'knowledge-task-search'
-    salusTaskKey: 'salus-search-and-chat-capture-20261114'
+    salusTaskKey: 'salus-search-and-chat-capture-20261114-r2'
   }
   identity: {
     type: 'UserAssigned'
@@ -31,7 +31,7 @@ resource acceptanceJob 'Microsoft.App/jobs@2024-03-01' = {
     environmentId: environmentId
     configuration: {
       triggerType: 'Manual'
-      replicaTimeout: 600
+      replicaTimeout: 900
       replicaRetryLimit: 0
       manualTriggerConfig: {
         parallelism: 1

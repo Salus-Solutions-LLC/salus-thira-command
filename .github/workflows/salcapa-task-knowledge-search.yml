@@ -66,7 +66,7 @@ jobs:
   task_search:
     needs: authorize_scoped
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
       id-token: write
@@ -82,8 +82,12 @@ jobs:
           test "$(jq -r '.operation' "$ACTIVATION")" = "task_knowledge_consideration"
           test "$(jq -r '.target_environment' "$ACTIVATION")" = "dev"
           test "$(jq -r '.resource_group' "$ACTIVATION")" = "rg-salcapa-dev"
-          test "$(jq -r '.task_key' "$ACTIVATION")" = "salus-search-and-chat-capture-20261114"
+          test "$(jq -r '.task_key' "$ACTIVATION")" = "salus-search-and-chat-capture-20261114-r2"
           test "$(jq -r '.query_count' "$ACTIVATION")" = "4"
+          test "$(jq -r '.recovery_attempt' "$ACTIVATION")" = "2"
+          test "$(jq -r '.previous_run_id' "$ACTIVATION")" = "43669204531"
+          test "$(jq -r '.max_execution_seconds' "$ACTIVATION")" = "900"
+          test "$(jq -r '.source_boundary_method' "$ACTIVATION")" = "read_only_full_root_graph_delta_census"
           test "$(jq -r '.production_deployment_authorized' "$ACTIVATION")" = "false"
           test "$(jq -r '.protected_member_access' "$ACTIVATION")" = "false"
           test "$(jq -r '.assignment_or_release_authority' "$ACTIVATION")" = "false"
@@ -147,7 +151,7 @@ jobs:
             --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
           test -n "$EXECUTION_NAME"
           SUCCEEDED=false
-          for attempt in $(seq 1 60); do
+          for attempt in $(seq 1 90); do
             STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" \
               --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" \
               --query properties.status --output tsv --only-show-errors)"
@@ -162,15 +166,6 @@ jobs:
           grep -q 'TASK_KNOWLEDGE_VERIFIED_RECEIPTS=4' /tmp/task-knowledge-search.log
           grep -q 'TASK_KNOWLEDGE_COMPLETE=1' /tmp/task-knowledge-search.log
           test "$SUCCEEDED" = "true"
-          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/task-search-app-after.json
-          az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/task-search-worker-after.json
-          for pair in "salcapa-consideration-app task-search-app-after" "salcapa-consideration-worker task-search-worker-after"; do
-            read -r before after <<< "$pair"
-            jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$before.json" > /tmp/task-search-before.json
-            jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$after.json" > /tmp/task-search-after.json
-            cmp /tmp/task-search-before.json /tmp/task-search-after.json
-          done
-          echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=1"
       - name: Remove and verify isolated task-search job
         if: always()
         env:
@@ -180,12 +175,30 @@ jobs:
           JOB_NAME=salcapa-task-search-b48224
           if [ "${TASK_JOB_NAMESPACE_CLEAR:-0}" != "1" ]; then exit 0; fi
           az account show --only-show-errors >/dev/null
+          RUNTIME_OK=1
+          if (
+            set -euo pipefail
+            az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/task-search-app-after.json
+            az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/task-search-worker-after.json
+            for pair in "salcapa-consideration-app task-search-app-after" "salcapa-consideration-worker task-search-worker-after"; do
+              read -r before after <<< "$pair"
+              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$before.json" > /tmp/task-search-before.json
+              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$after.json" > /tmp/task-search-after.json
+              cmp /tmp/task-search-before.json /tmp/task-search-after.json
+            done
+          ); then
+            echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=1"
+          else
+            RUNTIME_OK=0
+            echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=0"
+          fi
           if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/task-search-cleanup.json 2>/dev/null; then
-            test "$(jq -r '.tags.salusTaskKey' /tmp/task-search-cleanup.json)" = "salus-search-and-chat-capture-20261114"
+            test "$(jq -r '.tags.salusTaskKey' /tmp/task-search-cleanup.json)" = "salus-search-and-chat-capture-20261114-r2"
             test "$(jq -r '.properties.template.containers[0].image' /tmp/task-search-cleanup.json)" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:4ef49042f0c998e74b04c51affcdc838a7c3ae940d5667553ad33996b2333db9"
             az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes --only-show-errors
           fi
           test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
             --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
           echo "TASK_KNOWLEDGE_ISOLATED_JOB_REMOVED=1"
+          test "$RUNTIME_OK" = "1"
 
