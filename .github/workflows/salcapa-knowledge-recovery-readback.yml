@@ -1,0 +1,319 @@
+name: SalCAPA recovery receipt readback
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/salcapa-knowledge-recovery-plan.yml'
+      - '.github/workflows/salcapa-knowledge-recovery-readback.yml'
+      - 'infra/azure/knowledge-recovery-readback-job.bicep'
+      - 'tools/live_knowledge_recovery_readback.py'
+      - 'tests/test_knowledge_recovery_readback.py'
+      - 'deploy/azure/activations/knowledge-recovery-readback-20261115.json'
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'deploy/azure/activations/knowledge-recovery-readback-20261115.json'
+
+concurrency:
+  group: salcapa-knowledge-diagnostic
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: python -m compileall -q tools/live_knowledge_recovery_readback.py tests/test_knowledge_recovery_readback.py
+      - run: python -m pip install -r requirements.txt pytest==8.4.2 PyYAML==6.0.2
+      - run: python -m pytest -q -p no:cacheprovider tests/test_knowledge_recovery_readback.py
+      - name: Validate workflow shell syntax and activation binding
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, pathlib, shutil, subprocess, tempfile, yaml
+          root = pathlib.Path(".")
+          workflow = yaml.load((root / ".github/workflows/salcapa-knowledge-recovery-readback.yml").read_text(), Loader=yaml.BaseLoader)
+          assert "workflow_dispatch" not in workflow["on"]
+          assert workflow["jobs"]["authorize_scoped"]["environment"] == "salcapa-dev-approval"
+          previous = yaml.load((root / ".github/workflows/salcapa-knowledge-recovery-plan.yml").read_text(), Loader=yaml.BaseLoader)
+          import re
+          for candidate in (workflow, previous):
+              for job in candidate["jobs"].values():
+                  for step in job.get("steps", []):
+                      for count in re.findall(r"--tail (\d+)", step.get("run", "")):
+                          assert 0 <= int(count) <= 300, "Azure CLI tail limit exceeded"
+          for job in workflow["jobs"].values():
+              for step in job.get("steps", []):
+                  if "run" in step:
+                      subprocess.run(["bash", "-n"], input=step["run"], text=True, check=True)
+          activation = json.loads((root / "deploy/azure/activations/knowledge-recovery-readback-20261115.json").read_text())
+          script = (root / "tools/live_knowledge_recovery_readback.py").read_bytes()
+          assert hashlib.sha256(script).hexdigest() == activation["script_sha256"]
+          assert activation["query_count"] == 0
+          assert activation["source_content_downloads_authorized"] is False
+          assert activation["automatic_processing_authorized"] is False
+          assert activation["source_record_or_schema_changes_authorized"] is False
+          assert workflow["jobs"]["task_search"]["timeout-minutes"] == "20"
+          assert activation["production_deployment_authorized"] is False
+          assert activation["protected_member_access"] is False
+          assert activation["assignment_or_release_authority"] is False
+          guards = [step["run"] for step in workflow["jobs"]["task_search"]["steps"]
+                    if step.get("name") == "Validate exact task and script"]
+          assert len(guards) == 1
+          guard = guards[0]
+          assert "az " not in guard
+          with tempfile.TemporaryDirectory() as directory:
+              fixture = pathlib.Path(directory)
+              target = fixture / "deploy/azure/activations/knowledge-recovery-readback-20261115.json"
+              target.parent.mkdir(parents=True)
+              source = fixture / "tools/live_knowledge_recovery_readback.py"
+              source.parent.mkdir(parents=True)
+              shutil.copyfile(root / "tools/live_knowledge_recovery_readback.py", source)
+              def exercise(value, attempt="1"):
+                  target.write_text(json.dumps(value))
+                  result = subprocess.run(["bash", "-euo", "pipefail", "-c", guard],
+                      cwd=fixture, env={**os.environ, "GITHUB_RUN_ATTEMPT": attempt},
+                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                  return result.returncode
+              assert exercise(activation) == 0, "actual pre-Azure guard rejected the activation"
+              fields = [key for key in activation if ("'." + key + "'") in guard]
+              assert "source_boundary_method" in fields and "script_sha256" in fields
+              for key in fields:
+                  changed = dict(activation)
+                  changed[key] = "invalid-binding-fixture"
+                  assert exercise(changed) != 0, "pre-Azure guard accepted drift in " + key
+              assert exercise(activation, "2") != 0, "replayed workflow attempt was accepted"
+              source.write_bytes(script + b"# altered fixture")
+              assert exercise(activation) != 0, "altered script bytes were accepted"
+              print("actual pre-Azure activation guard passed; rejected drift fields=" + str(len(fields)))
+          # Execute the real collector from both workflows with a strict CLI
+          # fixture. Verify the tail bound and retained/redacted failure status.
+          for candidate in (workflow, previous):
+              blocks = [step["run"] for step in candidate["jobs"]["task_search"]["steps"] if "LOG_EXIT=0" in step.get("run", "")]
+              assert len(blocks) == 1
+              block = blocks[0].split("LOG_EXIT=0", 1)[1].split('test "$LOG_EXIT" = "0"', 1)[0]
+              collector = 'set -euo pipefail\nLOG_EXIT=0' + block + 'test "$LOG_EXIT" = "0"\n'
+              with tempfile.TemporaryDirectory() as directory:
+                  fixture = pathlib.Path(directory)
+                  cli = fixture / "az"
+                  cli.write_text('#!/usr/bin/env python3\nimport os,sys\na=sys.argv\nn=int(a[a.index("--tail")+1])\nassert 0 <= n <= 300\nfail=os.getenv("FAIL_LOG") == "1"\nprint("PRIVATE SOURCE ERROR" if fail else "RECOVERY_READBACK_COMPLETE=1",file=sys.stderr if fail else sys.stdout)\nsys.exit(7 if fail else 0)\n')
+                  cli.chmod(0o755)
+                  collector = collector.replace("/tmp/task-knowledge-search.log", str(fixture / "logs.txt"))
+                  environment = {**os.environ, "PATH": str(fixture) + os.pathsep + os.environ["PATH"],
+                      "RESOURCE_GROUP": "fixture", "JOB_NAME": "fixture", "EXECUTION_NAME": "fixture", "STATUS": "Succeeded"}
+                  success = subprocess.run(["bash", "-c", collector], env=environment, capture_output=True, text=True)
+                  assert success.returncode == 0 and "RECOVERY_READBACK_COMPLETE=1" in success.stdout
+                  failed = subprocess.run(["bash", "-c", collector], env={**environment, "FAIL_LOG": "1", "STATUS": "PRIVATE SOURCE"}, capture_output=True, text=True)
+                  assert failed.returncode != 0 and "LOG_FETCH_EXIT=7" in failed.stdout
+                  assert "EXECUTION_STATUS=Unknown" in failed.stdout and "PRIVATE" not in failed.stdout + failed.stderr
+          print("actual log collectors passed bounded-tail and private-error regressions")
+          print("task-search workflow syntax and activation binding passed")
+          PY
+      - run: az bicep build --file infra/azure/knowledge-recovery-readback-job.bicep --stdout > /tmp/knowledge-task-search.json
+
+
+  postgres_recovery_readback:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recovery_readback
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d recovery_readback"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      SALUS_DB_BACKEND: postgres
+      SALUS_POSTGRES_AUTH: dsn
+      SALUS_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/recovery_readback # repo-hygiene: allow - localhost-only ephemeral PostgreSQL CI fixture
+      TEST_RECOVERY_READBACK_POSTGRES: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt pytest==8.4.2
+      - run: python -m pytest -q -p no:cacheprovider tests/test_knowledge_recovery_readback.py
+
+  authorize_scoped:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected task-specific Knowledge consideration gate passed."
+
+  task_search:
+    needs: authorize_scoped
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate exact task and script
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          ACTIVATION=deploy/azure/activations/knowledge-recovery-readback-20261115.json
+          test "$(jq -r '.operation' "$ACTIVATION")" = "knowledge_recovery_receipt_readback"
+          test "$(jq -r '.target_environment' "$ACTIVATION")" = "dev"
+          test "$(jq -r '.resource_group' "$ACTIVATION")" = "rg-salcapa-dev"
+          test "$(jq -r '.task_key' "$ACTIVATION")" = "salus-availability-recovery-readback-20261115"
+          test "$(jq -r '.query_count' "$ACTIVATION")" = "0"
+          test "$(jq -r '.recovery_ledger_changes_authorized' "$ACTIVATION")" = "false"
+          test "$(jq -r '.new_search_receipts_authorized' "$ACTIVATION")" = "false"
+          test "$(jq -r '.original_operation_key' "$ACTIVATION")" = "salus-availability-recovery-plan-20261115"
+          test "$(jq -r '.original_run_id' "$ACTIVATION")" = "43743532577"
+          test "$(jq -r '.max_execution_seconds' "$ACTIVATION")" = "360"
+          test "$(jq -r '.automatic_processing_authorized' "$ACTIVATION")" = "false"
+          test "$(jq -r '.source_record_or_schema_changes_authorized' "$ACTIVATION")" = "false"
+          test "$(jq -r '.source_content_downloads_authorized' "$ACTIVATION")" = "false"
+          test "$(jq -r '.source_boundary_method' "$ACTIVATION")" = "read_only_repeatable_read_existing_receipts_and_planning_ledgers_two_connections"
+          test "$(jq -r '.production_deployment_authorized' "$ACTIVATION")" = "false"
+          test "$(jq -r '.protected_member_access' "$ACTIVATION")" = "false"
+          test "$(jq -r '.assignment_or_release_authority' "$ACTIVATION")" = "false"
+          test "$(sha256sum tools/live_knowledge_recovery_readback.py | cut -d ' ' -f 1)" = "$(jq -r '.script_sha256' "$ACTIVATION")"
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify existing receipts and planning records without replay
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          ACTIVATION=deploy/azure/activations/knowledge-recovery-readback-20261115.json
+          EXPECTED_IMAGE="$(jq -er '.execution_image_digest' "$ACTIVATION")"
+          EXPECTED_RUNTIME="$(jq -er '.expected_runtime_image_digest' "$ACTIVATION")"
+          test "$(jq -r '.source_release' "$ACTIVATION")" = "release/v3.276"
+          SOURCE_COMMIT="$(jq -er '.source_commit' "$ACTIVATION")"
+          test "$SOURCE_COMMIT" = "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3"
+          test "$EXPECTED_IMAGE" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944"
+          test "$EXPECTED_RUNTIME" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c"
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-consideration-app.json
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/salcapa-consideration-worker.json
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-consideration-app.json)" = "$EXPECTED_RUNTIME"
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-consideration-worker.json)" = "$EXPECTED_RUNTIME"
+          # Compare identical pinned ARM schemas; suppress no fields.
+          for kind in app worker; do
+            RESOURCE_ID="$(jq -er '.id' "/tmp/salcapa-consideration-$kind.json")"
+            az rest --method get --url "https://management.azure.com${RESOURCE_ID}?api-version=2025-07-01" --output json > "/tmp/recovery-$kind-before.json"
+          done
+          env_value() {
+            jq -r --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/salcapa-consideration-worker.json
+          }
+          test "$(env_value SALUS_DB_BACKEND)" = "postgres"
+          test "$(env_value SALUS_POSTGRES_AUTH)" = "entra"
+          IDENTITY_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query id --output tsv --only-show-errors)"
+          IDENTITY_CLIENT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query clientId --output tsv --only-show-errors)"
+          ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors)"
+          REGISTRY_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query loginServer --output tsv --only-show-errors)"
+          test "$(az acr repository show --name salcapadevb48224acr --image "salcapa@${EXPECTED_IMAGE##*@}" --query digest --output tsv --only-show-errors)" = "${EXPECTED_IMAGE##*@}"
+          JOB_NAME=salcapa-recovery-readback-b48224
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
+          echo "TASK_JOB_NAMESPACE_CLEAR=1" >> "$GITHUB_ENV"
+          SCRIPT_B64="$(base64 -w0 tools/live_knowledge_recovery_readback.py)"
+          az deployment group create \
+            --name "salcapa-consideration-readback-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/knowledge-recovery-readback-job.bicep \
+            --parameters environmentId="$ENVIRONMENT_ID" identityId="$IDENTITY_ID" \
+              registryServer="$REGISTRY_SERVER" imageDigest="$EXPECTED_IMAGE" \
+              managedIdentityClientId="$IDENTITY_CLIENT_ID" \
+              tenantId="$(env_value SALUS_OIDC_TENANT_ID)" \
+              applicationClientId="$(env_value SALUS_OIDC_CLIENT_ID)" \
+              driveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" \
+              folderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" \
+              postgresHost="$(env_value SALUS_POSTGRES_HOST)" \
+              postgresDatabase="$(env_value SALUS_POSTGRES_DATABASE)" \
+              postgresUser="$(env_value SALUS_POSTGRES_USER)" \
+              postgresSslMode="$(env_value SALUS_POSTGRES_SSLMODE)" \
+              acceptanceScriptBase64="$SCRIPT_B64" \
+            --output none --only-show-errors
+          JOB_NAME=salcapa-recovery-readback-b48224
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
+          test -n "$EXECUTION_NAME"
+          SUCCEEDED=false
+          for attempt in $(seq 1 36); do
+            STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" \
+              --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" \
+              --query properties.status --output tsv --only-show-errors)"
+            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
+            if [ "$STATUS" = "Failed" ]; then break; fi
+            sleep 10
+          done
+          LOG_EXIT=0
+          az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
+            --execution "$EXECUTION_NAME" --container salcapa-recovery-readback \
+            --tail 300 --format text --only-show-errors > /tmp/task-knowledge-search.log 2>&1 || LOG_EXIT=$?
+          case "$STATUS" in
+            Succeeded|Failed|Running|Pending|Processing|Stopped|Unknown) OBSERVED_STATUS="$STATUS" ;;
+            *) OBSERVED_STATUS=Unknown ;;
+          esac
+          echo "TASK_KNOWLEDGE_EXECUTION_STATUS=$OBSERVED_STATUS"
+          echo "TASK_KNOWLEDGE_LOG_FETCH_EXIT=$LOG_EXIT"
+          # Emit only fixed telemetry; raw CLI errors stay private.
+          grep -E '^.*(TASK_KNOWLEDGE|RECOVERY|STABILITY)_[A-Z0-9_]+=.*$' /tmp/task-knowledge-search.log || true
+          test "$LOG_EXIT" = "0"
+          grep -q 'RECOVERY_READBACK_COMPLETE=1' /tmp/task-knowledge-search.log
+          grep -q 'RECOVERY_READBACK_DATABASE_WRITES=0' /tmp/task-knowledge-search.log
+          grep -q 'RECOVERY_READBACK_NEW_SEARCH_RECEIPTS=0' /tmp/task-knowledge-search.log
+          grep -q 'RECOVERY_READBACK_ORIGINAL_TASK_REPLAYED=0' /tmp/task-knowledge-search.log
+          test "$SUCCEEDED" = "true"
+      - name: Remove and verify isolated task-search job
+        if: always()
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          JOB_NAME=salcapa-recovery-readback-b48224
+          if [ "${TASK_JOB_NAMESPACE_CLEAR:-0}" != "1" ]; then exit 0; fi
+          az account show --only-show-errors >/dev/null
+          RUNTIME_OK=1
+          if (
+            set -euo pipefail
+            az rest --method get --url "https://management.azure.com$(jq -er '.id' /tmp/recovery-app-before.json)?api-version=2025-07-01" --output json > /tmp/task-search-app-after.json
+            az rest --method get --url "https://management.azure.com$(jq -er '.id' /tmp/recovery-worker-before.json)?api-version=2025-07-01" --output json > /tmp/task-search-worker-after.json
+            for pair in "recovery-app-before task-search-app-after" "recovery-worker-before task-search-worker-after"; do
+              read -r before after <<< "$pair"
+              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$before.json" > /tmp/task-search-before.json
+              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$after.json" > /tmp/task-search-after.json
+              cmp /tmp/task-search-before.json /tmp/task-search-after.json
+            done
+          ); then
+            echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=1"
+          else
+            RUNTIME_OK=0
+            echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=0"
+          fi
+          if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/task-search-cleanup.json 2>/dev/null; then
+            test "$(jq -r '.tags.salusTaskKey' /tmp/task-search-cleanup.json)" = "salus-availability-recovery-readback-20261115"
+            test "$(jq -r '.properties.template.containers[0].image' /tmp/task-search-cleanup.json)" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944"
+            az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes --only-show-errors
+          fi
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
+            --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
+          echo "TASK_KNOWLEDGE_ISOLATED_JOB_REMOVED=1"
+          test "$RUNTIME_OK" = "1"
+
