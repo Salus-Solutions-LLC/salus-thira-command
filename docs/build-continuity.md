@@ -11,7 +11,7 @@ active_build_system_issue: 368
 active_increment: protection_advisor_readonly_v3276_error_sanitization_source_candidate
 last_completed_increment: v3275_source_merged_frozen_publication_withheld_codeql_finding
 candidate_release: v3.276
-validation_pr: pending
+validation_pr: 1229
 validation_branch: codex/advisor-v3276-errors-20261114
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_head
