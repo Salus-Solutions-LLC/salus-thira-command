@@ -152,6 +152,116 @@ Validation for [PR #1226](https://github.com/Salus-Solutions-LLC/salus-thira-com
 
 
 
+## 15 November 2026 Central — Stable Knowledge census and four durable receipts accepted; cleanup and unchanged runtime verified
+
+- **Disposition:** this task's stable-census, complete represented-boundary search, receipt-readback and isolated-cleanup gates are now satisfied by the one approved live execution below. The former 116-file representation gap is zero across all seven governed areas in the accepted census. This supersedes the open census/coverage/receipt blockers in this chat's earlier entries, including the pre-Azure wrapper failure; it does **not** resolve unavailable contents, qualify sources, release a report, accept a ChatGPT connection or promote any application/worker.
+- Marc explicitly approved PR #1237 exact head `e229cff9805789b83c906760f98865cd7217a22c` for merge, one governed diagnostic/stable census, receipt/cleanup verification and handoff update. All four applicable candidate jobs passed in `43684291302`, `43684291203` and `43684291198`; the first run included the executed pre-Azure positive guard and rejection of 18 guarded-field drifts, replay attempt and altered script bytes. Squash merge `95782daf91e6161209db94e3d231d8ea663b3041` preserved all six execution/runbook assets by exact blob readback. The five startup records were re-read before and after merge. The diagnostic script remained SHA-256 `9a440c530b7636b44d28cc3df69e23c39107d38d9d613843825e0e0537f83959`.
+- Protected [run 43714532410](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/43714532410), GitHub attempt 1, authorization job `132813076538`, task job `132813101819`, completed with overall **success**. The corrected binding, Azure sign-in, exact v3.223 runtime precondition, published immutable v3.276 diagnostic image/registry checks, complete census/search/fresh receipt readback and cleanup all passed. The activation's recovery-attempt-2 lineage refers to the prior aborted wrapper; it is not a replay of that workflow. No additional protected execution or rerun was attempted, and this activation is now consumed.
+
+### Accepted live boundary and stability
+
+| Measure | Verified result |
+|---|---:|
+| Current physical source files | 23,622 |
+| Distinct governed representations | 23,632 |
+| Considered per query (four queries) | 23,632 |
+| Additional retained historical/ledger representations | 10 |
+| Missing current-source representations | 0 |
+| Active bulk-work file subset at precheck | 43 |
+| Completed full metadata inventories | 4 |
+| New durable task receipts, also verified through a fresh connection | 4 |
+
+- Every area missing count was zero: Pending Classification, Ready for Intake Review, Exceptions and Manual Review, Customer Batch Staging, Migration Hold, Processed Intake and Does Not Upload. The pending/bulk subset is not the full source boundary. The represented set was bound to the live count, and every query's considered count equaled that entire represented set; do not sum the four counts as distinct files.
+- Complete inventories 1–4 each contained 23,622 files and the identical canonical full-metadata SHA-256 `92ba23b77528226f29cb8ecf8ea7d0181d92c7d36b21811619ed24c6e786833e`. Their completion times on 15 November were **06:37:34, 06:39:02, 06:40:45 and 06:43:45 CST** (12:37:34, 12:39:02, 12:40:45 and 12:43:45 UTC). The first two were already equal; no third convergence observation was needed. Inventories 3/4 bracketed the searches and also exactly matched that baseline.
+- All initial-pair and both search-check difference categories were zero: additions, removals, changed sources, ETags, size, parent/area, name, relative path, modification time, content tag, MIME, attribution, trusted URL, other metadata/row fields and serialization-only differences. No property was ignored or normalized away. Source membership and recovery-metadata fingerprints remained stable through the searches.
+- Ledger-membership SHA-256: `6aeada160f2b2bd3bd092e6ac0461d9dc163db447e93c04c2694e88d12292823`. The receipt helper's source-ID/ETag projection SHA-256 is `f0bd528bcf358b5ecfc60270a37779a7bed156f87d08f8a1e16a48d5410838cf`; it is a different projection from the full-metadata hash above. Recovery metadata SHA-256: `7836ad36e47829cdf3bf34ae269d5868017cee39759ae314da6912f0945ac3a9`.
+- **Diagnostic disposition:** the method-label binding defect is corrected and verified by the successful pre-Azure check and actual execution. The former generic-error diagnostic defect has fixed guard codes, completed/attempted counters and field-category evidence, exercised by CI. No inventory-validation error or unequal snapshot recurred in this live run. The specific cause of PR #1231's historical RuntimeError cannot be reconstructed from its discarded payloads and remains unproven; this acceptance rests on new complete proof, not a retrospective cause claim or a waived guard.
+
+### Durable search receipts
+
+- At 06:35:53 CST, separate durable prechecks found zero receipts for the earlier census actor, zero for the gap-reconciliation actor, zero for this task actor and zero prior enrollment batches. Only the four receipts below were then created for actor prefix `System Administrator - task consideration salus-stable-census-diagnostics-20261115 / ` plus the listed query label.
+- Exact query strings, whose hashes were independently recomputed from the approved script:
+  - Q1: `source inventory stable census provenance version metadata integrity`.
+  - Q2: `inventory verification failure pagination ancestry request diagnostics`.
+  - Q3: `extraction review processor remediation retry paused governed hold`.
+  - Q4: `complete corpus consideration receipt audit stable membership cleanup`.
+
+| Query | Durable receipt ID | Lexical matches | Considered without match | Original creation time UTC | Query SHA-256 |
+|---|---|---:|---:|---|---|
+| Q1: inventory_integrity | f73191c4-3f2e-471e-bbc5-16d5d72ebf5c | 23,632 | 0 | 2026-11-15T12:40:46+00:00 | `53cde7b51f265a62e5f2903947dc3e34cef2511e0a5e6868d385b1f3874c13ea` |
+| Q2: failure_diagnosis | 31f197b7-12cc-4b54-8e7f-597793f1174c | 23,539 | 93 | 2026-11-15T12:41:03+00:00 | `58b060829e6a7a77537da0e6f976e9244a501bc7954c3e2ba17fa4ce32d295b2` |
+| Q3: recovery_controls | ac819f89-7449-4bb4-a2a6-f8ad202e54c3 | 23,539 | 93 | 2026-11-15T12:41:33+00:00 | `16a8beb2ac3a452dce5e7550c650fb191e8244cceb579df96ab252d77265fe44` |
+| Q4: coverage_proof | 7a8ff5b7-e292-4fbd-992d-89771605430e | 15,325 | 8,307 | 2026-11-15T12:41:52+00:00 | `912b106ab248d9a9e6f9a248684b3707496817cda337cdd9eb873b0b1c3b616a` |
+
+- Every receipt reports the same 23,622 boundary, 23,632 represented/considered, 10 additional, 15,228 service-content-available, 8,404 service-metadata-only/unresolved and 93 governed holds. Match plus no-match and content plus metadata counts reconcile exactly for each receipt. Every query returned at most 100 candidate previews internally; lexical matches are not human relevance, truth, original-content review or release qualification.
+- The script verified each committed receipt's original query hash, actor, timestamp and coverage fields, then opened a **separate database connection** and verified all those fields again and exactly four operation receipts at 06:43:59 CST. Actual `TASK_KNOWLEDGE_VERIFIED_RECEIPTS=4`, `STABILITY_FRESH_CONNECTION_RECEIPTS_VERIFIED=4`, stable source flags and `STABILITY_CENSUS_COMPLETE=1` were emitted. The host checked required completion markers and container success. Do not replay this operation or create duplicate receipts.
+
+### Current content-recovery state and accounting limitation
+
+- The prior 7,923 metadata-only/unresolved count is historical and is superseded for this measured represented boundary by **8,404**. The corpus is larger than the earlier 22,447/22,457 source/representation checkpoint. These aggregate differences do not identify a fixed old cohort's resolutions/failures or attribute progress to this read-only job.
+- The service reports **15,228** content-available source representations; only **15,223** have an exact extraction status `Complete` and nonempty text in a candidate. Five service-available source IDs lack that exact evidence. Zero exact-complete/nonempty-text IDs were omitted by the service's broad predicate in this run. This demonstrates a live five-source accounting discrepancy requiring candidate-correlated diagnosis; it does not prove the originals cannot be processed or that any text is human-qualified.
+- Those five availability-discrepancy sources are **outside** the service-defined 8,404 unresolved set. They are distinct from the five `other_or_conflicting` sources **inside** that set. Thus the service's `complete_without_text` category being zero within its unresolved subset does not erase the five discrepancies. If discussing the exact-text complement, it is 8,409 representations, not the immutable receipt's 8,404 metadata count; do not relabel historical receipts or call all 8,409 failed originals.
+- Disjoint source-correlated categories partition the service-defined 8,404 exactly:
+
+| Current unresolved source category | Distinct sources |
+|---|---:|
+| Governed extraction review | 7,085 |
+| Retry paused | 733 |
+| Automatic retry | 488 |
+| Governed hold | 93 |
+| Other/conflicting extraction states | 5 |
+| No candidate | 0 |
+| Complete-without-text category within this subset | 0 |
+| **Total** | **8,404** |
+
+- Additional overlapping characteristics: 26 unresolved sources have multiple candidate rows; 38 have no recorded archive item across their candidates; unknown failure-code candidate rows are zero. Multiple rows can be legitimate provenance/version history; absent recorded archive is not a verified missing object. These characteristics are not extra files and must not be added to 8,404.
+- Fixed failure-code counts below are **candidate-row counts among unresolved sources**, not the disjoint source-category partition and not a cross-matrix of each recovery group. Do not infer which of the 488 automatic-retry or 733 paused sources have a code by joining separate aggregate totals. Zero empty/unknown codes were observed.
+
+| Candidate failure code | Candidate rows |
+|---|---:|
+| `DOCUMENT_ACTIVE_CONTENT` | 101 |
+| `DOCUMENT_ACTIVE_OR_LEGACY_FORMAT` | 2,327 |
+| `DOCUMENT_EXPANSION_LIMIT` | 16 |
+| `DOCUMENT_PACKAGE_INVALID` | 29 |
+| `DOCUMENT_XML_INVALID` | 2 |
+| `EMPTY` | 0 |
+| `FORMAT_NOT_SUPPORTED` | 2,158 |
+| `IMAGE_FORMAT_MISMATCH` | 45 |
+| `IMAGE_HEADER_INVALID` | 3 |
+| `IMAGE_METADATA_LIMIT` | 1 |
+| `IMAGE_RESOURCE_LIMIT` | 525 |
+| `MEDIA_FORMAT_MISMATCH` | 9 |
+| `MEDIA_HEADER_INVALID` | 1 |
+| `MEDIA_RESOURCE_LIMIT` | 141 |
+| `MEDIA_STREAM_INVALID` | 10 |
+| `MEDIA_STREAM_LIMIT` | 2 |
+| `OCR_RESOURCE_LIMIT` | 9 |
+| `OTHER_REQUIRES_CHARACTERIZATION` | 0 |
+| `PDF_ACTIVE_CONTENT` | 2,602 |
+| `PDF_ENCRYPTED` | 250 |
+| `PDF_HEADER_INVALID` | 14 |
+| `PDF_PAGE_CONTENT_LIMIT` | 2 |
+| `PDF_PAGE_LIMIT` | 4 |
+| `PDF_PARSE_FAILED` | 5 |
+| `PDF_RESOURCE_LIMIT` | 9 |
+| `PDF_SOURCE_LIMIT` | 8 |
+| `TEXT_ENCODING_UNSUPPORTED` | 36 |
+| `TRANSCRIPTION_CAPACITY_UNAVAILABLE` | 3 |
+| `TRANSCRIPTION_FAILED` | 15 |
+| `TRANSCRIPT_OUTPUT_INVALID` | 10 |
+
+### Cleanup, authority and next recovery steps
+
+- At 06:44:35 CST the actual full selected application/worker identity/configuration/template comparison emitted `TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=1`, using identical pinned ARM API `2025-07-01` on both sides without suppressed differences. At 06:44:56 CST, exact task-tag/image-bound `salcapa-stable-census-b48224` deletion and job-list absence verification emitted `TASK_KNOWLEDGE_ISOLATED_JOB_REMOVED=1`. Main and cleanup steps both succeeded. This is actual live proof, unlike the earlier pre-Azure cleanup no-op.
+- The app and scheduled worker remain on the accepted v3.223 image/configuration. The published patched v3.276 image was used only for the isolated diagnostic. Source-record/schema writes, source-content downloads, automatic-processing activation, Protected Member access and assignment/release authority by this job were all zero. Only standard task receipts were written. No enrollment, hold lift, retry resume, application promotion, report or reader activation occurred. `RECOVERY_ALL_CONTENT_RESOLVED=0` remains explicit.
+1. **Engineering — reconcile the five availability discrepancies first.** Prepare a bounded candidate-correlated readback of exact extraction status/text-presence, broad-predicate cause, candidate/source version and archive provenance. Then propose/test a prospective availability-predicate correction that preserves immutable receipts and makes unverified cases explicit. Keep the five other/conflicting sources separate; resolve their actual state/provenance before choosing processing.
+2. **Engineering — build an exact current recovery cross-matrix/worklist.** Correlate the 7,085 review, 733 paused, 488 automatic-retry and 93 hold sources with their actual failure code, source/archive version/hash references, checkpoint attempts/due/lease and authorization. Include the 26 multi-candidate and 38 no-recorded-archive characteristics without double counting. Do not map the separate ten-item/33-pending intake probe or these code totals onto this corpus without candidate-correlated proof.
+3. **Engineering/Marc — prepare processor-specific bounded remedies.** Use the verified cross-matrix to select a small supported resource/capacity case and prove the specific fix on safe fixtures and the immutable target image before governed processing. Retain SAL-D119 pause for the current 733; do not resume them or mass retry the 488 from these aggregate counts. Legacy/active/encrypted/unsupported/malformed source review requires the approved safe-processing/source-owner path, immutable originals and separate controlled derivatives where permitted, never weaker safety controls.
+4. **Source owners/qualified reviewers — preserve restrictions and qualify use.** Reconcile archive references, version lineage and holds, retain source rights and Protected Member isolation, and require human review before material reliance or release. A metadata/review/hold disposition is not recovered content. Verify each authorized batch's actual usable derivative, hash-bound lineage, durable per-item events, unchanged originals and cleanup.
+5. **Engineering — verify the whole live set after each authorized batch.** Report actual resolved/new/changed/held/failed outcomes, current boundary/represented/content/unresolved totals, receipt/event evidence, remaining owner/action and job absence. Re-run searches only for a new authorized task/changed evidence with a distinct reviewed operation; retain this completed operation and its receipts.
+
+- Capture/continuity: retain Marc's exact approval, source/merge/run/job, four query definitions and durable receipt IDs/hashes/actors/times, inventory/difference/count proof, availability discrepancy, exact current recovery partition, code-count limits, successful runtime/cleanup proof and the above next actions. This closes the present stable-census/task-search obligation only. Automatic whole-chat exporter/backfill, full extraction/qualification/Member-connection acceptance and unrelated Advisor deployment/assessment holds remain separately open and unchanged.
+
 ## 15 November 2026 Central — PR #1235 merged; pre-Azure binding defect stopped execution; corrected guard candidate ready for review
 
 - **Disposition:** the approved workflow was attempted but stopped before Azure sign-in or any live diagnostic. No stable census, new source observation, query receipt, recovery category or live cause was established. The last actual source checkpoint remains the 23,622-file, zero-missing observation from PR #1231 below; it is historical and not a current stable-census acceptance.
