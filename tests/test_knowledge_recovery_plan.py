@@ -15,12 +15,15 @@ CREATE TABLE m365_knowledge_candidates(id BIGINT PRIMARY KEY, source_drive_id TE
  source_etag TEXT,source_sha256 TEXT,source_size BIGINT,source_modified_at TEXT,source_archive_item_id TEXT,
  source_archive_etag TEXT,source_archived_at TEXT,status TEXT,decision TEXT,reviewed_at TEXT,
  destination_item_id TEXT,destination_etag TEXT,source_removed_at TEXT,classification_json TEXT,
- reviewed_by TEXT DEFAULT '',review_rationale TEXT DEFAULT '');
+ reviewed_by TEXT DEFAULT '',review_rationale TEXT DEFAULT '', source_name TEXT DEFAULT 'Fictional',
+ source_relative_path TEXT DEFAULT 'Reference',source_owner TEXT DEFAULT 'Salus',target_folder TEXT DEFAULT 'Reference');
 CREATE TABLE m365_knowledge_holds(source_drive_id TEXT,source_item_id TEXT,source_parent_id TEXT,source_etag TEXT,
  source_size BIGINT,source_modified_at TEXT,source_area TEXT,status TEXT,hold_reason TEXT,
- research_disposition TEXT,teaching_disposition TEXT,citation_disposition TEXT,reviewed_by TEXT,reviewed_at TEXT,review_rationale TEXT);
+ research_disposition TEXT,teaching_disposition TEXT,citation_disposition TEXT,reviewed_by TEXT,reviewed_at TEXT,review_rationale TEXT,
+ source_name TEXT DEFAULT 'Fictional',source_relative_path TEXT DEFAULT 'Reference');
 CREATE TABLE m365_bulk_items(drive_id TEXT,pending_id TEXT,item_id TEXT,parent_id TEXT,etag TEXT,size BIGINT,
- status TEXT,attempts INTEGER,next_attempt BIGINT,updated_at BIGINT,lease_owner TEXT,lease_until BIGINT,kind TEXT,reason TEXT DEFAULT '');
+ status TEXT,attempts INTEGER,next_attempt BIGINT,updated_at BIGINT,lease_owner TEXT,lease_until BIGINT,kind TEXT,reason TEXT DEFAULT '',
+ name TEXT DEFAULT 'Fictional',metadata_json TEXT DEFAULT '{}');
 CREATE TABLE m365_bulk_extraction_checks(candidate_id BIGINT,attempts INTEGER,next_attempt BIGINT,
  lease_owner TEXT,lease_until BIGINT,checked_at BIGINT,last_code TEXT);
 """
@@ -53,7 +56,7 @@ class PlanningTests(unittest.TestCase):
             obj = {"extraction": {"status": status, "text": "", "failure_code": code}}
             if source == "s6": obj["unrelated"] = {"status": "Complete"}
             self.insert(n, source, obj, archive="" if source == "s3" else "PRIVATE-ARCHIVE")
-        self.conn.execute("INSERT INTO m365_knowledge_holds VALUES(" + ",".join("?" for _ in range(15)) + ")",
+        self.conn.execute("INSERT INTO m365_knowledge_holds(source_drive_id,source_item_id,source_parent_id,source_etag,source_size,source_modified_at,source_area,status,hold_reason,research_disposition,teaching_disposition,citation_disposition,reviewed_by,reviewed_at,review_rationale) VALUES(" + ",".join("?" for _ in range(15)) + ")",
             ("PRIVATE-DRIVE", "s4", "PRIVATE-PARENT", "v1", 12, "stamp", "Does Not Upload", "Governed Hold", "PRIVATE-REASON",
              "Pending", "Pending", "Pending", "", "", ""))
         for source in ["s1", "s2", "s3", "s4", "s5", "s6"]:
@@ -192,6 +195,25 @@ class PlanningTests(unittest.TestCase):
         plan.save_plan(self.conn, evidence, result)
         self.assertEqual(plan.read_evidence(self.conn), evidence)
 
+    def test_four_new_task_receipts_and_plan_verify_from_independent_connection(self):
+        from salcapa_knowledge_consideration import _create_receipt_table
+        _create_receipt_table(self.conn)
+        self.conn.commit()
+        evidence, result = self.build()
+        with contextlib.redirect_stdout(io.StringIO()):
+            summaries = plan.verified_search(self.conn, None, self.inventory,
+                inventory_fn=lambda _: copy.deepcopy(self.inventory), minimum_boundary=6, minimum_represented=6)
+        self.assertEqual(len(summaries), 4)
+        self.assertTrue(all(s["considered_files"] == 6 and s["content_available_files"] == 1 and
+                            s["metadata_only_or_unresolved_files"] == 5 for s in summaries))
+        plan.save_plan(self.conn, evidence, result)
+        fresh = self.connect()
+        try:
+            with contextlib.redirect_stdout(io.StringIO()): plan.fresh_receipt_readback(fresh, summaries)
+            plan.verify_plan(fresh, result)
+            with self.assertRaises(RuntimeError): plan.assert_fresh_operation(fresh)
+        finally: fresh.close()
+
     def test_hold_reason_and_classification_content_drift_are_bound_without_text_output(self):
         evidence, result = self.build()
         self.conn.execute("UPDATE m365_knowledge_holds SET hold_reason='changed-private-reason'")
@@ -213,7 +235,7 @@ class PostgreSQLPlanningTests(PlanningTests):
     def setUp(self):
         assert os.getenv("SALUS_DATABASE_URL", "").startswith("postgresql://postgres:postgres@localhost:5432/recovery_plan") # repo-hygiene: allow - localhost-only ephemeral PostgreSQL CI fixture
         self.conn = self.connect()
-        for t in (*plan.PLAN_TABLES, *plan.SOURCE_TABLES): self.conn.execute("DROP TABLE IF EXISTS " + t)
+        for t in (*plan.PLAN_TABLES, *plan.SOURCE_TABLES, "m365_knowledge_consideration_receipts"): self.conn.execute("DROP TABLE IF EXISTS " + t)
         self.conn.commit()
         self.conn.close()
         # Parent creates a temp path only for SQLite. Its overridden connect()
@@ -222,7 +244,7 @@ class PostgreSQLPlanningTests(PlanningTests):
 
     def tearDown(self):
         self.conn.rollback()
-        for t in (*plan.PLAN_TABLES, *plan.SOURCE_TABLES): self.conn.execute("DROP TABLE IF EXISTS " + t)
+        for t in (*plan.PLAN_TABLES, *plan.SOURCE_TABLES, "m365_knowledge_consideration_receipts"): self.conn.execute("DROP TABLE IF EXISTS " + t)
         self.conn.commit()
         super().tearDown()
 

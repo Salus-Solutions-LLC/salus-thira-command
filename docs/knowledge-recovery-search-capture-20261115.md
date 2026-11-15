@@ -26,6 +26,19 @@ Exact current instruction:
 
 ## Capture manifest and limits
 
+Four-stream coverage: public/open-source coverage is the two primary PostgreSQL technical pages; approved Salus knowledge coverage is the governing repository/source review with live Library receipt pending; thought-leader material supplies no specific SQL or recovery-control authority here and was not used; Protected Member uploads are excluded from this enterprise metadata-planning operation, with only the attachment listing screened. No issued Member report or assessment is being revised.
+
+Screened every current OSINT family OSINT-001 through OSINT-036 and opened SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md at the same governed commit. Its current text contains no postgresql address. Families 001–008, 010–017, 020–032 and 034–036 address external hazards, public records, media, datasets or geography; they do not decide this internal SQL/candidate-ledger question. Families 018–019 reconnaissance require a target and are outside this metadata-planning scope. Families 009 and 033 are cyber/vendor leads; the competent original for the chosen locking/JSON behavior is PostgreSQL itself, rather than a vulnerability or threat feed. No geographic dependency or public threat claim is made. Reopen applicability if the recovery question changes.
+
+New useful endpoint candidates (Unvetted Candidate; retrieved 15 November 2026; publisher PostgreSQL Global Development Group; use is technical design review, with actual behavior independently tested in CI; no corpus source was disclosed):
+
+| Candidate | Locator | Where used and qualification limit |
+|---|---|---|
+| Recovery SQL locking | https://www.postgresql.org/docs/current/explicit-locking.html | Planning transaction lock choice; version/current URL may change; no live Salus completion proof |
+| Recovery JSON paths | https://www.postgresql.org/docs/current/functions-json.html | Exact extraction path design; real engine tests remain required |
+
+These candidates are recorded here for controlled endpoint-register reconciliation by the source-register reviewer; neither becomes a standing required family or qualified Salus method through this task. Complete page copying is not required or claimed; operative lock modes and JSON path/type semantics were inspected. Rights: public technical documentation, limited linked use; no external publication of Salus source or private evidence.
+
 The exact current user instruction is captured above with chat/turn/message provenance. Candidate concepts, corrections, rejected alternatives, safety boundaries, implementation and validation evidence are retained in this runbook, tests, PR and handoff. Repository-backed source is referenced, not copied into a second Library destination.
 
 Expected current initiating user messages: 1. Captured verbatim here: 1. Source-readback verified: 1. Prior task instructions/approvals: referenced by governed PR/run records, not falsely counted as fully exported turns. The active assistant/tool conversation continues; this is a bounded capture checkpoint, not a complete chat exporter or final whole-turn ingestion receipt.
