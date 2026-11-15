@@ -1,0 +1,31 @@
+# Baseline reconciliation search and capture record — 15 November 2026
+
+Status: preparation evidence only. Protected current-corpus consideration and private membership/proposal creation are pending exact-version approval and execution.
+
+## Source request
+
+Restricted Codex chat 01a1dccc-3c40-7c60-b6eb-f9836bd1332e, title “Review shared conversation”; turn 01a1e111-4697-78f0-b71d-a0aa300005dc, user message 01a1e111-4740-7141-849a-287525d661d1: “Reconcile source-level membership and search coverage for the 8,430 unresolved records through the governed process, preserve the four receipts, prepare a current baseline for approval, and update the handoff with verified results and next steps.”
+
+Retain the original four full receipt rows and cbb850ab8dd3a06e300b5ce2edc40764efc821a9f2fa25d4beca73d6319c01af digest. Their old window is not consideration coverage for a changed corpus. The current candidate proposes four separately bound fresh queries with new receipt IDs and an atomic source-correlated proposal, never replacement of those receipts.
+
+## Locations, queries and relevance
+
+- Authoritative repository: development/salcapa-platform at be3880d09274e4eb68bf8afec2d3bb26c866c7f7. All five governing records inspected. Full recursive tree inventory returned not truncated. Inspected original unresolved/stable census and planning code, accepted diagnostic source/run and closeout evidence, original receipt schema, frozen/current consideration service and intake configuration. Earlier census paths retain aggregate fingerprints; original source-correlated plan was not committed. No original-window membership manifest was located in this inspected task evidence. This is a bounded finding, not a claim about every historic repository revision or external archive.
+- SharePoint/OneDrive native searches, top 20 requested: exact queries `"salus" "recovery" "baseline"` and `"salus" "Knowledge" "receipt"` each returned 15 generally related Salus policy/proposal/research titles. These were not source-correlated recovery manifests; unrelated originals were not treated as evidence or downloaded. Refined `"salus-availability-recovery-plan-20261115"` and `"knowledge-cohort-drift"` returned zero. Native ranking/index scope is not an exhaustive archive inventory.
+- Outlook: `"salus" "recovery" "8430"`, size 20, returned three unrelated historical subdivision notices; no further page. Excluded as irrelevant and not copied. Refined `"salus-thira-command" subject:1252 received>=2026-11-15`, size 20, returned zero, no further page. No full message body was fetched or message sent.
+- Teams: `"salus" "recovery" "baseline"` and refined `"salus-availability-recovery-plan-20261115"`, top 20 including channel threads, returned zero, reason no_messages_found. No chat/channel was modified.
+- Pages/Spaces: complete accessible Spaces listing returned zero. Accessible Pages listing plus its required continuation returned only the getting-started guide and then ended; no Salus baseline page was found. The guide was excluded as irrelevant; no Page, Space or Library file was modified.
+- Prior chat/current context: recent thread inventory and three-turn read of the current recovery chat confirmed the current request, prior exact-version approvals and completed diagnostics. More history remains available; this was not a full historical message/export review. Current user/turn IDs above bind the request without copying hidden reasoning or unrelated source contents.
+- Local sources: sources/ is read-only and returned no searchable files; no synced project file was changed. Relevant local implementation/fixture copies were compared with authoritative source and used for synthetic validation. User-supplied original community-communication context is not evidence of recovery membership. No exhaustive local-disk scan is claimed.
+- Competent external technical evidence: PostgreSQL 16 transaction, isolation and locking documentation, linked in the runbook, checked for the bounded read-only-snapshot and commit-lock design. No public web source is authority for Salus membership or source rights.
+- Governed Knowledge Library: four original receipts are preserved as historical evidence. Current full represented-union consideration, four fresh task queries and every member's considered/matched flags will be measured in the proposed protected run, not claimed from connector searches or old counts. See knowledge-current-baseline-proposal.md for exact queries and execution gates.
+
+## Gaps, owner and follow-up
+
+Recovery owner: Marc/system administrator through the governed process. No source-correlated historical membership manifest was located in the inspected evidence. Original #1245 inner failure telemetry remains unavailable. Current aggregate +125/+99/+26 does not reconstruct historical transitions. Full message export, all-chat/work-chat capture/backfill, uninspected historical revisions/archives and unrestricted content availability remain gaps.
+
+The candidate's private proposal will contain current source IDs, versions, provenance/rights metadata, explicit no-candidate/historical membership and per-source search flags, with historical reconstruction false, baseline accepted false and processing authority false. All correlated metadata stays in the existing authorized database. Repository code remains authoritative in GitHub; no duplicate source copy is placed in the Library.
+
+Capture scope includes this source request, exact governed references, queries, decisions, rejected count-only reconstruction, design, validation evidence and result obligations. Neither this summary nor its repository merge proves verified ingestion of every visible chat message or tool/file context into the Library. Use restricted original-chat and immutable repository/run pointers; record any missing export or destination readback as an open obligation.
+
+Next: validate exact candidate, obtain protected-run approval, perform current-corpus search/member capture once, independently read back all original/new receipts and proposal members, verify cleanup/runtime and update handoff. Present the resulting baseline proposal for separate approval; do not process or create recovery batches.
