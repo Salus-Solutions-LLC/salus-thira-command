@@ -2,7 +2,7 @@ name: Azure infrastructure validation
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, development/salcapa-platform]
     paths:
       - 'infra/azure/**'
       - 'docs/AZURE_*.md'

@@ -1,17 +1,17 @@
 ---
 schema_version: 1
 record_kind: salcapa_build_continuity
-last_verified_at: 14 November 2026 23:43 CST
+last_verified_at: 14 November 2026 23:44 CST
 current_frozen_release: v3.276
 current_frozen_commit: 7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3
 active_development_branch: development/salcapa-platform
-current_development_head: 6ebdf9d2b420a3d8bffc556524154e9983b6131a
+current_development_head: d72db13b3fa11f3a716fd8bf381eb67f2fbf0ebd
 active_product_milestone: issue_337_issue_360_dashboard_resume
 active_build_system_issue: 368
 active_increment: protection_advisor_readonly_v3276_held_application_promotion
 last_completed_increment: v3276_single_attempt_intake_guard_failed_cleanup_and_v3223_rollback_independently_verified
 candidate_release: v3.276
-validation_pr: 1233
+validation_pr: 1236
 validation_branch: codex/advisor-v3276-deployment-readback-20261114
 validation_base: development/salcapa-platform
 validation_head: pending_exact_rollback_record_candidate_head
