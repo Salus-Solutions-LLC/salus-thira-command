@@ -269,7 +269,10 @@ if deployment["promotion_readiness"] == "accepted":
     assert deployment["critical_journey_acceptance"] == "verified"
     assert deployment["genuine_blocker"] == "none"
 else:
-    assert deployment["promotion_readiness"] in {"preflight_ready", "deployed_awaiting_live_acceptance"}
+    assert deployment["promotion_readiness"] in {"preflight_ready", "deployed_awaiting_live_acceptance", "not_ready"}
+    if deployment["promotion_readiness"] == "not_ready":
+        assert deployment["deployed_release"] == deployment["current_stable_release"]
+        assert deployment["deployed_commit"] == deployment["current_stable_commit"]
     assert deployment["deployed_release"].startswith("v")
     assert len(deployment["deployed_commit"]) == 40
     assert deployment["critical_journey_acceptance"] == "not_verified"
