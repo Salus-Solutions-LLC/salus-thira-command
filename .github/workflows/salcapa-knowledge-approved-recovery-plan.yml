@@ -147,7 +147,7 @@ jobs:
           ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors)"
           REGISTRY_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query loginServer --output tsv --only-show-errors)"
           test "$(az acr repository show --name salcapadevb48224acr --image "salcapa@${EXPECTED_IMAGE##*@}" --query digest --output tsv --only-show-errors)" = "${EXPECTED_IMAGE##*@}"
-          JOB_NAME=salcapa-approved-recovery-plan-b48224
+          JOB_NAME=salcapa-recovery-plan-b48224
           test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
           echo "TASK_JOB_NAMESPACE_CLEAR=1" >> "$GITHUB_ENV"
           SCRIPT_B64="$(python tools/knowledge_recovery_plan_payload.py)"
@@ -170,7 +170,7 @@ jobs:
               scriptsBase64="$SCRIPT_B64" payloadSha256="$PAYLOAD_SHA" \
               phaseRunId="$GITHUB_RUN_ID" phaseScriptSha256="$(jq -r '.script_sha256' "$ACTIVATION")" \
             --output none --only-show-errors
-          JOB_NAME=salcapa-approved-recovery-plan-b48224
+          JOB_NAME=salcapa-recovery-plan-b48224
           EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" \
             --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
           test -n "$EXECUTION_NAME"
@@ -210,7 +210,7 @@ jobs:
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         run: |
           set -euo pipefail
-          JOB_NAME=salcapa-approved-recovery-plan-b48224
+          JOB_NAME=salcapa-recovery-plan-b48224
           if [ "${TASK_JOB_NAMESPACE_CLEAR:-0}" != "1" ]; then exit 0; fi
           az account show --only-show-errors >/dev/null
           RUNTIME_OK=1

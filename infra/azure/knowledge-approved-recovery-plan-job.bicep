@@ -18,7 +18,7 @@ param phaseRunId string
 param phaseScriptSha256 string
 
 resource acceptanceJob 'Microsoft.App/jobs@2024-03-01' = {
-  name: 'salcapa-approved-recovery-plan-b48224'
+  name: 'salcapa-recovery-plan-b48224'
   location: location
   tags: {
     salusOperation: 'knowledge-approved-recovery-plan'
