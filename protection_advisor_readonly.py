@@ -439,8 +439,8 @@ def register_advisor_readonly(app: Any, ctx: dict) -> None:
                 response["result"] = {"content": [{"type": "text", "text": serialized}], "isError": False}
             else:
                 response["error"] = {"code": -32601, "message": "Method not found"}
-        except (ValueError, LookupError) as exc:
-            response["error"] = {"code": -32602, "message": str(exc)}
+        except (ValueError, LookupError):
+            response["error"] = {"code": -32602, "message": "Invalid parameters or source unavailable; verify source integrity and response limits"}
         except Exception:
             response["error"] = {"code": -32603, "message": "Source retrieval unavailable; no complete-access claim can be made"}
         return JSONResponse(response, headers=HEADERS)

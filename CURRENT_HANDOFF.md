@@ -1,6 +1,22 @@
 # Salus Solutions — Current Handoff
 
 
+
+## 14 November 2026 Central - v3.275 source merged and frozen; publication withheld for reader error disclosure
+
+Marc explicitly authorized PR #1226 exact head `a44d3e5b0bcde0a7346892b3a00b08b9b084757a`. All four PR checks passed, clean mergeability was verified, and it was marked ready and squash merged as `ae2b083d0bd78dd18de29e592bd7bd1576f7c9f6`. Verified `release/v3.275` absent, created it at the merge commit and independently read back that SHA. Requirements/runtime/reader/acceptance-script blobs match the approved head; all five governing records were re-read. Preserve frozen v3.274 and v3.275 unchanged.
+
+Broader push analysis run `43676750680`, job `132698529628`, failed the existing CodeQL gate with one `py/stack-trace-exposure` finding: the reader returned `str(exc)` from caught ValueError/LookupError in its JSON-RPC response. Source inspection confirms that downstream errors can carry internal detail. No actual disclosure or exploitation is established. The dependency/security and immutable-release jobs passed; the failed CodeQL result is not waived. Prepared image request PR #1228 was closed without merge or execution. No image activation, registry publication, deployment or access setting changed.
+
+This v3.276 source candidate replaces exception-derived public text with a fixed error message, retains JSON-RPC failure codes and complete-access denial, and adds fictional regression cases injecting private details through ValueError, LookupError and RuntimeError. It adds the governed development target to the existing CodeQL pull-request trigger so this gate runs before future source merges; analysis and findings enforcement remain unchanged. The runtime identity advances to v3.276. Source-only preparation preserves the disabled reader, existing read/denial/hash/pagination/audit controls, accepted v3.223 rollback and every protected promotion gate. No image-publication candidate is active.
+
+Candidate validation in PR #1229: 35 focused reader tests pass; full local suite passes 239 tests and 63 subtests, with three shell diagnostic tests skipped on Windows and retained in Linux CI. Both continuity checks and diff whitespace pass. All final exact-head GitHub checks, including the newly premerge CodeQL analysis, remain required before approval.
+
+Required next proof: focused and full tests, both continuity checks, all exact-head PR checks including CodeQL, Marc's exact source merge/new-freeze approval, then a separate image request and registry readback, protected application promotion and concrete per-user OAuth/client/callback/expiry/account/workspace activation acceptance. Existing administrator readback of the retained combined record and original is not availability through the workspace connection, and no independently retained Part 1-only result is claimed. The assessment remains on hold.
+
+Search/capture: used authoritative repository/governing records, exact CodeQL log and original reader/tests/workflow, and prior restricted source-readback evidence. Concurrent Knowledge census failed closed on live representation gaps; historical receipts do not establish this task's complete live-corpus consideration. That task receipt, automatic chat capture and unavailable contents remain open. No unrelated Member records, new assessment research or external Member queries were accessed.
+
+
 ## 14 November 2026 - v3.274 source frozen; publication held for dependency security correction
 
 Marc authorized PR #1224 exact head `81396621c1cea2bdb2f0edb9d54501d7d6b059e1`. Its four PR checks passed; it was marked ready and squash merged as `d8125b42fca4789be1c34a67d39831b2f5a212d3`. Readback verified the approved runtime, configuration, reader and acceptance-script blobs. The previously absent `release/v3.274` branch was created at that exact merge commit and read back independently. Its immutable-release guard passed. Do not rewrite the frozen branch.

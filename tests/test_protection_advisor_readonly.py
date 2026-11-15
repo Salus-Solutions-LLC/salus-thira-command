@@ -118,6 +118,25 @@ def rpc(client, method="tools/call", **params):
     return client.post(reader.ENDPOINT, json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
 
 
+@pytest.mark.parametrize("error_type,code", [(ValueError, -32602), (LookupError, -32602), (RuntimeError, -32603)])
+def test_source_exception_details_are_never_disclosed(setup_reader, monkeypatch, error_type, code):
+    client, _ = setup_reader
+    private_detail = "Traceback: fictional private path /restricted/source.db; token=fictional-secret"
+
+    def fail_source(*args, **kwargs):
+        raise error_type(private_detail)
+
+    monkeypatch.setattr(reader, "search_records", fail_source)
+    response = rpc(client, name="search", arguments={"query": "Example"}).json()
+    assert "result" not in response
+    assert response["error"]["code"] == code
+    assert private_detail not in json.dumps(response)
+    assert "fictional-secret" not in json.dumps(response)
+    expected = ("Invalid parameters or source unavailable; verify source integrity and response limits"
+                if code == -32602 else "Source retrieval unavailable; no complete-access claim can be made")
+    assert response["error"]["message"] == expected
+
+
 def fetch(client, **args):
     return rpc(client, name="fetch", arguments={"id": SUBMISSION, **args}).json()
 
@@ -298,7 +317,7 @@ def test_oversize_response_is_not_silently_truncated(setup_reader, monkeypatch):
     client, _ = setup_reader
     monkeypatch.setattr(reader, "MAX_BYTES", 100)
     result = fetch(client)
-    assert "result" not in result and "exceeds response limit" in result["error"]["message"]
+    assert "result" not in result and result["error"]["code"] == -32602 and "response limits" in result["error"]["message"]
 
 
 def test_no_sensitive_request_is_executed_as_notification(setup_reader):
