@@ -70,3 +70,21 @@ Read-only recovery proposal: inspect the original operation's existing receipts 
 Additional primary-source candidates, retrieved 15 November 2026: https://learn.microsoft.com/en-us/cli/azure/containerapp/job/logs?view=azure-cli-latest (Azure CLI log tail range 0–300); https://devguide.python.org/versions/ (Python support status); https://www.python.org/downloads/release/python-3150/ (stable-release status). These are member-neutral public technical originals, used within the reviewed recovery runbook and Python recommendation. Treat them as Unvetted Candidate endpoint records pending controlled source-register reconciliation. No corpus data was sent to public search.
 
 Python PR #1243's older build/audit failures and the current branch's passing build/audit are distinct. Recommendation: defer the unrefreshed upgrade PR and validate compatibility in a separate candidate; no Python change or Dependabot command performed. See docs/knowledge-recovery-receipt-readback.md for precise job evidence and next steps.
+
+## Verified read-only reconciliation checkpoint
+
+Marc's read-only approval source: 01a1e075-44ac-74d3-855c-15aa8470d130, in execution turn 01a1e055-c08e-7d62-90c7-b0d8acaa0021. Exact available message:
+
+> <send_user_message_question_reply>
+> [{"questionItemId":"[\"request_user_input_async\",\"call_be96472655d04cd3a437cda528bcc357\",0]","question":"Approve merging PR #1247 at commit 9bd5a5e4e96ed18375cfae73f2c01d910ef459b3 and running its read-only receipt and recovery-batch reconciliation? This new protected version corrects the log collector, checks any evidence already saved, and verifies cleanup. It will not repeat preparation, create receipts or change records.","answer":"Approve read-only reconciliation"}]
+> </send_user_message_question_reply>
+
+PR #1247 approved head 9bd5a5e4e96ed18375cfae73f2c01d910ef459b3 merged as 23061adf50e70513931fd7e5f5b7b4ee871176a3. All ten applicable jobs passed; all nine blobs matched. Protected read-only run 43746748966 succeeded on attempt 1. At 18:27:50 UTC, two fresh READ ONLY, REPEATABLE READ connections agreed on four original-task consideration receipts and zero committed original-task plan, batch and event rows. State PARTIAL_RECEIPTS describes incomplete planning, not partial corpus coverage in each receipt.
+
+All four receipts individually cover the original observed boundary 23,622 and represented/considered 23,632, with 15,228 service-available, 8,404 unresolved and 93 holds. Exact IDs, queries, hashes, creation times, match counts and original actor are retained in CURRENT_HANDOFF.md. This supersedes the prior unknown current-task receipt state; it does not establish a fresh physical-source census, five durable individual diagnoses, recovery batches, extraction completion or human qualification.
+
+No new receipt, DDL/DML, source bytes, retry/hold change or original replay occurred. Unchanged runtime was verified at 18:28:31 UTC and readback job absence at 18:28:52 UTC. Original #1245 workflow remains failed; its log collector was corrected through #1247, but the exact missing post-receipt stop is still unproven. Preserve existing receipts and prepare a governed planning-only successor from verified partial state, retaining current source/version/checkpoint/hold and exact-head gates.
+
+Five execution-turn user source IDs are now read back: four prior inputs plus this exact approval. Approval/question text is captured, and the email is referenced inside the restricted source chat because of notification tokens. Complete assistant/tool export, historical chats and Library-destination ingestion/readback remain open capture gaps. Repository-backed implementation is referenced rather than duplicated into the Library. The verified four corpus receipts do not close those chat-ingestion gaps.
+
+Python recommendation is unchanged: hold the unrefreshed #1243 proposal pending current dependency compatibility/build/audit/runtime evidence. No Python upgrade performed.
