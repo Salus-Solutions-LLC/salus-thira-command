@@ -238,11 +238,19 @@ jobs:
             if [ "$STATUS" = "Failed" ]; then break; fi
             sleep 10
           done
+          LOG_EXIT=0
           az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
             --execution "$EXECUTION_NAME" --container salcapa-recovery-plan \
-            --tail 600 --format text --only-show-errors > /tmp/task-knowledge-search.log 2>&1
-          # Print safe failure/counter evidence before any success assertion.
+            --tail 300 --format text --only-show-errors > /tmp/task-knowledge-search.log 2>&1 || LOG_EXIT=$?
+          case "$STATUS" in
+            Succeeded|Failed|Running|Pending|Processing|Stopped|Unknown) OBSERVED_STATUS="$STATUS" ;;
+            *) OBSERVED_STATUS=Unknown ;;
+          esac
+          echo "TASK_KNOWLEDGE_EXECUTION_STATUS=$OBSERVED_STATUS"
+          echo "TASK_KNOWLEDGE_LOG_FETCH_EXIT=$LOG_EXIT"
+          # Emit only fixed telemetry; raw CLI errors stay private.
           grep -E '^.*(TASK_KNOWLEDGE|RECOVERY|STABILITY)_[A-Z0-9_]+=.*$' /tmp/task-knowledge-search.log || true
+          test "$LOG_EXIT" = "0"
           grep -q 'STABILITY_CONSECUTIVE_COMPLETE_INVENTORIES_EQUAL=1' /tmp/task-knowledge-search.log
           grep -q 'STABILITY_FRESH_CONNECTION_RECEIPTS_VERIFIED=4' /tmp/task-knowledge-search.log
           grep -q 'TASK_KNOWLEDGE_VERIFIED_RECEIPTS=4' /tmp/task-knowledge-search.log
