@@ -11,7 +11,7 @@ active_build_system_issue: 368
 active_increment: protection_advisor_readonly_v3275_security_source_candidate
 last_completed_increment: v3274_source_merged_frozen_release_guard_passed_publication_held
 candidate_release: v3.275
-validation_pr: pending
+validation_pr: 1226
 validation_branch: codex/advisor-v3275-security-20261114
 validation_base: development/salcapa-platform
 validation_head: pending_exact_candidate_head
