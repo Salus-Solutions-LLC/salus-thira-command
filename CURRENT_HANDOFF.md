@@ -1,5 +1,17 @@
 # Salus Solutions — Current Handoff
 
+## 15 November 2026 Central — Assessment report editorial clarity standard prepared
+
+Marc directed that the results of an authorized four-report editorial revision become the requirement and standard for all Salus assessments and part of the Charter. Prepared SAL-D136 / SALUS-REPORT-CLARITY-001 at source base 553f7acf31f9898ccd98ea5cbef96b602a61738a. The amendment makes SalCAPA the integrated leadership overview, SalINTEL the source/confidence/gap analysis, SalTHIRA the six-step scenario/capability/priority assessment, and SalOPS the feasible response/proof record. It requires distinct purpose/executive interpretation, principal content locations, precise ID/version handoffs, useful continuity without copied narratives, complete baseline preservation, topic-specific anticipatory analysis, honest result/status labels, paired option/decision checklists and semantic plus current visual conformance.
+
+The authorized editorial working successors and exact source, preservation and native-rendering evidence remain in their restricted engagement. Assessment research remains paused pending existing records; the reader stays disabled. No new submission, score, operational implementation, external distribution, protected execution, ingestion recovery, deployment or service commitment occurred. Source qualification, complete Library consideration, intended-reader human readback and final issue remain separate open gates. This repository change contains member-neutral policy only.
+
+PR #1253's approved head 94833da681ffc23a303bff006a3803bd8ae77138 was previously marked ready and merged as fe726ebc99e5f3264417172f5fc7cf445c48ef63. Its earlier candidate-only entry below is historical. SAL-D135 is incorporated; separate visual corrections were completed in the restricted authorized working package, with editorial successors retaining that common formatting. No universal historical artifact remediation or deployed enforcement is claimed.
+
+See governance/assessment-editorial-clarity-20261115.md for the task's bounded search, capture limits, restricted/generalized boundary, artifact impact queue and validation. Full live represented-Library consideration and complete chat export/ingestion remain unverified; bounded native search is not a receipt and no prior activation was replayed. Remaining policy gate: validate the exact final source, obtain the established exact-head merge authorization and record merge readback. No release or production change is bundled with that merge.
+
+
+
 ## 15 November 2026 Central — Common document appearance requirement prepared; merge and binary correction pending
 
 Marc directed that every document meet the same standards referenced in the Charter after identifying inconsistent appearance across a four-product working package. Prepared SAL-D135 / SALUS-DOC-UNIFORM-001 at base 074c8557221b977d00071b744b6c424788687d4b. Refreshed all five governing records and the exact document-design standard. The contents endpoint returned an empty handoff representation; fetched the full authoritative blob 1e00e8c35673d08e8351c0c65c58dfc06e69f396 instead and preserved all prior content. No deployment was executed; accepted runtime remains the previously recorded v3.223, not newly live-verified in this policy task.
