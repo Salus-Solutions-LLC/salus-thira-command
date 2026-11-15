@@ -96,3 +96,10 @@ The Program Charter and the three repository method/report standards incorporate
 
 The Program Charter and Decision Register now govern the distinct SalINTEL™ Facilities Assessment (FA), Personal Protection Assessment (PPA) and Person of Interest (POI) module requirements and names. `proposals/SALINTEL_FACILITIES_AND_POI_MODULE_SCOPE_20261002.md` is an internal design candidate only; it is not an approved controlled template, live questionnaire, price, public offer, investigation authorization or software release. Exact method, intake, report and service artifacts require separate qualified review and registration before use.
 
+
+
+## Assessment report editorial authority [SAL-D136]
+
+| Artifact | Role | Authority status |
+|---|---|---|
+| `SALUS_ASSESSMENT_REPORT_PURPOSE_AND_EDITORIAL_STANDARD.md` | Mandatory report-purpose, principal content location, useful-continuity versus duplication, exact-version handoff, substantive-preservation, anticipatory-analysis, truthful-label and package/readback acceptance standard for all assessment levels/bands and report/template/generator families | Marc directed adoption on 15 November 2026. Governance candidate; repository incorporation requires validated exact-head merge. No other Member report, template binary, generator, operational action or issued report is approved or remediated by this register entry. |

@@ -1,0 +1,58 @@
+# Salus Assessment Report Purpose and Editorial Standard
+
+**Requirement:** SALUS-REPORT-CLARITY-001 / SAL-D136.
+**Owner:** Salus Solutions. **Handling:** Salus Internal Confidential.
+**Authority:** Marc directed on 15 November 2026 that the results of the authorized four-report editorial revision become the requirement and standard for all Salus assessments and be incorporated in the Charter. Repository incorporation follows governed validation and merge. The requirement does not issue a report, approve a finding, restart a paused engagement, activate a reader, authorize operations or deploy enforcement.
+
+## Purpose and applicability
+
+Apply this standard to every Salus assessment level and scope band, its four same-level reports, controlled templates, editable/PDF/print outputs, supporting handoffs and future report generation. Preserve the approved architecture, the six-step SalTHIRA method and complete level-appropriate content. SalCAPA is the coordination, decision, action and evidence environment throughout the work; its integrated assessment report is the leadership overview and main reading entry point. Evidence production still follows SalINTEL → SalTHIRA → SalOPS → integrated SalCAPA qualification and issue. Reading order does not change production order or approval authority.
+
+## Distinct report purposes and content responsibilities
+
+| Product report | Reader's question | Content it principally maintains | Handoff |
+|---|---|---|---|
+| SalINTEL™ | What do we know, how do we know it, and what remains uncertain? | Source picture, provenance and dates, evidence status, current prescribed instructions, contradictions, confidence, gaps and selective existing-record requests. Explain source-supported findings and implications without treating instructions as performance. | Traceable source findings and open questions for SalTHIRA; current source register remains the detailed evidence reference. |
+| SalTHIRA™ | What could happen, what would the consequences be, and what deserves priority? | Six-step scenario analysis; consequences, capability targets and current-capability limits; five mission areas, all 32 core-capability applicability/priority screens and relevant sector additions; treatment priorities and sensitivity to contrary evidence. | Ranked target/gap/treatment needs for SalOPS with source, scenario, target and finding identities unchanged. |
+| SalOPS™ | How could the Member address the priorities, and how would the result be verified? | Feasible response options, causal rationale, no-action and practical alternatives, responsibilities, sequence, resources/cost status, authority, dependencies, safe stop/fallback, acceptance measures, verification and residual exposure. Pair each material option narrative with its ID-specific checklist. | Proposed or separately authorized/performed/verified option state and proof for the matching SalCAPA decision. |
+| SalCAPA™ | What must leadership understand, decide, assign and track? | Concise integrated conclusions, strengths, priorities, decisions, owner/authority, timing, material resource constraints, option links, closure proof, residual exposure, outstanding records and release/next-level gates. Pair each material decision narrative with a matching decision checklist. | Recorded leadership disposition, action/closure state and qualified feedback, linked to exact same-level supporting versions. |
+
+State the particular report's purpose and contribution at the beginning of its body and use a product-specific cover subtitle or equivalent accessible treatment. Give a short reading route to the other reports and define identifiers and priority labels beside first use. State which operation/sites/functions the report covers and the represented level, date, status and evidence boundary. Do not substitute the same package summary for all four introductions.
+
+## Useful continuity and confusing duplication
+
+Maintain one substantive record for each source finding, scenario, target, option, decision and collection question. Carry stable IDs, meaning, confidence, proposed owners, authority conditions, dates, action states and proof consistently across the package. A repeated reference must contribute the receiving report's distinct analysis or decision effect.
+
+Useful repetition includes short standalone scope/status/handling statements, critical safety/evidence limitations, a concise finding label with a source pointer, and a compact handoff or decision/proof table. Detailed trace remains accessible in the correct report or restricted record. A reader must not have to find another file to understand a material safety qualification or the immediate decision.
+
+Remove copied executive conclusions, repeated source inventories and full option narratives that add no new analysis. SalCAPA summarizes an option's decision significance and material prerequisites; SalOPS retains the full implementation rationale and conditions. Use precise report section/table/ID references and exact version linkage, not vague “see elsewhere.” Source locators must identify originals rather than merely a bibliography. Avoid internal filenames, raw data and operational infrastructure detail in Member prose unless they help the reader make the decision.
+
+A report's executive table, narrative and checklist may serve different reading needs; keep them only when each has a distinct role. The overview prioritizes; the narrative explains the causal choice and alternative; the checklist specifies the verifiable action or decision. Avoid multiple full registers or narratives for the same role.
+
+## Coverage and preservation
+
+Concision is not authority to delete required domains, contrary evidence, source locators, targets, recommendations, acceptance conditions, safety limits, alternative explanations or uncertainty. Retain the complete baseline and the applicable member-neutral product structures. For repeated capability coverage, SalINTEL identifies evidence and missing proof, SalTHIRA assesses significance and priority, and SalOPS maps proposed response and responsibility; SalCAPA summarizes the decision effect. Do not remove the full required applicability screens merely because another product also covers the capability.
+
+Before editing, inventory report identities/versions, source and stable IDs, headings, tables, citations, relationships and release status. Preserve source originals and controlled predecessors. Record each changed or consolidated block, its reason and the designated retained location for unique substance. Update same-level version/section references and compare all four products. A shortened derivative remains linked to its full retained baseline; any reduction of a mandatory baseline beyond consolidation follows the existing qualified exception process. Existing issued reports require controlled SAL-D027 impact review, not silent regeneration or replacement.
+
+## Section-specific anticipatory analysis and honest labels
+
+Preserve SAL-D132's labeled Predictive and Anticipatory Intelligence subsection in every substantive research/assessment section, proportionate to its subject. Replace repeated generic paragraphs with the topic's baseline and source limit, future driver/scenario, indicator or review trigger, applicable horizon/lead time, responsible authority, confidence, option, alternative/disconfirming evidence and review requirement. Shared definitions may be referenced, but one final chapter or copied checklist is not a substitute for section-specific analysis.
+
+Distinguish a hypothesis or alternative explanation to test from a performed Red-Team exercise or verified result. Use labels such as “Alternative explanation to test” unless an actual, documented review supports a result claim. Distinguish confirmed document wording, reported capability, inference, proposed target and measured performance. “Qualified,” “approved,” “authorized,” “implemented,” “verified” and “closed” require their own evidence; editorial completion supplies none of these assessment or operational approvals. Never invent probabilities, performance measurements, authority, dates or review completion.
+
+## Package acceptance and continuing controls
+
+Before delivery, complete a per-report and package-wide matrix covering purpose clarity, principal content locations, required content, stable-ID and version trace, exact source/finding/target/recommendation preservation, unique executive interpretation, paired narrative/checklist function, section-specific anticipatory content, truthful labels, readable cross-references and unresolved gates. Use a plain-language readback: a nonexpert should be able to identify what is known, why it matters, the feasible choice, who decides and the proof required without reading the restricted annex. Record whether an actual intended-reader readback occurred; an automated wording check is not human acceptance.
+
+Render the exact DOCX/PDF outputs and inspect every page individually and side by side under SAL-D126, SAL-D128, SAL-D135 and the current document-design standard. Preserve the common cover, approved assets, typography and size floors, margins, spacing, table/caption behavior, branded footer and second-page rule, confidentiality, accessible structure and page X of Y. Adjust layout rather than shrinking type. Record file hashes, pages, renderer, preservation/format checks, defects, corrections and reviewer disposition. Keep source qualification, complete Library consideration, human issue, external distribution and operational authorization separate.
+
+For a paused engagement, a separately authorized editorial correction may proceed; it does not restart research, collection, assessment decisions, background work or operations. Preserve disabled-reader and other explicit hold states. Proposed action/review windows do not activate monitoring or authorize work during the pause.
+
+## Reusable and restricted records
+
+This member-neutral standard generalizes editorial method only. Keep Member reports, source facts, change logs, file hashes, sensitive diagrams, confirmations and full chat context in the authorized restricted engagement/governance boundary. The enterprise index may hold only permitted pointers or qualified generalized lessons. SAL-D025, SAL-D027, SAL-D043, SAL-D055, SAL-D063–SAL-D064, SAL-D073, SAL-D127, SAL-D132–SAL-D135 and existing source-rights, search, capture and release requirements remain in force.
+
+## Adoption and impact
+
+Apply prospectively to all new and materially revised assessment reports and review active drafts and template/generator families through a recorded impact queue. Reconcile the three product method standards, approved artifacts and startup instructions with this requirement. A method amendment does not itself repair other binaries, complete historical assessment review or implement software enforcement. Maintain exact reviewed boundaries, owners, missing evidence and next actions; do not claim universal compliance from a single corrected package.
