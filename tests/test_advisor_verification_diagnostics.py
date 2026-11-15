@@ -36,7 +36,7 @@ class VerificationDiagnosticTests(unittest.TestCase):
                     "Advisor verification: authenticated=true state=Pending error=" + code)
 
     def test_unrecognized_strings_and_nonstring_errors_are_redacted(self):
-        for value in ["private@example.invalid", "graph_http_403\nsecret-value",
+        for value in ["private@example.invalid", "graph_http_403\nsecret-value", "graph_http_403\n",
                       {"token": "secret-value"}, ["secret-value"], 403]:
             with self.subTest(value=value):
                 self.assertEqual(self.render({"email_verification": "secret-value",

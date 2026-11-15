@@ -91,7 +91,7 @@ jq -r '
   " error=\(if $error == "" then "none"
     elif ($error | type) != "string" then "unrecognized_error"
     elif $error == "delivery_not_configured" or $error == "sender_not_configured" then $error
-    elif ($error | test("^graph_http_[1-5][0-9]{2}$")) then $error
+    elif ($error | length) == 14 and ($error | test("^graph_http_[1-5][0-9]{2}$")) then $error
     elif (["CredentialUnavailableError", "ClientAuthenticationError", "ConnectTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "ConnectError", "ReadError", "WriteError", "RemoteProtocolError"] | index($error)) != null then $error
     else "unrecognized_error" end)"
 ' "$WORK/account-result.json" >&2
