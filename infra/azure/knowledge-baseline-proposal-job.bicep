@@ -18,11 +18,11 @@ param phaseScriptSha256 string
 param supportScriptBase64 string
 
 resource acceptanceJob 'Microsoft.App/jobs@2024-03-01' = {
-  name: 'salcapa-baseline-proposal-b48224'
+  name: 'salcapa-baseline-refresh-b48224'
   location: location
   tags: {
     salusOperation: 'knowledge-baseline-proposal'
-    salusTaskKey: 'salus-current-recovery-baseline-proposal-20261115'
+    salusTaskKey: 'salus-current-recovery-baseline-refresh-20261115'
   }
   identity: {
     type: 'UserAssigned'
@@ -50,7 +50,7 @@ resource acceptanceJob 'Microsoft.App/jobs@2024-03-01' = {
     template: {
       containers: [
         {
-          name: 'salcapa-baseline-proposal'
+          name: 'salcapa-baseline-refresh'
           image: imageDigest
           command: [
             'python'

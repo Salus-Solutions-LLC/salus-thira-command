@@ -33,6 +33,106 @@ class BaselineTests(unittest.TestCase):
     def save(self,header,members,core,**kwargs):
         with contextlib.redirect_stdout(io.StringIO()):baseline.commit_proposal(self.conn,header,members,core,**kwargs)
 
+    def refresh_fixture(self):
+        header,members,core=self.build()
+        conn=baseline.ProposalConnection(self.conn)
+        context={'evidence':baseline.support.read_evidence(conn),
+                 'families':{family:baseline.search_matrix(conn,family=family) for family in ('C','B','H')},
+                 'inventory':self.inventory,'drive_id':'PRIVATE-DRIVE',
+                 'expected':fixture.prior.COHORTS,'expected_exceptions':1}
+        self.conn.commit()
+        return header,members,core,context
+
+    def refreshed_save(self,prepared):
+        header,members,core,context=prepared
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            result=baseline.commit_proposal(self.conn,header,members,core,refresh=context)
+        return result,out.getvalue()
+
+    def test_family_flags_exactly_recombine_full_search_and_scoped_candidate_projection(self):
+        _,_,_,context=self.refresh_fixture()
+        conn=baseline.ProposalConnection(self.conn)
+        self.assertEqual(baseline.combine_families(context['families']),baseline.search_matrix(conn))
+        self.assertEqual(baseline.search_matrix(conn,family='C',source_ids={'s5'}),{'s5':context['families']['C']['s5']})
+        self.assertEqual(baseline.candidate_subset(conn,{'s1','s5'}),[r for r in context['evidence']['candidates'] if r['source_item_id'] in {'s1','s5'}])
+
+    def test_current_bulk_metadata_refresh_updates_every_flag_without_touching_sources(self):
+        prepared=self.refresh_fixture()
+        self.conn.execute('UPDATE m365_bulk_items SET metadata_json=?,status=?,reason=?',(json.dumps({'current':'baseline metadata rights audit'}),'Retry','verification'))
+        self.conn.commit()
+        (header,members,current),logs=self.refreshed_save(prepared)
+        self.assertEqual(header['locked_refresh']['delta']['bulk']['changed'],6)
+        self.assertEqual(header['locked_refresh']['candidate_sources_refreshed'],0)
+        self.assertIn('BASELINE_DRIFT_BULK_FIELD_METADATA_SHA256=6',logs)
+        self.assertNotIn('PRIVATE',logs)
+        expected=baseline.search_matrix(baseline.ProposalConnection(self.conn))
+        for member in members:
+            self.assertEqual(member['matched_queries'],[label for i,(label,_) in enumerate(baseline.QUERIES) if expected[member['source_item_id']][i]])
+        self.assertTrue(all(r['status']=='Retry' for r in current['bulk']))
+
+    def test_changed_classification_is_parsed_and_researched_under_lock(self):
+        prepared=self.refresh_fixture()
+        obj={'extraction':{'status':'Automatic Retry Required','text':'','failure_code':'PDF_ENCRYPTED'},'note':'current baseline verification rights'}
+        self.conn.execute('UPDATE m365_knowledge_candidates SET classification_json=? WHERE id=3',(json.dumps(obj),));self.conn.commit()
+        (header,members,_),_=self.refreshed_save(prepared)
+        self.assertEqual(header['locked_refresh']['candidate_sources_refreshed'],1)
+        row=next(m for m in members if m['source_item_id']=='s3')['candidate_versions'][0]
+        self.assertEqual(row['failure_code'],'PDF_ENCRYPTED')
+        self.assertEqual(header['categories'],fixture.prior.COHORTS)
+        self.assertEqual(header['search_matrix_sha256'],baseline.support.digest(baseline.search_matrix(baseline.ProposalConnection(self.conn))))
+        with contextlib.redirect_stdout(io.StringIO()):baseline.verify_saved(baseline.ProposalConnection(self.conn),header,members)
+
+    def test_current_hold_and_review_dispositions_are_retained_without_approval_authority(self):
+        prepared=self.refresh_fixture()
+        self.conn.execute("UPDATE m365_knowledge_holds SET hold_reason='rights unsafe baseline',reviewed_by='PRIVATE-REVIEWER'")
+        self.conn.execute("UPDATE m365_knowledge_candidates SET decision='Approved',reviewed_by='PRIVATE-REVIEWER' WHERE id=1")
+        self.conn.commit()
+        (header,members,_),logs=self.refreshed_save(prepared)
+        held=next(m for m in members if m['source_item_id']=='s4')
+        self.assertEqual(held['holds'][0]['hold_reason'],'rights unsafe baseline')
+        self.assertEqual(held['category'],'governed_hold')
+        self.assertFalse(header['baseline_accepted']);self.assertFalse(held['processing_authorized'])
+        self.assertEqual(header['search_matrix_sha256'],baseline.support.digest(baseline.search_matrix(baseline.ProposalConnection(self.conn))))
+        self.assertNotIn('PRIVATE',logs)
+
+    def test_equal_totals_cannot_hide_swapped_source_category_membership(self):
+        prepared=self.refresh_fixture()
+        for number,status in ((1,'Retry Paused'),(2,'Review Required')):
+            self.conn.execute('UPDATE m365_knowledge_candidates SET classification_json=? WHERE id=?',(json.dumps({'extraction':{'status':status,'text':'','failure_code':'PDF_ENCRYPTED'}}),number))
+        self.conn.commit()
+        with self.assertRaisesRegex(ValueError,'SOURCE_COHORT_MEMBERSHIP_DRIFT'):self.refreshed_save(prepared)
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM m365_knowledge_consideration_receipts').fetchone()[0],4)
+
+    def test_refresh_rejects_identity_version_membership_and_wrong_cohort(self):
+        prepared=self.refresh_fixture()
+        self.conn.execute("UPDATE m365_bulk_items SET etag='v2' WHERE item_id='s1'");self.conn.commit()
+        with self.assertRaisesRegex(ValueError,'SOURCE_IDENTITY_VERSION_DRIFT'):self.refreshed_save(prepared)
+        self.conn.execute("UPDATE m365_bulk_items SET etag='v1' WHERE item_id='s1'")
+        self.conn.execute('UPDATE m365_knowledge_candidates SET classification_json=? WHERE id=3',(json.dumps({'extraction':{'status':'Complete','text':'new content'}}),));self.conn.commit()
+        with self.assertRaisesRegex(ValueError,'UNRESOLVED_SCOPE_DRIFT'):self.refreshed_save(prepared)
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM m365_knowledge_consideration_receipts').fetchone()[0],4)
+        self.assertEqual(baseline.COMMIT_ATTEMPTED,0)
+
+    def test_excess_candidate_refresh_is_rejected_before_any_new_receipt(self):
+        prepared=self.refresh_fixture()
+        self.conn.execute("UPDATE m365_knowledge_candidates SET classification_json=classification_json || ' ' WHERE id IN (1,2)")
+        self.conn.commit()
+        with patch.object(baseline,'MAX_REFRESH_SOURCES',1):
+            with self.assertRaisesRegex(ValueError,'REFRESH_SCOPE_EXCEEDED'):self.refreshed_save(prepared)
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM m365_knowledge_consideration_receipts').fetchone()[0],4)
+
+    def test_refresh_independent_payloads_receipts_and_current_core_match(self):
+        prepared=self.refresh_fixture()
+        self.conn.execute("UPDATE m365_bulk_items SET reason='current metadata' WHERE item_id='s1'");self.conn.commit()
+        (header,members,current),_=self.refreshed_save(prepared)
+        other=self.connect()
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                conn=baseline.begin_read_only(other);baseline.verify_saved(conn,header,members)
+                self.assertEqual(baseline.core_snapshot(conn),current)
+            self.assertEqual(header['execution_phase_key'],baseline.PHASE_KEY)
+        finally:other.close()
+
     def test_source_partition_covers_all_versions_current_members_and_separate_exception(self):
         header,members,_=self.build()
         self.assertEqual(header['represented_files'],6)

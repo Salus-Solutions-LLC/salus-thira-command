@@ -51,3 +51,10 @@ The actual changed table, source identities, fields and values were not retained
 
 Historical 8,404 membership reconstruction, original #1245 inner telemetry and universal chat/work-chat export/backfill remain separate gaps. This failed run did not close them. Current task authorization/results are retained through restricted chat and immutable governed source/run references; no duplicate Library copy of repository-backed code was created.
 
+
+
+## Bounded refresh candidate preparation after the verified #1255 stop
+
+Source: the current exact-version approval and failed protected run 43765713976, with source/receipt prechecks, three identical inventories, current metadata counts and safe pre-write drift stop retained above. Inspected frozen salcapa_bulk_delta.py and salcapa_bulk_extraction_retry.py for possible update paths; no production changed row/field is claimed from code alone. New execution code records table/field counters and private before/after source fingerprints, refreshes only allowed metadata under locks, retains exact per-source cohort membership and source/version invariants, and keeps approval/processing false.
+
+The refresh is a new protected version requiring new exact-head approval. No old activation is replayed. Existing scoped connector/Page/chat/local/technical-source searches remain preparation evidence with their documented limits; they do not substitute for the pending fresh full represented-corpus queries. Four original receipt rows remain immutable; fresh receipt/proposal capture remains unexecuted. The full Library search/current baseline and original historical membership gaps are not closed by synthetic tests or this capture note.

@@ -1,0 +1,43 @@
+# Bounded locked refresh for the current baseline proposal
+
+Status: tested local candidate; no protected execution of this refresh has occurred. No baseline proposal or new receipt was committed by #1255.
+
+## Verified problem and unchanged authority
+
+Approved #1255 head 4354fcfe6b297270485770e5afc897ac7d1c34e3 merged as 553f7acf31f9898ccd98ea5cbef96b602a61738a and ran once as 43765713976. Three physical inventories were identical: 23,747 files, SHA-256 0e556598be30292cc1bbb2e46bb964b2e6e6f5e38f0b3b5e93b48a7cc68bc613. Current snapshot counts matched the expected 8,430-source partition, and every physical file was represented. The locked comparison stopped at SOURCE_OR_SEARCH_INPUT_DRIFT before enabling writes or attempting commit. Cleanup and full selected runtime comparison passed. Closeout #1257 records the exact phase/times and limits.
+
+The changed table/field/source was not retained by that version. Frozen worker code permits bulk search-metadata/status changes and retry classification-JSON updates without changing physical files or category counts. This is a possible update path, not a proven cause for any particular production row. No claim is made that the observed change was harmless.
+
+Preserve all four original full receipt rows and SHA-256 cbb850ab8dd3a06e300b5ce2edc40764efc821a9f2fa25d4beca73d6319c01af. Keep original planning target salus-availability-recovery-plan-20261115 empty. Logical proposal key remains salus-current-recovery-baseline-proposal-20261115; the failed run created neither its proposal nor its four new receipts. This is a new execution phase, salus-current-recovery-baseline-refresh-20261115, with a new activation and isolated job. The previous activation is not replayed or modified.
+
+## Bounded remedy for proposal preparation only
+
+The original candidate required an earlier full database/search snapshot to remain unchanged through a final Graph inventory. The replacement retains physical inventory proof, source/version/rights controls, the named cohort and append-only writes, while evaluating permitted changed metadata from the current locked state before preparing the proposal.
+
+1. Obtain the stable full-root physical inventory, complete represented membership and a READ ONLY, REPEATABLE READ preview, as before. Compute candidate, bulk and hold search flags separately using the same deployed tokenization, union, lower()/LIKE OR semantics and four exact task queries. Their per-source OR must equal the original full search. Each represented source has four considered flags.
+2. Obtain the final physical inventory outside the commit locks and require exact equality. Acquire the existing advisory lock and NOWAIT SHARE locks. The total lock/write budget remains 60 seconds, statement budget at most 30 seconds, lock timeout two seconds.
+3. Read current complete core/search-input fingerprints and calculate source-correlated drift. Public telemetry records only fixed table/field names and counts. The private proposal retains source keys, changed-field names and before/after row hashes plus preview/current whole-core hashes. Never print source IDs, names, paths, reviewer values, raw text or provider errors.
+4. Reject additions/removals or represented-identity changes. Reject candidate/source identity, name/path/owner, version/hash/archive/destination/removal provenance changes; reject hold identity/version/area changes and bulk identity/parent/version/size changes.
+5. Only these existing metadata changes may be evaluated afresh for a proposal: candidate classification hash, status/decision/reviewer/rationale/time/target-folder fields; hold reason, research/teaching/citation dispositions and reviewer fields; bulk status, reason and metadata hash. This does not authorize any source update or confer rights, qualification, approval or processing.
+6. At most 100 affected candidate sources may be refreshed. Re-query their complete candidate versions and parsed scalar evidence under the lock; recompute their candidate search flags. Candidate flags may be reused only for sources whose entire candidate core/search inputs were proven unchanged. Bulk and hold flags are always fully recomputed from the locked current state; these are metadata queries without whole-corpus classification parsing.
+7. Rebuild the proposal from current evidence and match flags. Require the same represented identities, every source's category/availability-exception/exact-text membership, and the exact 8,430 partition. Equal category totals cannot hide source swaps. Changed identity/version, excessive candidate refresh, changed per-source cohort, coverage gaps or any deadline failure stops before writes.
+8. Append the same three proposal tables and four fresh consideration receipts atomically. Preserve all original receipts and empty original planning target. State remains Proposed - Awaiting Baseline Approval; baseline accepted, processing authority and customer release remain false. No recovery batches are prepared.
+9. Independently read back the exact committed header, every member, event, all original/new receipt rows and the committed current core. Post-commit source drift gets table/field counters and fails the current-state verification; it must not be treated as zero writes when COMMIT_ACKNOWLEDGED=1. No ambiguous or partial result may be replayed.
+
+This refresh is only a way to capture a coherent current **proposal** before human approval. It does not refresh a processing plan or waive current source rights. Candidate source content is not downloaded; SQL projects only metadata, hashes and text-presence/match booleans. Holds, paused retries and extraction checkpoints are never changed. All allowed rights/decision values are retained as observed metadata, with proposal-level authority false.
+
+The prior quadratic repeated available-minus-exact set calculation in member construction is replaced by one precomputed set. This avoids extra time under the lock without changing membership semantics.
+
+## Protected bindings and validation
+
+The new activation is deploy/azure/activations/knowledge-baseline-refresh-20261115.json. The workflow triggers protected push execution only when this new activation changes. The old knowledge-baseline-proposal-20261115.json remains unchanged. Exact binding covers all 40 activation fields, the new script SHA-256 ae518470df0b531b7f8fb52f77192e696acdce54def130dbf15eb71c7c34b57b and unchanged support SHA-256 2bfaf1b5c16c6a66f77bd69c61dec7a36afc6cefe3c9b7f67795972586d0ee49. CI also checks phase/logical-key/100-source constants and the actual encoded payload size.
+
+Protected environment salcapa-dev-approval; attempt 1 only; same diagnostic concurrency group; no manual dispatch or replica retries. New isolated job salcapa-baseline-refresh-b48224 is tag/image checked and removed with actual absence verification. Execution remains held v3.276 digest 550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944; app/worker stay v3.223 digest 8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c. Maximum 900 seconds, 0.5 CPU/1 GiB. Complete selected runtime identity/template/configuration comparison uses ARM API 2025-07-01.
+
+Local: 25 tests passed; 26 PostgreSQL-only skipped. CI must pass all 51 tests with PostgreSQL 16, actual 40-field guard/replay/two-script tampering checks, shell syntax, Bicep compilation, constant and bootstrap-size checks, and repository gates. Tests retain the original strict guard reproduction; prove family recombination and subset/full projection equivalence, fresh bulk/candidate/hold matching, rights retention without authority, exact independent current readback, rejection of identity/version/over-limit/per-source membership changes, atomic rollback, receipt preservation, deadline and ambiguous commit handling.
+
+## Required next gates and retained gaps
+
+Obtain approval of the new exact tested head before merge and one protected refresh run. Check field-level drift and actual scope, unchanged source identities/versions, all four originals, four new receipts, exact private member/manifest/event records, fresh current-core verification, commit acknowledgement, runtime and isolated-job absence. Only a fully verified proposal may be presented for separate baseline approval. No baseline or processing approval is granted by this code change.
+
+Historical 8,404 membership reconstruction, original #1245 inner telemetry and universal chat/export/backfill remain gaps. The old four receipts do not prove current corpus consideration. Fresh queries and source-level membership must be durably coupled in the successful new run, never inferred from counts or an attempted search. The original failure record remains authoritative history.
