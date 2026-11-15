@@ -1,5 +1,14 @@
 # Salus Solutions — Current Handoff
 
+## 15 November 2026 Central — Common document appearance requirement prepared; merge and binary correction pending
+
+Marc directed that every document meet the same standards referenced in the Charter after identifying inconsistent appearance across a four-product working package. Prepared SAL-D135 / SALUS-DOC-UNIFORM-001 at base 074c8557221b977d00071b744b6c424788687d4b. Refreshed all five governing records and the exact document-design standard. The contents endpoint returned an empty handoff representation; fetched the full authoritative blob 1e00e8c35673d08e8351c0c65c58dfc06e69f396 instead and preserved all prior content. No deployment was executed; accepted runtime remains the previously recorded v3.223, not newly live-verified in this policy task.
+
+The amendment requires one current shared visual system, individual and package-level exact-output review, current standards over older template styling, and corrected inconsistencies before delivery. It reconciles obsolete Times New Roman footer wording with SAL-D128 Arial footers while preserving typography minimums, the approved footer/blank-page treatment, source originals and issued predecessors. Register, artifact description, design standard and startup instructions are aligned. No document binary has been corrected or newly approved by this policy work. Affected active drafts and template families need controlled successors and exact-file review before further delivery; their content and existing identities must be preserved.
+
+Scope is documentation-only. Reader state, stopped manual ingestion work, rollout holds, accounts, workflows, services and operations are unchanged. See governance/document-visual-consistency-20261115.md for bounded research, capture, impact and validation. Full task-wide represented-Library consideration remains unverified; direct authorized SharePoint searches are a bounded alternative, not a receipt. Existing receipt/recovery activations must not be replayed. Exact-head review/merge remains a separate gate; no policy-in-branch state is represented as already incorporated or deployed.
+
+
 
 
 
