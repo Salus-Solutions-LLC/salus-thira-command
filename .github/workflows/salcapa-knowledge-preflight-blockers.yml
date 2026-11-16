@@ -1,0 +1,272 @@
+name: SalCAPA governed preflight blocker diagnosis and resolution proposals
+
+on:
+  pull_request:
+    paths:
+      - 'tools/live_knowledge_preflight_blockers.py'
+      - 'tools/knowledge_blocker_payload.py'
+      - 'tools/validate_knowledge_blockers.py'
+      - 'tests/test_knowledge_preflight_blockers.py'
+      - '.github/workflows/salcapa-knowledge-preflight-blockers.yml'
+      - 'deploy/azure/activations/knowledge-preflight-blockers-20261116.json'
+      - 'infra/azure/knowledge-preflight-blockers-job.bicep'
+      - 'docs/knowledge-preflight-blockers-20261116.md'
+      - 'tools/live_knowledge_postsearch_resume.py'
+      - 'tools/live_knowledge_baseline_proposal.py'
+      - 'tools/live_knowledge_streamed_recovery_plan.py'
+      - 'tools/live_knowledge_remediation_proposals.py'
+      - 'tools/live_knowledge_preflight_proposals.py'
+      - 'tools/knowledge_job_execution_diagnostic.py'
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'deploy/azure/activations/knowledge-preflight-blockers-20261116.json'
+
+concurrency:
+  group: salcapa-knowledge-diagnostic
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: python -m pip install -r requirements.txt pytest==8.4.2 PyYAML==6.0.2
+      - run: python -m pytest -q -p no:cacheprovider tests/test_knowledge_preflight_blockers.py
+      - name: Validate actual guard, payload bootstrap and shell syntax
+        run: python tools/validate_knowledge_blockers.py
+      - run: az bicep build --file infra/azure/knowledge-preflight-blockers-job.bicep --stdout > /tmp/knowledge-task-search.json
+
+
+  postgres_postsearch_plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postsearch_plan
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postsearch_plan"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      SALUS_DB_BACKEND: postgres
+      SALUS_POSTGRES_AUTH: dsn
+      SALUS_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postsearch_plan # repo-hygiene: allow - localhost-only ephemeral PostgreSQL CI fixture
+      TEST_POSTSEARCH_POSTGRES: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt pytest==8.4.2
+      - run: python -m pytest -q -p no:cacheprovider tests/test_knowledge_preflight_blockers.py
+
+  authorize_scoped:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected task-specific Knowledge consideration gate passed."
+
+  task_search:
+    needs: authorize_scoped
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate exact task and script
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          python - <<'PY'
+          import hashlib,json,pathlib,sys
+          sys.path.insert(0,'.')
+          expected=json.loads('{"operation": "knowledge_preflight_blockers", "task_key": "salus-preflight-blocker-diagnostic-20261116", "parent_operation_key": "salus-availability-recovery-plan-20261115", "parent_manifest_sha256": "1d1883f3da42c5e3c0aa736f0d7f3d3369193787a3ec27d514287cc639787026", "baseline_operation_key": "salus-current-recovery-baseline-proposal-20261115", "approved_baseline_sha256": "9a662aa94726890dfc7e4845620161ab372d81c2cc27ba8f45d84ee694840821", "parent_verified_run_id": 43792061072, "parent_source_commit": "aee6e33fec6a2dcb9fa83598c1dc4a15c0c23c1e", "authority_record_commit": "d4ee7f9139144ca49640d636ec9f5e165e5aac2a", "expected_parent_batches": 200, "expected_parent_sources": 8430, "expected_parent_categories": {"governed_review": 7085, "retry_paused": 733, "automatic_retry": 512, "governed_hold": 93, "other_or_conflicting": 5, "complete_without_text": 0, "no_candidate": 2}, "proposal_state": "Proposed - Awaiting Method and Bounded Preflight Approval", "source_sha256": {"tools/live_knowledge_postsearch_resume.py": "2bfaf1b5c16c6a66f77bd69c61dec7a36afc6cefe3c9b7f67795972586d0ee49", "tools/live_knowledge_baseline_proposal.py": "ae518470df0b531b7f8fb52f77192e696acdce54def130dbf15eb71c7c34b57b", "tools/live_knowledge_streamed_recovery_plan.py": "08a64472d68835789638233619c43f72104aa5ddf8e4aa47ceb55230dcea2c1b", "tools/live_knowledge_remediation_proposals.py": "d3c7c87e433294f922e3bea94f0bbecdf08da7d4ee81904a46328ef5312d00e8", "tools/live_knowledge_preflight_proposals.py": "5c3ff1be15e9295bbb06aedfef6b9e5a19adbc2d5b30095ada2eb78c0fc326b8", "tools/knowledge_job_execution_diagnostic.py": "3b244a177442064c2b4c23bd42a4407fc774aad197644fd966fbcf12354078eb", "tools/live_knowledge_preflight_blockers.py": "09e032a5d0be53fa5262b30920615438ebf849217bb4fe763222408ac7f415bb", "tools/knowledge_blocker_payload.py": "1a53ddde613ebe5518229960c25cc5fa4fc3882d1375ccbe77472e878df4c368"}, "authority_rows": [{"path": "SALUS_DECISION_REGISTER.md", "needle": "| SAL-D137 |", "sha256": "6644cd3d1c42b0690fd56488049fb0f29259d932210a91cafbced8ebb0e510d4"}, {"path": "APPROVED_ARTIFACTS.md", "needle": "9a662aa94726890dfc7e4845620161ab372d81c2cc27ba8f45d84ee694840821", "sha256": "bf7b7348e59e2b9cd0edb5976fed5590f425923523b6bae83542da41f6fc0f14"}, {"path": "APPROVED_ARTIFACTS.md", "needle": "1d1883f3da42c5e3c0aa736f0d7f3d3369193787a3ec27d514287cc639787026", "sha256": "e355c5e5bd4ebed4810bf717023890580f480df38dc2b97c6922bc0ffa396689"}, {"path": "APPROVED_ARTIFACTS.md", "needle": "d68b22cc0eca5655dee804dd3f8e2d511c4cded9d0643d1a2ab2cb829e1a2c85", "sha256": "54e0bcb2af569eb0cb6486ff640e6790f23b59551e3196f44cfe5d40ec884058"}, {"path": "APPROVED_ARTIFACTS.md", "needle": "48b56aa85a3098946d9c75042b64c481941a6d8c290e2ed3a42eefeb41ac8638", "sha256": "b92faf8563462a330224325732de8af8a11efb4acedb63650128676c8e3d378b"}], "payload_sha256": "539d5dafb26b1425b0bc1efe05a7c209ee3b364225dc92c79a37296be27fd88d", "target_environment": "dev", "resource_group": "rg-salcapa-dev", "source_release": "release/v3.276", "source_commit": "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3", "execution_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944", "expected_runtime_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c", "preserved_receipt_count": 20, "new_search_receipt_count": 4, "query_count": 4, "minimum_physical_boundary": 23747, "maximum_inventory_observations": 4, "maximum_candidate_refresh_sources": 100, "maximum_parent_batch_sources": 50, "baseline_member_page_size": 100, "transaction_budget_seconds": 60, "lock_timeout_seconds": 2, "max_execution_seconds": 900, "execution_cpu": "0.5", "execution_memory": "1Gi", "maximum_observed_peak_rss_kib": 786432, "maximum_decompressed_payload_bytes": 262144, "maximum_output_payload_bytes": 25165824, "diagnostic_api_version": "2026-07-01", "new_search_receipts_authorized": true, "parent_plan_writes_authorized": false, "baseline_writes_authorized": false, "source_record_or_schema_changes_authorized": false, "automatic_processing_authorized": false, "retry_resume_authorized": false, "hold_release_authorized": false, "source_content_downloads_authorized": false, "protected_member_access": false, "assignment_or_release_authority": false, "production_deployment_authorized": false, "input_operation_key": "salus-recovery-remediation-proposals-20261115", "input_manifest_sha256": "d68b22cc0eca5655dee804dd3f8e2d511c4cded9d0643d1a2ab2cb829e1a2c85", "input_verified_run_id": 43806961206, "input_source_commit": "ef040699009b8e737328c91608cd940c3ad437a6", "remediation_input_writes_authorized": false, "preflight_execution_authorized": false, "proposed_preflight_bounds": {"maximum_preflight_batches": 2, "maximum_sources_per_preflight": 5, "maximum_selected_sources": 10, "maximum_bytes_per_stream": 10485760, "maximum_streams_per_source": 2, "maximum_total_bytes": 209715200, "maximum_seconds_per_preflight": 300, "maximum_total_seconds": 600, "maximum_automatic_retries": 0, "maximum_paid_external_api_calls": 0, "maximum_persistent_source_content_bytes": 0, "maximum_metadata_requests_per_source": 2, "maximum_metadata_requests_total": 20, "maximum_metadata_response_bytes": 131072, "maximum_total_metadata_response_bytes": 2621440}, "review_operation_key": "salus-remediation-review-preflight-proposals-20261116", "review_manifest_sha256": "48b56aa85a3098946d9c75042b64c481941a6d8c290e2ed3a42eefeb41ac8638", "review_verified_run_id": 43913493719, "review_source_commit": "7c8c9f2c997107aa1a3c64a5627c210526e2e992", "eligibility_diagnostic_schema_authorized": true, "diagnostic_and_resolution_proposals_authorized": true, "review_input_writes_authorized": false, "existing_eligibility_policy_changed": false, "method_adoption_authorized": false}')
+          actual=json.loads(pathlib.Path('deploy/azure/activations/knowledge-preflight-blockers-20261116.json').read_text())
+          assert actual==expected,'activation binding mismatch'
+          for path,checksum in expected['source_sha256'].items():
+              assert hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()==checksum,'source binding mismatch'
+          for binding in expected['authority_rows']:
+              rows=[line for line in pathlib.Path(binding['path']).read_text().splitlines() if line.startswith('|') and binding['needle'] in line]
+              assert len(rows)==1 and hashlib.sha256(rows[0].encode()).hexdigest()==binding['sha256'],'authority binding mismatch'
+          from tools.knowledge_blocker_payload import bundle
+          assert bundle(pathlib.Path('.'))[1]==expected['payload_sha256'],'payload binding mismatch'
+          PY
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Diagnose all source blockers and prepare bounded approval proposals
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = "rg-salcapa-dev"
+          ACTIVATION=deploy/azure/activations/knowledge-preflight-blockers-20261116.json
+          EXPECTED_IMAGE="$(jq -er '.execution_image_digest' "$ACTIVATION")"
+          EXPECTED_RUNTIME="$(jq -er '.expected_runtime_image_digest' "$ACTIVATION")"
+          test "$(jq -r '.source_release' "$ACTIVATION")" = "release/v3.276"
+          SOURCE_COMMIT="$(jq -er '.source_commit' "$ACTIVATION")"
+          test "$SOURCE_COMMIT" = "7b79b2845aaa6e2bf738e0c115c10b73e4c97dd3"
+          test "$EXPECTED_IMAGE" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944"
+          test "$EXPECTED_RUNTIME" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c"
+          az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/salcapa-consideration-app.json
+          az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/salcapa-consideration-worker.json
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-consideration-app.json)" = "$EXPECTED_RUNTIME"
+          test "$(jq -r '.properties.template.containers[0].image' /tmp/salcapa-consideration-worker.json)" = "$EXPECTED_RUNTIME"
+          # Compare identical pinned ARM schemas; suppress no fields.
+          for kind in app worker; do
+            RESOURCE_ID="$(jq -er '.id' "/tmp/salcapa-consideration-$kind.json")"
+            az rest --method get --url "https://management.azure.com${RESOURCE_ID}?api-version=2025-07-01" --output json > "/tmp/recovery-$kind-before.json"
+          done
+          env_value() {
+            jq -r --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/salcapa-consideration-worker.json
+          }
+          test "$(env_value SALUS_DB_BACKEND)" = "postgres"
+          test "$(env_value SALUS_POSTGRES_AUTH)" = "entra"
+          IDENTITY_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query id --output tsv --only-show-errors)"
+          IDENTITY_CLIENT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query clientId --output tsv --only-show-errors)"
+          ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors)"
+          REGISTRY_SERVER="$(az acr show --resource-group "$RESOURCE_GROUP" --name salcapadevb48224acr --query loginServer --output tsv --only-show-errors)"
+          test "$(az acr repository show --name salcapadevb48224acr --image "salcapa@${EXPECTED_IMAGE##*@}" --query digest --output tsv --only-show-errors)" = "${EXPECTED_IMAGE##*@}"
+          JOB_NAME=salcapa-blockers-b48224
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
+          echo "TASK_JOB_NAMESPACE_CLEAR=1" >> "$GITHUB_ENV"
+          SCRIPT_B64="$(python tools/knowledge_blocker_payload.py)"
+          PAYLOAD_SHA="$(python tools/knowledge_blocker_payload.py --sha256)"
+          az deployment group create \
+            --name "salcapa-consideration-readback-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/azure/knowledge-preflight-blockers-job.bicep \
+            --parameters environmentId="$ENVIRONMENT_ID" identityId="$IDENTITY_ID" \
+              registryServer="$REGISTRY_SERVER" imageDigest="$EXPECTED_IMAGE" \
+              managedIdentityClientId="$IDENTITY_CLIENT_ID" \
+              tenantId="$(env_value SALUS_OIDC_TENANT_ID)" \
+              applicationClientId="$(env_value SALUS_OIDC_CLIENT_ID)" \
+              driveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" \
+              folderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" \
+              postgresHost="$(env_value SALUS_POSTGRES_HOST)" \
+              postgresDatabase="$(env_value SALUS_POSTGRES_DATABASE)" \
+              postgresUser="$(env_value SALUS_POSTGRES_USER)" \
+              postgresSslMode="$(env_value SALUS_POSTGRES_SSLMODE)" \
+              scriptsBase64="$SCRIPT_B64" payloadSha256="$PAYLOAD_SHA" \
+              phaseRunId="$GITHUB_RUN_ID" phaseScriptSha256="$(jq -r '.source_sha256["tools/live_knowledge_preflight_blockers.py"]' "$ACTIVATION")" \
+            --output none --only-show-errors
+          JOB_NAME=salcapa-blockers-b48224
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB_NAME" --query name --output tsv --only-show-errors)"
+          test -n "$EXECUTION_NAME"
+          SUCCEEDED=false
+          for attempt in $(seq 1 90); do
+            STATUS="$(az containerapp job execution show --resource-group "$RESOURCE_GROUP" \
+              --name "$JOB_NAME" --job-execution-name "$EXECUTION_NAME" \
+              --query properties.status --output tsv --only-show-errors)"
+            if [ "$STATUS" = "Succeeded" ]; then SUCCEEDED=true; break; fi
+            if [ "$STATUS" = "Failed" ]; then break; fi
+            sleep 10
+          done
+          # Read and sanitize terminal container status before deleting the isolated job.
+          DIAGNOSTIC_EXIT=0
+          JOB_ID="$(az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --query id --output tsv --only-show-errors)"
+          az rest --method get --url "https://management.azure.com${JOB_ID}/executions/${EXECUTION_NAME}?api-version=2026-07-01" --output json --only-show-errors > /tmp/recovery-platform-execution.json 2>/tmp/recovery-platform-error.log || DIAGNOSTIC_EXIT=$?
+          echo "RECOVERY_PLATFORM_QUERY_EXIT=$DIAGNOSTIC_EXIT"
+          if [ "$DIAGNOSTIC_EXIT" = "0" ]; then
+            python tools/knowledge_job_execution_diagnostic.py /tmp/recovery-platform-execution.json || true
+          else
+            echo "RECOVERY_PLATFORM_DIAGNOSTIC_UNAVAILABLE=1"
+          fi
+          LOG_EXIT=0
+          az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
+            --execution "$EXECUTION_NAME" --container salcapa-blockers \
+            --tail 300 --format text --only-show-errors > /tmp/task-knowledge-search.log 2>&1 || LOG_EXIT=$?
+          case "$STATUS" in
+            Succeeded|Failed|Running|Pending|Processing|Stopped|Unknown) OBSERVED_STATUS="$STATUS" ;;
+            *) OBSERVED_STATUS=Unknown ;;
+          esac
+          echo "TASK_KNOWLEDGE_EXECUTION_STATUS=$OBSERVED_STATUS"
+          echo "TASK_KNOWLEDGE_LOG_FETCH_EXIT=$LOG_EXIT"
+          # Emit only fixed telemetry; raw CLI errors stay private.
+          grep -E '^.*(TASK_KNOWLEDGE|BASELINE|STABILITY|POSTSEARCH|RECOVERY|REMEDIATION|PREFLIGHT|BLOCKER)_[A-Z0-9_]+=.*$' /tmp/task-knowledge-search.log || true
+          test "$LOG_EXIT" = "0"
+          grep -q 'BLOCKER_DIAGNOSTIC_COMPLETE=1' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_FRESH_CONNECTION_VERIFIED=1' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_PRESERVED_RECEIPTS=20' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_NEW_RECEIPTS=4' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_DIAGNOSED_BATCHES=200' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_DIAGNOSED_SOURCES=8430' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_STRICT_ELIGIBLE_SOURCES=0' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_SOURCE_RECORD_WRITES=0' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_REVIEW_INPUT_WRITES=0' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_REMEDIATION_INPUT_WRITES=0' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_PARENT_PLAN_WRITES=0' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_BASELINE_WRITES=0' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_METHOD_APPROVED=0' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_PREFLIGHT_EXECUTION_AUTHORIZED=0' /tmp/task-knowledge-search.log
+          grep -q 'BLOCKER_PROCESSING_AUTHORIZED=0' /tmp/task-knowledge-search.log
+          python - <<'PY'
+          import pathlib,re
+          text=pathlib.Path('/tmp/task-knowledge-search.log').read_text()
+          proposals=int(re.search(r'BLOCKER_PROPOSALS=(\d+)',text)[1])
+          sources=int(re.search(r'BLOCKER_PROPOSED_SOURCES=(\d+)',text)[1])
+          assert 0<=proposals<=2 and 0<=sources<=10 and ((proposals==0)==(sources==0))
+          first=[int(x) for x in re.findall(r'BLOCKER_FIRST_BLOCKER_COUNTS_EXCLUSIVE_[A-Z_]+=(\d+)',text)]
+          assert first and sum(first)==8430
+          PY
+          test "$SUCCEEDED" = "true"
+      - name: Remove and verify isolated task-search job
+        if: always()
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          JOB_NAME=salcapa-blockers-b48224
+          if [ "${TASK_JOB_NAMESPACE_CLEAR:-0}" != "1" ]; then exit 0; fi
+          az account show --only-show-errors >/dev/null
+          RUNTIME_OK=1
+          if (
+            set -euo pipefail
+            az rest --method get --url "https://management.azure.com$(jq -er '.id' /tmp/recovery-app-before.json)?api-version=2025-07-01" --output json > /tmp/task-search-app-after.json
+            az rest --method get --url "https://management.azure.com$(jq -er '.id' /tmp/recovery-worker-before.json)?api-version=2025-07-01" --output json > /tmp/task-search-worker-after.json
+            for pair in "recovery-app-before task-search-app-after" "recovery-worker-before task-search-worker-after"; do
+              read -r before after <<< "$pair"
+              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$before.json" > /tmp/task-search-before.json
+              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$after.json" > /tmp/task-search-after.json
+              cmp /tmp/task-search-before.json /tmp/task-search-after.json
+            done
+          ); then
+            echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=1"
+          else
+            RUNTIME_OK=0
+            echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=0"
+          fi
+          if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/task-search-cleanup.json 2>/dev/null; then
+            test "$(jq -r '.tags.salusTaskKey' /tmp/task-search-cleanup.json)" = "salus-preflight-blocker-diagnostic-20261116"
+            test "$(jq -r '.properties.template.containers[0].image' /tmp/task-search-cleanup.json)" = "salcapadevb48224acr.azurecr.io/salcapa@sha256:550cd447b280c83594a70d541d757c91ee3b3ff4833ce9a1713279e6cdc6d944"
+            az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --yes --only-show-errors
+          fi
+          test "$(az containerapp job list --resource-group "$RESOURCE_GROUP" \
+            --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
+          echo "TASK_KNOWLEDGE_ISOLATED_JOB_REMOVED=1"
+          test "$RUNTIME_OK" = "1"
