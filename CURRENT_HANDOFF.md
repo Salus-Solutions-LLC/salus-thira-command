@@ -1,5 +1,16 @@
 # Salus Solutions — Current Handoff
 
+## 16 November 2026 Central — SAL-D141 authoritative after PR #1280
+
+Marc approved exact candidate head `1e8d741b3769d6229eba2a7e384fc6ef80ce2bee` for promotion. Before merge, the candidate was re-read against the five controlling records; pull request #1280 was current with governed base `caf323a63ab075175272d97bc3dcde5a2f1ced86`, zero commits behind, and limited to the six intended governance artifacts. All six required checks passed on the approved exact head. GitHub accepted the expected-head-protected squash merge as `d4ee7f9139144ca49640d636ec9f5e165e5aac2a`.
+
+Authoritative readback on `development/salcapa-platform` confirmed SAL-D141 in `SALUS_PROGRAM_CHARTER.md`, `SALUS_DECISION_REGISTER.md`, `SALUS_CHAT_STARTUP_PROTOCOL.md`, `APPROVED_ARTIFACTS.md` and `governance/charter_task_requirements_register.json`. The approved method requires two-pass profession/science/practice research, evidence-supported risk-salient lifecycle analysis, independent-assessment value, conceptual SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™ application, current complete Salus Services review, neutral attribution, qualified federal aviation-security credentials and human publication control.
+
+This promotion establishes the enterprise white-paper method only. It did not revise or release an existing white paper, qualify every source, authorize an assessment or operation, activate Compass or its reader, deploy software, commit a service, or approve external publication. Existing white papers require their own SAL-D027 impact review and controlled successor when materially revised. Compass remains paused and the reader remains disabled.
+
+Post-merge reconciliation updates only the authoritative-status wording in `APPROVED_ARTIFACTS.md`, this handoff entry and the mechanically regenerated authority-coverage index. No additional substantive decision is introduced.
+
+
 ## 16 November 2026 Central — SAL-D141 profession-aware white-paper deep-dive candidate prepared
 
 Marc directed that every Salus white paper require a deep dive into the topic, affected professions, sciences and practices; identify evidence-supported fears, concerns, threats, hazards, vulnerabilities, risks and full preparation-through-recovery needs; make credible consequences salient; present relevant Salus services; and accurately describe Salus's documented federal-guidance work. A controlled candidate is prepared on branch `codex/sal-d141-white-paper-deep-dive-20261116`.
