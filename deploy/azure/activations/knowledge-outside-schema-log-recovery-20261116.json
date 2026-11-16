@@ -1,0 +1,82 @@
+{
+  "operation": "outside_cohort_schema_historical_log_recovery",
+  "task_key": "salus-outside-cohort-schema-log-recovery-20261116",
+  "authority_record_commit": "14a2a6b0bdc040e604d5248e416afeb59583cabf",
+  "source_run_id": 43955840933,
+  "source_job_id": 133610096637,
+  "source_execution": "salcapa-outdrift-b48224-3tcgdet",
+  "window_start": "2026-11-16T21:02:00Z",
+  "window_end": "2026-11-16T21:16:00Z",
+  "resource_group": "rg-salcapa-dev",
+  "workspace_name": "salcapa-dev-b48224-logs",
+  "maximum_query_reads": 2,
+  "maximum_read_seconds": 90,
+  "maximum_response_bytes": 2097152,
+  "maximum_rows_per_read": 100,
+  "maximum_reconstructed_report_bytes": 131072,
+  "expected_recovered_sources": 6,
+  "preserved_receipt_count": 20,
+  "preserved_receipts_sha256": "21c4bcd816686d4178c32bf224228c13639aa56a8225cf0cd3219af6fab0cd1f",
+  "protected_checkpoint_sha256": "214f2756ca0bc179bfaed880480113b5cd31cecd9de0e803e03013bcd4872ac7",
+  "expected_runtime_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c",
+  "source_sha256": {
+    "tools/recover_knowledge_outside_cohort_log.py": "1730dccd39d7f6e982d1a869b8dd3846d64779e3eba8a70fbd99cced3ea70748",
+    "tools/validate_knowledge_outside_cohort_drift.py": "b9c2d0fdae526d82d9c166155f661aa6f3c2d6daa21a5759b89746f3aed4124c",
+    "tools/knowledge_inventory_azure_transport.py": "2e6925ee37c7b5e7b4c61f8fc68dcb3c305b8890afbe1c2d56a9485b7a7062d3",
+    "deploy/azure/activations/knowledge-outside-cohort-log-reference-20261116.json": "082c6d2d278528723c9279f6afe61a2bd61ebbe1c628dd7b03748eec292cf03f",
+    "tools/recover_knowledge_outside_cohort_schema.py": "8b3d2c84cad372c1cc14d458f2fae015d7af002c5aee80f2f6e1f5acc2e7576b"
+  },
+  "authority_rows": [
+    {
+      "path": "SALUS_DECISION_REGISTER.md",
+      "needle": "| SAL-D137 |",
+      "sha256": "6644cd3d1c42b0690fd56488049fb0f29259d932210a91cafbced8ebb0e510d4"
+    },
+    {
+      "path": "APPROVED_ARTIFACTS.md",
+      "needle": "9a662aa94726890dfc7e4845620161ab372d81c2cc27ba8f45d84ee694840821",
+      "sha256": "bf7b7348e59e2b9cd0edb5976fed5590f425923523b6bae83542da41f6fc0f14"
+    },
+    {
+      "path": "APPROVED_ARTIFACTS.md",
+      "needle": "1d1883f3da42c5e3c0aa736f0d7f3d3369193787a3ec27d514287cc639787026",
+      "sha256": "e355c5e5bd4ebed4810bf717023890580f480df38dc2b97c6922bc0ffa396689"
+    },
+    {
+      "path": "APPROVED_ARTIFACTS.md",
+      "needle": "d68b22cc0eca5655dee804dd3f8e2d511c4cded9d0643d1a2ab2cb829e1a2c85",
+      "sha256": "54e0bcb2af569eb0cb6486ff640e6790f23b59551e3196f44cfe5d40ec884058"
+    },
+    {
+      "path": "APPROVED_ARTIFACTS.md",
+      "needle": "48b56aa85a3098946d9c75042b64c481941a6d8c290e2ed3a42eefeb41ac8638",
+      "sha256": "b92faf8563462a330224325732de8af8a11efb4acedb63650128676c8e3d378b"
+    },
+    {
+      "path": "APPROVED_ARTIFACTS.md",
+      "needle": "`salus-preflight-blocker-diagnostic-20261116`",
+      "sha256": "6b2a352579c06e6f771f38a4f19f2b4969e5bc1a626f9588cf869f2b11b3a4b3"
+    }
+  ],
+  "http_methods": [
+    "GET"
+  ],
+  "job_start_authorized": false,
+  "job_create_delete_authorized": false,
+  "database_access_authorized": false,
+  "record_receipt_writes_authorized": false,
+  "baseline_adoption_authorized": false,
+  "source_bytes_authorized": false,
+  "processing_authorized": false,
+  "retry_hold_changes_authorized": false,
+  "permissions_or_logging_changes_authorized": false,
+  "prior_failed_historical_run_id": 43963258466,
+  "maximum_metadata_reads": 1,
+  "maximum_total_log_get_reads": 3,
+  "metadata_read_authorized": true,
+  "partial_query_acceptance_authorized": false,
+  "known_log_tables": [
+    "ContainerAppConsoleLogs",
+    "ContainerAppConsoleLogs_CL"
+  ]
+}
