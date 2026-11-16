@@ -2,7 +2,7 @@
 
 ## 16 November 2026 — Clinic research addresses prepared for governed candidate retention
 
-Routine SAL-D124/SAL-D127/SAL-D140 topic-source maintenance adds 67 public addresses (126 to 193 unique endpoint-table destinations) from two-pass clinic/outpatient research and selected CERC/NIST method follow-up. Entries remain Unvetted Candidate; existing IDs/provenance are preserved. No source qualification, Member finding, external report release, software, connector, access, reader, assessment, recovery or production change is included. All required checks and exact merge/readback remain to be verified before claiming authoritative-list retention. Full current Knowledge consideration and human review gates for the associated paper remain separate.
+Routine SAL-D124/SAL-D127/SAL-D140 topic-source maintenance adds 72 public addresses (126 to 198 unique endpoint-table destinations) from two-pass clinic/outpatient research and selected CERC/NIST method follow-up. Entries remain Unvetted Candidate; existing IDs/provenance are preserved. No source qualification, Member finding, external report release, software, connector, access, reader, assessment, recovery or production change is included. All required checks and exact merge/readback remain to be verified before claiming authoritative-list retention. Full current Knowledge consideration and human review gates for the associated paper remain separate.
 
 
 ## 16 November 2026 — Read-only inventory reconciliation candidate prepared; execution awaits exact-version approval
