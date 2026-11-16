@@ -1,5 +1,16 @@
 # Salus Solutions — Current Handoff
 
+## 16 November 2026 Central — SAL-D141 profession-aware white-paper deep-dive candidate prepared
+
+Marc directed that every Salus white paper require a deep dive into the topic, affected professions, sciences and practices; identify evidence-supported fears, concerns, threats, hazards, vulnerabilities, risks and full preparation-through-recovery needs; make credible consequences salient; present relevant Salus services; and accurately describe Salus's documented federal-guidance work. A controlled candidate is prepared on branch `codex/sal-d141-white-paper-deep-dive-20261116`.
+
+Candidate scope: `SALUS_PROGRAM_CHARTER.md`, `SALUS_DECISION_REGISTER.md`, `SALUS_CHAT_STARTUP_PROTOCOL.md`, `APPROVED_ARTIFACTS.md` and this handoff only. SAL-D141 requires two documented research passes, profession/science/practice coverage, lifecycle risk and consequence analysis, independent-assessment value, conceptual use of SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™, a current complete Salus Services review, neutral attribution, Predictive and Anticipatory Intelligence, and exact source qualification. It permits carefully sourced statements about Salus's research-agency and principal-investigator roles in FAA-funded Safe Skies PARAS work on active-shooter mitigation/recovery, evacuation/repopulation, airport insider-threat mitigation and mental-health effects on airport security/operational readiness, while prohibiting implied agency endorsement or unsupported transfer to all venues.
+
+The task searched the authoritative development-branch governance records and ran two targeted Microsoft 365/Knowledge searches. Results surfaced relevant PARAS 0022 active-shooter research, PARAS 0026 insider-threat material, PARAS 0033 mental-health material and earlier Salus white-paper/speaker artifacts. This was a task-specific search, not a fresh complete live represented-boundary consideration receipt or substantive review of every corpus item; the approved 15 November baseline remains 23,757 represented identities with 8,430 unresolved sources. The current-authority search also found existing SAL-D124, SAL-D127, SAL-D129, SAL-D130, SAL-D132 and SAL-D133 requirements, which SAL-D141 extends rather than supersedes.
+
+Status: candidate commits are prepared; no merge, deployment, publication, existing-paper revision, service authorization, assessment restart or reader activation has occurred. Compass remains paused and the reader remains disabled. Next: validate the exact branch diff and repository checks, open a pull request against `development/salcapa-platform`, and retain human merge/publication gates.
+
+
 ## 16 November 2026 Central — SAL-D140 authoritative and weekly automation aligned
 
 - Marc approved PR #1278 at exact head `656b45070f8a6d251d90a925db9865c1b3e6f729`; all six checks passed and squash merge `6cefc9535448c762c07f2ffe121aaf0b04ad9268` made SAL-D140 authoritative.
