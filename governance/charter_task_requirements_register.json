@@ -10,7 +10,7 @@
   ],
   "sources": {
     "AGENTS.md": "a15ceed9ecc02e98e0a22d7f3d0ca2b4291f74009a2084c6990df15fb4938ebe",
-    "APPROVED_ARTIFACTS.md": "2a2bdadbfd597ed6798011c34cf1d7cccd2916a71bb1d5649950097bac29d274",
+    "APPROVED_ARTIFACTS.md": "ab71c5303382a0584fdb77df3e1e991557df18bad7b493f9f92f2a3ccb1e1b81",
     "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md": "8c2b485d105fff0403e15c17c864f9b3b351988cf7ff189e36f970ddad6fa76d",
     "SALUS_ASSESSMENT_REPORT_PURPOSE_AND_EDITORIAL_STANDARD.md": "da3798e4e66518e80e99b221601072268299c606cd7cf14cf3c5cecca37950b4",
     "SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md": "e1c08668dfec2b175d6730f105980c07e9e96484223df82d1edad92d9d3af804",
@@ -996,6 +996,14 @@
       "line": 116,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "54e0bcb2af569eb0cb6486ff640e6790f23b59551e3196f44cfe5d40ec884058",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ba6a849afec8944477cfdcd9",
+      "source": "APPROVED_ARTIFACTS.md",
+      "line": 117,
+      "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
+      "text_sha256": "b92faf8563462a330224325732de8af8a11efb4acedb63650128676c8e3d378b",
       "decision_ids": []
     },
     {
@@ -30542,5 +30550,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "2b9f8b048c3a8bfae5c743f95add37883e059d62554296e1866abf1f167e437d"
+  "register_sha256": "9dd41f0695b4d89c1a385353e4308e93d7fa2a940b2967a1885115bc4b5afb4c"
 }
