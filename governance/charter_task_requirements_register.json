@@ -26,7 +26,7 @@
     "SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md": "b11d27e9885f0490f8ea4e21a049d46ab874daab5f77ee2d2334332199b3dab5",
     "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "f73375c2dd91557c13244aab0c407446d9aa96407be6fea262ffcea22f00f6c4",
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
-    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "09170e2e7f9b4a2d97268fe906578254e3bdf8b9b25287c888ff21a086c95601",
+    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "03ab0f98a5676fc13120fc3b40b8005d47a89d0a92308ca1637704b9eaa11eec",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
     "SALUS_PROGRAM_CHARTER.md": "0b8128591f658f1eab122adf4da682128c32f324a8cda188af0d8031ada497fd",
     "SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md": "e2a6c9f76dd33e291305fec43548ad0021a1cf44d0acaaa87f075bea57eb9409",
@@ -10379,12 +10379,14 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-1caa5bf55b2fce6b6a3780b2",
+      "id": "REQ-8f540e42c0cef21005ed5409",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
       "line": 33,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries",
-      "text_sha256": "069a6e1163e96730276b2caca24db430b1afccf35343aea1893c183f619f6208",
-      "decision_ids": []
+      "text_sha256": "ceecf590bde86d7d09fd10b4fa83a4ac2ef873a2f39453080390f299480ff05c",
+      "decision_ids": [
+        "SAL-D140"
+      ]
     },
     {
       "id": "REQ-e5002111989ee7263aefc6ce",
@@ -10435,12 +10437,14 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-4219ecabf6540a8feeb9e412",
+      "id": "REQ-aaaeba61797106bbf77847d4",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
       "line": 42,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
-      "text_sha256": "2d05cd065f3f366f792833abc6ba513861f86144355f4325fea8dc8f3f288a0c",
-      "decision_ids": []
+      "text_sha256": "1ecb9afb5e9816127bf587c021e0dc87fc115950ef5f1c08c3cc89b16dd3cb38",
+      "decision_ids": [
+        "SAL-D140"
+      ]
     },
     {
       "id": "REQ-a97510d2556dbb9345eaf6f6",
@@ -10459,11 +10463,11 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-a43cd2c2fb67c1b9f391f8f4",
+      "id": "REQ-9648a1a1a5870676d84ed6b4",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
       "line": 45,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
-      "text_sha256": "24f0087927f8ade7e81b89d5673e70cdc530c9c0deaefae1623abf2a8b9d8da5",
+      "text_sha256": "7bdc7836a9457b769296bb8b7ada03f0af13eb81d4a965141ef3f2fdaf09ff77",
       "decision_ids": []
     },
     {
@@ -30538,5 +30542,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "9f24f349d29bc7795c38615f5cb1ef6d248cf0a273f436f3b4ace7dfff3e9f68"
+  "register_sha256": "2b9f8b048c3a8bfae5c743f95add37883e059d62554296e1866abf1f167e437d"
 }
