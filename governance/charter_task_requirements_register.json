@@ -24,9 +24,9 @@
     "SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md": "0ec4dbf14108931458b8a674a9c6e379ccbcd71502f75f7004e48ad072a4ac04",
     "SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md": "bb828e2ad5ce9c9d6aefbb0498660da1f22f3ae5703bc114d0c2274f4a28c914",
     "SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md": "b11d27e9885f0490f8ea4e21a049d46ab874daab5f77ee2d2334332199b3dab5",
-    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "5cef681b9985d944994c33dd4938e416a6806ba791d8018e2acff6dfd7c7975c",
+    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "f73375c2dd91557c13244aab0c407446d9aa96407be6fea262ffcea22f00f6c4",
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
-    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "a4207d0e18483967a31ad99aeca04967010667943bbd18ab49236ceb3376835a",
+    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "09170e2e7f9b4a2d97268fe906578254e3bdf8b9b25287c888ff21a086c95601",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
     "SALUS_PROGRAM_CHARTER.md": "0b8128591f658f1eab122adf4da682128c32f324a8cda188af0d8031ada497fd",
     "SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md": "e2a6c9f76dd33e291305fec43548ad0021a1cf44d0acaaa87f075bea57eb9409",
@@ -8203,11 +8203,11 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-a103e6d48f762054b0a5b5d6",
+      "id": "REQ-5f318ff57ef4da8df7b4dfac",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
       "line": 3,
       "section": "Salus OSINT Global Endpoint Register",
-      "text_sha256": "50bbd0d1bfe27e6c73770f8a90fe8e16a5b4f2b8c7147157ef209619f82dd3ab",
+      "text_sha256": "4cb53f3b0c6a851e937262b684ed03e5524d890747d347275dffdf39beeb1bb9",
       "decision_ids": [
         "SAL-D120",
         "SAL-D121",
@@ -8535,9 +8535,25 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-fef42ba98e33415d1ec68c3e",
+      "id": "REQ-cf65c98ce6e72c08ab3af1f5",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 56,
+      "section": "Salus OSINT Global Endpoint Register / Disaster, weather, climate and resilience endpoints",
+      "text_sha256": "2a9df1a1de8fca9c3e72e63c74b0922003f4a6c1de53cc91a520e65d029df614",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-e6d803b3197d060e25c5b07d",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
       "line": 57,
+      "section": "Salus OSINT Global Endpoint Register / Disaster, weather, climate and resilience endpoints",
+      "text_sha256": "d3b2636e17406e6c2411c02b494ac7461e444a33f9a9f73cb0909133ee56fce8",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-fef42ba98e33415d1ec68c3e",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 59,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "b47f639f49fefa89c02fd23d80c243b76d056c7cee1323777b7dfdb79693f321",
       "decision_ids": []
@@ -8545,7 +8561,7 @@
     {
       "id": "REQ-e78e6cf558656ad7f0cf8229",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 59,
+      "line": 61,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "9bc759f32c584d8d179e522359eafe739aeaa8ecac88515bd99cc14cc895761d",
       "decision_ids": []
@@ -8553,7 +8569,7 @@
     {
       "id": "REQ-2721700ee7163012151df3f1",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 60,
+      "line": 62,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "4da1ec6f47782090102dc16bda978efb5655fbf2ddce0f84ecf1faf79a930f2d",
       "decision_ids": []
@@ -8561,7 +8577,7 @@
     {
       "id": "REQ-d9e09511ef06321e2451b052",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 61,
+      "line": 63,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "465aa9ed7de38ae5a62f2f32776a5178014c1eace3673601deefeae0f6eb8905",
       "decision_ids": []
@@ -8569,7 +8585,7 @@
     {
       "id": "REQ-778ac8db6e2274ead1502241",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 62,
+      "line": 64,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "006b0fa9bd658ba1e083e3df5f06cbe89622ffbf312e9c22f96d8b6dd2586c8a",
       "decision_ids": []
@@ -8577,7 +8593,7 @@
     {
       "id": "REQ-cbc20795c366ca2c40768d8c",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 63,
+      "line": 65,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "32f9946aa62c003b36d33576d5255c32b8f327dac821edc580b48207b7478458",
       "decision_ids": []
@@ -8585,7 +8601,7 @@
     {
       "id": "REQ-1fe440c7a02ec1aec0257777",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 64,
+      "line": 66,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "382be4e6e758f5c9589406409b91f29f35a2b3f255d2839244f858892eea464f",
       "decision_ids": []
@@ -8593,7 +8609,7 @@
     {
       "id": "REQ-9f739c6c503bbcff133ab8a7",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 65,
+      "line": 67,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "52fab662df55fe5a920fde938f54b304b6fd368766ce98f78f36d96a465c45dc",
       "decision_ids": []
@@ -8601,7 +8617,7 @@
     {
       "id": "REQ-6bc4870069ea25b4ba2a82e9",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 66,
+      "line": 68,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "eff1b2368e340e17b6853a5aec7ed8a55252a15e64d4c61b9f50e7b69371c368",
       "decision_ids": []
@@ -8609,7 +8625,7 @@
     {
       "id": "REQ-86a59d0819f8106c0c6fcb6d",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 67,
+      "line": 69,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "ca778f4cb1ab5d7183196782cd2fd0430d3c6dcf16e1d26609a4227bcb4d9497",
       "decision_ids": []
@@ -8617,7 +8633,7 @@
     {
       "id": "REQ-0d244b2a6cbabfd9e24b9d04",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 68,
+      "line": 70,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "bb9f1fdd4d5004e053534ba689830f4b4640412a0305ff6f6fce86e066525ba2",
       "decision_ids": []
@@ -8625,7 +8641,7 @@
     {
       "id": "REQ-bb9853f2e6563c2da788d7d4",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 69,
+      "line": 71,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "e38ceb063fc6c39144bdac20bcd538355882857ab998850c5460701f8ebf6e39",
       "decision_ids": []
@@ -8633,7 +8649,7 @@
     {
       "id": "REQ-d9242053881bc5ac4e2d9e15",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 70,
+      "line": 72,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "775bb471ddffb70ddadc3a08c1b4f8b17ad09e8017e2bf72e1715bc80c877b15",
       "decision_ids": []
@@ -8641,15 +8657,31 @@
     {
       "id": "REQ-2573db0e72995498407790d7",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 71,
+      "line": 73,
       "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
       "text_sha256": "12ffb78b2f8f259aacc48dad79fb8b1971104834aae8b2edd833d9e0f2e6ad70",
       "decision_ids": []
     },
     {
+      "id": "REQ-c6aeb09baee84e9a1a825d4a",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 74,
+      "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
+      "text_sha256": "dc00d52adf07b85f2d164c439dd012829456ae3a16dd45f91bc009355f3bad53",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-fa85178d0c066b2626089aa3",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 75,
+      "section": "Salus OSINT Global Endpoint Register / Health, humanitarian, population and food endpoints",
+      "text_sha256": "2cef1334c93367db9192dcba2ff31dbce020a4cd85019683f3d5a47728860655",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-264cf259f0f577ab2179ef29",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 73,
+      "line": 77,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "88f84f93f4c94793d6dd6ac4320a40a4404442e53b032f0f8397a2edcda56d3b",
       "decision_ids": []
@@ -8657,7 +8689,7 @@
     {
       "id": "REQ-59cf836e01286f8dd032a853",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 75,
+      "line": 79,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "9bc759f32c584d8d179e522359eafe739aeaa8ecac88515bd99cc14cc895761d",
       "decision_ids": []
@@ -8665,7 +8697,7 @@
     {
       "id": "REQ-4f4e6b49f8c87747cac3f79a",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 76,
+      "line": 80,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "4da1ec6f47782090102dc16bda978efb5655fbf2ddce0f84ecf1faf79a930f2d",
       "decision_ids": []
@@ -8673,7 +8705,7 @@
     {
       "id": "REQ-f228ed33b08095938e1085b5",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 77,
+      "line": 81,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "cef9eb161ddb8482a27e053dc18d75e3713a8d713f2facd86d60ef166ed3db65",
       "decision_ids": []
@@ -8681,7 +8713,7 @@
     {
       "id": "REQ-6878d5eb251ba88aab5cf301",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 78,
+      "line": 82,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "4db3d0693d382fc5910dbd6e74cfaa9f687746d8b5dc5807d8ca77f0be7952dc",
       "decision_ids": []
@@ -8689,7 +8721,7 @@
     {
       "id": "REQ-0b7a24a2508f50fa26aa5e38",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 79,
+      "line": 83,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "04b350b4f72d338e4ed1225087f9351a6ab5273352ba4cced4dd67ec0c49b744",
       "decision_ids": []
@@ -8697,7 +8729,7 @@
     {
       "id": "REQ-5675ae48e91b6171f359966c",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 80,
+      "line": 84,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "a72fa4992b6abe9170247a7755d597e54cd7bb65fba4af8b7c81bc63e24b69ff",
       "decision_ids": []
@@ -8705,7 +8737,7 @@
     {
       "id": "REQ-813a1158064c68fced6d9488",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 81,
+      "line": 85,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "d32fd28b7e819a6cef2126264c7f292ee6f79c2167444d7cb27c72dc99e81d03",
       "decision_ids": []
@@ -8713,7 +8745,7 @@
     {
       "id": "REQ-63fdfc1343d735c49715e2e8",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 82,
+      "line": 86,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "cfe63785029f4d7a90dbe3770b96bf0fe8f124ed6f58e7ad7fa0bf7cbf32c2f3",
       "decision_ids": []
@@ -8721,7 +8753,7 @@
     {
       "id": "REQ-08b1f937e6c3128423137151",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 83,
+      "line": 87,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "b31680781f4354e438bc664795a3371004ad098ae47a7e28cc1f84476365a245",
       "decision_ids": []
@@ -8729,7 +8761,7 @@
     {
       "id": "REQ-4df6438bd60bc46e0625887f",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 84,
+      "line": 88,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "5b8114d5470b70a4cfaa86f8f2154875f1514db55efdba431a140ab084b331fa",
       "decision_ids": []
@@ -8737,7 +8769,7 @@
     {
       "id": "REQ-b99acf2e77e5a54d2c0bd3b3",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 85,
+      "line": 89,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "1764680fa01588cce48ed912b10dd9de52c23c80dd4e612368e500897fae0200",
       "decision_ids": []
@@ -8745,7 +8777,7 @@
     {
       "id": "REQ-0c0faaffa2460e5424d10176",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 86,
+      "line": 90,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "034894ec2088daebdcea65d1582c223e3482bca389c5825c34ce0f22d29ea540",
       "decision_ids": []
@@ -8753,7 +8785,7 @@
     {
       "id": "REQ-f500079fc683f1a73802a0e1",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 87,
+      "line": 91,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "7cc0a550ec05d25680bfa800b694faf10089e7aad6bb8f816ad1e3f42d400702",
       "decision_ids": []
@@ -8761,7 +8793,7 @@
     {
       "id": "REQ-1b38126a7dcbae12f6d5b60d",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 88,
+      "line": 92,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "275aae792310aab2284c4d63047bb350e30d73255f9753efa0cfadda52a870b5",
       "decision_ids": []
@@ -8769,15 +8801,23 @@
     {
       "id": "REQ-6de8cec514c587c45953d585",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 89,
+      "line": 93,
       "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
       "text_sha256": "758b469e3c82eac96bb65bc61f2b252bbe9deb024c564a5e3a6e6f437ecb09b6",
       "decision_ids": []
     },
     {
+      "id": "REQ-f752d11805439629788dd4ef",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 94,
+      "section": "Salus OSINT Global Endpoint Register / Cyber, communications and digital-system endpoints",
+      "text_sha256": "841548a68d015359beb9cc2581faf899ac73bed18cc949f974f6389111fd3b6d",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-6bf15258570cb5e06a37fbba",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 91,
+      "line": 96,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "c138c6a526a88ebc78371ea89b95a0f4c869195b186ba6779f32246a9573faae",
       "decision_ids": []
@@ -8785,7 +8825,7 @@
     {
       "id": "REQ-502c7f27074172b2dbdd390c",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 93,
+      "line": 98,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "9bc759f32c584d8d179e522359eafe739aeaa8ecac88515bd99cc14cc895761d",
       "decision_ids": []
@@ -8793,7 +8833,7 @@
     {
       "id": "REQ-2e836a13197686c9816272e0",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 94,
+      "line": 99,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "4da1ec6f47782090102dc16bda978efb5655fbf2ddce0f84ecf1faf79a930f2d",
       "decision_ids": []
@@ -8801,7 +8841,7 @@
     {
       "id": "REQ-7b9394c460b11c3fafa2ce7e",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 95,
+      "line": 100,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "51d03f92b2dc0b72b5f899ca0721d64482d31d78b8872fc953cc932048ee2572",
       "decision_ids": []
@@ -8809,7 +8849,7 @@
     {
       "id": "REQ-356e27a080591713a3c976cf",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 96,
+      "line": 101,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "797fea66bcf132a40e447a3351ae8e99df460589ae8cf5f8ebaf4aadbf3f3278",
       "decision_ids": []
@@ -8817,7 +8857,7 @@
     {
       "id": "REQ-f04845878fedcc38d5be49ef",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 97,
+      "line": 102,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "21e845234d59642e8a10c6045e6332e6b04c02803b51e85dc5b61979f3ab2bfe",
       "decision_ids": []
@@ -8825,7 +8865,7 @@
     {
       "id": "REQ-a08c5d74a020c12b512d337e",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 98,
+      "line": 103,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "211148db7b3a4582e0ced6ea390a169bf68e2ab50006843fd43e34a70df89965",
       "decision_ids": []
@@ -8833,7 +8873,7 @@
     {
       "id": "REQ-eb7eacb3f7c1ad315c62bc59",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 99,
+      "line": 104,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "f520d9d85ae062fe90b2c1024cd764606043cbbf6e93c5d02a6014e52a137fb1",
       "decision_ids": []
@@ -8841,7 +8881,7 @@
     {
       "id": "REQ-9682db02456379e36c105181",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 100,
+      "line": 105,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "3c50ba131d4eb5ad806cbb93c3254f0ba6dd7a82b45ae7b0981cebbdbe6768be",
       "decision_ids": []
@@ -8849,7 +8889,7 @@
     {
       "id": "REQ-76930bb309db5da5934db2a5",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 101,
+      "line": 106,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "28671723b217dda47811402c778e57b491948ddc823f3393fa81407c5a087fee",
       "decision_ids": []
@@ -8857,7 +8897,7 @@
     {
       "id": "REQ-90f7d5a1abaa792ee1b3a007",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 102,
+      "line": 107,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "0d6f38f4cc6acca48c1ed245846ea3bc8e6fdf135affa4928c1307525e74c87d",
       "decision_ids": []
@@ -8865,7 +8905,7 @@
     {
       "id": "REQ-825f3c8b995ec19a175aed01",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 103,
+      "line": 108,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "a8f390d8e15b82fe8c2b9c624c7542e2bd8526e61cde83687edbb7d7a58f0ebd",
       "decision_ids": []
@@ -8873,7 +8913,7 @@
     {
       "id": "REQ-d168d7be773c810fde970624",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 104,
+      "line": 109,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "1f2df9169e948c0514744cba94e204f76f12d013233436290fbf3759ef4b8143",
       "decision_ids": []
@@ -8881,7 +8921,7 @@
     {
       "id": "REQ-a233c29ae6b5e8c65a74128a",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 105,
+      "line": 110,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "72be977ed3538ac576582d9e4761b8e2e2ddcb29a8b55eedca4be464107e11e6",
       "decision_ids": []
@@ -8889,7 +8929,7 @@
     {
       "id": "REQ-bd7be7beec31535a1034332c",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 106,
+      "line": 111,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "9a06f0197438d58cc7bbb510450535a3a9942675482078912b76dd627a5fa291",
       "decision_ids": []
@@ -8897,7 +8937,7 @@
     {
       "id": "REQ-4ba63e861c5a81bd320f8671",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 107,
+      "line": 112,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "4dd82fc9bd52f5ac9b9a4af11bfb5fe3e9505f1a4d886c780be8666285ec3088",
       "decision_ids": []
@@ -8905,7 +8945,7 @@
     {
       "id": "REQ-7cb37e52d320209d07acde4f",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 108,
+      "line": 113,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "39a6463792db3bd0a7bbe4bd3f8747d15931cc4a599c2778c34c3f230e4aa600",
       "decision_ids": []
@@ -8913,7 +8953,7 @@
     {
       "id": "REQ-3a443e34e42f995feec84d67",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 109,
+      "line": 114,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "0af22fba00a1b7fdf01ee1ee8950fb905e772f04c06b5a0f6a37c6966615b73e",
       "decision_ids": []
@@ -8921,7 +8961,7 @@
     {
       "id": "REQ-c3427e9f5a8a8c15beed3c8b",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 110,
+      "line": 115,
       "section": "Salus OSINT Global Endpoint Register / Law, regulation, governance, sanctions and organization endpoints",
       "text_sha256": "4718c3a0f40f01b5ae7d5abf6228c56f89bc10aba100879cfaa1ba8b57685f2e",
       "decision_ids": []
@@ -8929,7 +8969,7 @@
     {
       "id": "REQ-01be3f0a94a582b0e81bbe54",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 112,
+      "line": 117,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "c5277198fa13636e3d9d018b6bb3ab292eb07d85922973e45eee9dbae713d4dc",
       "decision_ids": []
@@ -8937,7 +8977,7 @@
     {
       "id": "REQ-74c485040d5cac2f1a9db875",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 114,
+      "line": 119,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "9bc759f32c584d8d179e522359eafe739aeaa8ecac88515bd99cc14cc895761d",
       "decision_ids": []
@@ -8945,7 +8985,7 @@
     {
       "id": "REQ-ad18d27deac9eab59c52ab83",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 115,
+      "line": 120,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "4da1ec6f47782090102dc16bda978efb5655fbf2ddce0f84ecf1faf79a930f2d",
       "decision_ids": []
@@ -8953,7 +8993,7 @@
     {
       "id": "REQ-cf0c38ff54032907267cc95e",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 116,
+      "line": 121,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "94d38855f5d95cd945254e22955d0c690a24cd4fa12feec3d6e79db413c7916f",
       "decision_ids": []
@@ -8961,7 +9001,7 @@
     {
       "id": "REQ-14f46ee906e6983fe59a98d6",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 117,
+      "line": 122,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "3c65d76a4f751822bc99d67167520f27cc11bf95b3d6d6b9f08f3be706d95420",
       "decision_ids": []
@@ -8969,7 +9009,7 @@
     {
       "id": "REQ-3d91cfd37e4eeb7bbaaa38c3",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 118,
+      "line": 123,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "f500d9d5d545bc6a99362e33356f627d565d6c5546bd49b443f0bcdd6c620145",
       "decision_ids": []
@@ -8977,7 +9017,7 @@
     {
       "id": "REQ-69f583c01aa5c3bb656dd05a",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 119,
+      "line": 124,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "34c878f37f4ad54b4d9917720e16651ee669e9d35ec5a4a3116666527dbd5391",
       "decision_ids": []
@@ -8985,7 +9025,7 @@
     {
       "id": "REQ-5d2ca52f85ddc0076f2fa6c0",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 120,
+      "line": 125,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "724839ba99aa7de880791cf5526749eca6d477ad4b5cc7c13c3bdb24bc7d49ea",
       "decision_ids": []
@@ -8993,7 +9033,7 @@
     {
       "id": "REQ-619a4661652fa509401c580b",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 121,
+      "line": 126,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "6e149f3f602acfa1f9b3eb768d55b8c331ab60e9206b81fbe45d5e65d124084b",
       "decision_ids": []
@@ -9001,7 +9041,7 @@
     {
       "id": "REQ-914e7c68ea68f1e591a9d7cb",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 122,
+      "line": 127,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "824d0fb0cc3e2f7d241abe4ab14672348ba9a9ec6036412f23771f3b2d82b19a",
       "decision_ids": []
@@ -9009,7 +9049,7 @@
     {
       "id": "REQ-d92de8f7aedf8686de10877b",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 123,
+      "line": 128,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "6e1fa8d910fedddd79c652006bc8824f38221336457d54ad1fc67dc5a4b49eb8",
       "decision_ids": []
@@ -9017,7 +9057,7 @@
     {
       "id": "REQ-c56058f7c583837d7feb28ef",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 124,
+      "line": 129,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "cb3bfb8a8afeac58106b9049650a7fb580839ee573615a1ff49c9c45db73b65c",
       "decision_ids": []
@@ -9025,7 +9065,7 @@
     {
       "id": "REQ-a6f8a3df63bc5526798e730e",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 125,
+      "line": 130,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "3d1ad006e4344da6aab57d3d0c687757efdb33415bf7e9b2cc0617f5f6740104",
       "decision_ids": []
@@ -9033,7 +9073,7 @@
     {
       "id": "REQ-0a1613bda4e9ef6864e456a9",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 126,
+      "line": 131,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "dd3c9dc33b793fd1d99b498bc83bf331e39754f69c7215acdbd2e63cc6e14fb8",
       "decision_ids": []
@@ -9041,7 +9081,7 @@
     {
       "id": "REQ-51b3560047258433d9849b49",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 127,
+      "line": 132,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "e231e73ceca264f6bdd7464c0d366acf171e2005e57ca3b92b579c6eee81c283",
       "decision_ids": []
@@ -9049,7 +9089,7 @@
     {
       "id": "REQ-24609584db067ab0819ae761",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 128,
+      "line": 133,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "2986610a276e61e20fdf65c0d6ccba63a7115ee4aa1a67b523d7a1d6223ce91b",
       "decision_ids": []
@@ -9057,7 +9097,7 @@
     {
       "id": "REQ-b5e6250574c1f9c3534d3ab4",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 129,
+      "line": 134,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "727a65ed61d06536900a143b2d097317fa0be5dc9d5bb2a675b1e1c5cf56bf28",
       "decision_ids": []
@@ -9065,7 +9105,7 @@
     {
       "id": "REQ-87588d0e55fecf4d51b955f8",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 130,
+      "line": 135,
       "section": "Salus OSINT Global Endpoint Register / Economy, finance, trade, infrastructure and supply-chain endpoints",
       "text_sha256": "7f5e6dc13ea5e6e8368acb0cd7294fd021a205a7372eef3b0070ee55f6e28ceb",
       "decision_ids": []
@@ -9073,7 +9113,7 @@
     {
       "id": "REQ-e46797f50715722d94f2206a",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 132,
+      "line": 137,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "003668653e1fea0577381ca39e9a018cfbf2cf3668ce31b389a48475922ce202",
       "decision_ids": []
@@ -9081,7 +9121,7 @@
     {
       "id": "REQ-11d24d5f87309eaf88fcb38a",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 134,
+      "line": 139,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "9bc759f32c584d8d179e522359eafe739aeaa8ecac88515bd99cc14cc895761d",
       "decision_ids": []
@@ -9089,7 +9129,7 @@
     {
       "id": "REQ-f0365e9ee5c79c7ce76b7c67",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 135,
+      "line": 140,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "4da1ec6f47782090102dc16bda978efb5655fbf2ddce0f84ecf1faf79a930f2d",
       "decision_ids": []
@@ -9097,7 +9137,7 @@
     {
       "id": "REQ-4eb34011337c488e49d0d743",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 136,
+      "line": 141,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "3d5a73b2079cf4129ccc6ebf5ba923e059e0b1ff7257ca9dab27e5b265da9f5e",
       "decision_ids": []
@@ -9105,7 +9145,7 @@
     {
       "id": "REQ-613e1559e94d3d680658be96",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 137,
+      "line": 142,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "fac67510ac2965c29d047fec4a0e04a512a6c8cce6e229857c6f3c6f69e56c54",
       "decision_ids": []
@@ -9113,7 +9153,7 @@
     {
       "id": "REQ-dbfe08fdd6adbe55281c905a",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 138,
+      "line": 143,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "0e334938de2f54c2bae60612dc0fd673c56a3f3e87dceba57639b825816ec2de",
       "decision_ids": []
@@ -9121,7 +9161,7 @@
     {
       "id": "REQ-cc0faa31802a00198c25a240",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 139,
+      "line": 144,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "79f7db9f1494929ed2a547a52ce227a08a3f716286ebf256a6746aa0e14efd0b",
       "decision_ids": []
@@ -9129,7 +9169,7 @@
     {
       "id": "REQ-db55e9273eb234d00c249c54",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 140,
+      "line": 145,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "043ded2aa53fec0a41ac7aba6069732c38c4e03c5a9ad7381aeeb3cecfaa7d3b",
       "decision_ids": []
@@ -9137,7 +9177,7 @@
     {
       "id": "REQ-21acfb358c79626fa9785c0a",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 141,
+      "line": 146,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "e4568d58589b6598695252b3281c99ea83d235740ff0699e47f9eb4ab83d36c6",
       "decision_ids": []
@@ -9145,7 +9185,7 @@
     {
       "id": "REQ-cef3670e8afc3b75d183b499",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 142,
+      "line": 147,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "01f1eba852d9f654e6cf6b0ec29be40d18cf1131a26179fa2cefb0a6a26c1d99",
       "decision_ids": []
@@ -9153,7 +9193,7 @@
     {
       "id": "REQ-307c72cd6c69fbf7b891ba1b",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 143,
+      "line": 148,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "e0e54361a7eea184102c4fa7acefad503858f41a8376b6bf6fa431b3105b0c2c",
       "decision_ids": []
@@ -9161,7 +9201,7 @@
     {
       "id": "REQ-9a47ecb075b00424c070ef1d",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 144,
+      "line": 149,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "4a1876db2b4e84eadc5d86ac081e4bb307f06b24fdba9cde43fe30af1152f2c8",
       "decision_ids": []
@@ -9169,7 +9209,7 @@
     {
       "id": "REQ-dfb0434154051d95687e71bd",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 145,
+      "line": 150,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "52e475b50a776dd8e5eeaf141f1353949d01f0773e0699d12af3dac99954ffad",
       "decision_ids": []
@@ -9177,7 +9217,7 @@
     {
       "id": "REQ-031f76f44623a0c4c9a66657",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 146,
+      "line": 151,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "be1d5f2132055086913409b2e7e651d8fa8a0d021c38cef3db6bf626b1ccfb96",
       "decision_ids": []
@@ -9185,7 +9225,7 @@
     {
       "id": "REQ-5147c5cb19129a877424d173",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 147,
+      "line": 152,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "9bf10557b4a62040925cbefbf27aa8eadf6df30d1f1bb70d5922e792c7ec9b37",
       "decision_ids": []
@@ -9193,7 +9233,7 @@
     {
       "id": "REQ-52b77885653af24471d86015",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 148,
+      "line": 153,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "7bbf542ef544cf9a1d4c2a460141cb0b2a5b8061f989ff487a55a7b8390e54d9",
       "decision_ids": []
@@ -9201,23 +9241,23 @@
     {
       "id": "REQ-f3b68814dd003e24fa4a2504",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 149,
+      "line": 154,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "dfd168736e5ec6e425156f2567a014441df67c70b43f08fe672fc46d4a9e8da3",
       "decision_ids": []
     },
     {
-      "id": "REQ-90aef883a2c3efa123017bc5",
+      "id": "REQ-0e4ad996dc06d45f05f25b28",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 150,
+      "line": 155,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
-      "text_sha256": "729e03bf3594cad2901923e551b3df92e275c221e249e704e289373aca12be32",
+      "text_sha256": "cee329d3b98916f2d903d84802efd62c6b296ea7625a6d89619445d3c7b07f87",
       "decision_ids": []
     },
     {
       "id": "REQ-8e22a985fbb8ac5dd5932820",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 151,
+      "line": 156,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "3cdb83af27f53d66275d5fc9851be807d1583e86ff3689506108ae19c8967854",
       "decision_ids": []
@@ -9225,15 +9265,31 @@
     {
       "id": "REQ-c1b785f5291856a14660ccde",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 152,
+      "line": 157,
       "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
       "text_sha256": "711933f7f0ad788cc31d657e22789cb77834c3049428d600bb79bbf123042ab6",
       "decision_ids": []
     },
     {
+      "id": "REQ-081d1bbd66d7c70b01f75bdb",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 158,
+      "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
+      "text_sha256": "ef6a15b4779f05ca3d73a6a4ea62ff2a80a0e6c798ec009443bfc150d3ccf9b7",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-1ad22247a7a5b7e332a9af9d",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 159,
+      "section": "Salus OSINT Global Endpoint Register / Geospatial, imagery, research and methodology endpoints",
+      "text_sha256": "569b4ecdcd12fe3405e32fa01c0da545d46ce1a294b95e8aa007d0ba4c19c2ab",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-c4acf203b0e0ffe4307655c8",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 154,
+      "line": 161,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "8e5509f9d56206e5a3b2f5ef60d21adde739c74c260a88299ef02fddac2b5d80",
       "decision_ids": []
@@ -9241,7 +9297,7 @@
     {
       "id": "REQ-69f8bb31262a8768bf00ef1b",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 156,
+      "line": 163,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "97f89f05723036091f4af9046bc92a0d2772b69d51dfedbb35451584c90fd603",
       "decision_ids": []
@@ -9249,7 +9305,7 @@
     {
       "id": "REQ-4ec2aa144ee89720195e3b59",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 158,
+      "line": 165,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "a9ebb2390cf448ee97b78ee164f404e66529584dc88c2fdc0b14425b0b6247b0",
       "decision_ids": []
@@ -9257,7 +9313,7 @@
     {
       "id": "REQ-1d8ee095407e3102fed441fd",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 159,
+      "line": 166,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "cd31b763209ef79f63ab39ccdc601265d22519db897e71eea6f9e6462df141e0",
       "decision_ids": []
@@ -9265,7 +9321,7 @@
     {
       "id": "REQ-0ddefe119964ba8b6587d34c",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 160,
+      "line": 167,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "e4025dfdf896487686ba3aaeff3e8b21cbb5e156e0a71873ddfd7de3a0c9e1c0",
       "decision_ids": []
@@ -9273,7 +9329,7 @@
     {
       "id": "REQ-929d8aab66f7e6dba2a19168",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 161,
+      "line": 168,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "577a6f6a7b2efc376e167e729670bcab2f18fd9e3f791a623db20516eff49629",
       "decision_ids": []
@@ -9281,7 +9337,7 @@
     {
       "id": "REQ-1a421ef078e2a5115aad1943",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 162,
+      "line": 169,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "5b6ace3f9c7e4a8d21f1f29ac6b359c0307ba034892ccc7743cd09d33922dd16",
       "decision_ids": []
@@ -9289,7 +9345,7 @@
     {
       "id": "REQ-0a155879b798dd23adda2f3d",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 163,
+      "line": 170,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "d985c446a686fc3891f70753a3e6459e6ff97cbeaa546ae0a0da47d00cef55da",
       "decision_ids": []
@@ -9297,7 +9353,7 @@
     {
       "id": "REQ-888af05ee8559f47fa32a5b4",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 164,
+      "line": 171,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "bf3236a405b26be6d42522242091019ead682e62232bad42673ed8e9b6013ea2",
       "decision_ids": []
@@ -9305,7 +9361,7 @@
     {
       "id": "REQ-bc2ac58802b242bc1265e764",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 165,
+      "line": 172,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "d62b8697119ee7d147d1dcd29b302fb52c9ee9c8e7b338193831871672d926e6",
       "decision_ids": []
@@ -9313,7 +9369,7 @@
     {
       "id": "REQ-15e38d8765b9e303d58386f1",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 166,
+      "line": 173,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "44279ccfb26c22645f67077230c442130b901cd775072d167ba4d7b2fad520ba",
       "decision_ids": []
@@ -9321,7 +9377,7 @@
     {
       "id": "REQ-5be2780d90fbdab284542ea6",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 167,
+      "line": 174,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "9f4a5adb304c044e8e2a216005ed9138c04bef03aac18e28cfaff627fb79a814",
       "decision_ids": []
@@ -9329,7 +9385,7 @@
     {
       "id": "REQ-f603d7e832fdbe44a8d108ea",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 168,
+      "line": 175,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "3a83dee78d474cfe38527582f04b399d246fc5fbc474fdee598e505ffca21888",
       "decision_ids": []
@@ -9337,15 +9393,103 @@
     {
       "id": "REQ-6146ec50bfa762fc822adbb6",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 169,
+      "line": 176,
       "section": "Salus OSINT Global Endpoint Register / 9 November 2026 weekly candidate provenance records",
       "text_sha256": "5683d675247c4e0cd55600b45175e36a788336ec74edeae4b2da62ca1448b857",
       "decision_ids": []
     },
     {
+      "id": "REQ-9ae4e37bf6f3649273391265",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 178,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "82955f121bd7f3dc3e3483379db0121633e782497cc96441cd8194850206db3f",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-30c649735f33c4c92d244f6e",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 180,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "6883a0ced44434a7630deb1747ecf56ba5bf709a1fb3fab0892af9fab08d324f",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-dcc1d9350ad746b1b57c6b3c",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 182,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "a9ebb2390cf448ee97b78ee164f404e66529584dc88c2fdc0b14425b0b6247b0",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d7e8fb089a3ff14d1108545e",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 183,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "cd31b763209ef79f63ab39ccdc601265d22519db897e71eea6f9e6462df141e0",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-2c17e9d4718926e6f3449a79",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 184,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "0f401fe027fd0bf88cc600ca321b4fee1067216198968d3d1d3a47b6a3ec18ea",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-17db7777459afb6d7efe981a",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 185,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "a78b9dbc958020bc3b83ad1f5bb718c44a207e898b867f049a633ddce2ab13af",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-2056748d294ed35564b7ef18",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 186,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "ec406c30fa7cf74bff913f7ae6c5452091496aeea751de6ad85ba29bca4c37ca",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c93b8762cefffcd1e9f05ead",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 187,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "2f8daa9adc45097e971d5d4cf932ec33e71381dfa001458239f8b994d244a148",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-bf73ca8ad2cfe8db1fe7f3b2",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 188,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "42ea00d5f9714fd66edadfd0abe2d3c237b618dd1f73c909ab1c38d8579e30e6",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-02a908bc986d3304e02fede4",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 189,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "851ccdbe35b5f4ffaf161acefb4cee7a52eb1fa036e5a432b1d3e5cace8f0918",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-2a67589e6b3daa95d7f6883f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 190,
+      "section": "Salus OSINT Global Endpoint Register / 16 November 2026 weekly candidate provenance records",
+      "text_sha256": "dca3f6a92476ad309e6143156ece55ea9c557098f4dfd167f56399d97efd3d75",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-f9599d9d68232c9fdda54fc3",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 171,
+      "line": 192,
       "section": "Salus OSINT Global Endpoint Register / Expansion queue and stopping rule",
       "text_sha256": "4e0255dfc1358dbce0562190cb6cd46a3361d6805e9b08d6fd7f302811668f4b",
       "decision_ids": []
@@ -9353,7 +9497,7 @@
     {
       "id": "REQ-5ce2c374d06e25566e5679d5",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 173,
+      "line": 194,
       "section": "Salus OSINT Global Endpoint Register / Expansion queue and stopping rule",
       "text_sha256": "bdfee4248fe853689c4bb707755f97ecd3ed02b6bad52c4b4d8757edfdb109a6",
       "decision_ids": []
@@ -9361,7 +9505,7 @@
     {
       "id": "REQ-dc2dffb9d03523c235195fb0",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 175,
+      "line": 196,
       "section": "Salus OSINT Global Endpoint Register / Expansion queue and stopping rule",
       "text_sha256": "8c9d2e1e078417813daf4bc016e3049f94dab2bfde96528e497ce1edfd493cb7",
       "decision_ids": []
@@ -9369,7 +9513,7 @@
     {
       "id": "REQ-3b07f948a066f1398ca7bfa5",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 177,
+      "line": 198,
       "section": "Salus OSINT Global Endpoint Register / Required weekly discovery and address count",
       "text_sha256": "70354194c9b6fa922a1709bb5ff6a3c85a5e4be0b582b70bbaf6f614c4b48f39",
       "decision_ids": []
@@ -9377,7 +9521,7 @@
     {
       "id": "REQ-461ea3df8ac4e8766aeaa036",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 179,
+      "line": 200,
       "section": "Salus OSINT Global Endpoint Register / Required weekly discovery and address count",
       "text_sha256": "7ffc010984dc09b925929b069e75690e25b4b59eba2569d176628c55676b44c8",
       "decision_ids": [
@@ -9387,7 +9531,7 @@
     {
       "id": "REQ-69037f98556219b5cb805645",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 181,
+      "line": 202,
       "section": "Salus OSINT Global Endpoint Register / Required weekly discovery and address count",
       "text_sha256": "021e9924b0d376ee56225fea7c6d6eec49ee74f0f971baed30acef7fcbfeb782",
       "decision_ids": []
@@ -9395,7 +9539,7 @@
     {
       "id": "REQ-c2b807a951508177299fa558",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 183,
+      "line": 204,
       "section": "Salus OSINT Global Endpoint Register / Required work-triggered topic expansion",
       "text_sha256": "5e83b56887727a4ebd1d05c5e38a8dc76ca39b6ed022d5e7f0fc7a9e07187594",
       "decision_ids": []
@@ -9403,7 +9547,7 @@
     {
       "id": "REQ-e82b1727eed6ea0ab96339ad",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 185,
+      "line": 206,
       "section": "Salus OSINT Global Endpoint Register / Required work-triggered topic expansion",
       "text_sha256": "58728da9645b25382b2c920f9ac382ac5461926f804721f8e4d39431888fbd2b",
       "decision_ids": [
@@ -9413,7 +9557,7 @@
     {
       "id": "REQ-dd38ae67b48ec45fdc436212",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
-      "line": 187,
+      "line": 208,
       "section": "Salus OSINT Global Endpoint Register / Required work-triggered topic expansion",
       "text_sha256": "27c96339ca48afe232ebc2f3c17102918552cccb553623fc4c51bb83021a33f4",
       "decision_ids": []
@@ -10235,17 +10379,97 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-e5002111989ee7263aefc6ce",
+      "id": "REQ-1caa5bf55b2fce6b6a3780b2",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
       "line": 33,
+      "section": "Salus OSINT Weekly Discovery Log / Weekly run entries",
+      "text_sha256": "069a6e1163e96730276b2caca24db430b1afccf35343aea1893c183f619f6208",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-e5002111989ee7263aefc6ce",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 34,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries",
       "text_sha256": "e2c1fb48f17f612e8e99421c06bbfe0fb189be7b8474b9fd19b1846b3b81ad3f",
       "decision_ids": []
     },
     {
+      "id": "REQ-333b12f8111ef2a6ed35adef",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 36,
+      "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
+      "text_sha256": "0f29765a49b3cbed51bdc4401503b716c4457a2a4c59c3af076d8b9fd1a5ea09",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-3c0ab90ff446920ed6ce3931",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 38,
+      "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
+      "text_sha256": "ee5bcac70c94b8cb530ad2ecd328b2654a88d533558dcbcccf9416fc9e0cdcf4",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-e063204a90c22deb9c3e1ec5",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 39,
+      "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
+      "text_sha256": "8debc6509800b72197530832d0839cf76587146cfcafe160d35270c7386e0fb7",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-0459ad1115c44f2ba436bad8",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 40,
+      "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
+      "text_sha256": "d528210e7c11155f7135109caa4f8c912dc9ab28235dca7be729c6a626336edf",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c85afa8794735edccf7a869f",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 41,
+      "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
+      "text_sha256": "5a11023f29dc8f689f035853658b93ece8ea119ba51d46cee33f786b89bfa440",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4219ecabf6540a8feeb9e412",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 42,
+      "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
+      "text_sha256": "2d05cd065f3f366f792833abc6ba513861f86144355f4325fea8dc8f3f288a0c",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a97510d2556dbb9345eaf6f6",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 43,
+      "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
+      "text_sha256": "85a27d298e57a24bf141181e8fb8810ec13f582bfcc9f8f46da59095f3f5d222",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-cfbb8a73dc5f38c2d2bd3aef",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 44,
+      "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
+      "text_sha256": "8408dc25c38bdfdb3965328f0f9e6ccf3074148a181598016ac2c1c72413d791",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a43cd2c2fb67c1b9f391f8f4",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 45,
+      "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-16-W01 supporting evidence",
+      "text_sha256": "24f0087927f8ade7e81b89d5673e70cdc530c9c0deaefae1623abf2a8b9d8da5",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-3ccb5573ccaee1cde3bbbe58",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 35,
+      "line": 47,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-09-W01 supporting evidence",
       "text_sha256": "78a1bf34f09677d30548757c4ce00a6ff87572415ab62a4fba400f11c5305364",
       "decision_ids": []
@@ -10253,7 +10477,7 @@
     {
       "id": "REQ-6333b04f51f43838efd20769",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 37,
+      "line": 49,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-09-W01 supporting evidence",
       "text_sha256": "2eef0b1d2d00ba79529a612b2dca01d85633a47b449c9d0d7e2505c9d5789bf3",
       "decision_ids": []
@@ -10261,7 +10485,7 @@
     {
       "id": "REQ-59d5b7134a0ce2808702b831",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 38,
+      "line": 50,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-09-W01 supporting evidence",
       "text_sha256": "102cb40524a075de761344eacdbe290082ea6c60c9705a79f170ed2fc9077af0",
       "decision_ids": []
@@ -10269,7 +10493,7 @@
     {
       "id": "REQ-290de786811ed47b66d0a446",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 39,
+      "line": 51,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-09-W01 supporting evidence",
       "text_sha256": "d3673a8795e87a5b9a645c184b5b75820c3239441f1f6bf584ac47d1ba2a0e48",
       "decision_ids": []
@@ -10277,7 +10501,7 @@
     {
       "id": "REQ-866c4a401d29806218f3f184",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 40,
+      "line": 52,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-09-W01 supporting evidence",
       "text_sha256": "e2c1fce2e1425ec0dfa47cafe794100d378a3f6872f15142888dd1f76fda269d",
       "decision_ids": []
@@ -10285,7 +10509,7 @@
     {
       "id": "REQ-4a1fb3cd9764f0fa6371c652",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 41,
+      "line": 53,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-09-W01 supporting evidence",
       "text_sha256": "ade9b55634a489c4582afedec5a3570ed243cbeb5653c5cb37d6d904e8a2e6c9",
       "decision_ids": []
@@ -10293,7 +10517,7 @@
     {
       "id": "REQ-c4f02e3d98359b17a90274cc",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 42,
+      "line": 54,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-09-W01 supporting evidence",
       "text_sha256": "6b08322596cb9a2e42406a5b058bda49a1e1ac4da751198d2cd66494f12dbb7e",
       "decision_ids": []
@@ -10301,7 +10525,7 @@
     {
       "id": "REQ-b5c26eae15eaa9579b55277b",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 43,
+      "line": 55,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-09-W01 supporting evidence",
       "text_sha256": "b4a952a8b5e4a3060de35ece281570db2ca5b595664b7799ad7cd486bcc9490e",
       "decision_ids": []
@@ -10309,7 +10533,7 @@
     {
       "id": "REQ-d12c2d687f31dc0b793498ba",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 45,
+      "line": 57,
       "section": "Salus OSINT Weekly Discovery Log / Work-triggered topic-expansion queue",
       "text_sha256": "86144366cc054a3231b9200f7ef2f56c7d5ace932958ac86db5a093759cc5484",
       "decision_ids": []
@@ -10317,7 +10541,7 @@
     {
       "id": "REQ-7e37503864be385454d5f014",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 47,
+      "line": 59,
       "section": "Salus OSINT Weekly Discovery Log / Work-triggered topic-expansion queue",
       "text_sha256": "40a84666b3502909837d093cabbe81efd5453e1ea407feb0e8e6d4663e98a0d7",
       "decision_ids": []
@@ -10325,7 +10549,7 @@
     {
       "id": "REQ-2e9523194c0f37bc5e311426",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 49,
+      "line": 61,
       "section": "Salus OSINT Weekly Discovery Log / Work-triggered topic-expansion queue",
       "text_sha256": "3e3e73108b6dff6edfbb2ee0c1340ee895a2878ffbce6a4e1e0c252ff6a1ca15",
       "decision_ids": []
@@ -10333,7 +10557,7 @@
     {
       "id": "REQ-a4c56f4b8604d663176e86bf",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 50,
+      "line": 62,
       "section": "Salus OSINT Weekly Discovery Log / Work-triggered topic-expansion queue",
       "text_sha256": "66f1eb8c19fc7fb20882ef6cc0fd106fd6fe92f56f53fc61997df8152662e990",
       "decision_ids": []
@@ -10341,7 +10565,7 @@
     {
       "id": "REQ-a262a00a70bfc58e19b3c41f",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
-      "line": 52,
+      "line": 64,
       "section": "Salus OSINT Weekly Discovery Log / Work-triggered topic-expansion queue",
       "text_sha256": "5622a070e127c82fe803e80646b5cca85efc00a15439fb792af9b3692da320af",
       "decision_ids": [
@@ -30314,5 +30538,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "1aeddcfc2e25dc590aea243c3b45786ce96859417d27e23629f7f7c6a305708a"
+  "register_sha256": "9f24f349d29bc7795c38615f5cb1ef6d248cf0a273f436f3b4ace7dfff3e9f68"
 }
