@@ -107,10 +107,11 @@ def register(root):
     return result
 
 
-def new_task(catalog, task_id, objective):
+def new_task(catalog, task_id, objective, task_type='unclassified'):
     if not task_id.strip() or not objective.strip():
         raise ValueError('task identity and objective required')
     return {'schema_version': VERSION, 'task_id': task_id, 'objective': objective,
+            'task_type': task_type, 'model_reminder': {},
             'register_sha256': catalog['register_sha256'],
             'scope': {'authorization': '', 'boundary': '', 'limitations': []},
             'requirements': [{'id': u['id'], 'state': 'pending', 'reason': '',
@@ -163,6 +164,32 @@ def check(root, catalog, task, evidence_root, now=None):
             fail('EVIDENCE_INVALID:' + str(eid))
     def proof(ids):
         return isinstance(ids, list) and bool(ids) and all(i in verified for i in ids)
+    # A reminder is evidence of a request, never evidence of a model switch.
+    def normalize_reminder(value):
+        return value.translate(str.maketrans({'\u2011': '-', '\u2013': '-', '\u2014': '-'})).replace('**', '').casefold()
+    def reminder_proved(eid, text_value):
+        try:
+            observed = json.loads(verified[eid])
+            return (isinstance(observed, dict) and observed.get('task_id') == task['task_id']
+                    and normalize_reminder(observed['visible_text']) == text_value)
+        except (ValueError, KeyError, TypeError, AttributeError, UnicodeError):
+            return False
+    reminder = task.get('model_reminder', {})
+    required = {'assessment': ('gpt-6-astra', 'highest_available', 'gpt-6 astra', 'highest'),
+                'other': ('gpt-6.1-sol', 'medium', 'gpt-6.1 sol', 'medium')}.get(task.get('task_type'))
+    try:
+        text_value = normalize_reminder(reminder['text'])
+        if not required or reminder['task_id'] != task['task_id'] or (
+                reminder.get('model'), reminder.get('reasoning')) != required[:2]:
+            raise ValueError('unclassified, foreign or mismatched reminder')
+        if reminder.get('automatic_switching_claimed') is not False or not proof(reminder.get('evidence')):
+            raise ValueError('no reminder proof or false automatic-switch claim')
+        if not all(part in text_value for part in (required[2], required[3], 'reasoning', 'switch')):
+            raise ValueError('visible reminder does not request the required settings')
+        if not any(reminder_proved(eid, text_value) for eid in reminder['evidence']):
+            raise ValueError('reminder text not present in retained evidence')
+    except (ValueError, KeyError, TypeError, AttributeError, UnicodeError):
+        fail('TASK_MODEL_REMINDER_NOT_VERIFIED')
     expected = {u['id'] for u in catalog['units']}
     records = task.get('requirements', [])
     ids = [r.get('id') for r in records if isinstance(r, dict)]
@@ -382,6 +409,7 @@ def main(argv=None):
     parser.add_argument('--task', type=Path)
     parser.add_argument('--task-id')
     parser.add_argument('--objective')
+    parser.add_argument('--task-type', choices=['assessment', 'other'])
     parser.add_argument('--evidence-root', type=Path)
     parser.add_argument('--receipt', type=Path)
     parser.add_argument('--journal', type=Path)
@@ -400,7 +428,8 @@ def main(argv=None):
             if catalog != register(args.root):
                 raise ValueError('stale register')
             if args.command == 'init':
-                save(args.task, new_task(catalog, args.task_id, args.objective), exclusive=True)
+                save(args.task, new_task(catalog, args.task_id, args.objective,
+                                        args.task_type or 'unclassified'), exclusive=True)
             else:
                 save(args.task, reconcile(load(args.task), catalog))
         else:

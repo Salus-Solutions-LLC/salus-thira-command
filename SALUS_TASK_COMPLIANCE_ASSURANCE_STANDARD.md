@@ -65,3 +65,10 @@ Read `docs/charter-task-compliance.md` for commands and record formats. Operatio
 ## Supporting research and limits
 
 The NIST AI RMF Core (2023), MEASURE 1.1, 2.1, 2.3, 2.5 and MANAGE 4.3, supports recording test methods, conditions, limitations and improvement evidence: https://airc.nist.gov/airmf-resources/airmf/5-sec-core/ (reviewed 15 November 2026). It is a voluntary method reference, not a certification or evidence that these controls provide error-free performance. NIST also calls for independent expertise where appropriate; assistant self-checks do not replace required competent human judgments.
+
+
+## Every-task model-switch reminder [SAL-D139]
+
+Apply SALUS-MODEL-REMINDER-001 in the Charter before every task/brief answer and work-category change. Record task_type as assessment or other, then model_reminder with task_id, model, reasoning, text, evidence and automatic_switching_claimed=false. Assessment requires gpt-6-astra / highest_available; other requires gpt-6.1-sol / medium. Retain the exact visible user-facing reminder; normalized text and its actual evidence bytes must contain the required model and reasoning request. The checker verifies the recorded reminder and its bytes, not actual delivery to a person, semantic task classification, actual model selection or universal cross-chat interception. The assistant must classify the task honestly and issue the reminder visibly. A missing/unclassified task, foreign reminder, absent evidence, mismatched model/reasoning/text or automatic-switch claim blocks record verification and enters corrective-action tracking. No new human attestation or reminder-acknowledgement gate is created; existing source/capture/quality and protected-action gates remain unchanged.
+
+Retained reminder evidence is JSON containing task_id and visible_text copied from the actual user-facing reminder, with its source reference/provenance. Its task identity and normalized exact text must match the current reminder record; another task's reminder or malformed evidence cannot satisfy the check. This binding does not establish delivery or selected-model truth without separate actual evidence.

@@ -29,6 +29,8 @@ class ComplianceGateTests(unittest.TestCase):
         self.task = gate.new_task(self.catalog, 'FICTIONAL-CONTROL-TEST', 'Check a fictional artifact')
         self.task['scope'] = {'authorization': 'Fictional test only', 'boundary': 'Fixture bytes only', 'limitations': []}
         self.add_evidence('proof', {'method': 'fictional test execution', 'outcome': 'expected result'})
+        self.task['task_type'] = 'other'
+        self.remind('gpt-6.1-sol', 'medium', 'Please switch to GPT-6.1 Sol at Medium reasoning.')
         for row in self.task['requirements']:
             row.update(state='met', reason='Fictional predicate proved by fixture', evidence=['proof'],
                        checks=[{'criterion': 'Fixture criterion', 'result': 'pass', 'evidence': ['proof']}])
@@ -65,6 +67,12 @@ class ComplianceGateTests(unittest.TestCase):
         self.task['evidence'][eid] = {'path': path.name, 'sha256': gate.fingerprint(data),
             'provenance': 'Fictional fixture only', 'method': 'fixture_readback', 'result': 'verified'}
 
+    def remind(self, model, reasoning, text):
+        self.add_evidence('reminder', {'task_id': self.task['task_id'], 'visible_text': text})
+        self.task['model_reminder'] = {'task_id': self.task['task_id'], 'model': model,
+            'reasoning': reasoning, 'text': text, 'evidence': ['reminder'],
+            'automatic_switching_claimed': False}
+
     def mutate_evidence(self, eid, fn):
         value = gate.load(self.evidence / self.task['evidence'][eid]['path'])
         fn(value)
@@ -75,6 +83,79 @@ class ComplianceGateTests(unittest.TestCase):
 
     def rejects(self, code):
         self.assertIn(code, self.result()['errors'])
+
+    def test_assessment_reminder_passes_without_switch_confirmation(self):
+        self.task['task_type'] = 'assessment'
+        self.remind('gpt-6-astra', 'highest_available',
+                    'Please switch to GPT-6 Astra at the highest available reasoning setting.')
+        self.assertEqual(self.result()['result'], 'verified_record')
+
+    def test_missing_reminder_is_blocked(self):
+        del self.task['model_reminder']
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_unclassified_task_cannot_pass(self):
+        self.task['task_type'] = 'unclassified'
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_assessment_using_other_reminder_is_blocked(self):
+        self.task['task_type'] = 'assessment'
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_other_work_using_assessment_reminder_is_blocked(self):
+        self.remind('gpt-6-astra', 'highest_available',
+                    'Please switch to GPT-6 Astra at the highest available reasoning setting.')
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_wrong_reasoning_is_blocked(self):
+        self.task['model_reminder']['reasoning'] = 'high'
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_foreign_task_reminder_is_blocked(self):
+        self.task['model_reminder']['task_id'] = 'another-task'
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_reminder_without_actual_proof_is_blocked(self):
+        self.task['model_reminder']['evidence'] = []
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_reminder_text_does_not_match_proof_is_blocked(self):
+        self.task['model_reminder']['text'] = 'Please switch to GPT-6.1 Sol at Medium reasoning. Extra.'
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_reminder_fields_cannot_disguise_wrong_visible_text(self):
+        self.task['model_reminder']['text'] = 'Please switch to GPT-6 Astra at highest reasoning.'
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_false_automatic_switch_claim_is_blocked(self):
+        self.task['model_reminder']['automatic_switching_claimed'] = True
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_model_listing_without_switch_request_is_blocked(self):
+        self.remind('gpt-6.1-sol', 'medium', 'GPT-6.1 Sol Medium reasoning.')
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_reminder_rechecked_at_task_category_change(self):
+        self.task['task_type'] = 'assessment'
+        self.assertIn('TASK_MODEL_REMINDER_NOT_VERIFIED', self.result()['errors'])
+        self.remind('gpt-6-astra', 'highest_available',
+                    'Please switch to GPT-6 Astra at highest available reasoning.')
+        self.assertEqual(self.result()['result'], 'verified_record')
+        self.task['task_type'] = 'other'
+        self.assertIn('TASK_MODEL_REMINDER_NOT_VERIFIED', self.result()['errors'])
+
+    def test_reminder_typography_normalization(self):
+        self.task['model_reminder']['text'] = 'Please switch to **GPT\u20116.1 Sol** at **Medium reasoning**.'
+        self.assertEqual(self.result()['result'], 'verified_record')
+
+    def test_foreign_task_reminder_evidence_is_blocked(self):
+        self.mutate_evidence('reminder', lambda x: x.update(task_id='other-task'))
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_malformed_reminder_evidence_is_blocked(self):
+        self.add_evidence('reminder', ['not-a-reminder-record'])
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
 
     def test_complete_record_needs_no_routine_human_attestation(self):
         self.assertEqual(self.result()['errors'], [])
