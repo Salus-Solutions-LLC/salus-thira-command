@@ -290,7 +290,13 @@ def prepare(inner,context,*,expected_input=INPUT_SHA,expected_parent=rem.PARENT_
         evidence={'represented':current['represented'],'holds':current['holds'],'candidates':sorted([r for r in old['candidates'] if r['source_item_id'] not in changed]+baseline.candidate_subset(conn,changed),key=lambda r:r['id'])};del old
         if changed:families['C'].update(search_matrix(conn,family='C',source_ids=changed))
         for family in ('B','H'):families[family]=search_matrix(conn,family=family)
-        observation=observe(evidence,current,context['inventory'],baseline.combine_families(families),context['drive_id']);del evidence,families
+        observation=observe(evidence,current,context['inventory'],baseline.combine_families(families),context['drive_id'])
+        reviewed={r['source_item_id'] for batch in context['reviews'] for r in batch['sources']}
+        signature=baseline.membership_signature(evidence)
+        observation['unresolved_outside_review_scope']=sorted(s for s,v in signature.items() if v[0]!='legacy_available' and s not in reviewed)
+        observation['unresolved_outside_review_scope_count']=len(observation['unresolved_outside_review_scope'])
+        observation['outside_scope_disposition']='Considered in current corpus; no review or preflight proposal authority outside the immutable input batches'
+        del evidence,families,signature,reviewed
         reviews=context['reviews'];preflights=context['preflights'];current_checkpoints(conn,preflights)
         selected=validate_scope(reviews,preflights,expected_batches,expected_sources)
         header={'operation_key':KEY,'state':STATE,'created_at':observation['created_at'],'input_operation_key':rem.KEY,'input_manifest_sha256':expected_input,

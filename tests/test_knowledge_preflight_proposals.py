@@ -95,6 +95,14 @@ class PreflightTests(unittest.TestCase):
         header,_,_,_=self.prepare();obs=header['current_consideration']
         for bit,receipt in enumerate(obs['receipts']):self.assertEqual(sum(bool(v&(1<<bit)) for _,v in obs['per_source_coverage']),receipt['matched_count'])
 
+    def test_outside_unresolved_source_is_considered_without_scope_expansion(self):
+        self.conn.execute("INSERT INTO m365_bulk_items(drive_id,pending_id,item_id,parent_id,etag,size,status,attempts,next_attempt,updated_at,lease_owner,lease_until,kind) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",('PRIVATE-DRIVE','PRIVATE-FOLDER','outside-source','PRIVATE-PARENT','v1',12,'Pending',0,0,0,'',0,'file'))
+        self.inventory['outside-source']=dict(self.inventory['s1']);self.conn.commit();self.refresh_preflight()
+        header,reviews,_,_=self.prepare();obs=header['current_consideration']
+        self.assertEqual(obs['unresolved_outside_review_scope'],['outside-source']);self.assertEqual(obs['unresolved_outside_review_scope_count'],1)
+        self.assertEqual(obs['represented_files'],7);self.assertEqual(header['reviewed_sources'],5)
+        self.assertNotIn('outside-source',{r['source_item_id'] for batch in reviews for r in batch['sources']})
+
     def test_atomic_rollback_keeps_sixteen_and_empty_target(self):
         with self.assertRaisesRegex(ValueError,'INJECTED_ROLLBACK'):self.prepare(fail_after_reviews=True)
         self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM '+support.RECEIPT_TABLE).fetchone()[0],16)

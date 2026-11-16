@@ -25,7 +25,7 @@
     "tools/live_knowledge_baseline_proposal.py": "ae518470df0b531b7f8fb52f77192e696acdce54def130dbf15eb71c7c34b57b",
     "tools/live_knowledge_streamed_recovery_plan.py": "08a64472d68835789638233619c43f72104aa5ddf8e4aa47ceb55230dcea2c1b",
     "tools/live_knowledge_remediation_proposals.py": "d3c7c87e433294f922e3bea94f0bbecdf08da7d4ee81904a46328ef5312d00e8",
-    "tools/live_knowledge_preflight_proposals.py": "34ccedf50d2e93de54e643b512258c8ac9669a6d119a8060707feef62192df8c",
+    "tools/live_knowledge_preflight_proposals.py": "5c3ff1be15e9295bbb06aedfef6b9e5a19adbc2d5b30095ada2eb78c0fc326b8",
     "tools/knowledge_preflight_payload.py": "4f2f299ff03c8a0b15b366aa63d54109a612b5ee1ed9eb3886ce23d1b87c9ad0",
     "tools/knowledge_job_execution_diagnostic.py": "3b244a177442064c2b4c23bd42a4407fc774aad197644fd966fbcf12354078eb"
   },
@@ -51,7 +51,7 @@
       "sha256": "54e0bcb2af569eb0cb6486ff640e6790f23b59551e3196f44cfe5d40ec884058"
     }
   ],
-  "payload_sha256": "db0437d53cf225ca1c2a8359c890e26dc166825367a73ff488fee3101f9a6c38",
+  "payload_sha256": "dacaa1eed43f68a2306d321d022e70a4adf3789feea27fa9cf77f8eb6ce1f598",
   "target_environment": "dev",
   "resource_group": "rg-salcapa-dev",
   "source_release": "release/v3.276",
